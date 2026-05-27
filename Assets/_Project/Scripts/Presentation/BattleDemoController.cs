@@ -6,6 +6,8 @@ using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
 using Grimhand.Content;
+using Grimhand.Expedition;
+using Grimhand.Expedition.Model;
 using UnityEngine;
 
 namespace Grimhand.Presentation
@@ -17,8 +19,11 @@ namespace Grimhand.Presentation
         const float MaxContentWidth = 1100f;
 
         [SerializeField] BattleSetupSO battleSetup;
+        [SerializeField] ExpeditionSetupSO expeditionSetup;
 
         BattleEngine _engine;
+        ExpeditionEngine _expedition;
+        bool _battleEndHandled;
         readonly List<string> _log = new();
         Vector2 _mainScroll;
         Vector2 _logScroll;
@@ -39,11 +44,65 @@ namespace Grimhand.Presentation
 
         void Start()
         {
-            RestartBattle();
+            if (expeditionSetup != null)
+                BeginExpedition();
+            else
+                RestartBattle();
+        }
+
+        void BeginExpedition()
+        {
+            var config = BuildExpeditionConfig();
+            if (config.CombatEncounters.Count == 0)
+            {
+                Debug.LogError("远征配置无战斗遭遇，回退单场战斗。");
+                _expedition = null;
+                RestartBattle();
+                return;
+            }
+
+            _expedition = new ExpeditionEngine(config);
+            _expedition.StartRun();
+            _log.Clear();
+            _battleEndHandled = false;
+            Log($"远征开始 — 共 {_expedition.Run.TargetBattleCount} 场 · 血量跨场不恢复");
+            StartExpeditionBattle();
+        }
+
+        ExpeditionConfig BuildExpeditionConfig()
+        {
+            if (expeditionSetup != null)
+                return expeditionSetup.ToExpeditionConfig();
+
+            var config = new ExpeditionConfig
+            {
+                RunSeed = Random.Range(1, int.MaxValue),
+                TargetBattleCount = 3,
+                RoutesPerVictory = 3
+            };
+
+            var encounter = battleSetup != null
+                ? battleSetup.ToBattleConfig()
+                : DemoBattleFactory.CreateDefault3v3();
+            config.CombatEncounters.Add(encounter);
+            return config;
+        }
+
+        void StartExpeditionBattle()
+        {
+            var config = _expedition.Run.CurrentBattleConfig;
+            _engine = new BattleEngine(config);
+            _engine.StartBattle();
+            AppendEngineEvents();
+            _battleEndHandled = false;
+            Log($"第 {_expedition.CurrentBattleNumber}/{_expedition.Run.TargetBattleCount} 场 — 种子 {config.Seed}");
+            LogPartyHpSnapshot(_expedition.Run.Party);
         }
 
         void RestartBattle()
         {
+            _expedition = null;
+            _battleEndHandled = false;
             var config = battleSetup != null
                 ? battleSetup.ToBattleConfig()
                 : DemoBattleFactory.CreateDefault3v3();
@@ -86,17 +145,19 @@ namespace Grimhand.Presentation
             }
 
             var state = _engine.State;
+            CheckExpeditionBattleEnd();
             _hoveredCardId = null;
+            var expeditionBlocksInput = _expedition != null &&
+                                        _expedition.Run.Phase != ExpeditionPhase.InBattle;
             var topH = 52f;
             var bottomH = 40f;
             var topY = pad;
 
             GUI.Box(new Rect(contentX, topY, contentW, topH), "", _boxStyle);
             GUI.Label(new Rect(contentX + 8, topY + 4, contentW - 16, 22),
-                $"Grimhand Demo  |  回合{state.TurnNumber}  {state.Phase}  能量{GetEnergyLabel()}  {state.Outcome}",
-                _titleStyle);
+                BuildTitleLine(state), _titleStyle);
             GUI.Label(new Rect(contentX + 8, topY + 26, contentW - 16, 20),
-                GetBattleSummary(state), _hintStyle);
+                BuildSubtitleLine(state), _hintStyle);
 
             var scrollY = topY + topH + 6f;
             var scrollH = vh - scrollY - bottomH - pad;
@@ -164,7 +225,7 @@ namespace Grimhand.Presentation
                         var selected = _engine.Draft.IsSelected(card.InstanceId);
                         var polluted = CardRules.IsPolluted(card);
                         var canAfford = _engine.Draft.EnergyRemaining >= card.Cost;
-                        GUI.enabled = state.Phase == TurnPhase.Planning && !polluted && (selected || canAfford);
+                        GUI.enabled = !expeditionBlocksInput && state.Phase == TurnPhase.Planning && !polluted && (selected || canAfford);
 
                         var label = BuildCardLabelCompact(card);
                         if (polluted)
@@ -173,8 +234,14 @@ namespace Grimhand.Presentation
                             label = InsertSelectionOrderBadge(card, label);
 
                         var cardRect = new Rect(hx, 0, cardW, cardH);
+                        var prevBg = GUI.backgroundColor;
+                        if (polluted)
+                            GUI.backgroundColor = new Color(0.42f, 0.42f, 0.42f, 1f);
+
                         if (GUI.Button(cardRect, label, _cardButtonStyle))
                             _engine.ToggleCardSelection(card.InstanceId);
+
+                        GUI.backgroundColor = prevBg;
 
                         if (IsMouseOverHandCard(cardRect))
                             _hoveredCardId = card.InstanceId;
@@ -203,14 +270,14 @@ namespace Grimhand.Presentation
 
             var btnY = vh - pad - bottomH;
             var btnW = 118f;
-            GUI.enabled = state.Phase == TurnPhase.Planning && _engine.Draft.SelectedQueue.Count > 0;
+            GUI.enabled = !expeditionBlocksInput && state.Phase == TurnPhase.Planning && _engine.Draft.SelectedQueue.Count > 0;
             if (GUI.Button(new Rect(contentX, btnY, btnW, bottomH - 4), "确认出牌", _buttonStyle))
             {
                 _engine.CommitPlayerPlan();
                 AppendEngineEvents();
             }
 
-            GUI.enabled = state.Phase == TurnPhase.Planning;
+            GUI.enabled = !expeditionBlocksInput && state.Phase == TurnPhase.Planning;
             if (GUI.Button(new Rect(contentX + btnW + 6, btnY, btnW, bottomH - 4), "空过", _buttonStyle))
             {
                 _engine.SkipPlayerTurn();
@@ -218,15 +285,231 @@ namespace Grimhand.Presentation
             }
 
             GUI.enabled = true;
-            if (GUI.Button(new Rect(contentX + (btnW + 6) * 2, btnY, btnW, bottomH - 4), "重开战斗", _buttonStyle))
-                RestartBattle();
+            var restartLabel = _expedition != null ? "重开远征" : "重开战斗";
+            if (GUI.Button(new Rect(contentX + (btnW + 6) * 2, btnY, btnW, bottomH - 4), restartLabel, _buttonStyle))
+            {
+                if (_expedition != null)
+                    BeginExpedition();
+                else
+                    RestartBattle();
+            }
 
+            var hint = _expedition != null
+                ? "远征模式 | 胜利后选路线 | 血量不恢复"
+                : "滚轮浏览 | 悬停看关键词 | 已选牌显示 #顺序";
             GUI.Label(new Rect(contentX + (btnW + 6) * 3 + 8, btnY + 8, contentW - (btnW + 6) * 3 - 16, 24),
-                "滚轮浏览 | 悬停看关键词 | 已选牌显示 #顺序", _hintStyle);
+                hint, _hintStyle);
 
             DrawKeywordTooltip(state);
+            if (_expedition != null)
+                DrawExpeditionOverlay(contentX, topY, contentW, vh, pad);
 
             GUI.matrix = matrixBackup;
+        }
+
+        string BuildTitleLine(BattleState state)
+        {
+            if (_expedition == null)
+                return $"Grimhand Demo  |  回合{state.TurnNumber}  {state.Phase}  能量{GetEnergyLabel()}  {state.Outcome}";
+
+            var phaseLabel = _expedition.Run.Phase switch
+            {
+                ExpeditionPhase.RouteSelect => "选路线",
+                ExpeditionPhase.RunComplete => "远征完成",
+                ExpeditionPhase.RunFailed => "远征失败",
+                _ => state.Phase.ToString()
+            };
+
+            return $"远征 {_expedition.CurrentBattleNumber}/{_expedition.Run.TargetBattleCount}  |  回合{state.TurnNumber}  {phaseLabel}  能量{GetEnergyLabel()}  {state.Outcome}";
+        }
+
+        string BuildSubtitleLine(BattleState state)
+        {
+            if (_expedition != null)
+            {
+                if (_expedition.Run.Phase == ExpeditionPhase.InBattle)
+                    return FormatLivePartyHp(state) + "  |  " + GetBattleSummary(state);
+
+                if (_expedition.Run.Party.Count > 0)
+                    return FormatPartyHpLine(_expedition.Run.Party) + "  |  " + GetBattleSummary(state);
+            }
+
+            return GetBattleSummary(state);
+        }
+
+        static string FormatLivePartyHp(BattleState state)
+        {
+            var sb = new StringBuilder();
+            var first = true;
+            foreach (var c in state.Combatants)
+            {
+                if (c.Team != TeamSide.Player)
+                    continue;
+
+                if (!first)
+                    sb.Append("  ");
+                sb.Append(c.DisplayName).Append(' ').Append(c.Hp).Append('/').Append(c.MaxHp);
+                first = false;
+            }
+
+            return sb.Length == 0 ? "队伍 HP: —" : sb.ToString();
+        }
+
+        void CheckExpeditionBattleEnd()
+        {
+            if (_expedition == null || _engine == null || _battleEndHandled)
+                return;
+
+            var state = _engine.State;
+            if (state.Outcome == BattleOutcome.Ongoing || _battleEndHandled)
+                return;
+
+            _battleEndHandled = true;
+            _expedition.OnBattleFinished(state);
+
+            switch (_expedition.Run.Phase)
+            {
+                case ExpeditionPhase.RouteSelect:
+                    Log($"第 {_expedition.Run.BattlesWon} 场胜利 — 请选择前进路线（血量继承，不恢复）");
+                    LogPartyHpSnapshot(_expedition.Run.Party);
+                    break;
+                case ExpeditionPhase.RunComplete:
+                    Log("远征完成！三场战斗全胜。");
+                    LogPartyHpSnapshot(_expedition.Run.Party);
+                    break;
+                case ExpeditionPhase.RunFailed:
+                    Log("远征失败 — 队伍无法继续。");
+                    break;
+            }
+        }
+
+        void DrawExpeditionOverlay(float contentX, float topY, float contentW, float vh, float pad)
+        {
+            var phase = _expedition.Run.Phase;
+            if (phase == ExpeditionPhase.InBattle)
+                return;
+
+            var overlayH = vh - pad * 2f;
+            var prevColor = GUI.color;
+            GUI.color = new Color(0f, 0f, 0f, 0.55f);
+            GUI.Box(new Rect(contentX, topY, contentW, overlayH), "");
+            GUI.color = prevColor;
+
+            var panelW = Mathf.Min(contentW - 40f, 720f);
+            var panelX = contentX + (contentW - panelW) * 0.5f;
+            var panelY = topY + 48f;
+
+            if (phase == ExpeditionPhase.RouteSelect)
+            {
+                if (_expedition.Run.PendingRoutes.Count == 0)
+                    return;
+
+                DrawRouteSelectPanel(panelX, panelY, panelW);
+                return;
+            }
+
+            DrawRunEndPanel(panelX, panelY, panelW, phase);
+        }
+
+        void DrawRouteSelectPanel(float x, float y, float width)
+        {
+            // 快照路线列表：点击按钮会清空 PendingRoutes，同一次 OnGUI 内 for 循环不能再用 live 列表。
+            var routes = new List<ExpeditionRouteOption>(_expedition.Run.PendingRoutes);
+            if (routes.Count == 0)
+                return;
+
+            var routeCount = routes.Count;
+            var panelH = 280f;
+            GUI.Box(new Rect(x, y, width, panelH), "", _boxStyle);
+            GUI.Label(new Rect(x + 12, y + 8, width - 24, 24),
+                $"选择前进路线（已完成 {_expedition.Run.BattlesWon}/{_expedition.Run.TargetBattleCount} 场）",
+                _titleStyle);
+            GUI.Label(new Rect(x + 12, y + 32, width - 24, 20),
+                FormatPartyHpLine(_expedition.Run.Party) + "  —  下场战斗血量不变",
+                _hintStyle);
+
+            var cardW = (width - 48f) / routeCount - 8f;
+            var cardH = 180f;
+            var cardY = y + 58f;
+            var cx = x + 16f;
+
+            for (var i = 0; i < routeCount; i++)
+            {
+                var route = routes[i];
+                var label = BuildRouteCardLabel(route);
+                if (GUI.Button(new Rect(cx, cardY, cardW, cardH), label, _cardButtonStyle))
+                {
+                    if (_expedition.TrySelectRoute(i))
+                    {
+                        Log($"选择路线: {route.DisplayName} · {DescribeNodeType(route.NodeType)}");
+                        StartExpeditionBattle();
+                    }
+
+                    return;
+                }
+
+                cx += cardW + 8f;
+            }
+        }
+
+        void DrawRunEndPanel(float x, float y, float width, ExpeditionPhase phase)
+        {
+            var panelH = 160f;
+            GUI.Box(new Rect(x, y, width, panelH), "", _boxStyle);
+
+            var title = phase == ExpeditionPhase.RunComplete ? "远征完成" : "远征失败";
+            var body = phase == ExpeditionPhase.RunComplete
+                ? $"三场战斗全胜。最终状态：{FormatPartyHpLine(_expedition.Run.Party)}"
+                : "队伍无法继续。可重开远征再试。";
+
+            GUI.Label(new Rect(x + 12, y + 12, width - 24, 28), title, _titleStyle);
+            GUI.Label(new Rect(x + 12, y + 44, width - 24, 40), body, _hintStyle);
+
+            if (GUI.Button(new Rect(x + (width - 140f) * 0.5f, y + 100, 140, 36), "重新开始远征", _buttonStyle))
+                BeginExpedition();
+        }
+
+        static string BuildRouteCardLabel(ExpeditionRouteOption route)
+        {
+            var typeLabel = DescribeNodeType(route.NodeType);
+            return $"{route.DisplayName}\n[{typeLabel}]\n\n{route.Description}";
+        }
+
+        static string DescribeNodeType(ExpeditionNodeType type)
+        {
+            switch (type)
+            {
+                case ExpeditionNodeType.Combat: return "普通战斗";
+                case ExpeditionNodeType.Elite: return "精英";
+                case ExpeditionNodeType.Event: return "事件";
+                case ExpeditionNodeType.Shop: return "商店";
+                default: return type.ToString();
+            }
+        }
+
+        static string FormatPartyHpLine(IReadOnlyList<PartyMemberSnapshot> party)
+        {
+            if (party == null || party.Count == 0)
+                return "队伍 HP: —";
+
+            var sb = new StringBuilder();
+            for (var i = 0; i < party.Count; i++)
+            {
+                var m = party[i];
+                if (i > 0)
+                    sb.Append("  ");
+                sb.Append(m.DisplayName).Append(' ').Append(m.Hp).Append('/').Append(m.MaxHp);
+            }
+
+            return sb.ToString();
+        }
+
+        void LogPartyHpSnapshot(IReadOnlyList<PartyMemberSnapshot> party)
+        {
+            if (party == null || party.Count == 0)
+                return;
+
+            Log("队伍 HP: " + FormatPartyHpLine(party));
         }
 
         bool IsMouseOverHandCard(Rect cardContentRect)
@@ -794,6 +1077,7 @@ namespace Grimhand.Presentation
 
             _engine.ClearEvents();
             _logScroll.y = float.MaxValue;
+            CheckExpeditionBattleEnd();
         }
 
         void Log(string msg)

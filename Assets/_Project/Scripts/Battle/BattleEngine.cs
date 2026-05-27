@@ -126,7 +126,10 @@ namespace Grimhand.Battle
                     ResolveStep(new ResolutionStep(actor.Id, cardId, round));
 
                     if (_state.Outcome != BattleOutcome.Ongoing)
+                    {
+                        SetPhase(TurnPhase.BattleEnd);
                         return;
+                    }
                 }
 
                 round++;
@@ -311,12 +314,13 @@ namespace Grimhand.Battle
                     CharacterDefinitionId = cc.CharacterDefinitionId,
                     Level = cc.Level,
                     MaxHp = cc.MaxHp,
-                    Hp = cc.MaxHp,
                     BaseAttack = cc.BaseAttack,
                     BaseDefense = cc.BaseDefense,
                     Speed = cc.Speed
                 };
                 CombatantRules.RefreshDerivedStats(combatant);
+                var startHp = cc.StartHp ?? cc.MaxHp;
+                combatant.Hp = System.Math.Max(0, System.Math.Min(startHp, cc.MaxHp));
                 _state.Combatants.Add(combatant);
 
                 var drawPile = cc.Team == TeamSide.Player ? _state.PlayerDrawPile : _state.EnemyDrawPile;
@@ -327,8 +331,15 @@ namespace Grimhand.Battle
                 }
             }
 
+            foreach (var combatant in _state.Combatants)
+            {
+                if (!combatant.IsAlive)
+                    CombatantDeathRules.OnCharacterDied(_state, combatant, _events);
+            }
+
             DeckRules.ShuffleDrawPile(_state, TeamSide.Player, _rng, _events);
             DeckRules.ShuffleDrawPile(_state, TeamSide.Enemy, _rng, _events);
+            EvaluateOutcome();
         }
 
         CardInstanceState CreateCardInstance(CardTemplate template)

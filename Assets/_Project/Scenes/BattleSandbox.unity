@@ -285,7 +285,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 705df5bfb4c70f04fb8870d208a875b8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Grimhand.Presentation::Grimhand.Presentation.BattleDemoController
-  battleSetup: {fileID: 0}
+  battleSetup: {fileID: 11400000, guid: 25b1c62db6eb6784c973484210567f6c, type: 2}
+  expeditionSetup: {fileID: 11400000, guid: 37486697fa2b45946b3be8a80dcd659e, type: 2}
 --- !u!4 &2032981763
 Transform:
   m_ObjectHideFlags: 0

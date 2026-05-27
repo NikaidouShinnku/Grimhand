@@ -13,7 +13,21 @@
    - 或打开已有 `Assets/_Project/Scenes/BattleSandbox.unity`
 4. 选中 **BattleDemo**，确认 Inspector 中 **Battle Setup** 已绑定（若为空：  
    **`Grimhand` → `Content` → `Assign Demo Battle Setup to Scene`**）
-5. **Play Mode** — 当前为 **3v3**（三前排哥布林小队 vs 我方三人）
+5. **Play Mode** — 绑定 **Expedition Setup** 时为 **三场连战远征**；仅 Battle Setup 时为单场 3v3
+
+## 远征 Demo（三场连战）
+
+1. 菜单 **`Grimhand → Content → Generate Demo ScriptableObjects`**（会生成 `ExpeditionSetup_Demo.asset` 并尝试自动绑定）
+2. 选中 **BattleDemo**，确认 **Expedition Setup** 已绑定  
+   - 或菜单 **`Grimhand → Content → Assign Demo Expedition Setup to Scene`**
+3. **Play** — 流程：
+   - 第 1 场战斗 → 胜利后 **三选一路线**（目前均为普通战斗，遭遇可复用）
+   - 第 2 场 → 再选路线 → 第 3 场
+   - 三场全胜 → **远征完成**；任一场战败 → **远征失败**
+4. **血量跨场不恢复**（与杀戮尖塔一致）；每场敌人满血、牌堆重新洗牌
+5. 底部 **重开远征** 可从头再来
+
+仅想测单场战斗时，清空 Inspector 中的 **Expedition Setup** 即可。
 
 ## 操作说明
 
@@ -27,6 +41,7 @@
 |--------|------|
 | Grimhand.Core | RNG 等通用工具 |
 | Grimhand.Battle | 纯逻辑战斗内核（无 Unity 引用） |
+| Grimhand.Expedition | 远征流程（路线选择、跨场 HP 继承） |
 | Grimhand.Content | ScriptableObject 定义 |
 | Grimhand.Presentation | IMGUI Demo 控制器 |
 | Grimhand.Battle.Tests | EditMode 单元测试 |

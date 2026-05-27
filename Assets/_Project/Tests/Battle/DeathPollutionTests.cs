@@ -59,5 +59,26 @@ namespace Grimhand.Battle.Tests
             Assert.IsFalse(pollutedCard.IsUsable);
             Assert.IsFalse(engine.Draft.TrySelectCard(pollutedCard.InstanceId));
         }
+
+        [Test]
+        public void StartWithZeroHp_PollutesOwnerCardsOnInit()
+        {
+            var config = DemoBattleFactory.CreateDefault3v3();
+            foreach (var cc in config.Combatants)
+            {
+                if (cc.CharacterDefinitionId == "char_knight")
+                    cc.StartHp = 0;
+            }
+
+            var engine = new BattleEngine(config);
+            var polluted = 0;
+            foreach (var card in engine.State.CardsById.Values)
+            {
+                if (card.OwnerCharacterId == "char_knight" && !card.IsUsable)
+                    polluted++;
+            }
+
+            Assert.Greater(polluted, 0);
+        }
     }
 }

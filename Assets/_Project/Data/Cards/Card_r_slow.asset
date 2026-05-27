@@ -17,6 +17,9 @@ MonoBehaviour:
   OwnerCharacterId: char_ranger
   Cost: 1
   CardType: 2
+  Keywords:
+  - slow
+  - slot
   Actions:
   - Type: 3
     Target: 8
@@ -27,3 +30,7 @@ MonoBehaviour:
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     Condition: 0
+    Reach: 1
+    SplashBehindTarget: 0
+    SplashPowerPercent: 100
+    BackRowPowerPercent: 100

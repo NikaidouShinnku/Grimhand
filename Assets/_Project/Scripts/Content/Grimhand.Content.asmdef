@@ -2,7 +2,8 @@
     "name": "Grimhand.Content",
     "rootNamespace": "Grimhand.Content",
     "references": [
-        "Grimhand.Battle"
+        "Grimhand.Battle",
+        "Grimhand.Expedition"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

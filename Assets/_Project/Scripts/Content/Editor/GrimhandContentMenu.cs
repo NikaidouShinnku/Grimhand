@@ -44,6 +44,21 @@ namespace Grimhand.Content.Editor
             });
             EditorUtility.SetDirty(setup);
 
+            const string expeditionPath = Root + "/Setups/ExpeditionSetup_Demo.asset";
+            var expedition = AssetDatabase.LoadAssetAtPath<ExpeditionSetupSO>(expeditionPath);
+            if (expedition == null)
+            {
+                expedition = ScriptableObject.CreateInstance<ExpeditionSetupSO>();
+                AssetDatabase.CreateAsset(expedition, expeditionPath);
+            }
+
+            expedition.RunSeed = 42;
+            expedition.TargetBattleCount = 3;
+            expedition.RoutesPerVictory = 3;
+            expedition.CombatEncounters.Clear();
+            expedition.CombatEncounters.Add(setup);
+            EditorUtility.SetDirty(expedition);
+
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
@@ -51,18 +66,20 @@ namespace Grimhand.Content.Editor
             Selection.activeObject = setup;
             EditorGUIUtility.PingObject(setup);
 
-            var assigned = TryAssignSetupToScene(setup, showDialog: false);
+            var assigned = TryAssignSetupToScene(setup, expedition, showDialog: false);
             var assignHint = assigned
-                ? "已自动绑定到场景中的 BattleDemo。"
-                : "请在 BattleSandbox 场景选中 BattleDemo，将 Battle Setup 拖入组件。";
+                ? "已自动绑定 Battle Setup 与 Expedition Setup 到场景中的 BattleDemo。"
+                : "请在 BattleSandbox 场景选中 BattleDemo，拖入 Battle Setup 与 Expedition Setup。";
 
             EditorUtility.DisplayDialog(
                 "Demo 数据已生成",
                 "已在 Project 窗口创建/更新：\n\n" +
                 "• Assets/_Project/Data/Cards/\n" +
                 "• Assets/_Project/Data/Characters/\n" +
-                "• Assets/_Project/Data/Setups/BattleSetup_Demo.asset\n\n" +
-                "本场为 3 我方 vs 3 敌方（前排蛮兵 / 中排萨满 / 后排弓手）。\n\n" +
+                "• Assets/_Project/Data/Setups/BattleSetup_Demo.asset\n" +
+                "• Assets/_Project/Data/Setups/ExpeditionSetup_Demo.asset\n\n" +
+                "本场为 3 我方 vs 3 敌方（前排蛮兵 / 中排萨满 / 后排弓手）。\n" +
+                "绑定 Expedition Setup 后 Play 即为三场连战 Demo。\n\n" +
                 assignHint,
                 "好的");
         }
@@ -80,11 +97,29 @@ namespace Grimhand.Content.Editor
                 return;
             }
 
-            if (TryAssignSetupToScene(setup, showDialog: true))
+            if (TryAssignSetupToScene(setup, null, showDialog: true))
                 EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
         }
 
-        static bool TryAssignSetupToScene(BattleSetupSO setup, bool showDialog)
+        [MenuItem("Grimhand/Content/Assign Demo Expedition Setup to Scene")]
+        public static void AssignDemoExpeditionMenu()
+        {
+            var setup = AssetDatabase.LoadAssetAtPath<BattleSetupSO>(SetupPath);
+            var expedition = AssetDatabase.LoadAssetAtPath<ExpeditionSetupSO>(Root + "/Setups/ExpeditionSetup_Demo.asset");
+            if (expedition == null)
+            {
+                EditorUtility.DisplayDialog(
+                    "未找到远征配置",
+                    "请先执行：\nGrimhand → Content → Generate Demo ScriptableObjects",
+                    "好的");
+                return;
+            }
+
+            if (TryAssignSetupToScene(setup, expedition, showDialog: true))
+                EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+        }
+
+        static bool TryAssignSetupToScene(BattleSetupSO setup, ExpeditionSetupSO expedition, bool showDialog)
         {
             var controller = Object.FindAnyObjectByType<BattleDemoController>();
             if (controller == null)
@@ -101,7 +136,10 @@ namespace Grimhand.Content.Editor
             }
 
             var so = new SerializedObject(controller);
-            so.FindProperty("battleSetup").objectReferenceValue = setup;
+            if (setup != null)
+                so.FindProperty("battleSetup").objectReferenceValue = setup;
+            if (expedition != null)
+                so.FindProperty("expeditionSetup").objectReferenceValue = expedition;
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(controller);
 
@@ -109,7 +147,8 @@ namespace Grimhand.Content.Editor
             {
                 EditorUtility.DisplayDialog(
                     "绑定成功",
-                    "已将 BattleSetup_Demo 绑定到 Battle Demo Controller。\n按 Play 即可使用 SO 数据开战。",
+                    "已将 Demo 配置绑定到 Battle Demo Controller。\n" +
+                    "绑定 Expedition Setup 后 Play 即为三场连战。",
                     "好的");
             }
 

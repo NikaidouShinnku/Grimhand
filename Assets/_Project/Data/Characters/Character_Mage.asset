@@ -22,11 +22,11 @@ MonoBehaviour:
   BaseDefense: 2
   Speed: 5
   Deck:
-  - {fileID: 11400000, guid: 82c0323fef29d5344a62c1a0f3807781, type: 2}
-  - {fileID: 11400000, guid: 82c0323fef29d5344a62c1a0f3807781, type: 2}
-  - {fileID: 11400000, guid: 82c0323fef29d5344a62c1a0f3807781, type: 2}
-  - {fileID: 11400000, guid: 82c0323fef29d5344a62c1a0f3807781, type: 2}
-  - {fileID: 11400000, guid: 82c0323fef29d5344a62c1a0f3807781, type: 2}
-  - {fileID: 11400000, guid: 82c0323fef29d5344a62c1a0f3807781, type: 2}
+  - {fileID: 11400000, guid: 915c40d375111fa439da00b6a4df5b66, type: 2}
+  - {fileID: 11400000, guid: 915c40d375111fa439da00b6a4df5b66, type: 2}
+  - {fileID: 11400000, guid: 915c40d375111fa439da00b6a4df5b66, type: 2}
+  - {fileID: 11400000, guid: 915c40d375111fa439da00b6a4df5b66, type: 2}
+  - {fileID: 11400000, guid: 915c40d375111fa439da00b6a4df5b66, type: 2}
+  - {fileID: 11400000, guid: 915c40d375111fa439da00b6a4df5b66, type: 2}
   - {fileID: 11400000, guid: 7e91ae9004d53ed47a21ea98be675983, type: 2}
   - {fileID: 11400000, guid: 7e91ae9004d53ed47a21ea98be675983, type: 2}

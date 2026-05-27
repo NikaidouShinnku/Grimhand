@@ -3,7 +3,8 @@
     "rootNamespace": "Grimhand.Battle.Tests",
     "references": [
         "Grimhand.Battle",
-        "Grimhand.Core"
+        "Grimhand.Core",
+        "Grimhand.Expedition"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

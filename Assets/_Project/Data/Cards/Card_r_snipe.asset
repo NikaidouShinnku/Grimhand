@@ -17,9 +17,11 @@ MonoBehaviour:
   OwnerCharacterId: char_ranger
   Cost: 2
   CardType: 0
+  Keywords:
+  - snipe
   Actions:
   - Type: 0
-    Target: 5
+    Target: 0
     Value: 15
     StatusId: 
     Stacks: 1
@@ -27,3 +29,7 @@ MonoBehaviour:
     ScaleWithAttack: 1
     ScaleWithDefense: 0
     Condition: 0
+    Reach: 0
+    SplashBehindTarget: 0
+    SplashPowerPercent: 100
+    BackRowPowerPercent: 100

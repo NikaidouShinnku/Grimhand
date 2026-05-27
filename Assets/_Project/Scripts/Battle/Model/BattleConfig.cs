@@ -14,6 +14,8 @@ namespace Grimhand.Battle.Model
         public int BaseAttack { get; set; }
         public int BaseDefense { get; set; }
         public int Speed { get; set; }
+        /// <summary>不为 null 时作为开战 HP（远征跨场继承）；仍受 MaxHp 上限约束。</summary>
+        public int? StartHp { get; set; }
         public List<CardTemplate> DeckTemplates { get; } = new();
     }
 

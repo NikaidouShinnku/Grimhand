@@ -1,0 +1,17 @@
+{
+    "name": "Grimhand.Expedition",
+    "rootNamespace": "Grimhand.Expedition",
+    "references": [
+        "Grimhand.Battle",
+        "Grimhand.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

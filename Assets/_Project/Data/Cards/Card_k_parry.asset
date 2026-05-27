@@ -17,6 +17,8 @@ MonoBehaviour:
   OwnerCharacterId: char_knight
   Cost: 2
   CardType: 1
+  Keywords:
+  - parry
   Actions:
   - Type: 8
     Target: 1
@@ -27,6 +29,10 @@ MonoBehaviour:
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     Condition: 1
+    Reach: 1
+    SplashBehindTarget: 0
+    SplashPowerPercent: 100
+    BackRowPowerPercent: 100
   - Type: 7
     Target: 4
     Value: 200
@@ -36,3 +42,7 @@ MonoBehaviour:
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     Condition: 1
+    Reach: 1
+    SplashBehindTarget: 0
+    SplashPowerPercent: 100
+    BackRowPowerPercent: 100

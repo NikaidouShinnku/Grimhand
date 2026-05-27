@@ -40,16 +40,16 @@ namespace Grimhand.Battle.Demo
 
             var rangerCards = new[]
             {
-                Card("r_shot", "射击", "char_ranger", 1, CardType.Attack, CardEffectKind.DealDamage, 6),
-                Card("r_shot2", "射击", "char_ranger", 1, CardType.Attack, CardEffectKind.DealDamage, 6),
-                Card("r_dodge", "闪避", "char_ranger", 1, CardType.Defense, CardEffectKind.GainBlock, 5),
-                Card("r_dodge2", "闪避", "char_ranger", 1, CardType.Defense, CardEffectKind.GainBlock, 5),
                 Card("r_snipe", "狙击", "char_ranger", 2, CardType.Attack, CardEffectKind.DealDamage, 15),
                 Card("r_snipe2", "狙击", "char_ranger", 2, CardType.Attack, CardEffectKind.DealDamage, 15),
-                Card("r_bandage", "包扎", "char_ranger", 1, CardType.Status, CardEffectKind.Heal, 5),
-                Card("r_bandage2", "包扎", "char_ranger", 1, CardType.Status, CardEffectKind.Heal, 5),
+                Card("r_pierce", "贯射", "char_ranger", 2, CardType.Attack, CardEffectKind.DealDamage, 11),
+                Card("r_pierce2", "贯射", "char_ranger", 2, CardType.Attack, CardEffectKind.DealDamage, 11),
+                Card("r_pierce3", "贯射", "char_ranger", 2, CardType.Attack, CardEffectKind.DealDamage, 11),
+                Card("r_far_shot", "远射", "char_ranger", 2, CardType.Attack, CardEffectKind.DealDamage, 10),
+                Card("r_far_shot2", "远射", "char_ranger", 2, CardType.Attack, CardEffectKind.DealDamage, 10),
                 Card("r_mark", "缚足", "char_ranger", 1, CardType.Status, CardEffectKind.Heal, 0),
-                Card("r_mark2", "标记", "char_ranger", 1, CardType.Status, CardEffectKind.DrawCards, 1),
+                Card("r_mark2", "缚足", "char_ranger", 1, CardType.Status, CardEffectKind.Heal, 0),
+                Card("r_mark3", "缚足", "char_ranger", 1, CardType.Status, CardEffectKind.Heal, 0),
             };
 
             var bruteCards = new[]
@@ -180,27 +180,65 @@ namespace Grimhand.Battle.Demo
 
             if (id == "r_snipe" || id == "r_snipe2")
             {
-                return CardTemplate.Create(id, name, owner, cost, type,
-                    new EffectActionSpec
-                    {
-                        Type = EffectActionType.DealDamage,
-                        Target = EffectTarget.DefaultEnemy,
-                        Value = power,
-                        ScaleWithAttack = true
-                    });
+                return WithKeywords(
+                    CardTemplate.Create(id, name, owner, cost, type,
+                        new EffectActionSpec
+                        {
+                            Type = EffectActionType.DealDamage,
+                            Target = EffectTarget.DefaultEnemy,
+                            Value = power,
+                            ScaleWithAttack = true,
+                            Reach = TargetReach.Any
+                        }),
+                    "snipe");
             }
 
-            if (id == "r_mark" || id == "r_mark2")
+            if (id.StartsWith("r_pierce"))
             {
-                return CardTemplate.Create(id, name, owner, cost, type,
-                    new EffectActionSpec
-                    {
-                        Type = EffectActionType.ApplyStatus,
-                        Target = EffectTarget.EnemyBackSlot,
-                        StatusId = StatusCatalog.Slow,
-                        Stacks = 1,
-                        Duration = 2
-                    });
+                return WithKeywords(
+                    CardTemplate.Create(id, name, owner, cost, type,
+                        new EffectActionSpec
+                        {
+                            Type = EffectActionType.DealDamage,
+                            Target = EffectTarget.DefaultEnemy,
+                            Value = power,
+                            ScaleWithAttack = true,
+                            Reach = TargetReach.FrontAndMiddle,
+                            SplashBehindTarget = true,
+                            SplashPowerPercent = 80
+                        }),
+                    "pierce", "melee");
+            }
+
+            if (id.StartsWith("r_far_shot"))
+            {
+                return WithKeywords(
+                    CardTemplate.Create(id, name, owner, cost, type,
+                        new EffectActionSpec
+                        {
+                            Type = EffectActionType.DealDamage,
+                            Target = EffectTarget.DefaultEnemy,
+                            Value = power,
+                            ScaleWithAttack = true,
+                            Reach = TargetReach.Any,
+                            BackRowPowerPercent = 70
+                        }),
+                    "far_shot");
+            }
+
+            if (id == "r_mark" || id == "r_mark2" || id == "r_mark3")
+            {
+                return WithKeywords(
+                    CardTemplate.Create(id, name, owner, cost, type,
+                        new EffectActionSpec
+                        {
+                            Type = EffectActionType.ApplyStatus,
+                            Target = EffectTarget.EnemyBackSlot,
+                            StatusId = StatusCatalog.Slow,
+                            Stacks = 1,
+                            Duration = 2
+                        }),
+                    "slow", "slot");
             }
 
             if (id.StartsWith("g_hex"))
@@ -229,7 +267,16 @@ namespace Grimhand.Battle.Demo
                     });
             }
 
-            return CardTemplate.FromLegacy(id, name, owner, cost, type, effect, power, drawNextTurn);
+            var template = CardTemplate.FromLegacy(id, name, owner, cost, type, effect, power, drawNextTurn);
+            if (type == CardType.Attack && effect == CardEffectKind.DealDamage)
+                template.Keywords.Add("melee");
+            return template;
+        }
+
+        static CardTemplate WithKeywords(CardTemplate template, params string[] keywords)
+        {
+            template.Keywords.AddRange(keywords);
+            return template;
         }
     }
 }

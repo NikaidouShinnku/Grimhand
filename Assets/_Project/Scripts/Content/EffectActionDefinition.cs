@@ -15,6 +15,10 @@ namespace Grimhand.Content
         public bool ScaleWithAttack;
         public bool ScaleWithDefense;
         public ReactionConditionType Condition = ReactionConditionType.None;
+        public TargetReach Reach = TargetReach.FrontAndMiddle;
+        public bool SplashBehindTarget;
+        public int SplashPowerPercent = 100;
+        public int BackRowPowerPercent = 100;
 
         public EffectActionSpec ToSpec()
         {
@@ -28,7 +32,11 @@ namespace Grimhand.Content
                 Duration = Duration,
                 ScaleWithAttack = ScaleWithAttack,
                 ScaleWithDefense = ScaleWithDefense,
-                Condition = Condition
+                Condition = Condition,
+                Reach = Reach,
+                SplashBehindTarget = SplashBehindTarget,
+                SplashPowerPercent = SplashPowerPercent,
+                BackRowPowerPercent = BackRowPowerPercent
             };
         }
 
@@ -44,7 +52,11 @@ namespace Grimhand.Content
                 Duration = spec.Duration,
                 ScaleWithAttack = spec.ScaleWithAttack,
                 ScaleWithDefense = spec.ScaleWithDefense,
-                Condition = spec.Condition
+                Condition = spec.Condition,
+                Reach = spec.Reach,
+                SplashBehindTarget = spec.SplashBehindTarget,
+                SplashPowerPercent = spec.SplashPowerPercent,
+                BackRowPowerPercent = spec.BackRowPowerPercent
             };
         }
     }

@@ -12,6 +12,7 @@ namespace Grimhand.Content
         public string OwnerCharacterId = "char_id";
         public int Cost = 1;
         public CardType CardType = CardType.Attack;
+        public List<string> Keywords = new();
         public List<EffectActionDefinition> Actions = new();
 
         public CardTemplate ToTemplate()
@@ -25,6 +26,7 @@ namespace Grimhand.Content
                 CardType = CardType
             };
 
+            template.Keywords.AddRange(Keywords);
             foreach (var action in Actions)
                 template.Actions.Add(action.ToSpec());
 

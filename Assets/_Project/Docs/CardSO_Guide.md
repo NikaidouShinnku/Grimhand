@@ -68,6 +68,39 @@ Assets/_Project/Data/
 | 减速后排 | ApplyStatus | EnemyBackSlot | Status Id=`slow`，Duration=2 |
 | 弹反 | GainBlockFromLastDamagePercent + ReflectLastDamageToAttacker | Self / LastActionActor | Condition=LastActionAttackOnSelf |
 
+### 关键词（Keywords）
+
+在卡牌 Inspector 的 **Keywords** 列表填入关键词 ID（字符串）。悬停手牌时 Demo 会显示含义。
+
+| 关键词 ID | 显示名 | 含义 |
+|-----------|--------|------|
+| `block` | 护甲 | 优先吸收受到的生命伤害；回合结束时清零 |
+| `melee` | 近战 | 只能指定敌方前排或中排单位 |
+| `snipe` | 狙击 | 可指定任意敌方单位，包括后排 |
+| `pierce` | 贯通 | 命中主目标后，对其后方槽位的敌人造成溅射伤害 |
+| `far_shot` | 远射 | 可攻击后排，但对后排目标伤害降低 |
+| `poison` / `slow` / `parry` / `slot` | （见 KeywordCatalog.cs） | 状态或机制说明 |
+
+新关键词需在代码 `KeywordCatalog.cs` 注册（后续可改为 SO 驱动）。
+
+### 站位攻击（Reach / Splash / Back Row）
+
+在 **Actions** 每条效果上可配置：
+
+| 字段 | 说明 | 典型值 |
+|------|------|--------|
+| **Reach** | 手动选敌时可点的站位 | `FrontAndMiddle`（默认，近战）、`Any`（狙击/远射）、`BackOnly` |
+| **Splash Behind Target** | 命中主目标后是否溅射后方 | 贯射等勾选 |
+| **Splash Power Percent** | 溅射伤害 = 主目标威力 × 百分比 | 贯射示例：80 |
+| **Back Row Power Percent** | 主目标在后排时威力 × 百分比 | 远射示例：70（100=无衰减） |
+
+**示例卡（Generate Demo 后可在 Cards 文件夹查看）：**
+
+- **贯射** `r_pierce`：Reach=前中，Splash 80%，关键词 pierce + melee
+- **远射** `r_far_shot`：Reach=全排，后排 70% 威力，关键词 far_shot
+- **狙击** `r_snipe`：Reach=全排，无后排衰减，关键词 snipe
+- **重击 / 魔弹**：默认 Reach=前中，关键词 melee
+
 **Target 说明：**
 - `DefaultEnemy`：默认前排敌人
 - `ManualSelected`：玩家出牌时需点选目标（如狙击）
@@ -99,6 +132,10 @@ Assets/_Project/Data/
 - [ ] 毒云：敌人永久中毒，每回合开始掉层数 HP
 - [ ] 缚足：后排敌人减速，速度显示下降
 - [ ] 狙击：点牌后选目标，再确认出牌
+- [ ] 贯射：打中排萨满时，后排弓手受到约 80% 溅射伤害
+- [ ] 远射：可选后排弓手，但对后排伤害低于打前排
+- [ ] 重击/魔弹：无法选择后排弓手
+- [ ] 悬停手牌：显示关键词 tooltip（如「近战」「贯通」）
 - [ ] 弹反：敌人攻击骑士后出弹反
 - [ ] 死亡污染：某角色死亡后，其牌仍入手但带 `[污染]`
 

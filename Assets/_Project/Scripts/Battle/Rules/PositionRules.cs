@@ -103,6 +103,19 @@ namespace Grimhand.Battle.Rules
             });
         }
 
+        /// <summary>同一阵型线中，比 target 更深的一格（Front→Middle→Back）。</summary>
+        public static CombatantState GetCombatantBehind(BattleState state, CombatantState target)
+        {
+            if (target == null)
+                return null;
+
+            var next = (int)target.Slot + 1;
+            if (next > (int)FormationSlot.Back)
+                return null;
+
+            return PickCombatantInSlot(state, target.Team, (FormationSlot)next);
+        }
+
         public static string GetOwnerCombatantId(BattleState state, CardInstanceState card)
         {
             foreach (var c in state.Combatants)

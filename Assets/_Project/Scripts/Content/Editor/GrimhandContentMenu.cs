@@ -121,10 +121,13 @@ namespace Grimhand.Content.Editor
             return new PlayerCardSet
             {
                 Strike = SaveCard("k_strike", "重击", "char_knight", 1, CardType.Attack,
+                    Kw("melee"),
                     Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 8, scaleAttack: true)),
                 Slash = SaveCard("k_slash", "斩击", "char_knight", 2, CardType.Attack,
+                    Kw("melee"),
                     Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 14, scaleAttack: true)),
                 Parry = SaveCard("k_parry", "弹反", "char_knight", 2, CardType.Defense,
+                    Kw("parry"),
                     new EffectActionDefinition
                     {
                         Type = EffectActionType.GainBlockFromLastDamagePercent,
@@ -140,13 +143,26 @@ namespace Grimhand.Content.Editor
                         Condition = ReactionConditionType.LastActionAttackOnSelf
                     }),
                 Bolt = SaveCard("m_bolt", "魔弹", "char_mage", 1, CardType.Attack,
+                    Kw("melee"),
                     Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 7, scaleAttack: true)),
                 Poison = SaveCard("m_poison", "毒云", "char_mage", 2, CardType.Status,
+                    Kw("poison"),
                     Action(EffectActionType.ApplyStatus, EffectTarget.DefaultEnemy, 0,
                         statusId: StatusCatalog.Poison, stacks: 10)),
                 Snipe = SaveCard("r_snipe", "狙击", "char_ranger", 2, CardType.Attack,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 15, scaleAttack: true)),
+                    Kw("snipe"),
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 15, scaleAttack: true,
+                        reach: TargetReach.Any)),
+                Pierce = SaveCard("r_pierce", "贯射", "char_ranger", 2, CardType.Attack,
+                    Kw("pierce", "melee"),
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 11, scaleAttack: true,
+                        reach: TargetReach.FrontAndMiddle, splashBehind: true, splashPowerPercent: 80)),
+                FarShot = SaveCard("r_far_shot", "远射", "char_ranger", 2, CardType.Attack,
+                    Kw("far_shot"),
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 10, scaleAttack: true,
+                        reach: TargetReach.Any, backRowPowerPercent: 70)),
                 Slow = SaveCard("r_slow", "缚足", "char_ranger", 1, CardType.Status,
+                    Kw("slow", "slot"),
                     Action(EffectActionType.ApplyStatus, EffectTarget.EnemyBackSlot, 0,
                         statusId: StatusCatalog.Slow, stacks: 1, duration: 2))
             };
@@ -157,21 +173,30 @@ namespace Grimhand.Content.Editor
             return new EnemyCardSet
             {
                 Bite = SaveCard("g_bite", "撕咬", "char_goblin_brute", 1, CardType.Attack,
+                    Kw("melee"),
                     Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 6, scaleAttack: true)),
                 Scratch = SaveCard("g_scratch", "抓挠", "char_goblin_brute", 1, CardType.Attack,
+                    Kw("melee"),
                     Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 5, scaleAttack: true)),
                 Lunge = SaveCard("g_lunge", "猛扑", "char_goblin_brute", 2, CardType.Attack,
+                    Kw("melee"),
                     Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 10, scaleAttack: true)),
                 Hex = SaveCard("g_hex", "邪咒", "char_goblin_shaman", 2, CardType.Status,
+                    Kw("poison"),
                     Action(EffectActionType.ApplyStatus, EffectTarget.DefaultEnemy, 0,
                         statusId: StatusCatalog.Poison, stacks: 5)),
                 Wither = SaveCard("g_wither", "虚弱", "char_goblin_shaman", 1, CardType.Status,
+                    Kw("slow"),
                     Action(EffectActionType.ApplyStatus, EffectTarget.DefaultEnemy, 0,
                         statusId: StatusCatalog.Slow, stacks: 1, duration: 2)),
                 Arrow = SaveCard("g_arrow", "箭矢", "char_goblin_archer", 1, CardType.Attack,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 8, scaleAttack: true)),
+                    Kw("far_shot"),
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 8, scaleAttack: true,
+                        reach: TargetReach.Any, backRowPowerPercent: 80)),
                 Aim = SaveCard("g_aim", "瞄准", "char_goblin_archer", 2, CardType.Attack,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 14, scaleAttack: true))
+                    Kw("snipe"),
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 14, scaleAttack: true,
+                        reach: TargetReach.Any))
             };
         }
 
@@ -187,7 +212,8 @@ namespace Grimhand.Content.Editor
                     BuildDeck(Repeat(cards.Bolt, 6), Of(cards.Poison, cards.Poison))),
                 Ranger = SaveCharacter("Character_Ranger", "char_ranger", "游侠", TeamSide.Player,
                     FormationSlot.Back, 1, 30, 7, 2, 7,
-                    BuildDeck(Repeat(cards.Snipe, 4), Of(cards.Slow, cards.Slow)))
+                    BuildDeck(Repeat(cards.Snipe, 2), Repeat(cards.Pierce, 3),
+                        Repeat(cards.FarShot, 2), Repeat(cards.Slow, 3)))
             };
         }
 
@@ -209,7 +235,7 @@ namespace Grimhand.Content.Editor
 
         struct PlayerCardSet
         {
-            public CardDefinitionSO Strike, Slash, Parry, Bolt, Poison, Snipe, Slow;
+            public CardDefinitionSO Strike, Slash, Parry, Bolt, Poison, Snipe, Pierce, FarShot, Slow;
         }
 
         struct EnemyCardSet
@@ -233,6 +259,7 @@ namespace Grimhand.Content.Editor
             string owner,
             int cost,
             CardType cardType,
+            string[] keywords,
             params EffectActionDefinition[] actions)
         {
             var path = $"{Root}/Cards/Card_{id}.asset";
@@ -248,11 +275,16 @@ namespace Grimhand.Content.Editor
             card.OwnerCharacterId = owner;
             card.Cost = cost;
             card.CardType = cardType;
+            card.Keywords.Clear();
+            if (keywords != null)
+                card.Keywords.AddRange(keywords);
             card.Actions.Clear();
             card.Actions.AddRange(actions);
             EditorUtility.SetDirty(card);
             return card;
         }
+
+        static string[] Kw(params string[] ids) => ids;
 
         static CharacterDefinitionSO SaveCharacter(
             string assetName,
@@ -298,7 +330,11 @@ namespace Grimhand.Content.Editor
             bool scaleDefense = false,
             string statusId = "",
             int stacks = 1,
-            int duration = -1)
+            int duration = -1,
+            TargetReach reach = TargetReach.FrontAndMiddle,
+            bool splashBehind = false,
+            int splashPowerPercent = 100,
+            int backRowPowerPercent = 100)
         {
             return new EffectActionDefinition
             {
@@ -309,7 +345,11 @@ namespace Grimhand.Content.Editor
                 ScaleWithDefense = scaleDefense,
                 StatusId = statusId,
                 Stacks = stacks,
-                Duration = duration
+                Duration = duration,
+                Reach = reach,
+                SplashBehindTarget = splashBehind,
+                SplashPowerPercent = splashPowerPercent,
+                BackRowPowerPercent = backRowPowerPercent
             };
         }
 

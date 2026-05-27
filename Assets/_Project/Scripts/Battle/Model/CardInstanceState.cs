@@ -12,6 +12,7 @@ namespace Grimhand.Battle.Model
         public CardType CardType { get; set; }
         public bool IsUsable { get; set; } = true;
         public string DisplayName { get; set; } = "";
+        public List<string> Keywords { get; } = new();
         public List<EffectActionSpec> Actions { get; } = new();
     }
 }

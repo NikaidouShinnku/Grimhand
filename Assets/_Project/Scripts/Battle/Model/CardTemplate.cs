@@ -9,6 +9,7 @@ namespace Grimhand.Battle.Model
         public string OwnerCharacterId { get; set; } = "";
         public int Cost { get; set; }
         public CardType CardType { get; set; }
+        public List<string> Keywords { get; } = new();
         public List<EffectActionSpec> Actions { get; } = new();
 
         public static CardTemplate Create(
@@ -57,7 +58,8 @@ namespace Grimhand.Battle.Model
                     {
                         Type = EffectActionType.DealDamage,
                         Value = power,
-                        ScaleWithAttack = true
+                        ScaleWithAttack = true,
+                        Reach = TargetReach.FrontAndMiddle
                     });
                     break;
                 case CardEffectKind.GainBlock:

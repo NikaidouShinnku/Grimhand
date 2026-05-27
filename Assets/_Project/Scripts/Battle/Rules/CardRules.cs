@@ -67,8 +67,13 @@ namespace Grimhand.Battle.Rules
 
                 foreach (var c in state.GetTeam(team))
                 {
-                    if (c.IsAlive)
-                        result.Add(c);
+                    if (!c.IsAlive)
+                        continue;
+
+                    if (!TargetReachRules.CanPickUnit(card, c))
+                        continue;
+
+                    result.Add(c);
                 }
             }
 
@@ -78,7 +83,7 @@ namespace Grimhand.Battle.Rules
         public static bool RequiresManualTarget(CardInstanceState card) =>
             GetRequiredTargetPick(card) != TargetPickSide.None;
 
-        static bool ActionRequiresCharacterPick(EffectActionSpec action)
+        public static bool ActionRequiresCharacterPickForReach(EffectActionSpec action)
         {
             switch (action.Type)
             {
@@ -93,6 +98,9 @@ namespace Grimhand.Battle.Rules
                     return false;
             }
         }
+
+        static bool ActionRequiresCharacterPick(EffectActionSpec action) =>
+            ActionRequiresCharacterPickForReach(action);
 
         static bool IsDirectedCharacterTarget(EffectTarget target)
         {

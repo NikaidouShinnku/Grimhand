@@ -25,6 +25,45 @@ namespace Grimhand.Battle.Planning
 
         public bool IsSelected(int instanceId) => _selectedQueue.Contains(instanceId);
 
+        /// <summary>选牌全局先后（1 起算）；未选中返回 0。</summary>
+        public int GetGlobalPlayOrder(int instanceId)
+        {
+            var index = _selectedQueue.IndexOf(instanceId);
+            return index < 0 ? 0 : index + 1;
+        }
+
+        /// <summary>同一角色多张牌时的出牌先后；未选中返回 false。</summary>
+        public bool TryGetOwnerPlayOrder(int instanceId, out int order, out int totalForOwner)
+        {
+            order = 0;
+            totalForOwner = 0;
+
+            var cardIndex = _selectedQueue.IndexOf(instanceId);
+            if (cardIndex < 0)
+                return false;
+
+            var card = _state.GetCard(instanceId);
+            if (card == null)
+                return false;
+
+            var ownerCharId = card.OwnerCharacterId;
+            foreach (var id in _selectedQueue)
+            {
+                var c = _state.GetCard(id);
+                if (c != null && c.OwnerCharacterId == ownerCharId)
+                    totalForOwner++;
+            }
+
+            for (var i = 0; i <= cardIndex; i++)
+            {
+                var c = _state.GetCard(_selectedQueue[i]);
+                if (c != null && c.OwnerCharacterId == ownerCharId)
+                    order++;
+            }
+
+            return true;
+        }
+
         public string GetAssignedTarget(int cardInstanceId)
         {
             _targetByCard.TryGetValue(cardInstanceId, out var targetId);

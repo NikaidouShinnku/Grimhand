@@ -24,6 +24,10 @@ namespace Grimhand.Presentation
         Vector2 _logScroll;
         Vector2 _handScroll;
 
+        int? _hoveredCardId;
+        Rect _handScrollViewRect;
+        GUIStyle _tooltipStyle;
+
         GUIStyle _titleStyle;
         GUIStyle _labelStyle;
         GUIStyle _hintStyle;
@@ -82,6 +86,7 @@ namespace Grimhand.Presentation
             }
 
             var state = _engine.State;
+            _hoveredCardId = null;
             var topH = 52f;
             var bottomH = 40f;
             var topY = pad;
@@ -127,6 +132,19 @@ namespace Grimhand.Presentation
                     });
             }
 
+            if (state.Phase == TurnPhase.Planning && _engine.Draft.SelectedQueue.Count > 0)
+            {
+                var queueLines = BuildSelectedQueueSummary(state);
+                var queueH = 24f + queueLines.Count * 18f;
+                cy += DrawSectionBox(0, cy, innerW,
+                    $"已选顺序 ({_engine.Draft.SelectedQueue.Count}张 · #选牌先后 · [n/m]同角色出牌序)",
+                    queueH, (bx, by, bw, bh) =>
+                    {
+                        for (var i = 0; i < queueLines.Count; i++)
+                            GUI.Label(new Rect(bx + 4, by + i * 18, bw - 8, 18), queueLines[i], _compactStyle);
+                    });
+            }
+
             const float cardW = 108f;
             const float cardH = 86f;
             const float handSectionH = 108f;
@@ -134,6 +152,7 @@ namespace Grimhand.Presentation
                 $"手牌 {state.PlayerHand.Count}/{state.Config.HandLimit}  (横向可滚)",
                 handSectionH, (bx, by, bw, bh) =>
                 {
+                    _handScrollViewRect = new Rect(bx, by, bw, bh);
                     _handScroll = GUI.BeginScrollView(
                         new Rect(bx, by, bw, bh),
                         _handScroll,
@@ -151,10 +170,14 @@ namespace Grimhand.Presentation
                         if (polluted)
                             label = "[污]" + label;
                         if (selected)
-                            label = "★" + label;
+                            label = InsertSelectionOrderBadge(card, label);
 
-                        if (GUI.Button(new Rect(hx, 0, cardW, cardH), label, _cardButtonStyle))
+                        var cardRect = new Rect(hx, 0, cardW, cardH);
+                        if (GUI.Button(cardRect, label, _cardButtonStyle))
                             _engine.ToggleCardSelection(card.InstanceId);
+
+                        if (IsMouseOverHandCard(cardRect))
+                            _hoveredCardId = card.InstanceId;
 
                         hx += cardW + 6f;
                     }
@@ -199,9 +222,54 @@ namespace Grimhand.Presentation
                 RestartBattle();
 
             GUI.Label(new Rect(contentX + (btnW + 6) * 3 + 8, btnY + 8, contentW - (btnW + 6) * 3 - 16, 24),
-                "滚轮浏览 | 攻击/减益需选敌", _hintStyle);
+                "滚轮浏览 | 悬停看关键词 | 已选牌显示 #顺序", _hintStyle);
+
+            DrawKeywordTooltip(state);
 
             GUI.matrix = matrixBackup;
+        }
+
+        bool IsMouseOverHandCard(Rect cardContentRect)
+        {
+            if (Event.current == null)
+                return false;
+
+            var mouse = Event.current.mousePosition;
+            if (!_handScrollViewRect.Contains(mouse))
+                return false;
+
+            var local = mouse;
+            local.x -= _handScrollViewRect.x - _handScroll.x;
+            local.y -= _handScrollViewRect.y - _handScroll.y;
+            return cardContentRect.Contains(local);
+        }
+
+        void DrawKeywordTooltip(BattleState state)
+        {
+            if (_hoveredCardId == null || _tooltipStyle == null)
+                return;
+
+            var card = state.GetCard(_hoveredCardId.Value);
+            if (card == null || card.Keywords.Count == 0)
+                return;
+
+            var body = KeywordCatalog.BuildTooltipText(card.Keywords);
+            if (string.IsNullOrEmpty(body))
+                return;
+
+            var title = card.DisplayName + " — 关键词";
+            var text = title + "\n" + body;
+            var size = _tooltipStyle.CalcSize(new GUIContent(text));
+            var w = Mathf.Min(Mathf.Max(size.x + 16f, 220f), 420f);
+            var h = size.y + 12f;
+            var x = Event.current.mousePosition.x + 14f;
+            var y = Event.current.mousePosition.y + 14f;
+            var maxX = Screen.width / ComputeScale() - w - 8f;
+            var maxY = Screen.height / ComputeScale() - h - 8f;
+            x = Mathf.Clamp(x, 8f, maxX);
+            y = Mathf.Clamp(y, 8f, maxY);
+
+            GUI.Box(new Rect(x, y, w, h), text, _tooltipStyle);
         }
 
         GUIStyle _compactStyle;
@@ -213,6 +281,8 @@ namespace Grimhand.Presentation
                 h += 40f;
             if (state.Phase == TurnPhase.Planning && state.EnemyIntents.Count > 0)
                 h += 58f;
+            if (state.Phase == TurnPhase.Planning && _engine.Draft.SelectedQueue.Count > 0)
+                h += 24f + _engine.Draft.SelectedQueue.Count * 18f;
             return h;
         }
 
@@ -283,6 +353,14 @@ namespace Grimhand.Presentation
                 fontSize = 11,
                 wordWrap = false,
                 alignment = TextAnchor.MiddleLeft
+            };
+
+            _tooltipStyle = new GUIStyle(GUI.skin.box)
+            {
+                fontSize = 12,
+                wordWrap = true,
+                alignment = TextAnchor.UpperLeft,
+                padding = new RectOffset(8, 8, 6, 6)
             };
 
             _boxStyle = new GUIStyle(GUI.skin.box) { padding = new RectOffset(8, 8, 8, 8) };
@@ -481,6 +559,60 @@ namespace Grimhand.Presentation
             return $"{state.EnergyCurrent} / {state.EnergyMax}";
         }
 
+        string InsertSelectionOrderBadge(CardInstanceState card, string label)
+        {
+            var badge = BuildSelectionOrderBadge(card);
+            var nl = label.IndexOf('\n');
+            if (nl < 0)
+                return badge + label;
+
+            return badge + label.Substring(0, nl) + label.Substring(nl);
+        }
+
+        string BuildSelectionOrderBadge(CardInstanceState card)
+        {
+            var global = _engine.Draft.GetGlobalPlayOrder(card.InstanceId);
+            if (!_engine.Draft.TryGetOwnerPlayOrder(card.InstanceId, out var ownerOrder, out var ownerTotal))
+                return $"#{global} ";
+
+            return ownerTotal > 1 ? $"#{global}[{ownerOrder}/{ownerTotal}] " : $"#{global} ";
+        }
+
+        List<string> BuildSelectedQueueSummary(BattleState state)
+        {
+            var lines = new List<string>();
+            foreach (var id in _engine.Draft.SelectedQueue)
+            {
+                var card = state.GetCard(id);
+                if (card == null)
+                    continue;
+
+                var global = _engine.Draft.GetGlobalPlayOrder(id);
+                _engine.Draft.TryGetOwnerPlayOrder(id, out var ownerOrder, out var ownerTotal);
+
+                var ownerCombatantId = PositionRules.GetOwnerCombatantId(state, card);
+                var ownerName = ownerCombatantId != null
+                    ? state.GetCombatant(ownerCombatantId)?.DisplayName
+                    : null;
+                if (string.IsNullOrEmpty(ownerName))
+                    ownerName = ShortOwner(card.OwnerCharacterId);
+
+                var targetNote = "";
+                var assignedId = _engine.Draft.GetAssignedTarget(id);
+                if (!string.IsNullOrEmpty(assignedId))
+                {
+                    var assigned = state.GetCombatant(assignedId);
+                    if (assigned != null)
+                        targetNote = $" → {assigned.DisplayName}";
+                }
+
+                var ownerOrderNote = ownerTotal > 1 ? $" [{ownerOrder}/{ownerTotal}]" : "";
+                lines.Add($"#{global} {ownerName} · {card.DisplayName}{ownerOrderNote}{targetNote}");
+            }
+
+            return lines;
+        }
+
         string BuildCardLabelCompact(CardInstanceState card)
         {
             var ownerId = PositionRules.GetOwnerCombatantId(_engine.State, card);
@@ -488,6 +620,7 @@ namespace Grimhand.Presentation
             var power = CardPowerRules.GetEffectivePower(card, owner);
             var powerLabel = CardPowerRules.GetPowerLabel(card);
             var targetShort = DescribePickSide(CardRules.GetRequiredTargetPick(card));
+            targetShort += " " + DescribeReach(card);
             var assignedId = _engine.Draft.GetAssignedTarget(card.InstanceId);
             if (!string.IsNullOrEmpty(assignedId))
             {
@@ -497,6 +630,24 @@ namespace Grimhand.Presentation
             }
 
             return $"{card.DisplayName}\n费{card.Cost} {powerLabel}{power} | {targetShort}\n{ShortOwner(card.OwnerCharacterId)}";
+        }
+
+        static string DescribeReach(CardInstanceState card)
+        {
+            foreach (var action in card.Actions)
+            {
+                if (action.SplashBehindTarget)
+                    return "[贯通]";
+            }
+
+            var reach = TargetReachRules.GetPickReach(card);
+            switch (reach)
+            {
+                case TargetReach.FrontAndMiddle: return "[前中]";
+                case TargetReach.BackOnly: return "[后排]";
+                case TargetReach.Any: return "[全排]";
+                default: return "";
+            }
         }
 
         static string DescribePickSide(TargetPickSide side)

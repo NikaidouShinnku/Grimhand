@@ -64,7 +64,21 @@ namespace Grimhand.Battle.Effects
             {
                 case EffectActionType.DealDamage:
                     if (target != null)
-                        DamageRules.ApplyDamage(state, actor, target, value, card.CardType, events);
+                    {
+                        var primaryPower = TargetReachRules.AdjustPowerForTarget(action, target, value);
+                        DamageRules.ApplyDamage(state, actor, target, primaryPower, card.CardType, events);
+
+                        if (action.SplashBehindTarget)
+                        {
+                            var behind = PositionRules.GetCombatantBehind(state, target);
+                            if (behind != null && behind.IsAlive)
+                            {
+                                var splashPower = System.Math.Max(1,
+                                    (int)System.Math.Round(primaryPower * action.SplashPowerPercent / 100f));
+                                DamageRules.ApplyDamage(state, actor, behind, splashPower, card.CardType, events);
+                            }
+                        }
+                    }
                     break;
                 case EffectActionType.GainBlock:
                     DamageRules.ApplyBlock(actor, value, events);

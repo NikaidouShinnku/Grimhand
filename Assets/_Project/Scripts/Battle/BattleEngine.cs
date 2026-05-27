@@ -346,6 +346,7 @@ namespace Grimhand.Battle
             };
             foreach (var action in template.Actions)
                 card.Actions.Add(CloneAction(action));
+            card.Keywords.AddRange(template.Keywords);
             _state.CardsById[id] = card;
             return card;
         }
@@ -362,7 +363,11 @@ namespace Grimhand.Battle
                 Duration = source.Duration,
                 ScaleWithAttack = source.ScaleWithAttack,
                 ScaleWithDefense = source.ScaleWithDefense,
-                Condition = source.Condition
+                Condition = source.Condition,
+                Reach = source.Reach,
+                SplashBehindTarget = source.SplashBehindTarget,
+                SplashPowerPercent = source.SplashPowerPercent,
+                BackRowPowerPercent = source.BackRowPowerPercent
             };
         }
     }

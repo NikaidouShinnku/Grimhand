@@ -1,5 +1,7 @@
 # Grimhand 卡牌 ScriptableObject 使用指南
 
+> **新手请先读：** [ScriptableObject_入门.md](./ScriptableObject_入门.md)（解释 SO 是什么、为什么点菜单后要在 Project 里找文件）
+
 ## 死亡污染说明
 
 角色死亡后，其所有卡牌（抽牌堆 / 手牌 / 弃牌堆）会被标记为 **不可使用**，但：
@@ -16,12 +18,15 @@
 
 Unity 菜单：**Grimhand → Content → Generate Demo ScriptableObjects**
 
-会在以下路径创建资源：
+- 会弹出 **对话框** 并高亮 `BattleSetup_Demo.asset`
+- 若场景有 BattleDemo，会 **自动绑定** Battle Setup
+
+会在以下路径创建/更新资源：
 ```
 Assets/_Project/Data/
   Cards/          单张卡牌定义
-  Characters/     角色 + 牌组引用
-  Setups/         战斗配置 BattleSetup_Demo.asset
+  Characters/     角色 + 牌组引用（含 3 个哥布林敌人）
+  Setups/         BattleSetup_Demo.asset（3v3）
 ```
 
 ---

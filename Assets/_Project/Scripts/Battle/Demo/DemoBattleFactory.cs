@@ -6,7 +6,7 @@ namespace Grimhand.Battle.Demo
 {
     public static class DemoBattleFactory
     {
-        public static BattleConfig CreateDefault3v1()
+        public static BattleConfig CreateDefault3v3()
         {
             var config = new BattleConfig { Seed = 42 };
 
@@ -52,18 +52,40 @@ namespace Grimhand.Battle.Demo
                 Card("r_mark2", "标记", "char_ranger", 1, CardType.Status, CardEffectKind.DrawCards, 1),
             };
 
-            var goblinCards = new[]
+            var bruteCards = new[]
             {
-                Card("g_bite", "撕咬", "char_goblin", 1, CardType.Attack, CardEffectKind.DealDamage, 6),
-                Card("g_bite2", "撕咬", "char_goblin", 1, CardType.Attack, CardEffectKind.DealDamage, 6),
-                Card("g_bite3", "撕咬", "char_goblin", 1, CardType.Attack, CardEffectKind.DealDamage, 6),
-                Card("g_scratch", "抓挠", "char_goblin", 1, CardType.Attack, CardEffectKind.DealDamage, 5),
-                Card("g_scratch2", "抓挠", "char_goblin", 1, CardType.Attack, CardEffectKind.DealDamage, 5),
-                Card("g_hiss", "威吓", "char_goblin", 1, CardType.Status, CardEffectKind.GainBlock, 3),
-                Card("g_hiss2", "威吓", "char_goblin", 1, CardType.Status, CardEffectKind.GainBlock, 3),
-                Card("g_lunge", "猛扑", "char_goblin", 2, CardType.Attack, CardEffectKind.DealDamage, 12),
-                Card("g_lunge2", "猛扑", "char_goblin", 2, CardType.Attack, CardEffectKind.DealDamage, 12),
-                Card("g_lunge3", "猛扑", "char_goblin", 2, CardType.Attack, CardEffectKind.DealDamage, 12),
+                Card("g_bite", "撕咬", "char_goblin_brute", 1, CardType.Attack, CardEffectKind.DealDamage, 6),
+                Card("g_bite2", "撕咬", "char_goblin_brute", 1, CardType.Attack, CardEffectKind.DealDamage, 6),
+                Card("g_bite3", "撕咬", "char_goblin_brute", 1, CardType.Attack, CardEffectKind.DealDamage, 6),
+                Card("g_bite4", "撕咬", "char_goblin_brute", 1, CardType.Attack, CardEffectKind.DealDamage, 6),
+                Card("g_scratch", "抓挠", "char_goblin_brute", 1, CardType.Attack, CardEffectKind.DealDamage, 5),
+                Card("g_scratch2", "抓挠", "char_goblin_brute", 1, CardType.Attack, CardEffectKind.DealDamage, 5),
+                Card("g_lunge", "猛扑", "char_goblin_brute", 2, CardType.Attack, CardEffectKind.DealDamage, 10),
+                Card("g_lunge2", "猛扑", "char_goblin_brute", 2, CardType.Attack, CardEffectKind.DealDamage, 10),
+            };
+
+            var shamanCards = new[]
+            {
+                Card("g_hex", "邪咒", "char_goblin_shaman", 2, CardType.Status, CardEffectKind.Heal, 0),
+                Card("g_hex2", "邪咒", "char_goblin_shaman", 2, CardType.Status, CardEffectKind.Heal, 0),
+                Card("g_hex3", "邪咒", "char_goblin_shaman", 2, CardType.Status, CardEffectKind.Heal, 0),
+                Card("g_hex4", "邪咒", "char_goblin_shaman", 2, CardType.Status, CardEffectKind.Heal, 0),
+                Card("g_wither", "虚弱", "char_goblin_shaman", 1, CardType.Status, CardEffectKind.Heal, 0),
+                Card("g_wither2", "虚弱", "char_goblin_shaman", 1, CardType.Status, CardEffectKind.Heal, 0),
+                Card("g_wither3", "虚弱", "char_goblin_shaman", 1, CardType.Status, CardEffectKind.Heal, 0),
+                Card("g_wither4", "虚弱", "char_goblin_shaman", 1, CardType.Status, CardEffectKind.Heal, 0),
+            };
+
+            var archerCards = new[]
+            {
+                Card("g_arrow", "箭矢", "char_goblin_archer", 1, CardType.Attack, CardEffectKind.DealDamage, 8),
+                Card("g_arrow2", "箭矢", "char_goblin_archer", 1, CardType.Attack, CardEffectKind.DealDamage, 8),
+                Card("g_arrow3", "箭矢", "char_goblin_archer", 1, CardType.Attack, CardEffectKind.DealDamage, 8),
+                Card("g_arrow4", "箭矢", "char_goblin_archer", 1, CardType.Attack, CardEffectKind.DealDamage, 8),
+                Card("g_arrow5", "箭矢", "char_goblin_archer", 1, CardType.Attack, CardEffectKind.DealDamage, 8),
+                Card("g_arrow6", "箭矢", "char_goblin_archer", 1, CardType.Attack, CardEffectKind.DealDamage, 8),
+                Card("g_aim", "瞄准", "char_goblin_archer", 2, CardType.Attack, CardEffectKind.DealDamage, 14),
+                Card("g_aim2", "瞄准", "char_goblin_archer", 2, CardType.Attack, CardEffectKind.DealDamage, 14),
             };
 
             config.Combatants.Add(Combatant("p_knight", "骑士", TeamSide.Player, FormationSlot.Front,
@@ -72,11 +94,17 @@ namespace Grimhand.Battle.Demo
                 "char_mage", level: 1, hp: 28, baseAtk: 5, baseDef: 2, spd: 5, mageCards));
             config.Combatants.Add(Combatant("p_ranger", "游侠", TeamSide.Player, FormationSlot.Back,
                 "char_ranger", level: 1, hp: 30, baseAtk: 7, baseDef: 2, spd: 7, rangerCards));
-            config.Combatants.Add(Combatant("e_goblin", "哥布林", TeamSide.Enemy, FormationSlot.Front,
-                "char_goblin", level: 2, hp: 50, baseAtk: 7, baseDef: 1, spd: 8, goblinCards));
+            config.Combatants.Add(Combatant("e_brute", "哥布林蛮兵", TeamSide.Enemy, FormationSlot.Front,
+                "char_goblin_brute", level: 2, hp: 45, baseAtk: 7, baseDef: 2, spd: 8, bruteCards));
+            config.Combatants.Add(Combatant("e_shaman", "哥布林萨满", TeamSide.Enemy, FormationSlot.Middle,
+                "char_goblin_shaman", level: 1, hp: 32, baseAtk: 4, baseDef: 1, spd: 6, shamanCards));
+            config.Combatants.Add(Combatant("e_archer", "哥布林弓手", TeamSide.Enemy, FormationSlot.Back,
+                "char_goblin_archer", level: 1, hp: 28, baseAtk: 8, baseDef: 1, spd: 9, archerCards));
 
             return config;
         }
+
+        public static BattleConfig CreateDefault3v1() => CreateDefault3v3();
 
         static CombatantConfig Combatant(
             string id,
@@ -169,6 +197,32 @@ namespace Grimhand.Battle.Demo
                     {
                         Type = EffectActionType.ApplyStatus,
                         Target = EffectTarget.EnemyBackSlot,
+                        StatusId = StatusCatalog.Slow,
+                        Stacks = 1,
+                        Duration = 2
+                    });
+            }
+
+            if (id.StartsWith("g_hex"))
+            {
+                return CardTemplate.Create(id, name, owner, cost, type,
+                    new EffectActionSpec
+                    {
+                        Type = EffectActionType.ApplyStatus,
+                        Target = EffectTarget.DefaultEnemy,
+                        StatusId = StatusCatalog.Poison,
+                        Stacks = 5,
+                        Duration = -1
+                    });
+            }
+
+            if (id.StartsWith("g_wither"))
+            {
+                return CardTemplate.Create(id, name, owner, cost, type,
+                    new EffectActionSpec
+                    {
+                        Type = EffectActionType.ApplyStatus,
+                        Target = EffectTarget.DefaultEnemy,
                         StatusId = StatusCatalog.Slow,
                         Stacks = 1,
                         Duration = 2

@@ -2,7 +2,8 @@
     "name": "Grimhand.Editor",
     "rootNamespace": "Grimhand.Editor",
     "references": [
-        "Grimhand.Presentation"
+        "Grimhand.Presentation",
+        "Grimhand.Content"
     ],
     "includePlatforms": [
         "Editor"

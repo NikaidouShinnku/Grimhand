@@ -42,13 +42,22 @@ namespace Grimhand.Presentation
         {
             var config = battleSetup != null
                 ? battleSetup.ToBattleConfig()
-                : DemoBattleFactory.CreateDefault3v1();
+                : DemoBattleFactory.CreateDefault3v3();
             config.Seed = Random.Range(1, int.MaxValue);
             _engine = new BattleEngine(config);
             _log.Clear();
             _engine.StartBattle();
             AppendEngineEvents();
-            Log($"战斗开始 — 3v1 Demo (种子 {config.Seed})");
+            var players = 0;
+            var enemies = 0;
+            foreach (var c in config.Combatants)
+            {
+                if (c.Team == TeamSide.Player) players++;
+                else enemies++;
+            }
+
+            var source = battleSetup != null ? "SO" : "代码";
+            Log($"战斗开始 — {players}v{enemies} ({source}, 种子 {config.Seed})");
         }
 
         void OnGUI()
@@ -293,7 +302,7 @@ namespace Grimhand.Presentation
                     enemies++;
             }
 
-            return $"3v1 · {players}我方 vs {enemies}敌方 · 攻击/减益选目标 · 空过=不出牌";
+            return $"Demo · {players}我方 vs {enemies}敌方 · 攻击/减益选目标 · 空过=不出牌";
         }
 
         static int CountAliveEnemies(BattleState state)

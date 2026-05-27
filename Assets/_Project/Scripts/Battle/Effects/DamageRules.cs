@@ -14,7 +14,9 @@ namespace Grimhand.Battle.Effects
             CombatantState target,
             int power,
             CardType cardType,
-            System.Collections.Generic.List<BattleEvent> events)
+            System.Collections.Generic.List<BattleEvent> events,
+            bool canTriggerParry = true,
+            string logSuffix = "")
         {
             if (target == null)
                 return;
@@ -26,8 +28,8 @@ namespace Grimhand.Battle.Effects
             target.Block -= blocked;
             var hpDamage = raw - blocked;
 
-            var reflectDamage = 0;
-            if (hpDamage > 0 && target.ActiveParry != null)
+            var reflectPower = 0;
+            if (canTriggerParry && hpDamage > 0 && target.ActiveParry != null)
             {
                 var stance = target.ActiveParry;
                 target.ActiveParry = null;
@@ -35,14 +37,14 @@ namespace Grimhand.Battle.Effects
                 if (stance.DamageReductionPercent > 0)
                     hpDamage = (int)Math.Round(beforeReduction * (100 - stance.DamageReductionPercent) / 100f);
                 if (stance.ReflectPercent > 0)
-                    reflectDamage = (int)Math.Round(beforeReduction * stance.ReflectPercent / 100f);
+                    reflectPower = (int)Math.Round(power * stance.ReflectPercent / 100f);
             }
 
             var wasAlive = target.IsAlive;
             target.Hp = Math.Max(0, target.Hp - hpDamage);
             var killed = wasAlive && !target.IsAlive;
 
-            events.Add(new BattleEvent(BattleEventKind.DamageApplied, $"{actor.DisplayName} -> {target.DisplayName}")
+            events.Add(new BattleEvent(BattleEventKind.DamageApplied, $"{actor.DisplayName} -> {target.DisplayName}{logSuffix}")
             {
                 CombatantId = actor.Id,
                 TargetId = target.Id,
@@ -52,8 +54,11 @@ namespace Grimhand.Battle.Effects
 
             state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Attack, target.Id, killed, hpDamage);
 
-            if (reflectDamage > 0 && actor.IsAlive)
-                ApplyDamage(state, target, actor, reflectDamage, cardType, events);
+            if (reflectPower > 0 && actor.IsAlive)
+            {
+                ApplyDamage(state, target, actor, reflectPower, cardType, events,
+                    canTriggerParry: false, logSuffix: " (反射)");
+            }
 
             if (killed)
             {

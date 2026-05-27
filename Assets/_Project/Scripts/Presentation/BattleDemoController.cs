@@ -43,11 +43,12 @@ namespace Grimhand.Presentation
             var config = battleSetup != null
                 ? battleSetup.ToBattleConfig()
                 : DemoBattleFactory.CreateDefault3v1();
+            config.Seed = Random.Range(1, int.MaxValue);
             _engine = new BattleEngine(config);
             _log.Clear();
             _engine.StartBattle();
             AppendEngineEvents();
-            Log("战斗开始 — 3v1 Demo");
+            Log($"战斗开始 — 3v1 Demo (种子 {config.Seed})");
         }
 
         void OnGUI()

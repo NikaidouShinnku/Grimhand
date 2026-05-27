@@ -23,12 +23,12 @@ namespace Grimhand.Battle.Tests
             Assert.NotNull(knight.ActiveParry);
 
             var events = new List<BattleEvent>();
-            // 前排对前排：30 * 0.7 * 0.7 = 14.7 → 15 点生命伤害
-            DamageRules.ApplyDamage(state, goblin, knight, 30, CardType.Attack, events);
+            // 威力 22（面伤+攻）：受击 raw≈11，减伤 50%→6；反射威力 44，经站位后 raw≈22
+            DamageRules.ApplyDamage(state, goblin, knight, 22, CardType.Attack, events);
 
             Assert.IsNull(knight.ActiveParry, "弹反触发后应消耗");
-            Assert.AreEqual(32, knight.Hp, "15 伤害减 50% = 7.5→8，剩余 32");
-            Assert.AreEqual(20, goblin.Hp, "应反射 15*200% = 30 伤害");
+            Assert.AreEqual(34, knight.Hp, "11 伤害减 50% ≈ 6");
+            Assert.AreEqual(28, goblin.Hp, "反射 22*200%=44 威力，前排对前排约 22 HP");
         }
 
         [Test]

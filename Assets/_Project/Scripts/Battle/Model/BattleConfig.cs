@@ -1,0 +1,30 @@
+using System.Collections.Generic;
+
+namespace Grimhand.Battle.Model
+{
+    public sealed class CombatantConfig
+    {
+        public string Id { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+        public TeamSide Team { get; set; }
+        public FormationSlot Slot { get; set; }
+        public string CharacterDefinitionId { get; set; } = "";
+        public int Level { get; set; } = 1;
+        public int MaxHp { get; set; }
+        public int BaseAttack { get; set; }
+        public int BaseDefense { get; set; }
+        public int Speed { get; set; }
+        public List<CardTemplate> DeckTemplates { get; } = new();
+    }
+
+    public sealed class BattleConfig
+    {
+        public int Seed { get; set; } = 1;
+        public int EnergyCap { get; set; } = 8;
+        public int TurnStartEnergyRegen { get; set; } = 3;
+        public int HandLimit { get; set; } = 8;
+        public int CardsDrawnPerTurn { get; set; } = 5;
+        public List<CombatantConfig> Combatants { get; } = new();
+        public Dictionary<string, CardTemplate> CardCatalog { get; } = new();
+    }
+}

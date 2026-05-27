@@ -1,0 +1,211 @@
+using System.Collections.Generic;
+using Grimhand.Battle.Events;
+using Grimhand.Battle.Model;
+using Grimhand.Battle.Rules;
+
+namespace Grimhand.Battle.Planning
+{
+    public sealed class PlanningDraft
+    {
+        readonly BattleState _state;
+        readonly List<BattleEvent> _events;
+        readonly List<int> _selectedQueue = new();
+        readonly Dictionary<int, string> _targetByCard = new();
+        int? _awaitingTargetCardId;
+
+        public PlanningDraft(BattleState state, List<BattleEvent> events)
+        {
+            _state = state;
+            _events = events;
+        }
+
+        public IReadOnlyList<int> SelectedQueue => _selectedQueue;
+        public int EnergyRemaining => _state.EnergyCurrent;
+        public int? AwaitingTargetCardId => _awaitingTargetCardId;
+
+        public bool IsSelected(int instanceId) => _selectedQueue.Contains(instanceId);
+
+        public string GetAssignedTarget(int cardInstanceId)
+        {
+            _targetByCard.TryGetValue(cardInstanceId, out var targetId);
+            return targetId;
+        }
+
+        public bool TrySelectCard(int instanceId)
+        {
+            if (_state.Phase != TurnPhase.Planning)
+                return false;
+
+            if (_selectedQueue.Contains(instanceId))
+                return false;
+
+            if (!TryGetSelectableCard(instanceId, out var card))
+                return false;
+
+            if (!EnergyRules.CanAfford(_state.EnergyCurrent, card.Cost))
+                return false;
+
+            var ownerId = PositionRules.GetOwnerCombatantId(_state, card);
+            var owner = ownerId != null ? _state.GetCombatant(ownerId) : null;
+
+            if (CardRules.ShouldPromptForTarget(_state, card, owner) && !_targetByCard.ContainsKey(instanceId))
+            {
+                _awaitingTargetCardId = instanceId;
+                _events.Add(new BattleEvent(BattleEventKind.TargetSelectionRequired, card.DisplayName)
+                {
+                    CardInstanceId = instanceId
+                });
+                return true;
+            }
+
+            CompleteSelect(card, instanceId);
+            return true;
+        }
+
+        public bool TryAssignTargetAndSelect(string combatantId)
+        {
+            if (_awaitingTargetCardId == null)
+                return false;
+
+            var cardId = _awaitingTargetCardId.Value;
+            var card = _state.GetCard(cardId);
+            if (card == null)
+                return false;
+
+            var ownerId = PositionRules.GetOwnerCombatantId(_state, card);
+            var owner = ownerId != null ? _state.GetCombatant(ownerId) : null;
+            var valid = CardRules.GetValidTargetCandidates(_state, card, owner);
+            var ok = false;
+            foreach (var v in valid)
+            {
+                if (v.Id == combatantId)
+                {
+                    ok = true;
+                    break;
+                }
+            }
+
+            if (!ok)
+                return false;
+
+            _targetByCard[cardId] = combatantId;
+            _awaitingTargetCardId = null;
+            CompleteSelect(card, cardId);
+            return true;
+        }
+
+        public void CancelAwaitingTarget() => _awaitingTargetCardId = null;
+
+        public bool TryDeselectCard(int instanceId)
+        {
+            if (_state.Phase != TurnPhase.Planning)
+                return false;
+
+            if (_awaitingTargetCardId == instanceId)
+            {
+                _awaitingTargetCardId = null;
+                return true;
+            }
+
+            var index = _selectedQueue.IndexOf(instanceId);
+            if (index < 0)
+                return false;
+
+            var card = _state.GetCard(instanceId);
+            if (card == null)
+                return false;
+
+            _selectedQueue.RemoveAt(index);
+            _targetByCard.Remove(instanceId);
+            _state.EnergyCurrent += card.Cost;
+
+            EmitEnergyEvent(BattleEventKind.CardDeselectedFromPlay, card.DisplayName, instanceId);
+            return true;
+        }
+
+        public bool ToggleCard(int instanceId) =>
+            _selectedQueue.Contains(instanceId) ? TryDeselectCard(instanceId) : TrySelectCard(instanceId);
+
+        public BattlePlan CommitToPlan()
+        {
+            var plan = new BattlePlan();
+            plan.PlayQueue.AddRange(_selectedQueue);
+            plan.EnergySpent = 0;
+            foreach (var cardId in _selectedQueue)
+            {
+                var card = _state.GetCard(cardId);
+                if (card == null)
+                    continue;
+
+                plan.EnergySpent += card.Cost;
+                if (_targetByCard.TryGetValue(cardId, out var targetId))
+                    plan.TargetByCardInstanceId[cardId] = targetId;
+            }
+
+            return plan;
+        }
+
+        public void Reset()
+        {
+            _selectedQueue.Clear();
+            _targetByCard.Clear();
+            _awaitingTargetCardId = null;
+        }
+
+        public void RefundAllSelections()
+        {
+            while (_selectedQueue.Count > 0)
+                TryDeselectCard(_selectedQueue[0]);
+
+            _awaitingTargetCardId = null;
+        }
+
+        void CompleteSelect(CardInstanceState card, int instanceId)
+        {
+            _selectedQueue.Add(instanceId);
+            _state.EnergyCurrent -= card.Cost;
+            EmitEnergyEvent(BattleEventKind.CardSelectedForPlay, card.DisplayName, instanceId);
+        }
+
+        void EmitEnergyEvent(BattleEventKind kind, string message, int cardInstanceId)
+        {
+            _events.Add(new BattleEvent(kind, message)
+            {
+                CardInstanceId = cardInstanceId,
+                Energy = _state.EnergyCurrent,
+                EnergyMax = _state.EnergyMax,
+                EnergyRemaining = _state.EnergyCurrent
+            });
+            _events.Add(new BattleEvent(BattleEventKind.EnergyChanged, message)
+            {
+                Energy = _state.EnergyCurrent,
+                EnergyMax = _state.EnergyMax,
+                EnergyRemaining = _state.EnergyCurrent
+            });
+        }
+
+        bool TryGetSelectableCard(int instanceId, out CardInstanceState card)
+        {
+            card = null;
+            if (!_state.CardsById.TryGetValue(instanceId, out var c))
+                return false;
+
+            card = c;
+            if (!c.IsUsable)
+                return false;
+
+            if (!_state.PlayerHand.Contains(c))
+                return false;
+
+            var ownerId = PositionRules.GetOwnerCombatantId(_state, c);
+            if (ownerId == null)
+                return false;
+
+            var owner = _state.GetCombatant(ownerId);
+            if (owner == null || owner.Team != TeamSide.Player || !owner.IsAlive)
+                return false;
+
+            return true;
+        }
+    }
+}

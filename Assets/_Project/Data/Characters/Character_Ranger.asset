@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84c30176d181a5747a85983cdd126a0c, type: 3}
+  m_Name: Character_Ranger
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
+  CharacterId: char_ranger
+  DisplayName: "\u6E38\u4FA0"
+  Team: 0
+  Slot: 3
+  Level: 1
+  MaxHp: 30
+  BaseAttack: 7
+  BaseDefense: 2
+  Speed: 7
+  Deck:
+  - {fileID: 11400000, guid: 8a3d6f71d8765ab46b9602590ba5e787, type: 2}
+  - {fileID: 11400000, guid: 8a3d6f71d8765ab46b9602590ba5e787, type: 2}
+  - {fileID: 11400000, guid: 8a3d6f71d8765ab46b9602590ba5e787, type: 2}
+  - {fileID: 11400000, guid: 8a3d6f71d8765ab46b9602590ba5e787, type: 2}
+  - {fileID: 11400000, guid: 51b09bd56a7f68b47ab7b140b23880dc, type: 2}
+  - {fileID: 11400000, guid: 51b09bd56a7f68b47ab7b140b23880dc, type: 2}

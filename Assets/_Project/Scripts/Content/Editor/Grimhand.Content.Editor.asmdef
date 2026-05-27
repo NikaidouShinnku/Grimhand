@@ -1,0 +1,19 @@
+{
+    "name": "Grimhand.Content.Editor",
+    "rootNamespace": "Grimhand.Content.Editor",
+    "references": [
+        "Grimhand.Content",
+        "Grimhand.Battle"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

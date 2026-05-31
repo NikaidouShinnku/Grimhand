@@ -149,3 +149,19 @@ Assets/_Project/Data/
 | `slow` | 2 回合，每层 -2 速度 |
 
 新状态需在代码 `StatusCatalog.cs` 注册（后续可改为 SO 驱动）。
+
+---
+
+## 八、卡图 / 边框（Visual）
+
+每张 **`CardDefinitionSO`** 可填：
+
+| 字段 | 说明 |
+|------|------|
+| **Card Art** | 卡面主图 |
+| **Card Frame** | 边框（留空则用 Catalog 默认） |
+| **Card Icon** | 小图标（可选） |
+
+或在 **`Card Visual Catalog`**（`Create → Grimhand → Card Visual Catalog`）里按 **Card Id** 批量配置；未绑图时 UI 显示灰色占位。
+
+战斗 UI 菜单：**Grimhand → Setup Battle UI in Scene** 会自动创建 `CardVisualCatalog_Demo.asset` 并绑定到 `BattleScreenController`。

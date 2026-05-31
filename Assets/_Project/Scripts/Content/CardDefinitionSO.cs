@@ -15,6 +15,11 @@ namespace Grimhand.Content
         public List<string> Keywords = new();
         public List<EffectActionDefinition> Actions = new();
 
+        [Header("Visual (optional — 也可在 Card Visual Catalog 统一配置)")]
+        public Sprite CardArt;
+        public Sprite CardFrame;
+        public Sprite CardIcon;
+
         public CardTemplate ToTemplate()
         {
             var template = new CardTemplate

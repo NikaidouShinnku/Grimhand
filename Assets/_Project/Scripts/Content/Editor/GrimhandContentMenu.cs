@@ -19,6 +19,11 @@ namespace Grimhand.Content.Editor
         [MenuItem("Grimhand/Content/Generate Demo ScriptableObjects")]
         public static void GenerateDemoAssets()
         {
+            GenerateDemoAssetsSilent(showDialog: true);
+        }
+
+        public static void GenerateDemoAssetsSilent(bool showDialog = false)
+        {
             EnsureFolder(Root + "/Cards");
             EnsureFolder(Root + "/Characters");
             EnsureFolder(Root + "/Setups");
@@ -61,6 +66,9 @@ namespace Grimhand.Content.Editor
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
+
+            if (!showDialog)
+                return;
 
             EditorUtility.FocusProjectWindow();
             Selection.activeObject = setup;
@@ -243,13 +251,13 @@ namespace Grimhand.Content.Editor
         {
             return new PlayerCharacters
             {
-                Knight = SaveCharacter("Character_Knight", "char_knight", "骑士", TeamSide.Player,
+                Knight = SaveCharacter("Character_Knight", "char_knight", "战士", TeamSide.Player,
                     FormationSlot.Front, 2, 40, 6, 4, 10,
                     BuildDeck(Repeat(cards.Strike, 4), Repeat(cards.Slash, 2), Of(cards.Parry, cards.Parry))),
-                Mage = SaveCharacter("Character_Mage", "char_mage", "法师", TeamSide.Player,
+                Mage = SaveCharacter("Character_Mage", "char_mage", "法老", TeamSide.Player,
                     FormationSlot.Middle, 1, 28, 5, 2, 5,
                     BuildDeck(Repeat(cards.Bolt, 6), Of(cards.Poison, cards.Poison))),
-                Ranger = SaveCharacter("Character_Ranger", "char_ranger", "游侠", TeamSide.Player,
+                Ranger = SaveCharacter("Character_Ranger", "char_ranger", "恶魔", TeamSide.Player,
                     FormationSlot.Back, 1, 30, 7, 2, 7,
                     BuildDeck(Repeat(cards.Snipe, 2), Repeat(cards.Pierce, 3),
                         Repeat(cards.FarShot, 2), Repeat(cards.Slow, 3)))

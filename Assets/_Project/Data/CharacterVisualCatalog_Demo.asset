@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d45e3dd3b33ef30409821c2101d7a6e9, type: 3}
+  m_Name: CharacterVisualCatalog_Demo
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterVisualCatalogSO
+  DefaultPortrait: {fileID: 0}
+  Entries:
+  - CharacterId: char_knight
+    IdlePortrait: {fileID: 4468830512903037591, guid: bf1965c7ed1ef7047adb61d9f31333ae, type: 3}
+  - CharacterId: char_mage
+    IdlePortrait: {fileID: -2070779048781949823, guid: e68953ff4c1766044ab3a58fd72aa6ff, type: 3}
+  - CharacterId: char_ranger
+    IdlePortrait: {fileID: 685943926597773782, guid: eb95ea32bacbf2d418f7c26442ea6586, type: 3}
+  - CharacterId: char_goblin_brute
+    IdlePortrait: {fileID: -7546124878013289674, guid: 4e9517047cbe912459dca45a57e6de36, type: 3}
+  - CharacterId: char_goblin_shaman
+    IdlePortrait: {fileID: 3727514190393640177, guid: c21823f0fb8c8e642805cf4373333346, type: 3}
+  - CharacterId: char_goblin_archer
+    IdlePortrait: {fileID: -9055158821392389110, guid: d288c1460a6d0d644b4a5de3cdd479a1, type: 3}

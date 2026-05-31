@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Character_Knight
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
   CharacterId: char_knight
-  DisplayName: "\u9A91\u58EB"
+  DisplayName: "\u6218\u58EB"
   Team: 0
   Slot: 1
   Level: 2

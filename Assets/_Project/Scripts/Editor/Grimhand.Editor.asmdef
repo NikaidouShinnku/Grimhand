@@ -2,8 +2,11 @@
     "name": "Grimhand.Editor",
     "rootNamespace": "Grimhand.Editor",
     "references": [
+        "Grimhand.Battle",
         "Grimhand.Presentation",
-        "Grimhand.Content"
+        "Grimhand.Content",
+        "Grimhand.Content.Editor",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [
         "Editor"

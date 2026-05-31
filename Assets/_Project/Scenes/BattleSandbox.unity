@@ -394,6 +394,8 @@ MonoBehaviour:
   slotLabel: {fileID: 938519571}
   bodyText: {fileID: 1515845681}
   selectButton: {fileID: 124938039}
+  team: 0
+  formationSlot: 0
 --- !u!114 &124938039
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -610,6 +612,8 @@ MonoBehaviour:
   slotLabel: {fileID: 1031375389}
   bodyText: {fileID: 329171650}
   selectButton: {fileID: 236527676}
+  team: 0
+  formationSlot: 0
 --- !u!114 &236527676
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -841,6 +845,8 @@ MonoBehaviour:
   slotLabel: {fileID: 1441212425}
   bodyText: {fileID: 1811184634}
   selectButton: {fileID: 314098285}
+  team: 0
+  formationSlot: 0
 --- !u!114 &314098285
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1998,7 +2004,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 1200, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!114 &646309097
 MonoBehaviour:
@@ -2861,6 +2867,8 @@ MonoBehaviour:
   slotLabel: {fileID: 561791819}
   bodyText: {fileID: 318730103}
   selectButton: {fileID: 891542424}
+  team: 0
+  formationSlot: 0
 --- !u!114 &891542424
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3430,6 +3438,8 @@ MonoBehaviour:
   slotLabel: {fileID: 1750069990}
   bodyText: {fileID: 1524318336}
   selectButton: {fileID: 1018218008}
+  team: 0
+  formationSlot: 0
 --- !u!114 &1018218008
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4240,6 +4250,8 @@ MonoBehaviour:
   slotLabel: {fileID: 932457164}
   bodyText: {fileID: 442616960}
   selectButton: {fileID: 1322241975}
+  team: 0
+  formationSlot: 0
 --- !u!114 &1322241975
 MonoBehaviour:
   m_ObjectHideFlags: 0

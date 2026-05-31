@@ -1,6 +1,6 @@
 # Grimhand 开发交接总结
 
-**日期：** 2026-05-28  
+**日期：** 2026-06-01 
 **项目路径：** `c:\Users\Kelthuzad\Documents\GitHub\Grimhand\Grimhand`  
 **当前阶段：** 战斗内核 + 远征 Demo **稳定**；**uGUI 战斗界面第一版可 Play**，待美术 Icon 接入与 UI 重排
 

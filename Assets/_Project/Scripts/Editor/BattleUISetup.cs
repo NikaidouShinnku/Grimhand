@@ -113,11 +113,11 @@ namespace Grimhand.Editor
             var playerSlots = CreateHeroStage(playerStage.transform, TeamSide.Player);
             var enemySlots = CreateHeroStage(enemyStage.transform, TeamSide.Enemy);
 
-            // 敌人意图（右下角，操作按钮上方）
+            // 敌人意图（右下，与手牌同行、在操作栏下方）
             var intentPanel = CreatePanel("EnemyIntentPanel", root, new Color(0.2f, 0.12f, 0.12f, 0.92f));
-            PinBottomRight(intentPanel, 16, 368, 660, 96);
-            var intentText = CreateText("Text", intentPanel.transform, "", 16, FontStyle.Normal);
-            StretchFull(intentText, 12, 8, -12, -8);
+            PinBottomRight(intentPanel, 12, 8, 360, 248);
+            var intentText = CreateText("Text", intentPanel.transform, "", 15, FontStyle.Normal);
+            StretchFull(intentText, 10, 8, -10, -8);
             intentText.alignment = TextAnchor.UpperLeft;
 
             // 选目标提示
@@ -130,9 +130,9 @@ namespace Grimhand.Editor
             var targetText = CreateText("Text", targetPanel.transform, "请选择目标", 19, FontStyle.Bold);
             StretchFull(targetText, 12, 8, -12, -8);
 
-            // 左下：远征/回合/能量（堆叠）；右下：操作按钮。中间留空不挡立绘。
+            // 左下：远征/回合/能量（堆叠）；右下：操作按钮（在出牌顺序/意图下方）
             var planningInfo = CreatePanel("PlanningInfoLeft", root, new Color(0.1f, 0.11f, 0.15f, 0.9f));
-            PinBottomLeft(planningInfo, 16, 268, 420, 92);
+            PinBottomLeft(planningInfo, 12, 264, 320, 84);
 
             var title = CreateText("Title", planningInfo.transform, "", 22, FontStyle.Bold);
             var titleRt = title.GetComponent<RectTransform>();
@@ -174,13 +174,13 @@ namespace Grimhand.Editor
             energyValueLe.minWidth = 72f;
 
             var queuePanel = CreatePanel("SelectedQueuePanel", root, new Color(0.12f, 0.16f, 0.22f, 0.88f));
-            PinBottomLeft(queuePanel, 16, 368, 420, 88);
+            PinBottomLeft(queuePanel, 12, 8, 320, 248);
             var queueText = CreateText("Text", queuePanel.transform, "", 14, FontStyle.Normal);
             StretchFull(queueText, 10, 6, -10, -6);
             queueText.alignment = TextAnchor.UpperLeft;
 
             var planningActions = CreatePanel("PlanningActionsRight", root, new Color(0.1f, 0.11f, 0.15f, 0.9f));
-            PinBottomRight(planningActions, 16, 268, 660, 92);
+            PinBottomRight(planningActions, 12, 264, 660, 84);
 
             var actionBar = CreateRect("ActionBar", planningActions.transform);
             StretchFull(actionBar, 8, 8, -8, -8);
@@ -200,9 +200,9 @@ namespace Grimhand.Editor
             var restart = CreateLayoutButton("RestartButton", actionBar.transform, "重开远征",
                 new Color(0.35f, 0.22f, 0.22f, 1f));
 
-            // 手牌区（下半屏略居中）
+            // 手牌区（与左右侧栏同行，居中）
             var handArea = CreateRect("HandArea", root);
-            PinBottomHeight(handArea, 48, 48, 8, 252);
+            PinBottomHeight(handArea, 348, 380, 8, 248);
             var handLabel = CreateText("HandCount", handArea.transform, "手牌", 17, FontStyle.Bold);
             var handLabelRt = handLabel.GetComponent<RectTransform>();
             handLabelRt.anchorMin = new Vector2(0.5f, 1f);

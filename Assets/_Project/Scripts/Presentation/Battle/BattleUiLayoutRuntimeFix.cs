@@ -6,13 +6,18 @@ namespace Grimhand.Presentation.Battle
     /// <summary>修复旧版 Setup 生成的错误 RectTransform，并将全宽 PlanningBar 拆成左右两角。</summary>
     public static class BattleUiLayoutRuntimeFix
     {
+        const float CardRowBottom = 8f;
+        const float CardRowHeight = 248f;
+        const float PlanningRowBottom = 264f;
+        const float PlanningRowHeight = 84f;
+
         public static void ApplyIfNeeded(Transform battleScreenRoot)
         {
             if (battleScreenRoot == null)
                 return;
 
             ApplySplitPlanningBar(battleScreenRoot);
-            ApplyCornerPanelsLayout(battleScreenRoot);
+            ApplyBottomRowLayout(battleScreenRoot);
             ApplyStageDrawOrders(battleScreenRoot);
             RaiseBattleStages(battleScreenRoot);
             FixHandArea(battleScreenRoot.Find("HandArea"));
@@ -36,16 +41,48 @@ namespace Grimhand.Presentation.Battle
             FillVerticalBand(enemyRow, 8, 8, 0.54f, 1f);
             FillVerticalBand(playerRow, 8, 8, 0f, 0.46f);
 
-            PinTopHeight(battleScreenRoot.Find("EnemyIntentPanel"), 16, 16, 508, 64);
-            PinTopHeight(battleScreenRoot.Find("SelectedQueuePanel"), 16, 16, 580, 64);
             PinTopHeight(battleScreenRoot.Find("TargetPromptPanel"), 16, 16, 652, 48);
-            PinBottomHeight(battleScreenRoot.Find("HandArea"), 16, 16, 96, 196);
             FixActionBar(battleScreenRoot.Find("ActionBar"));
 
             LayoutRebuilder.ForceRebuildLayoutImmediate(battlefield);
             var rootRt = battleScreenRoot as RectTransform;
             if (rootRt != null)
                 LayoutRebuilder.ForceRebuildLayoutImmediate(rootRt);
+        }
+
+        static void ApplyBottomRowLayout(Transform battleScreenRoot)
+        {
+            if (battleScreenRoot.Find("PlayerStage") == null)
+                return;
+
+            var queue = battleScreenRoot.Find("SelectedQueuePanel") as RectTransform;
+            if (queue != null)
+                PinBottomLeft(queue, 12f, CardRowBottom, 320f, CardRowHeight);
+
+            var intent = battleScreenRoot.Find("EnemyIntentPanel") as RectTransform;
+            if (intent != null)
+                PinBottomRight(intent, 12f, CardRowBottom, 360f, CardRowHeight);
+
+            var hand = battleScreenRoot.Find("HandArea") as RectTransform;
+            if (hand != null)
+                PinBottomHeight(hand, 348f, 380f, CardRowBottom, CardRowHeight);
+
+            var info = battleScreenRoot.Find("PlanningInfoLeft") as RectTransform
+                ?? battleScreenRoot.Find("PlanningBar") as RectTransform;
+            if (info != null && info.name == "PlanningInfoLeft")
+                PinBottomLeft(info, 12f, PlanningRowBottom, 320f, PlanningRowHeight);
+
+            var actions = battleScreenRoot.Find("PlanningActionsRight") as RectTransform;
+            if (actions != null)
+                PinBottomRight(actions, 12f, PlanningRowBottom, 660f, PlanningRowHeight);
+
+            ApplyPortraitScale(battleScreenRoot);
+        }
+
+        static void ApplyPortraitScale(Transform battleScreenRoot)
+        {
+            foreach (var slot in battleScreenRoot.GetComponentsInChildren<CombatantSlotView>(true))
+                slot.ApplyPortraitScaleFromRuntime();
         }
 
         static void ApplySplitPlanningBar(Transform battleScreenRoot)
@@ -65,12 +102,12 @@ namespace Grimhand.Presentation.Battle
             var queuePanel = planningBar.Find("SelectedQueuePanel");
 
             planningBar.name = "PlanningInfoLeft";
-            PinBottomLeft(planningBar, 16f, 268f, 420f, 92f);
+            PinBottomLeft(planningBar, 12f, PlanningRowBottom, 320f, PlanningRowHeight);
 
             if (queuePanel != null)
             {
                 queuePanel.SetParent(battleScreenRoot, false);
-                PinBottomLeft(queuePanel as RectTransform, 16f, 368f, 420f, 88f);
+                PinBottomLeft(queuePanel as RectTransform, 12f, CardRowBottom, 320f, CardRowHeight);
             }
 
             if (actionBar != null)
@@ -79,7 +116,7 @@ namespace Grimhand.Presentation.Battle
                 actionsGo.transform.SetParent(battleScreenRoot, false);
                 var actionsImg = actionsGo.GetComponent<Image>();
                 actionsImg.color = new Color(0.1f, 0.11f, 0.15f, 0.9f);
-                PinBottomRight(actionsGo.GetComponent<RectTransform>(), 16f, 268f, 660f, 92f);
+                PinBottomRight(actionsGo.GetComponent<RectTransform>(), 12f, PlanningRowBottom, 660f, PlanningRowHeight);
 
                 actionBar.SetParent(actionsGo.transform, false);
                 StretchFull(actionBar as RectTransform, 8f, 8f, -8f, -8f);
@@ -87,17 +124,6 @@ namespace Grimhand.Presentation.Battle
 
             EnsureEnergyRow(planningBar, energyIcon, title);
             RepositionTitle(title as RectTransform);
-        }
-
-        static void ApplyCornerPanelsLayout(Transform battleScreenRoot)
-        {
-            var queue = battleScreenRoot.Find("SelectedQueuePanel") as RectTransform;
-            if (queue != null && queue.anchorMin.x > 0.01f)
-                PinBottomLeft(queue, 16f, 368f, 420f, 88f);
-
-            var intent = battleScreenRoot.Find("EnemyIntentPanel") as RectTransform;
-            if (intent != null && intent.anchorMin.y > 0.5f)
-                PinBottomRight(intent, 16f, 368f, 660f, 96f);
         }
 
         static void ApplyStageDrawOrders(Transform battleScreenRoot)
@@ -278,6 +304,15 @@ namespace Grimhand.Presentation.Battle
             rt.sizeDelta = new Vector2(width, height);
         }
 
+        static void PinBottomHeight(RectTransform rt, float left, float right, float fromBottom, float height)
+        {
+            rt.anchorMin = new Vector2(0f, 0f);
+            rt.anchorMax = new Vector2(1f, 0f);
+            rt.pivot = new Vector2(0.5f, 0f);
+            rt.offsetMin = new Vector2(left, fromBottom);
+            rt.offsetMax = new Vector2(-right, fromBottom + height);
+        }
+
         static void PinTopHeight(Transform t, float left, float right, float fromTop, float height)
         {
             if (t == null)
@@ -289,19 +324,6 @@ namespace Grimhand.Presentation.Battle
             rt.pivot = new Vector2(0.5f, 1f);
             rt.offsetMin = new Vector2(left, -fromTop - height);
             rt.offsetMax = new Vector2(-right, -fromTop);
-        }
-
-        static void PinBottomHeight(Transform t, float left, float right, float fromBottom, float height)
-        {
-            if (t == null)
-                return;
-
-            var rt = t as RectTransform ?? t.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0f, 0f);
-            rt.anchorMax = new Vector2(1f, 0f);
-            rt.pivot = new Vector2(0.5f, 0f);
-            rt.offsetMin = new Vector2(left, fromBottom);
-            rt.offsetMax = new Vector2(-right, fromBottom + height);
         }
 
         static void FillVerticalBand(RectTransform rt, float left, float right, float yMin, float yMax)

@@ -11,6 +11,8 @@ namespace Grimhand.Presentation.Battle
         static readonly Color ValidTargetTint = new(1f, 0.92f, 0.45f, 1f);
         static readonly Color DeadTint = new(0.35f, 0.35f, 0.35f, 1f);
 
+        const float PortraitScale = 0.88f;
+
         [SerializeField] Image background;
         [SerializeField] Image targetHighlight;
         [SerializeField] RectTransform portraitRoot;
@@ -157,8 +159,12 @@ namespace Grimhand.Presentation.Battle
 
         void ApplyPortraitMirror()
         {
-            if (portraitRoot != null)
-                portraitRoot.localScale = mirrorPortrait ? new Vector3(-1f, 1f, 1f) : Vector3.one;
+            if (portraitRoot == null)
+                return;
+
+            portraitRoot.localScale = mirrorPortrait
+                ? new Vector3(-PortraitScale, PortraitScale, 1f)
+                : new Vector3(PortraitScale, PortraitScale, 1f);
         }
 
         void ApplyDrawOrder()
@@ -170,6 +176,11 @@ namespace Grimhand.Presentation.Battle
                 _ => 0
             };
             transform.SetSiblingIndex(order);
+        }
+
+        public void ApplyPortraitScaleFromRuntime()
+        {
+            ApplyPortraitMirror();
         }
 
         public void SetSelectHandler(System.Action<string> onSelect)

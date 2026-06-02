@@ -17,6 +17,7 @@ MonoBehaviour:
   OwnerCharacterId: char_ranger
   Cost: 2
   CardType: 0
+  Rarity: 1
   Keywords:
   - pierce
   - melee
@@ -34,3 +35,6 @@ MonoBehaviour:
     SplashBehindTarget: 1
     SplashPowerPercent: 80
     BackRowPowerPercent: 100
+  CardArt: {fileID: 0}
+  CardFrame: {fileID: 0}
+  CardIcon: {fileID: 0}

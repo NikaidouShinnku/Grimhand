@@ -14,6 +14,15 @@ namespace Grimhand.Content
         public Sprite CardIcon;
     }
 
+    [Serializable]
+    public sealed class CardFrameRaritySet
+    {
+        public CardRarity Rarity = CardRarity.Common;
+        public Sprite AttackFrame;
+        public Sprite DefenseFrame;
+        public Sprite StatusFrame;
+    }
+
     [CreateAssetMenu(fileName = "CardVisualCatalog", menuName = "Grimhand/Card Visual Catalog")]
     public class CardVisualCatalogSO : ScriptableObject
     {
@@ -21,9 +30,10 @@ namespace Grimhand.Content
         public Sprite DefaultFrameAttack;
         public Sprite DefaultFrameDefense;
         public Sprite DefaultFrameStatus;
+        public List<CardFrameRaritySet> FrameSets = new();
         public List<CardVisualEntry> Entries = new();
 
-        public CardVisual Resolve(string cardId, CardType cardType)
+        public CardVisual Resolve(string cardId, CardType cardType, CardRarity rarity = CardRarity.Common)
         {
             foreach (var entry in Entries)
             {
@@ -34,23 +44,52 @@ namespace Grimhand.Content
 
                 return new CardVisual(
                     entry.CardArt != null ? entry.CardArt : DefaultCardArt,
-                    entry.CardFrame != null ? entry.CardFrame : GetDefaultFrame(cardType),
+                    entry.CardFrame != null ? entry.CardFrame : GetFrame(cardType, rarity),
                     entry.CardIcon);
             }
 
             return new CardVisual(
                 DefaultCardArt,
-                GetDefaultFrame(cardType),
+                GetFrame(cardType, rarity),
                 null);
         }
 
-        public Sprite GetDefaultFrame(CardType cardType)
+        public Sprite GetDefaultFrame(CardType cardType) => GetFrame(cardType, CardRarity.Common);
+
+        public Sprite GetFrame(CardType cardType, CardRarity rarity)
+        {
+            foreach (var set in FrameSets)
+            {
+                if (set == null || set.Rarity != rarity)
+                    continue;
+
+                return PickFrameFromSet(set, cardType);
+            }
+
+            if (FrameSets.Count > 0 && FrameSets[0] != null)
+                return PickFrameFromSet(FrameSets[0], cardType);
+
+            switch (cardType)
+            {
+                case CardType.Defense:
+                    return DefaultFrameDefense != null ? DefaultFrameDefense : DefaultFrameAttack;
+                case CardType.Status:
+                    return DefaultFrameStatus != null ? DefaultFrameStatus : DefaultFrameAttack;
+                default:
+                    return DefaultFrameAttack;
+            }
+        }
+
+        static Sprite PickFrameFromSet(CardFrameRaritySet set, CardType cardType)
         {
             switch (cardType)
             {
-                case CardType.Defense: return DefaultFrameDefense != null ? DefaultFrameDefense : DefaultFrameAttack;
-                case CardType.Status: return DefaultFrameStatus != null ? DefaultFrameStatus : DefaultFrameAttack;
-                default: return DefaultFrameAttack;
+                case CardType.Defense:
+                    return set.DefenseFrame != null ? set.DefenseFrame : set.AttackFrame;
+                case CardType.Status:
+                    return set.StatusFrame != null ? set.StatusFrame : set.AttackFrame;
+                default:
+                    return set.AttackFrame;
             }
         }
     }

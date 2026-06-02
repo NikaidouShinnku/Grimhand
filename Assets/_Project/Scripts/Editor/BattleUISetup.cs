@@ -28,6 +28,7 @@ namespace Grimhand.Editor
             EditorUtility.DisplayDialog(
                 "战斗 UI 已搭建",
                 "已在当前场景创建/更新 BattleCanvas。\n\n" +
+                "新布局：左右大立绘对峙 + 手牌下方居中 + 能量栏在手牌上方。\n\n" +
                 "推荐：菜单 Grimhand → Open Battle Test Scene，直接 Play 测试。\n\n" +
                 "IMGUI Demo 已自动禁用（可重新启用 Battle Demo Controller）。",
                 "好的");
@@ -100,96 +101,93 @@ namespace Grimhand.Editor
         {
             ClearChildren(root);
 
-            var bg = CreateImage("Background", root, new Color(0.08f, 0.09f, 0.12f, 1f));
+            var bg = CreateImage("Background", root, new Color(0.06f, 0.07f, 0.1f, 1f));
             StretchFull(bg);
 
-            var hud = CreateRect("HUD", root);
-            PinTopHeight(hud, 0, 0, 0, 72);
-            var title = CreateText("Title", hud.transform, "", 22, FontStyle.Bold);
-            StretchFull(title, 12, 36, -12, -8);
-            var subtitle = CreateText("Subtitle", hud.transform, "", 16, FontStyle.Normal);
-            StretchFull(subtitle, 12, 8, -12, -36);
+            // 左右对峙舞台（无框大立绘）
+            var playerStage = CreateRect("PlayerStage", root);
+            AnchorRect(playerStage, 0f, 0.36f, 0.5f, 1f);
+            var enemyStage = CreateRect("EnemyStage", root);
+            AnchorRect(enemyStage, 0.5f, 0.36f, 1f, 1f);
 
-            var battlefield = CreatePanel("Battlefield", root, new Color(0.12f, 0.13f, 0.18f, 0.95f));
-            PinTopHeight(battlefield, 16, 16, 80, 420);
+            var playerSlots = CreateHeroStage(playerStage.transform, TeamSide.Player);
+            var enemySlots = CreateHeroStage(enemyStage.transform, TeamSide.Enemy);
 
-            var enemyRow = CreateRect("EnemyRow", battlefield.transform);
-            FillVerticalBand(enemyRow, 8, 8, 0.54f, 1f);
-            var playerRow = CreateRect("PlayerRow", battlefield.transform);
-            FillVerticalBand(playerRow, 8, 8, 0f, 0.46f);
-
-            var playerSlots = CreateSlotRow(playerRow.transform, TeamSide.Player);
-            var enemySlots = CreateSlotRow(enemyRow.transform, TeamSide.Enemy);
-
-            var intentPanel = CreatePanel("EnemyIntentPanel", root, new Color(0.2f, 0.12f, 0.12f, 0.9f));
-            PinTopHeight(intentPanel, 16, 16, 508, 64);
-            var intentText = CreateText("Text", intentPanel.transform, "", 15, FontStyle.Normal);
-            StretchFull(intentText, 10, 8, -10, -8);
+            // 敌人意图（右下角，操作按钮上方）
+            var intentPanel = CreatePanel("EnemyIntentPanel", root, new Color(0.2f, 0.12f, 0.12f, 0.92f));
+            PinBottomRight(intentPanel, 16, 368, 660, 96);
+            var intentText = CreateText("Text", intentPanel.transform, "", 16, FontStyle.Normal);
+            StretchFull(intentText, 12, 8, -12, -8);
             intentText.alignment = TextAnchor.UpperLeft;
 
-            var queuePanel = CreatePanel("SelectedQueuePanel", root, new Color(0.12f, 0.16f, 0.2f, 0.9f));
-            PinTopHeight(queuePanel, 16, 16, 580, 64);
-            var queueText = CreateText("Text", queuePanel.transform, "", 14, FontStyle.Normal);
-            StretchFull(queueText, 10, 8, -10, -8);
-            queueText.alignment = TextAnchor.UpperLeft;
-
+            // 选目标提示
             var targetPanel = CreatePanel("TargetPromptPanel", root, new Color(0.25f, 0.2f, 0.08f, 0.95f));
-            PinTopHeight(targetPanel, 16, 16, 652, 48);
-            var targetText = CreateText("Text", targetPanel.transform, "请选择目标", 18, FontStyle.Bold);
+            PinTopHeight(targetPanel, 16, 16, 140, 48);
+            var targetRt = targetPanel.GetComponent<RectTransform>();
+            targetRt.anchorMin = new Vector2(0.52f, 1f);
+            targetRt.anchorMax = new Vector2(1f, 1f);
+            targetRt.offsetMin = new Vector2(0f, targetRt.offsetMin.y);
+            var targetText = CreateText("Text", targetPanel.transform, "请选择目标", 19, FontStyle.Bold);
             StretchFull(targetText, 12, 8, -12, -8);
 
-            var handArea = CreateRect("HandArea", root);
-            PinBottomHeight(handArea, 16, 16, 96, 196);
-            var handLabel = CreateText("HandCount", handArea.transform, "手牌", 16, FontStyle.Bold);
-            var handLabelRt = handLabel.GetComponent<RectTransform>();
-            handLabelRt.anchorMin = new Vector2(0f, 1f);
-            handLabelRt.anchorMax = new Vector2(0f, 1f);
-            handLabelRt.pivot = new Vector2(0f, 1f);
-            handLabelRt.anchoredPosition = new Vector2(8f, -6f);
-            handLabelRt.sizeDelta = new Vector2(260f, 24f);
-            if (handLabel != null)
-            {
-                handLabel.fontStyle = FontStyle.Bold;
-                handLabel.alignment = TextAnchor.MiddleLeft;
-            }
+            // 左下：远征/回合/能量（堆叠）；右下：操作按钮。中间留空不挡立绘。
+            var planningInfo = CreatePanel("PlanningInfoLeft", root, new Color(0.1f, 0.11f, 0.15f, 0.9f));
+            PinBottomLeft(planningInfo, 16, 268, 420, 92);
 
-            var scrollGo = CreateRect("HandScroll", handArea.transform);
-            StretchFull(scrollGo, 0, 0, 0, -32);
-            var scroll = scrollGo.AddComponent<ScrollRect>();
-            scroll.horizontal = true;
-            scroll.vertical = false;
-            var viewport = CreateRect("Viewport", scrollGo.transform);
-            StretchFull(viewport);
-            viewport.AddComponent<Mask>().showMaskGraphic = false;
-            viewport.AddComponent<Image>().color = new Color(0.1f, 0.11f, 0.15f, 0.6f);
-            var content = CreateRect("Content", viewport.transform);
-            var contentRt = content.GetComponent<RectTransform>();
-            contentRt.anchorMin = new Vector2(0, 0);
-            contentRt.anchorMax = new Vector2(0, 1);
-            contentRt.pivot = new Vector2(0, 0.5f);
-            contentRt.sizeDelta = new Vector2(1200, 0);
-            var csf = content.AddComponent<ContentSizeFitter>();
-            csf.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-            csf.verticalFit = ContentSizeFitter.FitMode.Unconstrained;
-            var hlg = content.AddComponent<HorizontalLayoutGroup>();
-            hlg.spacing = 12;
-            hlg.padding = new RectOffset(8, 8, 8, 8);
-            hlg.childControlWidth = false;
-            hlg.childControlHeight = false;
-            hlg.childForceExpandWidth = false;
-            hlg.childForceExpandHeight = false;
-            scroll.viewport = viewport.GetComponent<RectTransform>();
-            scroll.content = contentRt;
+            var title = CreateText("Title", planningInfo.transform, "", 22, FontStyle.Bold);
+            var titleRt = title.GetComponent<RectTransform>();
+            titleRt.anchorMin = new Vector2(0f, 1f);
+            titleRt.anchorMax = new Vector2(1f, 1f);
+            titleRt.pivot = new Vector2(0f, 1f);
+            titleRt.offsetMin = new Vector2(12f, -40f);
+            titleRt.offsetMax = new Vector2(-8f, -8f);
+            title.alignment = TextAnchor.UpperLeft;
 
-            var handPanel = handArea.AddComponent<HandPanelView>();
-            SetHandPanel(handPanel, scroll, contentRt, handLabel, cardPrefab);
+            var subtitle = CreateText("Subtitle", planningInfo.transform, "", 14, FontStyle.Normal);
+            subtitle.gameObject.SetActive(false);
 
-            var actionBar = CreateRect("ActionBar", root);
-            PinBottomHeight(actionBar, 16, 16, 8, 80);
+            var energyRow = CreateRect("EnergyRow", planningInfo.transform);
+            var energyRowRt = energyRow.GetComponent<RectTransform>();
+            energyRowRt.anchorMin = new Vector2(0f, 0f);
+            energyRowRt.anchorMax = new Vector2(1f, 0f);
+            energyRowRt.pivot = new Vector2(0f, 0f);
+            energyRowRt.offsetMin = new Vector2(12f, 10f);
+            energyRowRt.offsetMax = new Vector2(-8f, 42f);
+            var energyLayout = energyRow.AddComponent<HorizontalLayoutGroup>();
+            energyLayout.spacing = 8;
+            energyLayout.childAlignment = TextAnchor.MiddleLeft;
+            energyLayout.childControlWidth = false;
+            energyLayout.childControlHeight = false;
+            energyLayout.childForceExpandWidth = false;
+            energyLayout.childForceExpandHeight = false;
+
+            var energyIcon = CreateImage("EnergyIcon", energyRow.transform, Color.white);
+            var energyIconLe = energyIcon.AddComponent<LayoutElement>();
+            energyIconLe.preferredWidth = 34f;
+            energyIconLe.preferredHeight = 34f;
+            energyIcon.GetComponent<Image>().preserveAspect = true;
+            energyIcon.GetComponent<Image>().raycastTarget = false;
+
+            var energyValue = CreateText("EnergyValue", energyRow.transform, "8/8", 24, FontStyle.Bold);
+            energyValue.alignment = TextAnchor.MiddleLeft;
+            var energyValueLe = energyValue.gameObject.AddComponent<LayoutElement>();
+            energyValueLe.minWidth = 72f;
+
+            var queuePanel = CreatePanel("SelectedQueuePanel", root, new Color(0.12f, 0.16f, 0.22f, 0.88f));
+            PinBottomLeft(queuePanel, 16, 368, 420, 88);
+            var queueText = CreateText("Text", queuePanel.transform, "", 14, FontStyle.Normal);
+            StretchFull(queueText, 10, 6, -10, -6);
+            queueText.alignment = TextAnchor.UpperLeft;
+
+            var planningActions = CreatePanel("PlanningActionsRight", root, new Color(0.1f, 0.11f, 0.15f, 0.9f));
+            PinBottomRight(planningActions, 16, 268, 660, 92);
+
+            var actionBar = CreateRect("ActionBar", planningActions.transform);
+            StretchFull(actionBar, 8, 8, -8, -8);
             var actionLayout = actionBar.AddComponent<HorizontalLayoutGroup>();
-            actionLayout.spacing = 12;
-            actionLayout.padding = new RectOffset(12, 12, 8, 8);
-            actionLayout.childAlignment = TextAnchor.MiddleLeft;
+            actionLayout.spacing = 10;
+            actionLayout.padding = new RectOffset(4, 4, 4, 4);
+            actionLayout.childAlignment = TextAnchor.MiddleRight;
             actionLayout.childControlWidth = false;
             actionLayout.childControlHeight = true;
             actionLayout.childForceExpandWidth = false;
@@ -200,14 +198,58 @@ namespace Grimhand.Editor
             var skip = CreateLayoutButton("SkipButton", actionBar.transform, "空过",
                 new Color(0.22f, 0.35f, 0.55f, 1f));
             var restart = CreateLayoutButton("RestartButton", actionBar.transform, "重开远征",
-                new Color(0.22f, 0.35f, 0.55f, 1f));
+                new Color(0.35f, 0.22f, 0.22f, 1f));
+
+            // 手牌区（下半屏略居中）
+            var handArea = CreateRect("HandArea", root);
+            PinBottomHeight(handArea, 48, 48, 8, 252);
+            var handLabel = CreateText("HandCount", handArea.transform, "手牌", 17, FontStyle.Bold);
+            var handLabelRt = handLabel.GetComponent<RectTransform>();
+            handLabelRt.anchorMin = new Vector2(0.5f, 1f);
+            handLabelRt.anchorMax = new Vector2(0.5f, 1f);
+            handLabelRt.pivot = new Vector2(0.5f, 1f);
+            handLabelRt.anchoredPosition = new Vector2(0f, -4f);
+            handLabelRt.sizeDelta = new Vector2(280f, 24f);
+            handLabel.alignment = TextAnchor.MiddleCenter;
+
+            var scrollGo = CreateRect("HandScroll", handArea.transform);
+            StretchFull(scrollGo, 0, 0, 0, -28);
+            var scroll = scrollGo.AddComponent<ScrollRect>();
+            scroll.horizontal = true;
+            scroll.vertical = false;
+            var viewport = CreateRect("Viewport", scrollGo.transform);
+            StretchFull(viewport);
+            viewport.AddComponent<Mask>().showMaskGraphic = false;
+            viewport.AddComponent<Image>().color = new Color(0.08f, 0.09f, 0.12f, 0.35f);
+            var content = CreateRect("Content", viewport.transform);
+            var contentRt = content.GetComponent<RectTransform>();
+            contentRt.anchorMin = new Vector2(0.5f, 0f);
+            contentRt.anchorMax = new Vector2(0.5f, 1f);
+            contentRt.pivot = new Vector2(0.5f, 0.5f);
+            contentRt.sizeDelta = new Vector2(1200, 0);
+            var csf = content.AddComponent<ContentSizeFitter>();
+            csf.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            csf.verticalFit = ContentSizeFitter.FitMode.Unconstrained;
+            var hlg = content.AddComponent<HorizontalLayoutGroup>();
+            hlg.spacing = 14;
+            hlg.padding = new RectOffset(12, 12, 8, 8);
+            hlg.childAlignment = TextAnchor.MiddleCenter;
+            hlg.childControlWidth = false;
+            hlg.childControlHeight = false;
+            hlg.childForceExpandWidth = false;
+            hlg.childForceExpandHeight = false;
+            scroll.viewport = viewport.GetComponent<RectTransform>();
+            scroll.content = contentRt;
+
+            var handPanel = handArea.AddComponent<HandPanelView>();
+            SetHandPanel(handPanel, scroll, contentRt, handLabel, cardPrefab);
 
             var tooltip = CreatePanel("KeywordTooltip", root, new Color(0.05f, 0.05f, 0.08f, 0.95f));
             tooltip.SetActive(false);
             var tooltipRt = tooltip.GetComponent<RectTransform>();
             tooltipRt.sizeDelta = new Vector2(320, 160);
             tooltip.GetComponent<Image>().raycastTarget = false;
-            var tooltipText = CreateText("Text", tooltip.transform, "", 14, FontStyle.Normal);
+            var tooltipText = CreateText("Text", tooltip.transform, "", 16, FontStyle.Normal);
             StretchFull(tooltipText, 10, 8, -10, -8);
             tooltipText.alignment = TextAnchor.UpperLeft;
 
@@ -238,63 +280,145 @@ namespace Grimhand.Editor
             AnchorTop(runBody, 16, 60, -16, 100);
             var runRestart = CreateButton("Restart", runEndPanel.transform, "重新开始远征", new Vector2(0.5f, 0.15f));
 
-            AssignView(view, title, subtitle, playerSlots, enemySlots, handPanel, intentText, intentPanel,
+            AssignView(view, title, subtitle, energyIcon.GetComponent<Image>(), energyValue, playerSlots, enemySlots, handPanel, intentText, intentPanel,
                 queueText, queuePanel, targetText, targetPanel, confirm, skip, restart,
                 tooltip, tooltipText, overlay, routePanel, routeRoot, routeBtnPrefab, routeHeader,
                 runEndPanel, runTitle, runBody, runRestart);
         }
 
-        static CombatantSlotView[] CreateSlotRow(Transform parent, TeamSide team)
+        static CombatantSlotView[] CreateHeroStage(Transform parent, TeamSide team)
         {
             var slots = new CombatantSlotView[3];
             var formation = new[] { FormationSlot.Front, FormationSlot.Middle, FormationSlot.Back };
-            var labels = team == TeamSide.Player ? "我方" : "敌方";
+            var mirror = team == TeamSide.Enemy;
+
+            Vector2[] anchorMins;
+            Vector2[] anchorMaxs;
+            if (team == TeamSide.Player)
+            {
+                anchorMins = new[]
+                {
+                    new Vector2(0.38f, 0.02f),
+                    new Vector2(0.12f, 0.18f),
+                    new Vector2(0.00f, 0.38f)
+                };
+                anchorMaxs = new[]
+                {
+                    new Vector2(0.98f, 0.72f),
+                    new Vector2(0.78f, 0.92f),
+                    new Vector2(0.52f, 1.00f)
+                };
+            }
+            else
+            {
+                anchorMins = new[]
+                {
+                    new Vector2(0.02f, 0.02f),
+                    new Vector2(0.22f, 0.18f),
+                    new Vector2(0.48f, 0.38f)
+                };
+                anchorMaxs = new[]
+                {
+                    new Vector2(0.62f, 0.72f),
+                    new Vector2(0.88f, 0.92f),
+                    new Vector2(1.00f, 1.00f)
+                };
+            }
 
             for (var i = 0; i < 3; i++)
             {
-                var slotGo = CreatePanel($"Slot_{formation[i]}", parent, new Color(0.2f, 0.22f, 0.3f, 1f));
-                var rt = slotGo.GetComponent<RectTransform>();
-                rt.anchorMin = new Vector2(i / 3f, 0);
-                rt.anchorMax = new Vector2((i + 1) / 3f, 1);
-                rt.offsetMin = new Vector2(4, 0);
-                rt.offsetMax = new Vector2(-4, 0);
-
-                var slotLabel = CreateText("Label", slotGo.transform, BattleUiFormatters.SlotLabel(formation[i]), 13, FontStyle.Bold);
-                AnchorTop(slotLabel, 4, -22, -4, -4);
-
-                var portrait = CreateImage("Portrait", slotGo.transform, Color.white);
-                var portraitRt = portrait.GetComponent<RectTransform>();
-                portraitRt.anchorMin = new Vector2(0.04f, 0.18f);
-                portraitRt.anchorMax = new Vector2(0.96f, 0.98f);
-                portraitRt.offsetMin = Vector2.zero;
-                portraitRt.offsetMax = Vector2.zero;
-                var portraitImg = portrait.GetComponent<Image>();
-                portraitImg.preserveAspect = true;
-                portraitImg.raycastTarget = false;
-                portraitImg.enabled = false;
-
-                var body = CreateText("Body", slotGo.transform, "—", 11, FontStyle.Normal);
-                AnchorBottom(body, 6, 4, -6, 52);
-                body.alignment = TextAnchor.LowerLeft;
-
-                var btn = slotGo.AddComponent<Button>();
-                btn.targetGraphic = slotGo.GetComponent<Image>();
-
-                var view = slotGo.AddComponent<CombatantSlotView>();
-                SetSlotView(view, slotGo.GetComponent<Image>(), portraitImg, slotLabel, body, btn, formation[i], team);
-                view.Configure(formation[i], team, labels);
-                slots[i] = view;
+                slots[i] = CreateHeroSlot(parent, formation[i], team, anchorMins[i], anchorMaxs[i], mirror);
             }
+
+            ApplyStageDrawOrder(parent);
 
             return slots;
         }
 
+        static void ApplyStageDrawOrder(Transform stage)
+        {
+            SetSlotSiblingIndex(stage, FormationSlot.Back, 0);
+            SetSlotSiblingIndex(stage, FormationSlot.Middle, 1);
+            SetSlotSiblingIndex(stage, FormationSlot.Front, 2);
+        }
+
+        static void SetSlotSiblingIndex(Transform stage, FormationSlot slot, int index)
+        {
+            var child = stage.Find($"Slot_{slot}");
+            if (child != null)
+                child.SetSiblingIndex(index);
+        }
+
+        static CombatantSlotView CreateHeroSlot(
+            Transform parent,
+            FormationSlot slot,
+            TeamSide team,
+            Vector2 anchorMin,
+            Vector2 anchorMax,
+            bool mirror)
+        {
+            var slotGo = CreateRect($"Slot_{slot}", parent);
+            var rt = slotGo.GetComponent<RectTransform>();
+            rt.anchorMin = anchorMin;
+            rt.anchorMax = anchorMax;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+
+            var bg = slotGo.AddComponent<Image>();
+            bg.color = new Color(1f, 1f, 1f, 0f);
+            bg.raycastTarget = false;
+
+            var portraitRoot = CreateRect("PortraitRoot", slotGo.transform);
+            StretchFull(portraitRoot, 0, 72, 0, 44);
+            var portrait = CreateImage("Portrait", portraitRoot.transform, Color.white);
+            StretchFull(portrait);
+            var portraitImg = portrait.GetComponent<Image>();
+            portraitImg.preserveAspect = true;
+            portraitImg.raycastTarget = false;
+            portraitImg.enabled = false;
+
+            var portraitHit = CreateImage("PortraitHit", portraitRoot.transform, new Color(1f, 1f, 1f, 0f));
+            StretchFull(portraitHit);
+            var portraitBtn = portraitHit.AddComponent<Button>();
+            portraitBtn.transition = Selectable.Transition.None;
+            portraitBtn.targetGraphic = portraitHit.GetComponent<Image>();
+
+            var highlight = CreateImage("TargetHighlight", portraitRoot.transform, new Color(1f, 0.92f, 0.45f, 0.35f));
+            StretchFull(highlight);
+            highlight.GetComponent<Image>().raycastTarget = false;
+            highlight.GetComponent<Image>().preserveAspect = true;
+            highlight.SetActive(false);
+
+            var statusGo = CreateText("Status", slotGo.transform, "", 14, FontStyle.Bold);
+            var statusRt = statusGo.GetComponent<RectTransform>();
+            statusRt.anchorMin = new Vector2(0.05f, 0.74f);
+            statusRt.anchorMax = new Vector2(0.95f, 0.98f);
+            statusRt.offsetMin = Vector2.zero;
+            statusRt.offsetMax = Vector2.zero;
+            statusGo.alignment = TextAnchor.UpperCenter;
+            statusGo.color = new Color(0.95f, 0.97f, 1f, 1f);
+
+            var slotLabel = CreateText("Label", slotGo.transform, "", 1, FontStyle.Bold);
+            slotLabel.gameObject.SetActive(false);
+
+            var nameText = CreateText("Name", slotGo.transform, "", 18, FontStyle.Bold);
+            AnchorBottom(nameText, 8, 42, -8, 66);
+            nameText.alignment = TextAnchor.MiddleCenter;
+
+            var statsGo = CreateRect("Stats", slotGo.transform);
+            AnchorBottom(statsGo, 4, 4, -4, 40);
+
+            var statsRow = statsGo.AddComponent<UnitStatsRowView>();
+
+            var view = slotGo.AddComponent<CombatantSlotView>();
+            SetSlotView(view, bg, highlight.GetComponent<Image>(), portraitRoot.GetComponent<RectTransform>(),
+                portraitImg, slotLabel, statusGo, nameText, statsRow, portraitBtn, slot, team, mirror);
+            view.Configure(slot, team, team == TeamSide.Player ? "我方" : "敌方", mirror);
+            return view;
+        }
+
         static CardView LoadOrCreateCardPrefab()
         {
-            var existing = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
-            if (existing != null)
-                return existing.GetComponent<CardView>();
-
             var cardGo = CreateCardViewObject("CardView");
             var prefab = PrefabUtility.SaveAsPrefabAsset(cardGo, PrefabPath);
             Object.DestroyImmediate(cardGo);
@@ -304,7 +428,7 @@ namespace Grimhand.Editor
         static GameObject CreateCardViewObject(string name)
         {
             var go = CreateRect(name, null);
-            go.GetComponent<RectTransform>().sizeDelta = new Vector2(150, 210);
+            go.GetComponent<RectTransform>().sizeDelta = new Vector2(168, 236);
 
             var frame = CreateImage("Frame", go.transform, new Color(0.18f, 0.2f, 0.28f, 1f));
             StretchFull(frame);
@@ -312,8 +436,8 @@ namespace Grimhand.Editor
             var art = CreateImage("Art", go.transform, new Color(0.25f, 0.27f, 0.35f, 1f));
             var artImg = art.GetComponent<Image>();
             var artRt = art.GetComponent<RectTransform>();
-            artRt.anchorMin = new Vector2(0.08f, 0.28f);
-            artRt.anchorMax = new Vector2(0.92f, 0.88f);
+            artRt.anchorMin = new Vector2(0.1f, 0.32f);
+            artRt.anchorMax = new Vector2(0.9f, 0.86f);
             artRt.offsetMin = Vector2.zero;
             artRt.offsetMax = Vector2.zero;
             artImg.type = Image.Type.Simple;
@@ -327,14 +451,18 @@ namespace Grimhand.Editor
             iconRt.offsetMax = Vector2.zero;
             icon.gameObject.SetActive(false);
 
-            var costBg = CreateImage("CostBadge", go.transform, new Color(0.1f, 0.45f, 0.75f, 1f));
+            var costBg = CreateImage("CostBadge", go.transform, new Color(1f, 1f, 1f, 0f));
             var costRt = costBg.GetComponent<RectTransform>();
-            costRt.anchorMin = new Vector2(0.02f, 0.88f);
-            costRt.anchorMax = new Vector2(0.22f, 0.98f);
+            costRt.anchorMin = new Vector2(0.02f, 0.86f);
+            costRt.anchorMax = new Vector2(0.24f, 0.99f);
             costRt.offsetMin = Vector2.zero;
             costRt.offsetMax = Vector2.zero;
-            var costText = CreateText("Cost", costBg.transform, "1", 18, FontStyle.Bold);
+            var costIconImg = costBg.GetComponent<Image>();
+            costIconImg.preserveAspect = true;
+            costIconImg.raycastTarget = false;
+            var costText = CreateText("Cost", costBg.transform, "1", 16, FontStyle.Bold);
             StretchFull(costText);
+            costText.alignment = TextAnchor.MiddleCenter;
 
             var nameText = CreateText("Name", go.transform, "卡牌", 15, FontStyle.Bold);
             AnchorTop(nameText, 8, -52, -8, -8);
@@ -365,15 +493,15 @@ namespace Grimhand.Editor
 
             var cg = go.AddComponent<CanvasGroup>();
             var le = go.AddComponent<LayoutElement>();
-            le.preferredWidth = 150;
-            le.preferredHeight = 210;
+            le.preferredWidth = 168;
+            le.preferredHeight = 236;
             var btn = go.AddComponent<Button>();
             btn.targetGraphic = frame.GetComponent<Image>();
 
             var view = go.AddComponent<CardView>();
             SetCardView(view, frame.GetComponent<Image>(), art.GetComponent<Image>(), icon.GetComponent<Image>(),
                 polluted.GetComponent<Image>(), selected.GetComponent<Image>(),
-                costText, nameText, statsText, ownerText, orderBadge, cg, btn);
+                costIconImg, costText, nameText, statsText, ownerText, orderBadge, cg, btn);
             return go;
         }
 
@@ -394,17 +522,13 @@ namespace Grimhand.Editor
             if (controller == null)
                 controller = demoGo.AddComponent<BattleScreenController>();
 
-            var catalog = AssetDatabase.LoadAssetAtPath<CardVisualCatalogSO>(CatalogPath);
-            if (catalog == null)
-            {
-                catalog = ScriptableObject.CreateInstance<CardVisualCatalogSO>();
-                AssetDatabase.CreateAsset(catalog, CatalogPath);
-            }
+            GrimhandUiVisualBootstrap.EnsureUiIconCatalog();
+            GrimhandUiVisualBootstrap.EnsureCardVisualCatalog();
+            GrimhandUiVisualBootstrap.AssignDemoCardRarities();
 
+            var catalog = AssetDatabase.LoadAssetAtPath<CardVisualCatalogSO>(CatalogPath);
             var charCatalog = AssetDatabase.LoadAssetAtPath<CharacterVisualCatalogSO>(CharCatalogPath);
-            if (charCatalog == null)
-                GrimhandBattleSceneBootstrap.EnsureCharacterVisualCatalog();
-            charCatalog = AssetDatabase.LoadAssetAtPath<CharacterVisualCatalogSO>(CharCatalogPath);
+            var iconCatalog = AssetDatabase.LoadAssetAtPath<BattleUiIconCatalogSO>(GrimhandUiVisualBootstrap.IconCatalogPath);
 
             var so = new SerializedObject(controller);
             so.FindProperty("battleSetup").objectReferenceValue =
@@ -413,6 +537,7 @@ namespace Grimhand.Editor
                 AssetDatabase.LoadAssetAtPath<ExpeditionSetupSO>(ExpeditionSetupPath);
             so.FindProperty("cardVisualCatalog").objectReferenceValue = catalog;
             so.FindProperty("characterVisualCatalog").objectReferenceValue = charCatalog;
+            so.FindProperty("uiIconCatalog").objectReferenceValue = iconCatalog;
             so.FindProperty("screenView").objectReferenceValue = view;
             so.FindProperty("disableLegacyImGui").boolValue = true;
             so.ApplyModifiedPropertiesWithoutUndo();
@@ -524,6 +649,26 @@ namespace Grimhand.Editor
             rt.offsetMax = new Vector2(-right, -fromTop);
         }
 
+        static void PinBottomLeft(GameObject go, float left, float fromBottom, float width, float height)
+        {
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0f, 0f);
+            rt.anchorMax = new Vector2(0f, 0f);
+            rt.pivot = new Vector2(0f, 0f);
+            rt.anchoredPosition = new Vector2(left, fromBottom);
+            rt.sizeDelta = new Vector2(width, height);
+        }
+
+        static void PinBottomRight(GameObject go, float right, float fromBottom, float width, float height)
+        {
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(1f, 0f);
+            rt.anchorMax = new Vector2(1f, 0f);
+            rt.pivot = new Vector2(1f, 0f);
+            rt.anchoredPosition = new Vector2(-right, fromBottom);
+            rt.sizeDelta = new Vector2(width, height);
+        }
+
         static void PinBottomHeight(GameObject go, float left, float right, float fromBottom, float height)
         {
             var rt = go.GetComponent<RectTransform>();
@@ -595,22 +740,37 @@ namespace Grimhand.Editor
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        static void SetSlotView(CombatantSlotView view, Image bg, Image portrait, Text slotLabel, Text body, Button btn,
-            FormationSlot slot, TeamSide team)
+        static void AnchorRect(GameObject go, float xMin, float yMin, float xMax, float yMax)
+        {
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(xMin, yMin);
+            rt.anchorMax = new Vector2(xMax, yMax);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+        }
+
+        static void SetSlotView(CombatantSlotView view, Image bg, Image targetHighlight, RectTransform portraitRoot,
+            Image portrait, Text slotLabel, Text body, Text nameText,
+            UnitStatsRowView statsRow, Button btn, FormationSlot slot, TeamSide team, bool mirror)
         {
             var so = new SerializedObject(view);
             so.FindProperty("background").objectReferenceValue = bg;
+            so.FindProperty("targetHighlight").objectReferenceValue = targetHighlight;
+            so.FindProperty("portraitRoot").objectReferenceValue = portraitRoot;
             so.FindProperty("portraitImage").objectReferenceValue = portrait;
             so.FindProperty("slotLabel").objectReferenceValue = slotLabel;
             so.FindProperty("bodyText").objectReferenceValue = body;
+            so.FindProperty("nameText").objectReferenceValue = nameText;
+            so.FindProperty("statsRow").objectReferenceValue = statsRow;
             so.FindProperty("selectButton").objectReferenceValue = btn;
             so.FindProperty("formationSlot").enumValueIndex = (int)slot;
             so.FindProperty("team").enumValueIndex = (int)team;
+            so.FindProperty("mirrorPortrait").boolValue = mirror;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         static void SetCardView(CardView view, Image frame, Image art, Image icon, Image polluted, Image selected,
-            Text cost, Text name, Text stats, Text owner, Text order, CanvasGroup cg, Button btn)
+            Image costIcon, Text cost, Text name, Text stats, Text owner, Text order, CanvasGroup cg, Button btn)
         {
             var so = new SerializedObject(view);
             so.FindProperty("frameImage").objectReferenceValue = frame;
@@ -618,6 +778,7 @@ namespace Grimhand.Editor
             so.FindProperty("iconImage").objectReferenceValue = icon;
             so.FindProperty("pollutedOverlay").objectReferenceValue = polluted;
             so.FindProperty("selectedOutline").objectReferenceValue = selected;
+            so.FindProperty("costIconImage").objectReferenceValue = costIcon;
             so.FindProperty("costText").objectReferenceValue = cost;
             so.FindProperty("nameText").objectReferenceValue = name;
             so.FindProperty("statsText").objectReferenceValue = stats;
@@ -628,7 +789,7 @@ namespace Grimhand.Editor
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        static void AssignView(BattleScreenView view, Text title, Text subtitle,
+        static void AssignView(BattleScreenView view, Text title, Text subtitle, Image hudEnergyIcon, Text energyValueText,
             CombatantSlotView[] playerSlots, CombatantSlotView[] enemySlots,
             HandPanelView handPanel, Text intentText, GameObject intentPanel,
             Text queueText, GameObject queuePanel, Text targetText, GameObject targetPanel,
@@ -640,6 +801,8 @@ namespace Grimhand.Editor
             var so = new SerializedObject(view);
             so.FindProperty("titleText").objectReferenceValue = title;
             so.FindProperty("subtitleText").objectReferenceValue = subtitle;
+            so.FindProperty("hudEnergyIcon").objectReferenceValue = hudEnergyIcon;
+            so.FindProperty("energyValueText").objectReferenceValue = energyValueText;
             so.FindProperty("playerSlots").arraySize = 3;
             for (var i = 0; i < 3; i++)
                 so.FindProperty("playerSlots").GetArrayElementAtIndex(i).objectReferenceValue = playerSlots[i];

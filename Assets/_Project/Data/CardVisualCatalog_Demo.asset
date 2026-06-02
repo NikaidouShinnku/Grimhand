@@ -13,7 +13,28 @@ MonoBehaviour:
   m_Name: CardVisualCatalog_Demo
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardVisualCatalogSO
   DefaultCardArt: {fileID: 0}
-  DefaultFrameAttack: {fileID: 0}
-  DefaultFrameDefense: {fileID: 0}
-  DefaultFrameStatus: {fileID: 0}
+  DefaultFrameAttack: {fileID: 3687884420444632601, guid: aaae759847617d749a0e0c262d10063e, type: 3}
+  DefaultFrameDefense: {fileID: -5382582309188734258, guid: f40b44cbb8bfa68498ccc21ec2f75816, type: 3}
+  DefaultFrameStatus: {fileID: -3208813810830078809, guid: 85fc978eee6148441a85b3e5432327ca, type: 3}
+  FrameSets:
+  - Rarity: 0
+    AttackFrame: {fileID: 3687884420444632601, guid: aaae759847617d749a0e0c262d10063e, type: 3}
+    DefenseFrame: {fileID: -5382582309188734258, guid: f40b44cbb8bfa68498ccc21ec2f75816, type: 3}
+    StatusFrame: {fileID: -3208813810830078809, guid: 85fc978eee6148441a85b3e5432327ca, type: 3}
+  - Rarity: 1
+    AttackFrame: {fileID: 3634595811626297346, guid: abf17d6a5f56f7a4a9dfcb8439219a11, type: 3}
+    DefenseFrame: {fileID: 230426979073059377, guid: 747fd2dc4a5869746a2e87fc5d6c4615, type: 3}
+    StatusFrame: {fileID: 1133946520642319704, guid: 74c95dfdf9bddc54d998d6a7bb4c77d3, type: 3}
+  - Rarity: 2
+    AttackFrame: {fileID: 5341325467134139216, guid: 7395736191df92e4fad5ba402133be02, type: 3}
+    DefenseFrame: {fileID: 6312000279463978257, guid: a7212d82ffc700643a4ff9fbc8275e8c, type: 3}
+    StatusFrame: {fileID: 118627404528105684, guid: d3a0c514dff059140b1a121a325e592d, type: 3}
+  - Rarity: 3
+    AttackFrame: {fileID: -5704991951688297081, guid: b9c6a121dee6b214f83634038338e397, type: 3}
+    DefenseFrame: {fileID: 7927886979947183684, guid: fc318f9e99ec00e42a218c108e1e625d, type: 3}
+    StatusFrame: {fileID: 1868869354823498205, guid: 1c47bb7f3915b9c498cc6a28f6c1355a, type: 3}
+  - Rarity: 4
+    AttackFrame: {fileID: 5528090375611097485, guid: 9f1bc43162746a149b4fd270febde697, type: 3}
+    DefenseFrame: {fileID: 719188464167420296, guid: bc09dd827f274c54198f43cd493c93ef, type: 3}
+    StatusFrame: {fileID: 7424170607143336166, guid: fc742a9b52fff2d499a5a2e8d1ce8e5f, type: 3}
   Entries: []

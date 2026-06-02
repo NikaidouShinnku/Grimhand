@@ -14,6 +14,8 @@ namespace Grimhand.Presentation.Battle
         [Header("HUD")]
         [SerializeField] Text titleText;
         [SerializeField] Text subtitleText;
+        [SerializeField] Image hudEnergyIcon;
+        [SerializeField] Text energyValueText;
 
         [Header("Battlefield")]
         [SerializeField] CombatantSlotView[] playerSlots = new CombatantSlotView[3];
@@ -54,6 +56,7 @@ namespace Grimhand.Presentation.Battle
         BattleSession _session;
         CardVisualCatalogSO _catalog;
         CharacterVisualCatalogSO _characterVisuals;
+        BattleUiIconCatalogSO _uiIcons;
         Dictionary<string, CardDefinitionSO> _definitions = new();
 
         static readonly FormationSlot[] SlotOrder =
@@ -67,11 +70,13 @@ namespace Grimhand.Presentation.Battle
             BattleSession session,
             CardVisualCatalogSO catalog,
             CharacterVisualCatalogSO characterVisuals,
+            BattleUiIconCatalogSO uiIcons,
             Dictionary<string, CardDefinitionSO> definitions)
         {
             _session = session;
             _catalog = catalog;
             _characterVisuals = characterVisuals;
+            _uiIcons = uiIcons;
             _definitions = definitions ?? new Dictionary<string, CardDefinitionSO>();
 
             ConfigureBattlefieldSlots();
@@ -88,15 +93,63 @@ namespace Grimhand.Presentation.Battle
 
             HideKeywordTooltip();
             ConfigureKeywordTooltipRaycast();
+            ApplyTypographyPolish();
+            ResolveHudReferences();
             BattleUiLayoutRuntimeFix.ApplyIfNeeded(transform);
+        }
+
+        void ResolveHudReferences()
+        {
+            if (energyValueText == null)
+            {
+                energyValueText = transform.Find("PlanningInfoLeft/EnergyRow/EnergyValue")?.GetComponent<Text>()
+                    ?? transform.Find("PlanningBar/EnergyRow/EnergyValue")?.GetComponent<Text>();
+            }
+
+            if (hudEnergyIcon == null)
+            {
+                hudEnergyIcon = transform.Find("PlanningInfoLeft/EnergyRow/EnergyIcon")?.GetComponent<Image>()
+                    ?? transform.Find("PlanningBar/EnergyIcon")?.GetComponent<Image>();
+            }
+
+            if (titleText == null)
+            {
+                titleText = transform.Find("PlanningInfoLeft/Title")?.GetComponent<Text>()
+                    ?? transform.Find("PlanningBar/Title")?.GetComponent<Text>();
+            }
+        }
+
+        void ApplyTypographyPolish()
+        {
+            if (titleText != null)
+                titleText.fontSize = Mathf.Max(titleText.fontSize, 24);
+            if (subtitleText != null)
+                subtitleText.fontSize = Mathf.Max(subtitleText.fontSize, 16);
+            if (enemyIntentText != null)
+                enemyIntentText.fontSize = Mathf.Max(enemyIntentText.fontSize, 17);
+            if (targetPromptText != null)
+                targetPromptText.fontSize = Mathf.Max(targetPromptText.fontSize, 19);
+            if (selectedQueueText != null)
+                selectedQueueText.fontSize = Mathf.Max(selectedQueueText.fontSize, 14);
+            if (keywordTooltipText != null)
+                keywordTooltipText.fontSize = Mathf.Max(keywordTooltipText.fontSize, 16);
+            if (energyValueText != null)
+                energyValueText.fontSize = Mathf.Max(energyValueText.fontSize, 24);
+            if (hudEnergyIcon != null)
+            {
+                var rt = hudEnergyIcon.rectTransform;
+                rt.sizeDelta = new Vector2(
+                    Mathf.Max(rt.sizeDelta.x, 40f),
+                    Mathf.Max(rt.sizeDelta.y, 40f));
+            }
         }
 
         void ConfigureBattlefieldSlots()
         {
             for (var i = 0; i < playerSlots.Length && i < SlotOrder.Length; i++)
-                playerSlots[i]?.Configure(SlotOrder[i], TeamSide.Player, "我方");
+                playerSlots[i]?.Configure(SlotOrder[i], TeamSide.Player, "我方", mirror: false);
             for (var i = 0; i < enemySlots.Length && i < SlotOrder.Length; i++)
-                enemySlots[i]?.Configure(SlotOrder[i], TeamSide.Enemy, "敌方");
+                enemySlots[i]?.Configure(SlotOrder[i], TeamSide.Enemy, "敌方", mirror: true);
         }
 
         void ConfigureKeywordTooltipRaycast()
@@ -129,12 +182,24 @@ namespace Grimhand.Presentation.Battle
 
         void RefreshHud(BattleState state)
         {
+            ResolveHudReferences();
+
+            if (hudEnergyIcon != null && _uiIcons != null)
+            {
+                hudEnergyIcon.sprite = _uiIcons.EnergyIcon;
+                hudEnergyIcon.enabled = _uiIcons.EnergyIcon != null;
+                hudEnergyIcon.preserveAspect = true;
+            }
+
+            if (energyValueText != null)
+                energyValueText.text = $"{state.EnergyCurrent}/{state.EnergyMax}";
+
             if (titleText != null)
             {
                 if (!_session.IsExpeditionMode)
                 {
                     titleText.text =
-                        $"回合 {state.TurnNumber}  ·  {state.Phase}  ·  能量 {state.EnergyCurrent}/{state.EnergyMax}  ·  {state.Outcome}";
+                        $"回合 {state.TurnNumber}  ·  {state.Phase}  ·  {state.Outcome}";
                 }
                 else
                 {
@@ -146,31 +211,28 @@ namespace Grimhand.Presentation.Battle
                         _ => state.Phase.ToString()
                     };
                     titleText.text =
-                        $"远征 {_session.Expedition.CurrentBattleNumber}/{_session.Expedition.Run.TargetBattleCount}  ·  回合 {state.TurnNumber}  ·  {phaseLabel}  ·  能量 {state.EnergyCurrent}/{state.EnergyMax}";
+                        $"远征 {_session.Expedition.CurrentBattleNumber}/{_session.Expedition.Run.TargetBattleCount}\n" +
+                        $"回合 {state.TurnNumber}  ·  {phaseLabel}";
                 }
             }
 
             if (subtitleText != null)
             {
-                if (_session.IsExpeditionMode && _session.Expedition.Run.Party.Count > 0 &&
-                    _session.Expedition.Run.Phase != ExpeditionPhase.InBattle)
+                if (state.Phase == TurnPhase.Planning && _session.Engine != null)
+                {
+                    // 战斗中角色脚下已有 HP，避免与 PlanningBar 重复叠字
+                    subtitleText.text = "";
+                }
+                else if (_session.IsExpeditionMode && _session.Expedition.Run.Party.Count > 0 &&
+                         _session.Expedition.Run.Phase != ExpeditionPhase.InBattle)
+                {
                     subtitleText.text = BattleUiFormatters.FormatPartyHpLine(_session.Expedition.Run.Party);
+                }
                 else
-                    subtitleText.text = FormatLivePartyHp(state);
+                {
+                    subtitleText.text = "";
+                }
             }
-        }
-
-        static string FormatLivePartyHp(BattleState state)
-        {
-            var parts = new List<string>();
-            foreach (var c in state.Combatants)
-            {
-                if (c.Team != TeamSide.Player)
-                    continue;
-                parts.Add($"{c.DisplayName} {c.Hp}/{c.MaxHp}");
-            }
-
-            return parts.Count == 0 ? "" : string.Join("  ·  ", parts);
         }
 
         void RefreshBattlefield(BattleState state, PlanningDraft draft)
@@ -205,7 +267,7 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             foreach (var slot in slots)
-                slot?.Refresh(state, targetMode, validTargets, _characterVisuals);
+                slot?.Refresh(state, targetMode, validTargets, _characterVisuals, _uiIcons);
         }
 
         void RefreshEnemyIntents(BattleState state)
@@ -287,6 +349,8 @@ namespace Grimhand.Presentation.Battle
                 state,
                 _session,
                 _catalog,
+                _uiIcons,
+                _characterVisuals,
                 _definitions,
                 id =>
                 {
@@ -400,10 +464,66 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             var panel = keywordTooltipPanel.transform as RectTransform;
-            var corners = new Vector3[4];
-            anchor.GetWorldCorners(corners);
-            panel.position = new Vector3(corners[2].x + 24f, corners[1].y + 16f, panel.position.z);
             LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
+            PositionTooltipAboveCard(panel, anchor);
+        }
+
+        void PositionTooltipAboveCard(RectTransform panel, RectTransform anchor)
+        {
+            var canvasRt = panel.GetComponentInParent<Canvas>()?.transform as RectTransform;
+            if (canvasRt == null)
+                return;
+
+            var anchorCorners = new Vector3[4];
+            anchor.GetWorldCorners(anchorCorners);
+            var anchorCenterX = (anchorCorners[0].x + anchorCorners[2].x) * 0.5f;
+            var anchorTopY = anchorCorners[1].y;
+            var anchorBottomY = anchorCorners[0].y;
+
+            var canvasCorners = new Vector3[4];
+            canvasRt.GetWorldCorners(canvasCorners);
+            var canvasLeft = canvasCorners[0].x;
+            var canvasRight = canvasCorners[2].x;
+            var canvasTop = canvasCorners[1].y;
+            var canvasBottom = canvasCorners[0].y;
+            const float handReserved = 300f;
+
+            panel.pivot = new Vector2(0.5f, 0f);
+            panel.position = new Vector3(anchorCenterX, anchorTopY + 14f, panel.position.z);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
+            ClampTooltipX(panel, canvasLeft, canvasRight);
+
+            var panelCorners = new Vector3[4];
+            panel.GetWorldCorners(panelCorners);
+
+            if (panelCorners[1].y > canvasTop - 8f)
+            {
+                panel.pivot = new Vector2(0.5f, 1f);
+                panel.position = new Vector3(panel.position.x, anchorBottomY - 14f, panel.position.z);
+                LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
+                panel.GetWorldCorners(panelCorners);
+            }
+
+            if (panelCorners[0].y < canvasBottom + handReserved)
+            {
+                panel.pivot = new Vector2(0.5f, 0f);
+                panel.position = new Vector3(panel.position.x, canvasBottom + handReserved + 8f, panel.position.z);
+                ClampTooltipX(panel, canvasLeft, canvasRight);
+            }
+        }
+
+        static void ClampTooltipX(RectTransform panel, float canvasLeft, float canvasRight)
+        {
+            var corners = new Vector3[4];
+            panel.GetWorldCorners(corners);
+            var shift = 0f;
+            if (corners[2].x > canvasRight - 12f)
+                shift = canvasRight - 12f - corners[2].x;
+            else if (corners[0].x < canvasLeft + 12f)
+                shift = canvasLeft + 12f - corners[0].x;
+
+            if (Mathf.Abs(shift) > 0.01f)
+                panel.position += new Vector3(shift, 0f, 0f);
         }
 
         public void HideKeywordTooltip()

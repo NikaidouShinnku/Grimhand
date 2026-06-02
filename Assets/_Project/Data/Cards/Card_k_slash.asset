@@ -17,6 +17,7 @@ MonoBehaviour:
   OwnerCharacterId: char_knight
   Cost: 2
   CardType: 0
+  Rarity: 1
   Keywords:
   - melee
   Actions:
@@ -33,3 +34,6 @@ MonoBehaviour:
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100
+  CardArt: {fileID: 0}
+  CardFrame: {fileID: 0}
+  CardIcon: {fileID: 0}

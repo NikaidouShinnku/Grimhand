@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Battle
 {
-    /// <summary>修复旧版 Setup 生成的错误 RectTransform（负高度、按钮出屏）。</summary>
+    /// <summary>修复旧版 Setup 生成的错误 RectTransform，并将全宽 PlanningBar 拆成左右两角。</summary>
     public static class BattleUiLayoutRuntimeFix
     {
         public static void ApplyIfNeeded(Transform battleScreenRoot)
@@ -11,6 +11,10 @@ namespace Grimhand.Presentation.Battle
             if (battleScreenRoot == null)
                 return;
 
+            ApplySplitPlanningBar(battleScreenRoot);
+            ApplyCornerPanelsLayout(battleScreenRoot);
+            ApplyStageDrawOrders(battleScreenRoot);
+            RaiseBattleStages(battleScreenRoot);
             FixHandArea(battleScreenRoot.Find("HandArea"));
 
             var battlefield = battleScreenRoot.Find("Battlefield") as RectTransform;
@@ -44,6 +48,155 @@ namespace Grimhand.Presentation.Battle
                 LayoutRebuilder.ForceRebuildLayoutImmediate(rootRt);
         }
 
+        static void ApplySplitPlanningBar(Transform battleScreenRoot)
+        {
+            if (battleScreenRoot.Find("PlanningInfoLeft") != null)
+                return;
+
+            var planningBar = battleScreenRoot.Find("PlanningBar") as RectTransform;
+            if (planningBar == null)
+                return;
+
+            Debug.Log("[Grimhand] 拆分 PlanningBar 为左右两角布局。");
+
+            var title = planningBar.Find("Title");
+            var energyIcon = planningBar.Find("EnergyIcon");
+            var actionBar = planningBar.Find("ActionBar");
+            var queuePanel = planningBar.Find("SelectedQueuePanel");
+
+            planningBar.name = "PlanningInfoLeft";
+            PinBottomLeft(planningBar, 16f, 268f, 420f, 92f);
+
+            if (queuePanel != null)
+            {
+                queuePanel.SetParent(battleScreenRoot, false);
+                PinBottomLeft(queuePanel as RectTransform, 16f, 368f, 420f, 88f);
+            }
+
+            if (actionBar != null)
+            {
+                var actionsGo = new GameObject("PlanningActionsRight", typeof(RectTransform), typeof(Image));
+                actionsGo.transform.SetParent(battleScreenRoot, false);
+                var actionsImg = actionsGo.GetComponent<Image>();
+                actionsImg.color = new Color(0.1f, 0.11f, 0.15f, 0.9f);
+                PinBottomRight(actionsGo.GetComponent<RectTransform>(), 16f, 268f, 660f, 92f);
+
+                actionBar.SetParent(actionsGo.transform, false);
+                StretchFull(actionBar as RectTransform, 8f, 8f, -8f, -8f);
+            }
+
+            EnsureEnergyRow(planningBar, energyIcon, title);
+            RepositionTitle(title as RectTransform);
+        }
+
+        static void ApplyCornerPanelsLayout(Transform battleScreenRoot)
+        {
+            var queue = battleScreenRoot.Find("SelectedQueuePanel") as RectTransform;
+            if (queue != null && queue.anchorMin.x > 0.01f)
+                PinBottomLeft(queue, 16f, 368f, 420f, 88f);
+
+            var intent = battleScreenRoot.Find("EnemyIntentPanel") as RectTransform;
+            if (intent != null && intent.anchorMin.y > 0.5f)
+                PinBottomRight(intent, 16f, 368f, 660f, 96f);
+        }
+
+        static void ApplyStageDrawOrders(Transform battleScreenRoot)
+        {
+            ApplyStageDrawOrder(battleScreenRoot.Find("PlayerStage"));
+            ApplyStageDrawOrder(battleScreenRoot.Find("EnemyStage"));
+        }
+
+        static void ApplyStageDrawOrder(Transform stage)
+        {
+            if (stage == null)
+                return;
+
+            SetSlotSiblingIndex(stage, "Slot_Back", 0);
+            SetSlotSiblingIndex(stage, "Slot_Middle", 1);
+            SetSlotSiblingIndex(stage, "Slot_Front", 2);
+        }
+
+        static void SetSlotSiblingIndex(Transform stage, string slotName, int index)
+        {
+            var slot = stage.Find(slotName);
+            if (slot != null)
+                slot.SetSiblingIndex(index);
+        }
+
+        static void EnsureEnergyRow(RectTransform planningInfo, Transform energyIcon, Transform title)
+        {
+            var energyRow = planningInfo.Find("EnergyRow") as RectTransform;
+            if (energyRow == null)
+            {
+                var rowGo = new GameObject("EnergyRow", typeof(RectTransform));
+                rowGo.transform.SetParent(planningInfo, false);
+                energyRow = rowGo.GetComponent<RectTransform>();
+                energyRow.anchorMin = new Vector2(0f, 0f);
+                energyRow.anchorMax = new Vector2(1f, 0f);
+                energyRow.pivot = new Vector2(0f, 0f);
+                energyRow.offsetMin = new Vector2(12f, 10f);
+                energyRow.offsetMax = new Vector2(-8f, 42f);
+
+                var layout = rowGo.AddComponent<HorizontalLayoutGroup>();
+                layout.spacing = 8;
+                layout.childAlignment = TextAnchor.MiddleLeft;
+                layout.childControlWidth = false;
+                layout.childControlHeight = false;
+            }
+
+            if (energyIcon != null)
+            {
+                energyIcon.SetParent(energyRow, false);
+                var le = energyIcon.GetComponent<LayoutElement>() ?? energyIcon.gameObject.AddComponent<LayoutElement>();
+                le.preferredWidth = 34f;
+                le.preferredHeight = 34f;
+            }
+
+            var energyValue = energyRow.Find("EnergyValue")?.GetComponent<Text>();
+            if (energyValue == null)
+            {
+                var textGo = new GameObject("EnergyValue", typeof(RectTransform), typeof(Text));
+                textGo.transform.SetParent(energyRow, false);
+                energyValue = textGo.GetComponent<Text>();
+                energyValue.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                energyValue.fontSize = 24;
+                energyValue.fontStyle = FontStyle.Bold;
+                energyValue.color = Color.white;
+                energyValue.alignment = TextAnchor.MiddleLeft;
+                textGo.AddComponent<LayoutElement>().minWidth = 72f;
+            }
+        }
+
+        static void RepositionTitle(RectTransform title)
+        {
+            if (title == null)
+                return;
+
+            title.anchorMin = new Vector2(0f, 1f);
+            title.anchorMax = new Vector2(1f, 1f);
+            title.pivot = new Vector2(0f, 1f);
+            title.offsetMin = new Vector2(12f, -40f);
+            title.offsetMax = new Vector2(-8f, -8f);
+        }
+
+        static void RaiseBattleStages(Transform battleScreenRoot)
+        {
+            RaiseStage(battleScreenRoot.Find("PlayerStage") as RectTransform);
+            RaiseStage(battleScreenRoot.Find("EnemyStage") as RectTransform);
+        }
+
+        static void RaiseStage(RectTransform stage)
+        {
+            if (stage == null)
+                return;
+
+            var min = stage.anchorMin;
+            if (min.y >= 0.36f)
+                return;
+
+            stage.anchorMin = new Vector2(min.x, 0.36f);
+        }
+
         static bool NeedsFix(RectTransform battlefield, RectTransform playerRow)
         {
             if (playerRow.sizeDelta.y < 0f)
@@ -64,17 +217,17 @@ namespace Grimhand.Presentation.Battle
                 scroll.anchorMin = Vector2.zero;
                 scroll.anchorMax = Vector2.one;
                 scroll.offsetMin = new Vector2(0f, 0f);
-                scroll.offsetMax = new Vector2(0f, -32f);
+                scroll.offsetMax = new Vector2(0f, -28f);
             }
 
             var label = handArea.Find("HandCount");
             if (label is RectTransform labelRt)
             {
-                labelRt.anchorMin = new Vector2(0f, 1f);
-                labelRt.anchorMax = new Vector2(0f, 1f);
-                labelRt.pivot = new Vector2(0f, 1f);
-                labelRt.anchoredPosition = new Vector2(8f, -6f);
-                labelRt.sizeDelta = new Vector2(260f, 24f);
+                labelRt.anchorMin = new Vector2(0.5f, 1f);
+                labelRt.anchorMax = new Vector2(0.5f, 1f);
+                labelRt.pivot = new Vector2(0.5f, 1f);
+                labelRt.anchoredPosition = new Vector2(0f, -4f);
+                labelRt.sizeDelta = new Vector2(280f, 24f);
             }
         }
 
@@ -83,38 +236,46 @@ namespace Grimhand.Presentation.Battle
             if (actionBar == null)
                 return;
 
-            PinBottomHeight(actionBar, 16, 16, 8, 80);
-
             var layout = actionBar.GetComponent<HorizontalLayoutGroup>();
             if (layout == null)
                 layout = actionBar.gameObject.AddComponent<HorizontalLayoutGroup>();
 
-            layout.spacing = 12;
-            layout.padding = new RectOffset(12, 12, 8, 8);
-            layout.childAlignment = TextAnchor.MiddleLeft;
+            layout.spacing = 10;
+            layout.padding = new RectOffset(4, 4, 4, 4);
+            layout.childAlignment = TextAnchor.MiddleRight;
             layout.childControlWidth = false;
             layout.childControlHeight = true;
             layout.childForceExpandWidth = false;
             layout.childForceExpandHeight = true;
+        }
 
-            foreach (Transform child in actionBar)
-            {
-                var rt = child as RectTransform;
-                if (rt == null)
-                    continue;
+        static void StretchFull(RectTransform rt, float left, float bottom, float right, float top)
+        {
+            if (rt == null)
+                return;
 
-                rt.anchorMin = new Vector2(0.5f, 0.5f);
-                rt.anchorMax = new Vector2(0.5f, 0.5f);
-                rt.pivot = new Vector2(0.5f, 0.5f);
-                rt.anchoredPosition = Vector2.zero;
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = new Vector2(left, bottom);
+            rt.offsetMax = new Vector2(right, top);
+        }
 
-                var le = child.GetComponent<LayoutElement>();
-                if (le == null)
-                    le = child.gameObject.AddComponent<LayoutElement>();
-                le.preferredWidth = 200;
-                le.preferredHeight = 52;
-                le.minWidth = 140;
-            }
+        static void PinBottomLeft(RectTransform rt, float left, float fromBottom, float width, float height)
+        {
+            rt.anchorMin = new Vector2(0f, 0f);
+            rt.anchorMax = new Vector2(0f, 0f);
+            rt.pivot = new Vector2(0f, 0f);
+            rt.anchoredPosition = new Vector2(left, fromBottom);
+            rt.sizeDelta = new Vector2(width, height);
+        }
+
+        static void PinBottomRight(RectTransform rt, float right, float fromBottom, float width, float height)
+        {
+            rt.anchorMin = new Vector2(1f, 0f);
+            rt.anchorMax = new Vector2(1f, 0f);
+            rt.pivot = new Vector2(1f, 0f);
+            rt.anchoredPosition = new Vector2(-right, fromBottom);
+            rt.sizeDelta = new Vector2(width, height);
         }
 
         static void PinTopHeight(Transform t, float left, float right, float fromTop, float height)

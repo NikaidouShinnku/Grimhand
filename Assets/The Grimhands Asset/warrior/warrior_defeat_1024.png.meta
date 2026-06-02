@@ -116,10 +116,10 @@ TextureImporter:
       name: warrior_defeat_1024_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 128
-        height: 128
+        x: 39
+        y: 7
+        width: 946
+        height: 994
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}

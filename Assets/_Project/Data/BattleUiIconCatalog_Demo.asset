@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e5f251c47e66df14481063d5898faec8, type: 3}
+  m_Name: BattleUiIconCatalog_Demo
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.BattleUiIconCatalogSO
+  HpIcon: {fileID: -902086654454736923, guid: 85a3b83ffa465b143884cc56d859e300, type: 3}
+  AttackIcon: {fileID: 4413183947946236502, guid: 96a6add9c4fb41544854b545cbd11624, type: 3}
+  DefenseIcon: {fileID: -3393594479042761946, guid: 17fd391a135211143be094f16f17c846, type: 3}
+  SpeedIcon: {fileID: 7652682938272544106, guid: ee07d130bf02d374594858f8f917a92b, type: 3}
+  EnergyIcon: {fileID: -6418339764939565836, guid: 311789829f9cd874fb49b68dcd48101a, type: 3}

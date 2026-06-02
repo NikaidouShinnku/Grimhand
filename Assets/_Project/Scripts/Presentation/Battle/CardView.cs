@@ -14,6 +14,7 @@ namespace Grimhand.Presentation.Battle
         [SerializeField] Image iconImage;
         [SerializeField] Image pollutedOverlay;
         [SerializeField] Image selectedOutline;
+        [SerializeField] Image costIconImage;
         [SerializeField] Text costText;
         [SerializeField] Text nameText;
         [SerializeField] Text statsText;
@@ -38,6 +39,8 @@ namespace Grimhand.Presentation.Battle
             bool interactable,
             string orderBadge,
             string statsLine,
+            BattleUiIconCatalogSO uiIcons,
+            CharacterVisualCatalogSO characterVisuals,
             Action<int> onClick,
             Action<CardInstanceState, RectTransform> onHoverEnter,
             Action onHoverExit)
@@ -52,20 +55,35 @@ namespace Grimhand.Presentation.Battle
             {
                 frameImage.enabled = true;
                 frameImage.sprite = visual.Frame;
+                frameImage.preserveAspect = true;
                 frameImage.color = visual.Frame != null ? Color.white : new Color(0.18f, 0.2f, 0.28f, 1f);
             }
 
             if (artImage != null)
             {
+                var portrait = characterVisuals != null
+                    ? characterVisuals.GetPortrait(card.OwnerCharacterId)
+                    : null;
+                var art = visual.Art ?? portrait;
                 artImage.enabled = true;
-                artImage.sprite = visual.Art;
-                artImage.color = visual.Art != null ? Color.white : new Color(0.25f, 0.27f, 0.35f, 1f);
+                artImage.sprite = art;
+                artImage.preserveAspect = true;
+                artImage.color = art != null ? Color.white : new Color(0.25f, 0.27f, 0.35f, 1f);
             }
 
             if (iconImage != null)
             {
                 iconImage.enabled = visual.Icon != null;
                 iconImage.sprite = visual.Icon;
+            }
+
+            if (costIconImage != null)
+            {
+                var energyIcon = uiIcons != null ? uiIcons.EnergyIcon : null;
+                costIconImage.sprite = energyIcon;
+                costIconImage.enabled = energyIcon != null;
+                costIconImage.preserveAspect = true;
+                costIconImage.color = Color.white;
             }
 
             if (costText != null)
@@ -78,7 +96,7 @@ namespace Grimhand.Presentation.Battle
                 statsText.text = statsLine;
 
             if (ownerText != null)
-                ownerText.text = BattleUiFormatters.ShortOwner(card.OwnerCharacterId);
+                ownerText.text = "";
 
             if (orderBadgeText != null)
             {

@@ -17,6 +17,7 @@ MonoBehaviour:
   OwnerCharacterId: char_ranger
   Cost: 1
   CardType: 2
+  Rarity: 3
   Keywords:
   - slow
   - slot
@@ -34,3 +35,6 @@ MonoBehaviour:
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100
+  CardArt: {fileID: 0}
+  CardFrame: {fileID: 0}
+  CardIcon: {fileID: 0}

@@ -30,6 +30,9 @@ namespace Grimhand.Editor
         {
             EnsureDemoData();
             EnsureCharacterVisualCatalog();
+            GrimhandUiVisualBootstrap.EnsureUiIconCatalog();
+            GrimhandUiVisualBootstrap.EnsureCardVisualCatalog();
+            GrimhandUiVisualBootstrap.AssignDemoCardRarities();
 
             if (!System.IO.File.Exists(ScenePath))
             {
@@ -49,8 +52,8 @@ namespace Grimhand.Editor
                 "战斗测试场景已就绪",
                 "已打开：\nAssets/_Project/Scenes/BattleSandbox.unity\n\n" +
                 "直接点击 Unity 顶部的 ▶ Play 即可开始游戏。\n\n" +
-                "上方战场应显示 6 个角色立绘槽位（战士/法老/恶魔 + 怪物）。\n" +
-                "若看不到，请再次执行本菜单以刷新 UI 布局。",
+                "左右大立绘对峙布局：玩家左、敌人右（镜像），手牌在下方居中。\n" +
+                "若看不到立绘，请再次执行本菜单以刷新 UI 与美术目录。",
                 "好的");
 
             Selection.activeObject = AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath);
@@ -66,6 +69,17 @@ namespace Grimhand.Editor
             }
         }
 
+        [MenuItem("Grimhand/Content/Refresh Character Visual Catalog")]
+        public static void RefreshCharacterVisualCatalogMenu()
+        {
+            EnsureCharacterVisualCatalog();
+            AssetDatabase.SaveAssets();
+            EditorUtility.DisplayDialog(
+                "角色立绘目录已刷新",
+                "已更新 CharacterVisualCatalog_Demo.asset。\n若 Play 仍看不到立绘，请重新 Play。",
+                "好的");
+        }
+
         public static void EnsureCharacterVisualCatalog()
         {
             EnsureFolder("Assets/_Project/Data");
@@ -79,29 +93,58 @@ namespace Grimhand.Editor
 
             catalog.Entries.Clear();
             AddPortrait(catalog, "char_knight",
-                "Assets/The Grimhands Asset/warrior/warrior_idle_1024.png");
+                "warrior/warrior_idle_1024.png");
             AddPortrait(catalog, "char_mage",
-                "Assets/The Grimhands Asset/pharoah/pharoah_idle_1024.png");
+                "pharoah/pharoah_idle_1024.png");
             AddPortrait(catalog, "char_ranger",
-                "Assets/The Grimhands Asset/devil/devil_idle_1024.png");
+                "devil/devil_idle_1024.png");
             AddPortrait(catalog, "char_goblin_brute",
-                "Assets/The Grimhands Asset/monsters/goblin_idle_1024.png");
+                "monsters/goblin_idle_1024.png");
             AddPortrait(catalog, "char_goblin_shaman",
-                "Assets/The Grimhands Asset/monsters/skeleton_idle_1024.png");
+                "monsters/skeleton_idle_1024.png");
             AddPortrait(catalog, "char_goblin_archer",
-                "Assets/The Grimhands Asset/monsters/wraith_idle_1024.png");
+                "monsters/wraith_idle_1024.png");
 
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();
         }
 
-        static void AddPortrait(CharacterVisualCatalogSO catalog, string characterId, string texturePath)
+        static void AddPortrait(CharacterVisualCatalogSO catalog, string characterId, string relativePath)
         {
+            var sprite = LoadPortraitSprite(relativePath);
+            if (sprite == null)
+                Debug.LogWarning($"[Grimhand] 未找到立绘：{characterId}（{relativePath}）");
+
             catalog.Entries.Add(new CharacterVisualEntry
             {
                 CharacterId = characterId,
-                IdlePortrait = LoadFirstSprite(texturePath)
+                IdlePortrait = sprite
             });
+        }
+
+        public static Sprite LoadPortraitSprite(string relativePath)
+        {
+            const string root = "Assets/The Grimhands Asset/";
+            var folder = System.IO.Path.GetDirectoryName(relativePath)?.Replace('\\', '/');
+            var file = System.IO.Path.GetFileName(relativePath);
+            if (string.IsNullOrEmpty(folder) || string.IsNullOrEmpty(file))
+                return LoadFirstSprite(root + relativePath);
+
+            var candidates = new[]
+            {
+                $"{root}{folder} 1/{file}",
+                $"{root}{folder}/{file}",
+                $"{root}The Grimhands Asset/{folder}/{file}"
+            };
+
+            foreach (var path in candidates)
+            {
+                var sprite = LoadFirstSprite(path);
+                if (sprite != null)
+                    return sprite;
+            }
+
+            return null;
         }
 
         public static Sprite LoadFirstSprite(string assetPath)
@@ -116,7 +159,19 @@ namespace Grimhand.Editor
                     return sprite;
             }
 
-            return null;
+            var direct = AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
+            if (direct != null)
+                return direct;
+
+            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(assetPath);
+            if (texture == null)
+                return null;
+
+            return Sprite.Create(
+                texture,
+                new Rect(0f, 0f, texture.width, texture.height),
+                new Vector2(0.5f, 0.5f),
+                100f);
         }
 
         static void EnsureFolder(string path)

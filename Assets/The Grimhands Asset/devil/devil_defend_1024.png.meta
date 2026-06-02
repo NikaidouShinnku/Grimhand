@@ -116,10 +116,10 @@ TextureImporter:
       name: devil_defend_1024_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 1024
-        height: 1024
+        x: 7
+        y: 15
+        width: 1010
+        height: 1002
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}

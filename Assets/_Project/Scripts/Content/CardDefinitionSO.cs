@@ -12,6 +12,7 @@ namespace Grimhand.Content
         public string OwnerCharacterId = "char_id";
         public int Cost = 1;
         public CardType CardType = CardType.Attack;
+        public CardRarity Rarity = CardRarity.Common;
         public List<string> Keywords = new();
         public List<EffectActionDefinition> Actions = new();
 

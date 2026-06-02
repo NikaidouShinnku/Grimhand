@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Character_Goblin_Shaman
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
   CharacterId: char_goblin_shaman
-  DisplayName: "\u54E5\u5E03\u6797\u8428\u6EE1"
+  DisplayName: "\u9AB7\u9ABC\u8428\u6EE1"
   Team: 1
   Slot: 2
   Level: 1

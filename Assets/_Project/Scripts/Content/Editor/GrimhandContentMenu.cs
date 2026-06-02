@@ -271,10 +271,10 @@ namespace Grimhand.Content.Editor
                 Brute = SaveCharacter("Character_Goblin_Brute", "char_goblin_brute", "哥布林蛮兵", TeamSide.Enemy,
                     FormationSlot.Front, 2, 45, 7, 2, 8,
                     BuildDeck(Repeat(cards.Bite, 4), Repeat(cards.Scratch, 2), Repeat(cards.Lunge, 2))),
-                Shaman = SaveCharacter("Character_Goblin_Shaman", "char_goblin_shaman", "哥布林萨满", TeamSide.Enemy,
+                Shaman = SaveCharacter("Character_Goblin_Shaman", "char_goblin_shaman", "骷髅萨满", TeamSide.Enemy,
                     FormationSlot.Middle, 1, 32, 4, 1, 6,
                     BuildDeck(Repeat(cards.Hex, 4), Repeat(cards.Wither, 4), Repeat(cards.Bite, 2))),
-                Archer = SaveCharacter("Character_Goblin_Archer", "char_goblin_archer", "哥布林弓手", TeamSide.Enemy,
+                Archer = SaveCharacter("Character_Goblin_Archer", "char_goblin_archer", "怨灵弓手", TeamSide.Enemy,
                     FormationSlot.Back, 1, 28, 8, 1, 9,
                     BuildDeck(Repeat(cards.Arrow, 6), Repeat(cards.Aim, 4)))
             };

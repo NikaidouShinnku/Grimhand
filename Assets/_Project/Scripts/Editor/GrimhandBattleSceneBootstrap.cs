@@ -92,6 +92,7 @@ namespace Grimhand.Editor
             }
 
             catalog.Entries.Clear();
+            // CharacterId → 立绘路径（DisplayName 见各 CharacterDefinitionSO）
             AddPortrait(catalog, "char_knight",
                 "warrior/warrior_idle_1024.png");
             AddPortrait(catalog, "char_mage",

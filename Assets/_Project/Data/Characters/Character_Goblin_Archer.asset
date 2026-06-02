@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Character_Goblin_Archer
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
   CharacterId: char_goblin_archer
-  DisplayName: "\u54E5\u5E03\u6797\u5F13\u624B"
+  DisplayName: "\u6028\u7075\u5F13\u624B"
   Team: 1
   Slot: 3
   Level: 1

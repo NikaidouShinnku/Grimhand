@@ -96,9 +96,9 @@ namespace Grimhand.Battle.Demo
                 "char_ranger", level: 1, hp: 30, baseAtk: 7, baseDef: 2, spd: 7, rangerCards));
             config.Combatants.Add(Combatant("e_brute", "哥布林蛮兵", TeamSide.Enemy, FormationSlot.Front,
                 "char_goblin_brute", level: 2, hp: 45, baseAtk: 7, baseDef: 2, spd: 8, bruteCards));
-            config.Combatants.Add(Combatant("e_shaman", "哥布林萨满", TeamSide.Enemy, FormationSlot.Middle,
+            config.Combatants.Add(Combatant("e_shaman", "骷髅萨满", TeamSide.Enemy, FormationSlot.Middle,
                 "char_goblin_shaman", level: 1, hp: 32, baseAtk: 4, baseDef: 1, spd: 6, shamanCards));
-            config.Combatants.Add(Combatant("e_archer", "哥布林弓手", TeamSide.Enemy, FormationSlot.Back,
+            config.Combatants.Add(Combatant("e_archer", "怨灵弓手", TeamSide.Enemy, FormationSlot.Back,
                 "char_goblin_archer", level: 1, hp: 28, baseAtk: 8, baseDef: 1, spd: 9, archerCards));
 
             return config;

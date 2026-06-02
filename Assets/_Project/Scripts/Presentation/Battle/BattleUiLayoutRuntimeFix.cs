@@ -77,6 +77,75 @@ namespace Grimhand.Presentation.Battle
                 PinBottomRight(actions, 12f, PlanningRowBottom, 660f, PlanningRowHeight);
 
             ApplyPortraitScale(battleScreenRoot);
+            FixEnergyIcons(battleScreenRoot);
+            EnsurePlanningInfoLayout(battleScreenRoot);
+            CombatantTooltipLayer.GetOrCreate(battleScreenRoot);
+        }
+
+        static void EnsurePlanningInfoLayout(Transform battleScreenRoot)
+        {
+            var info = battleScreenRoot.Find("PlanningInfoLeft") ?? battleScreenRoot.Find("PlanningBar");
+            if (info == null)
+                return;
+
+            var title = info.Find("Title") as RectTransform;
+            if (title != null)
+            {
+                title.anchorMin = new Vector2(0f, 1f);
+                title.anchorMax = new Vector2(1f, 1f);
+                title.pivot = new Vector2(0f, 1f);
+                title.offsetMin = new Vector2(12f, -28f);
+                title.offsetMax = new Vector2(-8f, -8f);
+            }
+
+            var subtitle = info.Find("Subtitle") as RectTransform;
+            if (subtitle != null)
+            {
+                subtitle.gameObject.SetActive(true);
+                subtitle.anchorMin = new Vector2(0f, 1f);
+                subtitle.anchorMax = new Vector2(1f, 1f);
+                subtitle.pivot = new Vector2(0f, 1f);
+                subtitle.offsetMin = new Vector2(12f, -52f);
+                subtitle.offsetMax = new Vector2(-8f, -32f);
+
+                var subtitleText = subtitle.GetComponent<Text>();
+                if (subtitleText != null)
+                {
+                    subtitleText.fontSize = Mathf.Max(subtitleText.fontSize, 16);
+                    subtitleText.alignment = TextAnchor.UpperLeft;
+                }
+            }
+
+            var energyRow = info.Find("EnergyRow") as RectTransform;
+            if (energyRow != null)
+            {
+                energyRow.anchorMin = new Vector2(0f, 0f);
+                energyRow.anchorMax = new Vector2(1f, 0f);
+                energyRow.pivot = new Vector2(0f, 0f);
+                energyRow.offsetMin = new Vector2(12f, 4f);
+                energyRow.offsetMax = new Vector2(-8f, 28f);
+
+                var layout = energyRow.GetComponent<HorizontalLayoutGroup>();
+                if (layout != null)
+                    layout.childAlignment = TextAnchor.MiddleLeft;
+            }
+        }
+
+        static void FixEnergyIcons(Transform battleScreenRoot)
+        {
+            var planningInfo = battleScreenRoot.Find("PlanningInfoLeft") ?? battleScreenRoot.Find("PlanningBar");
+            var energyRow = planningInfo?.Find("EnergyRow");
+
+            foreach (var icon in battleScreenRoot.GetComponentsInChildren<Image>(true))
+            {
+                if (icon.gameObject.name != "EnergyIcon")
+                    continue;
+
+                if (energyRow != null && icon.transform.parent != energyRow)
+                    icon.transform.SetParent(energyRow, false);
+
+                BattleScreenView.FixEnergyIconLayout(icon);
+            }
         }
 
         static void ApplyPortraitScale(Transform battleScreenRoot)
@@ -124,6 +193,20 @@ namespace Grimhand.Presentation.Battle
 
             EnsureEnergyRow(planningBar, energyIcon, title);
             RepositionTitle(title as RectTransform);
+            RepositionSubtitle(planningBar.Find("Subtitle") as RectTransform);
+        }
+
+        static void RepositionSubtitle(RectTransform subtitle)
+        {
+            if (subtitle == null)
+                return;
+
+            subtitle.gameObject.SetActive(true);
+            subtitle.anchorMin = new Vector2(0f, 1f);
+            subtitle.anchorMax = new Vector2(1f, 1f);
+            subtitle.pivot = new Vector2(0f, 1f);
+            subtitle.offsetMin = new Vector2(12f, -52f);
+            subtitle.offsetMax = new Vector2(-8f, -32f);
         }
 
         static void ApplyStageDrawOrders(Transform battleScreenRoot)
@@ -160,8 +243,8 @@ namespace Grimhand.Presentation.Battle
                 energyRow.anchorMin = new Vector2(0f, 0f);
                 energyRow.anchorMax = new Vector2(1f, 0f);
                 energyRow.pivot = new Vector2(0f, 0f);
-                energyRow.offsetMin = new Vector2(12f, 10f);
-                energyRow.offsetMax = new Vector2(-8f, 42f);
+                energyRow.offsetMin = new Vector2(12f, 4f);
+                energyRow.offsetMax = new Vector2(-8f, 28f);
 
                 var layout = rowGo.AddComponent<HorizontalLayoutGroup>();
                 layout.spacing = 8;
@@ -174,8 +257,10 @@ namespace Grimhand.Presentation.Battle
             {
                 energyIcon.SetParent(energyRow, false);
                 var le = energyIcon.GetComponent<LayoutElement>() ?? energyIcon.gameObject.AddComponent<LayoutElement>();
-                le.preferredWidth = 34f;
-                le.preferredHeight = 34f;
+                le.preferredWidth = 28f;
+                le.preferredHeight = 28f;
+                le.minWidth = 28f;
+                le.minHeight = 28f;
             }
 
             var energyValue = energyRow.Find("EnergyValue")?.GetComponent<Text>();
@@ -201,7 +286,7 @@ namespace Grimhand.Presentation.Battle
             title.anchorMin = new Vector2(0f, 1f);
             title.anchorMax = new Vector2(1f, 1f);
             title.pivot = new Vector2(0f, 1f);
-            title.offsetMin = new Vector2(12f, -40f);
+            title.offsetMin = new Vector2(12f, -28f);
             title.offsetMax = new Vector2(-8f, -8f);
         }
 

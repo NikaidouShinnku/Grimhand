@@ -13,6 +13,14 @@ namespace Grimhand.Core
                 _state = 1;
         }
 
+        BattleRng(int seed, ulong state)
+        {
+            _seed = seed;
+            _state = state == 0 ? 1 : state;
+        }
+
+        public BattleRng Copy() => new BattleRng(_seed, _state);
+
         public int Seed => _seed;
 
         public int NextInt(int minInclusive, int maxExclusive)

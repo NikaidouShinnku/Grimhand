@@ -37,6 +37,8 @@ namespace Grimhand.Presentation.Battle
             var needed = state.PlayerHand.Count;
             EnsurePool(needed);
 
+            var resolveOrder = session.Engine.GetPlayerCardsInResolveOrder();
+
             for (var i = 0; i < _pool.Count; i++)
             {
                 var view = _pool[i];
@@ -48,13 +50,14 @@ namespace Grimhand.Presentation.Battle
 
                 view.gameObject.SetActive(true);
                 var card = state.PlayerHand[i];
-                var selected = session.Engine.Draft.IsSelected(card.InstanceId);
+                var draft = session.Engine.Draft;
+                var selected = draft.IsSelected(card.InstanceId);
                 var polluted = CardRules.IsPolluted(card);
-                var canAfford = session.Engine.Draft.EnergyRemaining >= card.Cost;
+                var canAfford = draft.EnergyRemaining >= card.Cost;
                 var interactable = session.CanInteractWithBattle() && !polluted && (selected || canAfford);
                 var visual = CardVisualResolver.Resolve(card, catalog, characterVisuals, definitions);
-                var stats = BattleUiFormatters.BuildCardStatsLine(state, session.Engine.Draft, card);
-                var badge = BattleUiFormatters.BuildSelectionBadge(session.Engine.Draft, card);
+                var stats = BattleUiFormatters.BuildCardStatsLine(state, draft, card);
+                var badge = BattleUiFormatters.BuildSelectionBadge(state, draft, card, resolveOrder);
 
                 view.BindWithCard(card, visual, selected, polluted, interactable, badge, stats,
                     uiIcons, characterVisuals, onCardClick, onHoverEnter, onHoverExit);

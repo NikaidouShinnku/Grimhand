@@ -139,20 +139,26 @@ namespace Grimhand.Editor
             titleRt.anchorMin = new Vector2(0f, 1f);
             titleRt.anchorMax = new Vector2(1f, 1f);
             titleRt.pivot = new Vector2(0f, 1f);
-            titleRt.offsetMin = new Vector2(12f, -40f);
+            titleRt.offsetMin = new Vector2(12f, -28f);
             titleRt.offsetMax = new Vector2(-8f, -8f);
             title.alignment = TextAnchor.UpperLeft;
 
-            var subtitle = CreateText("Subtitle", planningInfo.transform, "", 14, FontStyle.Normal);
-            subtitle.gameObject.SetActive(false);
+            var subtitle = CreateText("Subtitle", planningInfo.transform, "", 16, FontStyle.Normal);
+            var subtitleRt = subtitle.GetComponent<RectTransform>();
+            subtitleRt.anchorMin = new Vector2(0f, 1f);
+            subtitleRt.anchorMax = new Vector2(1f, 1f);
+            subtitleRt.pivot = new Vector2(0f, 1f);
+            subtitleRt.offsetMin = new Vector2(12f, -52f);
+            subtitleRt.offsetMax = new Vector2(-8f, -32f);
+            subtitle.alignment = TextAnchor.UpperLeft;
 
             var energyRow = CreateRect("EnergyRow", planningInfo.transform);
             var energyRowRt = energyRow.GetComponent<RectTransform>();
             energyRowRt.anchorMin = new Vector2(0f, 0f);
             energyRowRt.anchorMax = new Vector2(1f, 0f);
             energyRowRt.pivot = new Vector2(0f, 0f);
-            energyRowRt.offsetMin = new Vector2(12f, 10f);
-            energyRowRt.offsetMax = new Vector2(-8f, 42f);
+            energyRowRt.offsetMin = new Vector2(12f, 4f);
+            energyRowRt.offsetMax = new Vector2(-8f, 28f);
             var energyLayout = energyRow.AddComponent<HorizontalLayoutGroup>();
             energyLayout.spacing = 8;
             energyLayout.childAlignment = TextAnchor.MiddleLeft;
@@ -163,8 +169,10 @@ namespace Grimhand.Editor
 
             var energyIcon = CreateImage("EnergyIcon", energyRow.transform, Color.white);
             var energyIconLe = energyIcon.AddComponent<LayoutElement>();
-            energyIconLe.preferredWidth = 34f;
-            energyIconLe.preferredHeight = 34f;
+            energyIconLe.preferredWidth = 28f;
+            energyIconLe.preferredHeight = 28f;
+            energyIconLe.minWidth = 28f;
+            energyIconLe.minHeight = 28f;
             energyIcon.GetComponent<Image>().preserveAspect = true;
             energyIcon.GetComponent<Image>().raycastTarget = false;
 
@@ -430,10 +438,18 @@ namespace Grimhand.Editor
             var go = CreateRect(name, null);
             go.GetComponent<RectTransform>().sizeDelta = new Vector2(168, 236);
 
-            var frame = CreateImage("Frame", go.transform, new Color(0.18f, 0.2f, 0.28f, 1f));
+            var scaleRoot = CreateRect("CardScaleRoot", go.transform);
+            var scaleRt = scaleRoot.GetComponent<RectTransform>();
+            scaleRt.anchorMin = Vector2.zero;
+            scaleRt.anchorMax = Vector2.one;
+            scaleRt.pivot = new Vector2(0.5f, 1f);
+            scaleRt.offsetMin = Vector2.zero;
+            scaleRt.offsetMax = Vector2.zero;
+
+            var frame = CreateImage("Frame", scaleRoot.transform, new Color(0.18f, 0.2f, 0.28f, 1f));
             StretchFull(frame);
 
-            var art = CreateImage("Art", go.transform, new Color(0.25f, 0.27f, 0.35f, 1f));
+            var art = CreateImage("Art", scaleRoot.transform, new Color(0.25f, 0.27f, 0.35f, 1f));
             var artImg = art.GetComponent<Image>();
             var artRt = art.GetComponent<RectTransform>();
             artRt.anchorMin = new Vector2(0.1f, 0.32f);
@@ -443,7 +459,7 @@ namespace Grimhand.Editor
             artImg.type = Image.Type.Simple;
             artImg.preserveAspect = true;
 
-            var icon = CreateImage("Icon", go.transform, Color.white);
+            var icon = CreateImage("Icon", scaleRoot.transform, Color.white);
             var iconRt = icon.GetComponent<RectTransform>();
             iconRt.anchorMin = new Vector2(0.72f, 0.72f);
             iconRt.anchorMax = new Vector2(0.95f, 0.95f);
@@ -451,7 +467,7 @@ namespace Grimhand.Editor
             iconRt.offsetMax = Vector2.zero;
             icon.gameObject.SetActive(false);
 
-            var costBg = CreateImage("CostBadge", go.transform, new Color(1f, 1f, 1f, 0f));
+            var costBg = CreateImage("CostBadge", scaleRoot.transform, new Color(1f, 1f, 1f, 0f));
             var costRt = costBg.GetComponent<RectTransform>();
             costRt.anchorMin = new Vector2(0.02f, 0.86f);
             costRt.anchorMax = new Vector2(0.24f, 0.99f);
@@ -464,32 +480,43 @@ namespace Grimhand.Editor
             StretchFull(costText);
             costText.alignment = TextAnchor.MiddleCenter;
 
-            var nameText = CreateText("Name", go.transform, "卡牌", 15, FontStyle.Bold);
-            AnchorTop(nameText, 8, -52, -8, -8);
-            nameText.alignment = TextAnchor.UpperCenter;
+            var nameText = CreateText("Name", scaleRoot.transform, "卡牌", 15, FontStyle.Bold);
+            AnchorTop(nameText, 8, -56, -8, -6);
+            nameText.alignment = TextAnchor.MiddleCenter;
+            nameText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            nameText.verticalOverflow = VerticalWrapMode.Truncate;
 
-            var statsText = CreateText("Stats", go.transform, "", 12, FontStyle.Normal);
-            AnchorTop(statsText, 8, 52, -8, 88);
+            var statsText = CreateText("Stats", scaleRoot.transform, "", 11, FontStyle.Normal);
+            AnchorBottom(statsText, 10, 10, -10, 78);
             statsText.alignment = TextAnchor.UpperCenter;
+            statsText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            statsText.verticalOverflow = VerticalWrapMode.Truncate;
 
-            var ownerText = CreateText("Owner", go.transform, "", 11, FontStyle.Italic);
-            AnchorBottom(ownerText, 8, 8, -8, 28);
+            var ownerText = CreateText("Owner", scaleRoot.transform, "", 11, FontStyle.Italic);
+            ownerText.gameObject.SetActive(false);
 
-            var orderBadge = CreateText("OrderBadge", go.transform, "#1", 13, FontStyle.Bold);
+            var orderBadge = CreateText("OrderBadge", scaleRoot.transform, "#1", 13, FontStyle.Bold);
             var obRt = orderBadge.GetComponent<RectTransform>();
             obRt.anchorMin = new Vector2(0.72f, 0.88f);
             obRt.anchorMax = new Vector2(0.98f, 0.98f);
             obRt.offsetMin = Vector2.zero;
             obRt.offsetMax = Vector2.zero;
 
-            var polluted = CreateImage("PollutedOverlay", go.transform, new Color(0, 0, 0, 0.45f));
+            var polluted = CreateImage("PollutedOverlay", scaleRoot.transform, new Color(0, 0, 0, 0.45f));
             StretchFull(polluted);
+            polluted.GetComponent<Image>().raycastTarget = false;
             polluted.gameObject.SetActive(false);
 
-            var selected = CreateImage("SelectedOutline", go.transform, new Color(1f, 0.85f, 0.2f, 0.85f));
+            var selectedHighlight = CreateImage("SelectedHighlight", scaleRoot.transform, new Color(1f, 1f, 1f, 0.42f));
+            StretchFull(selectedHighlight);
+            selectedHighlight.GetComponent<Image>().raycastTarget = false;
+            selectedHighlight.SetActive(false);
+
+            var selected = CreateImage("SelectedOutline", scaleRoot.transform, new Color(1f, 0.85f, 0.2f, 0.85f));
             StretchFull(selected);
             selected.GetComponent<Image>().type = Image.Type.Sliced;
-            selected.gameObject.SetActive(false);
+            selected.GetComponent<Image>().raycastTarget = false;
+            selected.SetActive(false);
 
             var cg = go.AddComponent<CanvasGroup>();
             var le = go.AddComponent<LayoutElement>();
@@ -500,7 +527,7 @@ namespace Grimhand.Editor
 
             var view = go.AddComponent<CardView>();
             SetCardView(view, frame.GetComponent<Image>(), art.GetComponent<Image>(), icon.GetComponent<Image>(),
-                polluted.GetComponent<Image>(), selected.GetComponent<Image>(),
+                polluted.GetComponent<Image>(), selectedHighlight.GetComponent<Image>(), selected.GetComponent<Image>(),
                 costIconImg, costText, nameText, statsText, ownerText, orderBadge, cg, btn);
             return go;
         }
@@ -769,15 +796,17 @@ namespace Grimhand.Editor
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        static void SetCardView(CardView view, Image frame, Image art, Image icon, Image polluted, Image selected,
-            Image costIcon, Text cost, Text name, Text stats, Text owner, Text order, CanvasGroup cg, Button btn)
+        static void SetCardView(CardView view, Image frame, Image art, Image icon, Image polluted, Image selectedHighlight,
+            Image selectedOutline, Image costIcon, Text cost, Text name, Text stats, Text owner, Text order,
+            CanvasGroup cg, Button btn)
         {
             var so = new SerializedObject(view);
             so.FindProperty("frameImage").objectReferenceValue = frame;
             so.FindProperty("artImage").objectReferenceValue = art;
             so.FindProperty("iconImage").objectReferenceValue = icon;
             so.FindProperty("pollutedOverlay").objectReferenceValue = polluted;
-            so.FindProperty("selectedOutline").objectReferenceValue = selected;
+            so.FindProperty("selectedHighlight").objectReferenceValue = selectedHighlight;
+            so.FindProperty("selectedOutline").objectReferenceValue = selectedOutline;
             so.FindProperty("costIconImage").objectReferenceValue = costIcon;
             so.FindProperty("costText").objectReferenceValue = cost;
             so.FindProperty("nameText").objectReferenceValue = name;

@@ -2,6 +2,7 @@ using Grimhand.Content;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Battle
@@ -9,9 +10,12 @@ namespace Grimhand.Presentation.Battle
     public sealed class CombatantSlotView : MonoBehaviour
     {
         static readonly Color ValidTargetTint = new(1f, 0.92f, 0.45f, 1f);
+        static readonly Color HoverTint = new(1.08f, 1.08f, 1.08f, 1f);
         static readonly Color DeadTint = new(0.35f, 0.35f, 0.35f, 1f);
 
         const float PortraitScale = 0.88f;
+        const float HoverScaleMul = 1.07f;
+        const float HitboxPadding = 6f;
 
         [SerializeField] Image background;
         [SerializeField] Image targetHighlight;
@@ -26,7 +30,17 @@ namespace Grimhand.Presentation.Battle
         [SerializeField] FormationSlot formationSlot;
         [SerializeField] bool mirrorPortrait;
 
+        RectTransform _portraitHit;
+        Outline _targetOutline;
+        CombatantDetailPopupView _detailPopup;
+        CombatantState _currentUnit;
+        BattleUiIconCatalogSO _currentIcons;
+
         string _combatantId;
+        bool _hovered;
+        bool _targetMode;
+        bool _isValidTarget;
+        Vector3 _basePortraitScale = Vector3.one;
 
         public void Configure(FormationSlot slot, TeamSide teamSide, string rowLabel, bool mirror = false)
         {
@@ -45,6 +59,7 @@ namespace Grimhand.Presentation.Battle
                 TryInferSlotFromName();
             ApplyPortraitMirror();
             EnsurePortraitInteraction();
+            EnsureDetailPopup();
             EnsureStatusTextStyle();
             ApplyDrawOrder();
         }
@@ -76,29 +91,28 @@ namespace Grimhand.Presentation.Battle
             if (portraitRoot == null || portraitImage == null)
                 return;
 
+            portraitImage.raycastTarget = false;
+
+            _targetOutline = portraitImage.GetComponent<Outline>();
+            if (_targetOutline == null)
+                _targetOutline = portraitImage.gameObject.AddComponent<Outline>();
+            _targetOutline.effectColor = new Color(1f, 0.88f, 0.2f, 0.95f);
+            _targetOutline.effectDistance = new Vector2(2.5f, -2.5f);
+            _targetOutline.useGraphicAlpha = true;
+            _targetOutline.enabled = false;
+
             if (targetHighlight != null)
-            {
-                if (targetHighlight.transform.parent != portraitRoot)
-                {
-                    targetHighlight.transform.SetParent(portraitRoot, false);
-                    StretchLocal(targetHighlight.rectTransform);
-                    targetHighlight.transform.SetSiblingIndex(portraitImage.transform.GetSiblingIndex() + 1);
-                }
-
-                targetHighlight.raycastTarget = false;
-                targetHighlight.preserveAspect = true;
                 targetHighlight.gameObject.SetActive(false);
-            }
 
-            var hit = portraitRoot.Find("PortraitHit")?.GetComponent<Image>();
-            if (hit == null)
+            _portraitHit = portraitRoot.Find("PortraitHit") as RectTransform;
+            if (_portraitHit == null)
             {
                 var hitGo = new GameObject("PortraitHit", typeof(RectTransform), typeof(Image));
                 hitGo.transform.SetParent(portraitRoot, false);
-                hit = hitGo.GetComponent<Image>();
-                StretchLocal(hit.rectTransform);
+                _portraitHit = hitGo.GetComponent<RectTransform>();
             }
 
+            var hit = _portraitHit.GetComponent<Image>();
             hit.color = new Color(1f, 1f, 1f, 0f);
             hit.raycastTarget = true;
 
@@ -120,16 +134,43 @@ namespace Grimhand.Presentation.Battle
 
             selectButton.targetGraphic = hit;
             selectButton.transition = Selectable.Transition.None;
+
+            EnsureHoverEvents(hit.gameObject);
+        }
+
+        void EnsureHoverEvents(GameObject hitObject)
+        {
+            var trigger = hitObject.GetComponent<EventTrigger>() ?? hitObject.AddComponent<EventTrigger>();
+
+            trigger.triggers.RemoveAll(entry =>
+                entry.eventID == EventTriggerType.PointerEnter ||
+                entry.eventID == EventTriggerType.PointerExit);
+
+            var enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
+            enter.callback.AddListener(_ => OnPortraitPointerEnter());
+            trigger.triggers.Add(enter);
+
+            var exit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
+            exit.callback.AddListener(_ => OnPortraitPointerExit());
+            trigger.triggers.Add(exit);
+        }
+
+        void EnsureDetailPopup()
+        {
+            if (_detailPopup != null)
+                return;
+
+            _detailPopup = GetComponent<CombatantDetailPopupView>();
+            if (_detailPopup == null)
+                _detailPopup = gameObject.AddComponent<CombatantDetailPopupView>();
+
+            _detailPopup.EnsureBuilt(transform, team);
         }
 
         void EnsureStatusTextStyle()
         {
             if (bodyText != null)
-            {
-                bodyText.fontSize = Mathf.Max(bodyText.fontSize, 14);
-                bodyText.fontStyle = FontStyle.Bold;
-                EnsureOutline(bodyText, new Color(0f, 0f, 0f, 0.85f));
-            }
+                bodyText.gameObject.SetActive(false);
 
             if (nameText != null)
             {
@@ -148,23 +189,28 @@ namespace Grimhand.Presentation.Battle
             outline.effectDistance = new Vector2(1.5f, -1.5f);
         }
 
-        static void StretchLocal(RectTransform rt)
-        {
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
-            rt.localScale = Vector3.one;
-        }
-
         void ApplyPortraitMirror()
         {
             if (portraitRoot == null)
                 return;
 
-            portraitRoot.localScale = mirrorPortrait
+            _basePortraitScale = mirrorPortrait
                 ? new Vector3(-PortraitScale, PortraitScale, 1f)
                 : new Vector3(PortraitScale, PortraitScale, 1f);
+
+            ApplyPortraitScale();
+        }
+
+        void ApplyPortraitScale()
+        {
+            if (portraitRoot == null)
+                return;
+
+            var mul = _hovered ? HoverScaleMul : 1f;
+            portraitRoot.localScale = new Vector3(
+                _basePortraitScale.x * mul,
+                _basePortraitScale.y * mul,
+                1f);
         }
 
         void ApplyDrawOrder()
@@ -191,8 +237,10 @@ namespace Grimhand.Presentation.Battle
             selectButton.onClick.RemoveAllListeners();
             selectButton.onClick.AddListener(() =>
             {
-                if (!string.IsNullOrEmpty(_combatantId))
-                    onSelect?.Invoke(_combatantId);
+                if (string.IsNullOrEmpty(_combatantId) || !_targetMode || !_isValidTarget)
+                    return;
+
+                onSelect?.Invoke(_combatantId);
             });
         }
 
@@ -204,16 +252,19 @@ namespace Grimhand.Presentation.Battle
             BattleUiIconCatalogSO uiIcons)
         {
             var unit = FindCombatant(state);
+            _currentUnit = unit;
+            _currentIcons = uiIcons;
             _combatantId = unit?.Id;
+            _targetMode = targetMode;
 
-            var isValid = false;
+            _isValidTarget = false;
             if (targetMode && unit != null && validTargets != null)
             {
                 foreach (var t in validTargets)
                 {
                     if (t.Id == unit.Id)
                     {
-                        isValid = true;
+                        _isValidTarget = true;
                         break;
                     }
                 }
@@ -222,6 +273,7 @@ namespace Grimhand.Presentation.Battle
             if (background != null)
                 background.color = new Color(1f, 1f, 1f, 0f);
 
+            Sprite sprite = null;
             if (portraitImage != null)
             {
                 if (unit == null)
@@ -231,40 +283,100 @@ namespace Grimhand.Presentation.Battle
                 }
                 else
                 {
-                    var sprite = visuals != null
+                    sprite = visuals != null
                         ? visuals.GetPortrait(unit.CharacterDefinitionId)
                         : null;
                     portraitImage.sprite = sprite;
                     portraitImage.preserveAspect = true;
                     portraitImage.enabled = sprite != null;
-
-                    if (!unit.IsAlive)
-                        portraitImage.color = DeadTint;
-                    else if (targetMode && isValid)
-                        portraitImage.color = ValidTargetTint;
-                    else
-                        portraitImage.color = Color.white;
                 }
             }
 
-            if (targetHighlight != null)
-                targetHighlight.gameObject.SetActive(false);
+            ApplyInteractionBounds(sprite);
+            ApplyPortraitColor(unit);
 
             if (bodyText != null)
-                bodyText.text = unit == null ? "" : BattleUiFormatters.FormatStatusList(unit);
+            {
+                bodyText.text = "";
+                bodyText.gameObject.SetActive(false);
+            }
 
             if (nameText != null)
                 nameText.text = unit == null ? "" : unit.DisplayName;
 
             if (statsRow == null)
                 statsRow = GetComponentInChildren<UnitStatsRowView>(true);
-            statsRow?.Refresh(unit, uiIcons);
+            statsRow?.Refresh(unit, uiIcons, hpOnly: true);
 
             if (selectButton != null)
             {
-                selectButton.gameObject.SetActive(targetMode && isValid);
-                selectButton.interactable = targetMode && isValid;
+                var hasUnit = unit != null;
+                selectButton.gameObject.SetActive(hasUnit);
+                selectButton.interactable = hasUnit;
             }
+
+            if (!_hovered)
+            {
+                _detailPopup?.Refresh(unit, uiIcons);
+                _detailPopup?.SetVisible(false);
+            }
+            else
+            {
+                _detailPopup?.Refresh(unit, uiIcons);
+                _detailPopup?.SetVisible(unit != null);
+            }
+        }
+
+        void ApplyInteractionBounds(Sprite sprite)
+        {
+            if (portraitRoot == null || _portraitHit == null)
+                return;
+
+            UiSpriteBounds.FitCentered(portraitRoot, _portraitHit, sprite, HitboxPadding);
+
+            if (_targetOutline != null)
+                _targetOutline.enabled = _targetMode && _isValidTarget;
+        }
+
+        void ApplyPortraitColor(CombatantState unit)
+        {
+            if (portraitImage == null)
+                return;
+
+            if (unit == null)
+                return;
+
+            if (!unit.IsAlive)
+                portraitImage.color = DeadTint;
+            else if (_targetMode && _isValidTarget)
+                portraitImage.color = _hovered ? ValidTargetTint * HoverTint : ValidTargetTint;
+            else if (_hovered)
+                portraitImage.color = HoverTint;
+            else
+                portraitImage.color = Color.white;
+        }
+
+        void OnPortraitPointerEnter()
+        {
+            if (_currentUnit == null || !_currentUnit.IsAlive)
+                return;
+
+            _hovered = true;
+            ApplyPortraitScale();
+            ApplyPortraitColor(_currentUnit);
+            _detailPopup?.Refresh(_currentUnit, _currentIcons);
+            _detailPopup?.SetVisible(true);
+        }
+
+        void OnPortraitPointerExit()
+        {
+            if (!_hovered)
+                return;
+
+            _hovered = false;
+            ApplyPortraitScale();
+            ApplyPortraitColor(_currentUnit);
+            _detailPopup?.SetVisible(false);
         }
 
         CombatantState FindCombatant(BattleState state)

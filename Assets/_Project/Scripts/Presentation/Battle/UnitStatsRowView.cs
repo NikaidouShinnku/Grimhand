@@ -1,5 +1,4 @@
 using Grimhand.Battle.Model;
-using Grimhand.Battle.Rules;
 using Grimhand.Content;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,13 +7,14 @@ namespace Grimhand.Presentation.Battle
 {
     public sealed class UnitStatsRowView : MonoBehaviour
     {
-        const int IconSize = 30;
-        const int FontSize = 17;
-        const int ChipWidth = 108;
-        const int ChipHeight = 34;
+        const int IconSize = 28;
+        const int FontSize = 18;
+        const int ChipWidth = 120;
+        const int ChipHeight = 32;
 
         struct StatChip
         {
+            public GameObject Root;
             public Image Icon;
             public Text Value;
         }
@@ -25,23 +25,30 @@ namespace Grimhand.Presentation.Battle
         StatChip _spd;
         bool _built;
 
-        public void Refresh(CombatantState unit, BattleUiIconCatalogSO icons)
+        public void Refresh(CombatantState unit, BattleUiIconCatalogSO icons, bool hpOnly = true)
         {
             EnsureBuilt();
 
             if (unit == null)
             {
                 SetChip(_hp, icons?.HpIcon, "—");
-                SetChip(_def, icons?.DefenseIcon, "—");
-                SetChip(_atk, icons?.AttackIcon, "—");
-                SetChip(_spd, icons?.SpeedIcon, "—");
+                SetChipVisible(_def, false);
+                SetChipVisible(_atk, false);
+                SetChipVisible(_spd, false);
                 return;
             }
 
             SetChip(_hp, icons?.HpIcon, $"{unit.Hp}/{unit.MaxHp}");
-            SetChip(_def, icons?.DefenseIcon, unit.Block.ToString());
-            SetChip(_atk, icons?.AttackIcon, unit.Attack.ToString());
-            SetChip(_spd, icons?.SpeedIcon, StatusRules.GetEffectiveSpeed(unit).ToString());
+            SetChipVisible(_def, !hpOnly);
+            SetChipVisible(_atk, !hpOnly);
+            SetChipVisible(_spd, !hpOnly);
+
+            if (!hpOnly)
+            {
+                SetChip(_def, icons?.DefenseIcon, unit.Block.ToString());
+                SetChip(_atk, icons?.AttackIcon, unit.Attack.ToString());
+                SetChip(_spd, icons?.SpeedIcon, Grimhand.Battle.Rules.StatusRules.GetEffectiveSpeed(unit).ToString());
+            }
         }
 
         void EnsureBuilt()
@@ -52,7 +59,7 @@ namespace Grimhand.Presentation.Battle
             _built = true;
 
             var layout = gameObject.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 10;
+            layout.spacing = 8;
             layout.padding = new RectOffset(4, 4, 2, 2);
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.childControlWidth = false;
@@ -110,7 +117,7 @@ namespace Grimhand.Presentation.Battle
             textLe.flexibleWidth = 1;
             textLe.minWidth = 36;
 
-            return new StatChip { Icon = icon, Value = text };
+            return new StatChip { Root = root, Icon = icon, Value = text };
         }
 
         static void SetChip(StatChip chip, Sprite icon, string value)
@@ -124,6 +131,12 @@ namespace Grimhand.Presentation.Battle
             chip.Icon.sprite = icon;
             chip.Icon.enabled = icon != null;
             chip.Icon.color = Color.white;
+        }
+
+        static void SetChipVisible(StatChip chip, bool visible)
+        {
+            if (chip.Root != null)
+                chip.Root.SetActive(visible);
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Text;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Planning;
 using Grimhand.Battle.Rules;
+using Grimhand.Battle.Status;
 using Grimhand.Expedition.Model;
 
 namespace Grimhand.Presentation.Battle
@@ -56,12 +57,119 @@ namespace Grimhand.Presentation.Battle
         {
             foreach (var action in card.Actions)
             {
-                if (action.SplashBehindTarget)
-                    return "贯通";
+                if (action.Type == EffectActionType.DealDamage)
+                    return DescribeReachLabel(action);
             }
 
-            var reach = TargetReachRules.GetPickReach(card);
-            switch (reach)
+            return "";
+        }
+
+        public static string BuildCardStatsLine(BattleState state, PlanningDraft draft, CardInstanceState card)
+        {
+            if (card == null)
+                return "";
+
+            var ownerId = PositionRules.GetOwnerCombatantId(state, card);
+            var owner = ownerId != null ? state.GetCombatant(ownerId) : null;
+
+            var lines = new List<string>();
+            foreach (var action in card.Actions)
+            {
+                var line = DescribeActionLine(action, owner);
+                if (!string.IsNullOrEmpty(line))
+                    lines.Add(line);
+            }
+
+            var body = string.Join("\n", lines);
+
+            var assignedId = draft?.GetAssignedTarget(card.InstanceId);
+            if (!string.IsNullOrEmpty(assignedId))
+            {
+                var assigned = state.GetCombatant(assignedId);
+                if (assigned != null)
+                    body += $"\n→{assigned.DisplayName}";
+            }
+
+            return body;
+        }
+
+        static string DescribeActionLine(EffectActionSpec action, CombatantState owner)
+        {
+            var prefix = action.Condition != ReactionConditionType.None ? "受击后 " : "";
+
+            switch (action.Type)
+            {
+                case EffectActionType.DealDamage:
+                    return DescribeDamageLine(action, owner, prefix);
+                case EffectActionType.GainBlock:
+                    return prefix + DescribeBlockLine(action, owner);
+                case EffectActionType.GainBlockFromLastDamagePercent:
+                    return prefix + $"护甲+{action.Value}%所受伤害";
+                case EffectActionType.ReflectLastDamageToAttacker:
+                    return prefix + $"反射{action.Value}%伤害";
+                case EffectActionType.ApplyStatus:
+                    return prefix + DescribeStatusLine(action);
+                case EffectActionType.Heal:
+                    return prefix + $"治疗{action.Value}";
+                case EffectActionType.DrawCardsNextTurn:
+                    return prefix + $"下回合抽{action.Value}张";
+                case EffectActionType.RemoveStatus:
+                    return prefix + "清除状态";
+                case EffectActionType.SwapPositionWithFrontAlly:
+                    return prefix + "与前排队友换位";
+                default:
+                    return "";
+            }
+        }
+
+        static string DescribeDamageLine(EffectActionSpec action, CombatantState owner, string prefix)
+        {
+            var dmg = action.Value + (action.ScaleWithAttack && owner != null ? owner.Attack : 0);
+            var parts = new List<string> { $"伤害{dmg}" };
+
+            var reach = DescribeReachLabel(action);
+            if (!string.IsNullOrEmpty(reach))
+                parts.Add(reach);
+
+            if (action.SplashBehindTarget)
+                parts.Add($"贯通{action.SplashPowerPercent}%");
+
+            if (action.BackRowPowerPercent > 0 && action.BackRowPowerPercent < 100)
+                parts.Add($"后排{action.BackRowPowerPercent}%");
+
+            var slotTarget = DescribeSlotTarget(action.Target);
+            if (!string.IsNullOrEmpty(slotTarget))
+                parts.Add(slotTarget);
+
+            return prefix + string.Join(" · ", parts);
+        }
+
+        static string DescribeBlockLine(EffectActionSpec action, CombatantState owner)
+        {
+            var block = action.Value + (action.ScaleWithDefense && owner != null ? owner.Defense : 0);
+            return $"护甲{block}";
+        }
+
+        static string DescribeStatusLine(EffectActionSpec action)
+        {
+            var def = StatusCatalog.Get(action.StatusId);
+            var name = def?.DisplayName ?? action.StatusId;
+            var parts = new List<string> { $"{name}{action.Stacks}层" };
+
+            var duration = action.Duration >= 0 ? action.Duration : def?.DefaultDuration ?? -1;
+            if (duration > 0 && def?.DurationKind == StatusDurationKind.Turns)
+                parts.Add($"{duration}回合");
+
+            var slotTarget = DescribeSlotTarget(action.Target);
+            if (!string.IsNullOrEmpty(slotTarget))
+                parts.Add(slotTarget);
+
+            return string.Join(" · ", parts);
+        }
+
+        static string DescribeReachLabel(EffectActionSpec action)
+        {
+            switch (action.Reach)
             {
                 case TargetReach.FrontAndMiddle: return "前中";
                 case TargetReach.BackOnly: return "后排";
@@ -70,53 +178,79 @@ namespace Grimhand.Presentation.Battle
             }
         }
 
-        public static string BuildCardStatsLine(BattleState state, PlanningDraft draft, CardInstanceState card)
+        static string DescribeSlotTarget(EffectTarget target)
         {
-            var ownerId = PositionRules.GetOwnerCombatantId(state, card);
-            var owner = ownerId != null ? state.GetCombatant(ownerId) : null;
-            var power = CardPowerRules.GetEffectivePower(card, owner);
-            var powerLabel = CardPowerRules.GetPowerLabel(card);
-            var reach = DescribeReach(card);
-            var reachPart = string.IsNullOrEmpty(reach) ? "" : $" · {reach}";
-
-            var assignedId = draft?.GetAssignedTarget(card.InstanceId);
-            var targetPart = "";
-            if (!string.IsNullOrEmpty(assignedId))
+            switch (target)
             {
-                var assigned = state.GetCombatant(assignedId);
-                if (assigned != null)
-                    targetPart = $" →{assigned.DisplayName}";
+                case EffectTarget.EnemyFrontSlot: return "敌前排";
+                case EffectTarget.EnemyMiddleSlot: return "敌中排";
+                case EffectTarget.EnemyBackSlot: return "敌后排";
+                case EffectTarget.AllyFrontSlot: return "友前排";
+                case EffectTarget.AllyMiddleSlot: return "友中排";
+                case EffectTarget.AllyBackSlot: return "友后排";
+                default: return "";
             }
-
-            return $"{powerLabel}{power}{reachPart}{targetPart}";
         }
 
-        public static string BuildSelectionBadge(PlanningDraft draft, CardInstanceState card)
+        public static string FormatStatusListDisplay(CombatantState unit)
         {
-            if (draft == null || !draft.IsSelected(card.InstanceId))
+            if (unit == null || unit.Statuses.Count == 0)
                 return "";
 
-            var global = draft.GetGlobalPlayOrder(card.InstanceId);
-            if (!draft.TryGetOwnerPlayOrder(card.InstanceId, out var ownerOrder, out var ownerTotal))
-                return $"#{global}";
+            var sb = new System.Text.StringBuilder();
+            for (var i = 0; i < unit.Statuses.Count; i++)
+            {
+                var s = unit.Statuses[i];
+                if (i > 0) sb.Append(' ');
+                var def = Grimhand.Battle.Status.StatusCatalog.Get(s.StatusId);
+                var name = def?.DisplayName ?? s.StatusId;
+                sb.Append(name).Append('×').Append(s.Stacks);
+            }
 
+            return sb.ToString();
+        }
+
+        public static string BuildSelectionBadge(
+            BattleState state,
+            PlanningDraft draft,
+            CardInstanceState card,
+            IReadOnlyList<int> playerResolveOrder)
+        {
+            if (draft == null || card == null)
+                return "";
+
+            if (draft.AwaitingTargetCardId == card.InstanceId)
+                return "?";
+
+            if (!draft.IsSelected(card.InstanceId))
+                return "";
+
+            var global = IndexOfCard(playerResolveOrder, card.InstanceId) + 1;
+            if (global <= 0)
+                return "";
+
+            TryGetOwnerResolveOrder(state, playerResolveOrder, card, out var ownerOrder, out var ownerTotal);
             return ownerTotal > 1 ? $"#{global} [{ownerOrder}/{ownerTotal}]" : $"#{global}";
         }
 
-        public static List<string> BuildSelectedQueueSummary(BattleState state, PlanningDraft draft)
+        public static List<string> BuildSelectedQueueSummary(
+            BattleState state,
+            PlanningDraft draft,
+            IReadOnlyList<int> playerResolveOrder)
         {
             var lines = new List<string>();
-            if (draft == null)
+            if (draft == null || playerResolveOrder == null)
                 return lines;
 
-            foreach (var id in draft.SelectedQueue)
+            for (var i = 0; i < playerResolveOrder.Count; i++)
             {
+                var id = playerResolveOrder[i];
                 var card = state.GetCard(id);
                 if (card == null)
                     continue;
 
-                var global = draft.GetGlobalPlayOrder(id);
-                draft.TryGetOwnerPlayOrder(id, out var ownerOrder, out var ownerTotal);
+                var global = i + 1;
+                TryGetOwnerResolveOrder(state, playerResolveOrder, card, out var ownerOrder, out var ownerTotal);
 
                 var ownerCombatantId = PositionRules.GetOwnerCombatantId(state, card);
                 var ownerName = ownerCombatantId != null
@@ -139,6 +273,44 @@ namespace Grimhand.Presentation.Battle
             }
 
             return lines;
+        }
+
+        static int IndexOfCard(IReadOnlyList<int> order, int instanceId)
+        {
+            if (order == null)
+                return -1;
+
+            for (var i = 0; i < order.Count; i++)
+            {
+                if (order[i] == instanceId)
+                    return i;
+            }
+
+            return -1;
+        }
+
+        static void TryGetOwnerResolveOrder(
+            BattleState state,
+            IReadOnlyList<int> playerResolveOrder,
+            CardInstanceState card,
+            out int order,
+            out int totalForOwner)
+        {
+            order = 0;
+            totalForOwner = 0;
+            if (card == null || playerResolveOrder == null)
+                return;
+
+            for (var i = 0; i < playerResolveOrder.Count; i++)
+            {
+                var other = state.GetCard(playerResolveOrder[i]);
+                if (other == null || other.OwnerCharacterId != card.OwnerCharacterId)
+                    continue;
+
+                totalForOwner++;
+                if (other.InstanceId == card.InstanceId)
+                    order = totalForOwner;
+            }
         }
 
         public static string FormatPartyHpLine(IReadOnlyList<PartyMemberSnapshot> party)

@@ -46,6 +46,27 @@ namespace Grimhand.Battle
 
         public bool ToggleCardSelection(int instanceId) => Draft.ToggleCard(instanceId);
 
+        /// <summary>预览本回合速度结算顺序（不消耗 RNG）。</summary>
+        public IReadOnlyList<ResolutionStep> PreviewResolutionSteps()
+        {
+            var playerPlan = Draft.CommitToPlan();
+            return SpeedResolver.BuildResolutionOrder(_state, playerPlan, _state.EnemyPlan, _rng.Copy());
+        }
+
+        /// <summary>我方已选牌按届时速度结算顺序排列的 instanceId 列表。</summary>
+        public List<int> GetPlayerCardsInResolveOrder()
+        {
+            var result = new List<int>();
+            foreach (var step in PreviewResolutionSteps())
+            {
+                var owner = _state.GetCombatant(step.CombatantId);
+                if (owner != null && owner.Team == TeamSide.Player)
+                    result.Add(step.CardInstanceId);
+            }
+
+            return result;
+        }
+
         public bool CommitPlayerPlan()
         {
             if (_state.Phase != TurnPhase.Planning)

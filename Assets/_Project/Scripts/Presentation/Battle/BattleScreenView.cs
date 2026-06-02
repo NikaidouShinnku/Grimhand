@@ -96,6 +96,7 @@ namespace Grimhand.Presentation.Battle
             ApplyTypographyPolish();
             ResolveHudReferences();
             BattleUiLayoutRuntimeFix.ApplyIfNeeded(transform);
+            CombatantTooltipLayer.GetOrCreate(transform);
         }
 
         void ResolveHudReferences()
@@ -135,13 +136,26 @@ namespace Grimhand.Presentation.Battle
                 keywordTooltipText.fontSize = Mathf.Max(keywordTooltipText.fontSize, 16);
             if (energyValueText != null)
                 energyValueText.fontSize = Mathf.Max(energyValueText.fontSize, 24);
-            if (hudEnergyIcon != null)
-            {
-                var rt = hudEnergyIcon.rectTransform;
-                rt.sizeDelta = new Vector2(
-                    Mathf.Max(rt.sizeDelta.x, 40f),
-                    Mathf.Max(rt.sizeDelta.y, 40f));
-            }
+            FixEnergyIconLayout(hudEnergyIcon);
+        }
+
+        public static void FixEnergyIconLayout(Image icon)
+        {
+            if (icon == null)
+                return;
+
+            var le = icon.GetComponent<LayoutElement>() ?? icon.gameObject.AddComponent<LayoutElement>();
+            le.preferredWidth = 28f;
+            le.preferredHeight = 28f;
+            le.minWidth = 28f;
+            le.minHeight = 28f;
+            le.flexibleWidth = 0f;
+            le.flexibleHeight = 0f;
+
+            var rt = icon.rectTransform;
+            rt.sizeDelta = new Vector2(28f, 28f);
+            icon.preserveAspect = true;
+            icon.raycastTarget = false;
         }
 
         void ConfigureBattlefieldSlots()
@@ -198,21 +212,12 @@ namespace Grimhand.Presentation.Battle
             {
                 if (!_session.IsExpeditionMode)
                 {
-                    titleText.text =
-                        $"回合 {state.TurnNumber}  ·  {state.Phase}  ·  {state.Outcome}";
+                    titleText.text = $"回合 {state.TurnNumber}  ·  {state.Phase}  ·  {state.Outcome}";
                 }
                 else
                 {
-                    var phaseLabel = _session.Expedition.Run.Phase switch
-                    {
-                        ExpeditionPhase.RouteSelect => "选路线",
-                        ExpeditionPhase.RunComplete => "远征完成",
-                        ExpeditionPhase.RunFailed => "远征失败",
-                        _ => state.Phase.ToString()
-                    };
                     titleText.text =
-                        $"远征 {_session.Expedition.CurrentBattleNumber}/{_session.Expedition.Run.TargetBattleCount}\n" +
-                        $"回合 {state.TurnNumber}  ·  {phaseLabel}";
+                        $"远征 {_session.Expedition.CurrentBattleNumber}/{_session.Expedition.Run.TargetBattleCount}";
                 }
             }
 
@@ -220,17 +225,28 @@ namespace Grimhand.Presentation.Battle
             {
                 if (state.Phase == TurnPhase.Planning && _session.Engine != null)
                 {
-                    // 战斗中角色脚下已有 HP，避免与 PlanningBar 重复叠字
-                    subtitleText.text = "";
+                    subtitleText.gameObject.SetActive(true);
+                    var phaseLabel = _session.IsExpeditionMode
+                        ? _session.Expedition.Run.Phase switch
+                        {
+                            ExpeditionPhase.RouteSelect => "选路线",
+                            ExpeditionPhase.RunComplete => "远征完成",
+                            ExpeditionPhase.RunFailed => "远征失败",
+                            _ => state.Phase.ToString()
+                        }
+                        : state.Phase.ToString();
+                    subtitleText.text = $"回合 {state.TurnNumber}  ·  {phaseLabel}";
                 }
                 else if (_session.IsExpeditionMode && _session.Expedition.Run.Party.Count > 0 &&
                          _session.Expedition.Run.Phase != ExpeditionPhase.InBattle)
                 {
+                    subtitleText.gameObject.SetActive(true);
                     subtitleText.text = BattleUiFormatters.FormatPartyHpLine(_session.Expedition.Run.Party);
                 }
                 else
                 {
                     subtitleText.text = "";
+                    subtitleText.gameObject.SetActive(false);
                 }
             }
         }
@@ -323,7 +339,8 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             selectedQueueText.text = string.Join("\n",
-                BattleUiFormatters.BuildSelectedQueueSummary(state, draft));
+                BattleUiFormatters.BuildSelectedQueueSummary(
+                    state, draft, _session.Engine.GetPlayerCardsInResolveOrder()));
         }
 
         void RefreshTargetPrompt(BattleState state, PlanningDraft draft)
@@ -444,28 +461,8 @@ namespace Grimhand.Presentation.Battle
 
         void ShowKeywordTooltip(CardInstanceState card, RectTransform anchor)
         {
-            if (keywordTooltipPanel == null || card == null || card.Keywords.Count == 0)
-            {
-                HideKeywordTooltip();
-                return;
-            }
-
-            var body = KeywordCatalog.BuildTooltipText(card.Keywords);
-            if (string.IsNullOrEmpty(body))
-            {
-                HideKeywordTooltip();
-                return;
-            }
-
-            keywordTooltipPanel.SetActive(true);
-            keywordTooltipText.text = card.DisplayName + " — 关键词\n" + body;
-
-            if (anchor == null)
-                return;
-
-            var panel = keywordTooltipPanel.transform as RectTransform;
-            LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
-            PositionTooltipAboveCard(panel, anchor);
+            // 卡牌悬停已在牌面展示描述；额外 tooltip 容易引发布局抖动，暂不弹出。
+            HideKeywordTooltip();
         }
 
         void PositionTooltipAboveCard(RectTransform panel, RectTransform anchor)

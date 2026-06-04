@@ -22,8 +22,16 @@ namespace Grimhand.Presentation.Battle
         public IReadOnlyList<string> Log => _log;
 
         bool _battleEndHandled;
+        bool _presentationLocked;
+
+        public bool PresentationLocked
+        {
+            get => _presentationLocked;
+            set => _presentationLocked = value;
+        }
 
         public event Action Changed;
+        public event Action<IReadOnlyList<BattleEvent>> EventsProduced;
 
         public void Configure(BattleSetupSO battleSetup, ExpeditionSetupSO expeditionSetup)
         {
@@ -169,6 +177,7 @@ namespace Grimhand.Presentation.Battle
         public bool CanInteractWithBattle() =>
             Engine != null &&
             Engine.State.Phase == TurnPhase.Planning &&
+            !PresentationLocked &&
             (Expedition == null || Expedition.Run.Phase == ExpeditionPhase.InBattle);
 
         public bool ExpeditionBlocksInput =>
@@ -235,10 +244,18 @@ namespace Grimhand.Presentation.Battle
             if (Engine == null)
                 return;
 
-            foreach (var e in Engine.Events)
+            if (Engine.Events.Count == 0)
+            {
+                CheckExpeditionBattleEnd();
+                return;
+            }
+
+            var batch = new List<BattleEvent>(Engine.Events);
+            foreach (var e in batch)
                 AppendEventLog(e);
 
             Engine.ClearEvents();
+            EventsProduced?.Invoke(batch);
             CheckExpeditionBattleEnd();
             NotifyChanged();
         }

@@ -18,12 +18,17 @@ namespace Grimhand.Presentation.Battle
         Dictionary<string, CardDefinitionSO> _definitions;
 
         BattleDemoController _legacyDemo;
+        BattlePortraitDirector _portraitDirector;
 
         void Awake()
         {
             _legacyDemo = GetComponent<BattleDemoController>();
             if (_legacyDemo != null && disableLegacyImGui)
                 _legacyDemo.enabled = false;
+
+            _portraitDirector = GetComponent<BattlePortraitDirector>();
+            if (_portraitDirector == null)
+                _portraitDirector = gameObject.AddComponent<BattlePortraitDirector>();
         }
 
         void Start()
@@ -32,8 +37,11 @@ namespace Grimhand.Presentation.Battle
             _session.Configure(battleSetup, expeditionSetup);
             _session.Changed += OnSessionChanged;
             screenView.Initialize(_session, cardVisualCatalog, characterVisualCatalog, uiIconCatalog, _definitions);
+            _portraitDirector.Initialize(_session, screenView, characterVisualCatalog);
+            screenView.SetPresentationBusyCheck(() => _portraitDirector.IsPlaying);
             _session.Start();
             screenView.Refresh();
+            screenView.BeginPlanningIdleLoops();
         }
 
         void Update()

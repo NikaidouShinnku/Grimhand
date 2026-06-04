@@ -54,6 +54,7 @@ namespace Grimhand.Presentation.Battle
         readonly List<Button> _routeButtons = new();
 
         BattleSession _session;
+        System.Func<bool> _presentationBusy;
         CardVisualCatalogSO _catalog;
         CharacterVisualCatalogSO _characterVisuals;
         BattleUiIconCatalogSO _uiIcons;
@@ -99,6 +100,8 @@ namespace Grimhand.Presentation.Battle
             ApplyPlanningButtonIcons();
             CombatantTooltipLayer.GetOrCreate(transform);
         }
+
+        public void SetPresentationBusyCheck(System.Func<bool> check) => _presentationBusy = check;
 
         void ApplyPlanningButtonIcons()
         {
@@ -390,7 +393,9 @@ namespace Grimhand.Presentation.Battle
 
         void RefreshActions(BattleState state, bool expeditionBlocks)
         {
-            var planning = state.Phase == TurnPhase.Planning && !expeditionBlocks;
+            var planning = state.Phase == TurnPhase.Planning
+                && !expeditionBlocks
+                && !(_presentationBusy?.Invoke() ?? false);
             if (confirmButton != null)
             {
                 confirmButton.gameObject.SetActive(true);
@@ -537,6 +542,45 @@ namespace Grimhand.Presentation.Battle
         {
             if (keywordTooltipPanel != null)
                 keywordTooltipPanel.SetActive(false);
+        }
+
+        public System.Collections.Generic.IEnumerable<CombatantPortraitView> AllPortraitViews()
+        {
+            foreach (var slot in playerSlots)
+            {
+                if (slot?.PortraitView != null)
+                    yield return slot.PortraitView;
+            }
+
+            foreach (var slot in enemySlots)
+            {
+                if (slot?.PortraitView != null)
+                    yield return slot.PortraitView;
+            }
+        }
+
+        public void BeginPlanningIdleLoops()
+        {
+            foreach (var slot in playerSlots)
+                slot?.PortraitView?.BeginPlanningIdle();
+            foreach (var slot in enemySlots)
+                slot?.PortraitView?.BeginPlanningIdle();
+        }
+
+        public void StopAllPortraitIdleLoops()
+        {
+            foreach (var view in AllPortraitViews())
+                view?.StopIdleLoop();
+        }
+
+        public Vector3 GetDuelCenterWorldPosition()
+        {
+            var playerStage = transform.Find("PlayerStage");
+            var enemyStage = transform.Find("EnemyStage");
+            if (playerStage != null && enemyStage != null)
+                return (playerStage.position + enemyStage.position) * 0.5f;
+
+            return transform.position;
         }
     }
 }

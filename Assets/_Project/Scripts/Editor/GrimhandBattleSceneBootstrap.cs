@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using System.Collections.Generic;
 using Grimhand.Content;
 using Grimhand.Content.Editor;
 using UnityEditor;
@@ -92,22 +93,59 @@ namespace Grimhand.Editor
             }
 
             catalog.Entries.Clear();
-            // CharacterId → 立绘路径（DisplayName 见各 CharacterDefinitionSO）
-            AddPortrait(catalog, "char_knight",
-                "warrior/warrior_idle_1024.png");
-            AddPortrait(catalog, "char_mage",
-                "pharoah/pharoah_idle_1024.png");
-            AddPortrait(catalog, "char_ranger",
-                "devil/devil_idle_1024.png");
-            AddPortrait(catalog, "char_goblin_brute",
-                "monsters/goblin_idle_1024.png");
-            AddPortrait(catalog, "char_goblin_shaman",
-                "monsters/skeleton_idle_1024.png");
-            AddPortrait(catalog, "char_goblin_archer",
-                "monsters/wraith_idle_1024.png");
+            IdleAnimePivotFixer.FixAll();
+            AddCharacterVisuals(catalog, "char_knight", "warrior", "warrior", includeCombatPoses: true);
+            AddCharacterVisuals(catalog, "char_mage", "pharoah", "pharoah", includeCombatPoses: true);
+            AddCharacterVisuals(catalog, "char_ranger", "devil", "devil", includeCombatPoses: true);
+            AddCharacterVisuals(catalog, "char_goblin_brute", "monsters", "goblin", includeCombatPoses: false);
+            AddCharacterVisuals(catalog, "char_goblin_shaman", "monsters", "skeleton", includeCombatPoses: false);
+            AddCharacterVisuals(catalog, "char_goblin_archer", "monsters", "wraith", includeCombatPoses: false);
 
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();
+        }
+
+        static void AddCharacterVisuals(
+            CharacterVisualCatalogSO catalog,
+            string characterId,
+            string folder,
+            string prefix,
+            bool includeCombatPoses)
+        {
+            var entry = new CharacterVisualEntry
+            {
+                CharacterId = characterId,
+                IdlePortrait = LoadPortraitSprite($"{folder}/{prefix}_idle_1024.png")
+            };
+
+            if (includeCombatPoses)
+            {
+                entry.AttackPortrait = LoadPortraitSprite($"{folder}/{prefix}_attack_1024.png");
+                entry.DefensePortrait = LoadPortraitSprite($"{folder}/{prefix}_defend_1024.png");
+                entry.HitPortrait = LoadPortraitSprite($"{folder}/{prefix}_hit_1024.png");
+                entry.DeathPortrait = LoadPortraitSprite($"{folder}/{prefix}_defeat_1024.png");
+                entry.IdleAnimationGifPath = $"The Grimhands Asset/{folder}/{prefix}_idle_anime.gif";
+            }
+
+            if (entry.IdlePortrait == null)
+                Debug.LogWarning($"[Grimhand] 未找到立绘：{characterId}（{folder}/{prefix}）");
+
+            catalog.Entries.Add(entry);
+        }
+
+        static List<Sprite> LoadSpriteSequence(string relativePath)
+        {
+            const string root = "Assets/The Grimhands Asset/";
+            var path = root + relativePath;
+            var sprites = new List<Sprite>();
+            foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(path))
+            {
+                if (asset is Sprite sprite)
+                    sprites.Add(sprite);
+            }
+
+            sprites.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+            return CharacterVisualCatalogSO.FilterAnimationFrames(sprites);
         }
 
         static void AddPortrait(CharacterVisualCatalogSO catalog, string characterId, string relativePath)

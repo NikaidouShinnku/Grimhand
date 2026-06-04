@@ -13,7 +13,8 @@ namespace Grimhand.Presentation.Battle
         static readonly Color HoverTint = new(1.08f, 1.08f, 1.08f, 1f);
         static readonly Color DeadTint = new(0.35f, 0.35f, 0.35f, 1f);
 
-        const float PortraitScale = 0.88f;
+        const float PlayerPortraitScale = 1.06f;
+        const float EnemyPortraitScale = 0.88f;
         const float HoverScaleMul = 1.07f;
         const float HitboxPadding = 6f;
 
@@ -33,6 +34,7 @@ namespace Grimhand.Presentation.Battle
         RectTransform _portraitHit;
         Outline _targetOutline;
         CombatantDetailPopupView _detailPopup;
+        CombatantPortraitView _portraitView;
         CombatantState _currentUnit;
         BattleUiIconCatalogSO _currentIcons;
 
@@ -59,6 +61,7 @@ namespace Grimhand.Presentation.Battle
                 TryInferSlotFromName();
             ApplyPortraitMirror();
             EnsurePortraitInteraction();
+            EnsurePortraitView();
             EnsureDetailPopup();
             EnsureStatusTextStyle();
             ApplyDrawOrder();
@@ -155,6 +158,21 @@ namespace Grimhand.Presentation.Battle
             trigger.triggers.Add(exit);
         }
 
+        void EnsurePortraitView()
+        {
+            if (_portraitView == null)
+                _portraitView = GetComponent<CombatantPortraitView>() ?? gameObject.AddComponent<CombatantPortraitView>();
+
+            if (portraitRoot == null)
+                portraitRoot = transform.Find("PortraitRoot") as RectTransform;
+            if (portraitImage == null && portraitRoot != null)
+                portraitImage = portraitRoot.Find("Portrait")?.GetComponent<Image>();
+
+            _portraitView.Bind(null, portraitImage, portraitRoot);
+        }
+
+        public CombatantPortraitView PortraitView => _portraitView;
+
         void EnsureDetailPopup()
         {
             if (_detailPopup != null)
@@ -194,9 +212,10 @@ namespace Grimhand.Presentation.Battle
             if (portraitRoot == null)
                 return;
 
+            var scale = team == TeamSide.Player ? PlayerPortraitScale : EnemyPortraitScale;
             _basePortraitScale = mirrorPortrait
-                ? new Vector3(-PortraitScale, PortraitScale, 1f)
-                : new Vector3(PortraitScale, PortraitScale, 1f);
+                ? new Vector3(-scale, scale, 1f)
+                : new Vector3(scale, scale, 1f);
 
             ApplyPortraitScale();
         }
@@ -280,20 +299,36 @@ namespace Grimhand.Presentation.Battle
                 {
                     portraitImage.enabled = false;
                     portraitImage.sprite = null;
+                    _portraitView?.StopIdleLoop();
                 }
                 else
                 {
-                    sprite = visuals != null
-                        ? visuals.GetPortrait(unit.CharacterDefinitionId)
-                        : null;
-                    portraitImage.sprite = sprite;
-                    portraitImage.preserveAspect = true;
-                    portraitImage.enabled = sprite != null;
+                    _portraitView?.Bind(visuals, portraitImage, portraitRoot);
+                    _portraitView?.SetIdentity(unit.Id, unit.CharacterDefinitionId, unit.IsAlive);
+                    if (_portraitView == null || !_portraitView.IsIdleLoopActive)
+                        _portraitView?.RecaptureHomeIfIdle();
+
+                    if (_portraitView == null || (!_portraitView.IsAnimating && !_portraitView.IsIdleLoopActive))
+                    {
+                        sprite = visuals != null
+                            ? visuals.GetPortrait(unit.CharacterDefinitionId)
+                            : null;
+                        portraitImage.sprite = sprite;
+                        portraitImage.preserveAspect = true;
+                        portraitImage.enabled = sprite != null;
+                        ApplyPortraitColor(unit);
+                    }
+                    else if (!_portraitView.IsAnimating)
+                    {
+                        ApplyPortraitColor(unit);
+                    }
                 }
             }
 
-            ApplyInteractionBounds(sprite);
-            ApplyPortraitColor(unit);
+            ApplyInteractionBounds(
+                _portraitView != null && _portraitView.IsIdleLoopActive && unit != null
+                    ? visuals?.GetPortrait(unit.CharacterDefinitionId)
+                    : sprite ?? portraitImage?.sprite);
 
             if (bodyText != null)
             {
@@ -381,13 +416,19 @@ namespace Grimhand.Presentation.Battle
 
         CombatantState FindCombatant(BattleState state)
         {
+            CombatantState dead = null;
             foreach (var c in state.Combatants)
             {
-                if (c.Team == team && c.Slot == formationSlot && c.IsAlive)
+                if (c.Team != team || c.Slot != formationSlot)
+                    continue;
+
+                if (c.IsAlive)
                     return c;
+
+                dead = c;
             }
 
-            return null;
+            return dead;
         }
     }
 }

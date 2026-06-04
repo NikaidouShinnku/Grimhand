@@ -51,6 +51,7 @@ namespace Grimhand.Battle.Events
         public string CombatantId { get; set; } = "";
         public string TargetId { get; set; } = "";
         public int Amount { get; set; }
+        public int BlockedAmount { get; set; }
         public CardType CardType { get; set; }
         public BattleOutcome Outcome { get; set; }
     }

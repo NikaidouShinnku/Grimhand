@@ -49,6 +49,7 @@ namespace Grimhand.Battle.Effects
                 CombatantId = actor.Id,
                 TargetId = target.Id,
                 Amount = hpDamage,
+                BlockedAmount = blocked,
                 CardType = cardType
             });
 

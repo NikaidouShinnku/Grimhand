@@ -23,11 +23,34 @@ namespace Grimhand.Presentation.Battle
 
         bool _battleEndHandled;
         bool _presentationLocked;
+        PresentationSnapshot _presentationSnapshot;
 
         public bool PresentationLocked
         {
             get => _presentationLocked;
             set => _presentationLocked = value;
+        }
+
+        public PresentationSnapshot PresentationSnapshot => _presentationSnapshot;
+
+        public void BeginPresentation(PresentationSnapshot snapshot)
+        {
+            _presentationSnapshot = snapshot;
+            _presentationLocked = true;
+        }
+
+        public void EndPresentation()
+        {
+            _presentationSnapshot = null;
+            _presentationLocked = false;
+        }
+
+        /// <summary>立绘演出全部播完后调用，再处理远征结算 / 路线选择。</summary>
+        public void OnPresentationComplete()
+        {
+            EndPresentation();
+            CheckExpeditionBattleEnd();
+            NotifyChanged();
         }
 
         public event Action Changed;
@@ -116,9 +139,13 @@ namespace Grimhand.Presentation.Battle
             if (Engine == null || !CanInteractWithBattle())
                 return false;
 
+            BeginPresentation(PresentationSnapshot.Capture(Engine.State));
             var ok = Engine.CommitPlayerPlan();
             if (ok)
                 DrainEvents();
+            else
+                EndPresentation();
+
             return ok;
         }
 
@@ -127,9 +154,13 @@ namespace Grimhand.Presentation.Battle
             if (Engine == null || !CanInteractWithBattle())
                 return false;
 
+            BeginPresentation(PresentationSnapshot.Capture(Engine.State));
             var ok = Engine.SkipPlayerTurn();
             if (ok)
                 DrainEvents();
+            else
+                EndPresentation();
+
             return ok;
         }
 
@@ -185,7 +216,7 @@ namespace Grimhand.Presentation.Battle
 
         public void Tick()
         {
-            if (Engine == null)
+            if (Engine == null || PresentationLocked)
                 return;
 
             CheckExpeditionBattleEnd();
@@ -246,7 +277,8 @@ namespace Grimhand.Presentation.Battle
 
             if (Engine.Events.Count == 0)
             {
-                CheckExpeditionBattleEnd();
+                if (!PresentationLocked)
+                    CheckExpeditionBattleEnd();
                 return;
             }
 
@@ -255,8 +287,21 @@ namespace Grimhand.Presentation.Battle
                 AppendEventLog(e);
 
             Engine.ClearEvents();
-            EventsProduced?.Invoke(batch);
-            CheckExpeditionBattleEnd();
+
+            var hasPresentation = BattleEventPlayback.ContainsPresentationEvents(batch);
+            if (hasPresentation)
+            {
+                var segments = BattleEventPlayback.SplitIntoSegments(batch);
+                if (segments.Count > 0)
+                    EventsProduced?.Invoke(batch);
+                else
+                    OnPresentationComplete();
+            }
+            else
+            {
+                CheckExpeditionBattleEnd();
+            }
+
             NotifyChanged();
         }
 

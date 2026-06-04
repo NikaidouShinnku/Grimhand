@@ -52,6 +52,7 @@ namespace Grimhand.Presentation.Battle
         [SerializeField] Button runRestartButton;
 
         readonly List<Button> _routeButtons = new();
+        BattleActiveCardBanner _activeCardBanner;
 
         BattleSession _session;
         System.Func<bool> _presentationBusy;
@@ -99,9 +100,36 @@ namespace Grimhand.Presentation.Battle
             BattleUiLayoutRuntimeFix.ApplyIfNeeded(transform);
             ApplyPlanningButtonIcons();
             CombatantTooltipLayer.GetOrCreate(transform);
+            EnsureActiveCardBanner();
         }
 
         public void SetPresentationBusyCheck(System.Func<bool> check) => _presentationBusy = check;
+
+        void EnsureActiveCardBanner()
+        {
+            if (_activeCardBanner != null || handPanel == null)
+                return;
+
+            var prefab = handPanel.CardPrefab;
+            if (prefab == null)
+                return;
+
+            _activeCardBanner = gameObject.AddComponent<BattleActiveCardBanner>();
+            _activeCardBanner.Initialize(
+                _session,
+                prefab,
+                _catalog,
+                _characterVisuals,
+                _uiIcons,
+                _definitions,
+                transform);
+        }
+
+        public void ShowActiveCard(int cardInstanceId) =>
+            _activeCardBanner?.Show(cardInstanceId);
+
+        public void HideActiveCard() =>
+            _activeCardBanner?.Hide();
 
         void ApplyPlanningButtonIcons()
         {
@@ -199,7 +227,7 @@ namespace Grimhand.Presentation.Battle
 
             RefreshHud(state);
             RefreshBattlefield(state, draft);
-            RefreshEnemyIntents(state);
+            RefreshEnemyIntents(state, draft);
             RefreshSelectedQueue(state, draft);
             RefreshTargetPrompt(state, draft);
             RefreshHand(state);
@@ -282,29 +310,32 @@ namespace Grimhand.Presentation.Battle
                 }
             }
 
-            RefreshSlotRow(enemySlots, state, awaitingCard != null, validTargets);
-            RefreshSlotRow(playerSlots, state, awaitingCard != null, validTargets);
+            RefreshSlotRow(enemySlots, state, awaitingCard != null, validTargets, _session.PresentationSnapshot);
+            RefreshSlotRow(playerSlots, state, awaitingCard != null, validTargets, _session.PresentationSnapshot);
         }
 
         void RefreshSlotRow(
             CombatantSlotView[] slots,
             BattleState state,
             bool targetMode,
-            List<CombatantState> validTargets)
+            List<CombatantState> validTargets,
+            PresentationSnapshot presentation)
         {
             if (slots == null)
                 return;
 
             foreach (var slot in slots)
-                slot?.Refresh(state, targetMode, validTargets, _characterVisuals, _uiIcons);
+                slot?.Refresh(state, targetMode, validTargets, _characterVisuals, _uiIcons, presentation);
         }
 
-        void RefreshEnemyIntents(BattleState state)
+        void RefreshEnemyIntents(BattleState state, PlanningDraft draft)
         {
             if (enemyIntentPanel == null)
                 return;
 
-            var show = state.Phase == TurnPhase.Planning && state.EnemyIntents.Count > 0;
+            var planning = state.Phase == TurnPhase.Planning;
+            var mergedQueue = planning && draft != null && draft.SelectedQueue.Count > 0;
+            var show = planning && !mergedQueue && state.EnemyIntents.Count > 0;
             enemyIntentPanel.SetActive(show);
             if (!show || enemyIntentText == null)
                 return;
@@ -352,8 +383,8 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             selectedQueueText.text = string.Join("\n",
-                BattleUiFormatters.BuildSelectedQueueSummary(
-                    state, draft, _session.Engine.GetPlayerCardsInResolveOrder()));
+                BattleUiFormatters.BuildActionOrderSummary(
+                    state, draft, _session.Engine.PreviewResolutionSteps()));
         }
 
         void RefreshTargetPrompt(BattleState state, PlanningDraft draft)
@@ -418,7 +449,7 @@ namespace Grimhand.Presentation.Battle
             }
 
             var phase = _session.Expedition.Run.Phase;
-            var show = phase != ExpeditionPhase.InBattle;
+            var show = phase != ExpeditionPhase.InBattle && !(_presentationBusy?.Invoke() ?? false);
             expeditionOverlay.SetActive(show);
             if (!show)
                 return;

@@ -6,6 +6,7 @@ namespace Grimhand.Content
     public class BattleUiIconCatalogSO : ScriptableObject
     {
         public Sprite HpIcon;
+        public Sprite ArmorIcon;
         public Sprite AttackIcon;
         public Sprite DefenseIcon;
         public Sprite SpeedIcon;

@@ -19,6 +19,7 @@ MonoBehaviour:
     AttackPortrait: {fileID: 5250032595024207069, guid: 481a9e287ec83cb448f95e3b8018cd32, type: 3}
     DefensePortrait: {fileID: -8537783292972971152, guid: a49ade7cf358ab24aa6ba302b4ec5f1d, type: 3}
     HitPortrait: {fileID: -2075482069185573185, guid: e1398618d7ccbb74c98a07b577d99c96, type: 3}
+    HitPortraitFacesRight: 1
     DeathPortrait: {fileID: 5936519392888024579, guid: fec5fdb16892e584da66c002a693f2b1, type: 3}
     IdleAnimationFrames:
     - {fileID: 2670208551542050995, guid: fc8b3be4a4980ba42bac6f4c8865c4a0, type: 3}
@@ -35,6 +36,7 @@ MonoBehaviour:
     AttackPortrait: {fileID: -6862133424684888327, guid: e8638e252801405459b47d8838695a05, type: 3}
     DefensePortrait: {fileID: -2565443622297667775, guid: aa681cbf4cc9a5c468cfb50e39a10498, type: 3}
     HitPortrait: {fileID: 1743283774323791172, guid: 1dd446fe28e208c4fb0caad3c41d2881, type: 3}
+    HitPortraitFacesRight: 1
     DeathPortrait: {fileID: 1551221932086916854, guid: e888d392c97476843a5715694006d8aa, type: 3}
     IdleAnimationFrames:
     - {fileID: 7612753104065106894, guid: a667fb37c06f5384ba1b6983c498c1b1, type: 3}
@@ -51,6 +53,7 @@ MonoBehaviour:
     AttackPortrait: {fileID: 1242017226969909807, guid: fdf829db3b6f3174c9c488108798231e, type: 3}
     DefensePortrait: {fileID: 566079551398956374, guid: 60c6955d403290143b673248404c3a59, type: 3}
     HitPortrait: {fileID: -9024780638093439120, guid: 6681b6255737c244699af1a66267c000, type: 3}
+    HitPortraitFacesRight: 0
     DeathPortrait: {fileID: 3753124022583683356, guid: 6db4dba6bfa07b6409a057e00c08663a, type: 3}
     IdleAnimationFrames:
     - {fileID: 5745208221346620586, guid: 491503078b9bac54782d58252a69c5b4, type: 3}

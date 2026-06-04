@@ -17,6 +17,8 @@ namespace Grimhand.Presentation.Battle
 
         readonly List<CardView> _pool = new();
 
+        public CardView CardPrefab => cardPrefab;
+
         public void Refresh(
             BattleState state,
             BattleSession session,
@@ -37,7 +39,7 @@ namespace Grimhand.Presentation.Battle
             var needed = state.PlayerHand.Count;
             EnsurePool(needed);
 
-            var resolveOrder = session.Engine.GetPlayerCardsInResolveOrder();
+            var resolveSteps = session.Engine.PreviewResolutionSteps();
 
             for (var i = 0; i < _pool.Count; i++)
             {
@@ -57,7 +59,7 @@ namespace Grimhand.Presentation.Battle
                 var interactable = session.CanInteractWithBattle() && !polluted && (selected || canAfford);
                 var visual = CardVisualResolver.Resolve(card, catalog, characterVisuals, definitions);
                 var stats = BattleUiFormatters.BuildCardStatsLine(state, draft, card);
-                var badge = BattleUiFormatters.BuildSelectionBadge(state, draft, card, resolveOrder);
+                var badge = BattleUiFormatters.BuildSelectionBadge(state, draft, card, resolveSteps);
 
                 view.BindWithCard(card, visual, selected, polluted, interactable, badge, stats,
                     uiIcons, characterVisuals, onCardClick, onHoverEnter, onHoverExit);

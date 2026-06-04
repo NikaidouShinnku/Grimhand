@@ -124,6 +124,7 @@ namespace Grimhand.Editor
                 entry.DefensePortrait = LoadPortraitSprite($"{folder}/{prefix}_defend_1024.png");
                 entry.HitPortrait = LoadPortraitSprite($"{folder}/{prefix}_hit_1024.png");
                 entry.DeathPortrait = LoadPortraitSprite($"{folder}/{prefix}_defeat_1024.png");
+                entry.HitPortraitFacesRight = prefix != "devil";
                 entry.IdleAnimationGifPath = $"The Grimhands Asset/{folder}/{prefix}_idle_anime.gif";
             }
 

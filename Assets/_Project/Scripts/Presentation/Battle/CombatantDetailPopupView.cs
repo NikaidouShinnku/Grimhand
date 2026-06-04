@@ -108,13 +108,13 @@ namespace Grimhand.Presentation.Battle
 
             var status = BattleUiFormatters.FormatStatusListDisplay(unit);
             var speed = StatusRules.GetEffectiveSpeed(unit);
-            var lines = $"攻击 {unit.Attack}    防御 {unit.Defense}    速度 {speed}\n护甲 {unit.Block}";
+            var lines = $"攻击 {unit.Attack}    防御 {unit.Defense}    速度 {speed}";
             if (!string.IsNullOrEmpty(status))
                 lines += $"\n状态 {status}";
 
             _bodyText.text = lines;
 
-            var lineCount = 2 + (string.IsNullOrEmpty(status) ? 0 : 1);
+            var lineCount = 1 + (string.IsNullOrEmpty(status) ? 0 : 1);
             _panel.sizeDelta = new Vector2(220f, 28f + lineCount * 22f);
         }
 

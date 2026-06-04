@@ -7,19 +7,21 @@ using UnityEngine;
 
 namespace Grimhand.Presentation.Battle
 {
-    /// <summary>消费战斗事件队列，驱动立绘 idle / 出牌 / 受击 / 死亡动画。</summary>
+    /// <summary>消费战斗事件队列，按段落驱动立绘 idle / 出牌 / 受击 / 死亡动画。</summary>
     public sealed class BattlePortraitDirector : MonoBehaviour
     {
         const float DefenseReactDuration = 1f;
         const float DefenseCardHoldDuration = 1f;
         const float NeutralCardHoldDuration = 1f;
         const float PostActionPause = 0.15f;
+        const float ParryCounterDuration = 0.85f;
 
         BattleSession _session;
         BattleScreenView _screen;
         CharacterVisualCatalogSO _visuals;
 
         readonly Dictionary<string, CombatantPortraitView> _portraits = new();
+        readonly Queue<List<BattleEvent>> _segmentQueue = new();
         Coroutine _playback;
         bool _playing;
 
@@ -45,7 +47,7 @@ namespace Grimhand.Presentation.Battle
             if (_playing || _session?.Engine == null)
                 return;
 
-            if (_session.Engine.State.Phase == TurnPhase.Planning)
+            if (_session.Engine.State.Phase == TurnPhase.Planning && !_session.PresentationLocked)
                 _screen?.BeginPlanningIdleLoops();
         }
 
@@ -64,85 +66,132 @@ namespace Grimhand.Presentation.Battle
 
         void OnEventsProduced(IReadOnlyList<BattleEvent> events)
         {
-            if (events == null || events.Count == 0 || !ContainsPresentationEvents(events))
+            if (events == null || events.Count == 0 || !BattleEventPlayback.ContainsPresentationEvents(events))
                 return;
 
-            if (_playback != null)
-                StopCoroutine(_playback);
+            var segments = BattleEventPlayback.SplitIntoSegments(events);
+            foreach (var segment in segments)
+                _segmentQueue.Enqueue(segment);
 
-            _playback = StartCoroutine(PlayEvents(events));
+            if (_playback == null)
+                _playback = StartCoroutine(ProcessSegmentQueue());
         }
 
-        static bool ContainsPresentationEvents(IReadOnlyList<BattleEvent> events)
-        {
-            foreach (var e in events)
-            {
-                switch (e.Kind)
-                {
-                    case BattleEventKind.PortraitPoseChanged:
-                    case BattleEventKind.PortraitIdleRestored:
-                    case BattleEventKind.DamageApplied:
-                    case BattleEventKind.StatusTickDamage:
-                    case BattleEventKind.CharacterDied:
-                        return true;
-                }
-            }
-
-            return false;
-        }
-
-        IEnumerator PlayEvents(IReadOnlyList<BattleEvent> events)
+        IEnumerator ProcessSegmentQueue()
         {
             _playing = true;
             _session.PresentationLocked = true;
             _screen?.StopAllPortraitIdleLoops();
-            _screen?.Refresh();
             RebuildLookup();
 
-            CardPlayContext card = null;
-            for (var i = 0; i < events.Count; i++)
+            while (_segmentQueue.Count > 0)
             {
-                var e = events[i];
-                switch (e.Kind)
-                {
-                    case BattleEventKind.PortraitPoseChanged:
-                        card = new CardPlayContext(e.CombatantId, e.CardType);
-                        yield return BeginCardPlay(card);
-                        break;
-                    case BattleEventKind.DamageApplied:
-                        card?.MarkDamage();
-                        yield return HandleDamage(e, card);
-                        _screen?.Refresh();
-                        break;
-                    case BattleEventKind.StatusTickDamage:
-                        yield return HandleStatusTick(e);
-                        _screen?.Refresh();
-                        break;
-                    case BattleEventKind.CharacterDied:
-                        yield return HandleDeath(e);
-                        _screen?.Refresh();
-                        break;
-                    case BattleEventKind.PortraitIdleRestored:
-                        if (card != null && card.ActorId == e.CombatantId)
-                        {
-                            yield return EndCardPlay(card);
-                            card = null;
-                        }
-                        break;
-                }
+                var segment = _segmentQueue.Dequeue();
+                yield return PlaySegment(segment);
             }
 
-            if (card != null)
-                yield return EndCardPlay(card);
+            RebuildLookup();
+            foreach (var view in _portraits.Values)
+                view?.ForceSettleHome();
 
             _playing = false;
             _playback = null;
-            _session.PresentationLocked = false;
+            _screen?.HideActiveCard();
+            _session.OnPresentationComplete();
             RebuildLookup();
             _screen?.Refresh();
 
             if (_session?.Engine?.State.Phase == TurnPhase.Planning)
                 _screen?.BeginPlanningIdleLoops();
+        }
+
+        IEnumerator PlaySegment(IReadOnlyList<BattleEvent> events)
+        {
+            RebuildLookup();
+
+            CardPlayContext card = null;
+            try
+            {
+                for (var i = 0; i < events.Count; i++)
+                {
+                    var e = events[i];
+                    switch (e.Kind)
+                    {
+                        case BattleEventKind.PortraitPoseChanged:
+                            if (!IsCombatantPresentationActive(e.CombatantId))
+                                break;
+
+                            card = new CardPlayContext(e.CombatantId, e.CardType, e.CardInstanceId);
+                            _screen?.ShowActiveCard(e.CardInstanceId);
+                            yield return BeginCardPlay(card);
+                            break;
+                        case BattleEventKind.DamageApplied:
+                            card?.MarkDamage();
+                            yield return HandleDamage(e);
+                            break;
+                        case BattleEventKind.ParryTriggered:
+                            yield return HandleParryCounter(e);
+                            break;
+                        case BattleEventKind.StatusTickDamage:
+                            yield return HandleStatusTick(e);
+                            break;
+                        case BattleEventKind.CharacterDied:
+                            yield return HandleDeath(e);
+                            break;
+                        case BattleEventKind.PortraitIdleRestored:
+                            if (card != null && card.ActorId == e.CombatantId)
+                            {
+                                yield return EndCardPlay(card);
+                                card = null;
+                            }
+
+                            break;
+                    }
+                }
+
+                if (card != null)
+                    yield return EndCardPlay(card);
+            }
+            finally
+            {
+                _screen?.HideActiveCard();
+            }
+        }
+
+        bool IsCombatantPresentationActive(string combatantId)
+        {
+            if (string.IsNullOrEmpty(combatantId))
+                return false;
+
+            var snapshot = _session.PresentationSnapshot;
+            if (snapshot != null)
+                return snapshot.IsAlive(combatantId);
+
+            var unit = _session.Engine?.State?.GetCombatant(combatantId);
+            return unit != null && unit.IsAlive;
+        }
+
+        bool IsTargetPresentationActive(string combatantId)
+        {
+            if (string.IsNullOrEmpty(combatantId))
+                return false;
+
+            if (_portraits.TryGetValue(combatantId, out var view) && view.IsDeadDisplay)
+                return false;
+
+            return IsCombatantPresentationActive(combatantId);
+        }
+
+        void ApplySnapshotAfterDamage(string combatantId, int amount)
+        {
+            _session.PresentationSnapshot?.ApplyDamage(combatantId, amount);
+            _screen?.Refresh();
+        }
+
+        void ApplySnapshotAfterDeath(string combatantId)
+        {
+            _session.PresentationSnapshot?.MarkDead(combatantId);
+            _screen?.Refresh();
         }
 
         IEnumerator BeginCardPlay(CardPlayContext card)
@@ -169,12 +218,15 @@ namespace Grimhand.Presentation.Battle
             else
                 yield return actor.HoldPose(NeutralCardHoldDuration);
 
-            if (card.ActorAtCenter)
+            if (card.ActorAtCenter && actor.IsAwayFromHome)
                 yield return actor.ReturnHome();
         }
 
-        IEnumerator HandleDamage(BattleEvent e, CardPlayContext card)
+        IEnumerator HandleDamage(BattleEvent e)
         {
+            if (!IsTargetPresentationActive(e.TargetId))
+                yield break;
+
             if (!_portraits.TryGetValue(e.TargetId, out var target))
                 yield break;
 
@@ -185,25 +237,45 @@ namespace Grimhand.Presentation.Battle
                 yield return target.PlayInPlacePose(PortraitPoseKind.Defense, DefenseReactDuration);
 
             if (hpDamage > 0)
+            {
                 yield return target.PlayHitReaction(hpDamage, useHitPose: !blocked);
+                ApplySnapshotAfterDamage(e.TargetId, hpDamage);
+            }
             else if (blocked)
+            {
                 yield return target.PlayBlockedReaction();
+            }
         }
 
         IEnumerator HandleStatusTick(BattleEvent e)
         {
+            if (!IsTargetPresentationActive(e.CombatantId))
+                yield break;
+
             if (!_portraits.TryGetValue(e.CombatantId, out var target))
                 yield break;
 
             yield return target.PlayHitReaction(e.Amount, useHitPose: false);
+            ApplySnapshotAfterDamage(e.CombatantId, e.Amount);
+        }
+
+        IEnumerator HandleParryCounter(BattleEvent e)
+        {
+            if (!IsCombatantPresentationActive(e.CombatantId))
+                yield break;
+
+            if (!_portraits.TryGetValue(e.CombatantId, out var defender))
+                yield break;
+
+            yield return defender.PlayParryCounterAttack(ParryCounterDuration);
         }
 
         IEnumerator HandleDeath(BattleEvent e)
         {
-            if (!_portraits.TryGetValue(e.CombatantId, out var target))
-                yield break;
+            if (_portraits.TryGetValue(e.CombatantId, out var target) && !target.IsDeadDisplay)
+                yield return target.PlayDeathSequence();
 
-            yield return target.PlayDeathSequence();
+            ApplySnapshotAfterDeath(e.CombatantId);
         }
 
         static PortraitPoseKind ResolveCardPose(CardType cardType) =>
@@ -217,14 +289,16 @@ namespace Grimhand.Presentation.Battle
 
         sealed class CardPlayContext
         {
-            public CardPlayContext(string actorId, CardType cardType)
+            public CardPlayContext(string actorId, CardType cardType, int cardInstanceId)
             {
                 ActorId = actorId;
                 CardType = cardType;
+                CardInstanceId = cardInstanceId;
             }
 
             public string ActorId { get; }
             public CardType CardType { get; }
+            public int CardInstanceId { get; }
             public bool ActorAtCenter;
             public bool HadDamage;
 

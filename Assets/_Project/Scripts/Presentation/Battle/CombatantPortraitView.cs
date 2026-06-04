@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Grimhand.Battle.Model;
 using Grimhand.Content;
 using UnityEngine;
 using UnityEngine.UI;
@@ -17,45 +18,69 @@ namespace Grimhand.Presentation.Battle
         const float PoseHoldDuration = 1f;
         const float IdleFrameInterval = 0.2f;
         const float HitFlashDuration = 1f;
+        const float DamageFloaterFontSize = 34f;
 
         [SerializeField] RectTransform portraitRoot;
         [SerializeField] Image portraitImage;
 
         CharacterVisualCatalogSO _visuals;
+        RectTransform _damageFloaterAnchor;
         string _characterDefinitionId;
+        TeamSide _team;
         Vector3 _homeWorldPosition;
         bool _homeCaptured;
         bool _isDead;
         bool _isAnimating;
+        bool _awayFromHome;
         bool _idleLoopActive;
+        bool _poseFlipX;
         Coroutine _idleRoutine;
         Coroutine _flashRoutine;
         Coroutine _damageHideRoutine;
         Text _damageFloater;
 
         public bool IsAnimating => _isAnimating;
+        public bool IsAwayFromHome => _awayFromHome;
         public bool IsIdleLoopActive => _idleLoopActive;
+        public bool IsDeadDisplay => _isDead;
         public string CombatantId { get; private set; }
 
-        public void Bind(CharacterVisualCatalogSO visuals, Image portrait, RectTransform root)
+        public void Bind(
+            CharacterVisualCatalogSO visuals,
+            Image portrait,
+            RectTransform root,
+            RectTransform damageFloaterAnchor = null,
+            TeamSide team = TeamSide.Player)
         {
             _visuals = visuals;
             portraitImage = portrait;
             portraitRoot = root;
+            _damageFloaterAnchor = damageFloaterAnchor != null ? damageFloaterAnchor : transform as RectTransform;
+            _team = team;
             EnsureDamageFloater();
             CaptureHomeIfNeeded();
         }
 
-        public void SetIdentity(string combatantId, string characterDefinitionId, bool isAlive)
+        public void SetIdentity(string combatantId, string characterDefinitionId, bool isAlive, TeamSide team)
         {
             CombatantId = combatantId;
             _characterDefinitionId = characterDefinitionId;
-            _isDead = !isAlive;
+            _team = team;
 
-            if (_isDead)
+            if (isAlive)
+            {
+                if (_isDead)
+                {
+                    _isDead = false;
+                    if (!_isAnimating && !_idleLoopActive)
+                        ApplyIdleStill();
+                }
+            }
+            else if (!_isDead)
+            {
+                _isDead = true;
                 ShowDeathPoseImmediate();
-            else if (!_isAnimating && !_idleLoopActive)
-                ApplyIdleStill();
+            }
         }
 
         public void BeginPlanningIdle()
@@ -99,6 +124,7 @@ namespace Grimhand.Presentation.Battle
                 yield break;
 
             _isAnimating = true;
+            _awayFromHome = true;
             StopIdleLoop();
             CaptureHomeIfNeeded();
             RestoreHomePosition();
@@ -136,11 +162,14 @@ namespace Grimhand.Presentation.Battle
 
             _isAnimating = true;
             StopIdleLoop();
-            RestoreHomePosition();
+            if (!_awayFromHome)
+                RestoreHomePosition();
             EnsurePortraitImageStable();
             SetPoseSprite(pose);
             yield return new WaitForSeconds(duration);
             _isAnimating = false;
+            if (!_isDead)
+                ApplyIdleStill();
         }
 
         public IEnumerator ReturnHome()
@@ -150,13 +179,17 @@ namespace Grimhand.Presentation.Battle
 
             if (!_homeCaptured)
             {
+                _awayFromHome = false;
                 _isAnimating = false;
                 yield break;
             }
 
             yield return TweenWorldPosition(portraitRoot, _homeWorldPosition, MoveDuration);
             RestoreHomePosition();
+            _awayFromHome = false;
             _isAnimating = false;
+            if (!_isDead)
+                ApplyIdleStill();
         }
 
         public void RestoreHomePosition()
@@ -167,9 +200,21 @@ namespace Grimhand.Presentation.Battle
             portraitRoot.position = _homeWorldPosition;
         }
 
+        public void ForceSettleHome()
+        {
+            if (!_awayFromHome || portraitRoot == null)
+                return;
+
+            RestoreHomePosition();
+            _awayFromHome = false;
+            _isAnimating = false;
+            if (!_isDead)
+                ApplyIdleStill();
+        }
+
         public void RecaptureHomeIfIdle()
         {
-            if (_isAnimating || _idleLoopActive || portraitRoot == null)
+            if (_isAnimating || _idleLoopActive || _awayFromHome || portraitRoot == null)
                 return;
 
             _homeWorldPosition = portraitRoot.position;
@@ -178,22 +223,49 @@ namespace Grimhand.Presentation.Battle
 
         public IEnumerator PlayHitReaction(int damage, bool useHitPose)
         {
-            if (portraitImage == null)
+            if (_isDead || portraitImage == null)
                 yield break;
 
+            _isAnimating = true;
             EnsurePortraitImageStable();
             if (useHitPose)
-                SetPoseSprite(PortraitPoseKind.Hit);
+                SetPoseSprite(PortraitPoseKind.Hit, faceCenter: true);
 
             if (damage > 0)
                 ShowDamageNumber(damage);
 
             yield return FlashPortrait(HitFlashDuration);
+
+            _isAnimating = false;
+            if (!_isDead)
+                ApplyIdleStill();
         }
 
         public IEnumerator PlayBlockedReaction()
         {
+            if (_isDead)
+                yield break;
+
+            _isAnimating = true;
             yield return FlashPortrait(HitFlashDuration);
+            _isAnimating = false;
+        }
+
+        public IEnumerator PlayParryCounterAttack(float duration)
+        {
+            if (_isDead || portraitImage == null || duration <= 0f)
+                yield break;
+
+            _isAnimating = true;
+            if (!_awayFromHome)
+                RestoreHomePosition();
+
+            EnsurePortraitImageStable();
+            SetPoseSprite(PortraitPoseKind.Attack);
+            yield return new WaitForSeconds(duration);
+            _isAnimating = false;
+            if (!_isDead && !_awayFromHome)
+                ApplyIdleStill();
         }
 
         public IEnumerator PlayDeathSequence()
@@ -203,6 +275,7 @@ namespace Grimhand.Presentation.Battle
 
             _isAnimating = true;
             _isDead = true;
+            _awayFromHome = false;
             StopIdleLoop();
             RestoreHomePosition();
             EnsurePortraitImageStable();
@@ -227,16 +300,22 @@ namespace Grimhand.Presentation.Battle
             if (portraitImage == null || _visuals == null || _isDead)
                 return;
 
+            _poseFlipX = false;
             EnsurePortraitImageStable();
             portraitImage.sprite = _visuals.GetPortrait(_characterDefinitionId);
             portraitImage.color = Color.white;
         }
 
-        void SetPoseSprite(PortraitPoseKind pose)
+        void SetPoseSprite(PortraitPoseKind pose, bool faceCenter = false)
         {
             if (portraitImage == null || _visuals == null)
                 return;
 
+            _poseFlipX = false;
+            if (pose == PortraitPoseKind.Hit && faceCenter)
+                _poseFlipX = _team == TeamSide.Player;
+
+            EnsurePortraitImageStable();
             portraitImage.sprite = _visuals.GetPoseSprite(_characterDefinitionId, pose);
             portraitImage.color = _isDead ? DeadTint : Color.white;
         }
@@ -254,7 +333,7 @@ namespace Grimhand.Presentation.Battle
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
             rt.anchoredPosition = Vector2.zero;
-            rt.localScale = Vector3.one;
+            rt.localScale = _poseFlipX ? new Vector3(-1f, 1f, 1f) : Vector3.one;
         }
 
         IEnumerator IdleLoop(IReadOnlyList<Sprite> frames)
@@ -277,7 +356,7 @@ namespace Grimhand.Presentation.Battle
 
         IEnumerator FlashPortrait(float duration)
         {
-            if (portraitImage == null)
+            if (portraitImage == null || _isDead)
                 yield break;
 
             if (_flashRoutine != null)
@@ -311,6 +390,22 @@ namespace Grimhand.Presentation.Battle
             rt.position = targetWorld;
         }
 
+        public void SetDamageFloaterBelow(RectTransform statsRow)
+        {
+            EnsureDamageFloater();
+            if (_damageFloater == null || statsRow == null)
+                return;
+
+            var rt = _damageFloater.rectTransform;
+            rt.SetParent(statsRow, false);
+            rt.SetAsLastSibling();
+            rt.anchorMin = new Vector2(0.5f, 0f);
+            rt.anchorMax = new Vector2(0.5f, 0f);
+            rt.pivot = new Vector2(0.5f, 1f);
+            rt.anchoredPosition = new Vector2(0f, -10f);
+            rt.sizeDelta = new Vector2(140f, 44f);
+        }
+
         void CaptureHomeIfNeeded()
         {
             if (_homeCaptured || portraitRoot == null)
@@ -322,30 +417,34 @@ namespace Grimhand.Presentation.Battle
 
         void EnsureDamageFloater()
         {
-            if (_damageFloater != null || portraitRoot == null)
+            if (_damageFloater != null)
+                return;
+
+            var anchor = _damageFloaterAnchor != null ? _damageFloaterAnchor : transform as RectTransform;
+            if (anchor == null)
                 return;
 
             var go = new GameObject("DamageFloater", typeof(RectTransform), typeof(Text));
-            go.transform.SetParent(portraitRoot, false);
+            go.transform.SetParent(anchor, false);
             var rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0.5f, 1f);
-            rt.anchorMax = new Vector2(0.5f, 1f);
-            rt.pivot = new Vector2(0.5f, 0f);
-            rt.anchoredPosition = new Vector2(0f, 12f);
-            rt.sizeDelta = new Vector2(120f, 36f);
+            rt.anchorMin = new Vector2(0.5f, 0f);
+            rt.anchorMax = new Vector2(0.5f, 0f);
+            rt.pivot = new Vector2(0.5f, 1f);
+            rt.anchoredPosition = new Vector2(0f, -6f);
+            rt.sizeDelta = new Vector2(140f, 44f);
 
             _damageFloater = go.GetComponent<Text>();
             _damageFloater.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            _damageFloater.fontSize = 26;
+            _damageFloater.fontSize = (int)DamageFloaterFontSize;
             _damageFloater.fontStyle = FontStyle.Bold;
-            _damageFloater.alignment = TextAnchor.MiddleCenter;
-            _damageFloater.color = new Color(1f, 0.35f, 0.35f, 1f);
+            _damageFloater.alignment = TextAnchor.UpperCenter;
+            _damageFloater.color = new Color(1f, 0.28f, 0.28f, 1f);
             _damageFloater.raycastTarget = false;
             _damageFloater.gameObject.SetActive(false);
 
             var outline = go.AddComponent<Outline>();
-            outline.effectColor = new Color(0f, 0f, 0f, 0.85f);
-            outline.effectDistance = new Vector2(1.5f, -1.5f);
+            outline.effectColor = new Color(0f, 0f, 0f, 0.9f);
+            outline.effectDistance = new Vector2(2f, -2f);
         }
 
         void ShowDamageNumber(int damage)

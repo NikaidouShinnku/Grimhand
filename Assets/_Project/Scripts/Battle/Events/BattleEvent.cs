@@ -26,6 +26,7 @@ namespace Grimhand.Battle.Events
         StatusTickDamage,
         PositionSwapped,
         ReactionTriggered,
+        ParryTriggered,
         PortraitPoseChanged,
         PortraitIdleRestored,
         EnemyIntentPrepared,

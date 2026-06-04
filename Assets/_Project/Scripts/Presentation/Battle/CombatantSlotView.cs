@@ -42,6 +42,7 @@ namespace Grimhand.Presentation.Battle
         bool _hovered;
         bool _targetMode;
         bool _isValidTarget;
+        bool _displayAlive = true;
         Vector3 _basePortraitScale = Vector3.one;
 
         public void Configure(FormationSlot slot, TeamSide teamSide, string rowLabel, bool mirror = false)
@@ -168,7 +169,7 @@ namespace Grimhand.Presentation.Battle
             if (portraitImage == null && portraitRoot != null)
                 portraitImage = portraitRoot.Find("Portrait")?.GetComponent<Image>();
 
-            _portraitView.Bind(null, portraitImage, portraitRoot);
+            _portraitView.Bind(null, portraitImage, portraitRoot, transform as RectTransform, team);
         }
 
         public CombatantPortraitView PortraitView => _portraitView;
@@ -268,13 +269,25 @@ namespace Grimhand.Presentation.Battle
             bool targetMode,
             System.Collections.Generic.IReadOnlyList<CombatantState> validTargets,
             CharacterVisualCatalogSO visuals,
-            BattleUiIconCatalogSO uiIcons)
+            BattleUiIconCatalogSO uiIcons,
+            PresentationSnapshot presentation = null)
         {
             var unit = FindCombatant(state);
             _currentUnit = unit;
             _currentIcons = uiIcons;
             _combatantId = unit?.Id;
             _targetMode = targetMode;
+
+            var displayAlive = unit != null
+                && (presentation != null ? presentation.IsAlive(unit.Id) : unit.IsAlive);
+            _displayAlive = displayAlive;
+            int? hpOverride = null;
+            int? maxHpOverride = null;
+            if (presentation != null && unit != null)
+            {
+                hpOverride = presentation.GetHp(unit.Id);
+                maxHpOverride = presentation.GetMaxHp(unit.Id);
+            }
 
             _isValidTarget = false;
             if (targetMode && unit != null && validTargets != null)
@@ -303,12 +316,15 @@ namespace Grimhand.Presentation.Battle
                 }
                 else
                 {
-                    _portraitView?.Bind(visuals, portraitImage, portraitRoot);
-                    _portraitView?.SetIdentity(unit.Id, unit.CharacterDefinitionId, unit.IsAlive);
-                    if (_portraitView == null || !_portraitView.IsIdleLoopActive)
+                    _portraitView?.Bind(visuals, portraitImage, portraitRoot, transform as RectTransform, team);
+                    _portraitView?.SetIdentity(unit.Id, unit.CharacterDefinitionId, displayAlive, team);
+                    if (_portraitView == null || (!_portraitView.IsIdleLoopActive && !_portraitView.IsAwayFromHome))
                         _portraitView?.RecaptureHomeIfIdle();
 
-                    if (_portraitView == null || (!_portraitView.IsAnimating && !_portraitView.IsIdleLoopActive))
+                    var preservePortraitSprite = _portraitView != null
+                        && (_portraitView.IsAnimating || _portraitView.IsAwayFromHome || _portraitView.IsIdleLoopActive || _portraitView.IsDeadDisplay);
+
+                    if (!preservePortraitSprite)
                     {
                         sprite = visuals != null
                             ? visuals.GetPortrait(unit.CharacterDefinitionId)
@@ -316,12 +332,9 @@ namespace Grimhand.Presentation.Battle
                         portraitImage.sprite = sprite;
                         portraitImage.preserveAspect = true;
                         portraitImage.enabled = sprite != null;
-                        ApplyPortraitColor(unit);
                     }
-                    else if (!_portraitView.IsAnimating)
-                    {
-                        ApplyPortraitColor(unit);
-                    }
+
+                    ApplyPortraitColor(unit);
                 }
             }
 
@@ -341,7 +354,8 @@ namespace Grimhand.Presentation.Battle
 
             if (statsRow == null)
                 statsRow = GetComponentInChildren<UnitStatsRowView>(true);
-            statsRow?.Refresh(unit, uiIcons, hpOnly: true);
+            statsRow?.Refresh(unit, uiIcons, hpOnly: true, hpOverride, maxHpOverride);
+            _portraitView?.SetDamageFloaterBelow(statsRow != null ? statsRow.transform as RectTransform : null);
 
             if (selectButton != null)
             {
@@ -381,7 +395,7 @@ namespace Grimhand.Presentation.Battle
             if (unit == null)
                 return;
 
-            if (!unit.IsAlive)
+            if (!_displayAlive)
                 portraitImage.color = DeadTint;
             else if (_targetMode && _isValidTarget)
                 portraitImage.color = _hovered ? ValidTargetTint * HoverTint : ValidTargetTint;
@@ -393,7 +407,7 @@ namespace Grimhand.Presentation.Battle
 
         void OnPortraitPointerEnter()
         {
-            if (_currentUnit == null || !_currentUnit.IsAlive)
+            if (_currentUnit == null || !_displayAlive)
                 return;
 
             _hovered = true;

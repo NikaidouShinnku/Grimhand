@@ -21,6 +21,8 @@ namespace Grimhand.Content
         public Sprite AttackPortrait;
         public Sprite DefensePortrait;
         public Sprite HitPortrait;
+        [Tooltip("受击图原始朝向是否朝右；展示时会按阵营翻转，使角色始终面向战场中央。")]
+        public bool HitPortraitFacesRight = true;
         public Sprite DeathPortrait;
         public List<Sprite> IdleAnimationFrames = new();
         [Tooltip("相对 Assets/ 的 idle GIF 路径；若填写则优先于 IdleAnimationFrames 播放。")]
@@ -99,6 +101,12 @@ namespace Grimhand.Content
             }
 
             return result;
+        }
+
+        public bool GetHitPortraitFacesRight(string characterDefinitionId)
+        {
+            var entry = GetEntry(characterDefinitionId);
+            return entry?.HitPortraitFacesRight ?? true;
         }
 
         public IReadOnlyList<Sprite> GetIdleAnimationFrames(string characterDefinitionId)

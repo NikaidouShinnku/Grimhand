@@ -33,7 +33,7 @@ namespace Grimhand.Presentation.Battle
         public static string FormatUnitLine(CombatantState unit)
         {
             var status = FormatStatusList(unit);
-            var core = $"{unit.DisplayName}\nHP {unit.Hp}/{unit.MaxHp}  甲{unit.Block}  攻{unit.Attack}  速{StatusRules.GetEffectiveSpeed(unit)}";
+            var core = $"{unit.DisplayName}\nHP {unit.Hp}/{unit.MaxHp}  攻{unit.Attack}  速{StatusRules.GetEffectiveSpeed(unit)}";
             return string.IsNullOrEmpty(status) ? core : core + "\n" + status;
         }
 
@@ -214,7 +214,7 @@ namespace Grimhand.Presentation.Battle
             BattleState state,
             PlanningDraft draft,
             CardInstanceState card,
-            IReadOnlyList<int> playerResolveOrder)
+            IReadOnlyList<ResolutionStep> resolutionSteps)
         {
             if (draft == null || card == null)
                 return "";
@@ -225,12 +225,68 @@ namespace Grimhand.Presentation.Battle
             if (!draft.IsSelected(card.InstanceId))
                 return "";
 
-            var global = IndexOfCard(playerResolveOrder, card.InstanceId) + 1;
+            var global = IndexOfResolutionStep(resolutionSteps, card.InstanceId);
             if (global <= 0)
                 return "";
 
-            TryGetOwnerResolveOrder(state, playerResolveOrder, card, out var ownerOrder, out var ownerTotal);
+            var playerOrder = CollectPlayerCardIds(state, resolutionSteps);
+            TryGetOwnerResolveOrder(state, playerOrder, card, out var ownerOrder, out var ownerTotal);
             return ownerTotal > 1 ? $"#{global} [{ownerOrder}/{ownerTotal}]" : $"#{global}";
+        }
+
+        public static List<string> BuildActionOrderSummary(
+            BattleState state,
+            PlanningDraft draft,
+            IReadOnlyList<ResolutionStep> resolutionSteps)
+        {
+            var lines = new List<string>();
+            if (state == null || resolutionSteps == null)
+                return lines;
+
+            var playerOrder = CollectPlayerCardIds(state, resolutionSteps);
+
+            for (var i = 0; i < resolutionSteps.Count; i++)
+            {
+                var step = resolutionSteps[i];
+                var card = state.GetCard(step.CardInstanceId);
+                if (card == null)
+                    continue;
+
+                var global = i + 1;
+                var owner = state.GetCombatant(step.CombatantId);
+                var ownerName = owner?.DisplayName;
+                if (string.IsNullOrEmpty(ownerName))
+                    ownerName = ShortOwner(card.OwnerCharacterId);
+
+                if (owner != null && owner.Team == TeamSide.Enemy)
+                {
+                    if (IsEnemyIntentHidden(state, step.CardInstanceId))
+                    {
+                        lines.Add($"#{global} ? ({ownerName})");
+                        continue;
+                    }
+
+                    var effect = CardPowerRules.DescribeCardEffect(card, owner, false);
+                    lines.Add($"#{global} {ownerName} · {card.DisplayName} 费{card.Cost} {effect}");
+                    continue;
+                }
+
+                TryGetOwnerResolveOrder(state, playerOrder, card, out var ownerOrder, out var ownerTotal);
+
+                var targetNote = "";
+                var assignedId = draft?.GetAssignedTarget(step.CardInstanceId);
+                if (!string.IsNullOrEmpty(assignedId))
+                {
+                    var assigned = state.GetCombatant(assignedId);
+                    if (assigned != null)
+                        targetNote = $" → {assigned.DisplayName}";
+                }
+
+                var ownerOrderNote = ownerTotal > 1 ? $" [{ownerOrder}/{ownerTotal}]" : "";
+                lines.Add($"#{global} {ownerName} · {card.DisplayName}{ownerOrderNote}{targetNote}");
+            }
+
+            return lines;
         }
 
         public static List<string> BuildSelectedQueueSummary(
@@ -273,6 +329,47 @@ namespace Grimhand.Presentation.Battle
             }
 
             return lines;
+        }
+
+        static List<int> CollectPlayerCardIds(BattleState state, IReadOnlyList<ResolutionStep> resolutionSteps)
+        {
+            var result = new List<int>();
+            if (state == null || resolutionSteps == null)
+                return result;
+
+            for (var i = 0; i < resolutionSteps.Count; i++)
+            {
+                var owner = state.GetCombatant(resolutionSteps[i].CombatantId);
+                if (owner != null && owner.Team == TeamSide.Player)
+                    result.Add(resolutionSteps[i].CardInstanceId);
+            }
+
+            return result;
+        }
+
+        static int IndexOfResolutionStep(IReadOnlyList<ResolutionStep> steps, int cardInstanceId)
+        {
+            if (steps == null)
+                return 0;
+
+            for (var i = 0; i < steps.Count; i++)
+            {
+                if (steps[i].CardInstanceId == cardInstanceId)
+                    return i + 1;
+            }
+
+            return 0;
+        }
+
+        static bool IsEnemyIntentHidden(BattleState state, int cardInstanceId)
+        {
+            foreach (var intent in state.EnemyIntents)
+            {
+                if (intent.CardInstanceId == cardInstanceId)
+                    return intent.IsHidden;
+            }
+
+            return false;
         }
 
         static int IndexOfCard(IReadOnlyList<int> order, int instanceId)

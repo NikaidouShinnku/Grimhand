@@ -57,6 +57,14 @@ namespace Grimhand.Battle.Effects
 
             if (reflectPower > 0 && actor.IsAlive)
             {
+                events.Add(new BattleEvent(BattleEventKind.ParryTriggered,
+                    $"{target.DisplayName} 弹反击退 {actor.DisplayName}")
+                {
+                    CombatantId = target.Id,
+                    TargetId = actor.Id,
+                    Amount = reflectPower
+                });
+
                 ApplyDamage(state, target, actor, reflectPower, cardType, events,
                     canTriggerParry: false, logSuffix: " (反射)");
             }

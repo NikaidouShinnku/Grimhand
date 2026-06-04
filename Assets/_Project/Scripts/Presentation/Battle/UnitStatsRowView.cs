@@ -9,7 +9,9 @@ namespace Grimhand.Presentation.Battle
     {
         const int IconSize = 28;
         const int FontSize = 18;
-        const int ChipWidth = 120;
+        const int HpChipWidth = 120;
+        const int ArmChipWidth = 64;
+        const int StatChipWidth = 72;
         const int ChipHeight = 32;
 
         struct StatChip
@@ -20,35 +22,49 @@ namespace Grimhand.Presentation.Battle
         }
 
         StatChip _hp;
-        StatChip _def;
+        StatChip _arm;
         StatChip _atk;
         StatChip _spd;
         bool _built;
 
-        public void Refresh(CombatantState unit, BattleUiIconCatalogSO icons, bool hpOnly = true)
+        public void Refresh(CombatantState unit, BattleUiIconCatalogSO icons, bool hpOnly = true, int? hpOverride = null, int? maxHpOverride = null)
         {
             EnsureBuilt();
 
             if (unit == null)
             {
                 SetChip(_hp, icons?.HpIcon, "—");
-                SetChipVisible(_def, false);
+                SetChipVisible(_arm, false);
                 SetChipVisible(_atk, false);
                 SetChipVisible(_spd, false);
                 return;
             }
 
-            SetChip(_hp, icons?.HpIcon, $"{unit.Hp}/{unit.MaxHp}");
-            SetChipVisible(_def, !hpOnly);
+            var hp = hpOverride ?? unit.Hp;
+            var maxHp = maxHpOverride ?? unit.MaxHp;
+            SetChip(_hp, icons?.HpIcon, $"{hp}/{maxHp}");
+
+            var block = unit.Block;
+            var showArmor = block >= 1;
+            SetChipVisible(_arm, showArmor);
+            if (showArmor)
+                SetChip(_arm, ResolveArmorIcon(icons), block.ToString());
+
             SetChipVisible(_atk, !hpOnly);
             SetChipVisible(_spd, !hpOnly);
 
             if (!hpOnly)
             {
-                SetChip(_def, icons?.DefenseIcon, unit.Block.ToString());
                 SetChip(_atk, icons?.AttackIcon, unit.Attack.ToString());
                 SetChip(_spd, icons?.SpeedIcon, Grimhand.Battle.Rules.StatusRules.GetEffectiveSpeed(unit).ToString());
             }
+        }
+
+        static Sprite ResolveArmorIcon(BattleUiIconCatalogSO icons)
+        {
+            if (icons?.ArmorIcon != null)
+                return icons.ArmorIcon;
+            return icons?.DefenseIcon;
         }
 
         void EnsureBuilt()
@@ -59,7 +75,7 @@ namespace Grimhand.Presentation.Battle
             _built = true;
 
             var layout = gameObject.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 8;
+            layout.spacing = 6;
             layout.padding = new RectOffset(4, 4, 2, 2);
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.childControlWidth = false;
@@ -67,19 +83,19 @@ namespace Grimhand.Presentation.Battle
             layout.childForceExpandWidth = false;
             layout.childForceExpandHeight = false;
 
-            _hp = CreateChip("HP");
-            _def = CreateChip("DEF");
-            _atk = CreateChip("ATK");
-            _spd = CreateChip("SPD");
+            _hp = CreateChip("HP", HpChipWidth);
+            _arm = CreateChip("ARM", ArmChipWidth);
+            _atk = CreateChip("ATK", StatChipWidth);
+            _spd = CreateChip("SPD", StatChipWidth);
         }
 
-        StatChip CreateChip(string label)
+        StatChip CreateChip(string label, int width)
         {
             var root = new GameObject(label, typeof(RectTransform));
             root.transform.SetParent(transform, false);
 
             var rootRt = root.GetComponent<RectTransform>();
-            rootRt.sizeDelta = new Vector2(ChipWidth, ChipHeight);
+            rootRt.sizeDelta = new Vector2(width, ChipHeight);
 
             var hlg = root.AddComponent<HorizontalLayoutGroup>();
             hlg.spacing = 4;
@@ -115,7 +131,7 @@ namespace Grimhand.Presentation.Battle
             outline.effectDistance = new Vector2(1.2f, -1.2f);
             var textLe = textGo.AddComponent<LayoutElement>();
             textLe.flexibleWidth = 1;
-            textLe.minWidth = 36;
+            textLe.minWidth = 20;
 
             return new StatChip { Root = root, Icon = icon, Value = text };
         }

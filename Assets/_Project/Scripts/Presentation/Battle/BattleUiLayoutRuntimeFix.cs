@@ -10,6 +10,7 @@ namespace Grimhand.Presentation.Battle
         const float CardRowHeight = 248f;
         const float PlanningRowBottom = 264f;
         const float PlanningRowHeight = 84f;
+        const float PlanningActionsHeight = 148f;
 
         public static void ApplyIfNeeded(Transform battleScreenRoot)
         {
@@ -74,7 +75,7 @@ namespace Grimhand.Presentation.Battle
 
             var actions = battleScreenRoot.Find("PlanningActionsRight") as RectTransform;
             if (actions != null)
-                PinBottomRight(actions, 12f, PlanningRowBottom, 660f, PlanningRowHeight);
+                PinBottomRight(actions, 12f, PlanningRowBottom, 660f, PlanningActionsHeight);
 
             ApplyPortraitScale(battleScreenRoot);
             FixEnergyIcons(battleScreenRoot);
@@ -185,7 +186,7 @@ namespace Grimhand.Presentation.Battle
                 actionsGo.transform.SetParent(battleScreenRoot, false);
                 var actionsImg = actionsGo.GetComponent<Image>();
                 actionsImg.color = new Color(0.1f, 0.11f, 0.15f, 0.9f);
-                PinBottomRight(actionsGo.GetComponent<RectTransform>(), 12f, PlanningRowBottom, 660f, PlanningRowHeight);
+                PinBottomRight(actionsGo.GetComponent<RectTransform>(), 12f, PlanningRowBottom, 660f, PlanningActionsHeight);
 
                 actionBar.SetParent(actionsGo.transform, false);
                 StretchFull(actionBar as RectTransform, 8f, 8f, -8f, -8f);
@@ -355,9 +356,9 @@ namespace Grimhand.Presentation.Battle
             layout.padding = new RectOffset(4, 4, 4, 4);
             layout.childAlignment = TextAnchor.MiddleRight;
             layout.childControlWidth = false;
-            layout.childControlHeight = true;
+            layout.childControlHeight = false;
             layout.childForceExpandWidth = false;
-            layout.childForceExpandHeight = true;
+            layout.childForceExpandHeight = false;
         }
 
         static void StretchFull(RectTransform rt, float left, float bottom, float right, float top)

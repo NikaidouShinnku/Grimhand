@@ -188,7 +188,7 @@ namespace Grimhand.Editor
             queueText.alignment = TextAnchor.UpperLeft;
 
             var planningActions = CreatePanel("PlanningActionsRight", root, new Color(0.1f, 0.11f, 0.15f, 0.9f));
-            PinBottomRight(planningActions, 12, 264, 660, 84);
+            PinBottomRight(planningActions, 12, 264, 660, 148);
 
             var actionBar = CreateRect("ActionBar", planningActions.transform);
             StretchFull(actionBar, 8, 8, -8, -8);
@@ -199,12 +199,15 @@ namespace Grimhand.Editor
             actionLayout.childControlWidth = false;
             actionLayout.childControlHeight = true;
             actionLayout.childForceExpandWidth = false;
-            actionLayout.childForceExpandHeight = true;
+            actionLayout.childForceExpandHeight = false;
 
-            var confirm = CreateLayoutButton("ConfirmButton", actionBar.transform, "确认出牌",
-                new Color(0.15f, 0.55f, 0.28f, 1f));
-            var skip = CreateLayoutButton("SkipButton", actionBar.transform, "空过",
-                new Color(0.22f, 0.35f, 0.55f, 1f));
+            GrimhandUiVisualBootstrap.EnsureUiIconCatalog();
+            var uiIcons = AssetDatabase.LoadAssetAtPath<BattleUiIconCatalogSO>(GrimhandUiVisualBootstrap.IconCatalogPath);
+
+            var confirm = CreateActionIconButton("ConfirmButton", actionBar.transform, "出牌",
+                uiIcons?.ConfirmPlayIcon);
+            var skip = CreateActionIconButton("SkipButton", actionBar.transform, "空过",
+                uiIcons?.SkipIcon);
             var restart = CreateLayoutButton("RestartButton", actionBar.transform, "重开远征",
                 new Color(0.35f, 0.22f, 0.22f, 1f));
 
@@ -648,6 +651,25 @@ namespace Grimhand.Editor
             btn.targetGraphic = go.GetComponent<Image>();
             var text = CreateText("Label", go.transform, label, 16, FontStyle.Bold);
             StretchFull(text);
+            return btn;
+        }
+
+        static Button CreateActionIconButton(string name, Transform parent, string label, Sprite icon)
+        {
+            var go = CreateRect(name, parent);
+            var le = go.AddComponent<LayoutElement>();
+            le.preferredWidth = 120f;
+            le.preferredHeight = 144f;
+            le.minWidth = 120f;
+            le.flexibleWidth = 0f;
+
+            CreateText("Label", go.transform, label, 16, FontStyle.Bold);
+            var iconGo = CreateImage("Icon", go.transform, Color.white);
+            iconGo.GetComponent<Image>().preserveAspect = true;
+
+            var btn = go.AddComponent<Button>();
+            btn.targetGraphic = iconGo.GetComponent<Image>();
+            PlanningActionButtonStyle.Apply(btn, icon, label);
             return btn;
         }
 

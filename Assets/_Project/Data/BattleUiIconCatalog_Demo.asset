@@ -17,3 +17,5 @@ MonoBehaviour:
   DefenseIcon: {fileID: -3393594479042761946, guid: 17fd391a135211143be094f16f17c846, type: 3}
   SpeedIcon: {fileID: 7652682938272544106, guid: ee07d130bf02d374594858f8f917a92b, type: 3}
   EnergyIcon: {fileID: -6418339764939565836, guid: 311789829f9cd874fb49b68dcd48101a, type: 3}
+  ConfirmPlayIcon: {fileID: 5371412345509669250, guid: 659e3c16f94883e42adc90d6d5195e52, type: 3}
+  SkipIcon: {fileID: -2563035158529919731, guid: 3e6ae0d3d3896cb439cd8d977ab7b529, type: 3}

@@ -96,7 +96,17 @@ namespace Grimhand.Presentation.Battle
             ApplyTypographyPolish();
             ResolveHudReferences();
             BattleUiLayoutRuntimeFix.ApplyIfNeeded(transform);
+            ApplyPlanningButtonIcons();
             CombatantTooltipLayer.GetOrCreate(transform);
+        }
+
+        void ApplyPlanningButtonIcons()
+        {
+            if (_uiIcons == null)
+                return;
+
+            PlanningActionButtonStyle.Apply(confirmButton, _uiIcons.ConfirmPlayIcon, "出牌");
+            PlanningActionButtonStyle.Apply(skipButton, _uiIcons.SkipIcon, "空过");
         }
 
         void ResolveHudReferences()

@@ -43,6 +43,8 @@ namespace Grimhand.Editor
             catalog.DefenseIcon = LoadFirstSprite(IconRoot + "DEF.png");
             catalog.SpeedIcon = LoadFirstSprite(IconRoot + "SPD.png");
             catalog.EnergyIcon = LoadFirstSprite(IconRoot + "ERG.png");
+            catalog.ConfirmPlayIcon = LoadFirstSprite(IconRoot + "check.png");
+            catalog.SkipIcon = LoadFirstSprite(IconRoot + "pass.png");
 
             EditorUtility.SetDirty(catalog);
         }

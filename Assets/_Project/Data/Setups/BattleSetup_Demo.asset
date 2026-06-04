@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 22265fbfbf9e3a74b9e3314b1a117bb5, type: 3}
   m_Name: BattleSetup_Demo
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.BattleSetupSO
-  Seed: 42
+  Seed: 0
   EnergyCap: 8
   TurnStartEnergyRegen: 3
   HandLimit: 8

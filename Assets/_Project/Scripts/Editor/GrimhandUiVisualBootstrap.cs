@@ -39,6 +39,7 @@ namespace Grimhand.Editor
             }
 
             catalog.HpIcon = LoadFirstSprite(IconRoot + "HP.png");
+            catalog.ArmorIcon = LoadFirstSprite(IconRoot + "ARM.png");
             catalog.AttackIcon = LoadFirstSprite(IconRoot + "ATK.png");
             catalog.DefenseIcon = LoadFirstSprite(IconRoot + "DEF.png");
             catalog.SpeedIcon = LoadFirstSprite(IconRoot + "SPD.png");

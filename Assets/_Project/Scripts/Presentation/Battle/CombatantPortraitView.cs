@@ -241,7 +241,13 @@ namespace Grimhand.Presentation.Battle
                 ApplyIdleStill();
         }
 
-        public IEnumerator PlayBlockedReaction()
+        public void ShowBlockAbsorbedNumber(int blocked)
+        {
+            if (blocked > 0)
+                ShowBlockAbsorbed(blocked);
+        }
+
+        public IEnumerator PlayBlockedReaction(int blockedAmount = 0)
         {
             if (_isDead)
                 yield break;
@@ -452,7 +458,21 @@ namespace Grimhand.Presentation.Battle
             if (_damageFloater == null)
                 return;
 
+            _damageFloater.color = new Color(1f, 0.35f, 0.35f, 1f);
             _damageFloater.text = $"-{damage}";
+            _damageFloater.gameObject.SetActive(true);
+            if (_damageHideRoutine != null)
+                StopCoroutine(_damageHideRoutine);
+            _damageHideRoutine = StartCoroutine(HideDamageFloaterAfterDelay());
+        }
+
+        void ShowBlockAbsorbed(int blocked)
+        {
+            if (_damageFloater == null)
+                return;
+
+            _damageFloater.color = new Color(0.55f, 0.85f, 1f, 1f);
+            _damageFloater.text = $"护甲 -{blocked}";
             _damageFloater.gameObject.SetActive(true);
             if (_damageHideRoutine != null)
                 StopCoroutine(_damageHideRoutine);

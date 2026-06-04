@@ -283,10 +283,12 @@ namespace Grimhand.Presentation.Battle
             _displayAlive = displayAlive;
             int? hpOverride = null;
             int? maxHpOverride = null;
+            int? blockOverride = null;
             if (presentation != null && unit != null)
             {
                 hpOverride = presentation.GetHp(unit.Id);
                 maxHpOverride = presentation.GetMaxHp(unit.Id);
+                blockOverride = presentation.GetBlock(unit.Id);
             }
 
             _isValidTarget = false;
@@ -354,7 +356,7 @@ namespace Grimhand.Presentation.Battle
 
             if (statsRow == null)
                 statsRow = GetComponentInChildren<UnitStatsRowView>(true);
-            statsRow?.Refresh(unit, uiIcons, hpOnly: true, hpOverride, maxHpOverride);
+            statsRow?.Refresh(unit, uiIcons, hpOnly: true, hpOverride, maxHpOverride, blockOverride);
             _portraitView?.SetDamageFloaterBelow(statsRow != null ? statsRow.transform as RectTransform : null);
 
             if (selectButton != null)

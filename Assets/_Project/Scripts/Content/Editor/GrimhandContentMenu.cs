@@ -28,10 +28,8 @@ namespace Grimhand.Content.Editor
             EnsureFolder(Root + "/Characters");
             EnsureFolder(Root + "/Setups");
 
-            var playerCards = CreatePlayerCards();
-            var enemyCards = CreateEnemyCards();
-            var players = CreatePlayerCharacters(playerCards);
-            var enemies = CreateEnemyCharacters(enemyCards);
+            var players = BalanceV2ContentGenerator.GeneratePlayerContent();
+            var enemies = CreateEnemyCharacters(CreateEnemyCards());
 
             var setup = AssetDatabase.LoadAssetAtPath<BattleSetupSO>(SetupPath);
             if (setup == null)
@@ -40,11 +38,11 @@ namespace Grimhand.Content.Editor
                 AssetDatabase.CreateAsset(setup, SetupPath);
             }
 
-            setup.Seed = 42;
+            setup.Seed = 0;
             setup.Combatants.Clear();
             setup.Combatants.AddRange(new[]
             {
-                players.Knight, players.Mage, players.Ranger,
+                players.Warrior, players.Pharaoh, players.Demon,
                 enemies.Brute, enemies.Shaman, enemies.Archer
             });
             EditorUtility.SetDirty(setup);
@@ -57,7 +55,7 @@ namespace Grimhand.Content.Editor
                 AssetDatabase.CreateAsset(expedition, expeditionPath);
             }
 
-            expedition.RunSeed = 42;
+            expedition.RunSeed = 0;
             expedition.TargetBattleCount = 3;
             expedition.RoutesPerVictory = 3;
             expedition.CombatEncounters.Clear();
@@ -86,7 +84,7 @@ namespace Grimhand.Content.Editor
                 "• Assets/_Project/Data/Characters/\n" +
                 "• Assets/_Project/Data/Setups/BattleSetup_Demo.asset\n" +
                 "• Assets/_Project/Data/Setups/ExpeditionSetup_Demo.asset\n\n" +
-                "本场为 3 我方 vs 3 敌方（前排蛮兵 / 中排萨满 / 后排弓手）。\n" +
+                "本场为 3 我方 vs 3 敌方（数值策划表 v2 Lv1）。\n" +
                 "绑定 Expedition Setup 后 Play 即为三场连战 Demo。\n\n" +
                 assignHint,
                 "好的");
@@ -163,58 +161,6 @@ namespace Grimhand.Content.Editor
             return true;
         }
 
-        static PlayerCardSet CreatePlayerCards()
-        {
-            return new PlayerCardSet
-            {
-                Strike = SaveCard("k_strike", "重击", "char_knight", 1, CardType.Attack,
-                    Kw("melee"),
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 8, scaleAttack: true)),
-                Slash = SaveCard("k_slash", "斩击", "char_knight", 2, CardType.Attack,
-                    Kw("melee"),
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 14, scaleAttack: true)),
-                Parry = SaveCard("k_parry", "弹反", "char_knight", 2, CardType.Defense,
-                    Kw("parry"),
-                    new EffectActionDefinition
-                    {
-                        Type = EffectActionType.GainBlockFromLastDamagePercent,
-                        Target = EffectTarget.Self,
-                        Value = 50,
-                        Condition = ReactionConditionType.LastActionAttackOnSelf
-                    },
-                    new EffectActionDefinition
-                    {
-                        Type = EffectActionType.ReflectLastDamageToAttacker,
-                        Target = EffectTarget.LastActionActor,
-                        Value = 200,
-                        Condition = ReactionConditionType.LastActionAttackOnSelf
-                    }),
-                Bolt = SaveCard("m_bolt", "魔弹", "char_mage", 1, CardType.Attack,
-                    Kw("melee"),
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 7, scaleAttack: true)),
-                Poison = SaveCard("m_poison", "毒云", "char_mage", 2, CardType.Status,
-                    Kw("poison"),
-                    Action(EffectActionType.ApplyStatus, EffectTarget.DefaultEnemy, 0,
-                        statusId: StatusCatalog.Poison, stacks: 10)),
-                Snipe = SaveCard("r_snipe", "狙击", "char_ranger", 2, CardType.Attack,
-                    Kw("snipe"),
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 15, scaleAttack: true,
-                        reach: TargetReach.Any)),
-                Pierce = SaveCard("r_pierce", "贯射", "char_ranger", 2, CardType.Attack,
-                    Kw("pierce", "melee"),
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 11, scaleAttack: true,
-                        reach: TargetReach.FrontAndMiddle, splashBehind: true, splashPowerPercent: 80)),
-                FarShot = SaveCard("r_far_shot", "远射", "char_ranger", 2, CardType.Attack,
-                    Kw("far_shot"),
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 10, scaleAttack: true,
-                        reach: TargetReach.Any, backRowPowerPercent: 70)),
-                Slow = SaveCard("r_slow", "缚足", "char_ranger", 1, CardType.Status,
-                    Kw("slow", "slot"),
-                    Action(EffectActionType.ApplyStatus, EffectTarget.EnemyBackSlot, 0,
-                        statusId: StatusCatalog.Slow, stacks: 1, duration: 2))
-            };
-        }
-
         static EnemyCardSet CreateEnemyCards()
         {
             return new EnemyCardSet
@@ -247,52 +193,25 @@ namespace Grimhand.Content.Editor
             };
         }
 
-        static PlayerCharacters CreatePlayerCharacters(PlayerCardSet cards)
-        {
-            return new PlayerCharacters
-            {
-                Knight = SaveCharacter("Character_Knight", "char_knight", "战士", TeamSide.Player,
-                    FormationSlot.Front, 2, 40, 6, 4, 10,
-                    BuildDeck(Repeat(cards.Strike, 4), Repeat(cards.Slash, 2), Of(cards.Parry, cards.Parry))),
-                Mage = SaveCharacter("Character_Mage", "char_mage", "法老", TeamSide.Player,
-                    FormationSlot.Middle, 1, 28, 5, 2, 5,
-                    BuildDeck(Repeat(cards.Bolt, 6), Of(cards.Poison, cards.Poison))),
-                Ranger = SaveCharacter("Character_Ranger", "char_ranger", "恶魔", TeamSide.Player,
-                    FormationSlot.Back, 1, 30, 7, 2, 7,
-                    BuildDeck(Repeat(cards.Snipe, 2), Repeat(cards.Pierce, 3),
-                        Repeat(cards.FarShot, 2), Repeat(cards.Slow, 3)))
-            };
-        }
-
         static EnemyCharacters CreateEnemyCharacters(EnemyCardSet cards)
         {
             return new EnemyCharacters
             {
-                Brute = SaveCharacter("Character_Goblin_Brute", "char_goblin_brute", "哥布林蛮兵", TeamSide.Enemy,
-                    FormationSlot.Front, 2, 45, 7, 2, 8,
+                Brute = SaveCharacter("Character_Goblin_Brute", "char_goblin_brute", "哥布林", TeamSide.Enemy,
+                    FormationSlot.Front, 1, 20, 4, 1, 5,
                     BuildDeck(Repeat(cards.Bite, 4), Repeat(cards.Scratch, 2), Repeat(cards.Lunge, 2))),
-                Shaman = SaveCharacter("Character_Goblin_Shaman", "char_goblin_shaman", "骷髅萨满", TeamSide.Enemy,
-                    FormationSlot.Middle, 1, 32, 4, 1, 6,
+                Shaman = SaveCharacter("Character_Goblin_Shaman", "char_goblin_shaman", "骷髅兵", TeamSide.Enemy,
+                    FormationSlot.Middle, 1, 25, 6, 3, 4,
                     BuildDeck(Repeat(cards.Hex, 4), Repeat(cards.Wither, 4), Repeat(cards.Bite, 2))),
-                Archer = SaveCharacter("Character_Goblin_Archer", "char_goblin_archer", "怨灵弓手", TeamSide.Enemy,
-                    FormationSlot.Back, 1, 28, 8, 1, 9,
+                Archer = SaveCharacter("Character_Goblin_Archer", "char_goblin_archer", "幽灵", TeamSide.Enemy,
+                    FormationSlot.Back, 1, 18, 7, 1, 7,
                     BuildDeck(Repeat(cards.Arrow, 6), Repeat(cards.Aim, 4)))
             };
-        }
-
-        struct PlayerCardSet
-        {
-            public CardDefinitionSO Strike, Slash, Parry, Bolt, Poison, Snipe, Pierce, FarShot, Slow;
         }
 
         struct EnemyCardSet
         {
             public CardDefinitionSO Bite, Scratch, Lunge, Hex, Wither, Arrow, Aim;
-        }
-
-        struct PlayerCharacters
-        {
-            public CharacterDefinitionSO Knight, Mage, Ranger;
         }
 
         struct EnemyCharacters

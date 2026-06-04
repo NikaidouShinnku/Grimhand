@@ -117,6 +117,8 @@ namespace Grimhand.Expedition
                     Duration = action.Duration,
                     ScaleWithAttack = action.ScaleWithAttack,
                     ScaleWithDefense = action.ScaleWithDefense,
+                    AttackScalePercent = action.AttackScalePercent,
+                    DefenseScalePercent = action.DefenseScalePercent,
                     Condition = action.Condition,
                     Reach = action.Reach,
                     SplashBehindTarget = action.SplashBehindTarget,

@@ -31,7 +31,7 @@ namespace Grimhand.Presentation.Battle
             return false;
         }
 
-        /// <summary>按「单次出牌 / 独立受击」拆成演出段落。</summary>
+        /// <summary>按「单次出牌 / 独立受击」拆成演出段落；段落内保留 BlockGained 等非立绘事件以便同步护甲 UI。</summary>
         public static List<List<BattleEvent>> SplitIntoSegments(IReadOnlyList<BattleEvent> events)
         {
             var segments = new List<List<BattleEvent>>();
@@ -42,9 +42,6 @@ namespace Grimhand.Presentation.Battle
 
             foreach (var e in events)
             {
-                if (!IsPresentationKind(e.Kind))
-                    continue;
-
                 if (e.Kind == BattleEventKind.PortraitPoseChanged)
                 {
                     if (current != null && current.Count > 0)
@@ -54,11 +51,22 @@ namespace Grimhand.Presentation.Battle
                     continue;
                 }
 
-                if (current == null)
-                    current = new List<BattleEvent>();
+                if (current != null)
+                {
+                    current.Add(e);
+                    if (e.Kind == BattleEventKind.PortraitIdleRestored)
+                    {
+                        segments.Add(current);
+                        current = null;
+                    }
 
-                current.Add(e);
+                    continue;
+                }
 
+                if (!IsPresentationKind(e.Kind))
+                    continue;
+
+                current = new List<BattleEvent> { e };
                 if (e.Kind == BattleEventKind.PortraitIdleRestored)
                 {
                     segments.Add(current);

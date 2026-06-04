@@ -18,17 +18,17 @@ MonoBehaviour:
   Slot: 3
   Level: 1
   MaxHp: 30
-  BaseAttack: 7
+  BaseAttack: 9
   BaseDefense: 2
-  Speed: 7
+  Speed: 8
   Deck:
-  - {fileID: 11400000, guid: 8a3d6f71d8765ab46b9602590ba5e787, type: 2}
-  - {fileID: 11400000, guid: 8a3d6f71d8765ab46b9602590ba5e787, type: 2}
-  - {fileID: 11400000, guid: 05e0e75e123dd904bb6c945e9a2ed051, type: 2}
-  - {fileID: 11400000, guid: 05e0e75e123dd904bb6c945e9a2ed051, type: 2}
-  - {fileID: 11400000, guid: 05e0e75e123dd904bb6c945e9a2ed051, type: 2}
-  - {fileID: 11400000, guid: b580e87ff212e1343bfb67cbd3249d76, type: 2}
-  - {fileID: 11400000, guid: b580e87ff212e1343bfb67cbd3249d76, type: 2}
-  - {fileID: 11400000, guid: 51b09bd56a7f68b47ab7b140b23880dc, type: 2}
-  - {fileID: 11400000, guid: 51b09bd56a7f68b47ab7b140b23880dc, type: 2}
-  - {fileID: 11400000, guid: 51b09bd56a7f68b47ab7b140b23880dc, type: 2}
+  - {fileID: 11400000, guid: 81911c57da184dad97f9646394a9da1d, type: 2}
+  - {fileID: 11400000, guid: 4afcbf17bcff4d5e88d30c1b32b8c92a, type: 2}
+  - {fileID: 11400000, guid: 295eb981fb524ba9be99392540ab03fd, type: 2}
+  - {fileID: 11400000, guid: 933053b0588c47148b2475dd52afb834, type: 2}
+  - {fileID: 11400000, guid: 717920915ad24d5ba0c81b4b8b5b948f, type: 2}
+  - {fileID: 11400000, guid: 3e6d0a81afaa4ca187eaa1aa7d04637f, type: 2}
+  - {fileID: 11400000, guid: 771c13e11d934303b61721d1e1ddf087, type: 2}
+  - {fileID: 11400000, guid: 3943faaa99fe4ab19da8114310f013bb, type: 2}
+  - {fileID: 11400000, guid: 19472ba32ea64468a041917f0a65955b, type: 2}
+  - {fileID: 11400000, guid: 24fa52cd31714a10af0b000f9d2703a5, type: 2}

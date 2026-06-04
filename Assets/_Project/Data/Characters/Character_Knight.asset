@@ -16,17 +16,19 @@ MonoBehaviour:
   DisplayName: "\u6218\u58EB"
   Team: 0
   Slot: 1
-  Level: 2
-  MaxHp: 40
-  BaseAttack: 6
-  BaseDefense: 4
-  Speed: 10
+  Level: 1
+  MaxHp: 50
+  BaseAttack: 8
+  BaseDefense: 6
+  Speed: 4
   Deck:
-  - {fileID: 11400000, guid: 82c0323fef29d5344a62c1a0f3807781, type: 2}
-  - {fileID: 11400000, guid: 82c0323fef29d5344a62c1a0f3807781, type: 2}
-  - {fileID: 11400000, guid: 82c0323fef29d5344a62c1a0f3807781, type: 2}
-  - {fileID: 11400000, guid: 82c0323fef29d5344a62c1a0f3807781, type: 2}
-  - {fileID: 11400000, guid: b74fb9b86f22fc14b80f4cfaf84bf4be, type: 2}
-  - {fileID: 11400000, guid: b74fb9b86f22fc14b80f4cfaf84bf4be, type: 2}
-  - {fileID: 11400000, guid: 6d566c471dcba8f4d806d6496cdecb44, type: 2}
-  - {fileID: 11400000, guid: 6d566c471dcba8f4d806d6496cdecb44, type: 2}
+  - {fileID: 11400000, guid: 844da30287e5467395dcbbbd4888b2dd, type: 2}
+  - {fileID: 11400000, guid: 1a8c6acca3ec45b8a74753b378427b00, type: 2}
+  - {fileID: 11400000, guid: 55a69b17b1054fbe8c3bed098ccef5a4, type: 2}
+  - {fileID: 11400000, guid: ba0fe2396a9c48d4b8b680f40afd8c17, type: 2}
+  - {fileID: 11400000, guid: 4c6abdc96a944cd1980eb53292202ef2, type: 2}
+  - {fileID: 11400000, guid: d5367f85d1c041f9b31974e33fdae3b4, type: 2}
+  - {fileID: 11400000, guid: 4f0d41c3ab054150af563896db46ce7c, type: 2}
+  - {fileID: 11400000, guid: 561899d85e6c4131bac9f1aaf1d0c04a, type: 2}
+  - {fileID: 11400000, guid: 5a713138f93745e392a2d9511b64da2b, type: 2}
+  - {fileID: 11400000, guid: 4567d436621b41bb8319b3b3469ff6bc, type: 2}

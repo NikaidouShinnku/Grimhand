@@ -13,14 +13,14 @@ MonoBehaviour:
   m_Name: Character_Goblin_Shaman
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
   CharacterId: char_goblin_shaman
-  DisplayName: "\u9AB7\u9ABC\u8428\u6EE1"
+  DisplayName: "\u9AB7\u9AC5\u5175"
   Team: 1
   Slot: 2
   Level: 1
-  MaxHp: 32
-  BaseAttack: 4
-  BaseDefense: 1
-  Speed: 6
+  MaxHp: 25
+  BaseAttack: 6
+  BaseDefense: 3
+  Speed: 4
   Deck:
   - {fileID: 11400000, guid: c8f1929b106d02341ac9b848cac4d0ea, type: 2}
   - {fileID: 11400000, guid: c8f1929b106d02341ac9b848cac4d0ea, type: 2}

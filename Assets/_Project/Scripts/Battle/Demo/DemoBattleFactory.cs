@@ -8,7 +8,7 @@ namespace Grimhand.Battle.Demo
     {
         public static BattleConfig CreateDefault3v3()
         {
-            var config = new BattleConfig { Seed = 42 };
+            var config = new BattleConfig { Seed = 0 };
 
             var knightCards = new[]
             {

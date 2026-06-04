@@ -113,6 +113,8 @@ namespace Grimhand.Presentation.Battle
                     return prefix + $"治疗{action.Value}";
                 case EffectActionType.DrawCardsNextTurn:
                     return prefix + $"下回合抽{action.Value}张";
+                case EffectActionType.DrawCards:
+                    return prefix + $"抽{action.Value}张";
                 case EffectActionType.RemoveStatus:
                     return prefix + "清除状态";
                 case EffectActionType.SwapPositionWithFrontAlly:
@@ -124,7 +126,7 @@ namespace Grimhand.Presentation.Battle
 
         static string DescribeDamageLine(EffectActionSpec action, CombatantState owner, string prefix)
         {
-            var dmg = action.Value + (action.ScaleWithAttack && owner != null ? owner.Attack : 0);
+            var dmg = CardPowerRules.ComputeActionValue(action, owner);
             var parts = new List<string> { $"伤害{dmg}" };
 
             var reach = DescribeReachLabel(action);
@@ -146,7 +148,7 @@ namespace Grimhand.Presentation.Battle
 
         static string DescribeBlockLine(EffectActionSpec action, CombatantState owner)
         {
-            var block = action.Value + (action.ScaleWithDefense && owner != null ? owner.Defense : 0);
+            var block = CardPowerRules.ComputeActionValue(action, owner);
             return $"护甲{block}";
         }
 

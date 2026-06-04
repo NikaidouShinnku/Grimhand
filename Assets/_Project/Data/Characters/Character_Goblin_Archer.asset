@@ -13,14 +13,14 @@ MonoBehaviour:
   m_Name: Character_Goblin_Archer
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
   CharacterId: char_goblin_archer
-  DisplayName: "\u6028\u7075\u5F13\u624B"
+  DisplayName: "\u5E7D\u7075"
   Team: 1
   Slot: 3
   Level: 1
-  MaxHp: 28
-  BaseAttack: 8
+  MaxHp: 18
+  BaseAttack: 7
   BaseDefense: 1
-  Speed: 9
+  Speed: 7
   Deck:
   - {fileID: 11400000, guid: 2b02c9c1503f77b4bb88b9cacb046b7e, type: 2}
   - {fileID: 11400000, guid: 2b02c9c1503f77b4bb88b9cacb046b7e, type: 2}

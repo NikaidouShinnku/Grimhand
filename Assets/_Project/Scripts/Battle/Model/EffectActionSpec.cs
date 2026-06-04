@@ -10,6 +10,13 @@ namespace Grimhand.Battle.Model
         public int Duration { get; set; } = -1;
         public bool ScaleWithAttack { get; set; }
         public bool ScaleWithDefense { get; set; }
+
+        /// <summary>与 ScaleWithAttack 配合：100 = ATK×1.0，80 = ATK×0.8。0 表示按 100 处理。</summary>
+        public int AttackScalePercent { get; set; } = 100;
+
+        /// <summary>与 ScaleWithDefense 配合：150 = DEF×1.5。0 表示按 100 处理。</summary>
+        public int DefenseScalePercent { get; set; } = 100;
+
         public ReactionConditionType Condition { get; set; } = ReactionConditionType.None;
 
         /// <summary>选手动目标时的可攻击站位；默认前+中排。</summary>

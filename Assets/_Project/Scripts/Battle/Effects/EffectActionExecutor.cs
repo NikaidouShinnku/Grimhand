@@ -3,6 +3,7 @@ using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Reactions;
 using Grimhand.Battle.Rules;
+using Grimhand.Core;
 
 namespace Grimhand.Battle.Effects
 {
@@ -12,7 +13,8 @@ namespace Grimhand.Battle.Effects
             BattleState state,
             CombatantState actor,
             CardInstanceState card,
-            List<BattleEvent> events)
+            List<BattleEvent> events,
+            BattleRng rng = null)
         {
             if (ParryRules.TryReadParryConfig(card, out var reductionPercent, out var reflectPercent))
             {
@@ -30,7 +32,7 @@ namespace Grimhand.Battle.Effects
                     continue;
 
                 triggeredReaction = true;
-                ExecuteOne(state, actor, card, action, events);
+                ExecuteOne(state, actor, card, action, events, rng);
             }
 
             if (triggeredReaction)
@@ -46,7 +48,7 @@ namespace Grimhand.Battle.Effects
                 if (action.Condition != ReactionConditionType.None)
                     continue;
 
-                ExecuteOne(state, actor, card, action, events);
+                ExecuteOne(state, actor, card, action, events, rng);
             }
         }
 
@@ -55,10 +57,12 @@ namespace Grimhand.Battle.Effects
             CombatantState actor,
             CardInstanceState card,
             EffectActionSpec action,
-            List<BattleEvent> events)
+            List<BattleEvent> events,
+            BattleRng rng)
         {
             var target = TargetRules.ResolveTarget(state, actor, action.Target, card.InstanceId);
-            var value = ComputeValue(action, actor);
+            var value = CardPowerRules.ComputeActionValue(action, actor);
+            var beneficiary = target ?? actor;
 
             switch (action.Type)
             {
@@ -81,12 +85,12 @@ namespace Grimhand.Battle.Effects
                     }
                     break;
                 case EffectActionType.GainBlock:
-                    DamageRules.ApplyBlock(actor, value, events);
-                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Defense, actor.Id, false, 0);
+                    DamageRules.ApplyBlock(beneficiary, value, events);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Defense, beneficiary.Id, false, 0);
                     break;
                 case EffectActionType.Heal:
-                    DamageRules.ApplyHeal(actor, value, events);
-                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    DamageRules.ApplyHeal(beneficiary, value, events);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, beneficiary.Id, false, 0);
                     break;
                 case EffectActionType.ApplyStatus:
                     if (target != null)
@@ -104,6 +108,11 @@ namespace Grimhand.Battle.Effects
                     break;
                 case EffectActionType.DrawCardsNextTurn:
                     state.PendingDrawNextTurn += value;
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    break;
+                case EffectActionType.DrawCards:
+                    if (rng != null && value > 0)
+                        DeckRules.DrawCards(state, actor.Team, rng, value, events);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
                 case EffectActionType.ReflectLastDamageToAttacker:
@@ -124,16 +133,6 @@ namespace Grimhand.Battle.Effects
                     }
                     break;
             }
-        }
-
-        static int ComputeValue(EffectActionSpec action, CombatantState actor)
-        {
-            var value = action.Value;
-            if (action.ScaleWithAttack)
-                value += actor.Attack;
-            if (action.ScaleWithDefense)
-                value += actor.Defense;
-            return value;
         }
     }
 }

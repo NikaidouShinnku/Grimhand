@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c1bbd725df999a8439d2bf99ddc476b1, type: 3}
   m_Name: ExpeditionSetup_Demo
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.ExpeditionSetupSO
-  RunSeed: 42
+  RunSeed: 0
   TargetBattleCount: 3
   RoutesPerVictory: 3
   CombatEncounters:

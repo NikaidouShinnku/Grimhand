@@ -27,7 +27,13 @@ namespace Grimhand.Presentation.Battle
         StatChip _spd;
         bool _built;
 
-        public void Refresh(CombatantState unit, BattleUiIconCatalogSO icons, bool hpOnly = true, int? hpOverride = null, int? maxHpOverride = null)
+        public void Refresh(
+            CombatantState unit,
+            BattleUiIconCatalogSO icons,
+            bool hpOnly = true,
+            int? hpOverride = null,
+            int? maxHpOverride = null,
+            int? blockOverride = null)
         {
             EnsureBuilt();
 
@@ -44,11 +50,11 @@ namespace Grimhand.Presentation.Battle
             var maxHp = maxHpOverride ?? unit.MaxHp;
             SetChip(_hp, icons?.HpIcon, $"{hp}/{maxHp}");
 
-            var block = unit.Block;
+            var block = blockOverride ?? unit.Block;
             var showArmor = block >= 1;
             SetChipVisible(_arm, showArmor);
             if (showArmor)
-                SetChip(_arm, ResolveArmorIcon(icons), block.ToString());
+                SetChip(_arm, icons?.ArmorIcon, block.ToString());
 
             SetChipVisible(_atk, !hpOnly);
             SetChipVisible(_spd, !hpOnly);
@@ -60,17 +66,12 @@ namespace Grimhand.Presentation.Battle
             }
         }
 
-        static Sprite ResolveArmorIcon(BattleUiIconCatalogSO icons)
-        {
-            if (icons?.ArmorIcon != null)
-                return icons.ArmorIcon;
-            return icons?.DefenseIcon;
-        }
-
         void EnsureBuilt()
         {
             if (_built)
                 return;
+
+            ClearStaleLayout();
 
             _built = true;
 
@@ -87,6 +88,18 @@ namespace Grimhand.Presentation.Battle
             _arm = CreateChip("ARM", ArmChipWidth);
             _atk = CreateChip("ATK", StatChipWidth);
             _spd = CreateChip("SPD", StatChipWidth);
+        }
+
+        void ClearStaleLayout()
+        {
+            for (var i = transform.childCount - 1; i >= 0; i--)
+                Destroy(transform.GetChild(i).gameObject);
+
+            foreach (var fitter in GetComponents<ContentSizeFitter>())
+                Destroy(fitter);
+
+            foreach (var group in GetComponents<LayoutGroup>())
+                Destroy(group);
         }
 
         StatChip CreateChip(string label, int width)

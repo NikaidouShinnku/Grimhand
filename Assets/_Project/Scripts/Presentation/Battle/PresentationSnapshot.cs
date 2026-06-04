@@ -8,6 +8,7 @@ namespace Grimhand.Presentation.Battle
     {
         readonly Dictionary<string, int> _hp = new();
         readonly Dictionary<string, int> _maxHp = new();
+        readonly Dictionary<string, int> _block = new();
         readonly HashSet<string> _dead = new();
 
         public static PresentationSnapshot Capture(BattleState state)
@@ -20,6 +21,7 @@ namespace Grimhand.Presentation.Battle
             {
                 snap._hp[c.Id] = c.Hp;
                 snap._maxHp[c.Id] = c.MaxHp;
+                snap._block[c.Id] = c.Block;
                 if (!c.IsAlive)
                     snap._dead.Add(c.Id);
             }
@@ -40,6 +42,40 @@ namespace Grimhand.Presentation.Battle
 
         public int GetMaxHp(string combatantId) =>
             _maxHp.TryGetValue(combatantId, out var maxHp) ? maxHp : 0;
+
+        public int GetBlock(string combatantId) =>
+            _block.TryGetValue(combatantId, out var block) ? block : 0;
+
+        public void ApplyBlockGain(string combatantId, int amount)
+        {
+            if (string.IsNullOrEmpty(combatantId) || amount <= 0)
+                return;
+
+            _block[combatantId] = GetBlock(combatantId) + amount;
+        }
+
+        public void ApplyBlockConsumed(string combatantId, int amount)
+        {
+            if (string.IsNullOrEmpty(combatantId) || amount <= 0)
+                return;
+
+            _block[combatantId] = System.Math.Max(0, GetBlock(combatantId) - amount);
+        }
+
+        public void ClearBlock(string combatantId)
+        {
+            if (string.IsNullOrEmpty(combatantId))
+                return;
+
+            _block[combatantId] = 0;
+        }
+
+        public void ClearAllBlock()
+        {
+            var keys = new List<string>(_block.Keys);
+            foreach (var id in keys)
+                _block[id] = 0;
+        }
 
         public void ApplyDamage(string combatantId, int amount)
         {

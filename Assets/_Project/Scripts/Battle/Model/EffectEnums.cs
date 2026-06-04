@@ -15,6 +15,7 @@ namespace Grimhand.Battle.Model
         RemoveStatus,
         SwapPositionWithFrontAlly,
         DrawCardsNextTurn,
+        DrawCards,
         ReflectLastDamageToAttacker,
         GainBlockFromLastDamagePercent
     }

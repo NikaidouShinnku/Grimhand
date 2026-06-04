@@ -14,6 +14,8 @@ namespace Grimhand.Content
         public int Duration = -1;
         public bool ScaleWithAttack;
         public bool ScaleWithDefense;
+        public int AttackScalePercent = 100;
+        public int DefenseScalePercent = 100;
         public ReactionConditionType Condition = ReactionConditionType.None;
         public TargetReach Reach = TargetReach.FrontAndMiddle;
         public bool SplashBehindTarget;
@@ -32,6 +34,8 @@ namespace Grimhand.Content
                 Duration = Duration,
                 ScaleWithAttack = ScaleWithAttack,
                 ScaleWithDefense = ScaleWithDefense,
+                AttackScalePercent = AttackScalePercent,
+                DefenseScalePercent = DefenseScalePercent,
                 Condition = Condition,
                 Reach = Reach,
                 SplashBehindTarget = SplashBehindTarget,
@@ -52,6 +56,8 @@ namespace Grimhand.Content
                 Duration = spec.Duration,
                 ScaleWithAttack = spec.ScaleWithAttack,
                 ScaleWithDefense = spec.ScaleWithDefense,
+                AttackScalePercent = spec.AttackScalePercent,
+                DefenseScalePercent = spec.DefenseScalePercent,
                 Condition = spec.Condition,
                 Reach = spec.Reach,
                 SplashBehindTarget = spec.SplashBehindTarget,

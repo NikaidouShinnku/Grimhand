@@ -209,7 +209,7 @@ namespace Grimhand.Battle
                 CardType = card.CardType
             });
 
-            EffectActionExecutor.ExecuteAll(_state, actor, card, _events);
+            EffectActionExecutor.ExecuteAll(_state, actor, card, _events, _rng);
             DeckRules.MovePlayedCardToDiscard(_state, actor.Team, card, _events);
 
             _events.Add(new BattleEvent(BattleEventKind.CardResolvedEnded, card.DisplayName)
@@ -395,6 +395,8 @@ namespace Grimhand.Battle
                 Duration = source.Duration,
                 ScaleWithAttack = source.ScaleWithAttack,
                 ScaleWithDefense = source.ScaleWithDefense,
+                AttackScalePercent = source.AttackScalePercent,
+                DefenseScalePercent = source.DefenseScalePercent,
                 Condition = source.Condition,
                 Reach = source.Reach,
                 SplashBehindTarget = source.SplashBehindTarget,

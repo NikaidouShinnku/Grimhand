@@ -1,9 +1,34 @@
+using System;
 using Grimhand.Battle.Model;
 
 namespace Grimhand.Battle.Rules
 {
     public static class CardPowerRules
     {
+        public static int ComputeActionValue(EffectActionSpec action, CombatantState owner)
+        {
+            if (action == null)
+                return 0;
+
+            var value = action.Value;
+            if (owner == null)
+                return value;
+
+            if (action.ScaleWithAttack)
+            {
+                var pct = action.AttackScalePercent > 0 ? action.AttackScalePercent : 100;
+                value += (int)Math.Round(owner.Attack * pct / 100f);
+            }
+
+            if (action.ScaleWithDefense)
+            {
+                var pct = action.DefenseScalePercent > 0 ? action.DefenseScalePercent : 100;
+                value += (int)Math.Round(owner.Defense * pct / 100f);
+            }
+
+            return value;
+        }
+
         public static int GetEffectivePower(CardInstanceState card, CombatantState owner)
         {
             if (owner == null)
@@ -17,14 +42,13 @@ namespace Grimhand.Battle.Rules
                 switch (action.Type)
                 {
                     case EffectActionType.DealDamage:
-                        return action.Value + (action.ScaleWithAttack ? owner.Attack : 0);
                     case EffectActionType.GainBlock:
-                        return action.Value + (action.ScaleWithDefense ? owner.Defense : 0);
                     case EffectActionType.Heal:
-                        return action.Value;
+                        return ComputeActionValue(action, owner);
                     case EffectActionType.ApplyStatus:
                         return action.Stacks;
                     case EffectActionType.DrawCardsNextTurn:
+                    case EffectActionType.DrawCards:
                         return action.Value;
                 }
             }
@@ -66,6 +90,7 @@ namespace Grimhand.Battle.Rules
                     case EffectActionType.ApplyStatus:
                         return "状态";
                     case EffectActionType.DrawCardsNextTurn:
+                    case EffectActionType.DrawCards:
                         return "抽牌";
                     case EffectActionType.ReflectLastDamageToAttacker:
                         return "反射";

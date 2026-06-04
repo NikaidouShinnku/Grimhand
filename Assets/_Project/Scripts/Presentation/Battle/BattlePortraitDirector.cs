@@ -94,6 +94,7 @@ namespace Grimhand.Presentation.Battle
             foreach (var view in _portraits.Values)
                 view?.ForceSettleHome();
 
+            _session.PresentationSnapshot?.ClearAllBlock();
             _playing = false;
             _playback = null;
             _screen?.HideActiveCard();
@@ -124,6 +125,9 @@ namespace Grimhand.Presentation.Battle
                             card = new CardPlayContext(e.CombatantId, e.CardType, e.CardInstanceId);
                             _screen?.ShowActiveCard(e.CardInstanceId);
                             yield return BeginCardPlay(card);
+                            break;
+                        case BattleEventKind.BlockGained:
+                            ApplySnapshotAfterBlockGain(e.CombatantId, e.Amount);
                             break;
                         case BattleEventKind.DamageApplied:
                             card?.MarkDamage();
@@ -182,6 +186,21 @@ namespace Grimhand.Presentation.Battle
             return IsCombatantPresentationActive(combatantId);
         }
 
+        void ApplySnapshotAfterBlockGain(string combatantId, int amount)
+        {
+            _session.PresentationSnapshot?.ApplyBlockGain(combatantId, amount);
+            _screen?.Refresh();
+        }
+
+        void ApplySnapshotAfterBlockConsumed(string combatantId, int amount)
+        {
+            if (amount <= 0)
+                return;
+
+            _session.PresentationSnapshot?.ApplyBlockConsumed(combatantId, amount);
+            _screen?.Refresh();
+        }
+
         void ApplySnapshotAfterDamage(string combatantId, int amount)
         {
             _session.PresentationSnapshot?.ApplyDamage(combatantId, amount);
@@ -234,6 +253,12 @@ namespace Grimhand.Presentation.Battle
             var hpDamage = e.Amount;
 
             if (blocked)
+                ApplySnapshotAfterBlockConsumed(e.TargetId, e.BlockedAmount);
+
+            if (blocked)
+                target.ShowBlockAbsorbedNumber(e.BlockedAmount);
+
+            if (blocked)
                 yield return target.PlayInPlacePose(PortraitPoseKind.Defense, DefenseReactDuration);
 
             if (hpDamage > 0)
@@ -243,7 +268,11 @@ namespace Grimhand.Presentation.Battle
             }
             else if (blocked)
             {
-                yield return target.PlayBlockedReaction();
+                yield return target.PlayBlockedReaction(e.BlockedAmount);
+            }
+            else
+            {
+                _screen?.Refresh();
             }
         }
 

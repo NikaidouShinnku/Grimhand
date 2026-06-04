@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: BattleUiIconCatalog_Demo
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.BattleUiIconCatalogSO
   HpIcon: {fileID: -902086654454736923, guid: 85a3b83ffa465b143884cc56d859e300, type: 3}
-  ArmorIcon: {fileID: -3393594479042761946, guid: 17fd391a135211143be094f16f17c846, type: 3}
+  ArmorIcon: {fileID: 5291307626468107416, guid: 6a61f325487f0364f9ad0448c7088153, type: 3}
   AttackIcon: {fileID: 4413183947946236502, guid: 96a6add9c4fb41544854b545cbd11624, type: 3}
   DefenseIcon: {fileID: -3393594479042761946, guid: 17fd391a135211143be094f16f17c846, type: 3}
   SpeedIcon: {fileID: 7652682938272544106, guid: ee07d130bf02d374594858f8f917a92b, type: 3}

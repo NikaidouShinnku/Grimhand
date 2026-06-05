@@ -129,7 +129,8 @@ namespace Grimhand.Presentation.Battle
             CaptureHomeIfNeeded();
             RestoreHomePosition();
 
-            var target = centerWorld;
+            // 仅 X 轴移到战场中央，Y 保持与站位时相同水平线。
+            var target = new Vector3(centerWorld.x, _homeWorldPosition.y, _homeWorldPosition.z);
             yield return TweenWorldPosition(portraitRoot, target, MoveDuration);
         }
 

@@ -3,6 +3,7 @@ using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Reactions;
 using Grimhand.Battle.Rules;
+using Grimhand.Core;
 
 namespace Grimhand.Battle.Effects
 {
@@ -16,14 +17,23 @@ namespace Grimhand.Battle.Effects
             CardType cardType,
             System.Collections.Generic.List<BattleEvent> events,
             bool canTriggerParry = true,
+            bool isSacrificeDamage = false,
+            BattleRng rng = null,
             string logSuffix = "")
         {
             if (target == null)
                 return;
 
-            var outgoing = PositionRules.GetDamageMultiplier(actor.Slot);
-            var incoming = PositionRules.GetIncomingDamageMultiplier(target.Slot);
-            var raw = (int)Math.Round(power * outgoing * incoming);
+            var relicMul = RelicBattleRules.GetOutgoingDamageMultiplier(state, actor, cardType, isSacrificeDamage);
+            var adjustedPower = (int)Math.Round(power * relicMul);
+            if (adjustedPower < 1 && power > 0)
+                adjustedPower = 1;
+
+            RelicBattleRules.MarkFirstAttackConsumed(state, actor, cardType);
+
+            var outgoing = PositionRules.GetDamageMultiplier(PositionRules.GetEffectiveSlot(state, actor));
+            var incoming = PositionRules.GetIncomingDamageMultiplier(PositionRules.GetEffectiveSlot(state, target));
+            var raw = (int)Math.Round(adjustedPower * outgoing * incoming);
             var blocked = Math.Min(target.Block, raw);
             target.Block -= blocked;
             var hpDamage = raw - blocked;
@@ -37,7 +47,23 @@ namespace Grimhand.Battle.Effects
                 if (stance.DamageReductionPercent > 0)
                     hpDamage = (int)Math.Round(beforeReduction * (100 - stance.DamageReductionPercent) / 100f);
                 if (stance.ReflectPercent > 0)
-                    reflectPower = (int)Math.Round(power * stance.ReflectPercent / 100f);
+                    reflectPower = (int)Math.Round(adjustedPower * stance.ReflectPercent / 100f);
+            }
+
+            if (hpDamage > 0 && rng != null)
+            {
+                var mods = state.Config?.RunModifiers;
+                if (RelicBattleRules.TryWarriorBlockOnHit(target, mods, rng))
+                {
+                    var relicBlock = Math.Min(hpDamage, mods.WarriorBlockAmountOnHit);
+                    hpDamage -= relicBlock;
+                    blocked += relicBlock;
+                    events.Add(new BattleEvent(BattleEventKind.BlockGained, $"{target.DisplayName} 不动明王格挡")
+                    {
+                        CombatantId = target.Id,
+                        Amount = relicBlock
+                    });
+                }
             }
 
             var wasAlive = target.IsAlive;
@@ -66,7 +92,7 @@ namespace Grimhand.Battle.Effects
                 });
 
                 ApplyDamage(state, target, actor, reflectPower, cardType, events,
-                    canTriggerParry: false, logSuffix: " (反射)");
+                    canTriggerParry: false, rng: rng, logSuffix: " (反射)");
             }
 
             if (killed)
@@ -89,16 +115,25 @@ namespace Grimhand.Battle.Effects
             });
         }
 
-        public static void ApplyHeal(CombatantState actor, int amount, System.Collections.Generic.List<BattleEvent> events)
+        public static void ApplyHeal(
+            BattleState state,
+            CombatantState actor,
+            int amount,
+            System.Collections.Generic.List<BattleEvent> events)
         {
+            var mods = state?.Config?.RunModifiers;
+            var boosted = RelicBattleRules.ApplyHealBonus(mods, amount);
             var before = actor.Hp;
-            actor.Hp = Math.Min(actor.MaxHp, actor.Hp + amount);
+            actor.Hp = Math.Min(actor.MaxHp, actor.Hp + boosted);
             var healed = actor.Hp - before;
             events.Add(new BattleEvent(BattleEventKind.HealApplied, actor.DisplayName)
             {
                 CombatantId = actor.Id,
                 Amount = healed
             });
+
+            if (healed > 0 && mods != null && mods.HealGrantsBlock > 0)
+                ApplyBlock(actor, mods.HealGrantsBlock, events);
         }
     }
 }

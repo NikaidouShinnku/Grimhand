@@ -3,6 +3,7 @@ using System.Text;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
 using Grimhand.Content;
+using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 using UnityEngine;
 using UnityEngine.UI;
@@ -95,7 +96,20 @@ namespace Grimhand.Presentation.Battle
             else
                 sb.AppendLine("【金币】 —");
 
-            sb.AppendLine("【遗物】 暂无");
+            sb.AppendLine("【遗物】");
+            if (_session.IsExpeditionMode && _session.Expedition.Run.Relics.Count > 0)
+            {
+                foreach (var relicId in _session.Expedition.Run.Relics)
+                {
+                    if (RelicDatabase.TryGet(relicId, out var relic))
+                        sb.AppendLine($"  · {relic.DisplayName} — {relic.Description}");
+                    else
+                        sb.AppendLine($"  · {relicId}");
+                }
+            }
+            else
+                sb.AppendLine("  暂无");
+
             sb.AppendLine();
 
             sb.AppendLine("【角色】");
@@ -106,8 +120,11 @@ namespace Grimhand.Presentation.Battle
                     continue;
 
                 wrotePlayer = true;
+                var xpLine = _session.IsExpeditionMode
+                    ? $"  {CharacterProgression.FormatXpLine(unit.Level, unit.Xp)}"
+                    : "";
                 sb.AppendLine(
-                    $"{unit.DisplayName}  Lv.{unit.Level}  " +
+                    $"{unit.DisplayName}  Lv.{unit.Level}{xpLine}  " +
                     $"HP {unit.Hp}/{unit.MaxHp}  攻{unit.Attack}  防{unit.Defense}  " +
                     $"速{StatusRules.GetEffectiveSpeed(unit)}");
             }
@@ -126,7 +143,9 @@ namespace Grimhand.Presentation.Battle
                 sb.AppendLine();
                 sb.AppendLine("【远征队伍】");
                 foreach (var m in _session.Expedition.Run.Party)
-                    sb.AppendLine($"{m.DisplayName}  Lv.{m.Level}  HP {m.Hp}/{m.MaxHp}");
+                    sb.AppendLine(
+                        $"{m.DisplayName}  Lv.{m.Level}  {CharacterProgression.FormatXpLine(m.Level, m.Xp)}  " +
+                        $"HP {m.Hp}/{m.MaxHp}");
             }
 
             return sb.ToString().TrimEnd();

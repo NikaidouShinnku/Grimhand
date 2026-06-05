@@ -258,7 +258,36 @@ namespace Grimhand.Battle
             var bonusDraw = _state.PendingDrawNextTurn;
             _state.PendingDrawNextTurn = 0;
 
-            DeckRules.DrawCards(_state, TeamSide.Player, _rng, _state.Config.CardsDrawnPerTurn + bonusDraw, _events);
+            var backRowDraw = 0;
+            var mods = _state.Config?.RunModifiers;
+            foreach (var c in _state.Combatants)
+                backRowDraw += RelicBattleRules.GetBackRowExtraDraw(_state, c, mods);
+
+            if (mods != null && mods.RandomDiscardEachTurn && _state.PlayerHand.Count > 0)
+            {
+                var idx = _rng.NextIndex(_state.PlayerHand.Count);
+                var discarded = _state.PlayerHand[idx];
+                _state.PlayerHand.RemoveAt(idx);
+                _state.PlayerDiscardPile.Add(discarded);
+                _events.Add(new BattleEvent(BattleEventKind.CardDiscarded, $"混沌之心弃牌：{discarded.DisplayName}"));
+            }
+
+            if (mods != null && mods.ScryDrawPileCount > 0 && _state.PlayerDrawPile.Count > 0)
+            {
+                var count = System.Math.Min(mods.ScryDrawPileCount, _state.PlayerDrawPile.Count);
+                var names = new System.Text.StringBuilder();
+                for (var i = 0; i < count; i++)
+                {
+                    if (i > 0)
+                        names.Append("、");
+                    names.Append(_state.PlayerDrawPile[i].DisplayName);
+                }
+
+                _events.Add(new BattleEvent(BattleEventKind.CardDrawn, $"深渊之眼：即将抽到 {names}"));
+            }
+
+            DeckRules.DrawCards(_state, TeamSide.Player, _rng,
+                _state.Config.CardsDrawnPerTurn + bonusDraw + backRowDraw, _events);
             DeckRules.DrawCards(_state, TeamSide.Enemy, _rng, _state.Config.CardsDrawnPerTurn, _events);
         }
 
@@ -319,13 +348,20 @@ namespace Grimhand.Battle
         void Initialize(BattleConfig config)
         {
             _state.Config = config;
-            _state.EnergyMax = config.EnergyCap;
+            _state.EnergyMax = config.EnergyCap + (config.RunModifiers?.ExtraEnergyCap ?? 0);
             _state.TurnNumber = 1;
             _state.IsFirstPlayerTurn = true;
             _state.Outcome = BattleOutcome.Ongoing;
 
+            if (config.RunModifiers != null)
+                config.RunModifiers.FirstPlayerAttackPending = true;
+
+            var deckRng = new BattleRng(config.Seed ^ 0x5DEECE66);
+
             foreach (var cc in config.Combatants)
             {
+                PrepareCombatantDeck(cc, deckRng);
+
                 var combatant = new CombatantState
                 {
                     Id = cc.Id,
@@ -334,12 +370,12 @@ namespace Grimhand.Battle
                     Slot = cc.Slot,
                     CharacterDefinitionId = cc.CharacterDefinitionId,
                     Level = cc.Level,
+                    Xp = cc.Xp,
                     MaxHp = cc.MaxHp,
                     BaseAttack = cc.BaseAttack,
                     BaseDefense = cc.BaseDefense,
                     Speed = cc.Speed
                 };
-                CombatantRules.RefreshDerivedStats(combatant);
                 var startHp = cc.StartHp ?? cc.MaxHp;
                 combatant.Hp = System.Math.Max(0, System.Math.Min(startHp, cc.MaxHp));
                 _state.Combatants.Add(combatant);
@@ -352,6 +388,10 @@ namespace Grimhand.Battle
                 }
             }
 
+            RelicBattleRules.RefreshAllDerivedStats(_state);
+
+            ApplyBattleStartRelicEffects(config.RunModifiers);
+
             foreach (var combatant in _state.Combatants)
             {
                 if (!combatant.IsAlive)
@@ -361,6 +401,35 @@ namespace Grimhand.Battle
             DeckRules.ShuffleDrawPile(_state, TeamSide.Player, _rng, _events);
             DeckRules.ShuffleDrawPile(_state, TeamSide.Enemy, _rng, _events);
             EvaluateOutcome();
+        }
+
+        static void PrepareCombatantDeck(CombatantConfig cc, BattleRng deckRng)
+        {
+            if (!cc.UseRandomSkillPool || cc.SkillPoolCandidates.Count == 0)
+                return;
+
+            cc.DeckTemplates.Clear();
+            var built = EnemyDeckBuilder.BuildRandomDeck(
+                cc.SkillPoolCandidates,
+                deckRng,
+                cc.RandomDeckSize,
+                cc.RandomSkillPickMin,
+                cc.RandomSkillPickMax);
+            cc.DeckTemplates.AddRange(built);
+        }
+
+        void ApplyBattleStartRelicEffects(RunModifierSnapshot mods)
+        {
+            if (mods == null || mods.BattleStartTeamHeal <= 0)
+                return;
+
+            foreach (var c in _state.Combatants)
+            {
+                if (c.Team != TeamSide.Player || !c.IsAlive)
+                    continue;
+
+                DamageRules.ApplyHeal(_state, c, mods.BattleStartTeamHeal, _events);
+            }
         }
 
         CardInstanceState CreateCardInstance(CardTemplate template)

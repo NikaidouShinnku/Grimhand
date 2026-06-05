@@ -16,7 +16,13 @@ namespace Grimhand.Battle.Model
         public int Speed { get; set; }
         /// <summary>不为 null 时作为开战 HP（远征跨场继承）；仍受 MaxHp 上限约束。</summary>
         public int? StartHp { get; set; }
+        public int Xp { get; set; }
         public List<CardTemplate> DeckTemplates { get; } = new();
+        public List<CardTemplate> SkillPoolCandidates { get; } = new();
+        public bool UseRandomSkillPool { get; set; }
+        public int RandomDeckSize { get; set; } = 8;
+        public int RandomSkillPickMin { get; set; } = 2;
+        public int RandomSkillPickMax { get; set; } = 4;
     }
 
     public sealed class BattleConfig
@@ -28,5 +34,6 @@ namespace Grimhand.Battle.Model
         public int CardsDrawnPerTurn { get; set; } = 5;
         public List<CombatantConfig> Combatants { get; } = new();
         public Dictionary<string, CardTemplate> CardCatalog { get; } = new();
+        public RunModifierSnapshot RunModifiers { get; set; } = RunModifierSnapshot.Empty;
     }
 }

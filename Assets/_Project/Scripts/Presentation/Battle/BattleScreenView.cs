@@ -516,8 +516,9 @@ namespace Grimhand.Presentation.Battle
                 }
             }
 
-            RefreshSlotRow(enemySlots, state, awaitingCard != null, validTargets, _session.PresentationSnapshot);
-            RefreshSlotRow(playerSlots, state, awaitingCard != null, validTargets, _session.PresentationSnapshot);
+            RefreshSlotRow(enemySlots, state, awaitingCard != null, validTargets, _session.PresentationSnapshot, showExpBar: false);
+            RefreshSlotRow(playerSlots, state, awaitingCard != null, validTargets, _session.PresentationSnapshot,
+                showExpBar: _session.IsExpeditionMode);
         }
 
         void RefreshSlotRow(
@@ -525,13 +526,14 @@ namespace Grimhand.Presentation.Battle
             BattleState state,
             bool targetMode,
             List<CombatantState> validTargets,
-            PresentationSnapshot presentation)
+            PresentationSnapshot presentation,
+            bool showExpBar)
         {
             if (slots == null)
                 return;
 
             foreach (var slot in slots)
-                slot?.Refresh(state, targetMode, validTargets, _characterVisuals, _uiIcons, presentation);
+                slot?.Refresh(state, targetMode, validTargets, _characterVisuals, _uiIcons, presentation, showExpBar);
         }
 
         void RefreshActionTimeline(BattleState state, PlanningDraft draft)
@@ -875,10 +877,10 @@ namespace Grimhand.Presentation.Battle
                 if (pick == null || string.IsNullOrEmpty(pick.PortraitView?.CombatantId))
                     continue;
 
-                return pick.GetDuelReferenceWorldPosition();
+                return pick.GetFeetWorldPosition();
             }
 
-            return slots[idx]?.GetDuelReferenceWorldPosition();
+            return slots[idx]?.GetFeetWorldPosition();
         }
 
         static Vector3? GetTeamDuelReference(CombatantSlotView[] slots) => GetTeamFeetReference(slots);

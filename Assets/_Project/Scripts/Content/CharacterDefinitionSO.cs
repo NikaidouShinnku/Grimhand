@@ -17,5 +17,10 @@ namespace Grimhand.Content
         public int BaseDefense = 2;
         public int Speed = 5;
         public List<CardDefinitionSO> Deck = new();
+        [Tooltip("敌人技能池；非空时开战从池中随机 2-4 种技能组成 deck。")]
+        public List<CardDefinitionSO> SkillPool = new();
+        public int EnemyRandomDeckSize = 8;
+        public int EnemySkillPickMin = 2;
+        public int EnemySkillPickMax = 4;
     }
 }

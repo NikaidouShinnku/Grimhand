@@ -1,0 +1,34 @@
+---
+description: Grimhand 远征经验、遗物与怪物技能池
+globs: Assets/_Project/Scripts/Expedition/**/*,Assets/_Project/Scripts/Battle/**/*
+alwaysApply: false
+---
+
+# 远征系统（经验 / 遗物 / 怪物池）
+
+## 经验
+- 公式：`CharacterProgression.XpRequiredForLevel` — 升到 Lv.N 需 `(N-2)×3+8` XP
+- 运行时：`PartyMemberSnapshot.Level` + `Xp`；战后 `ExpeditionEngine.OnBattleFinished` → `GrantXpToParty`
+- 属性：`CharacterProgression.GetStatsForCharacter(charId, level)` 写入下一场 `CombatantConfig`
+- UI：远征模式下悬停详情框内「经验 x/y」右侧进度条；背包 `BattleInventoryPanelView`
+
+## 遗物
+- 定义：`Expedition/RelicDatabase.cs`（12 个，对齐策划表）
+- 运行时：`ExpeditionRunState.Relics`（string id 列表）；`StartRun` 清空
+- 战斗：`RelicDatabase.BuildModifiers` → `BattleConfig.RunModifiers` → `RelicBattleRules` / `DamageRules`
+- 发放：`ExpeditionEngine.TryAddRelic(relicId)`（精英/商店/事件层接入）
+
+## 怪物技能池
+- SO：`CharacterDefinitionSO.SkillPool`（2–4 张候选）
+- 开战：`BattleConfig.UseRandomSkillPool` + `EnemyDeckBuilder.BuildRandomDeck`（种子 = battle seed）
+- 内容生成：`Grimhand → Content → Generate Demo ScriptableObjects` 会跑 `MonsterContentGenerator`
+- 立绘：`CharacterVisualCatalog_Demo` 映射 goblin/slime/skeleton/skeleton2/wraith/wraith2
+
+## 阵型（有效前中后排）
+- 物理槽位 `CombatantState.Slot` 不变（UI 站位、换位技能仍按物理格）
+- 规则层 `PositionRules.GetEffectiveSlot`：同队存活者按物理 Front→Middle→Back 排序，依次占有效前/中/后排
+- 影响：伤害倍率、目标 Reach、槽位技能解析、后排减伤%、遗物前排防/后排抽牌；死亡后 `CombatantDeathRules` 会 `RefreshAllDerivedStats`
+
+## 勿做
+- 不要把遗物做成装备槽；全场被动直到 run 结束
+- 单局战斗（无 Expedition）不显示经验条、不应用 RunModifiers

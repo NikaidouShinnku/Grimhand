@@ -14,7 +14,8 @@ namespace Grimhand.Expedition
                 EnergyCap = source.EnergyCap,
                 TurnStartEnergyRegen = source.TurnStartEnergyRegen,
                 HandLimit = source.HandLimit,
-                CardsDrawnPerTurn = source.CardsDrawnPerTurn
+                CardsDrawnPerTurn = source.CardsDrawnPerTurn,
+                RunModifiers = CloneModifiers(source.RunModifiers)
             };
 
             foreach (var cc in source.Combatants)
@@ -27,15 +28,23 @@ namespace Grimhand.Expedition
                     Slot = cc.Slot,
                     CharacterDefinitionId = cc.CharacterDefinitionId,
                     Level = cc.Level,
+                    Xp = cc.Xp,
                     MaxHp = cc.MaxHp,
                     BaseAttack = cc.BaseAttack,
                     BaseDefense = cc.BaseDefense,
                     Speed = cc.Speed,
-                    StartHp = cc.StartHp
+                    StartHp = cc.StartHp,
+                    UseRandomSkillPool = cc.UseRandomSkillPool,
+                    RandomDeckSize = cc.RandomDeckSize,
+                    RandomSkillPickMin = cc.RandomSkillPickMin,
+                    RandomSkillPickMax = cc.RandomSkillPickMax
                 };
 
                 foreach (var template in cc.DeckTemplates)
                     copy.DeckTemplates.Add(CloneTemplate(template));
+
+                foreach (var template in cc.SkillPoolCandidates)
+                    copy.SkillPoolCandidates.Add(CloneTemplate(template));
 
                 clone.Combatants.Add(copy);
             }
@@ -46,11 +55,13 @@ namespace Grimhand.Expedition
         public static BattleConfig BuildEncounter(
             BattleConfig encounterTemplate,
             IReadOnlyList<PartyMemberSnapshot> party,
+            IReadOnlyList<string> relicIds,
             int battleSeed,
             bool applyPartyHp)
         {
             var config = CloneTemplate(encounterTemplate);
             config.Seed = battleSeed;
+            config.RunModifiers = RelicDatabase.BuildModifiers(relicIds);
 
             if (!applyPartyHp || party == null || party.Count == 0)
                 return config;
@@ -65,13 +76,26 @@ namespace Grimhand.Expedition
                     if (member.CharacterDefinitionId != cc.CharacterDefinitionId)
                         continue;
 
-                    cc.StartHp = member.Hp;
-                    cc.Level = CharacterProgression.ClampLevel(member.Level);
+                    ApplyPartyProgress(cc, member);
                     break;
                 }
             }
 
             return config;
+        }
+
+        public static void ApplyPartyProgress(CombatantConfig cc, PartyMemberSnapshot member)
+        {
+            cc.Level = CharacterProgression.ClampLevel(member.Level);
+            cc.Xp = member.Xp;
+            cc.StartHp = member.Hp;
+
+            var stats = CharacterProgression.GetStatsForCharacter(member.CharacterDefinitionId, cc.Level);
+            cc.MaxHp = stats.MaxHp;
+            cc.BaseAttack = stats.BaseAttack;
+            cc.BaseDefense = stats.BaseDefense;
+            cc.Speed = stats.Speed;
+            member.MaxHp = stats.MaxHp;
         }
 
         public static List<PartyMemberSnapshot> CaptureParty(BattleState state)
@@ -87,12 +111,63 @@ namespace Grimhand.Expedition
                     CharacterDefinitionId = c.CharacterDefinitionId,
                     DisplayName = c.DisplayName,
                     Level = CharacterProgression.ClampLevel(c.Level),
+                    Xp = c.Xp,
                     Hp = c.Hp,
                     MaxHp = c.MaxHp
                 });
             }
 
             return party;
+        }
+
+        public static void GrantXpToParty(List<PartyMemberSnapshot> party, int amount)
+        {
+            if (party == null || amount <= 0)
+                return;
+
+            foreach (var member in party)
+            {
+                var before = CharacterProgression.GetStatsForCharacter(member.CharacterDefinitionId, member.Level);
+                var result = CharacterProgression.AddXp(member.Level, member.Xp, amount);
+                member.Level = result.Level;
+                member.Xp = result.Xp;
+
+                if (result.LevelsGained <= 0)
+                    continue;
+
+                var after = CharacterProgression.GetStatsForCharacter(member.CharacterDefinitionId, member.Level);
+                var hpGain = after.MaxHp - before.MaxHp;
+                member.MaxHp = after.MaxHp;
+                if (hpGain > 0)
+                    member.Hp = System.Math.Min(member.MaxHp, member.Hp + hpGain);
+            }
+        }
+
+        static RunModifierSnapshot CloneModifiers(RunModifierSnapshot source)
+        {
+            if (source == null)
+                return RunModifierSnapshot.Empty;
+
+            return new RunModifierSnapshot
+            {
+                TeamAttackBonus = source.TeamAttackBonus,
+                FrontDefenseBonus = source.FrontDefenseBonus,
+                BackRowExtraDrawPerTurn = source.BackRowExtraDrawPerTurn,
+                BattleStartTeamHeal = source.BattleStartTeamHeal,
+                GoldBonusPercent = source.GoldBonusPercent,
+                SacrificeDamageBonusPercent = source.SacrificeDamageBonusPercent,
+                HealBonusPercent = source.HealBonusPercent,
+                HealGrantsBlock = source.HealGrantsBlock,
+                WarriorBlockChanceOnHit = source.WarriorBlockChanceOnHit,
+                WarriorBlockAmountOnHit = source.WarriorBlockAmountOnHit,
+                FirstAttackDamageBonusPercent = source.FirstAttackDamageBonusPercent,
+                ExtraEnergyCap = source.ExtraEnergyCap,
+                RandomDiscardEachTurn = source.RandomDiscardEachTurn,
+                DeathCardsSkipPolluteTurns = source.DeathCardsSkipPolluteTurns,
+                DeathCardsSkipPolluteDuration = source.DeathCardsSkipPolluteDuration,
+                ScryDrawPileCount = source.ScryDrawPileCount,
+                FirstPlayerAttackPending = true
+            };
         }
 
         static CardTemplate CloneTemplate(CardTemplate source)

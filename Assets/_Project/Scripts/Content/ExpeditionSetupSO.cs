@@ -22,6 +22,9 @@ namespace Grimhand.Content
         [Tooltip("普通战斗胜利金币上限（含）。")]
         public int GoldMaxPerVictory = 25;
 
+        [Tooltip("普通战斗胜利每场 XP（每名存活角色）。")]
+        public int XpPerVictory = 16;
+
         [Tooltip("普通战斗遭遇；Demo 可只填一张并复用。")]
         public List<BattleSetupSO> CombatEncounters = new();
 
@@ -37,7 +40,8 @@ namespace Grimhand.Content
                 TargetBattleCount = TargetBattleCount,
                 RoutesPerVictory = RoutesPerVictory,
                 GoldMinPerVictory = GoldMinPerVictory,
-                GoldMaxPerVictory = GoldMaxPerVictory
+                GoldMaxPerVictory = GoldMaxPerVictory,
+                XpPerVictory = XpPerVictory
             };
 
             foreach (var encounter in CombatEncounters)

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 
@@ -27,44 +28,70 @@ namespace Grimhand.Battle.Rules
             }
         }
 
+        /// <summary>
+        /// 按物理站位排序后，存活者从前到后依次占据前/中/后排（死亡则后续顺位前移）。
+        /// </summary>
+        public static FormationSlot GetEffectiveSlot(BattleState state, CombatantState combatant)
+        {
+            if (combatant == null)
+                return FormationSlot.Front;
+
+            var rank = GetEffectiveRank(state, combatant);
+            if (rank < 0)
+                return combatant.Slot;
+
+            return RankToSlot(rank);
+        }
+
+        public static List<CombatantState> GetAliveSortedByPhysicalSlot(BattleState state, TeamSide team)
+        {
+            var list = new List<CombatantState>();
+            foreach (var c in state.GetTeam(team))
+            {
+                if (c.IsAlive)
+                    list.Add(c);
+            }
+
+            list.Sort((a, b) => ((int)a.Slot).CompareTo((int)b.Slot));
+            return list;
+        }
+
+        public static int GetEffectiveRank(BattleState state, CombatantState combatant)
+        {
+            if (state == null || combatant == null || !combatant.IsAlive)
+                return -1;
+
+            var alive = GetAliveSortedByPhysicalSlot(state, combatant.Team);
+            for (var i = 0; i < alive.Count; i++)
+            {
+                if (alive[i].Id == combatant.Id)
+                    return i;
+            }
+
+            return -1;
+        }
+
+        static FormationSlot RankToSlot(int rank) =>
+            rank switch
+            {
+                0 => FormationSlot.Front,
+                1 => FormationSlot.Middle,
+                _ => FormationSlot.Back
+            };
+
         public static CombatantState PickDefaultTarget(BattleState state, TeamSide attackerTeam)
         {
             var targetTeam = attackerTeam == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
-            CombatantState front = null;
-            CombatantState middle = null;
-            CombatantState back = null;
-
-            foreach (var c in state.GetTeam(targetTeam))
-            {
-                if (!c.IsAlive)
-                    continue;
-
-                switch (c.Slot)
-                {
-                    case FormationSlot.Front: front = c; break;
-                    case FormationSlot.Middle: middle = c; break;
-                    case FormationSlot.Back: back = c; break;
-                }
-            }
-
-            if (front != null) return front;
-            if (middle != null) return middle;
-            return back;
+            var alive = GetAliveSortedByPhysicalSlot(state, targetTeam);
+            return alive.Count > 0 ? alive[0] : null;
         }
 
         public static CombatantState PickCombatantInSlot(BattleState state, TeamSide team, FormationSlot slot)
         {
-            foreach (var c in state.GetTeam(team))
-            {
-                if (c.IsAlive && c.Slot == slot)
-                    return c;
-            }
-
-            foreach (var c in state.GetTeam(team))
-            {
-                if (c.IsAlive)
-                    return c;
-            }
+            var alive = GetAliveSortedByPhysicalSlot(state, team);
+            var rank = (int)slot - (int)FormationSlot.Front;
+            if (rank >= 0 && rank < alive.Count)
+                return alive[rank];
 
             return null;
         }
@@ -73,7 +100,7 @@ namespace Grimhand.Battle.Rules
             BattleState state,
             CombatantState actor,
             int slotOffset,
-            System.Collections.Generic.List<BattleEvent> events)
+            List<BattleEvent> events)
         {
             var desired = (int)actor.Slot + slotOffset;
             if (desired < 1) desired = 1;
@@ -103,17 +130,19 @@ namespace Grimhand.Battle.Rules
             });
         }
 
-        /// <summary>同一阵型线中，比 target 更深的一格（Front→Middle→Back）。</summary>
+        /// <summary>有效阵型中，比 target 更深的一格（Front→Middle→Back）。</summary>
         public static CombatantState GetCombatantBehind(BattleState state, CombatantState target)
         {
-            if (target == null)
+            if (target == null || !target.IsAlive)
                 return null;
 
-            var next = (int)target.Slot + 1;
-            if (next > (int)FormationSlot.Back)
+            var alive = GetAliveSortedByPhysicalSlot(state, target.Team);
+            var rank = GetEffectiveRank(state, target);
+            var nextRank = rank + 1;
+            if (nextRank < 0 || nextRank >= alive.Count)
                 return null;
 
-            return PickCombatantInSlot(state, target.Team, (FormationSlot)next);
+            return alive[nextRank];
         }
 
         public static string GetOwnerCombatantId(BattleState state, CardInstanceState card)

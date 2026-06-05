@@ -11,7 +11,9 @@ namespace Grimhand.Expedition
         public int TargetBattleCount { get; set; } = 3;
         public int Gold { get; set; }
         public int LastGoldReward { get; set; }
+        public int LastXpReward { get; set; }
         public List<PartyMemberSnapshot> Party { get; } = new();
+        public List<string> Relics { get; } = new();
         public List<ExpeditionRouteOption> PendingRoutes { get; } = new();
         public BattleConfig CurrentBattleConfig { get; set; }
     }

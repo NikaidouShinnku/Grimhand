@@ -13,6 +13,8 @@ namespace Grimhand.Expedition.Model
 
         public int GoldMaxPerVictory { get; set; } = 25;
 
+        public int XpPerVictory { get; set; } = 16;
+
         public List<BattleConfig> CombatEncounters { get; } = new();
     }
 }

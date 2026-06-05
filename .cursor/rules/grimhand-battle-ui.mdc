@@ -20,7 +20,7 @@ alwaysApply: false
 |------|------|
 | 比例锚点、HudChromeRoot、Stage/手牌/意图/按钮 | `BattleUiLayoutRuntimeFix.cs` |
 | 立绘脚线、缩放、脚边血量 | `CombatantSlotView.cs`（`PlayerFeetLine` / `EnemyFeetLine`） |
-| 决斗动画中心 | `BattleScreenView.GetDuelCenterWorldPosition()` → `GetDuelReferenceWorldPosition()` |
+| 决斗动画中心 | `BattleScreenView.GetDuelCenterWorldPosition()`（仅取 X）；`CombatantPortraitView.MoveToCenter` **保持 home Y** |
 | 出牌牌面 | `BattleActiveCardBanner` 挂在 `HandArea` 中央 |
 | 演出手牌冻结 | `PresentationSnapshot` + `HandPanelView` 隐藏 scroll |
 
@@ -28,7 +28,7 @@ alwaysApply: false
 
 - **调玩家高低**：只改 `CombatantSlotView.PlayerFeetLine` 与 `PlayerPortraitExtraDownPx`、`PlayerStatusDropPx`。
 - **调敌人血量**：改 `EnemyStatusDropPx`。
-- **动画位置已满意时**：不要改 `DuelReferenceFeetLine`；它故意与玩家视觉脚线 decouple。
+- **动画位置**：`MoveToCenter` 只改 X，Y/Z 用 `_homeWorldPosition`；勿用敌我脚线 Y 的平均值（敌人脚线更高会把角色顶上去）。
 - **Awake / 布局顺序**：必须先 `ApplyStatusAnchorLayout`（脚底 pivot），再 `ApplyPortraitMirror`（缩放）；否则场景里 `anchoredPosition.y=58` 的旧值会看起来「完全没动」。
 - **`ApplyIfNeeded` 必须**对 `battleScreenRoot` 调 `ApplyPortraitScale`，不能只指望 `HudChromeRoot` 子树。
 - **不要**给 HUD 面板加 nested Canvas；用 `HudChromeRoot`（sortOrder 45）统一抬层。
@@ -42,4 +42,4 @@ alwaysApply: false
 
 1. 只改常量 → Play 4K 截图
 2. 若被覆盖，grep 同名 RectTransform / `anchoredPosition` / `SetParent`
-3. 动画问题：查 `GetDuelReferenceWorldPosition` 与 `MoveToCenter` 用的是脚底还是身高比例
+3. 动画问题：查 `MoveToCenter` 是否只水平位移；`GetDuelCenterWorldPosition` 只负责 X

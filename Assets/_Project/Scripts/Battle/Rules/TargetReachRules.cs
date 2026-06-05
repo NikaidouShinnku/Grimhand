@@ -39,7 +39,7 @@ namespace Grimhand.Battle.Rules
             return hasPick ? reach : TargetReach.Any;
         }
 
-        public static bool CanPickUnit(CardInstanceState card, CombatantState target)
+        public static bool CanPickUnit(BattleState state, CardInstanceState card, CombatantState target)
         {
             if (target == null || !target.IsAlive)
                 return false;
@@ -52,19 +52,24 @@ namespace Grimhand.Battle.Rules
                 if (!CardRules.ActionRequiresCharacterPickForReach(action))
                     continue;
 
-                if (!IsSlotAllowed(action.Reach, target.Slot))
+                var effective = PositionRules.GetEffectiveSlot(state, target);
+                if (!IsSlotAllowed(action.Reach, effective))
                     return false;
             }
 
             return true;
         }
 
-        public static int AdjustPowerForTarget(EffectActionSpec action, CombatantState target, int power)
+        public static int AdjustPowerForTarget(
+            BattleState state,
+            EffectActionSpec action,
+            CombatantState target,
+            int power)
         {
             if (target == null || action.BackRowPowerPercent >= 100)
                 return power;
 
-            if (target.Slot != FormationSlot.Back)
+            if (PositionRules.GetEffectiveSlot(state, target) != FormationSlot.Back)
                 return power;
 
             return System.Math.Max(1, (int)System.Math.Round(power * action.BackRowPowerPercent / 100f));

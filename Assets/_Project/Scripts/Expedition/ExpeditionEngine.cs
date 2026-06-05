@@ -46,7 +46,9 @@ namespace Grimhand.Expedition
             _run.BattlesWon = 0;
             _run.Gold = 0;
             _run.LastGoldReward = 0;
+            _run.LastXpReward = 0;
             _run.Party.Clear();
+            _run.Relics.Clear();
             _run.PendingRoutes.Clear();
             _run.CurrentBattleConfig = BuildBattleFromEncounter(0, applyPartyHp: false);
         }
@@ -71,7 +73,11 @@ namespace Grimhand.Expedition
 
             _run.BattlesWon++;
             _run.LastGoldReward = ExpeditionEconomy.RollVictoryGold(_config, _rng);
+            _run.LastGoldReward = ApplyGoldRelicBonus(_run.LastGoldReward);
             _run.Gold += _run.LastGoldReward;
+
+            _run.LastXpReward = _config.XpPerVictory > 0 ? _config.XpPerVictory : 16;
+            ExpeditionBattleConfigBuilder.GrantXpToParty(_run.Party, _run.LastXpReward);
 
             if (_run.BattlesWon >= _run.TargetBattleCount)
             {
@@ -99,7 +105,28 @@ namespace Grimhand.Expedition
             return true;
         }
 
+        public bool TryAddRelic(string relicId)
+        {
+            if (string.IsNullOrEmpty(relicId) || !RelicDatabase.TryGet(relicId, out _))
+                return false;
+
+            if (_run.Relics.Contains(relicId))
+                return false;
+
+            _run.Relics.Add(relicId);
+            return true;
+        }
+
         public int CurrentBattleNumber => _run.BattlesWon + 1;
+
+        int ApplyGoldRelicBonus(int baseGold)
+        {
+            var mods = RelicDatabase.BuildModifiers(_run.Relics);
+            if (mods.GoldBonusPercent <= 0f)
+                return baseGold;
+
+            return (int)System.Math.Round(baseGold * (1f + mods.GoldBonusPercent / 100f));
+        }
 
         void GenerateRouteOptions()
         {
@@ -135,6 +162,7 @@ namespace Grimhand.Expedition
             return ExpeditionBattleConfigBuilder.BuildEncounter(
                 template,
                 _run.Party,
+                _run.Relics,
                 seed,
                 applyPartyHp);
         }

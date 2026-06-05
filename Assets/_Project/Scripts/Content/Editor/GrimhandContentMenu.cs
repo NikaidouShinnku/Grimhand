@@ -29,7 +29,7 @@ namespace Grimhand.Content.Editor
             EnsureFolder(Root + "/Setups");
 
             var players = BalanceV2ContentGenerator.GeneratePlayerContent();
-            var enemies = CreateEnemyCharacters(CreateEnemyCards());
+            var monsters = MonsterContentGenerator.Generate();
 
             var setup = AssetDatabase.LoadAssetAtPath<BattleSetupSO>(SetupPath);
             if (setup == null)
@@ -43,9 +43,13 @@ namespace Grimhand.Content.Editor
             setup.Combatants.AddRange(new[]
             {
                 players.Warrior, players.Pharaoh, players.Demon,
-                enemies.Brute, enemies.Shaman, enemies.Archer
+                monsters.Goblin, monsters.Skeleton, monsters.Wraith
             });
             EditorUtility.SetDirty(setup);
+
+            var visualCatalog = AssetDatabase.LoadAssetAtPath<CharacterVisualCatalogSO>(
+                Root + "/CharacterVisualCatalog_Demo.asset");
+            MonsterContentGenerator.UpdateVisualCatalog(visualCatalog);
 
             const string expeditionPath = Root + "/Setups/ExpeditionSetup_Demo.asset";
             var expedition = AssetDatabase.LoadAssetAtPath<ExpeditionSetupSO>(expeditionPath);

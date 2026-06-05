@@ -11,6 +11,7 @@ namespace Grimhand.Battle.Model
         public string CharacterDefinitionId { get; set; } = "";
 
         public int Level { get; set; } = 1;
+        public int Xp { get; set; }
         public int MaxHp { get; set; }
         public int Hp { get; set; }
         public int BaseAttack { get; set; }

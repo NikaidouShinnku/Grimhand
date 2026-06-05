@@ -197,6 +197,9 @@ namespace Grimhand.Presentation.Battle
             return true;
         }
 
+        public bool TryGrantRelic(string relicId) =>
+            Expedition?.TryAddRelic(relicId) ?? false;
+
         public void RestartRunOrBattle()
         {
             if (IsExpeditionMode)
@@ -259,6 +262,7 @@ namespace Grimhand.Presentation.Battle
             {
                 case ExpeditionPhase.RouteSelect:
                     AddLog($"第 {Expedition.Run.BattlesWon} 场胜利 — +{Expedition.Run.LastGoldReward} 金币（合计 {Expedition.Run.Gold}）");
+                    AddLog($"全队获得 {Expedition.Run.LastXpReward} 经验");
                     AddLog("请选择前进路线");
                     AddLog(BattleUiFormatters.FormatPartySummary(Expedition.Run.Party, Expedition.Run.Gold));
                     break;

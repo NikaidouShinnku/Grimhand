@@ -1,6 +1,7 @@
-using Grimhand.Content;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
+using Grimhand.Content;
+using Grimhand.Expedition;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -17,13 +18,11 @@ namespace Grimhand.Presentation.Battle
 
         const float PlayerPortraitScale = 2.28f;
         const float EnemyPortraitScale = 1.28f;
-        /// <summary>玩家立绘脚线（槽内比例）。仅影响静态站位，勿改 <see cref="DuelReferenceFeetLine"/>。</summary>
+        /// <summary>玩家立绘脚线（槽内比例）。</summary>
         const float PlayerFeetLine = 0.02f;
         const float EnemyFeetLine = 0.13f;
         /// <summary>在脚线锚点基础上，玩家立绘额外下移（Canvas 本地像素）。</summary>
         const float PlayerPortraitExtraDownPx = -52f;
-        /// <summary>决斗动画中心用的脚线；与当前动画观感绑定，改玩家站位时不要动。</summary>
-        const float DuelReferenceFeetLine = 0.13f;
         const float PortraitTop = 0.82f;
         const float PlayerStatusDropPx = 10f;
         const float EnemyStatusDropPx = 10f;
@@ -56,6 +55,7 @@ namespace Grimhand.Presentation.Battle
         bool _targetMode;
         bool _isValidTarget;
         bool _displayAlive = true;
+        bool _showExpBar;
         Vector3 _basePortraitScale = Vector3.one;
 
         public void Configure(FormationSlot slot, TeamSide teamSide, string rowLabel, bool mirror = false)
@@ -358,18 +358,7 @@ namespace Grimhand.Presentation.Battle
             return transform.position;
         }
 
-        public Vector3 GetDuelReferenceWorldPosition()
-        {
-            var feet = GetFeetWorldPosition();
-            var slotRt = transform as RectTransform;
-            if (slotRt == null)
-                return feet;
-
-            var corners = new Vector3[4];
-            slotRt.GetWorldCorners(corners);
-            var duelFootY = Mathf.Lerp(corners[0].y, corners[1].y, DuelReferenceFeetLine);
-            return new Vector3(feet.x, duelFootY, feet.z);
-        }
+        public Vector3 GetDuelReferenceWorldPosition() => GetFeetWorldPosition();
 
         public void SetSelectHandler(System.Action<string> onSelect)
         {
@@ -392,7 +381,8 @@ namespace Grimhand.Presentation.Battle
             System.Collections.Generic.IReadOnlyList<CombatantState> validTargets,
             CharacterVisualCatalogSO visuals,
             BattleUiIconCatalogSO uiIcons,
-            PresentationSnapshot presentation = null)
+            PresentationSnapshot presentation = null,
+            bool showExpBar = false)
         {
             var unit = FindCombatant(state);
             _currentUnit = unit;
@@ -485,6 +475,8 @@ namespace Grimhand.Presentation.Battle
             statsRow?.Refresh(unit, uiIcons, hpOnly: true, hpOverride, maxHpOverride, blockOverride);
             _portraitView?.SetDamageFloaterBelow(statsRow != null ? statsRow.transform as RectTransform : null);
 
+            _showExpBar = showExpBar;
+
             if (selectButton != null)
             {
                 var hasUnit = unit != null;
@@ -492,14 +484,15 @@ namespace Grimhand.Presentation.Battle
                 selectButton.interactable = hasUnit && (!_targetMode || _isValidTarget);
             }
 
+            var xp = unit?.Xp ?? 0;
             if (!_hovered)
             {
-                _detailPopup?.Refresh(unit, uiIcons);
+                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp);
                 _detailPopup?.SetVisible(false);
             }
             else if (!_targetMode || !_isValidTarget)
             {
-                _detailPopup?.Refresh(unit, uiIcons);
+                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp);
                 _detailPopup?.SetVisible(unit != null);
             }
             else
@@ -604,7 +597,7 @@ namespace Grimhand.Presentation.Battle
             ApplyTargetVisuals();
             if (!_targetMode || !_isValidTarget)
             {
-                _detailPopup?.Refresh(_currentUnit, _currentIcons);
+                _detailPopup?.Refresh(_currentUnit, _currentIcons, _showExpBar, _currentUnit.Xp);
                 _detailPopup?.SetVisible(true);
             }
         }

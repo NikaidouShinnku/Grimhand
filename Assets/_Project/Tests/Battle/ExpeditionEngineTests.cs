@@ -100,6 +100,7 @@ namespace Grimhand.Battle.Tests
             var player = FindPlayer(engine.Run.CurrentBattleConfig, "char_knight");
             Assert.NotNull(player);
             Assert.AreEqual(3, player.Level);
+            Assert.AreEqual(62, player.MaxHp);
             Assert.AreEqual(18, player.StartHp);
         }
 
@@ -133,6 +134,45 @@ namespace Grimhand.Battle.Tests
             engine.OnBattleFinished(state);
 
             Assert.AreEqual(ExpeditionPhase.RunFailed, engine.Run.Phase);
+        }
+
+        [Test]
+        public void Victory_GrantsXpToParty()
+        {
+            var config = BuildConfig();
+            config.XpPerVictory = 16;
+            var engine = new ExpeditionEngine(config);
+            engine.StartRun();
+            CompleteVictory(engine, 25);
+
+            Assert.AreEqual(16, engine.Run.LastXpReward);
+            Assert.AreEqual(16, engine.Run.Party[0].Xp);
+        }
+
+        [Test]
+        public void TryAddRelic_AccumulatesForRun()
+        {
+            var config = BuildConfig();
+            var engine = new ExpeditionEngine(config);
+            engine.StartRun();
+
+            Assert.IsTrue(engine.TryAddRelic(RelicIds.CourageBadge));
+            Assert.AreEqual(1, engine.Run.Relics.Count);
+            Assert.IsFalse(engine.TryAddRelic(RelicIds.CourageBadge));
+        }
+
+        [Test]
+        public void StartRun_ClearsRelicsAndXp()
+        {
+            var config = BuildConfig();
+            var engine = new ExpeditionEngine(config);
+            engine.StartRun();
+            engine.TryAddRelic(RelicIds.LifeSpring);
+            CompleteVictory(engine, 25);
+            engine.StartRun();
+
+            Assert.AreEqual(0, engine.Run.Relics.Count);
+            Assert.AreEqual(0, engine.Run.LastXpReward);
         }
 
         static void CompleteVictory(ExpeditionEngine engine, int hp)

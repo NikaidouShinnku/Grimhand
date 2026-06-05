@@ -69,8 +69,10 @@ namespace Grimhand.Battle.Effects
                 case EffectActionType.DealDamage:
                     if (target != null)
                     {
-                        var primaryPower = TargetReachRules.AdjustPowerForTarget(action, target, value);
-                        DamageRules.ApplyDamage(state, actor, target, primaryPower, card.CardType, events);
+                        var isSacrifice = card.Keywords.Contains("sacrifice");
+                        var primaryPower = TargetReachRules.AdjustPowerForTarget(state, action, target, value);
+                        DamageRules.ApplyDamage(state, actor, target, primaryPower, card.CardType, events,
+                            isSacrificeDamage: isSacrifice, rng: rng);
 
                         if (action.SplashBehindTarget)
                         {
@@ -79,7 +81,7 @@ namespace Grimhand.Battle.Effects
                             {
                                 var splashPower = System.Math.Max(1,
                                     (int)System.Math.Round(primaryPower * action.SplashPowerPercent / 100f));
-                                DamageRules.ApplyDamage(state, actor, behind, splashPower, card.CardType, events);
+                                DamageRules.ApplyDamage(state, actor, behind, splashPower, card.CardType, events, rng: rng);
                             }
                         }
                     }
@@ -89,7 +91,7 @@ namespace Grimhand.Battle.Effects
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Defense, beneficiary.Id, false, 0);
                     break;
                 case EffectActionType.Heal:
-                    DamageRules.ApplyHeal(beneficiary, value, events);
+                    DamageRules.ApplyHeal(state, beneficiary, value, events);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, beneficiary.Id, false, 0);
                     break;
                 case EffectActionType.ApplyStatus:

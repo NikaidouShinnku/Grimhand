@@ -26,6 +26,8 @@ namespace Grimhand.Battle.Rules
                 CombatantId = combatant.Id,
                 Amount = polluted
             });
+
+            RelicBattleRules.RefreshAllDerivedStats(state);
         }
     }
 }

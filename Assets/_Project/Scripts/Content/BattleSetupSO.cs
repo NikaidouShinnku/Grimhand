@@ -42,14 +42,30 @@ namespace Grimhand.Content
                     MaxHp = character.MaxHp,
                     BaseAttack = character.BaseAttack,
                     BaseDefense = character.BaseDefense,
-                    Speed = character.Speed
+                    Speed = character.Speed,
+                    UseRandomSkillPool = character.Team == TeamSide.Enemy && character.SkillPool.Count >= 2,
+                    RandomDeckSize = character.EnemyRandomDeckSize,
+                    RandomSkillPickMin = character.EnemySkillPickMin,
+                    RandomSkillPickMax = character.EnemySkillPickMax
                 };
 
-                foreach (var card in character.Deck)
+                if (cc.UseRandomSkillPool)
                 {
-                    if (card == null)
-                        continue;
-                    cc.DeckTemplates.Add(card.ToTemplate());
+                    foreach (var card in character.SkillPool)
+                    {
+                        if (card == null)
+                            continue;
+                        cc.SkillPoolCandidates.Add(card.ToTemplate());
+                    }
+                }
+                else
+                {
+                    foreach (var card in character.Deck)
+                    {
+                        if (card == null)
+                            continue;
+                        cc.DeckTemplates.Add(card.ToTemplate());
+                    }
                 }
 
                 config.Combatants.Add(cc);

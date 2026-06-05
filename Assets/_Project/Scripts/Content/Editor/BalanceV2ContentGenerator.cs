@@ -29,13 +29,13 @@ namespace Grimhand.Content.Editor
             return new PlayerContent
             {
                 Warrior = SaveCharacter("Character_Knight", "char_knight", "战士", TeamSide.Player,
-                    FormationSlot.Front, 1, 50, 8, 6, 4,
+                    FormationSlot.Front, 1, 50, 8, 6, 7,
                     BuildDeck(cards.Warrior)),
                 Pharaoh = SaveCharacter("Character_Mage", "char_mage", "法老", TeamSide.Player,
-                    FormationSlot.Middle, 1, 40, 6, 4, 6,
+                    FormationSlot.Middle, 1, 40, 6, 4, 5,
                     BuildDeck(cards.Pharaoh)),
                 Demon = SaveCharacter("Character_Ranger", "char_ranger", "恶魔", TeamSide.Player,
-                    FormationSlot.Back, 1, 30, 9, 2, 8,
+                    FormationSlot.Back, 1, 30, 9, 2, 6,
                     BuildDeck(cards.Demon))
             };
         }

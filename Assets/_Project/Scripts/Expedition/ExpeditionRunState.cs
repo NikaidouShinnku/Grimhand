@@ -6,18 +6,26 @@ namespace Grimhand.Expedition
 {
     public sealed class ExpeditionRunState
     {
-        public ExpeditionPhase Phase { get; set; } = ExpeditionPhase.InBattle;
+        public ExpeditionPhase Phase { get; set; } = ExpeditionPhase.RouteSelect;
         public int BattlesWon { get; set; }
-        public int TargetBattleCount { get; set; } = 3;
+        public int TargetBattleCount { get; set; } = 9;
         public int Gold { get; set; }
         public int LastGoldReward { get; set; }
         public int LastXpReward { get; set; }
+        public string LastEventMessage { get; set; } = "";
         public List<PartyMemberSnapshot> Party { get; } = new();
         public List<string> Relics { get; } = new();
+        public HashSet<string> UsedEventIds { get; } = new();
+        public HashSet<string> EventFlags { get; } = new();
+        public List<ConsumableStack> Consumables { get; } = new();
+        public ExpeditionRunModifiers Modifiers { get; } = new();
+        public ExpeditionMapState Map { get; set; }
         public int MiracleLeafUsesRemaining { get; set; } = -1;
         public List<ExpeditionRouteOption> PendingRoutes { get; } = new();
         public BattleConfig CurrentBattleConfig { get; set; }
         public ExpeditionVictoryRewards PendingVictoryRewards { get; set; }
         public ExpeditionChestReward PendingChestReward { get; set; }
+        public ExpeditionPendingEvent PendingEvent { get; set; }
+        public ExpeditionPendingShrine PendingShrine { get; set; }
     }
 }

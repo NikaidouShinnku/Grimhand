@@ -58,12 +58,16 @@ namespace Grimhand.Expedition
             IReadOnlyList<string> relicIds,
             int battleSeed,
             bool applyPartyHp,
-            int miracleLeafUsesRemaining = -1)
+            int miracleLeafUsesRemaining = -1,
+            int floor = 1,
+            ExpeditionRunModifiers expeditionModifiers = null)
         {
             var config = CloneTemplate(encounterTemplate);
             config.Seed = battleSeed;
             config.RunModifiers = RelicDatabase.BuildModifiers(relicIds);
             config.MiracleLeafRevivesRemaining = miracleLeafUsesRemaining;
+
+            ApplyEnemyFloorScaling(config, floor, battleSeed);
 
             if (applyPartyHp && party != null && party.Count > 0)
             {
@@ -77,7 +81,7 @@ namespace Grimhand.Expedition
                         if (member.CharacterDefinitionId != cc.CharacterDefinitionId)
                             continue;
 
-                        ApplyPartyProgress(cc, member);
+                        ApplyPartyProgress(cc, member, expeditionModifiers);
                         ApplyBonusCards(cc, member);
                         break;
                     }
@@ -85,6 +89,21 @@ namespace Grimhand.Expedition
             }
 
             return config;
+        }
+
+        static void ApplyEnemyFloorScaling(BattleConfig config, int floor, int battleSeed)
+        {
+            if (floor <= 1)
+                return;
+
+            var rng = new Core.BattleRng(battleSeed ^ unchecked((int)0xE11E0001));
+            foreach (var cc in config.Combatants)
+            {
+                if (cc.Team != TeamSide.Enemy)
+                    continue;
+
+                EnemyFloorScaling.Apply(cc, floor, rng);
+            }
         }
 
         static void ApplyBonusCards(CombatantConfig cc, PartyMemberSnapshot member)
@@ -101,7 +120,10 @@ namespace Grimhand.Expedition
             }
         }
 
-        public static void ApplyPartyProgress(CombatantConfig cc, PartyMemberSnapshot member)
+        public static void ApplyPartyProgress(
+            CombatantConfig cc,
+            PartyMemberSnapshot member,
+            ExpeditionRunModifiers expeditionModifiers = null)
         {
             cc.Level = CharacterProgression.ClampLevel(member.Level);
             cc.Xp = member.Xp;
@@ -109,8 +131,8 @@ namespace Grimhand.Expedition
 
             var stats = CharacterProgression.GetStatsForCharacter(member.CharacterDefinitionId, cc.Level);
             cc.MaxHp = stats.MaxHp;
-            cc.BaseAttack = stats.BaseAttack;
-            cc.BaseDefense = stats.BaseDefense;
+            cc.BaseAttack = stats.BaseAttack + (expeditionModifiers?.TeamAttackBonus ?? 0);
+            cc.BaseDefense = stats.BaseDefense + (expeditionModifiers?.TeamDefenseBonus ?? 0);
             cc.Speed = stats.Speed;
             member.MaxHp = stats.MaxHp;
         }

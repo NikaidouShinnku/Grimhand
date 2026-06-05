@@ -15,7 +15,7 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
-        public void SecondTurn_RegenThreeUpToMax()
+        public void SecondTurn_RegenFourUpToMax()
         {
             var state = new Model.BattleState
             {
@@ -23,8 +23,9 @@ namespace Grimhand.Battle.Tests
                 EnergyCurrent = 3,
                 EnergyMax = 8
             };
+            state.Config.TurnStartEnergyRegen = 4;
             EnergyRules.ApplyTurnStartRegen(state);
-            Assert.AreEqual(6, state.EnergyCurrent);
+            Assert.AreEqual(7, state.EnergyCurrent);
         }
 
         [Test]

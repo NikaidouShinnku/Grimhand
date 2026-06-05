@@ -237,7 +237,7 @@ namespace Grimhand.Presentation.Battle
             ClearDoorRow();
             var run = _session.Expedition.Run;
             _headerText.text =
-                $"选择前进路线（{run.BattlesWon}/{run.TargetBattleCount}）\n" +
+                $"选择前进路线（第 {run.Map?.NodesCompleted + 1 ?? run.BattlesWon + 1}/{run.Map?.ChapterLayerCount ?? run.TargetBattleCount} 层）\n" +
                 BattleUiFormatters.FormatPartySummary(run.Party, run.Gold);
 
             var routes = run.PendingRoutes;

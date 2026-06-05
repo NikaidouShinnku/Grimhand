@@ -6,6 +6,9 @@ namespace Grimhand.Expedition.Model
         VictoryRewards,
         RouteSelect,
         TreasureLoot,
+        EventChoice,
+        ShrineChoice,
+        ShopVisit,
         RunComplete,
         RunFailed
     }

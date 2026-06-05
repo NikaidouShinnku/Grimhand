@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.BattleSetupSO
   Seed: 0
   EnergyCap: 8
-  TurnStartEnergyRegen: 3
+  TurnStartEnergyRegen: 4
   HandLimit: 8
   CardsDrawnPerTurn: 5
   Combatants:

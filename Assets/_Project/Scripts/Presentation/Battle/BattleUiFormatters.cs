@@ -907,7 +907,9 @@ namespace Grimhand.Presentation.Battle
                 case ExpeditionNodeType.Elite: return "精英";
                 case ExpeditionNodeType.Treasure: return "宝箱";
                 case ExpeditionNodeType.Event: return "事件";
-                case ExpeditionNodeType.Shop: return "商店";
+                case ExpeditionNodeType.Shop: return "商人";
+                case ExpeditionNodeType.Shrine: return "祭坛";
+                case ExpeditionNodeType.Boss: return "Boss";
                 default: return type.ToString();
             }
         }

@@ -25,6 +25,7 @@ namespace Grimhand.Presentation.Battle
         const float InventoryButtonSize = 56f;
         const float InventoryGap = 8f;
         const float TurnLogButtonGap = 6f;
+        const float MapButtonGap = 6f;
         const float EnergyHudWidth = 132f;
         const float EnergyHudHeight = 56f;
 
@@ -131,6 +132,7 @@ namespace Grimhand.Presentation.Battle
             ReparentIfFound(battleScreenRoot, chromeRoot, "EnergyHud");
             ReparentIfFound(battleScreenRoot, chromeRoot, "InventoryButton");
             ReparentIfFound(battleScreenRoot, chromeRoot, "TurnLogButton");
+            ReparentIfFound(battleScreenRoot, chromeRoot, "MapButton");
         }
 
         static void ReparentIfFound(Transform battleScreenRoot, RectTransform chromeRoot, string name)
@@ -175,7 +177,6 @@ namespace Grimhand.Presentation.Battle
             if (intent != null)
             {
                 StripNestedCanvas(intent.gameObject);
-                intent.gameObject.SetActive(true);
                 PinBottomRight(intent, IntentPanelRight, CardRowBottom, IntentPanelWidth, IntentPanelHeight);
                 var intentBg = intent.GetComponent<Image>();
                 if (intentBg != null)
@@ -205,7 +206,6 @@ namespace Grimhand.Presentation.Battle
             if (actions != null)
             {
                 StripNestedCanvas(actions.gameObject);
-                actions.gameObject.SetActive(true);
                 PinBottomRight(actions, IntentPanelRight, UpperRowBottom, PlanningActionsWidth, PlanningActionsHeight);
                 var actionsBg = actions.GetComponent<Image>();
                 if (actionsBg != null)
@@ -360,6 +360,15 @@ namespace Grimhand.Presentation.Battle
             PinBottomLeft(turnLogButton, InventoryGap, fromBottom, InventoryButtonSize, InventoryButtonSize);
         }
 
+        public static void LayoutMapButton(RectTransform mapButton)
+        {
+            if (mapButton == null)
+                return;
+
+            var fromBottom = CardRowBottom + InventoryButtonSize + TurnLogButtonGap + InventoryButtonSize + MapButtonGap;
+            PinBottomLeft(mapButton, InventoryGap, fromBottom, InventoryButtonSize, InventoryButtonSize);
+        }
+
         public static void RefreshBottomHud(Transform battleScreenRoot)
         {
             if (battleScreenRoot == null)
@@ -369,6 +378,7 @@ namespace Grimhand.Presentation.Battle
             LayoutEnergyHud(chromeRoot.Find("EnergyHud") as RectTransform);
             LayoutInventoryButton(chromeRoot.Find("InventoryButton") as RectTransform);
             LayoutTurnLogButton(chromeRoot.Find("TurnLogButton") as RectTransform);
+            LayoutMapButton(chromeRoot.Find("MapButton") as RectTransform);
             FixHandArea(chromeRoot.Find("HandArea"));
             ApplyBottomRowLayout(chromeRoot);
             EnsureBottomHudDrawOrder(battleScreenRoot, chromeRoot);

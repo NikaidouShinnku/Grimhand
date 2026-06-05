@@ -305,7 +305,7 @@ namespace Grimhand.Battle
         {
             SetPhase(TurnPhase.Planning);
 
-            var enemyTurn = EnemyTurnPlanner.PrepareEnemyTurn(_state, _rng, energyBudget: 3);
+            var enemyTurn = EnemyTurnPlanner.PrepareEnemyTurn(_state, _rng);
             _state.EnemyPlan.PlayQueue.Clear();
             _state.EnemyPlan.PlayQueue.AddRange(enemyTurn.Plan.PlayQueue);
             _state.EnemyPlan.EnergySpent = enemyTurn.Plan.EnergySpent;

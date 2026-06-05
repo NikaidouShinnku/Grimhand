@@ -59,7 +59,7 @@ namespace Grimhand.Presentation.Battle
                 var turnHint = state.Phase == TurnPhase.Planning && !presenting
                     ? $" · 回合 {state.TurnNumber}"
                     : presenting ? " · 出牌中" : "";
-                handCountLabel.text = $"手牌 {handSource.Count}/{state.Config.HandLimit}{turnHint}";
+                handCountLabel.text = $"{handSource.Count}/{state.Config.HandLimit}{turnHint}";
             }
 
             var handCards = ResolveHandCards(state, session);

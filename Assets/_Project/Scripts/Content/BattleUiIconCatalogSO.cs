@@ -16,6 +16,8 @@ namespace Grimhand.Content
         public Sprite ConfirmPlayIcon;
         public Sprite SkipIcon;
         public Sprite NoteIcon;
+        public Sprite MapIcon;
+        public Sprite UnknownPathIcon;
         public Sprite CaveBackground;
         public Sprite[] CavePathVariants = System.Array.Empty<Sprite>();
     }

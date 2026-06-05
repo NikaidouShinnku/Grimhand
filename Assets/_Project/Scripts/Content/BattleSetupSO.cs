@@ -10,7 +10,7 @@ namespace Grimhand.Content
         [Tooltip("战斗随机种子；0 表示每场开局随机。")]
         public int Seed = 0;
         public int EnergyCap = 8;
-        public int TurnStartEnergyRegen = 3;
+        public int TurnStartEnergyRegen = 4;
         public int HandLimit = 8;
         public int CardsDrawnPerTurn = 5;
         public List<CharacterDefinitionSO> Combatants = new();

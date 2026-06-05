@@ -3,7 +3,7 @@ namespace Grimhand.Battle.Rules
     public static class EnergyRules
     {
         public const int DefaultMax = 8;
-        public const int DefaultTurnRegen = 3;
+        public const int DefaultTurnRegen = 4;
 
         public static void ApplyTurnStartRegen(Model.BattleState state)
         {

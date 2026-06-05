@@ -13,9 +13,10 @@ namespace Grimhand.Battle.AI
 
     public static class EnemyTurnPlanner
     {
-        public static EnemyTurnPlanResult PrepareEnemyTurn(BattleState state, BattleRng rng, int energyBudget = 3)
+        public static EnemyTurnPlanResult PrepareEnemyTurn(BattleState state, BattleRng rng, int? energyBudget = null)
         {
             var result = new EnemyTurnPlanResult();
+            var budget = energyBudget ?? state.Config?.TurnStartEnergyRegen ?? EnergyRules.DefaultTurnRegen;
             var spent = 0;
 
             var candidates = new List<CardInstanceState>();
@@ -32,11 +33,19 @@ namespace Grimhand.Battle.AI
                 candidates.Add(card);
             }
 
-            candidates.Sort((a, b) => a.Cost.CompareTo(b.Cost));
+            candidates.Sort((a, b) =>
+            {
+                var costCmp = a.Cost.CompareTo(b.Cost);
+                if (costCmp != 0)
+                    return costCmp;
+
+                var nameCmp = string.Compare(a.DisplayName, b.DisplayName, System.StringComparison.Ordinal);
+                return nameCmp != 0 ? nameCmp : a.InstanceId.CompareTo(b.InstanceId);
+            });
 
             foreach (var card in candidates)
             {
-                if (spent + card.Cost > energyBudget)
+                if (spent + card.Cost > budget)
                     continue;
 
                 result.Plan.PlayQueue.Add(card.InstanceId);

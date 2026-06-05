@@ -27,6 +27,7 @@ namespace Grimhand.Presentation.Battle
         RectTransform _damageFloaterAnchor;
         string _characterDefinitionId;
         TeamSide _team;
+        Sprite _referenceSprite;
         Vector3 _homeWorldPosition;
         bool _homeCaptured;
         bool _isDead;
@@ -66,6 +67,7 @@ namespace Grimhand.Presentation.Battle
             CombatantId = combatantId;
             _characterDefinitionId = characterDefinitionId;
             _team = team;
+            RefreshReferenceSprite();
 
             if (isAlive)
             {
@@ -324,8 +326,7 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             _poseFlipX = false;
-            EnsurePortraitImageStable();
-            portraitImage.sprite = _visuals.GetPortrait(_characterDefinitionId);
+            ApplyPortraitSprite(_visuals.GetPortrait(_characterDefinitionId));
             portraitImage.color = Color.white;
         }
 
@@ -338,9 +339,43 @@ namespace Grimhand.Presentation.Battle
             if (pose == PortraitPoseKind.Hit && faceCenter)
                 _poseFlipX = _team == TeamSide.Player;
 
-            EnsurePortraitImageStable();
-            portraitImage.sprite = _visuals.GetPoseSprite(_characterDefinitionId, pose);
+            ApplyPortraitSprite(_visuals.GetPoseSprite(_characterDefinitionId, pose));
             portraitImage.color = _isDead ? DeadTint : Color.white;
+        }
+
+        void RefreshReferenceSprite()
+        {
+            _referenceSprite = _visuals != null
+                ? _visuals.GetPortraitReference(_characterDefinitionId)
+                : null;
+        }
+
+        void ApplyPortraitSprite(Sprite sprite)
+        {
+            if (portraitImage == null)
+                return;
+
+            EnsurePortraitImageStable();
+            portraitImage.sprite = sprite;
+            ApplySpriteFitScale(sprite);
+        }
+
+        void ApplySpriteFitScale(Sprite sprite)
+        {
+            if (portraitImage == null)
+                return;
+
+            var scale = 1f;
+            if (sprite != null && _referenceSprite != null)
+            {
+                var refSize = _referenceSprite.rect.size;
+                var size = sprite.rect.size;
+                if (size.x > 0.01f && size.y > 0.01f)
+                    scale = Mathf.Min(refSize.x / size.x, refSize.y / size.y);
+            }
+
+            var flipX = _poseFlipX ? -1f : 1f;
+            portraitImage.rectTransform.localScale = new Vector3(flipX * scale, scale, 1f);
         }
 
         void EnsurePortraitImageStable()
@@ -356,7 +391,6 @@ namespace Grimhand.Presentation.Battle
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
             rt.anchoredPosition = Vector2.zero;
-            rt.localScale = _poseFlipX ? new Vector3(-1f, 1f, 1f) : Vector3.one;
         }
 
         IEnumerator IdleLoop(IReadOnlyList<Sprite> frames)
@@ -368,7 +402,7 @@ namespace Grimhand.Presentation.Battle
             var index = 0;
             while (_idleLoopActive && !_isDead && !_isAnimating)
             {
-                portraitImage.sprite = frames[index];
+                ApplyPortraitSprite(frames[index]);
                 portraitImage.color = Color.white;
                 index = (index + 1) % frames.Count;
                 yield return new WaitForSeconds(IdleFrameInterval);

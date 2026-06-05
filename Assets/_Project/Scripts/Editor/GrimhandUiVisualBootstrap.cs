@@ -9,6 +9,7 @@ namespace Grimhand.Editor
     {
         public const string IconCatalogPath = "Assets/_Project/Data/BattleUiIconCatalog_Demo.asset";
         public const string CardCatalogPath = "Assets/_Project/Data/CardVisualCatalog_Demo.asset";
+        public const string UnknownPathFullSpriteName = "unknown_path_1";
         const string IconRoot = "Assets/The Grimhands Asset/icon/";
         const string CardRoot = "Assets/The Grimhands Asset/card/";
 
@@ -48,6 +49,22 @@ namespace Grimhand.Editor
             catalog.InventoryIcon = LoadFirstSprite(IconRoot + "inventory.png");
             catalog.ConfirmPlayIcon = LoadFirstSprite(IconRoot + "check.png");
             catalog.SkipIcon = LoadFirstSprite(IconRoot + "pass.png");
+            catalog.NoteIcon = LoadFirstSprite(IconRoot + "note.png");
+            catalog.MapIcon = LoadFirstSprite(IconRoot + "map.png");
+            catalog.UnknownPathIcon = LoadNamedSprite(
+                "Assets/The Grimhands Asset/path and background/unknown_path.png",
+                UnknownPathFullSpriteName);
+            catalog.CaveBackground = LoadFirstSprite("Assets/The Grimhands Asset/path and background/cave_background.png");
+
+            var paths = new System.Collections.Generic.List<Sprite>();
+            for (var i = 1; i <= 5; i++)
+            {
+                var sprite = LoadFirstSprite($"Assets/The Grimhands Asset/path and background/cave_path{i}.png");
+                if (sprite != null)
+                    paths.Add(sprite);
+            }
+
+            catalog.CavePathVariants = paths.ToArray();
 
             EditorUtility.SetDirty(catalog);
         }
@@ -136,6 +153,26 @@ namespace Grimhand.Editor
             }
 
             return null;
+        }
+
+        static Sprite LoadNamedSprite(string assetPath, string spriteName)
+        {
+            if (string.IsNullOrEmpty(assetPath) || string.IsNullOrEmpty(spriteName))
+                return LoadFirstSprite(assetPath);
+
+            var assets = AssetDatabase.LoadAllAssetsAtPath(assetPath);
+            Sprite fallback = null;
+            foreach (var asset in assets)
+            {
+                if (asset is not Sprite sprite)
+                    continue;
+
+                fallback ??= sprite;
+                if (sprite.name == spriteName)
+                    return sprite;
+            }
+
+            return fallback;
         }
 
         static void EnsureFolder(string path)

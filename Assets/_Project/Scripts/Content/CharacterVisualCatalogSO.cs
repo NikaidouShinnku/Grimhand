@@ -53,10 +53,23 @@ namespace Grimhand.Content
 
         public Sprite GetPortrait(string characterDefinitionId)
         {
+            var frames = GetIdleAnimationFrames(characterDefinitionId);
+            if (frames.Count > 0)
+                return frames[0];
+
             var entry = GetEntry(characterDefinitionId);
             if (entry?.IdlePortrait != null)
                 return entry.IdlePortrait;
             return DefaultPortrait;
+        }
+
+        public Sprite GetPortraitReference(string characterDefinitionId)
+        {
+            var frames = GetIdleAnimationFrames(characterDefinitionId);
+            if (frames.Count > 0)
+                return frames[0];
+
+            return GetPortrait(characterDefinitionId);
         }
 
         public Sprite GetPoseSprite(string characterDefinitionId, PortraitPoseKind pose)

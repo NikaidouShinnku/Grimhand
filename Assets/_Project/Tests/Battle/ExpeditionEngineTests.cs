@@ -8,11 +8,22 @@ namespace Grimhand.Battle.Tests
     public class ExpeditionEngineTests
     {
         [Test]
+        public void StartRun_OpensRouteSelectWithGeneratedMap()
+        {
+            var engine = new ExpeditionEngine(BuildConfig());
+            engine.StartRun();
+
+            Assert.AreEqual(ExpeditionPhase.RouteSelect, engine.Run.Phase);
+            Assert.NotNull(engine.Run.Map);
+            Assert.Greater(engine.Run.PendingRoutes.Count, 0);
+        }
+
+        [Test]
         public void SkipVictoryOptionalRewards_AdvancesToRouteSelectWithoutTakingCard()
         {
-            var config = BuildConfig();
-            var engine = new ExpeditionEngine(config);
+            var engine = new ExpeditionEngine(BuildConfig());
             engine.StartRun();
+            SelectFirstCombatRoute(engine);
             engine.OnBattleFinished(BuildVictoryState());
 
             Assert.IsTrue(engine.TryClaimVictoryGold());
@@ -29,9 +40,9 @@ namespace Grimhand.Battle.Tests
         [Test]
         public void VictoryAfterFirstBattle_OpensVictoryRewardsThenRouteSelect()
         {
-            var config = BuildConfig();
-            var engine = new ExpeditionEngine(config);
+            var engine = new ExpeditionEngine(BuildConfig());
             engine.StartRun();
+            SelectFirstCombatRoute(engine);
 
             var state = BuildVictoryState();
             state.Combatants.Add(new CombatantState
@@ -47,7 +58,7 @@ namespace Grimhand.Battle.Tests
 
             Assert.AreEqual(ExpeditionPhase.VictoryRewards, engine.Run.Phase);
             Assert.AreEqual(1, engine.Run.BattlesWon);
-            Assert.AreEqual(3, engine.Run.PendingRoutes.Count);
+            Assert.AreEqual(1, engine.Run.Map.NodesCompleted);
             Assert.AreEqual(25, engine.Run.Party[0].Hp);
             Assert.AreEqual(0, engine.Run.Gold);
 
@@ -58,9 +69,9 @@ namespace Grimhand.Battle.Tests
         [Test]
         public void SelectRoute_StartsNextBattleWithPartyHp()
         {
-            var config = BuildConfig();
-            var engine = new ExpeditionEngine(config);
+            var engine = new ExpeditionEngine(BuildConfig());
             engine.StartRun();
+            SelectFirstCombatRoute(engine);
 
             var state = BuildVictoryState();
             state.Combatants.Add(new CombatantState
@@ -94,6 +105,7 @@ namespace Grimhand.Battle.Tests
 
             var engine = new ExpeditionEngine(config);
             engine.StartRun();
+            SelectFirstCombatRoute(engine);
             CompleteVictory(engine, 25);
 
             Assert.GreaterOrEqual(engine.Run.LastGoldReward, 15);
@@ -107,9 +119,9 @@ namespace Grimhand.Battle.Tests
         [Test]
         public void SelectRoute_PreservesPartyLevel()
         {
-            var config = BuildConfig();
-            var engine = new ExpeditionEngine(config);
+            var engine = new ExpeditionEngine(BuildConfig());
             engine.StartRun();
+            SelectFirstCombatRoute(engine);
 
             var state = BuildVictoryState();
             state.Combatants.Add(new CombatantState
@@ -133,33 +145,34 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
-        public void ThirdVictory_CompletesRun()
+        public void BossVictory_CompletesRun()
         {
-            var config = BuildConfig();
-            var engine = new ExpeditionEngine(config);
+            var engine = new ExpeditionEngine(BuildConfig());
             engine.StartRun();
 
+            SelectFirstCombatRoute(engine);
             CompleteVictory(engine, 25);
             ResolveVictoryRewards(engine);
+
             SelectFirstCombatRoute(engine);
             CompleteVictory(engine, 20);
             ResolveVictoryRewards(engine);
-            SelectFirstCombatRoute(engine);
+
+            SelectFirstBossRoute(engine);
             CompleteVictory(engine, 12);
             ResolveVictoryRewards(engine);
 
             Assert.AreEqual(ExpeditionPhase.RunComplete, engine.Run.Phase);
             Assert.AreEqual(3, engine.Run.BattlesWon);
-            Assert.GreaterOrEqual(engine.Run.Gold, 45);
-            Assert.LessOrEqual(engine.Run.Gold, 75);
+            Assert.AreEqual(3, engine.Run.Map.NodesCompleted);
         }
 
         [Test]
         public void Defeat_EndsRun()
         {
-            var config = BuildConfig();
-            var engine = new ExpeditionEngine(config);
+            var engine = new ExpeditionEngine(BuildConfig());
             engine.StartRun();
+            SelectFirstCombatRoute(engine);
 
             var state = new BattleState { Outcome = BattleOutcome.PlayerDefeat };
             engine.OnBattleFinished(state);
@@ -170,10 +183,9 @@ namespace Grimhand.Battle.Tests
         [Test]
         public void Victory_GrantsXpToParty()
         {
-            var config = BuildConfig();
-            config.XpPerVictory = 16;
-            var engine = new ExpeditionEngine(config);
+            var engine = new ExpeditionEngine(BuildConfig());
             engine.StartRun();
+            SelectFirstCombatRoute(engine);
             CompleteVictory(engine, 25);
 
             Assert.AreEqual(16, engine.Run.LastXpReward);
@@ -183,8 +195,7 @@ namespace Grimhand.Battle.Tests
         [Test]
         public void TryAddRelic_AccumulatesForRun()
         {
-            var config = BuildConfig();
-            var engine = new ExpeditionEngine(config);
+            var engine = new ExpeditionEngine(BuildConfig());
             engine.StartRun();
 
             Assert.IsTrue(engine.TryAddRelic(RelicIds.FlameSword));
@@ -195,10 +206,10 @@ namespace Grimhand.Battle.Tests
         [Test]
         public void StartRun_ClearsRelicsAndXp()
         {
-            var config = BuildConfig();
-            var engine = new ExpeditionEngine(config);
+            var engine = new ExpeditionEngine(BuildConfig());
             engine.StartRun();
             engine.TryAddRelic(RelicIds.CatStatue);
+            SelectFirstCombatRoute(engine);
             CompleteVictory(engine, 25);
             engine.StartRun();
 
@@ -209,19 +220,46 @@ namespace Grimhand.Battle.Tests
         [Test]
         public void TreasureRoute_OpensTreasureLootPhase()
         {
-            var config = BuildConfig();
-            config.RunSeed = 99;
-            config.CombatRouteWeight = 0;
-            config.TreasureRouteWeight = 100;
-
-            var engine = new ExpeditionEngine(config);
+            var engine = new ExpeditionEngine(BuildConfig());
             engine.StartRun();
-            CompleteVictory(engine, 25);
-            ResolveVictoryRewards(engine);
+
+            engine.Run.PendingRoutes.Clear();
+            engine.Run.PendingRoutes.Add(new ExpeditionRouteOption
+            {
+                NodeType = ExpeditionNodeType.Treasure,
+                LayerNumber = 1,
+                MapOptionIndex = 0,
+                DisplayName = "宝箱",
+                Description = "测试宝箱"
+            });
 
             Assert.IsTrue(engine.TrySelectRoute(0));
             Assert.AreEqual(ExpeditionPhase.TreasureLoot, engine.Run.Phase);
             Assert.NotNull(engine.Run.PendingChestReward);
+        }
+
+        [Test]
+        public void EventChoice_ResolvesAndReturnsToRouteSelect()
+        {
+            var engine = new ExpeditionEngine(BuildConfig());
+            engine.StartRun();
+
+            engine.Run.PendingRoutes.Clear();
+            engine.Run.PendingRoutes.Add(new ExpeditionRouteOption
+            {
+                NodeType = ExpeditionNodeType.Event,
+                EventId = Expedition.Events.ExpeditionEventIds.TrainingDummy,
+                LayerNumber = 1,
+                MapOptionIndex = 0,
+                DisplayName = "训练人偶",
+                Description = "事件"
+            });
+
+            Assert.IsTrue(engine.TrySelectRoute(0));
+            Assert.AreEqual(ExpeditionPhase.EventChoice, engine.Run.Phase);
+            Assert.IsTrue(engine.TryResolveEventChoice(2));
+            Assert.AreEqual(ExpeditionPhase.RouteSelect, engine.Run.Phase);
+            Assert.AreEqual(1, engine.Run.Map.NodesCompleted);
         }
 
         static void CompleteVictory(ExpeditionEngine engine, int hp)
@@ -251,7 +289,8 @@ namespace Grimhand.Battle.Tests
         {
             for (var i = 0; i < engine.Run.PendingRoutes.Count; i++)
             {
-                if (engine.Run.PendingRoutes[i].NodeType == ExpeditionNodeType.Combat)
+                var route = engine.Run.PendingRoutes[i];
+                if (route.NodeType is ExpeditionNodeType.Combat or ExpeditionNodeType.Elite or ExpeditionNodeType.Boss)
                 {
                     engine.TrySelectRoute(i);
                     return;
@@ -259,6 +298,20 @@ namespace Grimhand.Battle.Tests
             }
 
             engine.TrySelectRoute(0);
+        }
+
+        static void SelectFirstBossRoute(ExpeditionEngine engine)
+        {
+            for (var i = 0; i < engine.Run.PendingRoutes.Count; i++)
+            {
+                if (engine.Run.PendingRoutes[i].NodeType == ExpeditionNodeType.Boss)
+                {
+                    engine.TrySelectRoute(i);
+                    return;
+                }
+            }
+
+            SelectFirstCombatRoute(engine);
         }
 
         static BattleState BuildVictoryState()
@@ -271,8 +324,8 @@ namespace Grimhand.Battle.Tests
             var config = new ExpeditionConfig
             {
                 RunSeed = 1,
-                TargetBattleCount = 3,
-                RoutesPerVictory = 3
+                ChapterLayerCount = 3,
+                TargetBattleCount = 2
             };
 
             var encounter = new BattleConfig();

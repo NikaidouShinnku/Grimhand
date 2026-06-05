@@ -10,8 +10,11 @@ namespace Grimhand.Content
         [Tooltip("远征随机种子；0 表示每次开局随机。每场战斗仍单独随机种子。")]
         public int RunSeed = 0;
 
-        [Tooltip("通关所需战斗场数。")]
-        public int TargetBattleCount = 3;
+        [Tooltip("大关层数（顶层为 Boss）。")]
+        public int ChapterLayerCount = 10;
+
+        [Tooltip("通关所需节点数（不含起始选路；默认等于层数-1）。")]
+        public int TargetBattleCount = 9;
 
         [Tooltip("每场胜利后提供的路线数量。")]
         public int RoutesPerVictory = 3;
@@ -50,6 +53,7 @@ namespace Grimhand.Content
             var config = new ExpeditionConfig
             {
                 RunSeed = runSeed,
+                ChapterLayerCount = ChapterLayerCount,
                 TargetBattleCount = TargetBattleCount,
                 RoutesPerVictory = RoutesPerVictory,
                 GoldMinPerVictory = GoldMinPerVictory,

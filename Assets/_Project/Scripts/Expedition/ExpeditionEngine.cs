@@ -1,48 +1,14 @@
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
 using Grimhand.Core;
+using Grimhand.Expedition.Events;
+using Grimhand.Expedition.Map;
 using Grimhand.Expedition.Model;
 
 namespace Grimhand.Expedition
 {
     public sealed class ExpeditionEngine
     {
-        static readonly string[] CombatRouteNamePool =
-        {
-            "暗影通道",
-            "哥布林哨站",
-            "断裂石桥",
-            "低语深坑",
-            "蛮兵营地"
-        };
-
-        static readonly string[] CombatRouteFlavorPool =
-        {
-            "敌人盘踞在前方，避无可避。",
-            "战鼓隐约可闻，冲突一触即发。",
-            "窄道两侧是峭壁，适合埋伏。",
-            "水滴声回荡，危险潜藏在暗处。",
-            "有人在此扎营的痕迹，如今只剩敌人。"
-        };
-
-        static readonly string[] TreasureRouteNamePool =
-        {
-            "尘封侧室",
-            "古老宝箱厅",
-            "发光矿脉",
-            "坍塌藏宝洞",
-            "秘藏龛室"
-        };
-
-        static readonly string[] TreasureRouteFlavorPool =
-        {
-            "门后没有敌人，只有等待开启的宝箱。",
-            "金币在暗处闪光，或许还有别的收获。",
-            "岩壁上镶嵌着宝石，战利品就在深处。",
-            "木箱堆叠在角落，看起来尚未被洗劫。",
-            "空气里有金属与魔法残留的味道。"
-        };
-
         readonly ExpeditionConfig _config;
         readonly BattleRng _rng;
         readonly ExpeditionRunState _run = new();
@@ -51,24 +17,44 @@ namespace Grimhand.Expedition
         {
             _config = config ?? new ExpeditionConfig();
             _rng = new BattleRng(_config.RunSeed);
-            _run.TargetBattleCount = _config.TargetBattleCount > 0 ? _config.TargetBattleCount : 3;
+            _run.TargetBattleCount = _config.TargetBattleCount > 0
+                ? _config.TargetBattleCount
+                : _config.ChapterLayerCount - 1;
         }
 
         public ExpeditionRunState Run => _run;
 
         public void StartRun()
         {
-            _run.Phase = ExpeditionPhase.InBattle;
+            _run.Phase = ExpeditionPhase.RouteSelect;
             _run.BattlesWon = 0;
             _run.Gold = 0;
             _run.LastGoldReward = 0;
             _run.LastXpReward = 0;
+            _run.LastEventMessage = "";
             _run.Party.Clear();
             _run.Relics.Clear();
+            _run.UsedEventIds.Clear();
+            _run.EventFlags.Clear();
+            _run.Consumables.Clear();
+            _run.Modifiers.TeamAttackBonus = 0;
+            _run.Modifiers.TeamDefenseBonus = 0;
+            _run.Modifiers.EnergyCapBonus = 0;
+            _run.Modifiers.NextCombatEnemyAttackBonus = false;
+            _run.Modifiers.ForeseenLayerCount = 0;
+            _run.Modifiers.SkipNextRouteSelect = false;
+            _run.Modifiers.LootedInjuredAdventurer = false;
+            _run.Modifiers.DivinePunishmentActive = false;
             _run.PendingRoutes.Clear();
             _run.PendingVictoryRewards = null;
             _run.PendingChestReward = null;
-            _run.CurrentBattleConfig = BuildBattleFromEncounter(0, applyPartyHp: false);
+            _run.PendingEvent = null;
+            _run.PendingShrine = null;
+            _run.CurrentBattleConfig = null;
+
+            _run.Map = ExpeditionMapGenerator.Generate(_config, _run, _rng);
+            InitPartyFromTemplate();
+            LoadRoutesForNextLayer();
         }
 
         public void OnBattleFinished(BattleState state)
@@ -95,12 +81,15 @@ namespace Grimhand.Expedition
                 return;
 
             _run.BattlesWon++;
-            _run.LastXpReward = _config.XpPerVictory > 0 ? _config.XpPerVictory : 16;
-            ExpeditionBattleConfigBuilder.GrantXpToParty(_run.Party, _run.LastXpReward);
+            CompleteCurrentNode();
 
+            if (_run.Phase == ExpeditionPhase.RunComplete)
+                return;
+
+            _run.LastXpReward = RollCombatXp();
+            ExpeditionBattleConfigBuilder.GrantXpToParty(_run.Party, _run.LastXpReward);
             _run.PendingVictoryRewards = ExpeditionRewardRoller.RollVictoryRewards(_config, _run, _rng);
             _run.LastGoldReward = _run.PendingVictoryRewards.Gold;
-            GenerateRouteOptions();
             _run.Phase = ExpeditionPhase.VictoryRewards;
         }
 
@@ -214,16 +203,113 @@ namespace Grimhand.Expedition
 
             var route = _run.PendingRoutes[routeIndex];
             _run.PendingRoutes.Clear();
+            RecordRouteChoice(route);
 
-            if (route.NodeType == ExpeditionNodeType.Treasure)
+            switch (route.NodeType)
             {
-                _run.PendingChestReward = ExpeditionRewardRoller.RollChestReward(_config, _run, _rng);
-                _run.Phase = ExpeditionPhase.TreasureLoot;
+                case ExpeditionNodeType.Treasure:
+                    _run.PendingChestReward = ExpeditionRewardRoller.RollChestReward(_config, _run, _rng);
+                    _run.Phase = ExpeditionPhase.TreasureLoot;
+                    return true;
+                case ExpeditionNodeType.Event:
+                    _run.PendingEvent = new ExpeditionPendingEvent
+                    {
+                        EventId = route.EventId,
+                        SourceLayer = route.LayerNumber
+                    };
+                    _run.Phase = ExpeditionPhase.EventChoice;
+                    return true;
+                case ExpeditionNodeType.Shrine:
+                    _run.PendingShrine = new ExpeditionPendingShrine
+                    {
+                        ShrineId = route.ShrineId,
+                        SourceLayer = route.LayerNumber
+                    };
+                    _run.Phase = ExpeditionPhase.ShrineChoice;
+                    return true;
+                case ExpeditionNodeType.Shop:
+                    _run.Phase = ExpeditionPhase.ShopVisit;
+                    return true;
+                default:
+                    _run.Phase = ExpeditionPhase.InBattle;
+                    _run.CurrentBattleConfig = BuildBattleFromEncounter(route.EncounterIndex, applyPartyHp: true);
+                    return true;
+            }
+        }
+
+        public bool TryResolveEventChoice(int choiceIndex)
+        {
+            if (_run.Phase != ExpeditionPhase.EventChoice || _run.PendingEvent == null)
+                return false;
+
+            var outcome = ExpeditionEventResolver.ResolveChoice(
+                _run, _config, _run.PendingEvent.EventId, choiceIndex, _rng);
+            _run.LastEventMessage = outcome.Message;
+            _run.PendingEvent = null;
+
+            if (outcome.StartsCombat)
+            {
+                _run.Phase = ExpeditionPhase.InBattle;
+                _run.CurrentBattleConfig = BuildBattleFromEncounter(outcome.CombatEncounterIndex, applyPartyHp: true);
                 return true;
             }
 
-            _run.Phase = ExpeditionPhase.InBattle;
-            _run.CurrentBattleConfig = BuildBattleFromEncounter(route.EncounterIndex, applyPartyHp: true);
+            if (outcome.AdvanceNode)
+                CompleteCurrentNode();
+
+            if (_run.Phase == ExpeditionPhase.RunComplete)
+                return true;
+
+            LoadRoutesForNextLayer();
+            _run.Phase = ExpeditionPhase.RouteSelect;
+            return true;
+        }
+
+        public bool TryResolveShrineChoice(int choiceIndex)
+        {
+            if (_run.Phase != ExpeditionPhase.ShrineChoice || _run.PendingShrine == null)
+                return false;
+
+            var outcome = ExpeditionEventResolver.ResolveShrineChoice(
+                _run, _run.PendingShrine.ShrineId, choiceIndex, _rng);
+            _run.LastEventMessage = outcome.Message;
+            _run.PendingShrine = null;
+            CompleteCurrentNode();
+
+            if (_run.Phase == ExpeditionPhase.RunComplete)
+                return true;
+
+            LoadRoutesForNextLayer();
+            _run.Phase = ExpeditionPhase.RouteSelect;
+            return true;
+        }
+
+        public bool TryResolveShopChoice(int choiceIndex)
+        {
+            if (_run.Phase != ExpeditionPhase.ShopVisit)
+                return false;
+
+            var outcome = ExpeditionEventResolver.ResolveShopChoice(_run, choiceIndex);
+            _run.LastEventMessage = outcome.Message;
+            CompleteCurrentNode();
+
+            if (_run.Phase == ExpeditionPhase.RunComplete)
+                return true;
+
+            LoadRoutesForNextLayer();
+            _run.Phase = ExpeditionPhase.RouteSelect;
+            return true;
+        }
+
+        public bool TryLeaveShop()
+        {
+            if (_run.Phase != ExpeditionPhase.ShopVisit)
+                return false;
+
+            _run.LastEventMessage = "你离开了商店。";
+            CompleteCurrentNode();
+            LoadRoutesForNextLayer();
+            _run.Phase = ExpeditionPhase.RouteSelect;
             return true;
         }
 
@@ -243,7 +329,98 @@ namespace Grimhand.Expedition
             return true;
         }
 
-        public int CurrentBattleNumber => _run.BattlesWon + 1;
+        public int CurrentBattleNumber => _run.Map?.NodesCompleted + 1 ?? _run.BattlesWon + 1;
+
+        void InitPartyFromTemplate()
+        {
+            if (_config.CombatEncounters.Count == 0)
+                return;
+
+            foreach (var cc in _config.CombatEncounters[0].Combatants)
+            {
+                if (cc.Team != TeamSide.Player)
+                    continue;
+
+                var stats = CharacterProgression.GetStatsForCharacter(cc.CharacterDefinitionId, cc.Level);
+                _run.Party.Add(new PartyMemberSnapshot
+                {
+                    CharacterDefinitionId = cc.CharacterDefinitionId,
+                    DisplayName = cc.DisplayName,
+                    Level = CharacterProgression.ClampLevel(cc.Level),
+                    Xp = cc.Xp,
+                    Hp = stats.MaxHp,
+                    MaxHp = stats.MaxHp
+                });
+            }
+        }
+
+        void RecordRouteChoice(ExpeditionRouteOption route)
+        {
+            var layer = _run.Map?.GetLayer(route.LayerNumber);
+            if (layer != null)
+                layer.ChosenOptionIndex = route.MapOptionIndex;
+        }
+
+        void CompleteCurrentNode()
+        {
+            if (_run.Map == null)
+                return;
+
+            _run.Map.NodesCompleted++;
+
+            if (_run.Map.NodesCompleted >= _run.Map.ChapterLayerCount)
+            {
+                _run.Phase = ExpeditionPhase.RunComplete;
+                _run.PendingRoutes.Clear();
+                return;
+            }
+
+            if (_run.Modifiers.SkipNextRouteSelect)
+            {
+                _run.Modifiers.SkipNextRouteSelect = false;
+                _run.Map.NodesCompleted++;
+                if (_run.Map.NodesCompleted >= _run.Map.ChapterLayerCount)
+                {
+                    _run.Phase = ExpeditionPhase.RunComplete;
+                    _run.PendingRoutes.Clear();
+                }
+            }
+        }
+
+        void LoadRoutesForNextLayer()
+        {
+            _run.PendingRoutes.Clear();
+            if (_run.Map == null || _run.Phase == ExpeditionPhase.RunComplete)
+                return;
+
+            var nextLayerNumber = _run.Map.NodesCompleted + 1;
+            var layer = _run.Map.GetLayer(nextLayerNumber);
+            if (layer == null)
+                return;
+
+            if (nextLayerNumber == _run.Map.ChapterLayerCount - 1 && _run.Map.NodesCompleted == _run.Map.ChapterLayerCount - 2)
+                _run.LastEventMessage = "Boss 在前方。";
+
+            for (var i = 0; i < layer.Options.Count; i++)
+                _run.PendingRoutes.Add(ToRouteOption(layer, layer.Options[i], i));
+        }
+
+        static ExpeditionRouteOption ToRouteOption(ExpeditionMapLayer layer, ExpeditionMapOption option, int index) =>
+            new()
+            {
+                Id = $"layer_{layer.LayerNumber}_{index}",
+                DisplayName = option.DisplayName,
+                Description = option.Description,
+                NodeType = option.NodeType,
+                EncounterIndex = option.EncounterIndex,
+                EventId = option.EventId,
+                ShrineId = option.ShrineId,
+                TreasureTier = option.TreasureTier,
+                IsElite = option.IsElite,
+                LayerNumber = layer.LayerNumber,
+                MapOptionIndex = index,
+                PathSpriteIndex = option.PathSpriteIndex
+            };
 
         void TryAdvanceFromVictoryRewards()
         {
@@ -255,14 +432,7 @@ namespace Grimhand.Expedition
                 return;
 
             _run.PendingVictoryRewards = null;
-
-            if (_run.BattlesWon >= _run.TargetBattleCount)
-            {
-                _run.Phase = ExpeditionPhase.RunComplete;
-                _run.PendingRoutes.Clear();
-                return;
-            }
-
+            LoadRoutesForNextLayer();
             _run.Phase = ExpeditionPhase.RouteSelect;
         }
 
@@ -276,7 +446,12 @@ namespace Grimhand.Expedition
                 return;
 
             _run.PendingChestReward = null;
-            GenerateRouteOptions();
+            CompleteCurrentNode();
+
+            if (_run.Phase == ExpeditionPhase.RunComplete)
+                return;
+
+            LoadRoutesForNextLayer();
             _run.Phase = ExpeditionPhase.RouteSelect;
         }
 
@@ -338,40 +513,6 @@ namespace Grimhand.Expedition
             return null;
         }
 
-        void GenerateRouteOptions()
-        {
-            _run.PendingRoutes.Clear();
-            var routeCount = _config.RoutesPerVictory > 0 ? _config.RoutesPerVictory : 3;
-
-            for (var i = 0; i < routeCount; i++)
-            {
-                var nodeType = ExpeditionRewardRoller.RollRouteNodeType(_config, _rng);
-                var encounterIndex = nodeType == ExpeditionNodeType.Combat
-                    ? PickEncounterIndex()
-                    : 0;
-
-                var namePool = nodeType == ExpeditionNodeType.Treasure
-                    ? TreasureRouteNamePool
-                    : CombatRouteNamePool;
-                var flavorPool = nodeType == ExpeditionNodeType.Treasure
-                    ? TreasureRouteFlavorPool
-                    : CombatRouteFlavorPool;
-
-                var nameIndex = _rng.NextIndex(namePool.Length);
-                var flavorIndex = (_rng.NextIndex(flavorPool.Length) + i) % flavorPool.Length;
-
-                _run.PendingRoutes.Add(new ExpeditionRouteOption
-                {
-                    Id = $"route_{_run.BattlesWon}_{i}",
-                    DisplayName = namePool[nameIndex],
-                    Description = flavorPool[flavorIndex],
-                    NodeType = nodeType,
-                    EncounterIndex = encounterIndex,
-                    PathSpriteIndex = ExpeditionRewardRoller.RollPathSpriteIndex(_rng)
-                });
-            }
-        }
-
         BattleConfig BuildBattleFromEncounter(int encounterIndex, bool applyPartyHp)
         {
             if (_config.CombatEncounters.Count == 0)
@@ -380,21 +521,35 @@ namespace Grimhand.Expedition
             var index = encounterIndex % _config.CombatEncounters.Count;
             var template = _config.CombatEncounters[index];
             var seed = _rng.NextInt(1, int.MaxValue);
-            return ExpeditionBattleConfigBuilder.BuildEncounter(
+            var config = ExpeditionBattleConfigBuilder.BuildEncounter(
                 template,
                 _run.Party,
                 _run.Relics,
                 seed,
                 applyPartyHp,
-                _run.MiracleLeafUsesRemaining);
+                _run.MiracleLeafUsesRemaining,
+                CurrentBattleNumber,
+                _run.Modifiers);
+
+            if (_run.Modifiers.DivinePunishmentActive)
+            {
+                foreach (var cc in config.Combatants)
+                {
+                    if (cc.Team != TeamSide.Enemy)
+                        continue;
+
+                    cc.BaseAttack = System.Math.Max(1,
+                        (int)System.Math.Round(cc.BaseAttack * 1.2f, System.MidpointRounding.AwayFromZero));
+                }
+
+                _run.Modifiers.DivinePunishmentActive = false;
+            }
+
+            config.EnergyCap += _run.Modifiers.EnergyCapBonus;
+            config.TurnStartEnergyRegen = System.Math.Max(config.TurnStartEnergyRegen, 4);
+            return config;
         }
 
-        int PickEncounterIndex()
-        {
-            if (_config.CombatEncounters.Count == 0)
-                return 0;
-
-            return _rng.NextIndex(_config.CombatEncounters.Count);
-        }
+        int RollCombatXp() => _config.XpPerVictory > 0 ? _config.XpPerVictory : 16;
     }
 }

@@ -90,7 +90,7 @@ namespace Grimhand.Expedition
                 50 + i * 6,
                 RoundStat(8f + i * 1.5f),
                 RoundStat(6f + i * 1.2f),
-                4);
+                7);
         }
 
         static CharacterStats StatsPharaoh(int level)
@@ -100,7 +100,7 @@ namespace Grimhand.Expedition
                 40 + i * 5,
                 6 + i * 2,
                 RoundStat(4f + i * 0.8f),
-                6);
+                5);
         }
 
         static CharacterStats StatsDemon(int level)
@@ -110,7 +110,7 @@ namespace Grimhand.Expedition
                 30 + i * 4,
                 RoundStat(9f + i * 2.5f),
                 RoundStat(2f + i * 0.3f),
-                8);
+                6);
         }
 
         static int RoundStat(float value) =>

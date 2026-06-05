@@ -6,6 +6,8 @@ namespace Grimhand.Expedition.Model
         Elite,
         Treasure,
         Event,
-        Shop
+        Shop,
+        Shrine,
+        Boss
     }
 }

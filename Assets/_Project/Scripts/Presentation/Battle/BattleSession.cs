@@ -91,8 +91,8 @@ namespace Grimhand.Presentation.Battle
             _log.Clear();
             _turnLog.Reset();
             _battleEndHandled = false;
-            AddLog($"远征开始 — 共 {Expedition.Run.TargetBattleCount} 场 · 血量跨场不恢复");
-            StartExpeditionBattle();
+            AddLog($"远征开始 — 共 {Expedition.Run.Map?.ChapterLayerCount ?? Expedition.Run.TargetBattleCount} 层 · 请先选择路线");
+            NotifyChanged();
         }
 
         public void RestartBattle()
@@ -202,7 +202,74 @@ namespace Grimhand.Presentation.Battle
                 StartExpeditionBattle();
             else if (Expedition.Run.Phase == ExpeditionPhase.TreasureLoot)
                 AddLog("进入宝箱房间");
+            else if (Expedition.Run.Phase == ExpeditionPhase.EventChoice)
+                AddLog("遭遇特殊事件");
+            else if (Expedition.Run.Phase == ExpeditionPhase.ShrineChoice)
+                AddLog("发现祭坛");
+            else if (Expedition.Run.Phase == ExpeditionPhase.ShopVisit)
+                AddLog("遇到流浪商人");
 
+            if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
+                AddLog(Expedition.Run.LastEventMessage);
+
+            NotifyChanged();
+            return true;
+        }
+
+        public bool ResolveEventChoice(int choiceIndex)
+        {
+            if (Expedition?.TryResolveEventChoice(choiceIndex) != true)
+                return false;
+
+            if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
+                AddLog(Expedition.Run.LastEventMessage);
+
+            if (Expedition.Run.Phase == ExpeditionPhase.InBattle)
+                StartExpeditionBattle();
+            else if (Expedition.Run.Phase == ExpeditionPhase.RouteSelect)
+                AddLog("请选择前进路线");
+
+            NotifyChanged();
+            return true;
+        }
+
+        public bool ResolveShrineChoice(int choiceIndex)
+        {
+            if (Expedition?.TryResolveShrineChoice(choiceIndex) != true)
+                return false;
+
+            if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
+                AddLog(Expedition.Run.LastEventMessage);
+
+            if (Expedition.Run.Phase == ExpeditionPhase.RouteSelect)
+                AddLog("请选择前进路线");
+
+            NotifyChanged();
+            return true;
+        }
+
+        public bool ResolveShopChoice(int choiceIndex)
+        {
+            if (Expedition?.TryResolveShopChoice(choiceIndex) != true)
+                return false;
+
+            if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
+                AddLog(Expedition.Run.LastEventMessage);
+
+            if (Expedition.Run.Phase == ExpeditionPhase.RouteSelect)
+                AddLog("请选择前进路线");
+
+            NotifyChanged();
+            return true;
+        }
+
+        public bool LeaveShop()
+        {
+            if (Expedition?.TryLeaveShop() != true)
+                return false;
+
+            AddLog(Expedition.Run.LastEventMessage);
+            AddLog("请选择前进路线");
             NotifyChanged();
             return true;
         }
@@ -291,7 +358,7 @@ namespace Grimhand.Presentation.Battle
             (Expedition == null || Expedition.Run.Phase == ExpeditionPhase.InBattle);
 
         public bool ExpeditionBlocksInput =>
-            Expedition != null && Expedition.Run.Phase != ExpeditionPhase.InBattle;
+            Expedition != null && Expedition.Run.Phase is not ExpeditionPhase.InBattle;
 
         public void Tick()
         {

@@ -55,10 +55,13 @@ namespace Grimhand.Presentation.Battle
         BattleActiveCardBanner _activeCardBanner;
         BattleInventoryPanelView _inventoryPanel;
         BattleTurnDetailPanelView _turnDetailPanel;
+        ExpeditionMapPanelView _mapPanel;
+        ExpeditionNodeInteractOverlayView _nodeInteractOverlay;
         BattleBackgroundView _backgroundView;
         ExpeditionPostBattleOverlayView _postBattleOverlay;
         Button _inventoryButton;
         Button _turnLogButton;
+        Button _mapButton;
         Text _inventoryFallbackLabel;
 
         BattleSession _session;
@@ -111,6 +114,7 @@ namespace Grimhand.Presentation.Battle
             EnsurePlanningEnergyHud();
             EnsureInventoryHud();
             EnsureTurnLogHud();
+            EnsureMapHud();
             EnsureExpeditionPresentation();
             ApplyPlanningButtonIcons();
             CombatantTooltipLayer.GetOrCreate(transform);
@@ -154,6 +158,9 @@ namespace Grimhand.Presentation.Battle
                 restartButton.gameObject.SetActive(false);
 
             if (_uiIcons == null)
+                return;
+
+            if (!ShouldShowBattlePlanningChrome())
                 return;
 
             PlanningActionButtonStyle.Apply(confirmButton, _uiIcons.ConfirmPlayIcon, "出牌");
@@ -301,11 +308,19 @@ namespace Grimhand.Presentation.Battle
             if (energyValueText == null && legacyEnergyRow != null)
                 energyValueText = legacyEnergyRow.Find("EnergyValue")?.GetComponent<Text>();
 
+            if (hudEnergyIcon == null)
+            {
+                var iconGo = new GameObject("EnergyIcon", typeof(RectTransform), typeof(Image));
+                iconGo.transform.SetParent(energyRow, false);
+                hudEnergyIcon = iconGo.GetComponent<Image>();
+            }
+
             if (hudEnergyIcon != null)
             {
                 hudEnergyIcon.transform.SetParent(energyRow, false);
                 hudEnergyIcon.transform.SetAsFirstSibling();
                 hudEnergyIcon.gameObject.SetActive(true);
+                ApplyEnergyIconSprite();
                 FixEnergyIconLayout(hudEnergyIcon);
             }
 
@@ -385,6 +400,52 @@ namespace Grimhand.Presentation.Battle
             ApplyTurnLogButtonLayout();
         }
 
+        void EnsureMapHud()
+        {
+            if (_mapButton != null)
+                return;
+
+            var go = new GameObject("MapButton", typeof(RectTransform), typeof(Image), typeof(Button));
+            go.transform.SetParent(HudRoot, false);
+
+            var img = go.GetComponent<Image>();
+            img.color = new Color(0.14f, 0.15f, 0.2f, 0.96f);
+            img.raycastTarget = true;
+
+            _mapButton = go.GetComponent<Button>();
+            _mapButton.targetGraphic = img;
+            _mapButton.onClick.AddListener(ToggleMapPanel);
+
+            _mapPanel = gameObject.AddComponent<ExpeditionMapPanelView>();
+            _mapPanel.Initialize(_session, transform, _uiIcons);
+            ApplyMapButtonLayout();
+        }
+
+        void ToggleMapPanel()
+        {
+            _mapPanel?.Toggle();
+            if (_mapPanel != null && _mapPanel.IsOpen)
+                _mapPanel.Refresh();
+        }
+
+        void ApplyMapButtonLayout()
+        {
+            if (_mapButton == null)
+                return;
+
+            BattleUiLayoutRuntimeFix.LayoutMapButton(_mapButton.transform as RectTransform);
+
+            var img = _mapButton.GetComponent<Image>();
+            var icon = _uiIcons != null ? _uiIcons.MapIcon : null;
+            if (icon != null)
+            {
+                img.sprite = icon;
+                img.type = Image.Type.Simple;
+                img.preserveAspect = true;
+                img.color = Color.white;
+            }
+        }
+
         void EnsureExpeditionPresentation()
         {
             if (_backgroundView == null)
@@ -405,6 +466,12 @@ namespace Grimhand.Presentation.Battle
                     _characterVisuals,
                     _relicCatalog,
                     _definitions);
+            }
+
+            if (_nodeInteractOverlay == null)
+            {
+                _nodeInteractOverlay = gameObject.AddComponent<ExpeditionNodeInteractOverlayView>();
+                _nodeInteractOverlay.Initialize(_session, transform);
             }
         }
 
@@ -439,8 +506,10 @@ namespace Grimhand.Presentation.Battle
             EnsurePlanningEnergyHud();
             ApplyInventoryButtonLayout();
             ApplyTurnLogButtonLayout();
-            ApplyPlanningButtonIcons();
             BattleUiLayoutRuntimeFix.RefreshBottomHud(transform);
+            if (ShouldShowBattlePlanningChrome())
+                ApplyPlanningButtonIcons();
+            RefreshPlanningChromeVisibility();
         }
 
         public void NotifyLayoutApplied()
@@ -448,27 +517,60 @@ namespace Grimhand.Presentation.Battle
             handPanel?.ReapplyPoolLayout();
             _inventoryPanel?.Refresh();
 
-            var info = transform.Find("HudChromeRoot/PlanningInfoLeft") ?? transform.Find("PlanningInfoLeft");
-            var intent = transform.Find("HudChromeRoot/EnemyIntentPanel") ?? transform.Find("EnemyIntentPanel");
-            var actions = transform.Find("HudChromeRoot/PlanningActionsRight") ?? transform.Find("PlanningActionsRight");
-            info?.gameObject.SetActive(false);
-            intent?.gameObject.SetActive(true);
-            actions?.gameObject.SetActive(true);
             EnsurePlanningEnergyHud();
-            ApplyPlanningButtonIcons();
             BattleUiLayoutRuntimeFix.RefreshBottomHud(transform);
+            if (ShouldShowBattlePlanningChrome())
+                ApplyPlanningButtonIcons();
+            RefreshPlanningChromeVisibility();
             _activeCardBanner?.Relayout();
         }
 
-        void EnsurePlanningChromeVisible()
+        void RefreshPlanningChromeVisibility()
         {
+            var showBattleChrome = ShouldShowBattlePlanningChrome();
+
+            var intent = enemyIntentPanel != null
+                ? enemyIntentPanel.transform
+                : transform.Find("HudChromeRoot/EnemyIntentPanel") ?? transform.Find("EnemyIntentPanel");
+            var actions = transform.Find("HudChromeRoot/PlanningActionsRight")
+                ?? transform.Find("PlanningActionsRight");
+            var energyHud = HudRoot.Find("EnergyHud");
             var info = transform.Find("HudChromeRoot/PlanningInfoLeft") ?? transform.Find("PlanningInfoLeft");
-            var intent = transform.Find("HudChromeRoot/EnemyIntentPanel") ?? transform.Find("EnemyIntentPanel");
-            var actions = transform.Find("HudChromeRoot/PlanningActionsRight") ?? transform.Find("PlanningActionsRight");
 
             info?.gameObject.SetActive(false);
-            intent?.gameObject.SetActive(true);
-            actions?.gameObject.SetActive(true);
+            intent?.gameObject.SetActive(showBattleChrome);
+            actions?.gameObject.SetActive(showBattleChrome);
+            energyHud?.gameObject.SetActive(showBattleChrome);
+            selectedQueuePanel?.SetActive(false);
+
+            if (!showBattleChrome)
+            {
+                targetPromptPanel?.SetActive(false);
+                confirmButton?.gameObject.SetActive(false);
+                skipButton?.gameObject.SetActive(false);
+                _activeCardBanner?.Hide();
+            }
+        }
+
+        bool ShouldShowBattlePlanningChrome()
+        {
+            if (_session == null || !_session.IsExpeditionMode)
+                return true;
+
+            return _session.Expedition.Run.Phase == ExpeditionPhase.InBattle;
+        }
+
+        void ApplyEnergyIconSprite()
+        {
+            if (hudEnergyIcon == null)
+                return;
+
+            var sprite = _uiIcons != null ? _uiIcons.EnergyIcon : null;
+            hudEnergyIcon.sprite = sprite;
+            hudEnergyIcon.type = Image.Type.Simple;
+            hudEnergyIcon.enabled = true;
+            hudEnergyIcon.preserveAspect = true;
+            hudEnergyIcon.color = sprite != null ? Color.white : new Color(0.75f, 0.55f, 1f, 1f);
         }
 
         void ApplyInventoryButtonLayout()
@@ -526,38 +628,51 @@ namespace Grimhand.Presentation.Battle
 
         public void Refresh()
         {
-            if (_session?.Engine == null)
+            if (_session == null)
                 return;
 
-            var state = _session.Engine.State;
-            var draft = _session.Engine.Draft;
-            var expeditionBlocks = _session.ExpeditionBlocksInput;
+            if (_session.Engine?.State != null)
+            {
+                var state = _session.Engine.State;
+                var draft = _session.Engine.Draft;
+                var expeditionBlocks = _session.ExpeditionBlocksInput;
 
-            RefreshHud(state);
-            RefreshBattlefield(state, draft);
-            RefreshActionTimeline(state, draft);
-            RefreshTargetPrompt(state, draft);
-            RefreshHand(state);
-            RefreshActions(state, expeditionBlocks);
+                RefreshHud(state);
+                RefreshBattlefield(state, draft);
+                RefreshActionTimeline(state, draft);
+                RefreshTargetPrompt(state, draft);
+                RefreshActions(state, expeditionBlocks);
+            }
+
+            RefreshHand(_session.Engine?.State);
+
             RefreshExpeditionOverlay();
             RefreshExpeditionPresentation();
             _inventoryPanel?.Refresh();
             _turnDetailPanel?.Refresh();
-            EnsurePlanningChromeVisible();
+            if (_session.IsExpeditionMode)
+            {
+                _mapPanel?.Refresh();
+                _nodeInteractOverlay?.Refresh();
+            }
+
+            RefreshPlanningChromeVisibility();
         }
 
         void RefreshHud(BattleState state)
         {
             ResolveHudReferences();
 
-            if (hudEnergyIcon != null && _uiIcons != null)
-            {
-                hudEnergyIcon.sprite = _uiIcons.EnergyIcon;
-                hudEnergyIcon.enabled = true;
-                hudEnergyIcon.preserveAspect = true;
-                hudEnergyIcon.color = _uiIcons.EnergyIcon != null ? Color.white : new Color(0.75f, 0.55f, 1f, 1f);
+            var showBattleChrome = ShouldShowBattlePlanningChrome();
+            var energyHud = HudRoot.Find("EnergyHud");
+            energyHud?.gameObject.SetActive(showBattleChrome);
+
+            if (!showBattleChrome)
+                return;
+
+            ApplyEnergyIconSprite();
+            if (hudEnergyIcon != null)
                 FixEnergyIconLayout(hudEnergyIcon);
-            }
 
             if (energyValueText != null)
             {
@@ -582,6 +697,14 @@ namespace Grimhand.Presentation.Battle
 
         void RefreshBattlefield(BattleState state, PlanningDraft draft)
         {
+            if (!ShouldShowBattlePlanningChrome())
+            {
+                SetBattlefieldVisible(false);
+                return;
+            }
+
+            SetBattlefieldVisible(true);
+
             var awaiting = draft.AwaitingTargetCardId;
             CardInstanceState awaitingCard = null;
             CombatantState owner = null;
@@ -624,6 +747,12 @@ namespace Grimhand.Presentation.Battle
 
             if (enemyIntentPanel == null)
                 return;
+
+            if (!ShouldShowBattlePlanningChrome())
+            {
+                enemyIntentPanel.SetActive(false);
+                return;
+            }
 
             var planning = state.Phase == TurnPhase.Planning;
             enemyIntentPanel.SetActive(planning);
@@ -688,6 +817,12 @@ namespace Grimhand.Presentation.Battle
             if (targetPromptPanel == null)
                 return;
 
+            if (!ShouldShowBattlePlanningChrome())
+            {
+                targetPromptPanel.SetActive(false);
+                return;
+            }
+
             var awaiting = draft.AwaitingTargetCardId;
             var show = state.Phase == TurnPhase.Planning && awaiting != null;
             targetPromptPanel.SetActive(show);
@@ -717,9 +852,9 @@ namespace Grimhand.Presentation.Battle
             if (handPanel == null)
                 return;
 
-            var hideHand = ShouldHideHandForExpeditionOverlay();
-            handPanel.gameObject.SetActive(!hideHand);
-            if (hideHand)
+            var showHand = state != null && ShouldShowBattlePlanningChrome();
+            handPanel.gameObject.SetActive(showHand);
+            if (!showHand)
                 return;
 
             handPanel.Refresh(
@@ -740,15 +875,21 @@ namespace Grimhand.Presentation.Battle
 
         void RefreshActions(BattleState state, bool expeditionBlocks)
         {
+            var actionsRoot = transform.Find("HudChromeRoot/PlanningActionsRight")
+                ?? transform.Find("PlanningActionsRight");
+
+            if (!ShouldShowBattlePlanningChrome())
+            {
+                actionsRoot?.gameObject.SetActive(false);
+                confirmButton?.gameObject.SetActive(false);
+                skipButton?.gameObject.SetActive(false);
+                return;
+            }
+
             var planning = state.Phase == TurnPhase.Planning
                 && !expeditionBlocks
                 && !(_presentationBusy?.Invoke() ?? false);
 
-            if (enemyIntentPanel != null && state.Phase == TurnPhase.Planning)
-                enemyIntentPanel.SetActive(true);
-
-            var actionsRoot = transform.Find("HudChromeRoot/PlanningActionsRight")
-                ?? transform.Find("PlanningActionsRight");
             if (actionsRoot != null)
                 actionsRoot.gameObject.SetActive(true);
 
@@ -767,6 +908,21 @@ namespace Grimhand.Presentation.Battle
             ApplyPlanningButtonIcons();
         }
 
+        void SetBattlefieldVisible(bool visible)
+        {
+            foreach (var slot in playerSlots)
+            {
+                if (slot != null)
+                    slot.gameObject.SetActive(visible);
+            }
+
+            foreach (var slot in enemySlots)
+            {
+                if (slot != null)
+                    slot.gameObject.SetActive(visible);
+            }
+        }
+
         void RefreshExpeditionPresentation()
         {
             var expedition = _session.IsExpeditionMode;
@@ -783,17 +939,6 @@ namespace Grimhand.Presentation.Battle
             }
 
             _postBattleOverlay.Refresh();
-        }
-
-        bool ShouldHideHandForExpeditionOverlay()
-        {
-            if (_session?.Expedition == null)
-                return false;
-
-            var phase = _session.Expedition.Run.Phase;
-            return phase is ExpeditionPhase.VictoryRewards
-                or ExpeditionPhase.RouteSelect
-                or ExpeditionPhase.TreasureLoot;
         }
 
         void RefreshExpeditionOverlay()

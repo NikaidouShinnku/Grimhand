@@ -20,7 +20,7 @@ MonoBehaviour:
   MaxHp: 40
   BaseAttack: 6
   BaseDefense: 4
-  Speed: 6
+  Speed: 5
   Deck:
   - {fileID: 11400000, guid: 40b6cb6a321a4d12ac8e17f725057c08, type: 2}
   - {fileID: 11400000, guid: cb1e2a8cacd84850ac1721066a4d6195, type: 2}

@@ -302,25 +302,56 @@ namespace Grimhand.Presentation.Battle
             _root.anchorMax = new Vector2(0.5f, 0.5f);
             _root.pivot = new Vector2(0.5f, 0.5f);
             _root.sizeDelta = new Vector2(PanelWidth, PanelHeight);
-            _root.anchoredPosition = new Vector2(-PanelWidth * 0.55f, 0f);
+            _root.anchoredPosition = Vector2.zero;
 
             var dim = panelGo.GetComponent<Image>();
             dim.color = new Color(0.06f, 0.07f, 0.1f, 0.98f);
             dim.raycastTarget = true;
 
-            var titleGo = new GameObject("Title", typeof(RectTransform), typeof(Text));
+            var titleGo = new GameObject("Title", typeof(RectTransform), typeof(Image));
             titleGo.transform.SetParent(_root, false);
-            var titleRt = titleGo.GetComponent<RectTransform>();
-            titleRt.anchorMin = new Vector2(0f, 1f);
-            titleRt.anchorMax = new Vector2(1f, 1f);
-            titleRt.pivot = new Vector2(0.5f, 1f);
-            titleRt.sizeDelta = new Vector2(0f, 44f);
-            titleRt.anchoredPosition = Vector2.zero;
-            _titleText = titleGo.GetComponent<Text>();
+            var titleBarRt = titleGo.GetComponent<RectTransform>();
+            titleBarRt.anchorMin = new Vector2(0f, 1f);
+            titleBarRt.anchorMax = new Vector2(1f, 1f);
+            titleBarRt.pivot = new Vector2(0.5f, 1f);
+            titleBarRt.sizeDelta = new Vector2(0f, 44f);
+            titleBarRt.anchoredPosition = Vector2.zero;
+            var titleBg = titleGo.GetComponent<Image>();
+            titleBg.color = new Color(0.12f, 0.13f, 0.18f, 0.95f);
+            titleBg.raycastTarget = true;
+            var dragHandle = titleGo.AddComponent<UiPanelDragHandle>();
+
+            var titleTextGo = new GameObject("TitleText", typeof(RectTransform), typeof(Text));
+            titleTextGo.transform.SetParent(titleGo.transform, false);
+            var titleRt = titleTextGo.GetComponent<RectTransform>();
+            titleRt.anchorMin = Vector2.zero;
+            titleRt.anchorMax = Vector2.one;
+            titleRt.offsetMin = Vector2.zero;
+            titleRt.offsetMax = new Vector2(-40f, 0f);
+            _titleText = titleTextGo.GetComponent<Text>();
             _titleText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             _titleText.fontSize = 22;
             _titleText.alignment = TextAnchor.MiddleCenter;
             _titleText.color = new Color(0.92f, 0.88f, 0.72f, 1f);
+            _titleText.raycastTarget = false;
+
+            var dragHintGo = new GameObject("DragHint", typeof(RectTransform), typeof(Text));
+            dragHintGo.transform.SetParent(titleGo.transform, false);
+            var dragHintRt = dragHintGo.GetComponent<RectTransform>();
+            dragHintRt.anchorMin = new Vector2(1f, 0.5f);
+            dragHintRt.anchorMax = new Vector2(1f, 0.5f);
+            dragHintRt.pivot = new Vector2(1f, 0.5f);
+            dragHintRt.anchoredPosition = new Vector2(-40f, 0f);
+            dragHintRt.sizeDelta = new Vector2(72f, 24f);
+            var dragHint = dragHintGo.GetComponent<Text>();
+            dragHint.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            dragHint.fontSize = 13;
+            dragHint.alignment = TextAnchor.MiddleRight;
+            dragHint.color = new Color(0.72f, 0.76f, 0.82f, 0.85f);
+            dragHint.text = "≡ 拖动";
+            dragHint.raycastTarget = false;
+
+            dragHandle.SetDragTarget(_root);
 
             var hintGo = new GameObject("ScrollHint", typeof(RectTransform), typeof(Text));
             hintGo.transform.SetParent(_root, false);

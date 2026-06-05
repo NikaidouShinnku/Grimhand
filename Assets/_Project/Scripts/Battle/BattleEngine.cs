@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Grimhand.Battle.AI;
+using Grimhand.Battle.Consumables;
 using Grimhand.Battle.Effects;
 using Grimhand.Battle.Reactions;
 using Grimhand.Battle.Events;
@@ -45,6 +46,27 @@ namespace Grimhand.Battle
         }
 
         public bool ToggleCardSelection(int instanceId) => Draft.ToggleCard(instanceId);
+
+        public bool TryBeginConsumableUse(string consumableId, int slotIndex)
+        {
+            if (_state.Phase != TurnPhase.Planning || _state.ConsumableUsedThisBattle)
+                return false;
+
+            if (!Consumables.ConsumableDatabase.TryGet(consumableId, out var definition))
+                return false;
+
+            if (Consumables.ConsumableRules.NeedsTarget(definition))
+                return Draft.TryBeginConsumableUse(consumableId, slotIndex);
+
+            if (!Draft.TryApplyInstantConsumable(consumableId, out _))
+                return false;
+
+            return true;
+        }
+
+        public bool TryAssignConsumableTarget(string combatantId) => Draft.TryAssignConsumableTarget(combatantId);
+
+        public void CancelConsumableTargeting() => Draft.CancelConsumableTargeting();
 
         /// <summary>预览本回合速度结算顺序（不消耗 RNG）。</summary>
         public IReadOnlyList<ResolutionStep> PreviewResolutionSteps()
@@ -211,6 +233,7 @@ namespace Grimhand.Battle
             });
 
             EffectActionExecutor.ExecuteAll(_state, actor, card, _events, _rng);
+            ConsumableRules.RecordLastPlayerAttackCard(_state, actor, card);
             RelicBattleRules.TryApplyStatusCardTeamBlock(_state, actor, card, _events);
             RelicEffectRules.OnCardResolved(_state, actor, card, _events, _rng);
 
@@ -244,6 +267,7 @@ namespace Grimhand.Battle
 
             StatusRules.ProcessEndOfTurnDurations(_state, _events);
             RelicEffectRules.ProcessEndOfTurn(_state, _events);
+            _state.ConsumableDodgeBonusThisTurn = 0f;
 
             _state.TurnNumber++;
             SetPhase(TurnPhase.Draw);

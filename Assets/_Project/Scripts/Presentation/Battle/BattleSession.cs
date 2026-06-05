@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Grimhand.Battle;
 using Grimhand.Battle.Demo;
 using Grimhand.Battle.Events;
+using Grimhand.Battle.Consumables;
 using Grimhand.Battle.Model;
 using Grimhand.Content;
 using Grimhand.Expedition;
@@ -174,16 +175,95 @@ namespace Grimhand.Presentation.Battle
             if (Engine == null || !CanInteractWithBattle())
                 return false;
 
+            if (Engine.Draft.IsAwaitingConsumableTarget)
+            {
+                var slot = Engine.Draft.PendingConsumableSlotIndex;
+                if (!Engine.TryAssignConsumableTarget(combatantId))
+                    return false;
+
+                if (Expedition != null && slot >= 0)
+                    ConsumableInventory.RemoveAt(Expedition.Run.ConsumableSlots, slot);
+
+                DrainEvents();
+                NotifyChanged();
+                return true;
+            }
+
             var ok = Engine.Draft.TryAssignTargetAndSelect(combatantId);
             if (ok)
                 DrainEvents();
             return ok;
         }
 
+        public bool TryUseConsumableFromSlot(int slotIndex)
+        {
+            if (Engine == null || Expedition == null || !CanInteractWithBattle())
+                return false;
+
+            ConsumableInventory.EnsureInitialized(Expedition.Run.ConsumableSlots);
+            if (slotIndex < 0 || slotIndex >= ConsumableInventory.MaxSlots)
+                return false;
+
+            var consumableId = Expedition.Run.ConsumableSlots[slotIndex];
+            if (string.IsNullOrEmpty(consumableId))
+                return false;
+
+            if (Engine.State.ConsumableUsedThisBattle)
+            {
+                AddLog("本场战斗已使用过消耗品。");
+                NotifyChanged();
+                return false;
+            }
+
+            if (!ConsumableDatabase.TryGet(consumableId, out var definition))
+                return false;
+
+            if (ConsumableRules.NeedsTarget(definition))
+            {
+                if (!Engine.TryBeginConsumableUse(consumableId, slotIndex))
+                    return false;
+
+                AddLog($"使用 {definition.DisplayName} — 请选择目标");
+                NotifyChanged();
+                return true;
+            }
+
+            if (!Engine.TryBeginConsumableUse(consumableId, slotIndex))
+                return false;
+
+            ConsumableInventory.RemoveAt(Expedition.Run.ConsumableSlots, slotIndex);
+            AddLog($"使用 {definition.DisplayName}");
+            DrainEvents();
+            return true;
+        }
+
+        public bool ReplaceConsumableSlot(int slotIndex)
+        {
+            if (Expedition?.TryReplaceConsumableSlot(slotIndex) != true)
+                return false;
+
+            AddLog("已替换消耗品栏位");
+            NotifyChanged();
+            return true;
+        }
+
+        public bool AbandonConsumableOffer()
+        {
+            if (Expedition?.TryAbandonConsumableOffer() != true)
+                return false;
+
+            AddLog("已放弃新消耗品");
+            NotifyChanged();
+            return true;
+        }
+
         public void CancelTargetSelection()
         {
             if (Engine == null)
                 return;
+
+            if (Engine.Draft.IsAwaitingConsumableTarget)
+                Engine.CancelConsumableTargeting();
 
             Engine.Draft.CancelAwaitingTarget();
             NotifyChanged();
@@ -200,8 +280,8 @@ namespace Grimhand.Presentation.Battle
 
             if (Expedition.Run.Phase == ExpeditionPhase.InBattle)
                 StartExpeditionBattle();
-            else if (Expedition.Run.Phase == ExpeditionPhase.TreasureLoot)
-                AddLog("进入宝箱房间");
+            else if (Expedition.Run.Phase == ExpeditionPhase.RewardPickup)
+                AddLog("拾取奖励 — 点击领取或放弃");
             else if (Expedition.Run.Phase == ExpeditionPhase.EventChoice)
                 AddLog("遭遇特殊事件");
             else if (Expedition.Run.Phase == ExpeditionPhase.ShrineChoice)
@@ -226,6 +306,8 @@ namespace Grimhand.Presentation.Battle
 
             if (Expedition.Run.Phase == ExpeditionPhase.InBattle)
                 StartExpeditionBattle();
+            else if (Expedition.Run.Phase == ExpeditionPhase.RewardPickup)
+                AddLog("拾取奖励 — 点击领取或放弃");
             else if (Expedition.Run.Phase == ExpeditionPhase.RouteSelect)
                 AddLog("请选择前进路线");
 
@@ -241,7 +323,9 @@ namespace Grimhand.Presentation.Battle
             if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
                 AddLog(Expedition.Run.LastEventMessage);
 
-            if (Expedition.Run.Phase == ExpeditionPhase.RouteSelect)
+            if (Expedition.Run.Phase == ExpeditionPhase.RewardPickup)
+                AddLog("拾取奖励 — 点击领取或放弃");
+            else if (Expedition.Run.Phase == ExpeditionPhase.RouteSelect)
                 AddLog("请选择前进路线");
 
             NotifyChanged();
@@ -274,20 +358,31 @@ namespace Grimhand.Presentation.Battle
             return true;
         }
 
-        public bool ClaimVictoryGold()
+        public bool ClaimRewardGold()
         {
-            if (Expedition?.TryClaimVictoryGold() != true)
+            var amount = Expedition?.Run.PendingRewardPickup?.Gold ?? 0;
+            if (Expedition?.TryClaimRewardGold() != true)
                 return false;
 
-            AddLog($"领取战斗金币 +{Expedition.Run.LastGoldReward}（合计 {Expedition.Run.Gold}）");
+            AddLog($"领取金币 +{amount}（合计 {Expedition.Run.Gold}）");
             NotifyChanged();
             return true;
         }
 
-        public bool ClaimVictoryRelic()
+        public bool SkipRewardGold()
         {
-            var relicId = Expedition?.Run.PendingVictoryRewards?.RelicId;
-            if (Expedition?.TryClaimVictoryRelic() != true)
+            if (Expedition?.TrySkipRewardGold() != true)
+                return false;
+
+            AddLog("放弃金币");
+            NotifyChanged();
+            return true;
+        }
+
+        public bool ClaimRewardRelic()
+        {
+            var relicId = Expedition?.Run.PendingRewardPickup?.RelicId;
+            if (Expedition?.TryClaimRewardRelic() != true)
                 return false;
 
             if (RelicDatabase.TryGet(relicId, out var relic))
@@ -296,10 +391,20 @@ namespace Grimhand.Presentation.Battle
             return true;
         }
 
-        public bool ClaimVictoryCard()
+        public bool SkipRewardRelic()
         {
-            var cardName = Expedition?.Run.PendingVictoryRewards?.CardDisplayName;
-            if (Expedition?.TryClaimVictoryCard() != true)
+            if (Expedition?.TrySkipRewardRelic() != true)
+                return false;
+
+            AddLog("放弃遗物");
+            NotifyChanged();
+            return true;
+        }
+
+        public bool ClaimRewardCard()
+        {
+            var cardName = Expedition?.Run.PendingRewardPickup?.CardDisplayName;
+            if (Expedition?.TryClaimRewardCard() != true)
                 return false;
 
             AddLog($"卡牌加入卡组：{cardName}");
@@ -307,38 +412,60 @@ namespace Grimhand.Presentation.Battle
             return true;
         }
 
+        public bool SkipRewardCard()
+        {
+            if (Expedition?.TrySkipRewardCard() != true)
+                return false;
+
+            AddLog("放弃卡牌");
+            NotifyChanged();
+            return true;
+        }
+
+        public bool ClaimRewardConsumable()
+        {
+            var consumableId = Expedition?.Run.PendingRewardPickup?.ConsumableId;
+            if (Expedition?.TryClaimRewardConsumable() != true)
+                return false;
+
+            if (ConsumableDatabase.TryGet(consumableId, out var def))
+                AddLog(string.IsNullOrEmpty(Expedition.Run.PendingConsumableOfferId)
+                    ? $"获得消耗品：{def.DisplayName}"
+                    : $"获得消耗品：{def.DisplayName} — 请选择替换栏位");
+
+            NotifyChanged();
+            return true;
+        }
+
+        public bool SkipRewardConsumable()
+        {
+            if (Expedition?.TrySkipRewardConsumable() != true)
+                return false;
+
+            AddLog("放弃消耗品");
+            NotifyChanged();
+            return true;
+        }
+
+        public bool ClaimVictoryGold() => ClaimRewardGold();
+
+        public bool ClaimVictoryRelic() => ClaimRewardRelic();
+
+        public bool ClaimVictoryCard() => ClaimRewardCard();
+
         public bool SkipVictoryOptionalRewards()
         {
             if (Expedition?.TrySkipVictoryOptionalRewards() != true)
                 return false;
 
-            AddLog("放弃可选奖励");
+            AddLog("放弃剩余奖励");
             NotifyChanged();
             return true;
         }
 
-        public bool ClaimChestGold()
-        {
-            var amount = Expedition?.Run.PendingChestReward?.Gold ?? 0;
-            if (Expedition?.TryClaimChestGold() != true)
-                return false;
+        public bool ClaimChestGold() => ClaimRewardGold();
 
-            AddLog($"开启宝箱金币 +{amount}（合计 {Expedition.Run.Gold}）");
-            NotifyChanged();
-            return true;
-        }
-
-        public bool ClaimChestRelic()
-        {
-            var relicId = Expedition?.Run.PendingChestReward?.RelicId;
-            if (Expedition?.TryClaimChestRelic() != true)
-                return false;
-
-            if (RelicDatabase.TryGet(relicId, out var relic))
-                AddLog($"宝箱遗物：{relic.DisplayName}");
-            NotifyChanged();
-            return true;
-        }
+        public bool ClaimChestRelic() => ClaimRewardRelic();
 
         public bool TryGrantRelic(string relicId) =>
             Expedition?.TryAddRelic(relicId) ?? false;
@@ -403,17 +530,18 @@ namespace Grimhand.Presentation.Battle
 
             switch (Expedition.Run.Phase)
             {
-                case ExpeditionPhase.VictoryRewards:
-                    AddLog($"第 {Expedition.Run.BattlesWon} 场胜利 — 待领取 +{Expedition.Run.LastGoldReward} 金币");
-                    AddLog($"全队获得 {Expedition.Run.LastXpReward} 经验");
-                    AddLog("点击领取奖励后选择路线");
+                case ExpeditionPhase.RewardPickup:
+                    if (Expedition.Run.PendingRewardPickup?.Kind == RewardPickupKind.BattleVictory)
+                    {
+                        AddLog($"第 {Expedition.Run.BattlesWon} 场胜利 — 待领取奖励");
+                        AddLog($"全队获得 {Expedition.Run.LastXpReward} 经验");
+                    }
+
+                    AddLog("点击领取或放弃每项奖励");
                     break;
                 case ExpeditionPhase.RouteSelect:
                     AddLog("请选择前进路线");
                     AddLog(BattleUiFormatters.FormatPartySummary(Expedition.Run.Party, Expedition.Run.Gold));
-                    break;
-                case ExpeditionPhase.TreasureLoot:
-                    AddLog("宝箱房间 — 点击领取战利品");
                     break;
                 case ExpeditionPhase.RunComplete:
                     AddLog("远征完成！");

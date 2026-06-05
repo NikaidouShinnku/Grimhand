@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Grimhand.Battle.Consumables;
 using Grimhand.Battle.Model;
 using Grimhand.Content;
 using Grimhand.Expedition;
@@ -25,6 +26,7 @@ namespace Grimhand.Presentation.Battle
         CardVisualCatalogSO _cardCatalog;
         CharacterVisualCatalogSO _characterVisuals;
         RelicVisualCatalogSO _relicCatalog;
+        ConsumableVisualCatalogSO _consumableCatalog;
         Dictionary<string, CardDefinitionSO> _definitions = new();
         CardView _cardPrefab;
         RectTransform _root;
@@ -45,6 +47,7 @@ namespace Grimhand.Presentation.Battle
             CardVisualCatalogSO cardCatalog,
             CharacterVisualCatalogSO characterVisuals,
             RelicVisualCatalogSO relicCatalog,
+            ConsumableVisualCatalogSO consumableCatalog,
             Dictionary<string, CardDefinitionSO> definitions)
         {
             _session = session;
@@ -53,6 +56,7 @@ namespace Grimhand.Presentation.Battle
             _cardCatalog = cardCatalog;
             _characterVisuals = characterVisuals;
             _relicCatalog = relicCatalog;
+            _consumableCatalog = consumableCatalog;
             _definitions = definitions ?? new Dictionary<string, CardDefinitionSO>();
             EnsureBuilt(parent);
         }
@@ -68,26 +72,26 @@ namespace Grimhand.Presentation.Battle
             }
 
             var phase = _session.Expedition.Run.Phase;
-            var show = phase is ExpeditionPhase.VictoryRewards
-                or ExpeditionPhase.RouteSelect
-                or ExpeditionPhase.TreasureLoot;
+            var show = phase is ExpeditionPhase.RewardPickup
+                or ExpeditionPhase.RouteSelect;
 
             SetVisible(show);
             if (!show)
                 return;
 
-            _chestPanel.gameObject.SetActive(phase == ExpeditionPhase.TreasureLoot);
-            _rewardRow.gameObject.SetActive(phase == ExpeditionPhase.VictoryRewards);
+            var rewards = _session.Expedition.Run.PendingRewardPickup;
+            var isChest = phase == ExpeditionPhase.RewardPickup && rewards?.Kind == RewardPickupKind.Chest;
+
+            _chestPanel.gameObject.SetActive(isChest);
+            _rewardRow.gameObject.SetActive(phase == ExpeditionPhase.RewardPickup && !isChest);
             _doorRow.gameObject.SetActive(phase == ExpeditionPhase.RouteSelect);
-            if (_skipVictoryButton != null && phase != ExpeditionPhase.VictoryRewards)
+            if (_skipVictoryButton != null)
                 _skipVictoryButton.gameObject.SetActive(false);
 
-            if (phase == ExpeditionPhase.VictoryRewards)
-                RefreshVictoryRewards();
+            if (phase == ExpeditionPhase.RewardPickup)
+                RefreshRewardPickup(isChest);
             else if (phase == ExpeditionPhase.RouteSelect)
                 RefreshDoors();
-            else if (phase == ExpeditionPhase.TreasureLoot)
-                RefreshChest();
         }
 
         void EnsureBuilt(Transform parent)
@@ -179,57 +183,201 @@ namespace Grimhand.Presentation.Battle
             return rt;
         }
 
-        void RefreshVictoryRewards()
+        void RefreshRewardPickup(bool useChestPanel)
         {
             ClearButtons(_rewardButtons);
-            var run = _session.Expedition.Run;
-            var rewards = run.PendingVictoryRewards;
-            _headerText.text =
-                $"第 {run.BattlesWon}/{run.TargetBattleCount} 场胜利\n点击领取奖励";
 
+            var run = _session.Expedition.Run;
+            var rewards = run.PendingRewardPickup;
             if (rewards == null)
                 return;
 
-            var x = -220f;
-            if (!rewards.GoldClaimed)
+            if (rewards.Kind == RewardPickupKind.BattleVictory)
             {
-                AddRewardButton(_rewardRow, ref x, BuildGoldLabel(rewards.Gold), _icons?.GoldIcon,
-                    () => _session.ClaimVictoryGold());
+                _headerText.text =
+                    $"第 {run.BattlesWon}/{run.TargetBattleCount} 场胜利\n点击领取或放弃每项奖励";
+            }
+            else if (!string.IsNullOrEmpty(rewards.HeaderText))
+            {
+                _headerText.text = rewards.HeaderText + "\n点击领取或放弃每项奖励";
+            }
+            else
+            {
+                _headerText.text = "拾取奖励\n点击领取或放弃每项奖励";
             }
 
-            if (rewards.HasRelic && !rewards.RelicClaimed)
+            var parent = useChestPanel
+                ? _chestPanel.Find("ChestRewardRow")
+                : (Transform)_rewardRow;
+
+            if (parent == null)
+                return;
+
+            if (useChestPanel)
+            {
+                foreach (Transform child in parent)
+                    Destroy(child.gameObject);
+            }
+
+            var x = useChestPanel ? -110f : -220f;
+            var spacing = useChestPanel ? RewardIconSpacing : RewardIconSpacing;
+
+            if (rewards.HasGold && !rewards.GoldClaimed && !rewards.GoldSkipped)
+            {
+                AddRewardWithSkip(
+                    parent,
+                    ref x,
+                    spacing,
+                    BuildGoldLabel(rewards.Gold),
+                    _icons?.GoldIcon,
+                    () => _session.ClaimRewardGold(),
+                    () => _session.SkipRewardGold());
+            }
+
+            if (rewards.HasRelic && !rewards.RelicClaimed && !rewards.RelicSkipped)
             {
                 RelicDatabase.TryGet(rewards.RelicId, out var relic);
-                AddRelicRewardButton(_rewardRow, ref x, relic, rewards.RelicId,
-                    () => _session.ClaimVictoryRelic());
+                AddRelicRewardWithSkip(
+                    parent,
+                    ref x,
+                    spacing,
+                    relic,
+                    rewards.RelicId,
+                    () => _session.ClaimRewardRelic(),
+                    () => _session.SkipRewardRelic());
             }
 
-            if (rewards.HasCard && !rewards.CardClaimed)
+            if (rewards.HasCard && !rewards.CardClaimed && !rewards.CardSkipped)
             {
                 _definitions.TryGetValue(rewards.CardDefinitionId, out var definition);
-                AddCardRewardButton(
-                    _rewardRow,
+                AddCardRewardWithSkip(
+                    parent,
                     ref x,
+                    spacing,
                     rewards.CardDefinitionId,
                     rewards.CardOwnerCharacterId,
                     rewards.CardDisplayName,
                     definition,
-                    () => _session.ClaimVictoryCard());
+                    () => _session.ClaimRewardCard(),
+                    () => _session.SkipRewardCard());
             }
 
-            RefreshSkipVictoryButton(rewards);
+            if (rewards.HasConsumable && !rewards.ConsumableClaimed && !rewards.ConsumableSkipped)
+            {
+                ConsumableDatabase.TryGet(rewards.ConsumableId, out var consumable);
+                AddConsumableRewardWithSkip(
+                    parent,
+                    ref x,
+                    spacing,
+                    consumable,
+                    rewards.ConsumableId,
+                    () => _session.ClaimRewardConsumable(),
+                    () => _session.SkipRewardConsumable());
+            }
         }
 
-        void RefreshSkipVictoryButton(ExpeditionVictoryRewards rewards)
+        void AddConsumableRewardWithSkip(
+            Transform parent,
+            ref float x,
+            float spacing,
+            ConsumableDefinition consumable,
+            string consumableId,
+            Action onClaim,
+            Action onSkip)
         {
-            if (_skipVictoryButton == null)
-                return;
+            var label = consumable?.DisplayName ?? consumableId ?? "消耗品";
+            var icon = _consumableCatalog?.GetIcon(consumableId);
+            AddRewardWithSkip(parent, ref x, spacing, label, icon, onClaim, onSkip);
+        }
 
-            var showOptionalSkip = rewards != null &&
-                ((rewards.HasRelic && !rewards.RelicClaimed) ||
-                 (rewards.HasCard && !rewards.CardClaimed));
+        void AddRewardWithSkip(
+            Transform parent,
+            ref float x,
+            float spacing,
+            string label,
+            Sprite icon,
+            Action onClaim,
+            Action onSkip)
+        {
+            var container = CreateRewardContainer(parent, new Vector2(x, 0f));
+            var btn = CreateIconButton(container, Vector2.zero, 112f, icon, label, onClaim);
+            _rewardButtons.Add(btn);
+            AddSkipButton(container, onSkip);
+            x += spacing;
+        }
 
-            _skipVictoryButton.gameObject.SetActive(showOptionalSkip);
+        void AddRelicRewardWithSkip(
+            Transform parent,
+            ref float x,
+            float spacing,
+            RelicDefinition relic,
+            string relicId,
+            Action onClaim,
+            Action onSkip)
+        {
+            var container = CreateRewardContainer(parent, new Vector2(x, 0f));
+            var btn = CreateRelicRewardButton(container, Vector2.zero, relic, relicId, onClaim);
+            _rewardButtons.Add(btn);
+            AddSkipButton(container, onSkip);
+            x += spacing;
+        }
+
+        void AddCardRewardWithSkip(
+            Transform parent,
+            ref float x,
+            float spacing,
+            string definitionId,
+            string ownerCharacterId,
+            string displayName,
+            CardDefinitionSO definition,
+            Action onClaim,
+            Action onSkip)
+        {
+            var container = CreateRewardContainer(parent, new Vector2(x, 0f));
+            var btn = CreateCardRewardButton(container, Vector2.zero, definitionId, ownerCharacterId, displayName, definition, onClaim);
+            _rewardButtons.Add(btn);
+            AddSkipButton(container, onSkip);
+            x += spacing;
+        }
+
+        static RectTransform CreateRewardContainer(Transform parent, Vector2 pos)
+        {
+            var go = new GameObject("RewardSlot", typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = pos;
+            rt.sizeDelta = new Vector2(148f, 160f);
+            return rt;
+        }
+
+        void AddSkipButton(Transform parent, Action onSkip)
+        {
+            var go = new GameObject("Skip", typeof(RectTransform), typeof(Image), typeof(Button));
+            go.transform.SetParent(parent, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 0f);
+            rt.anchorMax = new Vector2(0.5f, 0f);
+            rt.pivot = new Vector2(0.5f, 0f);
+            rt.anchoredPosition = new Vector2(0f, -8f);
+            rt.sizeDelta = new Vector2(112f, 28f);
+            go.GetComponent<Image>().color = new Color(0.2f, 0.22f, 0.28f, 0.95f);
+
+            var labelGo = new GameObject("Label", typeof(RectTransform), typeof(Text));
+            labelGo.transform.SetParent(go.transform, false);
+            var labelRt = labelGo.GetComponent<RectTransform>();
+            labelRt.anchorMin = Vector2.zero;
+            labelRt.anchorMax = Vector2.one;
+            labelRt.offsetMin = Vector2.zero;
+            labelRt.offsetMax = Vector2.zero;
+            var label = labelGo.GetComponent<Text>();
+            StyleText(label, 14, TextAnchor.MiddleCenter);
+            label.text = "放弃";
+
+            var btn = go.GetComponent<Button>();
+            btn.onClick.AddListener(() => onSkip?.Invoke());
         }
 
         void RefreshDoors()
@@ -249,8 +397,7 @@ namespace Grimhand.Presentation.Battle
                 var route = routes[i];
                 var index = i;
                 var sprite = PickPathSprite(route.PathSpriteIndex);
-                var label =
-                    $"{route.DisplayName}\n[{BattleUiFormatters.DescribeNodeType(route.NodeType)}]\n{route.Description}";
+                var label = ExpeditionRoutePresentation.BuildDoorLabel(route);
 
                 var btn = CreateDoorButton(_doorRow, new Vector2(startX + i * spacing, 0f), sprite, label,
                     () => _session.SelectRoute(index));
@@ -260,43 +407,21 @@ namespace Grimhand.Presentation.Battle
 
         void RefreshChest()
         {
-            _headerText.text = "宝箱房间";
-            ClearButtons(_rewardButtons);
+            RefreshRewardPickup(useChestPanel: true);
+        }
 
-            var chestRow = _chestPanel.Find("ChestRewardRow");
-            if (chestRow == null)
-                return;
-
-            foreach (Transform child in chestRow)
-                Destroy(child.gameObject);
-
-            var reward = _session.Expedition.Run.PendingChestReward;
-            if (reward == null)
-                return;
-
-            var x = -110f;
-            if (!reward.GoldClaimed)
+        void AddRewardButton(Transform parent, ref float x, string label, Sprite icon, Action onClick, float localX = float.NaN)
+        {
+            var pos = float.IsNaN(localX) ? new Vector2(x, 0f) : new Vector2(localX, 0f);
+            var btn = CreateIconButton(parent, pos, 112f, icon, label, onClick);
+            if (float.IsNaN(localX))
             {
-                AddRewardButton(chestRow, ref x, BuildGoldLabel(reward.Gold), _icons?.GoldIcon,
-                    () => _session.ClaimChestGold());
-            }
-
-            if (reward.HasRelic && !reward.RelicClaimed)
-            {
-                RelicDatabase.TryGet(reward.RelicId, out var relic);
-                AddRelicRewardButton(chestRow, ref x, relic, reward.RelicId,
-                    () => _session.ClaimChestRelic());
+                _rewardButtons.Add(btn);
+                x += RewardIconSpacing;
             }
         }
 
         static string BuildGoldLabel(int gold) => $"金币\n+{gold}";
-
-        void AddRewardButton(Transform parent, ref float x, string label, Sprite icon, Action onClick)
-        {
-            var btn = CreateIconButton(parent, new Vector2(x, 0f), 112f, icon, label, onClick);
-            _rewardButtons.Add(btn);
-            x += RewardIconSpacing;
-        }
 
         void AddCardRewardButton(
             Transform parent,

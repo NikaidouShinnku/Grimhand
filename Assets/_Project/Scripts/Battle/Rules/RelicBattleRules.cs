@@ -227,7 +227,7 @@ namespace Grimhand.Battle.Rules
             if (target.InvulnerableTurnsRemaining > 0)
                 return 0;
 
-            if (rng != null && RelicEffectRules.TryDodgeIncoming(mods, target, rng))
+            if (rng != null && RelicEffectRules.TryDodgeIncoming(state, mods, target, rng))
             {
                 events?.Add(new BattleEvent(BattleEventKind.DamageApplied,
                     $"{target.DisplayName} 闪避")

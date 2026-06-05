@@ -3,9 +3,8 @@ namespace Grimhand.Expedition.Model
     public enum ExpeditionPhase
     {
         InBattle,
-        VictoryRewards,
+        RewardPickup,
         RouteSelect,
-        TreasureLoot,
         EventChoice,
         ShrineChoice,
         ShopVisit,

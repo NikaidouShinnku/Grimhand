@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using Grimhand.Battle.Consumables;
 using Grimhand.Battle.Model;
+using Grimhand.Expedition;
 using Grimhand.Core;
 using Grimhand.Expedition.Model;
 
@@ -11,6 +13,7 @@ namespace Grimhand.Expedition.Events
         public bool StartsCombat { get; set; }
         public int CombatEncounterIndex { get; set; }
         public bool AdvanceNode { get; set; } = true;
+        public ExpeditionRewardPickup PendingRewardPickup { get; set; }
     }
 
     public static class ExpeditionEventResolver
@@ -57,12 +60,23 @@ namespace Grimhand.Expedition.Events
             int choiceIndex,
             BattleRng rng)
         {
-            if (choiceIndex >= 2)
+            if (!ExpeditionShrineCatalog.TryGet(shrineId, out var definition) ||
+                choiceIndex < 0 ||
+                choiceIndex >= definition.Choices.Count)
+            {
                 return new ExpeditionEventOutcome { Message = "你离开了祭坛。" };
+            }
+
+            var choice = definition.Choices[choiceIndex];
+            if (choice.Label == "C" ||
+                (choice.Description != null && choice.Description.Contains("安全离开")))
+            {
+                return new ExpeditionEventOutcome { Message = "你离开了祭坛。" };
+            }
 
             return shrineId switch
             {
-                ExpeditionShrineIds.Blood => ResolveBloodShrine(run, choiceIndex),
+                ExpeditionShrineIds.Blood => ResolveBloodShrine(run, choiceIndex, rng),
                 ExpeditionShrineIds.Knowledge => ResolveKnowledgeShrine(run, choiceIndex, rng),
                 ExpeditionShrineIds.Soul => ResolveSoulShrine(run, choiceIndex, rng),
                 ExpeditionShrineIds.Chaos => ResolveChaosShrine(run, choiceIndex, rng),
@@ -76,6 +90,9 @@ namespace Grimhand.Expedition.Events
             {
                 0 when run.Gold >= 25 => BuyHeal(run),
                 1 when run.Gold >= 20 => BuyRemoveCard(run),
+                2 when run.Gold >= 10 => BuyConsumable(run, ConsumableIds.SmallHealingPotion, 10),
+                3 when run.Gold >= 20 => BuyConsumable(run, ConsumableIds.LargeHealingPotion, 20),
+                4 when run.Gold >= 15 => BuyConsumable(run, ConsumableIds.SmokeBomb, 15),
                 _ => new ExpeditionEventOutcome { Message = "你没有购买任何东西。" }
             };
         }
@@ -98,11 +115,10 @@ namespace Grimhand.Expedition.Events
                 {
                     run.Modifiers.TeamAttackBonus += 1;
                 }),
-                1 => WithMessage("亵渎圣堂获得 50 金币，但神罚将至。", () =>
-                {
-                    run.Gold += 50;
-                    run.Modifiers.DivinePunishmentActive = true;
-                }),
+                1 => WithPickup(
+                    ExpeditionRewardPickupFactory.Gold(50, "亵渎圣堂"),
+                    "亵渎圣堂获得 50 金币，但神罚将至。",
+                    () => run.Modifiers.DivinePunishmentActive = true),
                 _ => new ExpeditionEventOutcome { Message = "你静默离开神殿。" }
             };
         }
@@ -111,14 +127,15 @@ namespace Grimhand.Expedition.Events
         {
             return choice switch
             {
-                0 => WithTeamHpPercent(run, -15, "冒险者感激地留下一件遗物。", () =>
-                    GrantRandomRelic(run, rng)),
-                1 => WithMessage("你搜刮了冒险者。", () =>
-                {
-                    run.Gold += 20;
-                    run.Modifiers.LootedInjuredAdventurer = true;
-                    run.EventFlags.Add("looted_adventurer");
-                }),
+                0 => ResolveInjuredAdventurerHelp(run, rng),
+                1 => WithPickup(
+                    ExpeditionRewardPickupFactory.Gold(20, "搜刮冒险者"),
+                    "你搜刮了冒险者。",
+                    () =>
+                    {
+                        run.Modifiers.LootedInjuredAdventurer = true;
+                        run.EventFlags.Add("looted_adventurer");
+                    }),
                 _ => new ExpeditionEventOutcome { Message = "你选择无视，继续赶路。" }
             };
         }
@@ -130,7 +147,7 @@ namespace Grimhand.Expedition.Events
 
             if (choice == 1)
             {
-                AddConsumable(run, "spring_bottle", "泉水瓶", 2);
+                AddConsumables(run, ConsumableIds.SpringBottle, 2);
                 return new ExpeditionEventOutcome { Message = "你带走了 2 瓶泉水。" };
             }
 
@@ -159,8 +176,9 @@ namespace Grimhand.Expedition.Events
                 run.Gold -= 20;
                 if (rng.NextIndex(100) < 50)
                 {
-                    run.Gold += 50;
-                    return new ExpeditionEventOutcome { Message = "小赌获胜：+50 金币。" };
+                    return WithPickup(
+                        ExpeditionRewardPickupFactory.Gold(50, "小赌获胜"),
+                        "小赌获胜：+50 金币。");
                 }
 
                 return new ExpeditionEventOutcome { Message = "小赌失败，金币打了水漂。" };
@@ -171,15 +189,18 @@ namespace Grimhand.Expedition.Events
             var big = rng.NextIndex(100);
             if (big < 40)
             {
-                run.Gold = all * 2;
-                return new ExpeditionEventOutcome { Message = "大赌翻倍！" };
+                return WithPickup(
+                    ExpeditionRewardPickupFactory.Gold(all * 2, "大赌翻倍"),
+                    "大赌翻倍！");
             }
 
             if (big < 70)
                 return new ExpeditionEventOutcome { Message = "大赌输光所有金币。" };
 
-            GrantRandomRelic(run, rng);
-            return new ExpeditionEventOutcome { Message = "大赌获得稀有遗物！" };
+            var relicId = ExpeditionRewardPickupFactory.RollRelicId(run, rng);
+            return WithPickup(
+                ExpeditionRewardPickupFactory.Relic(relicId, "大赌遗物"),
+                "大赌获得稀有遗物！");
         }
 
         static ExpeditionEventOutcome ResolveMirrorPhantom(ExpeditionRunState run, int choice, ExpeditionConfig config)
@@ -193,7 +214,7 @@ namespace Grimhand.Expedition.Events
                     CombatEncounterIndex = config.CombatEncounters.Count > 0 ? 0 : 0
                 },
                 1 => WithMessage("镜之碎片落入手心。", () =>
-                    AddConsumable(run, "mirror_shard", "镜之碎片", 1)),
+                    AddConsumables(run, ConsumableIds.MirrorShard, 1)),
                 _ => new ExpeditionEventOutcome { Message = "你离开了魔镜。" }
             };
         }
@@ -203,7 +224,7 @@ namespace Grimhand.Expedition.Events
             return choice switch
             {
                 0 => WithMemberHpLoss(run, 10, "阅读获得一张蓝色卡牌。", rng),
-                1 => WithMessage("带走古卷残页。", () => AddConsumable(run, "scroll_page", "古卷残页", 1)),
+                1 => WithMessage("带走古卷残页。", () => AddConsumables(run, ConsumableIds.ScrollPage, 1)),
                 _ => new ExpeditionEventOutcome { Message = "你合上了书。" }
             };
         }
@@ -268,7 +289,9 @@ namespace Grimhand.Expedition.Events
                     HealTeamPercentSilent(run, 30);
                 }),
                 1 => HealTeamPercent(run, 15, "简单休息后恢复了一些体力。"),
-                _ => WithMessage("搜刮营地。", () => run.Gold += rng.NextInt(10, 26))
+                _ => WithPickup(
+                    ExpeditionRewardPickupFactory.Gold(rng.NextInt(10, 26), "营地搜刮"),
+                    "搜刮营地。")
             };
         }
 
@@ -309,15 +332,24 @@ namespace Grimhand.Expedition.Events
             };
         }
 
-        static ExpeditionEventOutcome ResolveBloodShrine(ExpeditionRunState run, int choice)
+        static ExpeditionEventOutcome ResolveBloodShrine(ExpeditionRunState run, int choice, BattleRng rng)
         {
             return choice switch
             {
                 0 => WithMemberHpPercent(run, -50, "血祭完成：该角色 ATK+3。", () =>
                     run.Modifiers.TeamAttackBonus += 3),
-                1 => WithTeamHpPercent(run, -15, "集体血祭完成，获得随机遗物。", () => GrantRandomRelic(run, new BattleRng(1))),
+                1 => ResolveBloodShrineRelic(run, rng),
                 _ => new ExpeditionEventOutcome { Message = "你离开血之祭坛。" }
             };
+        }
+
+        static ExpeditionEventOutcome ResolveBloodShrineRelic(ExpeditionRunState run, BattleRng rng)
+        {
+            WithTeamHpPercentSilent(run, -15);
+            var relicId = ExpeditionRewardPickupFactory.RollRelicId(run, rng);
+            return WithPickup(
+                ExpeditionRewardPickupFactory.Relic(relicId, "血之祭坛"),
+                "集体血祭完成，获得随机遗物。");
         }
 
         static ExpeditionEventOutcome ResolveKnowledgeShrine(ExpeditionRunState run, int choice, BattleRng rng)
@@ -334,7 +366,7 @@ namespace Grimhand.Expedition.Events
         {
             return choice switch
             {
-                0 => GrantRelicOrMessage(run, rng, "献祭遗物，获得更高阶遗物。"),
+                0 => GrantRelicPickup(run, rng, "献祭遗物，获得更高阶遗物。", "灵魂祭坛"),
                 1 => new ExpeditionEventOutcome { Message = "等级重置，该角色获得 ATK+3 DEF+2 HP+15（占位）。" },
                 _ => new ExpeditionEventOutcome { Message = "你离开灵魂祭坛。" }
             };
@@ -353,10 +385,16 @@ namespace Grimhand.Expedition.Events
             if (rng.NextIndex(100) < 10)
                 return new ExpeditionEventOutcome { Message = "混沌仪式毫无收获。" };
 
-            if (rng.NextIndex(100) < 50)
-                GrantRandomRelic(run, rng);
-
             run.Modifiers.TeamAttackBonus += 1;
+
+            if (rng.NextIndex(100) < 50)
+            {
+                var relicId = ExpeditionRewardPickupFactory.RollRelicId(run, rng);
+                return WithPickup(
+                    ExpeditionRewardPickupFactory.Relic(relicId, "混沌祭坛"),
+                    "混沌祭坛给出了未知的回报。");
+            }
+
             return new ExpeditionEventOutcome { Message = "混沌祭坛给出了未知的回报。" };
         }
 
@@ -373,6 +411,17 @@ namespace Grimhand.Expedition.Events
             return new ExpeditionEventOutcome { Message = "删牌服务完成（占位）。" };
         }
 
+        static ExpeditionEventOutcome BuyConsumable(ExpeditionRunState run, string consumableId, int cost)
+        {
+            run.Gold -= cost;
+            AddConsumables(run, consumableId, 1);
+            ConsumableDatabase.TryGet(consumableId, out var def);
+            var suffix = string.IsNullOrEmpty(run.PendingConsumableOfferId)
+                ? ""
+                : "（栏位已满，请选择替换或放弃）";
+            return new ExpeditionEventOutcome { Message = $"购买 {def?.DisplayName ?? consumableId}{suffix}" };
+        }
+
         static ExpeditionEventOutcome SpendGold(ExpeditionRunState run, int amount, string message, System.Action extra = null)
         {
             run.Gold -= amount;
@@ -382,24 +431,53 @@ namespace Grimhand.Expedition.Events
 
         static ExpeditionEventOutcome GrantRelicOrMessage(ExpeditionRunState run, BattleRng rng, string message)
         {
-            GrantRandomRelic(run, rng);
             AddCurseCard(run);
-            return new ExpeditionEventOutcome { Message = message };
+            var relicId = ExpeditionRewardPickupFactory.RollRelicId(run, rng);
+            if (string.IsNullOrEmpty(relicId))
+                return new ExpeditionEventOutcome { Message = message };
+
+            return WithPickup(
+                ExpeditionRewardPickupFactory.Relic(relicId, "遗物奖励"),
+                message);
         }
 
-        static void GrantRandomRelic(ExpeditionRunState run, BattleRng rng)
+        static ExpeditionEventOutcome ResolveInjuredAdventurerHelp(ExpeditionRunState run, BattleRng rng)
         {
-            var pool = new List<string>();
-            foreach (var relic in RelicDatabase.All)
+            WithTeamHpPercentSilent(run, -15);
+            var relicId = ExpeditionRewardPickupFactory.RollRelicId(run, rng);
+            return WithPickup(
+                ExpeditionRewardPickupFactory.Relic(relicId, "冒险者的谢礼"),
+                "冒险者感激地留下一件遗物。");
+        }
+
+        static ExpeditionEventOutcome WithPickup(
+            ExpeditionRewardPickup pickup,
+            string message,
+            System.Action extra = null)
+        {
+            extra?.Invoke();
+            if (pickup == null || !pickup.HasAnyReward)
+                return new ExpeditionEventOutcome { Message = message };
+
+            pickup.Kind = RewardPickupKind.EventOrShrine;
+            if (string.IsNullOrEmpty(pickup.HeaderText))
+                pickup.HeaderText = "拾取奖励";
+
+            return new ExpeditionEventOutcome
             {
-                if (!run.Relics.Contains(relic.Id))
-                    pool.Add(relic.Id);
-            }
+                Message = message,
+                PendingRewardPickup = pickup
+            };
+        }
 
-            if (pool.Count == 0)
-                return;
-
-            run.Relics.Add(pool[rng.NextIndex(pool.Count)]);
+        static ExpeditionEventOutcome GrantRelicPickup(
+            ExpeditionRunState run,
+            BattleRng rng,
+            string message,
+            string header)
+        {
+            var relicId = ExpeditionRewardPickupFactory.RollRelicId(run, rng);
+            return WithPickup(ExpeditionRewardPickupFactory.Relic(relicId, header), message);
         }
 
         static ExpeditionEventOutcome EvolveRelic(ExpeditionRunState run, string from, string to, string name)
@@ -442,23 +520,13 @@ namespace Grimhand.Expedition.Events
             }
         }
 
-        static void AddConsumable(ExpeditionRunState run, string id, string name, int count)
+        static void AddConsumables(ExpeditionRunState run, string id, int count)
         {
-            foreach (var stack in run.Consumables)
+            if (!ConsumableInventory.TryAddMany(run.ConsumableSlots, id, count, out var pending) &&
+                !string.IsNullOrEmpty(pending))
             {
-                if (stack.ConsumableId != id)
-                    continue;
-
-                stack.Count += count;
-                return;
+                run.PendingConsumableOfferId = pending;
             }
-
-            run.Consumables.Add(new ConsumableStack
-            {
-                ConsumableId = id,
-                DisplayName = name,
-                Count = count
-            });
         }
 
         static ExpeditionEventOutcome HealTeamPercent(ExpeditionRunState run, int percent, string message)

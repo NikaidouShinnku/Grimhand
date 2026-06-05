@@ -232,16 +232,8 @@ namespace Grimhand.Expedition.Map
                     break;
                 case ExpeditionNodeType.Event:
                     option.EventId = PickEventId(run, rng);
-                    if (ExpeditionEventCatalog.TryGet(option.EventId, out var evt))
-                    {
-                        option.DisplayName = evt.DisplayName;
-                        option.Description = TrimPreview(evt.SceneText);
-                    }
-                    else
-                    {
-                        option.DisplayName = "特殊事件";
-                        option.Description = "未知遭遇。";
-                    }
+                    option.DisplayName = Pick(ExpeditionNodeNames.MysteryPath, layer, index);
+                    option.Description = ExpeditionRouteCopy.MysteryPathDescription;
                     break;
                 case ExpeditionNodeType.Shop:
                     option.DisplayName = Pick(ExpeditionNodeNames.Shop, layer, index);
@@ -331,15 +323,6 @@ namespace Grimhand.Expedition.Map
 
         static string Pick(string[] pool, int layer, int index) =>
             pool[(layer + index) % pool.Length];
-
-        static string TrimPreview(string text)
-        {
-            if (string.IsNullOrEmpty(text))
-                return "";
-
-            var line = text.Split('\n')[0];
-            return line.Length > 36 ? line.Substring(0, 36) + "…" : line;
-        }
     }
 
     static class ExpeditionNodeNames
@@ -357,6 +340,12 @@ namespace Grimhand.Expedition.Map
         public static readonly string[] Shop =
         {
             "流浪商人", "黑市帐篷", "旅途驿站"
+        };
+
+        /// <summary>选路时不揭示节点类型（事件等）用的洞窟名。</summary>
+        public static readonly string[] MysteryPath =
+        {
+            "暗影通道", "断裂石桥", "低语深坑", "腐化洞窟", "迷雾岔路", "坍塌矿道"
         };
     }
 }

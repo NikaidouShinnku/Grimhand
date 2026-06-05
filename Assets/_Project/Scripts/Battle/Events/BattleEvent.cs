@@ -32,7 +32,8 @@ namespace Grimhand.Battle.Events
         PortraitIdleRestored,
         EnemyIntentPrepared,
         TurnSkipped,
-        BattleEnded
+        BattleEnded,
+        ConsumableUsed
     }
 
     public sealed class BattleEvent

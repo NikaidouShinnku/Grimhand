@@ -1,38 +1,75 @@
+using System;
 using System.Collections.Generic;
-using System.Text;
+using Grimhand.Battle.Consumables;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
 using Grimhand.Content;
 using Grimhand.Expedition;
-using Grimhand.Expedition.Model;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Battle
 {
     public sealed class BattleInventoryPanelView : MonoBehaviour
     {
-        const float PanelWidth = 560f;
-        const float PanelHeight = 640f;
-        const float PanelLeft = 12f;
-        const float PanelBottom = 120f;
-
-        GameObject _panel;
-        Text _bodyText;
-        ScrollRect _scroll;
-        RectTransform _contentRt;
-        Transform _battleRoot;
+        const float PanelWidth = 1080f;
+        const float PanelHeight = 780f;
+        const float ConsumableStripWidth = 108f;
+        const float CardScale = 0.88f;
+        const int CardsPerRow = 5;
+        const float CardGridHorizontalPadding = 20f;
+        const float CharacterCardWidth = 200f;
+        const float CharacterCardHeight = 260f;
+        const float CharacterPortraitSize = 148f;
 
         BattleSession _session;
+        Transform _battleRoot;
+        CardView _cardPrefab;
+        CardVisualCatalogSO _cardCatalog;
+        CharacterVisualCatalogSO _characterVisuals;
+        RelicVisualCatalogSO _relicCatalog;
+        ConsumableVisualCatalogSO _consumableCatalog;
+        BattleUiIconCatalogSO _icons;
+        Dictionary<string, CardDefinitionSO> _definitions = new();
 
-        public bool IsOpen => _panel != null && _panel.activeSelf;
+        RectTransform _panel;
+        RectTransform _goldRow;
+        Text _goldText;
+        Image _goldIcon;
+        RectTransform _mainContent;
+        RectTransform _consumableStrip;
+        RectTransform _characterRow;
+        RectTransform _relicRow;
+        RectTransform _cardArea;
+        ScrollRect _scroll;
+        InventoryTooltipView _tooltip;
+        readonly List<GameObject> _dynamicObjects = new();
 
-        public void Initialize(BattleSession session, Transform root)
+        public bool IsOpen => _panel != null && _panel.gameObject.activeSelf;
+        public Action OnConsumableUseStarted;
+
+        public void Initialize(
+            BattleSession session,
+            Transform root,
+            CardView cardPrefab,
+            CardVisualCatalogSO cardCatalog,
+            CharacterVisualCatalogSO characterVisuals,
+            RelicVisualCatalogSO relicCatalog,
+            ConsumableVisualCatalogSO consumableCatalog,
+            BattleUiIconCatalogSO icons,
+            Dictionary<string, CardDefinitionSO> definitions)
         {
             _session = session;
             _battleRoot = root;
+            _cardPrefab = cardPrefab;
+            _cardCatalog = cardCatalog;
+            _characterVisuals = characterVisuals;
+            _relicCatalog = relicCatalog;
+            _consumableCatalog = consumableCatalog;
+            _icons = icons;
+            _definitions = definitions ?? new Dictionary<string, CardDefinitionSO>();
             EnsureBuilt(root);
-            Hide();
         }
 
         public void Toggle()
@@ -40,7 +77,7 @@ namespace Grimhand.Presentation.Battle
             if (_panel == null)
                 return;
 
-            if (_panel.activeSelf)
+            if (IsOpen)
                 Hide();
             else
                 Show();
@@ -48,137 +85,273 @@ namespace Grimhand.Presentation.Battle
 
         public void Hide()
         {
+            _tooltip?.Hide();
             if (_panel != null)
-                _panel.SetActive(false);
+                _panel.gameObject.SetActive(false);
         }
 
         public void Refresh()
         {
-            if (_panel == null || !_panel.activeSelf || _bodyText == null)
+            if (_panel == null || !IsOpen)
                 return;
 
-            if (_session?.Engine == null)
-            {
-                _bodyText.text = "战斗数据尚未就绪…";
-                ResizeBody();
-                return;
-            }
-
-            var body = BuildBody();
-            _bodyText.text = string.IsNullOrWhiteSpace(body) ? "（暂无数据）" : body;
-            ResizeBody();
+            ClearDynamic();
+            RefreshGold();
+            RefreshCharacters();
+            RefreshRelics();
+            RefreshCards();
+            RefreshConsumables();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(_mainContent);
         }
 
         void Show()
         {
-            _panel.SetActive(true);
-            if (_panel.TryGetComponent<RectTransform>(out var panelRt) && _battleRoot != null)
-                CombatantTooltipLayer.MountToFront(panelRt, _battleRoot);
-
+            _panel.gameObject.SetActive(true);
+            CombatantTooltipLayer.MountToFront(_panel, _battleRoot);
             Refresh();
         }
 
-        void ResizeBody()
+        void RefreshGold()
         {
-            if (_bodyText == null || _contentRt == null)
+            if (_goldText == null)
                 return;
 
-            Canvas.ForceUpdateCanvases();
-            var width = _contentRt.rect.width > 1f ? _contentRt.rect.width - 24f : 320f;
-            var height = _bodyText.preferredHeight + 24f;
-            var bodyRt = _bodyText.rectTransform;
-            bodyRt.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);
-            bodyRt.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, Mathf.Max(height, 120f));
-            _contentRt.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, bodyRt.rect.height + 16f);
-            LayoutRebuilder.ForceRebuildLayoutImmediate(_contentRt);
-            if (_scroll != null)
-                _scroll.verticalNormalizedPosition = 1f;
+            var gold = _session?.IsExpeditionMode == true ? _session.Expedition.Run.Gold : 0;
+            _goldText.text = gold.ToString();
+            if (_goldIcon != null && _icons?.GoldIcon != null)
+            {
+                _goldIcon.sprite = _icons.GoldIcon;
+                _goldIcon.color = Color.white;
+            }
         }
 
-        string BuildBody()
+        void RefreshCharacters()
         {
-            var sb = new StringBuilder();
+            if (_session?.Engine == null || _characterRow == null)
+                return;
+
             var state = _session.Engine.State;
-
-            if (_session.IsExpeditionMode)
-                sb.AppendLine($"【金币】 {_session.Expedition.Run.Gold}");
-            else
-                sb.AppendLine("【金币】 —");
-
-            sb.AppendLine("【遗物】");
-            if (_session.IsExpeditionMode && _session.Expedition.Run.Relics.Count > 0)
-            {
-                foreach (var relicId in _session.Expedition.Run.Relics)
-                {
-                    if (RelicDatabase.TryGet(relicId, out var relic))
-                        sb.AppendLine($"  · {relic.DisplayName} — {relic.Description}");
-                    else
-                        sb.AppendLine($"  · {relicId}");
-                }
-            }
-            else
-                sb.AppendLine("  暂无");
-
-            sb.AppendLine();
-
-            sb.AppendLine("【角色】");
-            var wrotePlayer = false;
             foreach (var unit in state.Combatants)
             {
                 if (unit.Team != TeamSide.Player)
                     continue;
 
-                wrotePlayer = true;
+                var card = CreateSectionCard(_characterRow, CharacterCardWidth, CharacterCardHeight);
+                var portraitGo = new GameObject("Portrait", typeof(RectTransform), typeof(Image));
+                portraitGo.transform.SetParent(card, false);
+                var portraitRt = portraitGo.GetComponent<RectTransform>();
+                portraitRt.anchorMin = new Vector2(0.5f, 1f);
+                portraitRt.anchorMax = new Vector2(0.5f, 1f);
+                portraitRt.pivot = new Vector2(0.5f, 1f);
+                portraitRt.anchoredPosition = new Vector2(0f, -12f);
+                portraitRt.sizeDelta = new Vector2(CharacterPortraitSize, CharacterPortraitSize);
+                var portrait = portraitGo.GetComponent<Image>();
+                portrait.sprite = _characterVisuals?.GetPortraitReference(unit.CharacterDefinitionId)
+                    ?? _characterVisuals?.GetPortrait(unit.CharacterDefinitionId);
+                portrait.preserveAspect = true;
+                portrait.raycastTarget = false;
+                portrait.color = portrait.sprite != null ? Color.white : new Color(0.35f, 0.38f, 0.45f, 1f);
+
+                var nameGo = new GameObject("Name", typeof(RectTransform), typeof(Text));
+                nameGo.transform.SetParent(card, false);
+                var nameRt = nameGo.GetComponent<RectTransform>();
+                nameRt.anchorMin = new Vector2(0.06f, 0f);
+                nameRt.anchorMax = new Vector2(0.94f, 0.18f);
+                nameRt.offsetMin = Vector2.zero;
+                nameRt.offsetMax = Vector2.zero;
+                var nameText = nameGo.GetComponent<Text>();
+                StyleText(nameText, 16, TextAnchor.MiddleCenter);
+                nameText.text = unit.DisplayName;
+
                 var xpLine = _session.IsExpeditionMode
-                    ? $"  {CharacterProgression.FormatXpLine(unit.Level, unit.Xp)}"
+                    ? CharacterProgression.FormatXpLine(unit.Level, unit.Xp)
                     : "";
-                sb.AppendLine(
-                    $"{unit.DisplayName}  Lv.{unit.Level}{xpLine}  " +
-                    $"HP {unit.Hp}/{unit.MaxHp}  攻{unit.Attack}  防{unit.Defense}  " +
-                    $"速{StatusRules.GetEffectiveSpeed(unit)}");
+                var tooltipBody =
+                    $"Lv.{unit.Level}" +
+                    (string.IsNullOrEmpty(xpLine) ? "" : $"\n{xpLine}") +
+                    $"\nHP {unit.Hp}/{unit.MaxHp}" +
+                    $"\n攻 {unit.Attack}  防 {unit.Defense}  速 {StatusRules.GetEffectiveSpeed(unit)}";
+
+                _tooltip?.BindHover(card.gameObject, unit.DisplayName, tooltipBody);
             }
-
-            if (!wrotePlayer)
-                sb.AppendLine("  —");
-
-            sb.AppendLine();
-            sb.AppendLine("【卡牌】");
-            AppendCardPool(sb, "手牌", state.PlayerHand);
-            AppendCardPool(sb, "抽牌堆", state.PlayerDrawPile);
-            AppendCardPool(sb, "弃牌堆", state.PlayerDiscardPile);
-
-            if (_session.IsExpeditionMode && _session.Expedition.Run.Party.Count > 0)
-            {
-                sb.AppendLine();
-                sb.AppendLine("【远征队伍】");
-                foreach (var m in _session.Expedition.Run.Party)
-                    sb.AppendLine(
-                        $"{m.DisplayName}  Lv.{m.Level}  {CharacterProgression.FormatXpLine(m.Level, m.Xp)}  " +
-                        $"HP {m.Hp}/{m.MaxHp}");
-            }
-
-            return sb.ToString().TrimEnd();
         }
 
-        static void AppendCardPool(StringBuilder sb, string label, IReadOnlyList<CardInstanceState> cards)
+        void RefreshRelics()
         {
-            sb.Append(label).Append(" (").Append(cards.Count).Append("): ");
-            if (cards.Count == 0)
-            {
-                sb.AppendLine("—");
+            if (!_session.IsExpeditionMode)
                 return;
-            }
 
-            sb.AppendLine();
-            for (var i = 0; i < cards.Count; i++)
+            foreach (var relicId in _session.Expedition.Run.Relics)
             {
-                var c = cards[i];
-                sb.Append("  · ").Append(c.DisplayName).Append(" 费").Append(c.Cost);
-                if (i < cards.Count - 1)
-                    sb.AppendLine();
-            }
+                if (!RelicDatabase.TryGet(relicId, out var relic))
+                    continue;
 
-            sb.AppendLine();
+                var slot = CreateIconSlot(_relicRow, 92f);
+                var icon = slot.GetComponentInChildren<Image>();
+                icon.sprite = _relicCatalog?.GetIcon(relicId);
+                icon.color = icon.sprite != null ? Color.white : new Color(0.45f, 0.38f, 0.28f, 1f);
+
+                var labelGo = new GameObject("Label", typeof(RectTransform), typeof(Text));
+                labelGo.transform.SetParent(slot.transform, false);
+                var labelRt = labelGo.GetComponent<RectTransform>();
+                labelRt.anchorMin = new Vector2(0f, 0f);
+                labelRt.anchorMax = new Vector2(1f, 0.22f);
+                labelRt.offsetMin = Vector2.zero;
+                labelRt.offsetMax = Vector2.zero;
+                var label = labelGo.GetComponent<Text>();
+                StyleText(label, 12, TextAnchor.MiddleCenter);
+                label.text = relic.DisplayName;
+
+                _tooltip?.BindHover(slot.gameObject, relic.DisplayName, relic.Description);
+            }
+        }
+
+        void RefreshCards()
+        {
+            if (_session?.Engine == null || _cardPrefab == null)
+                return;
+
+            var state = _session.Engine.State;
+            AddCardGroup("手牌", state.PlayerHand);
+            AddCardGroup("抽牌堆", state.PlayerDrawPile);
+            AddCardGroup("弃牌堆", state.PlayerDiscardPile);
+        }
+
+        void AddCardGroup(string label, IReadOnlyList<CardInstanceState> cards)
+        {
+            if (cards.Count == 0)
+                return;
+
+            var header = CreateTextRow(_cardArea, label + $" ({cards.Count})");
+            StyleText(header, 17, TextAnchor.MiddleLeft);
+            _dynamicObjects.Add(header.gameObject);
+
+            var cardWidth = 168f * CardScale;
+            var cardHeight = 236f * CardScale;
+            var grid = CreateCardGrid(_cardArea, cardWidth, cardHeight);
+
+            foreach (var card in cards)
+            {
+                _definitions.TryGetValue(card.DefinitionId, out var definition);
+                var holder = new GameObject("CardHolder", typeof(RectTransform), typeof(LayoutElement));
+                holder.transform.SetParent(grid, false);
+                var holderLe = holder.GetComponent<LayoutElement>();
+                holderLe.preferredWidth = cardWidth + 8f;
+                holderLe.preferredHeight = cardHeight + 8f;
+
+                var view = Instantiate(_cardPrefab, holder.transform);
+                CardView.ApplyHandPresentationScale(view, CardScale);
+                var cardRt = view.transform as RectTransform;
+                if (cardRt != null)
+                {
+                    cardRt.anchorMin = new Vector2(0.5f, 0.5f);
+                    cardRt.anchorMax = new Vector2(0.5f, 0.5f);
+                    cardRt.pivot = new Vector2(0.5f, 0.5f);
+                    cardRt.anchoredPosition = Vector2.zero;
+                }
+                var preview = CardVisualResolver.CreatePreviewInstance(
+                    card.DefinitionId,
+                    card.OwnerCharacterId,
+                    card.DisplayName,
+                    definition);
+                var visual = CardVisualResolver.Resolve(preview, _cardCatalog, _characterVisuals, _definitions);
+                view.BindWithCard(
+                    preview,
+                    visual,
+                    selected: false,
+                    polluted: false,
+                    interactable: false,
+                    orderBadge: "",
+                    statsLine: BattleUiFormatters.BuildCardStatsLinePreview(preview),
+                    uiIcons: _icons,
+                    characterVisuals: _characterVisuals,
+                    onClick: null,
+                    onHoverEnter: null,
+                    onHoverExit: null);
+
+                var canvasGroup = view.GetComponent<CanvasGroup>();
+                if (canvasGroup != null)
+                    canvasGroup.alpha = 1f;
+
+                _dynamicObjects.Add(holder);
+            }
+        }
+
+        RectTransform CreateCardGrid(Transform parent, float cellWidth, float cellHeight)
+        {
+            var go = new GameObject("CardGrid", typeof(RectTransform), typeof(GridLayoutGroup), typeof(LayoutElement), typeof(ContentSizeFitter));
+            go.transform.SetParent(parent, false);
+            var le = go.GetComponent<LayoutElement>();
+            le.flexibleWidth = 1f;
+            var fitter = go.GetComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            var grid = go.GetComponent<GridLayoutGroup>();
+            grid.cellSize = new Vector2(cellWidth + 8f, cellHeight + 8f);
+            grid.spacing = new Vector2(10f, 12f);
+            grid.padding = new RectOffset(
+                (int)CardGridHorizontalPadding,
+                (int)CardGridHorizontalPadding,
+                4,
+                8);
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            grid.constraintCount = CardsPerRow;
+            grid.childAlignment = TextAnchor.UpperCenter;
+            grid.startCorner = GridLayoutGroup.Corner.UpperLeft;
+            grid.startAxis = GridLayoutGroup.Axis.Horizontal;
+
+            _dynamicObjects.Add(go);
+            return go.GetComponent<RectTransform>();
+        }
+
+        void RefreshConsumables()
+        {
+            if (!_session.IsExpeditionMode)
+                return;
+
+            ConsumableInventory.EnsureInitialized(_session.Expedition.Run.ConsumableSlots);
+            var slots = _session.Expedition.Run.ConsumableSlots;
+            var inBattle = _session.Engine != null &&
+                           _session.Engine.State.Phase == TurnPhase.Planning &&
+                           _session.CanInteractWithBattle();
+            var used = _session.Engine?.State.ConsumableUsedThisBattle == true;
+
+            for (var i = 0; i < ConsumableInventory.MaxSlots; i++)
+            {
+                var slotIndex = i;
+                var slotGo = CreateConsumableSlot(_consumableStrip, i);
+                var id = i < slots.Count ? slots[i] : "";
+                var icon = slotGo.transform.Find("Icon")?.GetComponent<Image>();
+                var empty = string.IsNullOrEmpty(id);
+
+                if (!empty && ConsumableDatabase.TryGet(id, out var def))
+                {
+                    if (icon != null)
+                    {
+                        icon.sprite = _consumableCatalog?.GetIcon(id);
+                        icon.color = icon.sprite != null ? Color.white : new Color(0.35f, 0.4f, 0.5f, 1f);
+                    }
+
+                    _tooltip?.BindHover(slotGo, def.DisplayName, def.Description);
+
+                    if (inBattle && !used)
+                    {
+                        var btn = slotGo.GetComponent<Button>() ?? slotGo.AddComponent<Button>();
+                        btn.onClick.RemoveAllListeners();
+                        btn.onClick.AddListener(() =>
+                        {
+                            if (_session.TryUseConsumableFromSlot(slotIndex))
+                                OnConsumableUseStarted?.Invoke();
+                        });
+                    }
+                }
+                else if (icon != null)
+                {
+                    icon.sprite = null;
+                    icon.color = new Color(0.18f, 0.2f, 0.26f, 0.8f);
+                }
+            }
         }
 
         void EnsureBuilt(Transform root)
@@ -186,88 +359,300 @@ namespace Grimhand.Presentation.Battle
             if (_panel != null)
                 return;
 
-            _panel = new GameObject("InventoryPanel", typeof(RectTransform), typeof(Image));
-            _panel.transform.SetParent(root, false);
-            var panelRt = _panel.GetComponent<RectTransform>();
-            panelRt.anchorMin = new Vector2(0f, 0f);
-            panelRt.anchorMax = new Vector2(0f, 0f);
-            panelRt.pivot = new Vector2(0f, 0f);
-            panelRt.anchoredPosition = new Vector2(PanelLeft, PanelBottom);
-            panelRt.sizeDelta = new Vector2(PanelWidth, PanelHeight);
+            var panelGo = new GameObject("InventoryPanel", typeof(RectTransform), typeof(Image));
+            panelGo.transform.SetParent(root, false);
+            _panel = panelGo.GetComponent<RectTransform>();
+            _panel.anchorMin = new Vector2(0.5f, 0.5f);
+            _panel.anchorMax = new Vector2(0.5f, 0.5f);
+            _panel.pivot = new Vector2(0.5f, 0.5f);
+            _panel.sizeDelta = new Vector2(PanelWidth, PanelHeight);
+            panelGo.GetComponent<Image>().color = new Color(0.07f, 0.08f, 0.12f, 0.98f);
 
-            var panelImg = _panel.GetComponent<Image>();
-            panelImg.color = new Color(0.08f, 0.09f, 0.13f, 0.96f);
+            var titleBar = CreateTitleBar(panelGo.transform);
+            titleBar.gameObject.AddComponent<UiPanelDragHandle>().SetDragTarget(_panel);
 
-            var titleGo = new GameObject("Title", typeof(RectTransform), typeof(Text));
-            titleGo.transform.SetParent(_panel.transform, false);
-            var title = titleGo.GetComponent<Text>();
-            title.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            title.fontSize = 20;
-            title.fontStyle = FontStyle.Bold;
-            title.color = Color.white;
-            title.alignment = TextAnchor.MiddleLeft;
-            title.text = "背包";
-            title.raycastTarget = false;
-            var titleRt = titleGo.GetComponent<RectTransform>();
-            titleRt.anchorMin = new Vector2(0f, 1f);
-            titleRt.anchorMax = new Vector2(1f, 1f);
-            titleRt.pivot = new Vector2(0f, 1f);
-            titleRt.offsetMin = new Vector2(12f, -40f);
-            titleRt.offsetMax = new Vector2(-12f, -8f);
+            _goldRow = CreateGoldRow(panelGo.transform);
 
-            var scrollGo = new GameObject("Scroll", typeof(RectTransform), typeof(ScrollRect), typeof(Image));
-            scrollGo.transform.SetParent(_panel.transform, false);
+            var bodyGo = new GameObject("Body", typeof(RectTransform));
+            bodyGo.transform.SetParent(panelGo.transform, false);
+            var bodyRt = bodyGo.GetComponent<RectTransform>();
+            bodyRt.anchorMin = new Vector2(0f, 0f);
+            bodyRt.anchorMax = new Vector2(1f, 1f);
+            bodyRt.offsetMin = new Vector2(12f, 12f);
+            bodyRt.offsetMax = new Vector2(-12f, -96f);
+
+            var scrollGo = new GameObject("MainScroll", typeof(RectTransform), typeof(ScrollRect), typeof(Image));
+            scrollGo.transform.SetParent(bodyGo.transform, false);
             var scrollRt = scrollGo.GetComponent<RectTransform>();
             scrollRt.anchorMin = Vector2.zero;
             scrollRt.anchorMax = Vector2.one;
-            scrollRt.offsetMin = new Vector2(8f, 8f);
-            scrollRt.offsetMax = new Vector2(-8f, -44f);
-            scrollGo.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.2f);
-
+            scrollRt.offsetMin = Vector2.zero;
+            scrollRt.offsetMax = new Vector2(-ConsumableStripWidth - 8f, 0f);
+            scrollGo.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.15f);
             _scroll = scrollGo.GetComponent<ScrollRect>();
             _scroll.horizontal = false;
             _scroll.vertical = true;
-            _scroll.movementType = ScrollRect.MovementType.Clamped;
 
-            var viewportGo = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(RectMask2D));
-            viewportGo.transform.SetParent(scrollGo.transform, false);
-            var viewportRt = viewportGo.GetComponent<RectTransform>();
-            viewportRt.anchorMin = Vector2.zero;
-            viewportRt.anchorMax = Vector2.one;
-            viewportRt.offsetMin = Vector2.zero;
-            viewportRt.offsetMax = Vector2.zero;
-            viewportGo.GetComponent<Image>().color = Color.clear;
+            var viewport = CreateViewport(scrollGo.transform);
+            _mainContent = CreateVerticalContent(viewport, "MainContent");
+            _scroll.viewport = viewport;
+            _scroll.content = _mainContent;
 
-            var contentGo = new GameObject("Content", typeof(RectTransform));
-            contentGo.transform.SetParent(viewportGo.transform, false);
-            _contentRt = contentGo.GetComponent<RectTransform>();
-            _contentRt.anchorMin = new Vector2(0f, 1f);
-            _contentRt.anchorMax = new Vector2(1f, 1f);
-            _contentRt.pivot = new Vector2(0.5f, 1f);
-            _contentRt.anchoredPosition = Vector2.zero;
-            _contentRt.sizeDelta = new Vector2(0f, 400f);
+            CreateSectionHeader(_mainContent, "角色");
+            _characterRow = CreateHorizontalRow(_mainContent, CharacterCardHeight + 8f);
+            CreateSectionHeader(_mainContent, "遗物");
+            _relicRow = CreateHorizontalRow(_mainContent, 120f);
+            CreateSectionHeader(_mainContent, "卡牌");
+            _cardArea = CreateVerticalContent(_mainContent, "Cards");
+            var cardAreaLayout = _cardArea.GetComponent<VerticalLayoutGroup>();
+            cardAreaLayout.padding = new RectOffset(24, 16, 4, 8);
 
-            var bodyGo = new GameObject("Body", typeof(RectTransform), typeof(Text));
-            bodyGo.transform.SetParent(_contentRt, false);
-            _bodyText = bodyGo.GetComponent<Text>();
-            _bodyText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            _bodyText.fontSize = 16;
-            _bodyText.color = new Color(0.92f, 0.94f, 0.98f, 1f);
-            _bodyText.alignment = TextAnchor.UpperLeft;
-            _bodyText.horizontalOverflow = HorizontalWrapMode.Wrap;
-            _bodyText.verticalOverflow = VerticalWrapMode.Overflow;
-            _bodyText.supportRichText = false;
-            _bodyText.raycastTarget = false;
+            var stripGo = new GameObject("ConsumableStrip", typeof(RectTransform), typeof(VerticalLayoutGroup));
+            stripGo.transform.SetParent(bodyGo.transform, false);
+            _consumableStrip = stripGo.GetComponent<RectTransform>();
+            _consumableStrip.anchorMin = new Vector2(1f, 0f);
+            _consumableStrip.anchorMax = new Vector2(1f, 1f);
+            _consumableStrip.pivot = new Vector2(1f, 0.5f);
+            _consumableStrip.sizeDelta = new Vector2(ConsumableStripWidth, 0f);
+            _consumableStrip.anchoredPosition = Vector2.zero;
+            var stripLayout = stripGo.GetComponent<VerticalLayoutGroup>();
+            stripLayout.spacing = 8f;
+            stripLayout.childAlignment = TextAnchor.UpperCenter;
+            stripLayout.childControlWidth = true;
+            stripLayout.childControlHeight = false;
+            stripLayout.childForceExpandWidth = true;
+            stripLayout.childForceExpandHeight = false;
+            CreateSectionHeader(stripGo.transform, "消耗品");
 
-            var bodyRt = bodyGo.GetComponent<RectTransform>();
-            bodyRt.anchorMin = new Vector2(0f, 1f);
-            bodyRt.anchorMax = new Vector2(1f, 1f);
-            bodyRt.pivot = new Vector2(0.5f, 1f);
-            bodyRt.anchoredPosition = Vector2.zero;
-            bodyRt.sizeDelta = new Vector2(-24f, 400f);
+            _tooltip = panelGo.AddComponent<InventoryTooltipView>();
+            _tooltip.Initialize(_panel);
+            panelGo.SetActive(false);
+        }
 
-            _scroll.viewport = viewportRt;
-            _scroll.content = _contentRt;
+        RectTransform CreateTitleBar(Transform parent)
+        {
+            var go = new GameObject("TitleBar", typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(1f, 1f);
+            rt.pivot = new Vector2(0.5f, 1f);
+            rt.sizeDelta = new Vector2(0f, 44f);
+            go.GetComponent<Image>().color = new Color(0.12f, 0.13f, 0.18f, 1f);
+
+            var textGo = new GameObject("Title", typeof(RectTransform), typeof(Text));
+            textGo.transform.SetParent(go.transform, false);
+            var textRt = textGo.GetComponent<RectTransform>();
+            textRt.anchorMin = Vector2.zero;
+            textRt.anchorMax = Vector2.one;
+            textRt.offsetMin = new Vector2(16f, 0f);
+            textRt.offsetMax = new Vector2(-16f, 0f);
+            var text = textGo.GetComponent<Text>();
+            StyleText(text, 22, TextAnchor.MiddleLeft);
+            text.text = "背包 · 拖动标题栏移动";
+            return rt;
+        }
+
+        RectTransform CreateGoldRow(Transform parent)
+        {
+            var go = new GameObject("GoldRow", typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(1f, 1f);
+            rt.pivot = new Vector2(0.5f, 1f);
+            rt.anchoredPosition = new Vector2(0f, -44f);
+            rt.sizeDelta = new Vector2(-24f, 44f);
+            go.GetComponent<Image>().color = new Color(0.1f, 0.11f, 0.15f, 0.95f);
+
+            var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+            iconGo.transform.SetParent(go.transform, false);
+            var iconRt = iconGo.GetComponent<RectTransform>();
+            iconRt.anchorMin = new Vector2(0f, 0.5f);
+            iconRt.anchorMax = new Vector2(0f, 0.5f);
+            iconRt.pivot = new Vector2(0f, 0.5f);
+            iconRt.anchoredPosition = new Vector2(16f, 0f);
+            iconRt.sizeDelta = new Vector2(32f, 32f);
+            _goldIcon = iconGo.GetComponent<Image>();
+            _goldIcon.preserveAspect = true;
+
+            var textGo = new GameObject("Amount", typeof(RectTransform), typeof(Text));
+            textGo.transform.SetParent(go.transform, false);
+            var textRt = textGo.GetComponent<RectTransform>();
+            textRt.anchorMin = new Vector2(0f, 0f);
+            textRt.anchorMax = new Vector2(1f, 1f);
+            textRt.offsetMin = new Vector2(56f, 0f);
+            textRt.offsetMax = new Vector2(-12f, 0f);
+            _goldText = textGo.GetComponent<Text>();
+            StyleText(_goldText, 24, TextAnchor.MiddleLeft);
+            return rt;
+        }
+
+        static RectTransform CreateViewport(Transform parent)
+        {
+            var go = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(RectMask2D));
+            go.transform.SetParent(parent, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            go.GetComponent<Image>().color = Color.clear;
+            return rt;
+        }
+
+        static RectTransform CreateVerticalContent(Transform parent, string name)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+            go.transform.SetParent(parent, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(1f, 1f);
+            rt.pivot = new Vector2(0.5f, 1f);
+            rt.sizeDelta = new Vector2(0f, 100f);
+            var layout = go.GetComponent<VerticalLayoutGroup>();
+            layout.spacing = 10f;
+            layout.padding = new RectOffset(8, 8, 8, 8);
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = false;
+            var fitter = go.GetComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            return rt;
+        }
+
+        RectTransform CreateHorizontalRow(Transform parent, float minHeight)
+        {
+            var go = new GameObject("Row", typeof(RectTransform), typeof(HorizontalLayoutGroup), typeof(LayoutElement));
+            go.transform.SetParent(parent, false);
+            var le = go.GetComponent<LayoutElement>();
+            le.minHeight = minHeight;
+            le.preferredHeight = minHeight;
+            var layout = go.GetComponent<HorizontalLayoutGroup>();
+            layout.spacing = 16f;
+            layout.childAlignment = TextAnchor.UpperLeft;
+            layout.childControlWidth = false;
+            layout.childControlHeight = false;
+            layout.childForceExpandWidth = false;
+            layout.childForceExpandHeight = false;
+            return go.GetComponent<RectTransform>();
+        }
+
+        Text CreateSectionHeader(Transform parent, string label)
+        {
+            var go = new GameObject("Header", typeof(RectTransform), typeof(Text), typeof(LayoutElement));
+            go.transform.SetParent(parent, false);
+            go.GetComponent<LayoutElement>().preferredHeight = 28f;
+            var text = go.GetComponent<Text>();
+            StyleText(text, 18, TextAnchor.MiddleLeft);
+            text.text = label;
+            text.color = new Color(0.92f, 0.82f, 0.55f, 1f);
+            return text;
+        }
+
+        Text CreateTextRow(Transform parent, string label)
+        {
+            var go = new GameObject("TextRow", typeof(RectTransform), typeof(Text), typeof(LayoutElement));
+            go.transform.SetParent(parent, false);
+            go.GetComponent<LayoutElement>().preferredHeight = 24f;
+            var text = go.GetComponent<Text>();
+            StyleText(text, 15, TextAnchor.MiddleLeft);
+            text.text = label;
+            return text;
+        }
+
+        RectTransform CreateSectionCard(Transform parent, float width, float height)
+        {
+            var go = new GameObject("CharacterCard", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
+            go.transform.SetParent(parent, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(width, height);
+            go.GetComponent<LayoutElement>().preferredWidth = width;
+            go.GetComponent<LayoutElement>().preferredHeight = height;
+            go.GetComponent<Image>().color = new Color(0.12f, 0.13f, 0.18f, 0.96f);
+            _dynamicObjects.Add(go);
+            return rt;
+        }
+
+        GameObject CreateIconSlot(Transform parent, float size)
+        {
+            var go = new GameObject("RelicSlot", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
+            go.transform.SetParent(parent, false);
+            go.GetComponent<LayoutElement>().preferredWidth = size;
+            go.GetComponent<LayoutElement>().preferredHeight = size + 24f;
+            var bg = go.GetComponent<Image>();
+            bg.color = new Color(0.11f, 0.12f, 0.16f, 0.95f);
+
+            var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+            iconGo.transform.SetParent(go.transform, false);
+            var iconRt = iconGo.GetComponent<RectTransform>();
+            iconRt.anchorMin = new Vector2(0.12f, 0.28f);
+            iconRt.anchorMax = new Vector2(0.88f, 0.96f);
+            iconRt.offsetMin = Vector2.zero;
+            iconRt.offsetMax = Vector2.zero;
+            iconGo.GetComponent<Image>().preserveAspect = true;
+            _dynamicObjects.Add(go);
+            return go;
+        }
+
+        GameObject CreateConsumableSlot(Transform parent, int index)
+        {
+            var go = new GameObject($"ConsumableSlot_{index}", typeof(RectTransform), typeof(Image), typeof(LayoutElement), typeof(Button));
+            go.transform.SetParent(parent, false);
+            var le = go.GetComponent<LayoutElement>();
+            le.preferredWidth = 92f;
+            le.preferredHeight = 92f;
+            go.GetComponent<Image>().color = new Color(0.11f, 0.12f, 0.16f, 0.95f);
+
+            var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+            iconGo.transform.SetParent(go.transform, false);
+            var iconRt = iconGo.GetComponent<RectTransform>();
+            iconRt.anchorMin = new Vector2(0.1f, 0.1f);
+            iconRt.anchorMax = new Vector2(0.9f, 0.9f);
+            iconRt.offsetMin = Vector2.zero;
+            iconRt.offsetMax = Vector2.zero;
+            iconGo.GetComponent<Image>().preserveAspect = true;
+            _dynamicObjects.Add(go);
+            return go;
+        }
+
+        void ClearDynamic()
+        {
+            foreach (var go in _dynamicObjects)
+            {
+                if (go != null)
+                    Destroy(go);
+            }
+
+            _dynamicObjects.Clear();
+
+            ClearChildren(_characterRow);
+            ClearChildren(_relicRow);
+            ClearChildren(_cardArea);
+            ClearChildren(_consumableStrip, keepFirst: 1);
+        }
+
+        static void ClearChildren(RectTransform parent, int keepFirst = 0)
+        {
+            if (parent == null)
+                return;
+
+            for (var i = parent.childCount - 1; i >= keepFirst; i--)
+                Destroy(parent.GetChild(i).gameObject);
+        }
+
+        static void StyleText(Text text, int size, TextAnchor anchor)
+        {
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = size;
+            text.fontStyle = FontStyle.Bold;
+            text.color = Color.white;
+            text.alignment = anchor;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.verticalOverflow = VerticalWrapMode.Overflow;
+            text.raycastTarget = false;
         }
     }
 }

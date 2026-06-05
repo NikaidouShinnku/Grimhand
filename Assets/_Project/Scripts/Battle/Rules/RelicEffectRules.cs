@@ -253,18 +253,23 @@ namespace Grimhand.Battle.Rules
         }
 
         public static bool TryDodgeIncoming(
+            BattleState state,
             RunModifierSnapshot mods,
             CombatantState target,
             BattleRng rng)
         {
-            if (mods == null || target == null || mods.DodgeChanceOnHit <= 0f || rng == null)
+            if (target == null || rng == null)
                 return false;
 
-            if (target.Team != TeamSide.Player)
+            var dodge = state?.ConsumableDodgeBonusThisTurn ?? 0f;
+            if (mods != null && target.Team == TeamSide.Player)
+                dodge += mods.DodgeChanceOnHit;
+
+            if (dodge <= 0f)
                 return false;
 
             var roll = rng.NextUInt() % 1000u / 1000f;
-            return roll < mods.DodgeChanceOnHit;
+            return roll < dodge;
         }
 
         public static bool TryMiracleLeafSave(

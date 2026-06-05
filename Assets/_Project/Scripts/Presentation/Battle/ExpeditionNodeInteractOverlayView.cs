@@ -83,28 +83,38 @@ namespace Grimhand.Presentation.Battle
         void RefreshShrine()
         {
             var pending = _session.Expedition.Run.PendingShrine;
-            var shrineName = pending?.ShrineId switch
+            if (pending == null || !ExpeditionShrineCatalog.TryGet(pending.ShrineId, out var shrine))
             {
-                ExpeditionShrineIds.Knowledge => "知识祭坛",
-                ExpeditionShrineIds.Soul => "灵魂祭坛",
-                ExpeditionShrineIds.Chaos => "混沌祭坛",
-                _ => "血之祭坛"
-            };
+                _titleText.text = "祭坛";
+                _bodyText.text = "献祭换取奖励，或安全离开。";
+                AddChoiceButton("离开", () => _session.ResolveShrineChoice(0));
+                return;
+            }
 
-            _titleText.text = shrineName;
-            _bodyText.text = "献祭换取奖励，或安全离开。";
-            AddChoiceButton("A) 献祭方案一", () => _session.ResolveShrineChoice(0));
-            AddChoiceButton("B) 献祭方案二", () => _session.ResolveShrineChoice(1));
-            AddChoiceButton("C) 离开", () => _session.ResolveShrineChoice(2));
+            _titleText.text = shrine.DisplayName;
+            _bodyText.text = shrine.SceneText;
+
+            for (var i = 0; i < shrine.Choices.Count; i++)
+            {
+                var index = i;
+                var choice = shrine.Choices[i];
+                var label = string.IsNullOrEmpty(choice.Label)
+                    ? choice.Description
+                    : $"{choice.Label}) {choice.Description}";
+                AddChoiceButton(label, () => _session.ResolveShrineChoice(index));
+            }
         }
 
         void RefreshShop()
         {
             var gold = _session.Expedition.Run.Gold;
             _titleText.text = "流浪商人";
-            _bodyText.text = $"金币：{gold}\n\n购买服务或离开。";
+            _bodyText.text = $"金币：{gold}\n\n购买服务、消耗品或离开。";
             AddChoiceButton("治疗（25 金币）", () => _session.ResolveShopChoice(0));
             AddChoiceButton("删牌（20 金币）", () => _session.ResolveShopChoice(1));
+            AddChoiceButton("小治疗药水（10 金币）", () => _session.ResolveShopChoice(2));
+            AddChoiceButton("大治疗药水（20 金币）", () => _session.ResolveShopChoice(3));
+            AddChoiceButton("烟雾弹（15 金币）", () => _session.ResolveShopChoice(4));
             AddChoiceButton("离开", () => _session.LeaveShop());
         }
 
@@ -115,7 +125,7 @@ namespace Grimhand.Presentation.Battle
             var rt = go.GetComponent<RectTransform>();
             rt.sizeDelta = new Vector2(280f, 72f);
             var le = go.GetComponent<LayoutElement>();
-            le.preferredHeight = 72f;
+            le.preferredHeight = 96f;
             le.minHeight = 72f;
             le.flexibleWidth = 1f;
             go.GetComponent<Image>().color = new Color(0.16f, 0.18f, 0.24f, 0.95f);

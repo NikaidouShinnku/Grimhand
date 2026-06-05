@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 155e517b57a6e7e4abda72e578ae1423, type: 3}
+  m_Name: ConsumableVisualCatalog_Demo
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.ConsumableVisualCatalogSO
+  Entries:
+  - ConsumableId: small_healing_potion
+    Icon: {fileID: -3418436494783022957, guid: ce092f7814241664587a08afb4445c68, type: 3}
+  - ConsumableId: large_healing_potion
+    Icon: {fileID: 1103828716492818912, guid: 492786f5e6f0cf447a8f5ad24e981b4c, type: 3}
+  - ConsumableId: strength_potion
+    Icon: {fileID: -7924943432731760927, guid: f8a110404092cb7489707ca9c9f0d533, type: 3}
+  - ConsumableId: ironskin_potion
+    Icon: {fileID: -7852752336891146179, guid: a9f951ec9268b0a479466519bd1d1121, type: 3}
+  - ConsumableId: spring_bottle
+    Icon: {fileID: 2887524789832424549, guid: 4df6494bc52a35d4fa7f0bffa41c5b1a, type: 3}
+  - ConsumableId: mirror_shard
+    Icon: {fileID: -2125520938262828504, guid: 2ac1df31eb2f72b46a8945469e62680d, type: 3}
+  - ConsumableId: scroll_page
+    Icon: {fileID: -8115463500208885062, guid: 05e098f0274f99a44bee515f7953c003, type: 3}
+  - ConsumableId: smoke_bomb
+    Icon: {fileID: -5267904105250679215, guid: 1d7d5169df59d174a98ab221997a6f56, type: 3}

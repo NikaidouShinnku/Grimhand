@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Grimhand.Battle.Consumables;
 using Grimhand.Battle.Planning;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
@@ -54,6 +55,8 @@ namespace Grimhand.Presentation.Battle
         readonly List<Button> _routeButtons = new();
         BattleActiveCardBanner _activeCardBanner;
         BattleInventoryPanelView _inventoryPanel;
+        ConsumableReplaceOverlayView _consumableReplaceOverlay;
+        ConsumableVisualCatalogSO _consumableCatalog;
         BattleTurnDetailPanelView _turnDetailPanel;
         ExpeditionMapPanelView _mapPanel;
         ExpeditionNodeInteractOverlayView _nodeInteractOverlay;
@@ -85,13 +88,15 @@ namespace Grimhand.Presentation.Battle
             CharacterVisualCatalogSO characterVisuals,
             BattleUiIconCatalogSO uiIcons,
             Dictionary<string, CardDefinitionSO> definitions,
-            RelicVisualCatalogSO relicCatalog = null)
+            RelicVisualCatalogSO relicCatalog = null,
+            ConsumableVisualCatalogSO consumableCatalog = null)
         {
             _session = session;
             _catalog = catalog;
             _characterVisuals = characterVisuals;
             _uiIcons = uiIcons;
             _relicCatalog = relicCatalog;
+            _consumableCatalog = consumableCatalog;
             _definitions = definitions ?? new Dictionary<string, CardDefinitionSO>();
 
             ConfigureBattlefieldSlots();
@@ -373,7 +378,27 @@ namespace Grimhand.Presentation.Battle
                 _inventoryButton.onClick.AddListener(ToggleInventoryPanel);
 
                 _inventoryPanel = gameObject.AddComponent<BattleInventoryPanelView>();
-                _inventoryPanel.Initialize(_session, transform);
+                _inventoryPanel.Initialize(
+                    _session,
+                    transform,
+                    handPanel?.CardPrefab,
+                    _catalog,
+                    _characterVisuals,
+                    _relicCatalog,
+                    _consumableCatalog,
+                    _uiIcons,
+                    _definitions);
+                _inventoryPanel.OnConsumableUseStarted += () =>
+                {
+                    _inventoryPanel.Hide();
+                    Refresh();
+                };
+            }
+
+            if (_consumableReplaceOverlay == null)
+            {
+                _consumableReplaceOverlay = gameObject.AddComponent<ConsumableReplaceOverlayView>();
+                _consumableReplaceOverlay.Initialize(_session, transform, _consumableCatalog);
             }
 
             ApplyLateHudLayout();
@@ -465,6 +490,7 @@ namespace Grimhand.Presentation.Battle
                     _catalog,
                     _characterVisuals,
                     _relicCatalog,
+                    _consumableCatalog,
                     _definitions);
             }
 
@@ -649,6 +675,7 @@ namespace Grimhand.Presentation.Battle
             RefreshExpeditionOverlay();
             RefreshExpeditionPresentation();
             _inventoryPanel?.Refresh();
+            _consumableReplaceOverlay?.Refresh();
             _turnDetailPanel?.Refresh();
             if (_session.IsExpeditionMode)
             {
@@ -705,24 +732,31 @@ namespace Grimhand.Presentation.Battle
 
             SetBattlefieldVisible(true);
 
-            var awaiting = draft.AwaitingTargetCardId;
-            CardInstanceState awaitingCard = null;
+            var awaitingCard = draft.AwaitingTargetCardId;
+            var awaitingConsumable = draft.IsAwaitingConsumableTarget;
+            CardInstanceState awaitingCardState = null;
             CombatantState owner = null;
             List<CombatantState> validTargets = null;
 
-            if (awaiting != null)
+            if (awaitingCard != null)
             {
-                awaitingCard = state.GetCard(awaiting.Value);
-                if (awaitingCard != null)
+                awaitingCardState = state.GetCard(awaitingCard.Value);
+                if (awaitingCardState != null)
                 {
-                    var ownerId = PositionRules.GetOwnerCombatantId(state, awaitingCard);
+                    var ownerId = PositionRules.GetOwnerCombatantId(state, awaitingCardState);
                     owner = ownerId != null ? state.GetCombatant(ownerId) : null;
-                    validTargets = CardRules.GetValidTargetCandidates(state, awaitingCard, owner);
+                    validTargets = CardRules.GetValidTargetCandidates(state, awaitingCardState, owner);
                 }
             }
+            else if (awaitingConsumable &&
+                     ConsumableDatabase.TryGet(draft.AwaitingConsumableId, out var consumableDef))
+            {
+                validTargets = ConsumableRules.GetValidTargets(state, consumableDef);
+            }
 
-            RefreshSlotRow(enemySlots, state, awaitingCard != null, validTargets, _session.PresentationSnapshot, showExpBar: false);
-            RefreshSlotRow(playerSlots, state, awaitingCard != null, validTargets, _session.PresentationSnapshot,
+            var targetMode = awaitingCardState != null || awaitingConsumable;
+            RefreshSlotRow(enemySlots, state, targetMode, validTargets, _session.PresentationSnapshot, showExpBar: false);
+            RefreshSlotRow(playerSlots, state, targetMode, validTargets, _session.PresentationSnapshot,
                 showExpBar: _session.IsExpeditionMode);
         }
 
@@ -824,10 +858,25 @@ namespace Grimhand.Presentation.Battle
             }
 
             var awaiting = draft.AwaitingTargetCardId;
-            var show = state.Phase == TurnPhase.Planning && awaiting != null;
+            var awaitingConsumable = draft.IsAwaitingConsumableTarget;
+            var show = state.Phase == TurnPhase.Planning && (awaiting != null || awaitingConsumable);
             targetPromptPanel.SetActive(show);
             if (!show || targetPromptText == null)
                 return;
+
+            if (awaitingConsumable &&
+                ConsumableDatabase.TryGet(draft.AwaitingConsumableId, out var consumableDef))
+            {
+                var consumableSideLabel = consumableDef.TargetKind switch
+                {
+                    ConsumableTargetKind.SingleAlly => "队友",
+                    ConsumableTargetKind.SingleEnemy => "敌人",
+                    _ => "目标"
+                };
+                targetPromptText.text =
+                    $"使用「{consumableDef.DisplayName}」— 点击高亮的{consumableSideLabel}";
+                return;
+            }
 
             var card = state.GetCard(awaiting.Value);
             if (card == null)

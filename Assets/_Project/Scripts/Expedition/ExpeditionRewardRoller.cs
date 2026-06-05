@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Grimhand.Battle.Consumables;
 using Grimhand.Battle.Model;
 using Grimhand.Core;
 using Grimhand.Expedition.Model;
@@ -9,7 +10,7 @@ namespace Grimhand.Expedition
     {
         public const int CavePathVariantCount = 5;
 
-        public static ExpeditionVictoryRewards RollVictoryRewards(
+        public static ExpeditionRewardPickup RollVictoryRewards(
             ExpeditionConfig config,
             ExpeditionRunState run,
             BattleRng rng)
@@ -17,10 +18,18 @@ namespace Grimhand.Expedition
             var gold = ExpeditionEconomy.RollVictoryGold(config, rng);
             gold = ApplyGoldRelicBonus(gold, run.Relics);
 
-            var rewards = new ExpeditionVictoryRewards { Gold = gold };
+            var rewards = new ExpeditionRewardPickup
+            {
+                Kind = RewardPickupKind.BattleVictory,
+                HeaderText = "战斗胜利",
+                Gold = gold
+            };
 
             if (RollPercent(rng, config.RelicDropChancePercent))
                 rewards.RelicId = PickRandomRelicId(run.Relics, run, rng);
+
+            if (RollPercent(rng, config.RelicDropChancePercent))
+                rewards.ConsumableId = PickRandomConsumableId(rng);
 
             if (RollPercent(rng, config.CardDropChancePercent))
                 TryRollCardReward(rewards, run, config, rng);
@@ -28,7 +37,7 @@ namespace Grimhand.Expedition
             return rewards;
         }
 
-        public static ExpeditionChestReward RollChestReward(
+        public static ExpeditionRewardPickup RollChestReward(
             ExpeditionConfig config,
             ExpeditionRunState run,
             BattleRng rng)
@@ -38,9 +47,18 @@ namespace Grimhand.Expedition
             var gold = min == max ? min : rng.NextInt(min, max + 1);
             gold = ApplyGoldRelicBonus(gold, run.Relics);
 
-            var reward = new ExpeditionChestReward { Gold = gold };
+            var reward = new ExpeditionRewardPickup
+            {
+                Kind = RewardPickupKind.Chest,
+                HeaderText = "宝箱",
+                Gold = gold
+            };
+
             if (RollPercent(rng, config.TreasureRelicChancePercent))
                 reward.RelicId = PickRandomRelicId(run.Relics, run, rng);
+
+            if (RollPercent(rng, config.TreasureRelicChancePercent))
+                reward.ConsumableId = PickRandomConsumableId(rng);
 
             return reward;
         }
@@ -101,8 +119,20 @@ namespace Grimhand.Expedition
             return pool[rng.NextIndex(pool.Count)];
         }
 
+        static string PickRandomConsumableId(BattleRng rng)
+        {
+            var pool = new List<string>();
+            foreach (var consumable in ConsumableDatabase.All)
+                pool.Add(consumable.Id);
+
+            if (pool.Count == 0)
+                return "";
+
+            return pool[rng.NextIndex(pool.Count)];
+        }
+
         static void TryRollCardReward(
-            ExpeditionVictoryRewards rewards,
+            ExpeditionRewardPickup rewards,
             ExpeditionRunState run,
             ExpeditionConfig config,
             BattleRng rng)

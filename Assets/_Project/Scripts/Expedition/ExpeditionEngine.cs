@@ -36,7 +36,9 @@ namespace Grimhand.Expedition
             _run.Relics.Clear();
             _run.UsedEventIds.Clear();
             _run.EventFlags.Clear();
-            _run.Consumables.Clear();
+            _run.ConsumableSlots.Clear();
+            ConsumableInventory.EnsureInitialized(_run.ConsumableSlots);
+            _run.PendingConsumableOfferId = "";
             _run.Modifiers.TeamAttackBonus = 0;
             _run.Modifiers.TeamDefenseBonus = 0;
             _run.Modifiers.EnergyCapBonus = 0;
@@ -46,8 +48,7 @@ namespace Grimhand.Expedition
             _run.Modifiers.LootedInjuredAdventurer = false;
             _run.Modifiers.DivinePunishmentActive = false;
             _run.PendingRoutes.Clear();
-            _run.PendingVictoryRewards = null;
-            _run.PendingChestReward = null;
+            _run.PendingRewardPickup = null;
             _run.PendingEvent = null;
             _run.PendingShrine = null;
             _run.CurrentBattleConfig = null;
@@ -72,8 +73,7 @@ namespace Grimhand.Expedition
             {
                 _run.Phase = ExpeditionPhase.RunFailed;
                 _run.PendingRoutes.Clear();
-                _run.PendingVictoryRewards = null;
-                _run.PendingChestReward = null;
+                _run.PendingRewardPickup = null;
                 return;
             }
 
@@ -88,110 +88,163 @@ namespace Grimhand.Expedition
 
             _run.LastXpReward = RollCombatXp();
             ExpeditionBattleConfigBuilder.GrantXpToParty(_run.Party, _run.LastXpReward);
-            _run.PendingVictoryRewards = ExpeditionRewardRoller.RollVictoryRewards(_config, _run, _rng);
-            _run.LastGoldReward = _run.PendingVictoryRewards.Gold;
-            _run.Phase = ExpeditionPhase.VictoryRewards;
+            _run.PendingRewardPickup = ExpeditionRewardRoller.RollVictoryRewards(_config, _run, _rng);
+            _run.LastGoldReward = _run.PendingRewardPickup.Gold;
+            _run.Phase = ExpeditionPhase.RewardPickup;
         }
 
-        public bool TryClaimVictoryGold()
+        public bool TryClaimRewardGold()
         {
-            var rewards = _run.PendingVictoryRewards;
-            if (_run.Phase != ExpeditionPhase.VictoryRewards || rewards == null || rewards.GoldClaimed)
+            var rewards = _run.PendingRewardPickup;
+            if (_run.Phase != ExpeditionPhase.RewardPickup || rewards == null || !rewards.HasGold ||
+                rewards.GoldClaimed || rewards.GoldSkipped)
                 return false;
 
             rewards.GoldClaimed = true;
             _run.Gold += rewards.Gold;
-            TryAdvanceFromVictoryRewards();
+            TryAdvanceFromRewardPickup();
             return true;
         }
 
-        public bool TryClaimVictoryRelic()
+        public bool TrySkipRewardGold()
         {
-            var rewards = _run.PendingVictoryRewards;
-            if (_run.Phase != ExpeditionPhase.VictoryRewards || rewards == null || !rewards.HasRelic || rewards.RelicClaimed)
+            var rewards = _run.PendingRewardPickup;
+            if (_run.Phase != ExpeditionPhase.RewardPickup || rewards == null || !rewards.HasGold ||
+                rewards.GoldClaimed || rewards.GoldSkipped)
+                return false;
+
+            rewards.GoldSkipped = true;
+            TryAdvanceFromRewardPickup();
+            return true;
+        }
+
+        public bool TryClaimRewardRelic()
+        {
+            var rewards = _run.PendingRewardPickup;
+            if (_run.Phase != ExpeditionPhase.RewardPickup || rewards == null || !rewards.HasRelic ||
+                rewards.RelicClaimed || rewards.RelicSkipped)
                 return false;
 
             if (!TryAddRelic(rewards.RelicId))
             {
-                rewards.RelicClaimed = true;
-                TryAdvanceFromVictoryRewards();
+                rewards.RelicSkipped = true;
+                TryAdvanceFromRewardPickup();
                 return false;
             }
 
             rewards.RelicClaimed = true;
-            TryAdvanceFromVictoryRewards();
+            TryAdvanceFromRewardPickup();
             return true;
         }
 
-        public bool TryClaimVictoryCard()
+        public bool TrySkipRewardRelic()
         {
-            var rewards = _run.PendingVictoryRewards;
-            if (_run.Phase != ExpeditionPhase.VictoryRewards || rewards == null || !rewards.HasCard || rewards.CardClaimed)
+            var rewards = _run.PendingRewardPickup;
+            if (_run.Phase != ExpeditionPhase.RewardPickup || rewards == null || !rewards.HasRelic ||
+                rewards.RelicClaimed || rewards.RelicSkipped)
+                return false;
+
+            rewards.RelicSkipped = true;
+            TryAdvanceFromRewardPickup();
+            return true;
+        }
+
+        public bool TryClaimRewardCard()
+        {
+            var rewards = _run.PendingRewardPickup;
+            if (_run.Phase != ExpeditionPhase.RewardPickup || rewards == null || !rewards.HasCard ||
+                rewards.CardClaimed || rewards.CardSkipped)
                 return false;
 
             if (!TryGrantCardReward(rewards.CardOwnerCharacterId, rewards.CardDefinitionId, rewards.CardDisplayName))
             {
-                rewards.CardClaimed = true;
-                TryAdvanceFromVictoryRewards();
+                rewards.CardSkipped = true;
+                TryAdvanceFromRewardPickup();
                 return false;
             }
 
             rewards.CardClaimed = true;
-            TryAdvanceFromVictoryRewards();
+            TryAdvanceFromRewardPickup();
             return true;
         }
+
+        public bool TrySkipRewardCard()
+        {
+            var rewards = _run.PendingRewardPickup;
+            if (_run.Phase != ExpeditionPhase.RewardPickup || rewards == null || !rewards.HasCard ||
+                rewards.CardClaimed || rewards.CardSkipped)
+                return false;
+
+            rewards.CardSkipped = true;
+            TryAdvanceFromRewardPickup();
+            return true;
+        }
+
+        public bool TryClaimRewardConsumable()
+        {
+            var rewards = _run.PendingRewardPickup;
+            if (_run.Phase != ExpeditionPhase.RewardPickup || rewards == null || !rewards.HasConsumable ||
+                rewards.ConsumableClaimed || rewards.ConsumableSkipped)
+                return false;
+
+            if (ConsumableInventory.TryAdd(_run.ConsumableSlots, rewards.ConsumableId, out var inventoryFull))
+            {
+                rewards.ConsumableClaimed = true;
+                TryAdvanceFromRewardPickup();
+                return true;
+            }
+
+            if (inventoryFull)
+            {
+                _run.PendingConsumableOfferId = rewards.ConsumableId;
+                return true;
+            }
+
+            rewards.ConsumableSkipped = true;
+            TryAdvanceFromRewardPickup();
+            return false;
+        }
+
+        public bool TrySkipRewardConsumable()
+        {
+            var rewards = _run.PendingRewardPickup;
+            if (_run.Phase != ExpeditionPhase.RewardPickup || rewards == null || !rewards.HasConsumable ||
+                rewards.ConsumableClaimed || rewards.ConsumableSkipped)
+                return false;
+
+            rewards.ConsumableSkipped = true;
+            TryAdvanceFromRewardPickup();
+            return true;
+        }
+
+        public bool TryClaimVictoryGold() => TryClaimRewardGold();
 
         public bool TrySkipVictoryOptionalRewards()
         {
-            var rewards = _run.PendingVictoryRewards;
-            if (_run.Phase != ExpeditionPhase.VictoryRewards || rewards == null)
+            var rewards = _run.PendingRewardPickup;
+            if (_run.Phase != ExpeditionPhase.RewardPickup || rewards == null ||
+                rewards.Kind != RewardPickupKind.BattleVictory)
                 return false;
 
-            if (!rewards.GoldClaimed)
-            {
-                rewards.GoldClaimed = true;
-                _run.Gold += rewards.Gold;
-            }
+            if (rewards.HasGold && !rewards.GoldClaimed && !rewards.GoldSkipped)
+                TrySkipRewardGold();
+            if (rewards.HasRelic && !rewards.RelicClaimed && !rewards.RelicSkipped)
+                TrySkipRewardRelic();
+            if (rewards.HasCard && !rewards.CardClaimed && !rewards.CardSkipped)
+                TrySkipRewardCard();
+            if (rewards.HasConsumable && !rewards.ConsumableClaimed && !rewards.ConsumableSkipped)
+                TrySkipRewardConsumable();
 
-            if (rewards.HasRelic && !rewards.RelicClaimed)
-                rewards.RelicClaimed = true;
-
-            if (rewards.HasCard && !rewards.CardClaimed)
-                rewards.CardClaimed = true;
-
-            TryAdvanceFromVictoryRewards();
             return _run.Phase == ExpeditionPhase.RouteSelect || _run.Phase == ExpeditionPhase.RunComplete;
         }
 
-        public bool TryClaimChestGold()
-        {
-            var reward = _run.PendingChestReward;
-            if (_run.Phase != ExpeditionPhase.TreasureLoot || reward == null || reward.GoldClaimed)
-                return false;
+        public bool TryClaimVictoryRelic() => TryClaimRewardRelic();
 
-            reward.GoldClaimed = true;
-            _run.Gold += reward.Gold;
-            TryAdvanceFromTreasureLoot();
-            return true;
-        }
+        public bool TryClaimVictoryCard() => TryClaimRewardCard();
 
-        public bool TryClaimChestRelic()
-        {
-            var reward = _run.PendingChestReward;
-            if (_run.Phase != ExpeditionPhase.TreasureLoot || reward == null || !reward.HasRelic || reward.RelicClaimed)
-                return false;
+        public bool TryClaimChestGold() => TryClaimRewardGold();
 
-            if (!TryAddRelic(reward.RelicId))
-            {
-                reward.RelicClaimed = true;
-                TryAdvanceFromTreasureLoot();
-                return false;
-            }
-
-            reward.RelicClaimed = true;
-            TryAdvanceFromTreasureLoot();
-            return true;
-        }
+        public bool TryClaimChestRelic() => TryClaimRewardRelic();
 
         public bool TrySelectRoute(int routeIndex)
         {
@@ -208,8 +261,8 @@ namespace Grimhand.Expedition
             switch (route.NodeType)
             {
                 case ExpeditionNodeType.Treasure:
-                    _run.PendingChestReward = ExpeditionRewardRoller.RollChestReward(_config, _run, _rng);
-                    _run.Phase = ExpeditionPhase.TreasureLoot;
+                    _run.PendingRewardPickup = ExpeditionRewardRoller.RollChestReward(_config, _run, _rng);
+                    _run.Phase = ExpeditionPhase.RewardPickup;
                     return true;
                 case ExpeditionNodeType.Event:
                     _run.PendingEvent = new ExpeditionPendingEvent
@@ -260,6 +313,9 @@ namespace Grimhand.Expedition
             if (_run.Phase == ExpeditionPhase.RunComplete)
                 return true;
 
+            if (TryEnterRewardPickupPhase(outcome.PendingRewardPickup))
+                return true;
+
             LoadRoutesForNextLayer();
             _run.Phase = ExpeditionPhase.RouteSelect;
             return true;
@@ -274,9 +330,14 @@ namespace Grimhand.Expedition
                 _run, _run.PendingShrine.ShrineId, choiceIndex, _rng);
             _run.LastEventMessage = outcome.Message;
             _run.PendingShrine = null;
-            CompleteCurrentNode();
+
+            if (outcome.AdvanceNode)
+                CompleteCurrentNode();
 
             if (_run.Phase == ExpeditionPhase.RunComplete)
+                return true;
+
+            if (TryEnterRewardPickupPhase(outcome.PendingRewardPickup))
                 return true;
 
             LoadRoutesForNextLayer();
@@ -311,6 +372,45 @@ namespace Grimhand.Expedition
             LoadRoutesForNextLayer();
             _run.Phase = ExpeditionPhase.RouteSelect;
             return true;
+        }
+
+        public bool TryReplaceConsumableSlot(int slotIndex)
+        {
+            if (string.IsNullOrEmpty(_run.PendingConsumableOfferId))
+                return false;
+
+            if (slotIndex < 0 || slotIndex >= ConsumableInventory.MaxSlots)
+                return false;
+
+            ConsumableInventory.ReplaceAt(_run.ConsumableSlots, slotIndex, _run.PendingConsumableOfferId);
+            ResolvePendingConsumableOffer(claimed: true);
+            return true;
+        }
+
+        public bool TryAbandonConsumableOffer()
+        {
+            if (string.IsNullOrEmpty(_run.PendingConsumableOfferId))
+                return false;
+
+            ResolvePendingConsumableOffer(claimed: false);
+            return true;
+        }
+
+        void ResolvePendingConsumableOffer(bool claimed)
+        {
+            var offerId = _run.PendingConsumableOfferId;
+            _run.PendingConsumableOfferId = "";
+
+            var rewards = _run.PendingRewardPickup;
+            if (rewards == null || !rewards.HasConsumable || rewards.ConsumableId != offerId)
+                return;
+
+            if (claimed)
+                rewards.ConsumableClaimed = true;
+            else
+                rewards.ConsumableSkipped = true;
+
+            TryAdvanceFromRewardPickup();
         }
 
         public bool TryAddRelic(string relicId)
@@ -422,34 +522,37 @@ namespace Grimhand.Expedition
                 PathSpriteIndex = option.PathSpriteIndex
             };
 
-        void TryAdvanceFromVictoryRewards()
+        bool TryEnterRewardPickupPhase(ExpeditionRewardPickup pickup)
         {
-            if (_run.Phase != ExpeditionPhase.VictoryRewards)
+            if (pickup == null || !pickup.HasAnyReward)
+                return false;
+
+            _run.PendingRewardPickup = pickup;
+            _run.Phase = ExpeditionPhase.RewardPickup;
+            return true;
+        }
+
+        void TryAdvanceFromRewardPickup()
+        {
+            if (_run.Phase != ExpeditionPhase.RewardPickup)
                 return;
 
-            var rewards = _run.PendingVictoryRewards;
+            var rewards = _run.PendingRewardPickup;
             if (rewards != null && !rewards.IsFullyResolved)
                 return;
 
-            _run.PendingVictoryRewards = null;
-            LoadRoutesForNextLayer();
-            _run.Phase = ExpeditionPhase.RouteSelect;
-        }
-
-        void TryAdvanceFromTreasureLoot()
-        {
-            if (_run.Phase != ExpeditionPhase.TreasureLoot)
+            if (!string.IsNullOrEmpty(_run.PendingConsumableOfferId))
                 return;
 
-            var reward = _run.PendingChestReward;
-            if (reward != null && !reward.IsFullyResolved)
-                return;
+            var kind = rewards?.Kind ?? RewardPickupKind.EventOrShrine;
+            _run.PendingRewardPickup = null;
 
-            _run.PendingChestReward = null;
-            CompleteCurrentNode();
-
-            if (_run.Phase == ExpeditionPhase.RunComplete)
-                return;
+            if (kind == RewardPickupKind.Chest)
+            {
+                CompleteCurrentNode();
+                if (_run.Phase == ExpeditionPhase.RunComplete)
+                    return;
+            }
 
             LoadRoutesForNextLayer();
             _run.Phase = ExpeditionPhase.RouteSelect;

@@ -12,6 +12,8 @@ namespace Grimhand.Battle.Planning
         readonly List<int> _selectedQueue = new();
         readonly Dictionary<int, string> _targetByCard = new();
         int? _awaitingTargetCardId;
+        string _awaitingConsumableId;
+        int _awaitingConsumableSlotIndex = -1;
 
         public PlanningDraft(BattleState state, List<BattleEvent> events)
         {
@@ -22,6 +24,9 @@ namespace Grimhand.Battle.Planning
         public IReadOnlyList<int> SelectedQueue => _selectedQueue;
         public int EnergyRemaining => _state.EnergyCurrent;
         public int? AwaitingTargetCardId => _awaitingTargetCardId;
+        public string AwaitingConsumableId => _awaitingConsumableId;
+        public int AwaitingConsumableSlotIndex => _awaitingConsumableSlotIndex;
+        public bool IsAwaitingConsumableTarget => !string.IsNullOrEmpty(_awaitingConsumableId);
 
         public bool IsSelected(int instanceId) => _selectedQueue.Contains(instanceId);
 
@@ -139,7 +144,91 @@ namespace Grimhand.Battle.Planning
             return true;
         }
 
-        public void CancelAwaitingTarget() => _awaitingTargetCardId = null;
+        public void CancelAwaitingTarget()
+        {
+            _awaitingTargetCardId = null;
+        }
+
+        public bool TryBeginConsumableUse(string consumableId, int slotIndex)
+        {
+            if (_state.Phase != TurnPhase.Planning || _state.ConsumableUsedThisBattle)
+                return false;
+
+            if (!Consumables.ConsumableDatabase.TryGet(consumableId, out var definition))
+                return false;
+
+            CancelAwaitingTarget();
+
+            if (!Consumables.ConsumableRules.NeedsTarget(definition))
+                return false;
+
+            _awaitingConsumableId = consumableId;
+            _awaitingConsumableSlotIndex = slotIndex;
+            _events.Add(new BattleEvent(BattleEventKind.TargetSelectionRequired, definition.DisplayName));
+            return true;
+        }
+
+        public bool TryAssignConsumableTarget(string combatantId)
+        {
+            if (string.IsNullOrEmpty(_awaitingConsumableId))
+                return false;
+
+            if (!Consumables.ConsumableDatabase.TryGet(_awaitingConsumableId, out var definition))
+                return false;
+
+            if (!Consumables.ConsumableRules.TryApply(
+                    _state,
+                    definition,
+                    combatantId,
+                    _events,
+                    null,
+                    out _))
+                return false;
+
+            ClearConsumableTargeting();
+            return true;
+        }
+
+        public int PendingConsumableSlotIndex => _awaitingConsumableSlotIndex;
+
+        public bool TryApplyInstantConsumable(string consumableId, out string errorMessage)
+        {
+            errorMessage = "";
+            if (_state.Phase != TurnPhase.Planning || _state.ConsumableUsedThisBattle)
+            {
+                errorMessage = "当前无法使用消耗品。";
+                return false;
+            }
+
+            if (!Consumables.ConsumableDatabase.TryGet(consumableId, out var definition))
+            {
+                errorMessage = "未知消耗品。";
+                return false;
+            }
+
+            if (Consumables.ConsumableRules.NeedsTarget(definition))
+            {
+                errorMessage = "需要选择目标。";
+                return false;
+            }
+
+            CancelAwaitingTarget();
+            return Consumables.ConsumableRules.TryApply(
+                _state,
+                definition,
+                null,
+                _events,
+                null,
+                out errorMessage);
+        }
+
+        public void CancelConsumableTargeting()
+        {
+            _awaitingConsumableId = null;
+            _awaitingConsumableSlotIndex = -1;
+        }
+
+        void ClearConsumableTargeting() => CancelConsumableTargeting();
 
         public bool TryDeselectCard(int instanceId)
         {
@@ -195,6 +284,7 @@ namespace Grimhand.Battle.Planning
             _selectedQueue.Clear();
             _targetByCard.Clear();
             _awaitingTargetCardId = null;
+            CancelConsumableTargeting();
         }
 
         public void RefundAllSelections()

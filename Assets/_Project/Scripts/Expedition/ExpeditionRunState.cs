@@ -17,14 +17,14 @@ namespace Grimhand.Expedition
         public List<string> Relics { get; } = new();
         public HashSet<string> UsedEventIds { get; } = new();
         public HashSet<string> EventFlags { get; } = new();
-        public List<ConsumableStack> Consumables { get; } = new();
+        public List<string> ConsumableSlots { get; } = new();
+        public string PendingConsumableOfferId { get; set; } = "";
         public ExpeditionRunModifiers Modifiers { get; } = new();
         public ExpeditionMapState Map { get; set; }
         public int MiracleLeafUsesRemaining { get; set; } = -1;
         public List<ExpeditionRouteOption> PendingRoutes { get; } = new();
         public BattleConfig CurrentBattleConfig { get; set; }
-        public ExpeditionVictoryRewards PendingVictoryRewards { get; set; }
-        public ExpeditionChestReward PendingChestReward { get; set; }
+        public ExpeditionRewardPickup PendingRewardPickup { get; set; }
         public ExpeditionPendingEvent PendingEvent { get; set; }
         public ExpeditionPendingShrine PendingShrine { get; set; }
     }

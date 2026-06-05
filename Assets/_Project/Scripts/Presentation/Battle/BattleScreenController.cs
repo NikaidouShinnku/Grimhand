@@ -12,6 +12,7 @@ namespace Grimhand.Presentation.Battle
         [SerializeField] CharacterVisualCatalogSO characterVisualCatalog;
         [SerializeField] BattleUiIconCatalogSO uiIconCatalog;
         [SerializeField] RelicVisualCatalogSO relicVisualCatalog;
+        [SerializeField] ConsumableVisualCatalogSO consumableVisualCatalog;
         [SerializeField] BattleScreenView screenView;
         [SerializeField] bool disableLegacyImGui = true;
 
@@ -43,7 +44,8 @@ namespace Grimhand.Presentation.Battle
                 characterVisualCatalog,
                 uiIconCatalog,
                 _definitions,
-                relicVisualCatalog);
+                relicVisualCatalog,
+                consumableVisualCatalog);
             _portraitDirector.Initialize(_session, screenView, characterVisualCatalog);
             screenView.SetPresentationBusyCheck(() => _portraitDirector.IsPlaying);
             _session.Start();

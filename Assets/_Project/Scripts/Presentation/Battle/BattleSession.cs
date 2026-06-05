@@ -15,11 +15,13 @@ namespace Grimhand.Presentation.Battle
     public sealed class BattleSession
     {
         readonly List<string> _log = new();
+        readonly BattleTurnLogRecorder _turnLog = new();
 
         public BattleEngine Engine { get; private set; }
         public ExpeditionEngine Expedition { get; private set; }
         public bool IsExpeditionMode => Expedition != null;
         public IReadOnlyList<string> Log => _log;
+        public BattleTurnLogRecorder TurnLog => _turnLog;
 
         bool _battleEndHandled;
         bool _presentationLocked;
@@ -87,6 +89,7 @@ namespace Grimhand.Presentation.Battle
             Expedition = new ExpeditionEngine(config);
             Expedition.StartRun();
             _log.Clear();
+            _turnLog.Reset();
             _battleEndHandled = false;
             AddLog($"远征开始 — 共 {Expedition.Run.TargetBattleCount} 场 · 血量跨场不恢复");
             StartExpeditionBattle();
@@ -102,6 +105,7 @@ namespace Grimhand.Presentation.Battle
             config.Seed = UnityEngine.Random.Range(1, int.MaxValue);
             Engine = new BattleEngine(config);
             _log.Clear();
+            _turnLog.Reset();
             Engine.StartBattle();
             DrainEvents();
             AddLog($"战斗开始 — 种子 {config.Seed}");
@@ -115,6 +119,7 @@ namespace Grimhand.Presentation.Battle
             Engine.StartBattle();
             DrainEvents();
             _battleEndHandled = false;
+            _turnLog.Reset();
             AddLog($"第 {Expedition.CurrentBattleNumber}/{Expedition.Run.TargetBattleCount} 场 — 种子 {config.Seed}");
             AddLog("队伍 HP: " + BattleUiFormatters.FormatPartyHpLine(Expedition.Run.Party));
             NotifyChanged();
@@ -193,7 +198,78 @@ namespace Grimhand.Presentation.Battle
             if (!ok)
                 return false;
 
-            StartExpeditionBattle();
+            if (Expedition.Run.Phase == ExpeditionPhase.InBattle)
+                StartExpeditionBattle();
+            else if (Expedition.Run.Phase == ExpeditionPhase.TreasureLoot)
+                AddLog("进入宝箱房间");
+
+            NotifyChanged();
+            return true;
+        }
+
+        public bool ClaimVictoryGold()
+        {
+            if (Expedition?.TryClaimVictoryGold() != true)
+                return false;
+
+            AddLog($"领取战斗金币 +{Expedition.Run.LastGoldReward}（合计 {Expedition.Run.Gold}）");
+            NotifyChanged();
+            return true;
+        }
+
+        public bool ClaimVictoryRelic()
+        {
+            var relicId = Expedition?.Run.PendingVictoryRewards?.RelicId;
+            if (Expedition?.TryClaimVictoryRelic() != true)
+                return false;
+
+            if (RelicDatabase.TryGet(relicId, out var relic))
+                AddLog($"获得遗物：{relic.DisplayName}");
+            NotifyChanged();
+            return true;
+        }
+
+        public bool ClaimVictoryCard()
+        {
+            var cardName = Expedition?.Run.PendingVictoryRewards?.CardDisplayName;
+            if (Expedition?.TryClaimVictoryCard() != true)
+                return false;
+
+            AddLog($"卡牌加入卡组：{cardName}");
+            NotifyChanged();
+            return true;
+        }
+
+        public bool SkipVictoryOptionalRewards()
+        {
+            if (Expedition?.TrySkipVictoryOptionalRewards() != true)
+                return false;
+
+            AddLog("放弃可选奖励");
+            NotifyChanged();
+            return true;
+        }
+
+        public bool ClaimChestGold()
+        {
+            var amount = Expedition?.Run.PendingChestReward?.Gold ?? 0;
+            if (Expedition?.TryClaimChestGold() != true)
+                return false;
+
+            AddLog($"开启宝箱金币 +{amount}（合计 {Expedition.Run.Gold}）");
+            NotifyChanged();
+            return true;
+        }
+
+        public bool ClaimChestRelic()
+        {
+            var relicId = Expedition?.Run.PendingChestReward?.RelicId;
+            if (Expedition?.TryClaimChestRelic() != true)
+                return false;
+
+            if (RelicDatabase.TryGet(relicId, out var relic))
+                AddLog($"宝箱遗物：{relic.DisplayName}");
+            NotifyChanged();
             return true;
         }
 
@@ -260,11 +336,17 @@ namespace Grimhand.Presentation.Battle
 
             switch (Expedition.Run.Phase)
             {
-                case ExpeditionPhase.RouteSelect:
-                    AddLog($"第 {Expedition.Run.BattlesWon} 场胜利 — +{Expedition.Run.LastGoldReward} 金币（合计 {Expedition.Run.Gold}）");
+                case ExpeditionPhase.VictoryRewards:
+                    AddLog($"第 {Expedition.Run.BattlesWon} 场胜利 — 待领取 +{Expedition.Run.LastGoldReward} 金币");
                     AddLog($"全队获得 {Expedition.Run.LastXpReward} 经验");
+                    AddLog("点击领取奖励后选择路线");
+                    break;
+                case ExpeditionPhase.RouteSelect:
                     AddLog("请选择前进路线");
                     AddLog(BattleUiFormatters.FormatPartySummary(Expedition.Run.Party, Expedition.Run.Gold));
+                    break;
+                case ExpeditionPhase.TreasureLoot:
+                    AddLog("宝箱房间 — 点击领取战利品");
                     break;
                 case ExpeditionPhase.RunComplete:
                     AddLog("远征完成！");
@@ -314,6 +396,9 @@ namespace Grimhand.Presentation.Battle
 
         void AppendEventLog(BattleEvent e)
         {
+            if (Engine != null)
+                _turnLog.Feed(e, Engine.State);
+
             switch (e.Kind)
             {
                 case BattleEventKind.BattleEnded:
@@ -329,6 +414,13 @@ namespace Grimhand.Presentation.Battle
                     AddLog(string.IsNullOrEmpty(e.Message)
                         ? $"伤害 {e.Amount}"
                         : $"伤害 {e.Amount}: {e.Message}");
+                    break;
+                case BattleEventKind.PlanCommitted:
+                case BattleEventKind.TurnSkipped:
+                case BattleEventKind.StatusTickDamage:
+                case BattleEventKind.StatusApplied:
+                case BattleEventKind.CardResolvedStarted:
+                    AddLog(BattleEventLogFormatter.Format(e, Engine.State));
                     break;
             }
         }

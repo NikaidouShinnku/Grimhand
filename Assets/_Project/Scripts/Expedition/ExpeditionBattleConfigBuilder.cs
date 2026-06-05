@@ -77,11 +77,26 @@ namespace Grimhand.Expedition
                         continue;
 
                     ApplyPartyProgress(cc, member);
+                    ApplyBonusCards(cc, member);
                     break;
                 }
             }
 
             return config;
+        }
+
+        static void ApplyBonusCards(CombatantConfig cc, PartyMemberSnapshot member)
+        {
+            if (member?.BonusCards == null || member.BonusCards.Count == 0)
+                return;
+
+            foreach (var bonus in member.BonusCards)
+            {
+                if (bonus == null || string.IsNullOrEmpty(bonus.DefinitionId))
+                    continue;
+
+                cc.DeckTemplates.Add(CloneTemplate(bonus));
+            }
         }
 
         public static void ApplyPartyProgress(CombatantConfig cc, PartyMemberSnapshot member)
@@ -170,7 +185,7 @@ namespace Grimhand.Expedition
             };
         }
 
-        static CardTemplate CloneTemplate(CardTemplate source)
+        public static CardTemplate CloneTemplate(CardTemplate source)
         {
             var copy = new CardTemplate
             {

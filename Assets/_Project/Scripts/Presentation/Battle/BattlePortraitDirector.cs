@@ -129,9 +129,14 @@ namespace Grimhand.Presentation.Battle
                         case BattleEventKind.BlockGained:
                             ApplySnapshotAfterBlockGain(e.CombatantId, e.Amount);
                             break;
+                        case BattleEventKind.HealApplied:
+                            ApplySnapshotAfterHeal(e.CombatantId, e.Amount);
+                            if (_portraits.TryGetValue(e.CombatantId, out var healed))
+                                healed.ShowHealNumber(e.Amount);
+                            break;
                         case BattleEventKind.DamageApplied:
                             card?.MarkDamage();
-                            yield return HandleDamage(e);
+                            yield return HandleDamage(e, card);
                             break;
                         case BattleEventKind.ParryTriggered:
                             yield return HandleParryCounter(e);
@@ -207,6 +212,12 @@ namespace Grimhand.Presentation.Battle
             _screen?.Refresh();
         }
 
+        void ApplySnapshotAfterHeal(string combatantId, int amount)
+        {
+            _session.PresentationSnapshot?.ApplyHeal(combatantId, amount);
+            _screen?.Refresh();
+        }
+
         void ApplySnapshotAfterDeath(string combatantId)
         {
             _session.PresentationSnapshot?.MarkDead(combatantId);
@@ -241,7 +252,7 @@ namespace Grimhand.Presentation.Battle
                 yield return actor.ReturnHome();
         }
 
-        IEnumerator HandleDamage(BattleEvent e)
+        IEnumerator HandleDamage(BattleEvent e, CardPlayContext card)
         {
             if (!IsTargetPresentationActive(e.TargetId))
                 yield break;
@@ -249,6 +260,7 @@ namespace Grimhand.Presentation.Battle
             if (!_portraits.TryGetValue(e.TargetId, out var target))
                 yield break;
 
+            var retainCardPose = card != null && card.ActorId == e.TargetId;
             var blocked = e.BlockedAmount > 0;
             var hpDamage = e.Amount;
 
@@ -258,17 +270,23 @@ namespace Grimhand.Presentation.Battle
             if (blocked)
                 target.ShowBlockAbsorbedNumber(e.BlockedAmount);
 
-            if (blocked)
+            if (blocked && !retainCardPose)
                 yield return target.PlayInPlacePose(PortraitPoseKind.Defense, DefenseReactDuration);
 
             if (hpDamage > 0)
             {
-                yield return target.PlayHitReaction(hpDamage, useHitPose: !blocked);
                 ApplySnapshotAfterDamage(e.TargetId, hpDamage);
+                yield return target.PlayHitReaction(
+                    hpDamage,
+                    useHitPose: !blocked && !retainCardPose,
+                    retainPoseAfter: retainCardPose);
             }
             else if (blocked)
             {
-                yield return target.PlayBlockedReaction(e.BlockedAmount);
+                if (retainCardPose)
+                    yield return target.PlayDamageFlashOnly();
+                else
+                    yield return target.PlayBlockedReaction(e.BlockedAmount);
             }
             else
             {
@@ -284,8 +302,8 @@ namespace Grimhand.Presentation.Battle
             if (!_portraits.TryGetValue(e.CombatantId, out var target))
                 yield break;
 
-            yield return target.PlayHitReaction(e.Amount, useHitPose: false);
             ApplySnapshotAfterDamage(e.CombatantId, e.Amount);
+            yield return target.PlayHitReaction(e.Amount, useHitPose: false);
         }
 
         IEnumerator HandleParryCounter(BattleEvent e)

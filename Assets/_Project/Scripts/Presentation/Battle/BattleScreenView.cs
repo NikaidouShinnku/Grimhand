@@ -54,7 +54,11 @@ namespace Grimhand.Presentation.Battle
         readonly List<Button> _routeButtons = new();
         BattleActiveCardBanner _activeCardBanner;
         BattleInventoryPanelView _inventoryPanel;
+        BattleTurnDetailPanelView _turnDetailPanel;
+        BattleBackgroundView _backgroundView;
+        ExpeditionPostBattleOverlayView _postBattleOverlay;
         Button _inventoryButton;
+        Button _turnLogButton;
         Text _inventoryFallbackLabel;
 
         BattleSession _session;
@@ -103,6 +107,8 @@ namespace Grimhand.Presentation.Battle
             BattleUiLayoutRuntimeFix.ApplyIfNeeded(transform);
             EnsurePlanningEnergyHud();
             EnsureInventoryHud();
+            EnsureTurnLogHud();
+            EnsureExpeditionPresentation();
             ApplyPlanningButtonIcons();
             CombatantTooltipLayer.GetOrCreate(transform);
             EnsureActiveCardBanner();
@@ -355,10 +361,80 @@ namespace Grimhand.Presentation.Battle
             ApplyLateHudLayout();
         }
 
+        void EnsureTurnLogHud()
+        {
+            if (_turnLogButton != null)
+                return;
+
+            var go = new GameObject("TurnLogButton", typeof(RectTransform), typeof(Image), typeof(Button));
+            go.transform.SetParent(HudRoot, false);
+
+            var img = go.GetComponent<Image>();
+            img.color = new Color(0.14f, 0.15f, 0.2f, 0.96f);
+            img.raycastTarget = true;
+
+            _turnLogButton = go.GetComponent<Button>();
+            _turnLogButton.targetGraphic = img;
+            _turnLogButton.onClick.AddListener(ToggleTurnDetailPanel);
+
+            _turnDetailPanel = gameObject.AddComponent<BattleTurnDetailPanelView>();
+            _turnDetailPanel.Initialize(_session, transform);
+            ApplyTurnLogButtonLayout();
+        }
+
+        void EnsureExpeditionPresentation()
+        {
+            if (_backgroundView == null)
+            {
+                _backgroundView = gameObject.AddComponent<BattleBackgroundView>();
+                _backgroundView.EnsureBuilt(transform, _uiIcons?.CaveBackground);
+            }
+
+            if (_postBattleOverlay == null)
+            {
+                _postBattleOverlay = gameObject.AddComponent<ExpeditionPostBattleOverlayView>();
+                _postBattleOverlay.Initialize(
+                    _session,
+                    transform,
+                    _uiIcons,
+                    handPanel?.CardPrefab,
+                    _catalog,
+                    _characterVisuals,
+                    _definitions);
+            }
+        }
+
+        void ApplyTurnLogButtonLayout()
+        {
+            if (_turnLogButton == null)
+                return;
+
+            var rt = _turnLogButton.transform as RectTransform;
+            BattleUiLayoutRuntimeFix.LayoutTurnLogButton(rt);
+
+            var img = _turnLogButton.GetComponent<Image>();
+            var icon = _uiIcons != null ? _uiIcons.NoteIcon : null;
+            if (icon != null)
+            {
+                img.sprite = icon;
+                img.type = Image.Type.Simple;
+                img.preserveAspect = true;
+                img.color = Color.white;
+            }
+        }
+
+        void ToggleTurnDetailPanel()
+        {
+            _turnDetailPanel?.Toggle();
+            if (_turnDetailPanel != null && _turnDetailPanel.IsOpen)
+                _turnDetailPanel.Refresh();
+        }
+
         public void ApplyLateHudLayout()
         {
             EnsurePlanningEnergyHud();
             ApplyInventoryButtonLayout();
+            ApplyTurnLogButtonLayout();
             ApplyPlanningButtonIcons();
             BattleUiLayoutRuntimeFix.RefreshBottomHud(transform);
         }
@@ -460,7 +536,9 @@ namespace Grimhand.Presentation.Battle
             RefreshHand(state);
             RefreshActions(state, expeditionBlocks);
             RefreshExpeditionOverlay();
+            RefreshExpeditionPresentation();
             _inventoryPanel?.Refresh();
+            _turnDetailPanel?.Refresh();
             EnsurePlanningChromeVisible();
         }
 
@@ -632,7 +710,15 @@ namespace Grimhand.Presentation.Battle
 
         void RefreshHand(BattleState state)
         {
-            handPanel?.Refresh(
+            if (handPanel == null)
+                return;
+
+            var hideHand = ShouldHideHandForExpeditionOverlay();
+            handPanel.gameObject.SetActive(!hideHand);
+            if (hideHand)
+                return;
+
+            handPanel.Refresh(
                 state,
                 _session,
                 _catalog,
@@ -677,71 +763,67 @@ namespace Grimhand.Presentation.Battle
             ApplyPlanningButtonIcons();
         }
 
+        void RefreshExpeditionPresentation()
+        {
+            var expedition = _session.IsExpeditionMode;
+            _backgroundView?.EnsureBuilt(transform, _uiIcons?.CaveBackground);
+            _backgroundView?.SetVisible(expedition);
+
+            if (_postBattleOverlay == null)
+                return;
+
+            if (_presentationBusy?.Invoke() == true)
+            {
+                _postBattleOverlay.Hide();
+                return;
+            }
+
+            _postBattleOverlay.Refresh();
+        }
+
+        bool ShouldHideHandForExpeditionOverlay()
+        {
+            if (_session?.Expedition == null)
+                return false;
+
+            var phase = _session.Expedition.Run.Phase;
+            return phase is ExpeditionPhase.VictoryRewards
+                or ExpeditionPhase.RouteSelect
+                or ExpeditionPhase.TreasureLoot;
+        }
+
         void RefreshExpeditionOverlay()
         {
-            if (expeditionOverlay == null || !_session.IsExpeditionMode)
+            if (!_session.IsExpeditionMode)
             {
                 expeditionOverlay?.SetActive(false);
                 return;
             }
 
             var phase = _session.Expedition.Run.Phase;
-            var show = phase != ExpeditionPhase.InBattle && !(_presentationBusy?.Invoke() ?? false);
-            expeditionOverlay.SetActive(show);
-            if (!show)
-                return;
+            var showRunEnd = phase is ExpeditionPhase.RunComplete or ExpeditionPhase.RunFailed;
+            var presentationBusy = _presentationBusy?.Invoke() ?? false;
 
-            routeSelectPanel.SetActive(phase == ExpeditionPhase.RouteSelect);
-            runEndPanel.SetActive(phase is ExpeditionPhase.RunComplete or ExpeditionPhase.RunFailed);
-
-            if (phase == ExpeditionPhase.RouteSelect)
-                RefreshRouteButtons();
-            else if (phase == ExpeditionPhase.RunComplete)
+            if (expeditionOverlay != null)
             {
-                runEndTitleText.text = "远征完成";
-                runEndBodyText.text =
-                    $"三场战斗全胜。\n{BattleUiFormatters.FormatPartySummary(_session.Expedition.Run.Party, _session.Expedition.Run.Gold)}";
-            }
-            else if (phase == ExpeditionPhase.RunFailed)
-            {
-                runEndTitleText.text = "远征失败";
-                runEndBodyText.text = "队伍无法继续。可重开远征再试。";
-            }
-        }
-
-        void RefreshRouteButtons()
-        {
-            foreach (var b in _routeButtons)
-            {
-                if (b != null)
-                    Destroy(b.gameObject);
-            }
-
-            _routeButtons.Clear();
-
-            var routes = _session.Expedition.Run.PendingRoutes;
-            routeHeaderText.text =
-                $"选择前进路线（已完成 {_session.Expedition.Run.BattlesWon}/{_session.Expedition.Run.TargetBattleCount} 场）\n" +
-                $"本场 +{_session.Expedition.Run.LastGoldReward} 金币\n" +
-                BattleUiFormatters.FormatPartySummary(
-                    _session.Expedition.Run.Party,
-                    _session.Expedition.Run.Gold);
-
-            for (var i = 0; i < routes.Count; i++)
-            {
-                var route = routes[i];
-                var index = i;
-                var btn = Instantiate(routeButtonPrefab, routeButtonRoot);
-                btn.gameObject.SetActive(true);
-                var label = btn.GetComponentInChildren<Text>();
-                if (label != null)
+                expeditionOverlay.SetActive(showRunEnd && !presentationBusy);
+                if (showRunEnd && !presentationBusy)
                 {
-                    label.text =
-                        $"{route.DisplayName}\n[{BattleUiFormatters.DescribeNodeType(route.NodeType)}]\n\n{route.Description}";
-                }
+                    routeSelectPanel?.SetActive(false);
+                    runEndPanel?.SetActive(true);
 
-                btn.onClick.AddListener(() => _session.SelectRoute(index));
-                _routeButtons.Add(btn);
+                    if (phase == ExpeditionPhase.RunComplete)
+                    {
+                        runEndTitleText.text = "远征完成";
+                        runEndBodyText.text =
+                            $"三场战斗全胜。\n{BattleUiFormatters.FormatPartySummary(_session.Expedition.Run.Party, _session.Expedition.Run.Gold)}";
+                    }
+                    else if (phase == ExpeditionPhase.RunFailed)
+                    {
+                        runEndTitleText.text = "远征失败";
+                        runEndBodyText.text = "队伍无法继续。可重开远征再试。";
+                    }
+                }
             }
         }
 

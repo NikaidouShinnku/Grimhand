@@ -76,5 +76,38 @@ namespace Grimhand.Presentation.Battle
 
             return map;
         }
+
+        public static CardInstanceState CreatePreviewInstance(
+            string definitionId,
+            string ownerCharacterId,
+            string displayName,
+            CardDefinitionSO definition)
+        {
+            var card = new CardInstanceState
+            {
+                InstanceId = 0,
+                DefinitionId = definitionId ?? "",
+                OwnerCharacterId = !string.IsNullOrEmpty(ownerCharacterId)
+                    ? ownerCharacterId
+                    : definition?.OwnerCharacterId ?? "",
+                DisplayName = !string.IsNullOrEmpty(displayName)
+                    ? displayName
+                    : definition?.DisplayName ?? definitionId ?? "",
+                Cost = definition?.Cost ?? 1,
+                CardType = definition?.CardType ?? CardType.Attack,
+                IsUsable = false
+            };
+
+            if (definition == null)
+                return card;
+
+            foreach (var keyword in definition.Keywords)
+                card.Keywords.Add(keyword);
+
+            foreach (var action in definition.Actions)
+                card.Actions.Add(action.ToSpec());
+
+            return card;
+        }
     }
 }

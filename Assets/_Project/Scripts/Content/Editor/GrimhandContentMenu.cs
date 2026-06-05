@@ -66,6 +66,8 @@ namespace Grimhand.Content.Editor
             expedition.CombatEncounters.Add(setup);
             EditorUtility.SetDirty(expedition);
 
+            ExpeditionArtBinder.BindExpeditionArtSilent();
+
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 

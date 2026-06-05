@@ -222,7 +222,7 @@ namespace Grimhand.Presentation.Battle
             _homeCaptured = true;
         }
 
-        public IEnumerator PlayHitReaction(int damage, bool useHitPose)
+        public IEnumerator PlayHitReaction(int damage, bool useHitPose, bool retainPoseAfter = false)
         {
             if (_isDead || portraitImage == null)
                 yield break;
@@ -238,14 +238,30 @@ namespace Grimhand.Presentation.Battle
             yield return FlashPortrait(HitFlashDuration);
 
             _isAnimating = false;
-            if (!_isDead)
+            if (!_isDead && !retainPoseAfter)
                 ApplyIdleStill();
+        }
+
+        public IEnumerator PlayDamageFlashOnly()
+        {
+            if (_isDead || portraitImage == null)
+                yield break;
+
+            _isAnimating = true;
+            yield return FlashPortrait(HitFlashDuration);
+            _isAnimating = false;
         }
 
         public void ShowBlockAbsorbedNumber(int blocked)
         {
             if (blocked > 0)
                 ShowBlockAbsorbed(blocked);
+        }
+
+        public void ShowHealNumber(int amount)
+        {
+            if (amount > 0)
+                ShowHeal(amount);
         }
 
         public IEnumerator PlayBlockedReaction(int blockedAmount = 0)
@@ -474,6 +490,19 @@ namespace Grimhand.Presentation.Battle
 
             _damageFloater.color = new Color(0.55f, 0.85f, 1f, 1f);
             _damageFloater.text = $"护甲 -{blocked}";
+            _damageFloater.gameObject.SetActive(true);
+            if (_damageHideRoutine != null)
+                StopCoroutine(_damageHideRoutine);
+            _damageHideRoutine = StartCoroutine(HideDamageFloaterAfterDelay());
+        }
+
+        void ShowHeal(int amount)
+        {
+            if (_damageFloater == null)
+                return;
+
+            _damageFloater.color = new Color(0.45f, 1f, 0.55f, 1f);
+            _damageFloater.text = $"+{amount}";
             _damageFloater.gameObject.SetActive(true);
             if (_damageHideRoutine != null)
                 StopCoroutine(_damageHideRoutine);

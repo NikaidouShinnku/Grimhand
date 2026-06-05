@@ -83,6 +83,15 @@ namespace Grimhand.Presentation.Battle
             ApplyDrawOrder();
         }
 
+        void LateUpdate()
+        {
+            if (_portraitView == null || _currentUnit == null)
+                return;
+
+            if (_portraitView.IsAnimating || _portraitView.IsAwayFromHome)
+                AlignStatusBelowPortrait();
+        }
+
         void TryInferSlotFromName()
         {
             var n = gameObject.name;

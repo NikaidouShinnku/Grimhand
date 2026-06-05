@@ -120,6 +120,19 @@ namespace Grimhand.Presentation.Battle
                 _dead.Add(combatantId);
         }
 
+        public void ApplyHeal(string combatantId, int amount)
+        {
+            if (string.IsNullOrEmpty(combatantId) || amount <= 0)
+                return;
+
+            if (!_hp.TryGetValue(combatantId, out var hp))
+                return;
+
+            var maxHp = GetMaxHp(combatantId);
+            _hp[combatantId] = System.Math.Min(maxHp, hp + amount);
+            _dead.Remove(combatantId);
+        }
+
         public void MarkDead(string combatantId)
         {
             if (string.IsNullOrEmpty(combatantId))

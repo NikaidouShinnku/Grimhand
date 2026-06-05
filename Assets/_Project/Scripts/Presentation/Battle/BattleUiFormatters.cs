@@ -137,6 +137,25 @@ namespace Grimhand.Presentation.Battle
             return string.Join("\n", lines);
         }
 
+        public static string BuildCardStatsLinePreview(CardInstanceState card)
+        {
+            if (card == null)
+                return "";
+
+            var lines = new List<string>();
+            foreach (var action in card.Actions)
+            {
+                if (action.Condition != ReactionConditionType.None)
+                    continue;
+
+                var clause = DescribeEffectClause(action, owner: null, usesPick: false);
+                if (!string.IsNullOrEmpty(clause))
+                    lines.Add(clause);
+            }
+
+            return string.Join("\n", lines);
+        }
+
         static bool UsesManualPick(EffectActionSpec action, TargetPickSide pickSide)
         {
             if (pickSide == TargetPickSide.None)
@@ -757,6 +776,7 @@ namespace Grimhand.Presentation.Battle
             {
                 case ExpeditionNodeType.Combat: return "普通战斗";
                 case ExpeditionNodeType.Elite: return "精英";
+                case ExpeditionNodeType.Treasure: return "宝箱";
                 case ExpeditionNodeType.Event: return "事件";
                 case ExpeditionNodeType.Shop: return "商店";
                 default: return type.ToString();

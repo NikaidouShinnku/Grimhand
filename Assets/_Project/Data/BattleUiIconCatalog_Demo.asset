@@ -22,3 +22,11 @@ MonoBehaviour:
   InventoryIcon: {fileID: -4863336276314997047, guid: 9d83a3aedba6e634aa9f738f86bf7f77, type: 3}
   ConfirmPlayIcon: {fileID: 5371412345509669250, guid: 659e3c16f94883e42adc90d6d5195e52, type: 3}
   SkipIcon: {fileID: -2563035158529919731, guid: 3e6ae0d3d3896cb439cd8d977ab7b529, type: 3}
+  NoteIcon: {fileID: 2382542705151310463, guid: 0ba76329affbe974cb3fc6d920f7bd31, type: 3}
+  CaveBackground: {fileID: 4714104671338776558, guid: 0d05dee52e0214c49a433c68c2420016, type: 3}
+  CavePathVariants:
+  - {fileID: -1454770268901060879, guid: d74fa96289368f64ead4a2ca6985e497, type: 3}
+  - {fileID: -8336492127322243437, guid: 46ba8011886997b4faedacbc1dccfa5d, type: 3}
+  - {fileID: 2324293664701428765, guid: 1a4fb8ecc2e6bc845a7730ce3186ab9e, type: 3}
+  - {fileID: 6525756207177096557, guid: 387885b527a1ded4e9a13b63a83bade0, type: 3}
+  - {fileID: 6659219929621819091, guid: a394a3e57aab15d44a0908599c3f9827, type: 3}

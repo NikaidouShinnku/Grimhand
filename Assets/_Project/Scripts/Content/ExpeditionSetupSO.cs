@@ -25,6 +25,19 @@ namespace Grimhand.Content
         [Tooltip("普通战斗胜利每场 XP（每名存活角色）。")]
         public int XpPerVictory = 16;
 
+        [Header("战后奖励")]
+        [Range(0, 100)] public int RelicDropChancePercent = 25;
+        [Range(0, 100)] public int CardDropChancePercent = 25;
+
+        [Header("路线权重（战斗 / 宝箱）")]
+        public int CombatRouteWeight = 55;
+        public int TreasureRouteWeight = 45;
+
+        [Header("宝箱房间")]
+        public int TreasureGoldMin = 20;
+        public int TreasureGoldMax = 35;
+        [Range(0, 100)] public int TreasureRelicChancePercent = 15;
+
         [Tooltip("普通战斗遭遇；Demo 可只填一张并复用。")]
         public List<BattleSetupSO> CombatEncounters = new();
 
@@ -41,7 +54,14 @@ namespace Grimhand.Content
                 RoutesPerVictory = RoutesPerVictory,
                 GoldMinPerVictory = GoldMinPerVictory,
                 GoldMaxPerVictory = GoldMaxPerVictory,
-                XpPerVictory = XpPerVictory
+                XpPerVictory = XpPerVictory,
+                RelicDropChancePercent = RelicDropChancePercent,
+                CardDropChancePercent = CardDropChancePercent,
+                CombatRouteWeight = CombatRouteWeight,
+                TreasureRouteWeight = TreasureRouteWeight,
+                TreasureGoldMin = TreasureGoldMin,
+                TreasureGoldMax = TreasureGoldMax,
+                TreasureRelicChancePercent = TreasureRelicChancePercent
             };
 
             foreach (var encounter in CombatEncounters)

@@ -15,6 +15,16 @@ namespace Grimhand.Expedition.Model
 
         public int XpPerVictory { get; set; } = 16;
 
+        public int RelicDropChancePercent { get; set; } = 25;
+        public int CardDropChancePercent { get; set; } = 25;
+
+        public int TreasureGoldMin { get; set; } = 20;
+        public int TreasureGoldMax { get; set; } = 35;
+        public int TreasureRelicChancePercent { get; set; } = 15;
+
+        public int CombatRouteWeight { get; set; } = 55;
+        public int TreasureRouteWeight { get; set; } = 45;
+
         public List<BattleConfig> CombatEncounters { get; } = new();
     }
 }

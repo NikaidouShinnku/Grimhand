@@ -7,5 +7,7 @@ namespace Grimhand.Expedition.Model
         public string Description { get; set; } = "";
         public ExpeditionNodeType NodeType { get; set; } = ExpeditionNodeType.Combat;
         public int EncounterIndex { get; set; }
+        /// <summary>cave_path 变体索引（0 起）。</summary>
+        public int PathSpriteIndex { get; set; }
     }
 }

@@ -16,5 +16,7 @@ namespace Grimhand.Expedition
         public List<string> Relics { get; } = new();
         public List<ExpeditionRouteOption> PendingRoutes { get; } = new();
         public BattleConfig CurrentBattleConfig { get; set; }
+        public ExpeditionVictoryRewards PendingVictoryRewards { get; set; }
+        public ExpeditionChestReward PendingChestReward { get; set; }
     }
 }

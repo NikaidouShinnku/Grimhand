@@ -4,6 +4,7 @@ namespace Grimhand.Expedition.Model
     {
         Combat,
         Elite,
+        Treasure,
         Event,
         Shop
     }

@@ -29,6 +29,13 @@ alwaysApply: false
 - 规则层 `PositionRules.GetEffectiveSlot`：同队存活者按物理 Front→Middle→Back 排序，依次占有效前/中/后排
 - 影响：伤害倍率、目标 Reach、槽位技能解析、后排减伤%、遗物前排防/后排抽牌；死亡后 `CombatantDeathRules` 会 `RefreshAllDerivedStats`
 
+## 远征 UI / 流程
+- 背景：`BattleBackgroundView` + `BattleUiIconCatalogSO.CaveBackground`（低透明度）
+- 战后：`VictoryRewards`（点击领金币/遗物/卡牌）→ `RouteSelect`（底部 `cave_path` 三门）→ 战斗或 `TreasureLoot`
+- 路线：`ExpeditionNodeType.Combat` / `Treasure`（权重见 `ExpeditionConfig`）；事件/商店待接
+- 上回合明细：左下 `note` 按钮（背包上方）→ `BattleTurnDetailPanelView`
+- 绑定美术：`Grimhand → Content → Bind Expedition Art`
+
 ## 勿做
 - 不要把遗物做成装备槽；全场被动直到 run 结束
 - 单局战斗（无 Expedition）不显示经验条、不应用 RunModifiers

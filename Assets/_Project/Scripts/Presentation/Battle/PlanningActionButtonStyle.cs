@@ -6,7 +6,7 @@ namespace Grimhand.Presentation.Battle
     /// <summary>规划阶段 Icon 按钮：Icon 即点击区，文字仅标注、不参与判定。</summary>
     public static class PlanningActionButtonStyle
     {
-        const int IconSize = 120;
+        const int IconSize = 96;
         const int LabelFontSize = 16;
         const float AlphaHitThreshold = 0.25f;
 
@@ -16,7 +16,7 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             var root = button.transform;
-            RemoveRootGraphic(button);
+            EnsureButtonBackground(button);
             EnsureVerticalLayout(root);
             EnsureLabel(root, label);
             var iconImage = EnsureIcon(root, icon);
@@ -31,11 +31,14 @@ namespace Grimhand.Presentation.Battle
             le.flexibleHeight = 0f;
         }
 
-        static void RemoveRootGraphic(Button button)
+        static void EnsureButtonBackground(Button button)
         {
             var bg = button.GetComponent<Image>();
             if (bg != null)
-                Object.Destroy(bg);
+            {
+                bg.color = Color.clear;
+                bg.raycastTarget = false;
+            }
         }
 
         static void EnsureVerticalLayout(Transform root)

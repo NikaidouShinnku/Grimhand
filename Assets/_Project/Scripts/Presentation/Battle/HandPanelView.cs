@@ -19,6 +19,18 @@ namespace Grimhand.Presentation.Battle
 
         public CardView CardPrefab => cardPrefab;
 
+        void Awake() => ResolveReferences();
+
+        void ResolveReferences()
+        {
+            if (contentRoot == null)
+                contentRoot = transform.Find("HandScroll/Viewport/Content") as RectTransform;
+            if (scrollRect == null)
+                scrollRect = transform.Find("HandScroll")?.GetComponent<ScrollRect>();
+            if (handCountLabel == null)
+                handCountLabel = transform.Find("HandCount")?.GetComponent<Text>();
+        }
+
         public void Refresh(
             BattleState state,
             BattleSession session,
@@ -33,10 +45,25 @@ namespace Grimhand.Presentation.Battle
             if (state == null || session?.Engine == null)
                 return;
 
-            if (handCountLabel != null)
-                handCountLabel.text = $"手牌 {state.PlayerHand.Count}/{state.Config.HandLimit}";
+            ResolveReferences();
+            if (contentRoot == null || cardPrefab == null)
+                return;
 
-            var needed = state.PlayerHand.Count;
+            var presenting = session.PresentationLocked;
+            if (scrollRect != null)
+                scrollRect.gameObject.SetActive(!presenting);
+
+            if (handCountLabel != null)
+            {
+                var handSource = ResolveHandCards(state, session);
+                var turnHint = state.Phase == TurnPhase.Planning && !presenting
+                    ? $" · 回合 {state.TurnNumber}"
+                    : presenting ? " · 出牌中" : "";
+                handCountLabel.text = $"手牌 {handSource.Count}/{state.Config.HandLimit}{turnHint}";
+            }
+
+            var handCards = ResolveHandCards(state, session);
+            var needed = handCards.Count;
             EnsurePool(needed);
 
             var resolveSteps = session.Engine.PreviewResolutionSteps();
@@ -51,22 +78,39 @@ namespace Grimhand.Presentation.Battle
                 }
 
                 view.gameObject.SetActive(true);
-                var card = state.PlayerHand[i];
+                var card = handCards[i];
                 var draft = session.Engine.Draft;
-                var selected = draft.IsSelected(card.InstanceId);
+                var awaiting = draft.AwaitingTargetCardId;
+                var isAwaitingTarget = awaiting == card.InstanceId;
+                var isQueued = draft.IsSelected(card.InstanceId);
+                var showSelected = isQueued;
                 var polluted = CardRules.IsPolluted(card);
                 var canAfford = draft.EnergyRemaining >= card.Cost;
-                var interactable = session.CanInteractWithBattle() && !polluted && (selected || canAfford);
+                var interactable = session.CanInteractWithBattle() && !polluted
+                    && (isAwaitingTarget || isQueued || canAfford);
                 var visual = CardVisualResolver.Resolve(card, catalog, characterVisuals, definitions);
                 var stats = BattleUiFormatters.BuildCardStatsLine(state, draft, card);
-                var badge = BattleUiFormatters.BuildSelectionBadge(state, draft, card, resolveSteps);
+                var badge = isQueued
+                    ? BattleUiFormatters.BuildSelectionBadge(state, draft, card, resolveSteps)
+                    : null;
 
-                view.BindWithCard(card, visual, selected, polluted, interactable, badge, stats,
+                view.BindWithCard(card, visual, showSelected, polluted, interactable, badge, stats,
                     uiIcons, characterVisuals, onCardClick, onHoverEnter, onHoverExit);
             }
 
-            if (scrollRect != null)
-                LayoutRebuilder.ForceRebuildLayoutImmediate(contentRoot);
+            if (scrollRect != null && contentRoot != null)
+            {
+                scrollRect.horizontalNormalizedPosition = 0f;
+                ReapplyPoolLayout();
+            }
+        }
+
+        static IReadOnlyList<CardInstanceState> ResolveHandCards(BattleState state, BattleSession session)
+        {
+            if (session?.PresentationLocked == true && session.PresentationSnapshot != null)
+                return session.PresentationSnapshot.GetDisplayedPlayerHand(state);
+
+            return state.PlayerHand;
         }
 
         void EnsurePool(int count)
@@ -74,8 +118,23 @@ namespace Grimhand.Presentation.Battle
             while (_pool.Count < count)
             {
                 var view = Instantiate(cardPrefab, contentRoot);
+                ApplyCardLayout(view);
                 _pool.Add(view);
             }
+        }
+
+        static void ApplyCardLayout(CardView view)
+        {
+            CardView.ApplyHandPresentationScale(view, BattleUiLayoutRuntimeFix.HandCardScale);
+        }
+
+        public void ReapplyPoolLayout()
+        {
+            foreach (var view in _pool)
+                ApplyCardLayout(view);
+
+            if (contentRoot != null)
+                LayoutRebuilder.ForceRebuildLayoutImmediate(contentRoot);
         }
     }
 }

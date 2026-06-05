@@ -1,91 +1,293 @@
+using Grimhand.Battle.Model;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Battle
 {
-    /// <summary>修复旧版 Setup 生成的错误 RectTransform，并将全宽 PlanningBar 拆成左右两角。</summary>
+    /// <summary>战斗 HUD 布局：底部独立 Canvas 层 + 比例锚点，4K/1080p 一致。</summary>
     public static class BattleUiLayoutRuntimeFix
     {
+        public const float HandCardScale = 1.34f;
+        public const float CardBaseWidth = 168f;
+        public const float CardBaseHeight = 236f;
+
+        const float RefWidth = 1920f;
+        const float RefHeight = 1080f;
+
         const float CardRowBottom = 8f;
-        const float CardRowHeight = 248f;
-        const float PlanningRowBottom = 264f;
-        const float PlanningRowHeight = 84f;
-        const float PlanningActionsHeight = 148f;
+        const float HandLabelHeight = 20f;
+        const float RowGap = 8f;
+
+        const float IntentPanelWidth = 360f;
+        const float IntentPanelRight = 12f;
+        const float IntentPanelHeight = 248f;
+
+        const float InventoryButtonSize = 56f;
+        const float InventoryGap = 8f;
+        const float EnergyHudWidth = 132f;
+        const float EnergyHudHeight = 56f;
+
+        const float ExpeditionPanelWidth = 320f;
+        const float ExpeditionPanelHeight = 84f;
+        const float PlanningActionsWidth = 208f;
+        const float PlanningActionsHeight = 120f;
+        const float PlanningActionButtonWidth = 96f;
+
+        const float StageBottom = 0.27f;
+        const float StageTop = 0.80f;
+        const int HudChromeSortOrder = 45;
+
+        public static float ScaledCardWidth => CardBaseWidth * HandCardScale;
+        public static float ScaledCardHeight => CardBaseHeight * HandCardScale;
+        static float CardRowHeight => ScaledCardHeight + HandLabelHeight + 2f;
+        static float HandRightInset => IntentPanelWidth + IntentPanelRight + RowGap;
+        static float HandLeftInset => InventoryButtonSize + InventoryGap + EnergyHudWidth + RowGap + 12f;
+        static float EnergyHudLeft => InventoryButtonSize + InventoryGap * 2f;
+        static float UpperRowBottom => CardRowBottom + CardRowHeight + RowGap;
 
         public static void ApplyIfNeeded(Transform battleScreenRoot)
         {
             if (battleScreenRoot == null)
                 return;
 
+            var chromeRoot = EnsureHudChromeRoot(battleScreenRoot);
+
             ApplySplitPlanningBar(battleScreenRoot);
-            ApplyBottomRowLayout(battleScreenRoot);
+            ApplyStageClusterLayout(battleScreenRoot);
+            ApplyBottomRowLayout(chromeRoot != null ? chromeRoot : battleScreenRoot);
+            ApplyFormationRowLayout(battleScreenRoot);
             ApplyStageDrawOrders(battleScreenRoot);
-            RaiseBattleStages(battleScreenRoot);
-            FixHandArea(battleScreenRoot.Find("HandArea"));
+            ApplyPortraitScale(battleScreenRoot);
+            FixHandArea(FindChrome(chromeRoot, battleScreenRoot, "HandArea"));
+            ApplyHandCardScale(battleScreenRoot);
+            EnsureBottomHudDrawOrder(battleScreenRoot, chromeRoot);
 
-            var battlefield = battleScreenRoot.Find("Battlefield") as RectTransform;
-            if (battlefield == null)
-                return;
-
-            var playerRow = battlefield.Find("PlayerRow") as RectTransform;
-            var enemyRow = battlefield.Find("EnemyRow") as RectTransform;
-            if (playerRow == null || enemyRow == null)
-                return;
-
-            if (!NeedsFix(battlefield, playerRow))
-                return;
-
-            Debug.Log("[Grimhand] 检测到旧版战斗 UI 布局，正在自动修复。");
-
-            PinTopHeight(battleScreenRoot.Find("HUD"), 0, 0, 0, 72);
-            PinTopHeight(battlefield, 16, 16, 80, 420);
-            FillVerticalBand(enemyRow, 8, 8, 0.54f, 1f);
-            FillVerticalBand(playerRow, 8, 8, 0f, 0.46f);
-
-            PinTopHeight(battleScreenRoot.Find("TargetPromptPanel"), 16, 16, 652, 48);
-            FixActionBar(battleScreenRoot.Find("ActionBar"));
-
-            LayoutRebuilder.ForceRebuildLayoutImmediate(battlefield);
             var rootRt = battleScreenRoot as RectTransform;
             if (rootRt != null)
                 LayoutRebuilder.ForceRebuildLayoutImmediate(rootRt);
+
+            if (chromeRoot != null)
+                LayoutRebuilder.ForceRebuildLayoutImmediate(chromeRoot);
         }
 
-        static void ApplyBottomRowLayout(Transform battleScreenRoot)
+        public static Transform GetHudChromeRoot(Transform battleScreenRoot) =>
+            battleScreenRoot?.Find("HudChromeRoot");
+
+        static Transform FindChrome(Transform chromeRoot, Transform battleScreenRoot, string name)
         {
-            if (battleScreenRoot.Find("PlayerStage") == null)
+            if (chromeRoot != null)
+            {
+                var underChrome = chromeRoot.Find(name);
+                if (underChrome != null)
+                    return underChrome;
+            }
+
+            return battleScreenRoot.Find(name);
+        }
+
+        static RectTransform EnsureHudChromeRoot(Transform battleScreenRoot)
+        {
+            var existing = battleScreenRoot.Find("HudChromeRoot") as RectTransform;
+            if (existing != null)
+            {
+                ConfigureHudChromeRoot(existing);
+                ReparentChromePanels(battleScreenRoot, existing);
+                existing.SetAsLastSibling();
+                return existing;
+            }
+
+            var go = new GameObject("HudChromeRoot", typeof(RectTransform), typeof(Canvas), typeof(GraphicRaycaster));
+            go.transform.SetParent(battleScreenRoot, false);
+            var root = go.GetComponent<RectTransform>();
+            ConfigureHudChromeRoot(root);
+            ReparentChromePanels(battleScreenRoot, root);
+            root.SetAsLastSibling();
+            return root;
+        }
+
+        static void ConfigureHudChromeRoot(RectTransform root)
+        {
+            StretchFull(root, 0f, 0f, 0f, 0f);
+
+            var canvas = root.GetComponent<Canvas>();
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = HudChromeSortOrder;
+
+            var raycaster = root.GetComponent<GraphicRaycaster>();
+            if (raycaster != null)
+                raycaster.enabled = true;
+        }
+
+        static void ReparentChromePanels(Transform battleScreenRoot, RectTransform chromeRoot)
+        {
+            ReparentIfFound(battleScreenRoot, chromeRoot, "HandArea");
+            ReparentIfFound(battleScreenRoot, chromeRoot, "EnemyIntentPanel");
+            ReparentIfFound(battleScreenRoot, chromeRoot, "PlanningInfoLeft");
+            ReparentIfFound(battleScreenRoot, chromeRoot, "PlanningActionsRight");
+            ReparentIfFound(battleScreenRoot, chromeRoot, "SelectedQueuePanel");
+            ReparentIfFound(battleScreenRoot, chromeRoot, "EnergyHud");
+            ReparentIfFound(battleScreenRoot, chromeRoot, "InventoryButton");
+        }
+
+        static void ReparentIfFound(Transform battleScreenRoot, RectTransform chromeRoot, string name)
+        {
+            var node = battleScreenRoot.Find(name);
+            if (node == null || node.parent == chromeRoot)
                 return;
 
-            var queue = battleScreenRoot.Find("SelectedQueuePanel") as RectTransform;
+            node.SetParent(chromeRoot, false);
+        }
+
+        static void ApplyStageClusterLayout(Transform battleScreenRoot)
+        {
+            SetStageRect(battleScreenRoot.Find("PlayerStage") as RectTransform, 0.02f, StageBottom, 0.42f, StageTop);
+            SetStageRect(battleScreenRoot.Find("EnemyStage") as RectTransform, 0.58f, StageBottom, 0.98f, StageTop);
+        }
+
+        static void SetStageRect(RectTransform stage, float xMin, float yMin, float xMax, float yMax)
+        {
+            if (stage == null)
+                return;
+
+            stage.anchorMin = new Vector2(xMin, yMin);
+            stage.anchorMax = new Vector2(xMax, yMax);
+            stage.pivot = new Vector2(0.5f, 0.5f);
+            stage.anchoredPosition = Vector2.zero;
+            stage.sizeDelta = Vector2.zero;
+            stage.offsetMin = Vector2.zero;
+            stage.offsetMax = Vector2.zero;
+        }
+
+        static void ApplyBottomRowLayout(Transform layoutRoot)
+        {
+            if (layoutRoot.Find("HandArea") == null && layoutRoot.parent != null)
+                return;
+
+            var queue = layoutRoot.Find("SelectedQueuePanel");
             if (queue != null)
-                PinBottomLeft(queue, 12f, CardRowBottom, 320f, CardRowHeight);
+                queue.gameObject.SetActive(false);
 
-            var intent = battleScreenRoot.Find("EnemyIntentPanel") as RectTransform;
+            var intent = layoutRoot.Find("EnemyIntentPanel") as RectTransform;
             if (intent != null)
-                PinBottomRight(intent, 12f, CardRowBottom, 360f, CardRowHeight);
+            {
+                StripNestedCanvas(intent.gameObject);
+                intent.gameObject.SetActive(true);
+                PinBottomRight(intent, IntentPanelRight, CardRowBottom, IntentPanelWidth, IntentPanelHeight);
+                var intentBg = intent.GetComponent<Image>();
+                if (intentBg != null)
+                {
+                    intentBg.color = new Color(0.2f, 0.12f, 0.12f, 0.94f);
+                    intentBg.raycastTarget = false;
+                }
 
-            var hand = battleScreenRoot.Find("HandArea") as RectTransform;
-            if (hand != null)
-                PinBottomHeight(hand, 348f, 380f, CardRowBottom, CardRowHeight);
+                var intentText = intent.Find("Text")?.GetComponent<Text>();
+                if (intentText != null)
+                {
+                    intentText.fontSize = Mathf.Max(intentText.fontSize, 15);
+                    intentText.color = Color.white;
+                    intentText.alignment = TextAnchor.UpperLeft;
+                }
+            }
 
-            var info = battleScreenRoot.Find("PlanningInfoLeft") as RectTransform
-                ?? battleScreenRoot.Find("PlanningBar") as RectTransform;
+            var info = layoutRoot.Find("PlanningInfoLeft") as RectTransform
+                ?? layoutRoot.Find("PlanningBar") as RectTransform;
             if (info != null && info.name == "PlanningInfoLeft")
-                PinBottomLeft(info, 12f, PlanningRowBottom, 320f, PlanningRowHeight);
+            {
+                StripNestedCanvas(info.gameObject);
+                info.gameObject.SetActive(false);
+            }
 
-            var actions = battleScreenRoot.Find("PlanningActionsRight") as RectTransform;
+            var actions = layoutRoot.Find("PlanningActionsRight") as RectTransform;
             if (actions != null)
-                PinBottomRight(actions, 12f, PlanningRowBottom, 660f, PlanningActionsHeight);
+            {
+                StripNestedCanvas(actions.gameObject);
+                actions.gameObject.SetActive(true);
+                PinBottomRight(actions, IntentPanelRight, UpperRowBottom, PlanningActionsWidth, PlanningActionsHeight);
+                var actionsBg = actions.GetComponent<Image>();
+                if (actionsBg != null)
+                {
+                    actionsBg.color = Color.clear;
+                    actionsBg.raycastTarget = false;
+                }
 
+                FixActionBar(actions.Find("ActionBar"));
+            }
+
+            var hand = layoutRoot.Find("HandArea") as RectTransform;
+            if (hand != null)
+            {
+                var handBg = hand.GetComponent<Image>();
+                if (handBg != null)
+                {
+                    handBg.color = Color.clear;
+                    handBg.raycastTarget = false;
+                }
+            }
+
+            var battleScreenRoot = layoutRoot.parent != null ? layoutRoot.parent : layoutRoot;
             ApplyPortraitScale(battleScreenRoot);
-            FixEnergyIcons(battleScreenRoot);
             EnsurePlanningInfoLayout(battleScreenRoot);
-            CombatantTooltipLayer.GetOrCreate(battleScreenRoot);
+        }
+
+        static void StripNestedCanvas(GameObject panel)
+        {
+            if (panel == null || panel.name == "HudChromeRoot")
+                return;
+
+            var raycaster = panel.GetComponent<GraphicRaycaster>();
+            if (raycaster != null)
+                Object.Destroy(raycaster);
+
+            var canvas = panel.GetComponent<Canvas>();
+            if (canvas != null)
+                Object.Destroy(canvas);
+        }
+
+        static void ApplyFormationRowLayout(Transform battleScreenRoot)
+        {
+            ApplyStageRow(battleScreenRoot.Find("PlayerStage"), TeamSide.Player);
+            ApplyStageRow(battleScreenRoot.Find("EnemyStage"), TeamSide.Enemy);
+        }
+
+        static void ApplyStageRow(Transform stage, TeamSide team)
+        {
+            if (stage == null)
+                return;
+
+            const float rowMinY = 0.14f;
+            const float rowMaxY = 0.90f;
+
+            if (team == TeamSide.Player)
+            {
+                SetSlotBand(stage, "Slot_Back", 0.04f, 0.32f, rowMinY, rowMaxY);
+                SetSlotBand(stage, "Slot_Middle", 0.36f, 0.64f, rowMinY, rowMaxY);
+                SetSlotBand(stage, "Slot_Front", 0.68f, 0.96f, rowMinY, rowMaxY);
+            }
+            else
+            {
+                SetSlotBand(stage, "Slot_Front", 0.04f, 0.32f, rowMinY, rowMaxY);
+                SetSlotBand(stage, "Slot_Middle", 0.36f, 0.64f, rowMinY, rowMaxY);
+                SetSlotBand(stage, "Slot_Back", 0.68f, 0.96f, rowMinY, rowMaxY);
+            }
+        }
+
+        static void SetSlotBand(Transform stage, string slotName, float xMin, float xMax, float yMin, float yMax)
+        {
+            var slot = stage.Find(slotName) as RectTransform;
+            if (slot == null)
+                return;
+
+            slot.anchorMin = new Vector2(xMin, yMin);
+            slot.anchorMax = new Vector2(xMax, yMax);
+            slot.offsetMin = Vector2.zero;
+            slot.offsetMax = Vector2.zero;
         }
 
         static void EnsurePlanningInfoLayout(Transform battleScreenRoot)
         {
-            var info = battleScreenRoot.Find("PlanningInfoLeft") ?? battleScreenRoot.Find("PlanningBar");
+            var info = battleScreenRoot.Find("HudChromeRoot/PlanningInfoLeft")
+                ?? battleScreenRoot.Find("PlanningInfoLeft")
+                ?? battleScreenRoot.Find("PlanningBar");
             if (info == null)
                 return;
 
@@ -117,36 +319,45 @@ namespace Grimhand.Presentation.Battle
                 }
             }
 
-            var energyRow = info.Find("EnergyRow") as RectTransform;
+            var energyRow = info.Find("EnergyRow");
             if (energyRow != null)
-            {
-                energyRow.anchorMin = new Vector2(0f, 0f);
-                energyRow.anchorMax = new Vector2(1f, 0f);
-                energyRow.pivot = new Vector2(0f, 0f);
-                energyRow.offsetMin = new Vector2(12f, 4f);
-                energyRow.offsetMax = new Vector2(-8f, 28f);
+                energyRow.gameObject.SetActive(false);
+        }
 
-                var layout = energyRow.GetComponent<HorizontalLayoutGroup>();
-                if (layout != null)
-                    layout.childAlignment = TextAnchor.MiddleLeft;
+        public static void LayoutEnergyHud(RectTransform energyHud)
+        {
+            if (energyHud == null)
+                return;
+
+            StripNestedCanvas(energyHud.gameObject);
+            PinBottomLeft(energyHud, EnergyHudLeft, CardRowBottom, EnergyHudWidth, EnergyHudHeight);
+            var bg = energyHud.GetComponent<Image>();
+            if (bg != null)
+            {
+                bg.color = new Color(0.1f, 0.11f, 0.15f, 0.92f);
+                bg.raycastTarget = false;
             }
         }
 
-        static void FixEnergyIcons(Transform battleScreenRoot)
+        public static void LayoutInventoryButton(RectTransform inventoryButton)
         {
-            var planningInfo = battleScreenRoot.Find("PlanningInfoLeft") ?? battleScreenRoot.Find("PlanningBar");
-            var energyRow = planningInfo?.Find("EnergyRow");
+            if (inventoryButton == null)
+                return;
 
-            foreach (var icon in battleScreenRoot.GetComponentsInChildren<Image>(true))
-            {
-                if (icon.gameObject.name != "EnergyIcon")
-                    continue;
+            PinBottomLeft(inventoryButton, InventoryGap, CardRowBottom, InventoryButtonSize, InventoryButtonSize);
+        }
 
-                if (energyRow != null && icon.transform.parent != energyRow)
-                    icon.transform.SetParent(energyRow, false);
+        public static void RefreshBottomHud(Transform battleScreenRoot)
+        {
+            if (battleScreenRoot == null)
+                return;
 
-                BattleScreenView.FixEnergyIconLayout(icon);
-            }
+            var chromeRoot = EnsureHudChromeRoot(battleScreenRoot);
+            LayoutEnergyHud(chromeRoot.Find("EnergyHud") as RectTransform);
+            LayoutInventoryButton(chromeRoot.Find("InventoryButton") as RectTransform);
+            FixHandArea(chromeRoot.Find("HandArea"));
+            ApplyBottomRowLayout(chromeRoot);
+            EnsureBottomHudDrawOrder(battleScreenRoot, chromeRoot);
         }
 
         static void ApplyPortraitScale(Transform battleScreenRoot)
@@ -157,7 +368,8 @@ namespace Grimhand.Presentation.Battle
 
         static void ApplySplitPlanningBar(Transform battleScreenRoot)
         {
-            if (battleScreenRoot.Find("PlanningInfoLeft") != null)
+            if (battleScreenRoot.Find("PlanningInfoLeft") != null
+                || battleScreenRoot.Find("HudChromeRoot/PlanningInfoLeft") != null)
                 return;
 
             var planningBar = battleScreenRoot.Find("PlanningBar") as RectTransform;
@@ -166,13 +378,12 @@ namespace Grimhand.Presentation.Battle
 
             Debug.Log("[Grimhand] 拆分 PlanningBar 为左右两角布局。");
 
-            var title = planningBar.Find("Title");
             var energyIcon = planningBar.Find("EnergyIcon");
             var actionBar = planningBar.Find("ActionBar");
             var queuePanel = planningBar.Find("SelectedQueuePanel");
 
             planningBar.name = "PlanningInfoLeft";
-            PinBottomLeft(planningBar, 12f, PlanningRowBottom, 320f, PlanningRowHeight);
+            PinBottomLeft(planningBar, 12f, UpperRowBottom, ExpeditionPanelWidth, ExpeditionPanelHeight);
 
             if (queuePanel != null)
             {
@@ -185,15 +396,15 @@ namespace Grimhand.Presentation.Battle
                 var actionsGo = new GameObject("PlanningActionsRight", typeof(RectTransform), typeof(Image));
                 actionsGo.transform.SetParent(battleScreenRoot, false);
                 var actionsImg = actionsGo.GetComponent<Image>();
-                actionsImg.color = new Color(0.1f, 0.11f, 0.15f, 0.9f);
-                PinBottomRight(actionsGo.GetComponent<RectTransform>(), 12f, PlanningRowBottom, 660f, PlanningActionsHeight);
+                actionsImg.color = new Color(0.1f, 0.11f, 0.15f, 0.94f);
+                PinBottomRight(actionsGo.GetComponent<RectTransform>(), 12f, UpperRowBottom, PlanningActionsWidth, PlanningActionsHeight);
 
                 actionBar.SetParent(actionsGo.transform, false);
                 StretchFull(actionBar as RectTransform, 8f, 8f, -8f, -8f);
             }
 
-            EnsureEnergyRow(planningBar, energyIcon, title);
-            RepositionTitle(title as RectTransform);
+            EnsureEnergyRow(planningBar, energyIcon, planningBar.Find("Title"));
+            RepositionTitle(planningBar.Find("Title") as RectTransform);
             RepositionSubtitle(planningBar.Find("Subtitle") as RectTransform);
         }
 
@@ -244,8 +455,8 @@ namespace Grimhand.Presentation.Battle
                 energyRow.anchorMin = new Vector2(0f, 0f);
                 energyRow.anchorMax = new Vector2(1f, 0f);
                 energyRow.pivot = new Vector2(0f, 0f);
-                energyRow.offsetMin = new Vector2(12f, 4f);
-                energyRow.offsetMax = new Vector2(-8f, 28f);
+                energyRow.offsetMin = new Vector2(12f, 8f);
+                energyRow.offsetMax = new Vector2(-8f, 36f);
 
                 var layout = rowGo.AddComponent<HorizontalLayoutGroup>();
                 layout.spacing = 8;
@@ -258,10 +469,10 @@ namespace Grimhand.Presentation.Battle
             {
                 energyIcon.SetParent(energyRow, false);
                 var le = energyIcon.GetComponent<LayoutElement>() ?? energyIcon.gameObject.AddComponent<LayoutElement>();
-                le.preferredWidth = 28f;
-                le.preferredHeight = 28f;
-                le.minWidth = 28f;
-                le.minHeight = 28f;
+                le.preferredWidth = 32f;
+                le.preferredHeight = 32f;
+                le.minWidth = 32f;
+                le.minHeight = 32f;
             }
 
             var energyValue = energyRow.Find("EnergyValue")?.GetComponent<Text>();
@@ -291,74 +502,172 @@ namespace Grimhand.Presentation.Battle
             title.offsetMax = new Vector2(-8f, -8f);
         }
 
-        static void RaiseBattleStages(Transform battleScreenRoot)
-        {
-            RaiseStage(battleScreenRoot.Find("PlayerStage") as RectTransform);
-            RaiseStage(battleScreenRoot.Find("EnemyStage") as RectTransform);
-        }
-
-        static void RaiseStage(RectTransform stage)
-        {
-            if (stage == null)
-                return;
-
-            var min = stage.anchorMin;
-            if (min.y >= 0.36f)
-                return;
-
-            stage.anchorMin = new Vector2(min.x, 0.36f);
-        }
-
-        static bool NeedsFix(RectTransform battlefield, RectTransform playerRow)
-        {
-            if (playerRow.sizeDelta.y < 0f)
-                return true;
-            if (battlefield.sizeDelta.y < 300f && battlefield.rect.height < 300f)
-                return true;
-            return playerRow.rect.height < 20f;
-        }
-
         static void FixHandArea(Transform handArea)
         {
             if (handArea == null)
                 return;
+
+            var handRt = handArea as RectTransform;
+            if (handRt != null)
+                PinBottomHeight(handRt, HandLeftInset, HandRightInset, CardRowBottom, CardRowHeight);
 
             var scroll = handArea.Find("HandScroll") as RectTransform;
             if (scroll != null)
             {
                 scroll.anchorMin = Vector2.zero;
                 scroll.anchorMax = Vector2.one;
-                scroll.offsetMin = new Vector2(0f, 0f);
-                scroll.offsetMax = new Vector2(0f, -28f);
+                scroll.pivot = new Vector2(0.5f, 0.5f);
+                scroll.anchoredPosition = Vector2.zero;
+                scroll.sizeDelta = Vector2.zero;
+                scroll.offsetMin = Vector2.zero;
+                scroll.offsetMax = new Vector2(0f, -HandLabelHeight);
+            }
+
+            var viewport = handArea.Find("HandScroll/Viewport") as RectTransform;
+            if (viewport != null)
+            {
+                viewport.anchorMin = Vector2.zero;
+                viewport.anchorMax = Vector2.one;
+                viewport.offsetMin = Vector2.zero;
+                viewport.offsetMax = Vector2.zero;
+
+                var viewportImage = viewport.GetComponent<Image>();
+                if (viewportImage != null)
+                    viewportImage.color = Color.clear;
+
+                var legacyMask = viewport.GetComponent<Mask>();
+                if (legacyMask != null)
+                    legacyMask.enabled = false;
+
+                if (viewport.GetComponent<RectMask2D>() == null)
+                    viewport.gameObject.AddComponent<RectMask2D>();
+            }
+
+            var content = handArea.Find("HandScroll/Viewport/Content");
+            if (content != null)
+            {
+                var contentRt = content.GetComponent<RectTransform>();
+                if (contentRt != null)
+                {
+                    contentRt.anchorMin = new Vector2(0f, 0f);
+                    contentRt.anchorMax = new Vector2(0f, 1f);
+                    contentRt.pivot = new Vector2(0f, 0.5f);
+                    contentRt.anchoredPosition = Vector2.zero;
+                    contentRt.sizeDelta = new Vector2(0f, 0f);
+                }
+
+                var layout = content.GetComponent<HorizontalLayoutGroup>();
+                if (layout != null)
+                {
+                    layout.spacing = 2;
+                    layout.padding = new RectOffset(0, 0, 0, 0);
+                    layout.childAlignment = TextAnchor.MiddleLeft;
+                    layout.childControlWidth = false;
+                    layout.childControlHeight = false;
+                    layout.childForceExpandWidth = false;
+                    layout.childForceExpandHeight = false;
+                }
+
+                var fitter = content.GetComponent<ContentSizeFitter>();
+                if (fitter != null)
+                {
+                    fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+                    fitter.verticalFit = ContentSizeFitter.FitMode.Unconstrained;
+                }
             }
 
             var label = handArea.Find("HandCount");
             if (label is RectTransform labelRt)
             {
-                labelRt.anchorMin = new Vector2(0.5f, 1f);
-                labelRt.anchorMax = new Vector2(0.5f, 1f);
+                labelRt.SetAsLastSibling();
+                labelRt.anchorMin = new Vector2(0f, 1f);
+                labelRt.anchorMax = new Vector2(1f, 1f);
                 labelRt.pivot = new Vector2(0.5f, 1f);
-                labelRt.anchoredPosition = new Vector2(0f, -4f);
-                labelRt.sizeDelta = new Vector2(280f, 24f);
+                labelRt.anchoredPosition = Vector2.zero;
+                labelRt.offsetMin = new Vector2(0f, -HandLabelHeight);
+                labelRt.offsetMax = new Vector2(0f, 0f);
+
+                var labelText = label.GetComponent<Text>();
+                if (labelText != null)
+                    labelText.alignment = TextAnchor.MiddleCenter;
             }
         }
+
+        static void ApplyHandCardScale(Transform battleScreenRoot)
+        {
+            var hand = FindChrome(battleScreenRoot.Find("HudChromeRoot"), battleScreenRoot, "HandArea");
+            if (hand == null)
+                return;
+
+            foreach (var cardView in hand.GetComponentsInChildren<CardView>(true))
+                CardView.ApplyHandPresentationScale(cardView, HandCardScale);
+        }
+
+        static void EnsureBottomHudDrawOrder(Transform battleScreenRoot, Transform chromeRoot)
+        {
+            if (chromeRoot != null)
+                chromeRoot.SetAsLastSibling();
+
+            var tooltip = battleScreenRoot.Find("CombatantTooltipLayer");
+            tooltip?.SetAsLastSibling();
+        }
+
+        public static void FixActionBarPublic(Transform actionBar) => FixActionBar(actionBar);
 
         static void FixActionBar(Transform actionBar)
         {
             if (actionBar == null)
                 return;
 
+            var restart = actionBar.Find("RestartButton");
+            if (restart != null)
+                restart.gameObject.SetActive(false);
+
+            var skip = actionBar.Find("SkipButton");
+            var confirm = actionBar.Find("ConfirmButton");
+            if (skip != null)
+            {
+                skip.gameObject.SetActive(true);
+                skip.SetSiblingIndex(0);
+            }
+
+            if (confirm != null)
+            {
+                confirm.gameObject.SetActive(true);
+                confirm.SetSiblingIndex(1);
+            }
+
+            foreach (Transform child in actionBar)
+            {
+                if (!child.gameObject.activeSelf)
+                    continue;
+
+                var rt = child as RectTransform;
+                if (rt != null)
+                    rt.sizeDelta = new Vector2(PlanningActionButtonWidth, rt.sizeDelta.y);
+
+                var le = child.GetComponent<LayoutElement>() ?? child.gameObject.AddComponent<LayoutElement>();
+                le.preferredWidth = PlanningActionButtonWidth;
+                le.minWidth = PlanningActionButtonWidth;
+                le.preferredHeight = 112f;
+                le.minHeight = 96f;
+                le.flexibleWidth = 0f;
+                le.flexibleHeight = 0f;
+            }
+
             var layout = actionBar.GetComponent<HorizontalLayoutGroup>();
             if (layout == null)
                 layout = actionBar.gameObject.AddComponent<HorizontalLayoutGroup>();
 
-            layout.spacing = 10;
-            layout.padding = new RectOffset(4, 4, 4, 4);
+            layout.spacing = 8;
+            layout.padding = new RectOffset(0, 0, 0, 0);
             layout.childAlignment = TextAnchor.MiddleRight;
             layout.childControlWidth = false;
             layout.childControlHeight = false;
             layout.childForceExpandWidth = false;
             layout.childForceExpandHeight = false;
+
+            LayoutRebuilder.ForceRebuildLayoutImmediate(actionBar as RectTransform);
         }
 
         static void StretchFull(RectTransform rt, float left, float bottom, float right, float top)
@@ -374,50 +683,35 @@ namespace Grimhand.Presentation.Battle
 
         static void PinBottomLeft(RectTransform rt, float left, float fromBottom, float width, float height)
         {
-            rt.anchorMin = new Vector2(0f, 0f);
-            rt.anchorMax = new Vector2(0f, 0f);
+            rt.anchorMin = new Vector2(left / RefWidth, fromBottom / RefHeight);
+            rt.anchorMax = new Vector2((left + width) / RefWidth, (fromBottom + height) / RefHeight);
             rt.pivot = new Vector2(0f, 0f);
-            rt.anchoredPosition = new Vector2(left, fromBottom);
-            rt.sizeDelta = new Vector2(width, height);
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = Vector2.zero;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
         }
 
         static void PinBottomRight(RectTransform rt, float right, float fromBottom, float width, float height)
         {
-            rt.anchorMin = new Vector2(1f, 0f);
-            rt.anchorMax = new Vector2(1f, 0f);
+            rt.anchorMin = new Vector2(1f - (right + width) / RefWidth, fromBottom / RefHeight);
+            rt.anchorMax = new Vector2(1f - right / RefWidth, (fromBottom + height) / RefHeight);
             rt.pivot = new Vector2(1f, 0f);
-            rt.anchoredPosition = new Vector2(-right, fromBottom);
-            rt.sizeDelta = new Vector2(width, height);
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = Vector2.zero;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
         }
 
         static void PinBottomHeight(RectTransform rt, float left, float right, float fromBottom, float height)
         {
-            rt.anchorMin = new Vector2(0f, 0f);
-            rt.anchorMax = new Vector2(1f, 0f);
+            rt.anchorMin = new Vector2(left / RefWidth, fromBottom / RefHeight);
+            rt.anchorMax = new Vector2(1f - right / RefWidth, (fromBottom + height) / RefHeight);
             rt.pivot = new Vector2(0.5f, 0f);
-            rt.offsetMin = new Vector2(left, fromBottom);
-            rt.offsetMax = new Vector2(-right, fromBottom + height);
-        }
-
-        static void PinTopHeight(Transform t, float left, float right, float fromTop, float height)
-        {
-            if (t == null)
-                return;
-
-            var rt = t as RectTransform ?? t.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0f, 1f);
-            rt.anchorMax = new Vector2(1f, 1f);
-            rt.pivot = new Vector2(0.5f, 1f);
-            rt.offsetMin = new Vector2(left, -fromTop - height);
-            rt.offsetMax = new Vector2(-right, -fromTop);
-        }
-
-        static void FillVerticalBand(RectTransform rt, float left, float right, float yMin, float yMax)
-        {
-            rt.anchorMin = new Vector2(0f, yMin);
-            rt.anchorMax = new Vector2(1f, yMax);
-            rt.offsetMin = new Vector2(left, 4f);
-            rt.offsetMax = new Vector2(-right, -4f);
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = Vector2.zero;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
         }
     }
 }

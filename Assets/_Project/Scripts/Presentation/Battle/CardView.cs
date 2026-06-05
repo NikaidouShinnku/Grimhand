@@ -13,8 +13,8 @@ namespace Grimhand.Presentation.Battle
         const float NormalScale = 1f;
         const float HoverScale = 1.14f;
         const float ScaleLerpDuration = 0.1f;
-        const int DescriptionFontNormal = 11;
-        const int DescriptionFontHover = 13;
+        const int DescriptionFontNormal = 15;
+        const int DescriptionFontHover = 18;
 
         static readonly Color SelectedHighlightColor = new(1f, 1f, 1f, 0.26f);
 
@@ -129,7 +129,7 @@ namespace Grimhand.Presentation.Battle
             {
                 statsText.text = statsLine ?? "";
                 statsText.horizontalOverflow = HorizontalWrapMode.Wrap;
-                statsText.verticalOverflow = VerticalWrapMode.Truncate;
+                statsText.verticalOverflow = VerticalWrapMode.Overflow;
             }
 
             if (ownerText != null)
@@ -214,7 +214,51 @@ namespace Grimhand.Presentation.Battle
 
             if (selectedOutline != null)
                 selectedOutline.raycastTarget = false;
+
+            if (artImage != null)
+            {
+                var artRt = artImage.rectTransform;
+                artRt.anchorMin = new Vector2(0.06f, 0.30f);
+                artRt.anchorMax = new Vector2(0.94f, 0.90f);
+                artRt.offsetMin = Vector2.zero;
+                artRt.offsetMax = Vector2.zero;
+            }
         }
+
+        public static void ApplyHandPresentationScale(CardView view, float scale)
+        {
+            if (view == null)
+                return;
+
+            var width = CardBaseLayoutWidth * scale;
+            var height = CardBaseLayoutHeight * scale;
+            var rt = view.transform as RectTransform;
+            if (rt != null)
+            {
+                rt.anchorMin = new Vector2(0f, 0.5f);
+                rt.anchorMax = new Vector2(0f, 0.5f);
+                rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.sizeDelta = new Vector2(width, height);
+            }
+
+            view.EnsureScaleRootForLayout();
+            ConfigureScaleRoot(view._scaleRoot);
+            if (view._scaleRoot != null)
+                view._scaleRoot.localScale = Vector3.one;
+
+            var le = view.GetComponent<LayoutElement>() ?? view.gameObject.AddComponent<LayoutElement>();
+            le.preferredWidth = width;
+            le.preferredHeight = height;
+            le.minWidth = width;
+            le.minHeight = height;
+            le.flexibleWidth = 0f;
+            le.flexibleHeight = 0f;
+        }
+
+        const float CardBaseLayoutWidth = 168f;
+        const float CardBaseLayoutHeight = 236f;
+
+        internal void EnsureScaleRootForLayout() => EnsureScaleRoot();
 
         void EnsureScaleRoot()
         {
@@ -285,8 +329,8 @@ namespace Grimhand.Presentation.Battle
             rt.anchorMin = new Vector2(0f, 0f);
             rt.anchorMax = new Vector2(1f, 0f);
             rt.pivot = new Vector2(0.5f, 0f);
-            rt.offsetMin = new Vector2(10f, 10f);
-            rt.offsetMax = new Vector2(-10f, 78f);
+            rt.offsetMin = new Vector2(10f, 12f);
+            rt.offsetMax = new Vector2(-10f, 96f);
             statsText.alignment = TextAnchor.UpperCenter;
             statsText.horizontalOverflow = HorizontalWrapMode.Wrap;
             statsText.verticalOverflow = VerticalWrapMode.Truncate;

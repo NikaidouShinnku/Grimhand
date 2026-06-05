@@ -53,6 +53,9 @@ namespace Grimhand.Presentation.Battle
 
         readonly List<Button> _routeButtons = new();
         BattleActiveCardBanner _activeCardBanner;
+        BattleInventoryPanelView _inventoryPanel;
+        Button _inventoryButton;
+        Text _inventoryFallbackLabel;
 
         BattleSession _session;
         System.Func<bool> _presentationBusy;
@@ -98,9 +101,14 @@ namespace Grimhand.Presentation.Battle
             ApplyTypographyPolish();
             ResolveHudReferences();
             BattleUiLayoutRuntimeFix.ApplyIfNeeded(transform);
+            EnsurePlanningEnergyHud();
+            EnsureInventoryHud();
             ApplyPlanningButtonIcons();
             CombatantTooltipLayer.GetOrCreate(transform);
             EnsureActiveCardBanner();
+
+            if (GetComponent<BattleUiBootstrap>() == null)
+                gameObject.AddComponent<BattleUiBootstrap>();
         }
 
         public void SetPresentationBusyCheck(System.Func<bool> check) => _presentationBusy = check;
@@ -133,33 +141,59 @@ namespace Grimhand.Presentation.Battle
 
         void ApplyPlanningButtonIcons()
         {
+            if (restartButton != null)
+                restartButton.gameObject.SetActive(false);
+
             if (_uiIcons == null)
                 return;
 
             PlanningActionButtonStyle.Apply(confirmButton, _uiIcons.ConfirmPlayIcon, "出牌");
             PlanningActionButtonStyle.Apply(skipButton, _uiIcons.SkipIcon, "空过");
+
+            if (skipButton != null)
+            {
+                skipButton.gameObject.SetActive(true);
+                skipButton.transform.SetSiblingIndex(0);
+            }
+
+            if (confirmButton != null)
+            {
+                confirmButton.gameObject.SetActive(true);
+                confirmButton.transform.SetSiblingIndex(1);
+            }
+
+            var actions = transform.Find("HudChromeRoot/PlanningActionsRight")
+                ?? transform.Find("PlanningActionsRight");
+            BattleUiLayoutRuntimeFix.FixActionBarPublic(actions?.Find("ActionBar"));
         }
 
         void ResolveHudReferences()
         {
             if (energyValueText == null)
             {
-                energyValueText = transform.Find("PlanningInfoLeft/EnergyRow/EnergyValue")?.GetComponent<Text>()
+                energyValueText = transform.Find("HudChromeRoot/EnergyHud/EnergyRow/EnergyValue")?.GetComponent<Text>()
+                    ?? transform.Find("EnergyHud/EnergyRow/EnergyValue")?.GetComponent<Text>()
+                    ?? transform.Find("PlanningInfoLeft/EnergyRow/EnergyValue")?.GetComponent<Text>()
                     ?? transform.Find("PlanningBar/EnergyRow/EnergyValue")?.GetComponent<Text>();
             }
 
             if (hudEnergyIcon == null)
             {
-                hudEnergyIcon = transform.Find("PlanningInfoLeft/EnergyRow/EnergyIcon")?.GetComponent<Image>()
+                hudEnergyIcon = transform.Find("HudChromeRoot/EnergyHud/EnergyRow/EnergyIcon")?.GetComponent<Image>()
+                    ?? transform.Find("EnergyHud/EnergyRow/EnergyIcon")?.GetComponent<Image>()
+                    ?? transform.Find("PlanningInfoLeft/EnergyRow/EnergyIcon")?.GetComponent<Image>()
                     ?? transform.Find("PlanningBar/EnergyIcon")?.GetComponent<Image>();
             }
 
             if (titleText == null)
             {
-                titleText = transform.Find("PlanningInfoLeft/Title")?.GetComponent<Text>()
+                titleText = transform.Find("HudChromeRoot/PlanningInfoLeft/Title")?.GetComponent<Text>()
+                    ?? transform.Find("PlanningInfoLeft/Title")?.GetComponent<Text>()
                     ?? transform.Find("PlanningBar/Title")?.GetComponent<Text>();
             }
         }
+
+        Transform HudRoot => BattleUiLayoutRuntimeFix.GetHudChromeRoot(transform) ?? transform;
 
         void ApplyTypographyPolish()
         {
@@ -186,17 +220,211 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             var le = icon.GetComponent<LayoutElement>() ?? icon.gameObject.AddComponent<LayoutElement>();
-            le.preferredWidth = 28f;
-            le.preferredHeight = 28f;
-            le.minWidth = 28f;
-            le.minHeight = 28f;
+            le.preferredWidth = 32f;
+            le.preferredHeight = 32f;
+            le.minWidth = 32f;
+            le.minHeight = 32f;
             le.flexibleWidth = 0f;
             le.flexibleHeight = 0f;
 
             var rt = icon.rectTransform;
-            rt.sizeDelta = new Vector2(28f, 28f);
+            rt.sizeDelta = new Vector2(32f, 32f);
             icon.preserveAspect = true;
             icon.raycastTarget = false;
+        }
+
+        void EnsurePlanningEnergyHud()
+        {
+            ResolveHudReferences();
+
+            var info = transform.Find("PlanningInfoLeft") ?? transform.Find("PlanningBar");
+            var legacyGoldRow = info?.Find("GoldRow");
+            if (legacyGoldRow != null)
+                Destroy(legacyGoldRow.gameObject);
+
+            var legacyEnergyRow = info?.Find("EnergyRow") as RectTransform;
+
+            var energyHud = HudRoot.Find("EnergyHud") as RectTransform;
+            if (energyHud == null)
+            {
+                var hudGo = new GameObject("EnergyHud", typeof(RectTransform), typeof(Image));
+                hudGo.transform.SetParent(HudRoot, false);
+                energyHud = hudGo.GetComponent<RectTransform>();
+                var hudBg = hudGo.GetComponent<Image>();
+                hudBg.color = new Color(0.1f, 0.11f, 0.15f, 0.92f);
+                hudBg.raycastTarget = false;
+            }
+
+            var energyRow = energyHud.Find("EnergyRow") as RectTransform;
+            if (energyRow == null)
+            {
+                if (legacyEnergyRow != null)
+                {
+                    energyRow = legacyEnergyRow;
+                    energyRow.SetParent(energyHud, false);
+                }
+                else
+                {
+                    var rowGo = new GameObject("EnergyRow", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+                    rowGo.transform.SetParent(energyHud, false);
+                    energyRow = rowGo.GetComponent<RectTransform>();
+                }
+            }
+
+            energyRow.anchorMin = Vector2.zero;
+            energyRow.anchorMax = Vector2.one;
+            energyRow.pivot = new Vector2(0.5f, 0.5f);
+            energyRow.offsetMin = new Vector2(8f, 6f);
+            energyRow.offsetMax = new Vector2(-8f, -6f);
+            energyRow.gameObject.SetActive(true);
+
+            var layout = energyRow.GetComponent<HorizontalLayoutGroup>()
+                ?? energyRow.gameObject.AddComponent<HorizontalLayoutGroup>();
+            layout.spacing = 8;
+            layout.childAlignment = TextAnchor.MiddleLeft;
+            layout.childControlWidth = false;
+            layout.childControlHeight = false;
+            layout.childForceExpandWidth = false;
+            layout.childForceExpandHeight = false;
+
+            if (hudEnergyIcon == null && legacyEnergyRow != null)
+                hudEnergyIcon = legacyEnergyRow.Find("EnergyIcon")?.GetComponent<Image>();
+            if (energyValueText == null && legacyEnergyRow != null)
+                energyValueText = legacyEnergyRow.Find("EnergyValue")?.GetComponent<Text>();
+
+            if (hudEnergyIcon != null)
+            {
+                hudEnergyIcon.transform.SetParent(energyRow, false);
+                hudEnergyIcon.transform.SetAsFirstSibling();
+                hudEnergyIcon.gameObject.SetActive(true);
+                FixEnergyIconLayout(hudEnergyIcon);
+            }
+
+            if (energyValueText != null)
+            {
+                if (energyValueText.transform.parent != energyRow)
+                    energyValueText.transform.SetParent(energyRow, false);
+                energyValueText.gameObject.SetActive(true);
+                energyValueText.fontSize = Mathf.Max(energyValueText.fontSize, 24);
+                energyValueText.fontStyle = FontStyle.Bold;
+                energyValueText.color = Color.white;
+            }
+
+            if (legacyEnergyRow != null && legacyEnergyRow != energyRow)
+                legacyEnergyRow.gameObject.SetActive(false);
+
+            BattleUiLayoutRuntimeFix.LayoutEnergyHud(energyHud);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(energyRow);
+        }
+
+        void EnsureInventoryHud()
+        {
+            if (_inventoryButton == null)
+            {
+                var go = new GameObject("InventoryButton", typeof(RectTransform), typeof(Image), typeof(Button));
+                go.transform.SetParent(HudRoot, false);
+
+                var img = go.GetComponent<Image>();
+                img.color = new Color(0.14f, 0.15f, 0.2f, 0.96f);
+                img.raycastTarget = true;
+
+                var labelGo = new GameObject("Label", typeof(RectTransform), typeof(Text));
+                labelGo.transform.SetParent(go.transform, false);
+                _inventoryFallbackLabel = labelGo.GetComponent<Text>();
+                _inventoryFallbackLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                _inventoryFallbackLabel.fontSize = 18;
+                _inventoryFallbackLabel.fontStyle = FontStyle.Bold;
+                _inventoryFallbackLabel.alignment = TextAnchor.MiddleCenter;
+                _inventoryFallbackLabel.color = new Color(0.92f, 0.94f, 0.98f, 1f);
+                _inventoryFallbackLabel.text = "包";
+                _inventoryFallbackLabel.raycastTarget = false;
+                var labelRt = labelGo.GetComponent<RectTransform>();
+                labelRt.anchorMin = Vector2.zero;
+                labelRt.anchorMax = Vector2.one;
+                labelRt.offsetMin = Vector2.zero;
+                labelRt.offsetMax = Vector2.zero;
+
+                _inventoryButton = go.GetComponent<Button>();
+                _inventoryButton.targetGraphic = img;
+                _inventoryButton.onClick.AddListener(ToggleInventoryPanel);
+
+                _inventoryPanel = gameObject.AddComponent<BattleInventoryPanelView>();
+                _inventoryPanel.Initialize(_session, transform);
+            }
+
+            ApplyLateHudLayout();
+        }
+
+        public void ApplyLateHudLayout()
+        {
+            EnsurePlanningEnergyHud();
+            ApplyInventoryButtonLayout();
+            ApplyPlanningButtonIcons();
+            BattleUiLayoutRuntimeFix.RefreshBottomHud(transform);
+        }
+
+        public void NotifyLayoutApplied()
+        {
+            handPanel?.ReapplyPoolLayout();
+            _inventoryPanel?.Refresh();
+
+            var info = transform.Find("HudChromeRoot/PlanningInfoLeft") ?? transform.Find("PlanningInfoLeft");
+            var intent = transform.Find("HudChromeRoot/EnemyIntentPanel") ?? transform.Find("EnemyIntentPanel");
+            var actions = transform.Find("HudChromeRoot/PlanningActionsRight") ?? transform.Find("PlanningActionsRight");
+            info?.gameObject.SetActive(false);
+            intent?.gameObject.SetActive(true);
+            actions?.gameObject.SetActive(true);
+            EnsurePlanningEnergyHud();
+            ApplyPlanningButtonIcons();
+            BattleUiLayoutRuntimeFix.RefreshBottomHud(transform);
+            _activeCardBanner?.Relayout();
+        }
+
+        void EnsurePlanningChromeVisible()
+        {
+            var info = transform.Find("HudChromeRoot/PlanningInfoLeft") ?? transform.Find("PlanningInfoLeft");
+            var intent = transform.Find("HudChromeRoot/EnemyIntentPanel") ?? transform.Find("EnemyIntentPanel");
+            var actions = transform.Find("HudChromeRoot/PlanningActionsRight") ?? transform.Find("PlanningActionsRight");
+
+            info?.gameObject.SetActive(false);
+            intent?.gameObject.SetActive(true);
+            actions?.gameObject.SetActive(true);
+        }
+
+        void ApplyInventoryButtonLayout()
+        {
+            if (_inventoryButton == null)
+                return;
+
+            var rt = _inventoryButton.transform as RectTransform;
+            BattleUiLayoutRuntimeFix.LayoutInventoryButton(rt);
+
+            var img = _inventoryButton.GetComponent<Image>();
+            var icon = _uiIcons != null ? _uiIcons.InventoryIcon : null;
+            if (icon != null)
+            {
+                img.sprite = icon;
+                img.type = Image.Type.Simple;
+                img.preserveAspect = true;
+                img.color = Color.white;
+                if (_inventoryFallbackLabel != null)
+                    _inventoryFallbackLabel.enabled = false;
+            }
+            else
+            {
+                img.sprite = null;
+                img.color = new Color(0.14f, 0.15f, 0.2f, 0.96f);
+                if (_inventoryFallbackLabel != null)
+                    _inventoryFallbackLabel.enabled = true;
+            }
+
+        }
+
+        void ToggleInventoryPanel()
+        {
+            _inventoryPanel?.Toggle();
+            if (_inventoryPanel != null && _inventoryPanel.IsOpen)
+                _inventoryPanel.Refresh();
         }
 
         void ConfigureBattlefieldSlots()
@@ -227,12 +455,13 @@ namespace Grimhand.Presentation.Battle
 
             RefreshHud(state);
             RefreshBattlefield(state, draft);
-            RefreshEnemyIntents(state, draft);
-            RefreshSelectedQueue(state, draft);
+            RefreshActionTimeline(state, draft);
             RefreshTargetPrompt(state, draft);
             RefreshHand(state);
             RefreshActions(state, expeditionBlocks);
             RefreshExpeditionOverlay();
+            _inventoryPanel?.Refresh();
+            EnsurePlanningChromeVisible();
         }
 
         void RefreshHud(BattleState state)
@@ -242,54 +471,31 @@ namespace Grimhand.Presentation.Battle
             if (hudEnergyIcon != null && _uiIcons != null)
             {
                 hudEnergyIcon.sprite = _uiIcons.EnergyIcon;
-                hudEnergyIcon.enabled = _uiIcons.EnergyIcon != null;
+                hudEnergyIcon.enabled = true;
                 hudEnergyIcon.preserveAspect = true;
+                hudEnergyIcon.color = _uiIcons.EnergyIcon != null ? Color.white : new Color(0.75f, 0.55f, 1f, 1f);
+                FixEnergyIconLayout(hudEnergyIcon);
             }
 
             if (energyValueText != null)
+            {
+                energyValueText.gameObject.SetActive(true);
                 energyValueText.text = $"{state.EnergyCurrent}/{state.EnergyMax}";
+                energyValueText.color = Color.white;
+            }
+
+            var energyRow = hudEnergyIcon != null ? hudEnergyIcon.transform.parent as RectTransform : null;
+            if (energyRow != null)
+                LayoutRebuilder.ForceRebuildLayoutImmediate(energyRow);
+
+            if (_inventoryButton != null)
+                ApplyInventoryButtonLayout();
 
             if (titleText != null)
-            {
-                if (!_session.IsExpeditionMode)
-                {
-                    titleText.text = $"回合 {state.TurnNumber}  ·  {state.Phase}  ·  {state.Outcome}";
-                }
-                else
-                {
-                    titleText.text =
-                        $"远征 {_session.Expedition.CurrentBattleNumber}/{_session.Expedition.Run.TargetBattleCount}";
-                }
-            }
+                titleText.gameObject.SetActive(false);
 
             if (subtitleText != null)
-            {
-                if (state.Phase == TurnPhase.Planning && _session.Engine != null)
-                {
-                    subtitleText.gameObject.SetActive(true);
-                    var phaseLabel = _session.IsExpeditionMode
-                        ? _session.Expedition.Run.Phase switch
-                        {
-                            ExpeditionPhase.RouteSelect => "选路线",
-                            ExpeditionPhase.RunComplete => "远征完成",
-                            ExpeditionPhase.RunFailed => "远征失败",
-                            _ => state.Phase.ToString()
-                        }
-                        : state.Phase.ToString();
-                    subtitleText.text = $"回合 {state.TurnNumber}  ·  {phaseLabel}";
-                }
-                else if (_session.IsExpeditionMode && _session.Expedition.Run.Party.Count > 0 &&
-                         _session.Expedition.Run.Phase != ExpeditionPhase.InBattle)
-                {
-                    subtitleText.gameObject.SetActive(true);
-                    subtitleText.text = BattleUiFormatters.FormatPartyHpLine(_session.Expedition.Run.Party);
-                }
-                else
-                {
-                    subtitleText.text = "";
-                    subtitleText.gameObject.SetActive(false);
-                }
-            }
+                subtitleText.gameObject.SetActive(false);
         }
 
         void RefreshBattlefield(BattleState state, PlanningDraft draft)
@@ -328,19 +534,35 @@ namespace Grimhand.Presentation.Battle
                 slot?.Refresh(state, targetMode, validTargets, _characterVisuals, _uiIcons, presentation);
         }
 
-        void RefreshEnemyIntents(BattleState state, PlanningDraft draft)
+        void RefreshActionTimeline(BattleState state, PlanningDraft draft)
         {
+            selectedQueuePanel?.SetActive(false);
+
             if (enemyIntentPanel == null)
                 return;
 
             var planning = state.Phase == TurnPhase.Planning;
-            var mergedQueue = planning && draft != null && draft.SelectedQueue.Count > 0;
-            var show = planning && !mergedQueue && state.EnemyIntents.Count > 0;
-            enemyIntentPanel.SetActive(show);
-            if (!show || enemyIntentText == null)
+            enemyIntentPanel.SetActive(planning);
+            if (!planning || enemyIntentText == null)
                 return;
 
-            var lines = new List<string>();
+            var hasPlayerCards = draft != null && draft.SelectedQueue.Count > 0;
+            var hasEnemyIntents = state.EnemyIntents.Count > 0;
+            if (!hasPlayerCards && !hasEnemyIntents)
+            {
+                enemyIntentText.text = "【敌方意图】\n（暂无）";
+                return;
+            }
+
+            if (hasPlayerCards)
+            {
+                var lines = BattleUiFormatters.BuildActionOrderSummary(
+                    state, draft, _session.Engine.PreviewResolutionSteps());
+                enemyIntentText.text = "【行动顺序】\n" + string.Join("\n", lines);
+                return;
+            }
+
+            var intentLines = new List<string> { "【敌方意图】" };
             var order = 1;
             foreach (var intent in state.EnemyIntents)
             {
@@ -359,32 +581,22 @@ namespace Grimhand.Presentation.Battle
 
                 var actorName = owner != null ? owner.DisplayName : "敌";
                 if (intent.IsHidden)
-                    lines.Add($"#{order} ? ({actorName})");
+                    intentLines.Add($"#{order} ? ({actorName})");
                 else
                 {
                     var effect = CardPowerRules.DescribeCardEffect(card, owner, false);
-                    lines.Add($"#{order} {card.DisplayName} 费{card.Cost} {effect} ({actorName})");
+                    intentLines.Add($"#{order} {card.DisplayName} 费{card.Cost} {effect} ({actorName})");
                 }
 
                 order++;
             }
 
-            enemyIntentText.text = string.Join("\n", lines);
+            enemyIntentText.text = string.Join("\n", intentLines);
         }
 
         void RefreshSelectedQueue(BattleState state, PlanningDraft draft)
         {
-            if (selectedQueuePanel == null)
-                return;
-
-            var show = state.Phase == TurnPhase.Planning && draft.SelectedQueue.Count > 0;
-            selectedQueuePanel.SetActive(show);
-            if (!show || selectedQueueText == null)
-                return;
-
-            selectedQueueText.text = string.Join("\n",
-                BattleUiFormatters.BuildActionOrderSummary(
-                    state, draft, _session.Engine.PreviewResolutionSteps()));
+            selectedQueuePanel?.SetActive(false);
         }
 
         void RefreshTargetPrompt(BattleState state, PlanningDraft draft)
@@ -399,9 +611,21 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             var card = state.GetCard(awaiting.Value);
-            targetPromptText.text = card != null
-                ? $"请选择 {card.DisplayName} 的目标（点选高亮敌人）"
-                : "请选择目标";
+            if (card == null)
+            {
+                targetPromptText.text = "请点击高亮单位选择目标";
+                return;
+            }
+
+            var side = CardRules.GetRequiredTargetPick(card);
+            var sideLabel = side switch
+            {
+                TargetPickSide.Ally => "队友",
+                TargetPickSide.Enemy => "敌人",
+                _ => "目标"
+            };
+            targetPromptText.text =
+                $"已选「{card.DisplayName}」— 点击高亮的{sideLabel}（再点卡牌取消）";
         }
 
         void RefreshHand(BattleState state)
@@ -427,6 +651,15 @@ namespace Grimhand.Presentation.Battle
             var planning = state.Phase == TurnPhase.Planning
                 && !expeditionBlocks
                 && !(_presentationBusy?.Invoke() ?? false);
+
+            if (enemyIntentPanel != null && state.Phase == TurnPhase.Planning)
+                enemyIntentPanel.SetActive(true);
+
+            var actionsRoot = transform.Find("HudChromeRoot/PlanningActionsRight")
+                ?? transform.Find("PlanningActionsRight");
+            if (actionsRoot != null)
+                actionsRoot.gameObject.SetActive(true);
+
             if (confirmButton != null)
             {
                 confirmButton.gameObject.SetActive(true);
@@ -434,10 +667,12 @@ namespace Grimhand.Presentation.Battle
             }
 
             if (skipButton != null)
+            {
+                skipButton.gameObject.SetActive(true);
                 skipButton.interactable = planning;
+            }
 
-            if (restartButtonLabel != null)
-                restartButtonLabel.text = _session.IsExpeditionMode ? "重开远征" : "重开战斗";
+            ApplyPlanningButtonIcons();
         }
 
         void RefreshExpeditionOverlay()
@@ -463,7 +698,7 @@ namespace Grimhand.Presentation.Battle
             {
                 runEndTitleText.text = "远征完成";
                 runEndBodyText.text =
-                    $"三场战斗全胜。\n{BattleUiFormatters.FormatPartyHpLine(_session.Expedition.Run.Party)}";
+                    $"三场战斗全胜。\n{BattleUiFormatters.FormatPartySummary(_session.Expedition.Run.Party, _session.Expedition.Run.Gold)}";
             }
             else if (phase == ExpeditionPhase.RunFailed)
             {
@@ -485,7 +720,10 @@ namespace Grimhand.Presentation.Battle
             var routes = _session.Expedition.Run.PendingRoutes;
             routeHeaderText.text =
                 $"选择前进路线（已完成 {_session.Expedition.Run.BattlesWon}/{_session.Expedition.Run.TargetBattleCount} 场）\n" +
-                BattleUiFormatters.FormatPartyHpLine(_session.Expedition.Run.Party);
+                $"本场 +{_session.Expedition.Run.LastGoldReward} 金币\n" +
+                BattleUiFormatters.FormatPartySummary(
+                    _session.Expedition.Run.Party,
+                    _session.Expedition.Run.Gold);
 
             for (var i = 0; i < routes.Count; i++)
             {
@@ -606,6 +844,17 @@ namespace Grimhand.Presentation.Battle
 
         public Vector3 GetDuelCenterWorldPosition()
         {
+            var playerFeet = GetTeamFeetReference(playerSlots);
+            var enemyFeet = GetTeamFeetReference(enemySlots);
+
+            if (playerFeet.HasValue && enemyFeet.HasValue)
+            {
+                return new Vector3(
+                    (playerFeet.Value.x + enemyFeet.Value.x) * 0.5f,
+                    (playerFeet.Value.y + enemyFeet.Value.y) * 0.5f,
+                    (playerFeet.Value.z + enemyFeet.Value.z) * 0.5f);
+            }
+
             var playerStage = transform.Find("PlayerStage");
             var enemyStage = transform.Find("EnemyStage");
             if (playerStage != null && enemyStage != null)
@@ -613,5 +862,25 @@ namespace Grimhand.Presentation.Battle
 
             return transform.position;
         }
+
+        static Vector3? GetTeamFeetReference(CombatantSlotView[] slots)
+        {
+            if (slots == null || slots.Length == 0)
+                return null;
+
+            var idx = slots.Length > 1 ? 1 : 0;
+            for (var i = 0; i < slots.Length; i++)
+            {
+                var pick = slots[(idx + i) % slots.Length];
+                if (pick == null || string.IsNullOrEmpty(pick.PortraitView?.CombatantId))
+                    continue;
+
+                return pick.GetDuelReferenceWorldPosition();
+            }
+
+            return slots[idx]?.GetDuelReferenceWorldPosition();
+        }
+
+        static Vector3? GetTeamDuelReference(CombatantSlotView[] slots) => GetTeamFeetReference(slots);
     }
 }

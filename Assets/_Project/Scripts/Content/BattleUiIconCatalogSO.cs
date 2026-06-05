@@ -11,6 +11,8 @@ namespace Grimhand.Content
         public Sprite DefenseIcon;
         public Sprite SpeedIcon;
         public Sprite EnergyIcon;
+        public Sprite GoldIcon;
+        public Sprite InventoryIcon;
         public Sprite ConfirmPlayIcon;
         public Sprite SkipIcon;
     }

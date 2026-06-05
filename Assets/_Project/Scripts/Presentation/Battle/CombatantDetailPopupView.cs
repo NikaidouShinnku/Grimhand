@@ -1,6 +1,7 @@
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
 using Grimhand.Content;
+using Grimhand.Expedition;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -108,13 +109,14 @@ namespace Grimhand.Presentation.Battle
 
             var status = BattleUiFormatters.FormatStatusListDisplay(unit);
             var speed = StatusRules.GetEffectiveSpeed(unit);
-            var lines = $"攻击 {unit.Attack}    防御 {unit.Defense}    速度 {speed}";
+            var lines = CharacterProgression.FormatLevelLabel(unit.Level);
+            lines += $"\n攻击 {unit.Attack}    防御 {unit.Defense}    速度 {speed}";
             if (!string.IsNullOrEmpty(status))
                 lines += $"\n状态 {status}";
 
             _bodyText.text = lines;
 
-            var lineCount = 1 + (string.IsNullOrEmpty(status) ? 0 : 1);
+            var lineCount = 2 + (string.IsNullOrEmpty(status) ? 0 : 1);
             _panel.sizeDelta = new Vector2(220f, 28f + lineCount * 22f);
         }
 

@@ -71,26 +71,341 @@ namespace Grimhand.Presentation.Battle
 
             var ownerId = PositionRules.GetOwnerCombatantId(state, card);
             var owner = ownerId != null ? state.GetCombatant(ownerId) : null;
+            var pickSide = CardRules.GetRequiredTargetPick(card);
 
             var lines = new List<string>();
-            foreach (var action in card.Actions)
+            var normalActions = CollectNormalActions(card);
+            var remaining = normalActions;
+
+            if (TryDescribeAoEEnemyDamage(normalActions, owner, out var aoeLine, out remaining))
             {
-                var line = DescribeActionLine(action, owner);
-                if (!string.IsNullOrEmpty(line))
-                    lines.Add(line);
+                lines.Add(aoeLine);
+                normalActions = remaining;
+            }
+            else if (TryDescribeAllAllyBuff(normalActions, owner, out var allyLine, out remaining))
+            {
+                lines.Add(allyLine);
+                normalActions = remaining;
+            }
+            else
+            {
+                normalActions = remaining;
             }
 
-            var body = string.Join("\n", lines);
+            var picked = new List<string>();
+            var other = new List<string>();
+            foreach (var action in normalActions)
+            {
+                var usesPick = UsesManualPick(action, pickSide);
+                var clause = DescribeEffectClause(action, owner, usesPick);
+                if (string.IsNullOrEmpty(clause))
+                    continue;
+
+                if (usesPick)
+                    picked.Add(clause);
+                else
+                    other.Add(clause);
+            }
+
+            if (picked.Count > 0)
+            {
+                var lead = BuildPickLead(pickSide, card);
+                var body = JoinEffectClauses(picked);
+                lines.Add(string.IsNullOrEmpty(lead) ? body : $"{lead}，{body}");
+            }
+
+            lines.AddRange(other);
+
+            foreach (var action in card.Actions)
+            {
+                if (action.Condition == ReactionConditionType.None)
+                    continue;
+
+                var clause = DescribeEffectClause(action, owner, usesPick: false, reaction: true);
+                if (!string.IsNullOrEmpty(clause))
+                    lines.Add(clause);
+            }
 
             var assignedId = draft?.GetAssignedTarget(card.InstanceId);
             if (!string.IsNullOrEmpty(assignedId))
             {
                 var assigned = state.GetCombatant(assignedId);
                 if (assigned != null)
-                    body += $"\n→{assigned.DisplayName}";
+                    lines.Add($"→ {assigned.DisplayName}");
             }
 
-            return body;
+            return string.Join("\n", lines);
+        }
+
+        static bool UsesManualPick(EffectActionSpec action, TargetPickSide pickSide)
+        {
+            if (pickSide == TargetPickSide.None)
+                return false;
+
+            switch (action.Target)
+            {
+                case EffectTarget.DefaultEnemy:
+                case EffectTarget.ManualSelected:
+                    return pickSide == TargetPickSide.Enemy;
+                case EffectTarget.FrontAlly:
+                case EffectTarget.BackAlly:
+                    return pickSide == TargetPickSide.Ally;
+                default:
+                    return false;
+            }
+        }
+
+        static string BuildPickLead(TargetPickSide pickSide, CardInstanceState card)
+        {
+            var reach = DescribeReachNatural(card);
+            switch (pickSide)
+            {
+                case TargetPickSide.Enemy:
+                    return string.IsNullOrEmpty(reach) ? "选择一名敌人" : $"选择敌人{reach}";
+                case TargetPickSide.Ally:
+                    return string.IsNullOrEmpty(reach) ? "选择一名队友" : $"选择队友{reach}";
+                default:
+                    return "";
+            }
+        }
+
+        static string DescribeReachNatural(CardInstanceState card)
+        {
+            var reach = TargetReachRules.GetPickReach(card);
+            switch (reach)
+            {
+                case TargetReach.FrontAndMiddle:
+                    return "前排或中排";
+                case TargetReach.BackOnly:
+                    return "后排";
+                case TargetReach.Any:
+                    return "";
+                default:
+                    return "";
+            }
+        }
+
+        static string JoinEffectClauses(IReadOnlyList<string> clauses)
+        {
+            if (clauses == null || clauses.Count == 0)
+                return "";
+
+            if (clauses.Count == 1)
+                return clauses[0];
+
+            if (clauses.Count == 2)
+                return $"{clauses[0]}并{clauses[1]}";
+
+            var sb = new StringBuilder(clauses[0]);
+            for (var i = 1; i < clauses.Count; i++)
+                sb.Append('，').Append(clauses[i]);
+            return sb.ToString();
+        }
+
+        static string DescribeEffectClause(
+            EffectActionSpec action,
+            CombatantState owner,
+            bool usesPick,
+            bool reaction = false)
+        {
+            var prefix = reaction ? "受击后" : "";
+            var target = usesPick ? "" : DescribeAutoTarget(action.Target, action.Type);
+
+            switch (action.Type)
+            {
+                case EffectActionType.DealDamage:
+                {
+                    var dmg = CardPowerRules.ComputeActionValue(action, owner);
+                    var extra = DescribeDamageExtras(action);
+                    if (action.Target == EffectTarget.Self)
+                        return prefix + $"对自身造成 {dmg} 点伤害{extra}";
+
+                    return prefix + PrefixTarget(target, $"造成 {dmg} 点伤害{extra}");
+                }
+                case EffectActionType.GainBlock:
+                {
+                    var block = CardPowerRules.ComputeActionValue(action, owner);
+                    return prefix + PrefixTarget(target, $"获得 {block} 点护甲");
+                }
+                case EffectActionType.GainBlockFromLastDamagePercent:
+                    return prefix + PrefixTarget(target, $"获得相当于所受伤害 {action.Value}% 的护甲");
+                case EffectActionType.ReflectLastDamageToAttacker:
+                    return prefix + $"反射 {action.Value}% 所受伤害";
+                case EffectActionType.Heal:
+                {
+                    var heal = CardPowerRules.ComputeActionValue(action, owner);
+                    if (action.Target == EffectTarget.Self)
+                        return prefix + $"恢复 {heal} 点生命";
+
+                    return prefix + PrefixTarget(target, $"恢复 {heal} 点生命");
+                }
+                case EffectActionType.DrawCards:
+                    return prefix + $"下回合抽 {action.Value} 张牌";
+                case EffectActionType.DrawCardsNextTurn:
+                    return prefix + $"下回合抽 {action.Value} 张牌";
+                case EffectActionType.ApplyStatus:
+                {
+                    var def = StatusCatalog.Get(action.StatusId);
+                    var name = def?.DisplayName ?? action.StatusId;
+                    var duration = action.Duration >= 0 ? action.Duration : def?.DefaultDuration ?? -1;
+                    var durationText = duration > 0 && def?.DurationKind == StatusDurationKind.Turns
+                        ? $"（{duration} 回合）"
+                        : "";
+                    return prefix + PrefixTarget(target, $"施加 {name} {action.Stacks} 层{durationText}");
+                }
+                case EffectActionType.RemoveStatus:
+                    return prefix + PrefixTarget(target, "清除状态");
+                case EffectActionType.SwapPositionWithFrontAlly:
+                    return prefix + "与前排队友交换位置";
+                default:
+                    return "";
+            }
+        }
+
+        static string PrefixTarget(string target, string clause)
+        {
+            if (string.IsNullOrEmpty(target))
+                return clause;
+
+            return $"{target}{clause}";
+        }
+
+        static string DescribeAutoTarget(EffectTarget target, EffectActionType type)
+        {
+            switch (target)
+            {
+                case EffectTarget.Self:
+                    return type == EffectActionType.DealDamage ? "对自身" : "自身";
+                case EffectTarget.EnemyFrontSlot:
+                    return "敌前排";
+                case EffectTarget.EnemyMiddleSlot:
+                    return "敌中排";
+                case EffectTarget.EnemyBackSlot:
+                    return "敌后排";
+                case EffectTarget.AllyFrontSlot:
+                    return "前排队友";
+                case EffectTarget.AllyMiddleSlot:
+                    return "中排队友";
+                case EffectTarget.AllyBackSlot:
+                    return "后排队友";
+                default:
+                    return "";
+            }
+        }
+
+        static List<EffectActionSpec> CollectNormalActions(CardInstanceState card)
+        {
+            var list = new List<EffectActionSpec>();
+            foreach (var action in card.Actions)
+            {
+                if (action.Condition == ReactionConditionType.None)
+                    list.Add(action);
+            }
+
+            return list;
+        }
+
+        static bool TryDescribeAoEEnemyDamage(
+            List<EffectActionSpec> actions,
+            CombatantState owner,
+            out string line,
+            out List<EffectActionSpec> remaining)
+        {
+            line = "";
+            remaining = actions;
+
+            EffectActionSpec front = null;
+            EffectActionSpec middle = null;
+            EffectActionSpec back = null;
+
+            foreach (var action in actions)
+            {
+                if (action.Type != EffectActionType.DealDamage)
+                    continue;
+
+                switch (action.Target)
+                {
+                    case EffectTarget.EnemyFrontSlot: front = action; break;
+                    case EffectTarget.EnemyMiddleSlot: middle = action; break;
+                    case EffectTarget.EnemyBackSlot: back = action; break;
+                }
+            }
+
+            if (front == null || middle == null || back == null)
+                return false;
+
+            if (front.Value != middle.Value || front.Value != back.Value
+                || front.AttackScalePercent != middle.AttackScalePercent
+                || front.AttackScalePercent != back.AttackScalePercent)
+                return false;
+
+            var dmg = CardPowerRules.ComputeActionValue(front, owner);
+            line = $"对全体敌人各造成 {dmg} 点伤害";
+            remaining = new List<EffectActionSpec>();
+            foreach (var action in actions)
+            {
+                if (action == front || action == middle || action == back)
+                    continue;
+                remaining.Add(action);
+            }
+
+            return true;
+        }
+
+        static bool TryDescribeAllAllyBuff(
+            List<EffectActionSpec> actions,
+            CombatantState owner,
+            out string line,
+            out List<EffectActionSpec> remaining)
+        {
+            line = "";
+            remaining = actions;
+
+            EffectActionSpec front = null;
+            EffectActionSpec middle = null;
+            EffectActionSpec back = null;
+
+            foreach (var action in actions)
+            {
+                if (action.Type != EffectActionType.GainBlock)
+                    continue;
+
+                switch (action.Target)
+                {
+                    case EffectTarget.AllyFrontSlot: front = action; break;
+                    case EffectTarget.AllyMiddleSlot: middle = action; break;
+                    case EffectTarget.AllyBackSlot: back = action; break;
+                }
+            }
+
+            if (front == null || middle == null || back == null)
+                return false;
+
+            if (front.Value != middle.Value || front.Value != back.Value)
+                return false;
+
+            var block = CardPowerRules.ComputeActionValue(front, owner);
+            line = $"三名队友各获得 {block} 点护甲";
+            remaining = new List<EffectActionSpec>();
+            foreach (var action in actions)
+            {
+                if (action == front || action == middle || action == back)
+                    continue;
+                remaining.Add(action);
+            }
+
+            return true;
+        }
+
+        static string DescribeDamageExtras(EffectActionSpec action)
+        {
+            var parts = new List<string>();
+            if (action.SplashBehindTarget)
+                parts.Add($"，贯通后方 {action.SplashPowerPercent}% 伤害");
+            if (action.BackRowPowerPercent > 0 && action.BackRowPowerPercent < 100)
+                parts.Add($"，打后排仅 {action.BackRowPowerPercent}% 威力");
+
+            return string.Concat(parts);
         }
 
         static string DescribeActionLine(EffectActionSpec action, CombatantState owner)
@@ -426,6 +741,14 @@ namespace Grimhand.Presentation.Battle
             }
 
             return sb.ToString();
+        }
+
+        public static string FormatGold(int gold) => $"金币 {gold}";
+
+        public static string FormatPartySummary(IReadOnlyList<PartyMemberSnapshot> party, int gold)
+        {
+            var hpLine = FormatPartyHpLine(party);
+            return gold > 0 ? $"{hpLine}\n{FormatGold(gold)}" : hpLine;
         }
 
         public static string DescribeNodeType(ExpeditionNodeType type)

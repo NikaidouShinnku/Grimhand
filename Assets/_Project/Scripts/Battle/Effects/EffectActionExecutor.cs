@@ -108,11 +108,19 @@ namespace Grimhand.Battle.Effects
                     break;
                 case EffectActionType.DrawCardsNextTurn:
                     state.PendingDrawNextTurn += value;
+                    events.Add(new BattleEvent(BattleEventKind.CardDrawn, $"下回合额外抽 {value} 张")
+                    {
+                        CombatantId = actor.Id
+                    });
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
                 case EffectActionType.DrawCards:
-                    if (rng != null && value > 0)
-                        DeckRules.DrawCards(state, actor.Team, rng, value, events);
+                    state.PendingDrawNextTurn += value;
+                    events.Add(new BattleEvent(BattleEventKind.CardDrawn, $"下回合额外抽 {value} 张")
+                    {
+                        CombatantId = actor.Id,
+                        CardInstanceId = card.InstanceId
+                    });
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
                 case EffectActionType.ReflectLastDamageToAttacker:

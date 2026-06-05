@@ -9,6 +9,8 @@ namespace Grimhand.Expedition
         public ExpeditionPhase Phase { get; set; } = ExpeditionPhase.InBattle;
         public int BattlesWon { get; set; }
         public int TargetBattleCount { get; set; } = 3;
+        public int Gold { get; set; }
+        public int LastGoldReward { get; set; }
         public List<PartyMemberSnapshot> Party { get; } = new();
         public List<ExpeditionRouteOption> PendingRoutes { get; } = new();
         public BattleConfig CurrentBattleConfig { get; set; }

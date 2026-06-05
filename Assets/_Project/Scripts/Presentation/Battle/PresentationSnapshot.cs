@@ -10,6 +10,7 @@ namespace Grimhand.Presentation.Battle
         readonly Dictionary<string, int> _maxHp = new();
         readonly Dictionary<string, int> _block = new();
         readonly HashSet<string> _dead = new();
+        readonly List<int> _playerHandInstanceIds = new();
 
         public static PresentationSnapshot Capture(BattleState state)
         {
@@ -26,7 +27,35 @@ namespace Grimhand.Presentation.Battle
                     snap._dead.Add(c.Id);
             }
 
+            foreach (var card in state.PlayerHand)
+                snap._playerHandInstanceIds.Add(card.InstanceId);
+
             return snap;
+        }
+
+        /// <summary>演出期间展示的手牌：仅含提交规划时的牌，不含回合中后段新抽的牌。</summary>
+        public IReadOnlyList<CardInstanceState> GetDisplayedPlayerHand(BattleState state)
+        {
+            if (state == null)
+                return System.Array.Empty<CardInstanceState>();
+
+            if (_playerHandInstanceIds.Count == 0)
+                return state.PlayerHand;
+
+            var result = new List<CardInstanceState>(_playerHandInstanceIds.Count);
+            foreach (var id in _playerHandInstanceIds)
+            {
+                foreach (var card in state.PlayerHand)
+                {
+                    if (card.InstanceId != id)
+                        continue;
+
+                    result.Add(card);
+                    break;
+                }
+            }
+
+            return result;
         }
 
         public bool IsAlive(string combatantId)

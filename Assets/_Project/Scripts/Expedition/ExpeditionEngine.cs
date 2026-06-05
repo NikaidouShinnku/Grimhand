@@ -44,6 +44,8 @@ namespace Grimhand.Expedition
         {
             _run.Phase = ExpeditionPhase.InBattle;
             _run.BattlesWon = 0;
+            _run.Gold = 0;
+            _run.LastGoldReward = 0;
             _run.Party.Clear();
             _run.PendingRoutes.Clear();
             _run.CurrentBattleConfig = BuildBattleFromEncounter(0, applyPartyHp: false);
@@ -68,6 +70,8 @@ namespace Grimhand.Expedition
                 return;
 
             _run.BattlesWon++;
+            _run.LastGoldReward = ExpeditionEconomy.RollVictoryGold(_config, _rng);
+            _run.Gold += _run.LastGoldReward;
 
             if (_run.BattlesWon >= _run.TargetBattleCount)
             {

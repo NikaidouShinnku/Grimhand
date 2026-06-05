@@ -231,7 +231,9 @@ namespace Grimhand.Presentation.Battle
             {
                 RunSeed = UnityEngine.Random.Range(1, int.MaxValue),
                 TargetBattleCount = 3,
-                RoutesPerVictory = 3
+                RoutesPerVictory = 3,
+                GoldMinPerVictory = 15,
+                GoldMaxPerVictory = 25
             };
 
             var encounter = BattleSetup != null
@@ -256,8 +258,9 @@ namespace Grimhand.Presentation.Battle
             switch (Expedition.Run.Phase)
             {
                 case ExpeditionPhase.RouteSelect:
-                    AddLog($"第 {Expedition.Run.BattlesWon} 场胜利 — 请选择前进路线");
-                    AddLog("队伍 HP: " + BattleUiFormatters.FormatPartyHpLine(Expedition.Run.Party));
+                    AddLog($"第 {Expedition.Run.BattlesWon} 场胜利 — +{Expedition.Run.LastGoldReward} 金币（合计 {Expedition.Run.Gold}）");
+                    AddLog("请选择前进路线");
+                    AddLog(BattleUiFormatters.FormatPartySummary(Expedition.Run.Party, Expedition.Run.Gold));
                     break;
                 case ExpeditionPhase.RunComplete:
                     AddLog("远征完成！");

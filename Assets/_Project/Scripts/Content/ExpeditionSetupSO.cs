@@ -16,6 +16,12 @@ namespace Grimhand.Content
         [Tooltip("每场胜利后提供的路线数量。")]
         public int RoutesPerVictory = 3;
 
+        [Tooltip("普通战斗胜利金币下限（含）。")]
+        public int GoldMinPerVictory = 15;
+
+        [Tooltip("普通战斗胜利金币上限（含）。")]
+        public int GoldMaxPerVictory = 25;
+
         [Tooltip("普通战斗遭遇；Demo 可只填一张并复用。")]
         public List<BattleSetupSO> CombatEncounters = new();
 
@@ -29,7 +35,9 @@ namespace Grimhand.Content
             {
                 RunSeed = runSeed,
                 TargetBattleCount = TargetBattleCount,
-                RoutesPerVictory = RoutesPerVictory
+                RoutesPerVictory = RoutesPerVictory,
+                GoldMinPerVictory = GoldMinPerVictory,
+                GoldMaxPerVictory = GoldMaxPerVictory
             };
 
             foreach (var encounter in CombatEncounters)

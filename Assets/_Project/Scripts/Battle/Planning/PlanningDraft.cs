@@ -75,6 +75,12 @@ namespace Grimhand.Battle.Planning
             if (_state.Phase != TurnPhase.Planning)
                 return false;
 
+            if (_awaitingTargetCardId == instanceId)
+            {
+                CancelAwaitingTarget();
+                return true;
+            }
+
             if (_selectedQueue.Contains(instanceId))
                 return false;
 

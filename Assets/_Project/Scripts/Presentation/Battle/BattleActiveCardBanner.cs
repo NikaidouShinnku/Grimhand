@@ -7,13 +7,14 @@ using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Battle
 {
-    /// <summary>速度结算时在屏幕中央上方展示当前生效的卡牌。</summary>
+    /// <summary>出牌演出时在原手牌区域中央展示当前生效的卡牌。</summary>
     public sealed class BattleActiveCardBanner : MonoBehaviour
     {
-        const float BannerScale = 1.15f;
+        const float BannerScaleMul = 1.08f;
 
         CardView _cardView;
         RectTransform _bannerRoot;
+        Transform _battleScreenRoot;
 
         BattleSession _session;
         CardVisualCatalogSO _catalog;
@@ -28,13 +29,14 @@ namespace Grimhand.Presentation.Battle
             CharacterVisualCatalogSO characterVisuals,
             BattleUiIconCatalogSO uiIcons,
             Dictionary<string, CardDefinitionSO> definitions,
-            Transform parentCanvasRoot)
+            Transform battleScreenRoot)
         {
             _session = session;
             _catalog = catalog;
             _characterVisuals = characterVisuals;
             _uiIcons = uiIcons;
             _definitions = definitions ?? new Dictionary<string, CardDefinitionSO>();
+            _battleScreenRoot = battleScreenRoot;
 
             if (cardPrefab == null)
             {
@@ -42,13 +44,40 @@ namespace Grimhand.Presentation.Battle
                 return;
             }
 
-            EnsureBuilt(cardPrefab, parentCanvasRoot);
+            EnsureBuilt(cardPrefab);
+        }
+
+        public void Relayout()
+        {
+            if (_bannerRoot == null)
+                return;
+
+            var handArea = FindHandArea();
+            if (handArea == null)
+                return;
+
+            if (_bannerRoot.parent != handArea)
+                _bannerRoot.SetParent(handArea, false);
+
+            const float labelHeight = 20f;
+            _bannerRoot.anchorMin = new Vector2(0.5f, 0f);
+            _bannerRoot.anchorMax = new Vector2(0.5f, 1f);
+            _bannerRoot.pivot = new Vector2(0.5f, 0.5f);
+            _bannerRoot.anchoredPosition = new Vector2(0f, -labelHeight * 0.5f);
+            _bannerRoot.sizeDelta = Vector2.zero;
+            _bannerRoot.offsetMin = new Vector2(-BattleUiLayoutRuntimeFix.ScaledCardWidth * 0.55f, 0f);
+            _bannerRoot.offsetMax = new Vector2(BattleUiLayoutRuntimeFix.ScaledCardWidth * 0.55f, -labelHeight);
+
+            if (_cardView != null)
+                CardView.ApplyHandPresentationScale(_cardView, BattleUiLayoutRuntimeFix.HandCardScale * BannerScaleMul);
         }
 
         public void Show(int cardInstanceId)
         {
             if (_cardView == null || _bannerRoot == null)
                 return;
+
+            Relayout();
 
             var state = _session?.Engine?.State;
             var card = state?.GetCard(cardInstanceId);
@@ -76,7 +105,7 @@ namespace Grimhand.Presentation.Battle
                 onHoverExit: null);
 
             _bannerRoot.gameObject.SetActive(true);
-            transform.SetAsLastSibling();
+            _bannerRoot.SetAsLastSibling();
         }
 
         public void Hide()
@@ -85,24 +114,21 @@ namespace Grimhand.Presentation.Battle
                 _bannerRoot.gameObject.SetActive(false);
         }
 
-        void EnsureBuilt(CardView cardPrefab, Transform parent)
+        void EnsureBuilt(CardView cardPrefab)
         {
             if (_bannerRoot != null)
                 return;
 
-            var rootGo = new GameObject("ActiveCardBanner", typeof(RectTransform));
-            rootGo.transform.SetParent(parent, false);
-            _bannerRoot = rootGo.GetComponent<RectTransform>();
-            _bannerRoot.anchorMin = new Vector2(0.5f, 1f);
-            _bannerRoot.anchorMax = new Vector2(0.5f, 1f);
-            _bannerRoot.pivot = new Vector2(0.5f, 1f);
-            _bannerRoot.anchoredPosition = new Vector2(0f, -24f);
-            _bannerRoot.sizeDelta = new Vector2(220f, 300f);
+            var handArea = FindHandArea();
+            if (handArea == null)
+            {
+                Debug.LogWarning("[Grimhand] ActiveCardBanner: 找不到 HandArea。");
+                return;
+            }
 
-            var canvas = rootGo.AddComponent<Canvas>();
-            canvas.overrideSorting = true;
-            canvas.sortingOrder = 180;
-            rootGo.AddComponent<GraphicRaycaster>().enabled = false;
+            var rootGo = new GameObject("ActiveCardBanner", typeof(RectTransform));
+            rootGo.transform.SetParent(handArea, false);
+            _bannerRoot = rootGo.GetComponent<RectTransform>();
 
             _cardView = Instantiate(cardPrefab, _bannerRoot);
             var cardRt = _cardView.transform as RectTransform;
@@ -112,10 +138,19 @@ namespace Grimhand.Presentation.Battle
                 cardRt.anchorMax = new Vector2(0.5f, 0.5f);
                 cardRt.pivot = new Vector2(0.5f, 0.5f);
                 cardRt.anchoredPosition = Vector2.zero;
-                cardRt.localScale = Vector3.one * BannerScale;
             }
 
+            Relayout();
             _bannerRoot.gameObject.SetActive(false);
+        }
+
+        Transform FindHandArea()
+        {
+            if (_battleScreenRoot == null)
+                return null;
+
+            return _battleScreenRoot.Find("HudChromeRoot/HandArea")
+                ?? _battleScreenRoot.Find("HandArea");
         }
     }
 }

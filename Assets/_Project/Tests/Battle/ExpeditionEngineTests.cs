@@ -61,6 +61,49 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
+        public void Victory_AwardsGoldInConfiguredRange()
+        {
+            var config = BuildConfig();
+            config.RunSeed = 7;
+            config.GoldMinPerVictory = 15;
+            config.GoldMaxPerVictory = 25;
+
+            var engine = new ExpeditionEngine(config);
+            engine.StartRun();
+            CompleteVictory(engine, 25);
+
+            Assert.GreaterOrEqual(engine.Run.LastGoldReward, 15);
+            Assert.LessOrEqual(engine.Run.LastGoldReward, 25);
+            Assert.AreEqual(engine.Run.LastGoldReward, engine.Run.Gold);
+        }
+
+        [Test]
+        public void SelectRoute_PreservesPartyLevel()
+        {
+            var config = BuildConfig();
+            var engine = new ExpeditionEngine(config);
+            engine.StartRun();
+
+            var state = BuildVictoryState();
+            state.Combatants.Add(new CombatantState
+            {
+                Team = TeamSide.Player,
+                CharacterDefinitionId = "char_knight",
+                DisplayName = "骑士",
+                Level = 3,
+                Hp = 18,
+                MaxHp = 40
+            });
+            engine.OnBattleFinished(state);
+            engine.TrySelectRoute(0);
+
+            var player = FindPlayer(engine.Run.CurrentBattleConfig, "char_knight");
+            Assert.NotNull(player);
+            Assert.AreEqual(3, player.Level);
+            Assert.AreEqual(18, player.StartHp);
+        }
+
+        [Test]
         public void ThirdVictory_CompletesRun()
         {
             var config = BuildConfig();
@@ -75,6 +118,8 @@ namespace Grimhand.Battle.Tests
 
             Assert.AreEqual(ExpeditionPhase.RunComplete, engine.Run.Phase);
             Assert.AreEqual(3, engine.Run.BattlesWon);
+            Assert.GreaterOrEqual(engine.Run.Gold, 45);
+            Assert.LessOrEqual(engine.Run.Gold, 75);
         }
 
         [Test]

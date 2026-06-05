@@ -66,6 +66,7 @@ namespace Grimhand.Expedition
                         continue;
 
                     cc.StartHp = member.Hp;
+                    cc.Level = CharacterProgression.ClampLevel(member.Level);
                     break;
                 }
             }
@@ -85,6 +86,7 @@ namespace Grimhand.Expedition
                 {
                     CharacterDefinitionId = c.CharacterDefinitionId,
                     DisplayName = c.DisplayName,
+                    Level = CharacterProgression.ClampLevel(c.Level),
                     Hp = c.Hp,
                     MaxHp = c.MaxHp
                 });

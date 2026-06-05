@@ -132,7 +132,7 @@ namespace Grimhand.Editor
 
             // 左下：远征/回合/能量（堆叠）；右下：操作按钮（在出牌顺序/意图下方）
             var planningInfo = CreatePanel("PlanningInfoLeft", root, new Color(0.1f, 0.11f, 0.15f, 0.9f));
-            PinBottomLeft(planningInfo, 12, 264, 320, 84);
+            PinBottomLeft(planningInfo, 12, 352, 320, 84);
 
             var title = CreateText("Title", planningInfo.transform, "", 22, FontStyle.Bold);
             var titleRt = title.GetComponent<RectTransform>();
@@ -188,7 +188,7 @@ namespace Grimhand.Editor
             queueText.alignment = TextAnchor.UpperLeft;
 
             var planningActions = CreatePanel("PlanningActionsRight", root, new Color(0.1f, 0.11f, 0.15f, 0.9f));
-            PinBottomRight(planningActions, 12, 264, 660, 148);
+            PinBottomRight(planningActions, 12, 352, 660, 148);
 
             var actionBar = CreateRect("ActionBar", planningActions.transform);
             StretchFull(actionBar, 8, 8, -8, -8);

@@ -1,0 +1,45 @@
+---
+description: Grimhand 战斗 UI 布局约定与踩坑记录
+globs: Assets/_Project/Scripts/Presentation/Battle/**/*
+alwaysApply: false
+---
+
+# Grimhand 战斗 UI
+
+## 为什么改 UI 这么费劲
+
+1. **布局来源分裂**：场景 YAML 锚点、运行时 `BattleUiLayoutRuntimeFix`、各 View 的 `Refresh` 三处同时改 RectTransform，改一处另一处下一帧覆盖。
+2. **嵌套 Canvas**：为「置顶」给面板加子 Canvas 会破坏父级 stretch 锚点，按钮被裁切（空过 200px 宽 vs 面板 220px）。
+3. **世界坐标 vs UI 锚点**：立绘动画用世界坐标，HUD 用锚点比例；决斗中心若用「立绘 42% 身高」而 MoveToCenter 对齐的是脚底 pivot，角色会飞上天。
+4. **演出与逻辑不同步**：Commit 后引擎已抽下回合牌，若演出中直接 Refresh 手牌，会提前露出新牌。
+5. **4K 验证**：Canvas `ScaleWithScreenSize` 1920×1080，只有 4K 全屏 Play 才能看出手牌区与 Stage 的挤压关系。
+
+## 当前架构（改 UI 只动这些）
+
+| 职责 | 文件 |
+|------|------|
+| 比例锚点、HudChromeRoot、Stage/手牌/意图/按钮 | `BattleUiLayoutRuntimeFix.cs` |
+| 立绘脚线、缩放、脚边血量 | `CombatantSlotView.cs`（`PlayerFeetLine` / `EnemyFeetLine`） |
+| 决斗动画中心 | `BattleScreenView.GetDuelCenterWorldPosition()` → `GetDuelReferenceWorldPosition()` |
+| 出牌牌面 | `BattleActiveCardBanner` 挂在 `HandArea` 中央 |
+| 演出手牌冻结 | `PresentationSnapshot` + `HandPanelView` 隐藏 scroll |
+
+## 改站位时的规则
+
+- **调玩家高低**：只改 `CombatantSlotView.PlayerFeetLine` 与 `PlayerPortraitExtraDownPx`、`PlayerStatusDropPx`。
+- **调敌人血量**：改 `EnemyStatusDropPx`。
+- **动画位置已满意时**：不要改 `DuelReferenceFeetLine`；它故意与玩家视觉脚线 decouple。
+- **Awake / 布局顺序**：必须先 `ApplyStatusAnchorLayout`（脚底 pivot），再 `ApplyPortraitMirror`（缩放）；否则场景里 `anchoredPosition.y=58` 的旧值会看起来「完全没动」。
+- **`ApplyIfNeeded` 必须**对 `battleScreenRoot` 调 `ApplyPortraitScale`，不能只指望 `HudChromeRoot` 子树。
+- **不要**给 HUD 面板加 nested Canvas；用 `HudChromeRoot`（sortOrder 45）统一抬层。
+- **不要**在 `BattlePortraitDirector` 播放中无条件 `Refresh()` 手牌。
+
+## 卡牌文案
+
+`BattleUiFormatters.DescribeEffectClause`：`EffectTarget.Self` + 伤害/治疗不要走 `PrefixTarget("对自身", …)`，避免「对自身对自身」。
+
+## 推荐调试流程
+
+1. 只改常量 → Play 4K 截图
+2. 若被覆盖，grep 同名 RectTransform / `anchoredPosition` / `SetParent`
+3. 动画问题：查 `GetDuelReferenceWorldPosition` 与 `MoveToCenter` 用的是脚底还是身高比例

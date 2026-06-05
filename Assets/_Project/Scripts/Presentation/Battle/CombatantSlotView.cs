@@ -9,14 +9,27 @@ namespace Grimhand.Presentation.Battle
 {
     public sealed class CombatantSlotView : MonoBehaviour
     {
-        static readonly Color ValidTargetTint = new(1f, 0.92f, 0.45f, 1f);
+        static readonly Color ValidTargetTintEnemy = new(1.18f, 1.02f, 0.48f, 1f);
+        static readonly Color ValidTargetTintAlly = new(0.62f, 0.98f, 1.18f, 1f);
+        static readonly Color ValidTargetHoverMul = new(1.1f, 1.1f, 1.1f, 1f);
         static readonly Color HoverTint = new(1.08f, 1.08f, 1.08f, 1f);
         static readonly Color DeadTint = new(0.35f, 0.35f, 0.35f, 1f);
 
-        const float PlayerPortraitScale = 1.06f;
-        const float EnemyPortraitScale = 0.88f;
+        const float PlayerPortraitScale = 2.28f;
+        const float EnemyPortraitScale = 1.28f;
+        /// <summary>玩家立绘脚线（槽内比例）。仅影响静态站位，勿改 <see cref="DuelReferenceFeetLine"/>。</summary>
+        const float PlayerFeetLine = 0.02f;
+        const float EnemyFeetLine = 0.13f;
+        /// <summary>在脚线锚点基础上，玩家立绘额外下移（Canvas 本地像素）。</summary>
+        const float PlayerPortraitExtraDownPx = -52f;
+        /// <summary>决斗动画中心用的脚线；与当前动画观感绑定，改玩家站位时不要动。</summary>
+        const float DuelReferenceFeetLine = 0.13f;
+        const float PortraitTop = 0.82f;
+        const float PlayerStatusDropPx = 10f;
+        const float EnemyStatusDropPx = 10f;
         const float HoverScaleMul = 1.07f;
-        const float HitboxPadding = 6f;
+        const float TargetScaleMul = 1.05f;
+        const float HitboxPadding = 2f;
 
         [SerializeField] Image background;
         [SerializeField] Image targetHighlight;
@@ -52,6 +65,7 @@ namespace Grimhand.Presentation.Battle
             mirrorPortrait = mirror;
             ApplyPortraitMirror();
             ApplyDrawOrder();
+            ApplyStatusAnchorLayout();
             if (slotLabel != null)
                 slotLabel.gameObject.SetActive(false);
         }
@@ -60,6 +74,7 @@ namespace Grimhand.Presentation.Battle
         {
             if (formationSlot == 0)
                 TryInferSlotFromName();
+            ApplyStatusAnchorLayout();
             ApplyPortraitMirror();
             EnsurePortraitInteraction();
             EnsurePortraitView();
@@ -92,6 +107,9 @@ namespace Grimhand.Presentation.Battle
             if (portraitImage == null && portraitRoot != null)
                 portraitImage = portraitRoot.Find("Portrait")?.GetComponent<Image>();
 
+            if (targetHighlight == null && portraitRoot != null)
+                targetHighlight = portraitRoot.Find("TargetHighlight")?.GetComponent<Image>();
+
             if (portraitRoot == null || portraitImage == null)
                 return;
 
@@ -100,13 +118,16 @@ namespace Grimhand.Presentation.Battle
             _targetOutline = portraitImage.GetComponent<Outline>();
             if (_targetOutline == null)
                 _targetOutline = portraitImage.gameObject.AddComponent<Outline>();
-            _targetOutline.effectColor = new Color(1f, 0.88f, 0.2f, 0.95f);
-            _targetOutline.effectDistance = new Vector2(2.5f, -2.5f);
+            _targetOutline.effectColor = new Color(1f, 0.75f, 0.1f, 1f);
+            _targetOutline.effectDistance = new Vector2(4f, -4f);
             _targetOutline.useGraphicAlpha = true;
             _targetOutline.enabled = false;
 
             if (targetHighlight != null)
+            {
                 targetHighlight.gameObject.SetActive(false);
+                targetHighlight.raycastTarget = false;
+            }
 
             _portraitHit = portraitRoot.Find("PortraitHit") as RectTransform;
             if (_portraitHit == null)
@@ -226,7 +247,12 @@ namespace Grimhand.Presentation.Battle
             if (portraitRoot == null)
                 return;
 
-            var mul = _hovered ? HoverScaleMul : 1f;
+            var mul = 1f;
+            if (_targetMode && _isValidTarget)
+                mul = TargetScaleMul;
+            if (_hovered)
+                mul *= HoverScaleMul;
+
             portraitRoot.localScale = new Vector3(
                 _basePortraitScale.x * mul,
                 _basePortraitScale.y * mul,
@@ -246,7 +272,103 @@ namespace Grimhand.Presentation.Battle
 
         public void ApplyPortraitScaleFromRuntime()
         {
+            ApplyStatusAnchorLayout();
             ApplyPortraitMirror();
+            _portraitView?.RecaptureHomeIfIdle();
+        }
+
+        public void ApplyStatusAnchorLayout()
+        {
+            if (portraitRoot == null)
+                portraitRoot = transform.Find("PortraitRoot") as RectTransform;
+
+            if (portraitRoot != null)
+            {
+                var feetLine = team == TeamSide.Player ? PlayerFeetLine : EnemyFeetLine;
+                portraitRoot.localScale = Vector3.one;
+                portraitRoot.anchorMin = new Vector2(0.04f, feetLine);
+                portraitRoot.anchorMax = new Vector2(0.96f, PortraitTop);
+                portraitRoot.pivot = new Vector2(0.5f, 0f);
+                portraitRoot.offsetMin = Vector2.zero;
+                portraitRoot.offsetMax = Vector2.zero;
+                portraitRoot.anchoredPosition = team == TeamSide.Player
+                    ? new Vector2(0f, PlayerPortraitExtraDownPx)
+                    : Vector2.zero;
+            }
+
+            var footRoot = transform.Find("FootStatusRoot") as RectTransform;
+            if (footRoot == null)
+            {
+                var footGo = new GameObject("FootStatusRoot", typeof(RectTransform));
+                footGo.transform.SetParent(transform, false);
+                footRoot = footGo.GetComponent<RectTransform>();
+            }
+
+            footRoot.pivot = new Vector2(0.5f, 0f);
+            footRoot.sizeDelta = new Vector2(160f, 56f);
+
+            if (nameText != null)
+            {
+                var rt = nameText.rectTransform;
+                rt.SetParent(footRoot, false);
+                rt.anchorMin = new Vector2(0f, 0f);
+                rt.anchorMax = new Vector2(1f, 0f);
+                rt.pivot = new Vector2(0.5f, 0f);
+                rt.anchoredPosition = new Vector2(0f, 28f);
+                rt.sizeDelta = new Vector2(0f, 18f);
+            }
+
+            if (statsRow != null)
+            {
+                var rt = statsRow.transform as RectTransform;
+                if (rt != null)
+                {
+                    rt.SetParent(footRoot, false);
+                    rt.anchorMin = new Vector2(0.5f, 0f);
+                    rt.anchorMax = new Vector2(0.5f, 0f);
+                    rt.pivot = new Vector2(0.5f, 0f);
+                    rt.anchoredPosition = new Vector2(0f, 0f);
+                    rt.sizeDelta = new Vector2(148f, 32f);
+                }
+            }
+        }
+
+        public Vector3 GetFeetWorldPosition()
+        {
+            if (_portraitHit != null)
+            {
+                var corners = new Vector3[4];
+                _portraitHit.GetWorldCorners(corners);
+                return new Vector3(
+                    (corners[0].x + corners[2].x) * 0.5f,
+                    corners[0].y,
+                    corners[0].z);
+            }
+
+            if (portraitRoot != null)
+            {
+                var corners = new Vector3[4];
+                portraitRoot.GetWorldCorners(corners);
+                return new Vector3(
+                    (corners[0].x + corners[2].x) * 0.5f,
+                    corners[0].y,
+                    corners[0].z);
+            }
+
+            return transform.position;
+        }
+
+        public Vector3 GetDuelReferenceWorldPosition()
+        {
+            var feet = GetFeetWorldPosition();
+            var slotRt = transform as RectTransform;
+            if (slotRt == null)
+                return feet;
+
+            var corners = new Vector3[4];
+            slotRt.GetWorldCorners(corners);
+            var duelFootY = Mathf.Lerp(corners[0].y, corners[1].y, DuelReferenceFeetLine);
+            return new Vector3(feet.x, duelFootY, feet.z);
         }
 
         public void SetSelectHandler(System.Action<string> onSelect)
@@ -340,10 +462,14 @@ namespace Grimhand.Presentation.Battle
                 }
             }
 
+            ApplyTargetVisuals();
+
             ApplyInteractionBounds(
                 _portraitView != null && _portraitView.IsIdleLoopActive && unit != null
                     ? visuals?.GetPortrait(unit.CharacterDefinitionId)
                     : sprite ?? portraitImage?.sprite);
+
+            AlignStatusBelowPortrait();
 
             if (bodyText != null)
             {
@@ -363,7 +489,7 @@ namespace Grimhand.Presentation.Battle
             {
                 var hasUnit = unit != null;
                 selectButton.gameObject.SetActive(hasUnit);
-                selectButton.interactable = hasUnit;
+                selectButton.interactable = hasUnit && (!_targetMode || _isValidTarget);
             }
 
             if (!_hovered)
@@ -371,11 +497,50 @@ namespace Grimhand.Presentation.Battle
                 _detailPopup?.Refresh(unit, uiIcons);
                 _detailPopup?.SetVisible(false);
             }
-            else
+            else if (!_targetMode || !_isValidTarget)
             {
                 _detailPopup?.Refresh(unit, uiIcons);
                 _detailPopup?.SetVisible(unit != null);
             }
+            else
+            {
+                _detailPopup?.SetVisible(false);
+            }
+        }
+
+        void AlignStatusBelowPortrait()
+        {
+            var footRoot = transform.Find("FootStatusRoot") as RectTransform;
+            if (footRoot == null || _portraitHit == null)
+                return;
+
+            var corners = new Vector3[4];
+            _portraitHit.GetWorldCorners(corners);
+            var footWorld = new Vector3(
+                (corners[0].x + corners[2].x) * 0.5f,
+                corners[0].y,
+                corners[0].z);
+
+            var slotRt = transform as RectTransform;
+            if (slotRt == null)
+                return;
+
+            var canvas = slotRt.GetComponentInParent<Canvas>();
+            var cam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+                ? canvas.worldCamera
+                : null;
+
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    slotRt, footWorld, cam, out var localFoot))
+                return;
+
+            var statusDrop = team == TeamSide.Player ? PlayerStatusDropPx : EnemyStatusDropPx;
+            localFoot.y -= statusDrop;
+
+            footRoot.anchorMin = new Vector2(0.5f, 0.5f);
+            footRoot.anchorMax = new Vector2(0.5f, 0.5f);
+            footRoot.pivot = new Vector2(0.5f, 0f);
+            footRoot.anchoredPosition = localFoot;
         }
 
         void ApplyInteractionBounds(Sprite sprite)
@@ -384,9 +549,29 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             UiSpriteBounds.FitCentered(portraitRoot, _portraitHit, sprite, HitboxPadding);
+        }
+
+        void ApplyTargetVisuals()
+        {
+            var showTarget = _targetMode && _isValidTarget && _displayAlive;
+
+            if (targetHighlight != null)
+                targetHighlight.gameObject.SetActive(false);
 
             if (_targetOutline != null)
-                _targetOutline.enabled = _targetMode && _isValidTarget;
+            {
+                _targetOutline.enabled = showTarget;
+                if (showTarget)
+                {
+                    _targetOutline.effectColor = team == TeamSide.Player
+                        ? new Color(0.2f, 0.95f, 1f, 1f)
+                        : new Color(1f, 0.78f, 0.08f, 1f);
+                    _targetOutline.effectDistance = new Vector2(5f, -5f);
+                }
+            }
+
+            ApplyPortraitScale();
+            ApplyPortraitColor(_currentUnit);
         }
 
         void ApplyPortraitColor(CombatantState unit)
@@ -400,7 +585,10 @@ namespace Grimhand.Presentation.Battle
             if (!_displayAlive)
                 portraitImage.color = DeadTint;
             else if (_targetMode && _isValidTarget)
-                portraitImage.color = _hovered ? ValidTargetTint * HoverTint : ValidTargetTint;
+            {
+                var tint = team == TeamSide.Player ? ValidTargetTintAlly : ValidTargetTintEnemy;
+                portraitImage.color = _hovered ? tint * ValidTargetHoverMul : tint;
+            }
             else if (_hovered)
                 portraitImage.color = HoverTint;
             else
@@ -413,10 +601,12 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             _hovered = true;
-            ApplyPortraitScale();
-            ApplyPortraitColor(_currentUnit);
-            _detailPopup?.Refresh(_currentUnit, _currentIcons);
-            _detailPopup?.SetVisible(true);
+            ApplyTargetVisuals();
+            if (!_targetMode || !_isValidTarget)
+            {
+                _detailPopup?.Refresh(_currentUnit, _currentIcons);
+                _detailPopup?.SetVisible(true);
+            }
         }
 
         void OnPortraitPointerExit()
@@ -425,8 +615,7 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             _hovered = false;
-            ApplyPortraitScale();
-            ApplyPortraitColor(_currentUnit);
+            ApplyTargetVisuals();
             _detailPopup?.SetVisible(false);
         }
 

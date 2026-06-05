@@ -38,6 +38,8 @@ namespace Grimhand.Presentation.Battle
         const float StageTop = 0.80f;
         const int HudChromeSortOrder = 45;
 
+        public static int HudChromeSortOrderValue => HudChromeSortOrder;
+
         public static float ScaledCardWidth => CardBaseWidth * HandCardScale;
         public static float ScaledCardHeight => CardBaseHeight * HandCardScale;
         static float CardRowHeight => ScaledCardHeight + HandLabelHeight + 2f;
@@ -621,7 +623,8 @@ namespace Grimhand.Presentation.Battle
                 chromeRoot.SetAsLastSibling();
 
             var tooltip = battleScreenRoot.Find("CombatantTooltipLayer");
-            tooltip?.SetAsLastSibling();
+            if (tooltip != null)
+                tooltip.SetAsLastSibling();
         }
 
         public static void FixActionBarPublic(Transform actionBar) => FixActionBar(actionBar);

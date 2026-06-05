@@ -29,5 +29,19 @@ namespace Grimhand.Battle.Rules
 
             RelicBattleRules.RefreshAllDerivedStats(state);
         }
+
+        public static void RestoreUsableCards(BattleState state, CombatantState combatant)
+        {
+            if (state == null || combatant == null)
+                return;
+
+            foreach (var card in state.CardsById.Values)
+            {
+                if (card.OwnerCharacterId != combatant.CharacterDefinitionId)
+                    continue;
+
+                card.IsUsable = true;
+            }
+        }
     }
 }

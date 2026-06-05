@@ -15,5 +15,17 @@ MonoBehaviour:
   RunSeed: 0
   TargetBattleCount: 3
   RoutesPerVictory: 3
+  GoldMinPerVictory: 15
+  GoldMaxPerVictory: 25
+  XpPerVictory: 16
+  RelicDropChancePercent: 25
+  CardDropChancePercent: 25
+  CombatRouteWeight: 55
+  TreasureRouteWeight: 45
+  TreasureGoldMin: 20
+  TreasureGoldMax: 35
+  TreasureRelicChancePercent: 15
   CombatEncounters:
   - {fileID: 11400000, guid: 25b1c62db6eb6784c973484210567f6c, type: 2}
+  - {fileID: 11400000, guid: 9738066390013b748b37ca5b1cbbab06, type: 2}
+  - {fileID: 11400000, guid: 77000c9493ab5ce479d8c851cad6228c, type: 2}

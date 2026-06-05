@@ -65,16 +65,25 @@ namespace Grimhand.Presentation.Battle
                 if (character == null)
                     continue;
 
-                foreach (var card in character.Deck)
-                {
-                    if (card == null || string.IsNullOrEmpty(card.CardId))
-                        continue;
-
-                    map[card.CardId] = card;
-                }
+                AddCards(map, character.Deck);
+                AddCards(map, character.SkillPool);
             }
 
             return map;
+        }
+
+        static void AddCards(Dictionary<string, CardDefinitionSO> map, IReadOnlyList<CardDefinitionSO> cards)
+        {
+            if (cards == null)
+                return;
+
+            foreach (var card in cards)
+            {
+                if (card == null || string.IsNullOrEmpty(card.CardId))
+                    continue;
+
+                map[card.CardId] = card;
+            }
         }
 
         public static CardInstanceState CreatePreviewInstance(

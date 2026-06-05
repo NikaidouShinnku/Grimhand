@@ -30,5 +30,22 @@ namespace Grimhand.Battle.Model
 
         /// <summary>当主目标在后排时，威力 × 此百分比 / 100（远射等）。100 表示无衰减。</summary>
         public int BackRowPowerPercent { get; set; } = 100;
+
+        /// <summary>无视目标 DEF 的百分比（0-100）。</summary>
+        public int IgnoreDefPercent { get; set; }
+
+        /// <summary>目标 HP 低于此百分比时，额外加上 BonusIfTargetHpBelowFlat。</summary>
+        public int BonusIfTargetHpBelowPercent { get; set; }
+
+        public int BonusIfTargetHpBelowFlat { get; set; }
+
+        /// <summary>目标本回合已被攻击时，额外增加基础威力的此百分比。</summary>
+        public int BonusIfTargetHitThisTurnPercent { get; set; }
+
+        /// <summary>造成伤害后，按实际伤害回复生命的百分比。</summary>
+        public int LifestealPercent { get; set; }
+
+        /// <summary>击杀目标后，施法者回复的 HP。</summary>
+        public int OnKillHealAmount { get; set; }
     }
 }

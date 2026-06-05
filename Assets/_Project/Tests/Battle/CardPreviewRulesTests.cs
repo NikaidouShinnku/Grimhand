@@ -1,0 +1,117 @@
+using Grimhand.Battle.Model;
+using Grimhand.Battle.Rules;
+using NUnit.Framework;
+
+namespace Grimhand.Battle.Tests
+{
+    public class CardPreviewRulesTests
+    {
+        [Test]
+        public void ExpectedDamage_IncludesAttackerPositionOutgoing()
+        {
+            var state = BuildState();
+            var owner = AddPlayer(state, FormationSlot.Back, attack: 0);
+            var card = AttackCard(value: 10);
+
+            var action = card.Actions[0];
+            var preview = CardPreviewRules.ComputeExpectedDamage(state, owner, card, action);
+
+            Assert.AreEqual(13, preview);
+        }
+
+        [Test]
+        public void ExpectedDamage_IncludesRelicFlatAndPercentBonuses()
+        {
+            var state = BuildState();
+            state.Config.RunModifiers.FirstAttackFlatBonus = 5;
+            state.Config.RunModifiers.HighCostCardDamageBonusPercent = 15f;
+            state.Config.RunModifiers.FirstPlayerAttackPending = true;
+
+            var owner = AddPlayer(state, FormationSlot.Middle, attack: 4);
+            var card = AttackCard(value: 6, cost: 3);
+
+            var preview = CardPreviewRules.ComputeExpectedDamage(
+                state, owner, card, card.Actions[0]);
+
+            // (6+4)*1.15 high-cost → 12, +5 flat → 17, *1.15 middle → 20
+            Assert.AreEqual(20, preview);
+        }
+
+        [Test]
+        public void ExpectedDamage_DoesNotDependOnEnemySlot()
+        {
+            var state = BuildState();
+            var owner = AddPlayer(state, FormationSlot.Middle, attack: 2);
+            var card = AttackCard(value: 8);
+
+            AddEnemy(state, FormationSlot.Front);
+            var previewFront = CardPreviewRules.ComputeExpectedDamage(
+                state, owner, card, card.Actions[0]);
+
+            state.Combatants.RemoveAt(state.Combatants.Count - 1);
+            AddEnemy(state, FormationSlot.Back);
+            var previewBack = CardPreviewRules.ComputeExpectedDamage(
+                state, owner, card, card.Actions[0]);
+
+            Assert.AreEqual(previewFront, previewBack);
+            Assert.AreEqual(12, previewFront);
+        }
+
+        static BattleState BuildState()
+        {
+            return new BattleState
+            {
+                Config = new BattleConfig
+                {
+                    RunModifiers = RunModifierSnapshot.Empty
+                }
+            };
+        }
+
+        static CombatantState AddPlayer(BattleState state, FormationSlot slot, int attack)
+        {
+            var c = new CombatantState
+            {
+                Id = $"player_{slot}",
+                Team = TeamSide.Player,
+                Slot = slot,
+                Attack = attack,
+                BaseAttack = attack,
+                Hp = 20,
+                MaxHp = 20
+            };
+            state.Combatants.Add(c);
+            return c;
+        }
+
+        static void AddEnemy(BattleState state, FormationSlot slot)
+        {
+            state.Combatants.Add(new CombatantState
+            {
+                Id = $"enemy_{slot}",
+                Team = TeamSide.Enemy,
+                Slot = slot,
+                Hp = 20,
+                MaxHp = 20
+            });
+        }
+
+        static CardInstanceState AttackCard(int value, int cost = 1)
+        {
+            return new CardInstanceState
+            {
+                CardType = CardType.Attack,
+                Cost = cost,
+                Actions =
+                {
+                    new EffectActionSpec
+                    {
+                        Type = EffectActionType.DealDamage,
+                        Value = value,
+                        ScaleWithAttack = true
+                    }
+                }
+            };
+        }
+    }
+}

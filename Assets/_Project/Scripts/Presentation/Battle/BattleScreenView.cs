@@ -65,6 +65,7 @@ namespace Grimhand.Presentation.Battle
         System.Func<bool> _presentationBusy;
         CardVisualCatalogSO _catalog;
         CharacterVisualCatalogSO _characterVisuals;
+        RelicVisualCatalogSO _relicCatalog;
         BattleUiIconCatalogSO _uiIcons;
         Dictionary<string, CardDefinitionSO> _definitions = new();
 
@@ -80,12 +81,14 @@ namespace Grimhand.Presentation.Battle
             CardVisualCatalogSO catalog,
             CharacterVisualCatalogSO characterVisuals,
             BattleUiIconCatalogSO uiIcons,
-            Dictionary<string, CardDefinitionSO> definitions)
+            Dictionary<string, CardDefinitionSO> definitions,
+            RelicVisualCatalogSO relicCatalog = null)
         {
             _session = session;
             _catalog = catalog;
             _characterVisuals = characterVisuals;
             _uiIcons = uiIcons;
+            _relicCatalog = relicCatalog;
             _definitions = definitions ?? new Dictionary<string, CardDefinitionSO>();
 
             ConfigureBattlefieldSlots();
@@ -400,6 +403,7 @@ namespace Grimhand.Presentation.Battle
                     handPanel?.CardPrefab,
                     _catalog,
                     _characterVisuals,
+                    _relicCatalog,
                     _definitions);
             }
         }

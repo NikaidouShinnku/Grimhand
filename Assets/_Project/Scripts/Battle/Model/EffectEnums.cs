@@ -33,7 +33,9 @@ namespace Grimhand.Battle.Model
         EnemyBackSlot,
         AllyFrontSlot,
         AllyMiddleSlot,
-        AllyBackSlot
+        AllyBackSlot,
+        /// <summary>出牌瞬间快照的所有存活敌人（全体攻击）。</summary>
+        AllEnemies
     }
 
     public enum ReactionConditionType

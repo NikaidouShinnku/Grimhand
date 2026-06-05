@@ -59,6 +59,8 @@ namespace Grimhand.Presentation.Battle
                     return $"护甲 +{e.Amount} · {CombatantName(state, e.CombatantId)}";
                 case BattleEventKind.HealApplied:
                     return $"治疗 +{e.Amount} · {CombatantName(state, e.CombatantId)}";
+                case BattleEventKind.CharacterRevived:
+                    return $"复活 · {CombatantName(state, e.CombatantId)}（{e.Amount} HP）";
                 case BattleEventKind.CharacterDied:
                     return $"阵亡 · {CombatantName(state, e.CombatantId)}";
                 case BattleEventKind.CardDrawn:

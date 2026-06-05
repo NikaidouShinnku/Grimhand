@@ -26,6 +26,19 @@ namespace Grimhand.Battle.Model
         /// <summary>出牌后武装，等待下一次受到攻击时消耗。</summary>
         public ParryStance ActiveParry { get; set; }
 
+        public bool FirstAttackBonusPending { get; set; } = true;
+        public bool FirstDefenseBonusPending { get; set; } = true;
+        public bool FirstHitReductionPending { get; set; } = true;
+        public bool WarriorFirstHitBlockPending { get; set; } = true;
+        public bool UsedAttackThisTurn { get; set; }
+        public bool UsedDefenseThisTurn { get; set; }
+        public int PendingRevengeAttackBonus { get; set; }
+        public int InvulnerableTurnsRemaining { get; set; }
+        public int SacrificeAttackStacks { get; set; }
+
+        /// <summary>本回合是否已被攻击命中（用于致命打击等条件加伤）。</summary>
+        public bool HitThisTurn { get; set; }
+
         public bool IsAlive => Hp > 0;
     }
 }

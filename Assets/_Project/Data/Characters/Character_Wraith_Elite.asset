@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84c30176d181a5747a85983cdd126a0c, type: 3}
+  m_Name: Character_Wraith_Elite
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
+  CharacterId: char_wraith_elite
+  DisplayName: "\u5E7D\u7075\u7CBE\u82F1"
+  Team: 1
+  Slot: 3
+  Level: 1
+  MaxHp: 35
+  BaseAttack: 11
+  BaseDefense: 2
+  Speed: 9
+  Deck: []
+  SkillPool:
+  - {fileID: 11400000, guid: 48f016b0178bce24c95e92f1236d0a40, type: 2}
+  - {fileID: 11400000, guid: 7762862161091b74994c15a3ffa42343, type: 2}
+  - {fileID: 11400000, guid: ffc828102c67fcf488c14aeb01ae1529, type: 2}
+  - {fileID: 11400000, guid: 61a46663ed2b2474589f3f8d1fa99b4d, type: 2}
+  EnemyRandomDeckSize: 8
+  EnemySkillPickMin: 2
+  EnemySkillPickMax: 4

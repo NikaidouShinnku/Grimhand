@@ -32,3 +32,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 788fda69c68544ee9a6e439ec4015c36, type: 2}
   - {fileID: 11400000, guid: aafaaa675a274768b390290eb1f446bc, type: 2}
   - {fileID: 11400000, guid: 38f9645f0c4f4d9f809b4e4c6f33fda8, type: 2}
+  SkillPool: []
+  EnemyRandomDeckSize: 8
+  EnemySkillPickMin: 2
+  EnemySkillPickMax: 4

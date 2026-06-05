@@ -82,6 +82,10 @@ namespace Grimhand.Battle.Rules
         public static CombatantState PickDefaultTarget(BattleState state, TeamSide attackerTeam)
         {
             var targetTeam = attackerTeam == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
+            var taunt = CombatMechanicsRules.FindTauntHolder(state, targetTeam);
+            if (taunt != null)
+                return taunt;
+
             var alive = GetAliveSortedByPhysicalSlot(state, targetTeam);
             return alive.Count > 0 ? alive[0] : null;
         }

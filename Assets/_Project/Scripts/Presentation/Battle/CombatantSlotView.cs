@@ -481,7 +481,12 @@ namespace Grimhand.Presentation.Battle
 
             if (statsRow == null)
                 statsRow = GetComponentInChildren<UnitStatsRowView>(true);
-            statsRow?.Refresh(unit, uiIcons, hpOnly: true, hpOverride, maxHpOverride, blockOverride);
+            if (statsRow != null)
+            {
+                statsRow.gameObject.SetActive(unit != null);
+                if (unit != null)
+                    statsRow.Refresh(unit, uiIcons, hpOnly: true, hpOverride, maxHpOverride, blockOverride);
+            }
             _portraitView?.SetDamageFloaterBelow(statsRow != null ? statsRow.transform as RectTransform : null);
 
             _showExpBar = showExpBar;

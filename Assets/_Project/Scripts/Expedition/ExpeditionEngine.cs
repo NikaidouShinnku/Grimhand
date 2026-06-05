@@ -79,6 +79,9 @@ namespace Grimhand.Expedition
             _run.Party.Clear();
             _run.Party.AddRange(ExpeditionBattleConfigBuilder.CaptureParty(state));
 
+            if (_run.MiracleLeafUsesRemaining >= 0)
+                _run.MiracleLeafUsesRemaining = state.MiracleLeafRevivesRemaining;
+
             if (state.Outcome == BattleOutcome.PlayerDefeat)
             {
                 _run.Phase = ExpeditionPhase.RunFailed;
@@ -233,6 +236,10 @@ namespace Grimhand.Expedition
                 return false;
 
             _run.Relics.Add(relicId);
+
+            if (relicId == RelicIds.LeafOfMiracle && _run.MiracleLeafUsesRemaining < 0)
+                _run.MiracleLeafUsesRemaining = 2;
+
             return true;
         }
 
@@ -378,7 +385,8 @@ namespace Grimhand.Expedition
                 _run.Party,
                 _run.Relics,
                 seed,
-                applyPartyHp);
+                applyPartyHp,
+                _run.MiracleLeafUsesRemaining);
         }
 
         int PickEncounterIndex()

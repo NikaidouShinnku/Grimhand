@@ -187,9 +187,9 @@ namespace Grimhand.Battle.Tests
             var engine = new ExpeditionEngine(config);
             engine.StartRun();
 
-            Assert.IsTrue(engine.TryAddRelic(RelicIds.CourageBadge));
+            Assert.IsTrue(engine.TryAddRelic(RelicIds.FlameSword));
             Assert.AreEqual(1, engine.Run.Relics.Count);
-            Assert.IsFalse(engine.TryAddRelic(RelicIds.CourageBadge));
+            Assert.IsFalse(engine.TryAddRelic(RelicIds.FlameSword));
         }
 
         [Test]
@@ -198,7 +198,7 @@ namespace Grimhand.Battle.Tests
             var config = BuildConfig();
             var engine = new ExpeditionEngine(config);
             engine.StartRun();
-            engine.TryAddRelic(RelicIds.LifeSpring);
+            engine.TryAddRelic(RelicIds.CatStatue);
             CompleteVictory(engine, 25);
             engine.StartRun();
 

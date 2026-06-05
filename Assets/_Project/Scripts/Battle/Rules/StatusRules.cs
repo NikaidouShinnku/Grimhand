@@ -7,9 +7,13 @@ namespace Grimhand.Battle.Rules
 {
     public static class StatusRules
     {
-        public static int GetEffectiveSpeed(CombatantState combatant)
+        public static int GetEffectiveSpeed(BattleState state, CombatantState combatant)
         {
+            if (combatant == null)
+                return 0;
+
             var speed = combatant.Speed;
+            speed += RelicEffectRules.GetBattleSpeedBonus(state, combatant);
             foreach (var status in combatant.Statuses)
             {
                 var def = StatusCatalog.Get(status.StatusId);
@@ -20,6 +24,9 @@ namespace Grimhand.Battle.Rules
 
             return speed < 0 ? 0 : speed;
         }
+
+        public static int GetEffectiveSpeed(CombatantState combatant) =>
+            GetEffectiveSpeed(null, combatant);
 
         public static void ApplyStatus(
             BattleState state,
@@ -46,6 +53,9 @@ namespace Grimhand.Battle.Rules
             else
             {
                 var turns = durationOverride >= 0 ? durationOverride : def.DefaultDuration;
+                var bonus = state?.Config?.RunModifiers?.StatusDurationBonusTurns ?? 0;
+                if (bonus > 0 && def.DurationKind == StatusDurationKind.Turns)
+                    turns += bonus;
                 if (turns > existing.RemainingTurns)
                     existing.RemainingTurns = turns;
             }
@@ -56,7 +66,13 @@ namespace Grimhand.Battle.Rules
                 Amount = existing.Stacks,
                 TargetId = statusId
             });
+
+            CombatantRules.RefreshDerivedStats(target);
+            RelicBattleRules.RefreshDerivedStats(state, target, state?.Config?.RunModifiers);
         }
+
+        public static bool HasStatus(CombatantState target, string statusId) =>
+            FindStatus(target, statusId) != null;
 
         public static void RemoveStatus(CombatantState target, string statusId, int stacks, List<BattleEvent> events)
         {
@@ -73,6 +89,8 @@ namespace Grimhand.Battle.Rules
                 CombatantId = target.Id,
                 Amount = stacks
             });
+
+            CombatantRules.RefreshDerivedStats(target);
         }
 
         public static void ProcessTurnStartStatuses(BattleState state, List<BattleEvent> events)
@@ -99,6 +117,12 @@ namespace Grimhand.Battle.Rules
                         Amount = damage,
                         TargetId = status.StatusId
                     });
+
+                    if (!combatant.IsAlive
+                        && CombatMechanicsRules.TryPreventDeathWithReviveBlessing(state, combatant, events))
+                    {
+                        continue;
+                    }
 
                     if (!combatant.IsAlive)
                     {
@@ -132,12 +156,14 @@ namespace Grimhand.Battle.Rules
                             CombatantId = combatant.Id,
                             TargetId = status.StatusId
                         });
+                        CombatantRules.RefreshDerivedStats(combatant);
+                        RelicBattleRules.RefreshDerivedStats(state, combatant, state?.Config?.RunModifiers);
                     }
                 }
             }
         }
 
-        static StatusInstance FindStatus(CombatantState target, string statusId)
+        public static StatusInstance FindStatus(CombatantState target, string statusId)
         {
             foreach (var s in target.Statuses)
             {

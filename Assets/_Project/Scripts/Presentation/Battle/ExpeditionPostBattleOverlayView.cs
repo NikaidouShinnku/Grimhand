@@ -24,6 +24,7 @@ namespace Grimhand.Presentation.Battle
         BattleUiIconCatalogSO _icons;
         CardVisualCatalogSO _cardCatalog;
         CharacterVisualCatalogSO _characterVisuals;
+        RelicVisualCatalogSO _relicCatalog;
         Dictionary<string, CardDefinitionSO> _definitions = new();
         CardView _cardPrefab;
         RectTransform _root;
@@ -43,6 +44,7 @@ namespace Grimhand.Presentation.Battle
             CardView cardPrefab,
             CardVisualCatalogSO cardCatalog,
             CharacterVisualCatalogSO characterVisuals,
+            RelicVisualCatalogSO relicCatalog,
             Dictionary<string, CardDefinitionSO> definitions)
         {
             _session = session;
@@ -50,6 +52,7 @@ namespace Grimhand.Presentation.Battle
             _cardPrefab = cardPrefab;
             _cardCatalog = cardCatalog;
             _characterVisuals = characterVisuals;
+            _relicCatalog = relicCatalog;
             _definitions = definitions ?? new Dictionary<string, CardDefinitionSO>();
             EnsureBuilt(parent);
         }
@@ -438,8 +441,8 @@ namespace Grimhand.Presentation.Battle
             string relicId,
             Action onClick)
         {
-            const float width = 132f;
-            const float height = 176f;
+            const float width = 148f;
+            const float height = 188f;
 
             var go = new GameObject("RelicReward", typeof(RectTransform), typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
@@ -450,48 +453,52 @@ namespace Grimhand.Presentation.Battle
             rt.anchoredPosition = pos;
             rt.sizeDelta = new Vector2(width, height);
 
-            var rarity = relic?.Rarity ?? RelicRarity.Common;
-            var cardRarity = MapRelicRarity(rarity);
-            var frame = _cardCatalog != null
-                ? _cardCatalog.GetFrame(CardType.Status, cardRarity)
-                : null;
-
             var rootImage = go.GetComponent<Image>();
-            rootImage.color = Color.white;
+            rootImage.color = new Color(0.08f, 0.09f, 0.12f, 0.92f);
             rootImage.raycastTarget = true;
-            if (frame != null)
-            {
-                rootImage.sprite = frame;
-                rootImage.preserveAspect = true;
-                rootImage.type = Image.Type.Simple;
-            }
-            else
-            {
-                rootImage.color = RelicFallbackColor(rarity);
-            }
 
             var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
             iconGo.transform.SetParent(go.transform, false);
             var iconRt = iconGo.GetComponent<RectTransform>();
-            iconRt.anchorMin = new Vector2(0.18f, 0.34f);
-            iconRt.anchorMax = new Vector2(0.82f, 0.78f);
+            iconRt.anchorMin = new Vector2(0.12f, 0.22f);
+            iconRt.anchorMax = new Vector2(0.88f, 0.92f);
             iconRt.offsetMin = Vector2.zero;
             iconRt.offsetMax = Vector2.zero;
             var iconImage = iconGo.GetComponent<Image>();
-            iconImage.sprite = _icons?.DefenseIcon ?? _icons?.SpeedIcon;
+            iconImage.sprite = _relicCatalog?.GetIcon(relicId);
             iconImage.preserveAspect = true;
-            iconImage.color = RelicAccentColor(rarity);
+            if (iconImage.sprite != null)
+            {
+                iconImage.color = Color.white;
+                iconImage.type = Image.Type.Simple;
+            }
+            else
+            {
+                iconImage.color = RelicAccentColor(relic?.Rarity ?? RelicRarity.Common);
+                var fallbackGo = new GameObject("Fallback", typeof(RectTransform), typeof(Text));
+                fallbackGo.transform.SetParent(iconGo.transform, false);
+                var fallbackRt = fallbackGo.GetComponent<RectTransform>();
+                fallbackRt.anchorMin = Vector2.zero;
+                fallbackRt.anchorMax = Vector2.one;
+                fallbackRt.offsetMin = Vector2.zero;
+                fallbackRt.offsetMax = Vector2.zero;
+                var fallbackText = fallbackGo.GetComponent<Text>();
+                StyleText(fallbackText, 28, TextAnchor.MiddleCenter);
+                fallbackText.text = string.IsNullOrEmpty(relic?.DisplayName)
+                    ? "?"
+                    : relic.DisplayName.Substring(0, 1);
+            }
             iconImage.raycastTarget = false;
 
             var nameGo = new GameObject("Name", typeof(RectTransform), typeof(Text));
             nameGo.transform.SetParent(go.transform, false);
             var nameRt = nameGo.GetComponent<RectTransform>();
-            nameRt.anchorMin = new Vector2(0.08f, 0.08f);
-            nameRt.anchorMax = new Vector2(0.92f, 0.28f);
+            nameRt.anchorMin = new Vector2(0.08f, 0.04f);
+            nameRt.anchorMax = new Vector2(0.92f, 0.20f);
             nameRt.offsetMin = Vector2.zero;
             nameRt.offsetMax = Vector2.zero;
             var nameText = nameGo.GetComponent<Text>();
-            StyleText(nameText, 15, TextAnchor.MiddleCenter);
+            StyleText(nameText, 14, TextAnchor.MiddleCenter);
             nameText.text = relic?.DisplayName ?? relicId ?? "遗物";
 
             AttachRewardBadge(rt);

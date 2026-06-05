@@ -11,6 +11,7 @@ namespace Grimhand.Presentation.Battle
         [SerializeField] CardVisualCatalogSO cardVisualCatalog;
         [SerializeField] CharacterVisualCatalogSO characterVisualCatalog;
         [SerializeField] BattleUiIconCatalogSO uiIconCatalog;
+        [SerializeField] RelicVisualCatalogSO relicVisualCatalog;
         [SerializeField] BattleScreenView screenView;
         [SerializeField] bool disableLegacyImGui = true;
 
@@ -36,7 +37,13 @@ namespace Grimhand.Presentation.Battle
             _definitions = CardVisualResolver.BuildDefinitionLookup(battleSetup);
             _session.Configure(battleSetup, expeditionSetup);
             _session.Changed += OnSessionChanged;
-            screenView.Initialize(_session, cardVisualCatalog, characterVisualCatalog, uiIconCatalog, _definitions);
+            screenView.Initialize(
+                _session,
+                cardVisualCatalog,
+                characterVisualCatalog,
+                uiIconCatalog,
+                _definitions,
+                relicVisualCatalog);
             _portraitDirector.Initialize(_session, screenView, characterVisualCatalog);
             screenView.SetPresentationBusyCheck(() => _portraitDirector.IsPlaying);
             _session.Start();

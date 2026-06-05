@@ -36,21 +36,54 @@ MonoBehaviour:
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100
-  - Type: 1
-    Target: 9
-    Value: 3
-    StatusId: 
-    Stacks: 1
-    Duration: -1
+    IgnoreDefPercent: 0
+    BonusIfTargetHpBelowPercent: 0
+    BonusIfTargetHpBelowFlat: 0
+    BonusIfTargetHitThisTurnPercent: 0
+    LifestealPercent: 0
+    OnKillHealAmount: 0
+  - Type: 3
+    Target: 2
+    Value: 0
+    StatusId: attack_up
+    Stacks: 3
+    Duration: 1
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 1
+    Reach: 0
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100
+    IgnoreDefPercent: 0
+    BonusIfTargetHpBelowPercent: 0
+    BonusIfTargetHpBelowFlat: 0
+    BonusIfTargetHitThisTurnPercent: 0
+    LifestealPercent: 0
+    OnKillHealAmount: 0
+  - Type: 3
+    Target: 2
+    Value: 0
+    StatusId: defense_up
+    Stacks: 2
+    Duration: 1
+    ScaleWithAttack: 0
+    ScaleWithDefense: 0
+    AttackScalePercent: 100
+    DefenseScalePercent: 100
+    Condition: 0
+    Reach: 0
+    SplashBehindTarget: 0
+    SplashPowerPercent: 100
+    BackRowPowerPercent: 100
+    IgnoreDefPercent: 0
+    BonusIfTargetHpBelowPercent: 0
+    BonusIfTargetHpBelowFlat: 0
+    BonusIfTargetHitThisTurnPercent: 0
+    LifestealPercent: 0
+    OnKillHealAmount: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

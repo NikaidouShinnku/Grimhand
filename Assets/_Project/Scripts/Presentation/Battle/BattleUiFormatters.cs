@@ -77,12 +77,12 @@ namespace Grimhand.Presentation.Battle
             var normalActions = CollectNormalActions(card);
             var remaining = normalActions;
 
-            if (TryDescribeAoEEnemyDamage(normalActions, owner, out var aoeLine, out remaining))
+            if (TryDescribeAoEEnemyDamage(state, card, normalActions, owner, out var aoeLine, out remaining))
             {
                 lines.Add(aoeLine);
                 normalActions = remaining;
             }
-            else if (TryDescribeAllAllyBuff(normalActions, owner, out var allyLine, out remaining))
+            else if (TryDescribeAllAllyTeamEffect(normalActions, owner, out var allyLine, out remaining))
             {
                 lines.Add(allyLine);
                 normalActions = remaining;
@@ -97,7 +97,7 @@ namespace Grimhand.Presentation.Battle
             foreach (var action in normalActions)
             {
                 var usesPick = UsesManualPick(action, pickSide);
-                var clause = DescribeEffectClause(action, owner, usesPick);
+                var clause = DescribeEffectClause(action, owner, usesPick, state, card);
                 if (string.IsNullOrEmpty(clause))
                     continue;
 
@@ -121,7 +121,7 @@ namespace Grimhand.Presentation.Battle
                 if (action.Condition == ReactionConditionType.None)
                     continue;
 
-                var clause = DescribeEffectClause(action, owner, usesPick: false, reaction: true);
+                var clause = DescribeEffectClause(action, owner, usesPick: false, state, card, reaction: true);
                 if (!string.IsNullOrEmpty(clause))
                     lines.Add(clause);
             }
@@ -188,9 +188,11 @@ namespace Grimhand.Presentation.Battle
             }
         }
 
-        static string DescribeReachNatural(CardInstanceState card)
+        static string DescribeReachNatural(CardInstanceState card, BattleState state = null, CombatantState owner = null)
         {
-            var reach = TargetReachRules.GetPickReach(card);
+            var reach = state != null && owner != null
+                ? TargetReachRules.GetPickReach(state, card, owner)
+                : TargetReachRules.GetPickReach(card);
             switch (reach)
             {
                 case TargetReach.FrontAndMiddle:
@@ -225,6 +227,8 @@ namespace Grimhand.Presentation.Battle
             EffectActionSpec action,
             CombatantState owner,
             bool usesPick,
+            BattleState state = null,
+            CardInstanceState card = null,
             bool reaction = false)
         {
             var prefix = reaction ? "受击后" : "";
@@ -234,7 +238,9 @@ namespace Grimhand.Presentation.Battle
             {
                 case EffectActionType.DealDamage:
                 {
-                    var dmg = CardPowerRules.ComputeActionValue(action, owner);
+                    var dmg = state != null && owner != null && card != null
+                        ? CardPreviewRules.ComputeExpectedDamage(state, owner, card, action)
+                        : CardPowerRules.ComputeActionValue(action, owner);
                     var extra = DescribeDamageExtras(action);
                     if (action.Target == EffectTarget.Self)
                         return prefix + $"对自身造成 {dmg} 点伤害{extra}";
@@ -263,15 +269,7 @@ namespace Grimhand.Presentation.Battle
                 case EffectActionType.DrawCardsNextTurn:
                     return prefix + $"下回合抽 {action.Value} 张牌";
                 case EffectActionType.ApplyStatus:
-                {
-                    var def = StatusCatalog.Get(action.StatusId);
-                    var name = def?.DisplayName ?? action.StatusId;
-                    var duration = action.Duration >= 0 ? action.Duration : def?.DefaultDuration ?? -1;
-                    var durationText = duration > 0 && def?.DurationKind == StatusDurationKind.Turns
-                        ? $"（{duration} 回合）"
-                        : "";
-                    return prefix + PrefixTarget(target, $"施加 {name} {action.Stacks} 层{durationText}");
-                }
+                    return prefix + DescribeStatusEffectClause(action, target, usesPick);
                 case EffectActionType.RemoveStatus:
                     return prefix + PrefixTarget(target, "清除状态");
                 case EffectActionType.SwapPositionWithFrontAlly:
@@ -325,6 +323,8 @@ namespace Grimhand.Presentation.Battle
         }
 
         static bool TryDescribeAoEEnemyDamage(
+            BattleState state,
+            CardInstanceState card,
             List<EffectActionSpec> actions,
             CombatantState owner,
             out string line,
@@ -332,6 +332,27 @@ namespace Grimhand.Presentation.Battle
         {
             line = "";
             remaining = actions;
+
+            int ExpectedDamage(EffectActionSpec action) =>
+                state != null && owner != null && card != null
+                    ? CardPreviewRules.ComputeExpectedDamage(state, owner, card, action)
+                    : CardPowerRules.ComputeActionValue(action, owner);
+
+            foreach (var action in actions)
+            {
+                if (action.Type != EffectActionType.DealDamage || action.Target != EffectTarget.AllEnemies)
+                    continue;
+
+                line = $"对全体敌人各造成 {ExpectedDamage(action)} 点伤害";
+                remaining = new List<EffectActionSpec>();
+                foreach (var other in actions)
+                {
+                    if (other != action)
+                        remaining.Add(other);
+                }
+
+                return true;
+            }
 
             EffectActionSpec front = null;
             EffectActionSpec middle = null;
@@ -358,8 +379,7 @@ namespace Grimhand.Presentation.Battle
                 || front.AttackScalePercent != back.AttackScalePercent)
                 return false;
 
-            var dmg = CardPowerRules.ComputeActionValue(front, owner);
-            line = $"对全体敌人各造成 {dmg} 点伤害";
+            line = $"对全体敌人各造成 {ExpectedDamage(front)} 点伤害";
             remaining = new List<EffectActionSpec>();
             foreach (var action in actions)
             {
@@ -371,7 +391,62 @@ namespace Grimhand.Presentation.Battle
             return true;
         }
 
-        static bool TryDescribeAllAllyBuff(
+        static string DescribeStatusEffectClause(EffectActionSpec action, string target, bool usesPick)
+        {
+            switch (action.StatusId)
+            {
+                case StatusCatalog.AttackUp:
+                    return PrefixTarget(usesPick ? "" : target, $"攻击 +{action.Stacks}（本回合）");
+                case StatusCatalog.DefenseUp:
+                    return PrefixTarget(usesPick ? "" : target, $"防御 +{action.Stacks}（本回合）");
+                case StatusCatalog.AttackDown:
+                    return PrefixTarget(usesPick ? "" : target, $"攻击 -{action.Stacks}（{FormatDuration(action)}）");
+                case StatusCatalog.Taunt:
+                    return "所有敌人下一行动强制攻击自身";
+                case StatusCatalog.Guard:
+                    return "本回合队友伤害转移给自身，减伤 40%";
+                case StatusCatalog.VampAura:
+                    return $"下次攻击回复造成伤害 {action.Stacks}% 的生命";
+                case StatusCatalog.ReviveBlessing:
+                    return PrefixTarget(usesPick ? "" : target, "附加复活：HP 归零时恢复 25% HP（每场 1 次）");
+                case StatusCatalog.Unyielding:
+                    return "HP 低于 25% 时恢复 20 HP（每场 1 次，使用后移出牌组）";
+                case StatusCatalog.NecroticPoison:
+                    return PrefixTarget(usesPick ? "" : target, $"附加中毒 5 伤害/回合 × {FormatDuration(action)}");
+                default:
+                {
+                    var def = StatusCatalog.Get(action.StatusId);
+                    var name = def?.DisplayName ?? action.StatusId;
+                    return PrefixTarget(usesPick ? "" : target, $"施加 {name} {action.Stacks} 层{FormatDurationSuffix(action)}");
+                }
+            }
+        }
+
+        static string FormatDuration(EffectActionSpec action)
+        {
+            var duration = action.Duration >= 0 ? action.Duration : StatusCatalog.Get(action.StatusId)?.DefaultDuration ?? 1;
+            return duration > 0 ? $"{duration} 回合" : "本回合";
+        }
+
+        static string FormatDurationSuffix(EffectActionSpec action)
+        {
+            var text = FormatDuration(action);
+            return string.IsNullOrEmpty(text) ? "" : $"（{text}）";
+        }
+
+        static bool TryDescribeAllAllyTeamEffect(
+            List<EffectActionSpec> actions,
+            CombatantState owner,
+            out string line,
+            out List<EffectActionSpec> remaining)
+        {
+            if (TryDescribeAllAllyBlock(actions, owner, out line, out remaining))
+                return true;
+
+            return TryDescribeAllAllyAttackUp(actions, owner, out line, out remaining);
+        }
+
+        static bool TryDescribeAllAllyBlock(
             List<EffectActionSpec> actions,
             CombatantState owner,
             out string line,
@@ -416,6 +491,50 @@ namespace Grimhand.Presentation.Battle
             return true;
         }
 
+        static bool TryDescribeAllAllyAttackUp(
+            List<EffectActionSpec> actions,
+            CombatantState owner,
+            out string line,
+            out List<EffectActionSpec> remaining)
+        {
+            line = "";
+            remaining = actions;
+
+            EffectActionSpec front = null;
+            EffectActionSpec middle = null;
+            EffectActionSpec back = null;
+
+            foreach (var action in actions)
+            {
+                if (action.Type != EffectActionType.ApplyStatus || action.StatusId != StatusCatalog.AttackUp)
+                    continue;
+
+                switch (action.Target)
+                {
+                    case EffectTarget.AllyFrontSlot: front = action; break;
+                    case EffectTarget.AllyMiddleSlot: middle = action; break;
+                    case EffectTarget.AllyBackSlot: back = action; break;
+                }
+            }
+
+            if (front == null || middle == null || back == null)
+                return false;
+
+            if (front.Stacks != middle.Stacks || front.Stacks != back.Stacks)
+                return false;
+
+            line = $"全队攻击 +{front.Stacks}（本回合）";
+            remaining = new List<EffectActionSpec>();
+            foreach (var action in actions)
+            {
+                if (action == front || action == middle || action == back)
+                    continue;
+                remaining.Add(action);
+            }
+
+            return true;
+        }
+
         static string DescribeDamageExtras(EffectActionSpec action)
         {
             var parts = new List<string>();
@@ -423,6 +542,16 @@ namespace Grimhand.Presentation.Battle
                 parts.Add($"，贯通后方 {action.SplashPowerPercent}% 伤害");
             if (action.BackRowPowerPercent > 0 && action.BackRowPowerPercent < 100)
                 parts.Add($"，打后排仅 {action.BackRowPowerPercent}% 威力");
+            if (action.IgnoreDefPercent > 0)
+                parts.Add(action.IgnoreDefPercent >= 100 ? "，无视目标防御" : $"，无视目标 {action.IgnoreDefPercent}% 防御");
+            if (action.BonusIfTargetHpBelowPercent > 0 && action.BonusIfTargetHpBelowFlat > 0)
+                parts.Add($"，目标 HP 低于 {action.BonusIfTargetHpBelowPercent}% 时额外 +{action.BonusIfTargetHpBelowFlat}");
+            if (action.BonusIfTargetHitThisTurnPercent > 0)
+                parts.Add($"，目标本回合已被攻击则伤害 +{action.BonusIfTargetHitThisTurnPercent}%");
+            if (action.LifestealPercent > 0)
+                parts.Add($"，回复伤害 {action.LifestealPercent}% 的生命");
+            if (action.OnKillHealAmount > 0)
+                parts.Add($"，击杀回复 {action.OnKillHealAmount} HP");
 
             return string.Concat(parts);
         }

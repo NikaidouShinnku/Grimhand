@@ -4,6 +4,7 @@ using Grimhand.Content;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Status;
 using Grimhand.Presentation;
+using Grimhand.Presentation.Battle;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -30,22 +31,22 @@ namespace Grimhand.Content.Editor
 
             var players = BalanceV2ContentGenerator.GeneratePlayerContent();
             var monsters = MonsterContentGenerator.Generate();
+            RelicArtBinder.BindRelicArtSilent();
 
-            var setup = AssetDatabase.LoadAssetAtPath<BattleSetupSO>(SetupPath);
-            if (setup == null)
-            {
-                setup = ScriptableObject.CreateInstance<BattleSetupSO>();
-                AssetDatabase.CreateAsset(setup, SetupPath);
-            }
-
-            setup.Seed = 0;
-            setup.Combatants.Clear();
-            setup.Combatants.AddRange(new[]
-            {
+            var setupClassic = SaveBattleSetup(
+                "BattleSetup_Demo",
                 players.Warrior, players.Pharaoh, players.Demon,
-                monsters.Goblin, monsters.Skeleton, monsters.Wraith
-            });
-            EditorUtility.SetDirty(setup);
+                monsters.Goblin, monsters.Skeleton, monsters.Wraith);
+
+            var setupSlimeMix = SaveBattleSetup(
+                "BattleSetup_Encounter_SlimeMix",
+                players.Warrior, players.Pharaoh, players.Demon,
+                monsters.Goblin, monsters.Slime, monsters.Skeleton);
+
+            var setupWraithPack = SaveBattleSetup(
+                "BattleSetup_Encounter_WraithPack",
+                players.Warrior, players.Pharaoh, players.Demon,
+                monsters.Slime, monsters.Wraith, monsters.WraithElite);
 
             var visualCatalog = AssetDatabase.LoadAssetAtPath<CharacterVisualCatalogSO>(
                 Root + "/CharacterVisualCatalog_Demo.asset");
@@ -63,10 +64,13 @@ namespace Grimhand.Content.Editor
             expedition.TargetBattleCount = 3;
             expedition.RoutesPerVictory = 3;
             expedition.CombatEncounters.Clear();
-            expedition.CombatEncounters.Add(setup);
+            expedition.CombatEncounters.Add(setupClassic);
+            expedition.CombatEncounters.Add(setupSlimeMix);
+            expedition.CombatEncounters.Add(setupWraithPack);
             EditorUtility.SetDirty(expedition);
 
             ExpeditionArtBinder.BindExpeditionArtSilent();
+            RelicArtBinder.BindRelicArtSilent();
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -75,10 +79,10 @@ namespace Grimhand.Content.Editor
                 return;
 
             EditorUtility.FocusProjectWindow();
-            Selection.activeObject = setup;
-            EditorGUIUtility.PingObject(setup);
+            Selection.activeObject = setupClassic;
+            EditorGUIUtility.PingObject(setupClassic);
 
-            var assigned = TryAssignSetupToScene(setup, expedition, showDialog: false);
+            var assigned = TryAssignSetupToScene(setupClassic, expedition, showDialog: false);
             var assignHint = assigned
                 ? "已自动绑定 Battle Setup 与 Expedition Setup 到场景中的 BattleDemo。"
                 : "请在 BattleSandbox 场景选中 BattleDemo，拖入 Battle Setup 与 Expedition Setup。";
@@ -89,8 +93,10 @@ namespace Grimhand.Content.Editor
                 "• Assets/_Project/Data/Cards/\n" +
                 "• Assets/_Project/Data/Characters/\n" +
                 "• Assets/_Project/Data/Setups/BattleSetup_Demo.asset\n" +
-                "• Assets/_Project/Data/Setups/ExpeditionSetup_Demo.asset\n\n" +
-                "本场为 3 我方 vs 3 敌方（数值策划表 v2 Lv1）。\n" +
+                "• Assets/_Project/Data/Setups/BattleSetup_Encounter_*.asset\n" +
+                "• Assets/_Project/Data/Setups/ExpeditionSetup_Demo.asset\n" +
+                "• Assets/_Project/Data/RelicVisualCatalog_Demo.asset\n\n" +
+                "本场为 3 我方 vs 3 敌方（含哥布林/史莱姆/骷髅/幽灵及技能池）。\n" +
                 "绑定 Expedition Setup 后 Play 即为三场连战 Demo。\n\n" +
                 assignHint,
                 "好的");
@@ -133,8 +139,9 @@ namespace Grimhand.Content.Editor
 
         static bool TryAssignSetupToScene(BattleSetupSO setup, ExpeditionSetupSO expedition, bool showDialog)
         {
-            var controller = Object.FindAnyObjectByType<BattleDemoController>();
-            if (controller == null)
+            var screenController = Object.FindAnyObjectByType<BattleScreenController>();
+            var demoController = Object.FindAnyObjectByType<BattleDemoController>();
+            if (screenController == null && demoController == null)
             {
                 if (showDialog)
                 {
@@ -147,24 +154,50 @@ namespace Grimhand.Content.Editor
                 return false;
             }
 
-            var so = new SerializedObject(controller);
-            if (setup != null)
-                so.FindProperty("battleSetup").objectReferenceValue = setup;
-            if (expedition != null)
-                so.FindProperty("expeditionSetup").objectReferenceValue = expedition;
-            so.ApplyModifiedPropertiesWithoutUndo();
-            EditorUtility.SetDirty(controller);
+            var relicCatalog = AssetDatabase.LoadAssetAtPath<RelicVisualCatalogSO>(
+                Root + "/RelicVisualCatalog_Demo.asset");
+
+            if (screenController != null)
+            {
+                var screenSo = new SerializedObject(screenController);
+                AssignObjectReference(screenSo, "battleSetup", setup);
+                AssignObjectReference(screenSo, "expeditionSetup", expedition);
+                AssignObjectReference(screenSo, "relicVisualCatalog", relicCatalog);
+                screenSo.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(screenController);
+            }
+
+            if (demoController != null)
+            {
+                var demoSo = new SerializedObject(demoController);
+                AssignObjectReference(demoSo, "battleSetup", setup);
+                AssignObjectReference(demoSo, "expeditionSetup", expedition);
+                demoSo.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(demoController);
+            }
 
             if (showDialog)
             {
                 EditorUtility.DisplayDialog(
                     "绑定成功",
-                    "已将 Demo 配置绑定到 Battle Demo Controller。\n" +
+                    "已将 Demo 配置绑定到 Battle Screen Controller。\n" +
                     "绑定 Expedition Setup 后 Play 即为三场连战。",
                     "好的");
             }
 
             return true;
+        }
+
+        static void AssignObjectReference(SerializedObject target, string propertyName, Object value)
+        {
+            if (target == null || value == null || string.IsNullOrEmpty(propertyName))
+                return;
+
+            var property = target.FindProperty(propertyName);
+            if (property == null)
+                return;
+
+            property.objectReferenceValue = value;
         }
 
         static EnemyCardSet CreateEnemyCards()
@@ -341,6 +374,34 @@ namespace Grimhand.Content.Editor
             foreach (var part in parts)
                 list.AddRange(part);
             return list.ToArray();
+        }
+
+        static BattleSetupSO SaveBattleSetup(
+            string assetName,
+            CharacterDefinitionSO playerA,
+            CharacterDefinitionSO playerB,
+            CharacterDefinitionSO playerC,
+            CharacterDefinitionSO enemyA,
+            CharacterDefinitionSO enemyB,
+            CharacterDefinitionSO enemyC)
+        {
+            var path = $"{Root}/Setups/{assetName}.asset";
+            var setup = AssetDatabase.LoadAssetAtPath<BattleSetupSO>(path);
+            if (setup == null)
+            {
+                setup = ScriptableObject.CreateInstance<BattleSetupSO>();
+                AssetDatabase.CreateAsset(setup, path);
+            }
+
+            setup.Seed = 0;
+            setup.Combatants.Clear();
+            setup.Combatants.AddRange(new[]
+            {
+                playerA, playerB, playerC,
+                enemyA, enemyB, enemyC
+            });
+            EditorUtility.SetDirty(setup);
+            return setup;
         }
 
         static void EnsureFolder(string path)

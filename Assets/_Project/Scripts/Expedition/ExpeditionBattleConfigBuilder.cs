@@ -57,28 +57,30 @@ namespace Grimhand.Expedition
             IReadOnlyList<PartyMemberSnapshot> party,
             IReadOnlyList<string> relicIds,
             int battleSeed,
-            bool applyPartyHp)
+            bool applyPartyHp,
+            int miracleLeafUsesRemaining = -1)
         {
             var config = CloneTemplate(encounterTemplate);
             config.Seed = battleSeed;
             config.RunModifiers = RelicDatabase.BuildModifiers(relicIds);
+            config.MiracleLeafRevivesRemaining = miracleLeafUsesRemaining;
 
-            if (!applyPartyHp || party == null || party.Count == 0)
-                return config;
-
-            foreach (var cc in config.Combatants)
+            if (applyPartyHp && party != null && party.Count > 0)
             {
-                if (cc.Team != TeamSide.Player)
-                    continue;
-
-                foreach (var member in party)
+                foreach (var cc in config.Combatants)
                 {
-                    if (member.CharacterDefinitionId != cc.CharacterDefinitionId)
+                    if (cc.Team != TeamSide.Player)
                         continue;
 
-                    ApplyPartyProgress(cc, member);
-                    ApplyBonusCards(cc, member);
-                    break;
+                    foreach (var member in party)
+                    {
+                        if (member.CharacterDefinitionId != cc.CharacterDefinitionId)
+                            continue;
+
+                        ApplyPartyProgress(cc, member);
+                        ApplyBonusCards(cc, member);
+                        break;
+                    }
                 }
             }
 
@@ -103,7 +105,7 @@ namespace Grimhand.Expedition
         {
             cc.Level = CharacterProgression.ClampLevel(member.Level);
             cc.Xp = member.Xp;
-            cc.StartHp = member.Hp;
+            cc.StartHp = member.Hp <= 0 ? 1 : member.Hp;
 
             var stats = CharacterProgression.GetStatsForCharacter(member.CharacterDefinitionId, cc.Level);
             cc.MaxHp = stats.MaxHp;

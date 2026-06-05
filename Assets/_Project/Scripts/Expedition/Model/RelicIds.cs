@@ -1,18 +1,25 @@
 namespace Grimhand.Expedition.Model
 {
+    /// <summary>与 Assets/The Grimhands Asset/relics/*.png 文件名一致。</summary>
     public static class RelicIds
     {
-        public const string CourageBadge = "relic_courage_badge";
-        public const string IronWallHeart = "relic_iron_wall_heart";
-        public const string SwiftFeather = "relic_swift_feather";
-        public const string LifeSpring = "relic_life_spring";
-        public const string GreedyHand = "relic_greedy_hand";
-        public const string BloodGem = "relic_blood_gem";
-        public const string SunSigil = "relic_sun_sigil";
-        public const string ImmovableKing = "relic_immovable_king";
-        public const string AbyssEye = "relic_abyss_eye";
-        public const string EchoStone = "relic_echo_stone";
-        public const string SoulChain = "relic_soul_chain";
-        public const string ChaosHeart = "relic_chaos_heart";
+        public const string SunPyramid = "sun_pyramid";
+        public const string KnightInCastle = "knight_in_castle";
+        public const string BloodAlter = "blood_alter";
+        public const string JadeStone = "jade_stone";
+        public const string JadeRing = "jade_ring";
+        public const string JadeDagger = "jade_dagger";
+        public const string BurningBoots = "burning_boots";
+        public const string CrimsonBurningBoots = "crimson_burning_boots";
+        public const string FlameSword = "flame_sword";
+        public const string IronArmor = "iron_armor";
+        public const string WarriorHelmet = "warrior_helmet";
+        public const string CatStatue = "cat_statue";
+        public const string ElfBow = "elf_bow";
+        public const string DragonRing = "dragon_ring";
+        public const string PaladinShield = "paladin_shield";
+        public const string SilverMoonPendant = "silver_moon_pendant";
+        public const string TaichiRing = "taichi_ring";
+        public const string LeafOfMiracle = "leaf_of_miracle";
     }
 }

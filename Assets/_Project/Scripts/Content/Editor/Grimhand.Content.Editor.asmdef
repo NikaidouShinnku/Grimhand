@@ -4,6 +4,7 @@
     "references": [
         "Grimhand.Content",
         "Grimhand.Battle",
+        "Grimhand.Expedition",
         "Grimhand.Presentation"
     ],
     "includePlatforms": [

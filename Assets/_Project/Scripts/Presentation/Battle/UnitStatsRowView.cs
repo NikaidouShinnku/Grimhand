@@ -39,12 +39,16 @@ namespace Grimhand.Presentation.Battle
 
             if (unit == null)
             {
-                SetChip(_hp, icons?.HpIcon, "—");
+                SetChipVisible(_hp, false);
                 SetChipVisible(_arm, false);
                 SetChipVisible(_atk, false);
                 SetChipVisible(_spd, false);
+                gameObject.SetActive(false);
                 return;
             }
+
+            if (!gameObject.activeSelf)
+                gameObject.SetActive(true);
 
             var hp = hpOverride ?? unit.Hp;
             var maxHp = maxHpOverride ?? unit.MaxHp;

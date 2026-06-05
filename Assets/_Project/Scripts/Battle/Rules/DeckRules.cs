@@ -100,5 +100,22 @@ namespace Grimhand.Battle.Rules
                 CardInstanceId = card.InstanceId
             });
         }
+
+        public static void ExhaustCard(
+            BattleState state,
+            TeamSide team,
+            CardInstanceState card,
+            List<BattleEvent> events)
+        {
+            state.GetHand(team).Remove(card);
+            state.GetDrawPile(team).Remove(card);
+            state.GetDiscardPile(team).Remove(card);
+            card.IsUsable = false;
+
+            events.Add(new BattleEvent(BattleEventKind.CardDiscarded, "Exhausted card")
+            {
+                CardInstanceId = card.InstanceId
+            });
+        }
     }
 }

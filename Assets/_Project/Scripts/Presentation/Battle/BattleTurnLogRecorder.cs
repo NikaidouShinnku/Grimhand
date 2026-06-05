@@ -2,33 +2,29 @@ using System.Collections.Generic;
 using System.Text;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
+using Grimhand.Battle.Rules;
 
 namespace Grimhand.Presentation.Battle
 {
     public sealed class BattleTurnLogRecorder
     {
-        struct CardBatchEntry
-        {
-            public int CardInstanceId;
-            public string CardName;
-            public TeamSide Team;
-        }
+        const int MaxLines = 40;
 
-        readonly List<string> _lastRound = new();
-        readonly List<string> _building = new();
-        readonly List<CardBatchEntry> _discardBuffer = new();
-        readonly List<CardBatchEntry> _drawBuffer = new();
+        readonly List<string> _lines = new();
+        readonly List<string> _effectParts = new();
         bool _recording;
+        bool _inResolution;
+        StringBuilder _currentLine;
 
-        public IReadOnlyList<string> LastRound => _lastRound;
+        public IReadOnlyList<string> LastRound => _lines;
 
         public void Reset()
         {
-            _lastRound.Clear();
-            _building.Clear();
-            _discardBuffer.Clear();
-            _drawBuffer.Clear();
+            _lines.Clear();
+            _effectParts.Clear();
+            _currentLine = null;
             _recording = false;
+            _inResolution = false;
         }
 
         public void Feed(BattleEvent e, BattleState state)
@@ -41,38 +37,26 @@ namespace Grimhand.Presentation.Battle
 
             if (ShouldFinishRound(e))
             {
-                FlushCardBuffers();
-                CommitRound();
+                FlushCurrentResolution();
+                _recording = false;
                 return;
             }
 
-            if (e.Kind == BattleEventKind.CardDiscarded)
+            if (e.Kind == BattleEventKind.CardResolvedStarted)
             {
-                _discardBuffer.Add(new CardBatchEntry
-                {
-                    CardInstanceId = e.CardInstanceId,
-                    CardName = BattleEventLogFormatter.DescribeCard(e, state),
-                    Team = InferCardTeam(e, state)
-                });
+                FlushCurrentResolution();
+                BeginResolution(e, state);
                 return;
             }
 
-            if (e.Kind == BattleEventKind.CardDrawn)
+            if (e.Kind == BattleEventKind.CardResolvedEnded)
             {
-                _drawBuffer.Add(new CardBatchEntry
-                {
-                    CardInstanceId = e.CardInstanceId,
-                    CardName = BattleEventLogFormatter.DescribeCard(e, state),
-                    Team = InferCardTeam(e, state)
-                });
+                FlushCurrentResolution();
                 return;
             }
 
-            if (!IsLogWorthy(e))
-                return;
-
-            FlushCardBuffers();
-            _building.Add(BattleEventLogFormatter.Format(e, state));
+            if (_inResolution && IsResolutionEffect(e))
+                _effectParts.Add(FormatResolutionEffect(e, state));
         }
 
         static bool ShouldStartRound(BattleEvent e) =>
@@ -81,113 +65,124 @@ namespace Grimhand.Presentation.Battle
         static bool ShouldFinishRound(BattleEvent e) =>
             e.Kind == BattleEventKind.PhaseChanged && e.Phase == TurnPhase.Planning;
 
-        static bool IsLogWorthy(BattleEvent e) =>
+        static bool IsResolutionEffect(BattleEvent e) =>
             e.Kind switch
             {
-                BattleEventKind.PortraitPoseChanged => false,
-                BattleEventKind.PortraitIdleRestored => false,
-                BattleEventKind.EnergyChanged => false,
-                BattleEventKind.CardSelectedForPlay => false,
-                BattleEventKind.CardDeselectedFromPlay => false,
-                BattleEventKind.TargetSelectionRequired => false,
-                BattleEventKind.PhaseChanged => false,
-                BattleEventKind.CardDiscarded => false,
-                BattleEventKind.CardDrawn => false,
-                _ => true
+                BattleEventKind.DamageApplied => true,
+                BattleEventKind.BlockGained => true,
+                BattleEventKind.HealApplied => true,
+                BattleEventKind.CharacterRevived => true,
+                BattleEventKind.CharacterDied => true,
+                BattleEventKind.StatusApplied => true,
+                BattleEventKind.StatusTickDamage => true,
+                BattleEventKind.ReactionTriggered => true,
+                BattleEventKind.ParryTriggered => true,
+                BattleEventKind.DeckPolluted => true,
+                _ => false
             };
 
         void BeginRound()
         {
-            _building.Clear();
-            _discardBuffer.Clear();
-            _drawBuffer.Clear();
+            FlushCurrentResolution();
             _recording = true;
         }
 
-        void CommitRound()
+        void BeginResolution(BattleEvent e, BattleState state)
         {
-            if (_building.Count == 0)
+            _inResolution = true;
+            _effectParts.Clear();
+            _currentLine = new StringBuilder();
+
+            var actor = state?.GetCombatant(e.CombatantId);
+            var side = actor != null && actor.Team == TeamSide.Player ? "我方" : "敌方";
+            var actorName = actor != null ? actor.DisplayName : "?";
+            var cardName = BattleEventLogFormatter.DescribeCard(e, state);
+
+            _currentLine.Append('【').Append(side).Append('】');
+            _currentLine.Append(actorName).Append(" · ").Append(cardName);
+        }
+
+        void FlushCurrentResolution()
+        {
+            if (!_inResolution || _currentLine == null)
             {
-                _recording = false;
+                _inResolution = false;
+                _currentLine = null;
+                _effectParts.Clear();
                 return;
             }
 
-            _lastRound.Clear();
-            _lastRound.AddRange(_building);
-            _building.Clear();
-            _recording = false;
-        }
-
-        void FlushCardBuffers()
-        {
-            FlushDiscardBuffer();
-            FlushDrawBuffer();
-        }
-
-        void FlushDiscardBuffer()
-        {
-            if (_discardBuffer.Count == 0)
-                return;
-
-            AppendCardBatch("弃牌", _discardBuffer);
-            _discardBuffer.Clear();
-        }
-
-        void FlushDrawBuffer()
-        {
-            if (_drawBuffer.Count == 0)
-                return;
-
-            AppendCardBatch("抽牌", _drawBuffer);
-            _drawBuffer.Clear();
-        }
-
-        void AppendCardBatch(string actionLabel, List<CardBatchEntry> entries)
-        {
-            var player = new List<string>();
-            var enemy = new List<string>();
-
-            foreach (var entry in entries)
+            if (_effectParts.Count > 0)
             {
-                if (entry.Team == TeamSide.Player)
-                    player.Add(entry.CardName);
-                else
-                    enemy.Add(entry.CardName);
+                _currentLine.Append(" → ");
+                for (var i = 0; i < _effectParts.Count; i++)
+                {
+                    if (i > 0)
+                        _currentLine.Append('，');
+
+                    _currentLine.Append(_effectParts[i]);
+                }
             }
 
-            if (player.Count > 0)
-                _building.Add(FormatCardBatch("玩家", actionLabel, player));
-
-            if (enemy.Count > 0)
-                _building.Add(FormatCardBatch("敌方", actionLabel, enemy));
+            AppendLine(_currentLine.ToString());
+            _inResolution = false;
+            _currentLine = null;
+            _effectParts.Clear();
         }
 
-        static string FormatCardBatch(string sideLabel, string actionLabel, List<string> cardNames)
+        void AppendLine(string line)
         {
-            var sb = new StringBuilder();
-            sb.Append('【').Append(sideLabel).Append('】').Append(actionLabel);
-            foreach (var name in cardNames)
-                sb.Append('【').Append(name).Append('】');
+            if (string.IsNullOrWhiteSpace(line))
+                return;
 
-            return sb.ToString();
+            _lines.Add(line);
+            while (_lines.Count > MaxLines)
+                _lines.RemoveAt(0);
         }
 
-        static TeamSide InferCardTeam(BattleEvent e, BattleState state)
+        static string FormatResolutionEffect(BattleEvent e, BattleState state)
         {
-            if (state == null || e.CardInstanceId <= 0)
-                return TeamSide.Player;
-
-            var card = state.GetCard(e.CardInstanceId);
-            if (card == null)
-                return TeamSide.Player;
-
-            foreach (var combatant in state.Combatants)
+            switch (e.Kind)
             {
-                if (combatant.CharacterDefinitionId == card.OwnerCharacterId)
-                    return combatant.Team;
+                case BattleEventKind.DamageApplied:
+                {
+                    var target = CombatantLabel(state, e.TargetId);
+                    var block = e.BlockedAmount > 0 ? $"（格挡 {e.BlockedAmount}）" : "";
+                    return $"对 {target} 造成 {e.Amount} 伤害{block}";
+                }
+                case BattleEventKind.BlockGained:
+                    return $"{CombatantLabel(state, e.CombatantId)} 获得 {e.Amount} 护甲";
+                case BattleEventKind.HealApplied:
+                    return $"{CombatantLabel(state, e.CombatantId)} 恢复 {e.Amount} 生命";
+                case BattleEventKind.CharacterRevived:
+                    return $"{CombatantLabel(state, e.CombatantId)} 复活（{e.Amount} HP）";
+                case BattleEventKind.CharacterDied:
+                    return $"{CombatantLabel(state, e.CombatantId)} 阵亡";
+                case BattleEventKind.StatusApplied:
+                    return $"{CombatantLabel(state, e.CombatantId)} 获得 {e.Message} x{e.Amount}";
+                case BattleEventKind.StatusTickDamage:
+                    return $"{CombatantLabel(state, e.CombatantId)} 受到 {e.Message} {e.Amount} 伤害";
+                case BattleEventKind.ReactionTriggered:
+                case BattleEventKind.ParryTriggered:
+                    return $"{CombatantLabel(state, e.CombatantId)} 触发应对：{e.Message}";
+                case BattleEventKind.DeckPolluted:
+                    return $"{CombatantLabel(state, e.CombatantId)} 牌堆污染 {e.Amount} 张";
+                default:
+                    return BattleEventLogFormatter.Format(e, state);
             }
+        }
 
-            return TeamSide.Player;
+        static string CombatantLabel(BattleState state, string combatantId)
+        {
+            if (string.IsNullOrEmpty(combatantId))
+                return "?";
+
+            var c = state?.GetCombatant(combatantId);
+            if (c == null)
+                return combatantId;
+
+            var slot = PositionRules.GetEffectiveSlot(state, c);
+            return $"{c.DisplayName}（{BattleUiFormatters.SlotLabel(slot)}）";
         }
     }
 }

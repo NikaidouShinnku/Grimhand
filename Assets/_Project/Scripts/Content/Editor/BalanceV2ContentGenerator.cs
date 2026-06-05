@@ -103,25 +103,24 @@ namespace Grimhand.Content.Editor
                 ShieldBlock = SaveCard("w_shield_block", "举盾格挡", "char_knight", 1, CardType.Defense,
                     Kw("block"), DefBlock(2, 150)),
                 PowerCleave = SaveCard("w_power_cleave", "猛力劈砍", "char_knight", 2, CardType.Attack,
-                    Kw("melee"), AtkDmg(5, 120)),
+                    Kw("melee"), AtkDmg(5, 120, bonusHpBelowPercent: 50, bonusHpBelowFlat: 10)),
                 Taunt = SaveCard("w_taunt", "嘲讽挑衅", "char_knight", 2, CardType.Defense,
                     Kw("taunt"),
+                    ApplyStat(StatusCatalog.Taunt, 1, 1, EffectTarget.Self),
                     Block(15)),
                 IronParry = SaveCard("w_iron_parry", "铁壁弹反", "char_knight", 2, CardType.Defense,
                     Kw("parry"), Merge(Parry(50, 100))),
                 Charge = SaveCard("w_charge", "战士冲锋", "char_knight", 3, CardType.Attack,
-                    Kw("melee"), AtkDmg(8, 160)),
+                    Kw("melee"), AtkDmg(8, 160, ignoreDefPercent: 50)),
                 WarCry = SaveCard("w_war_cry", "战吼鼓舞", "char_knight", 1, CardType.Status,
-                    Kw("buff"),
-                    AllyBlock(EffectTarget.AllyFrontSlot, 3),
-                    AllyBlock(EffectTarget.AllyMiddleSlot, 3),
-                    AllyBlock(EffectTarget.AllyBackSlot, 3)),
+                    Kw("buff"), Merge(TeamAttackUp(3, 1))),
                 Guardian = SaveCard("w_guardian", "誓死守护", "char_knight", 2, CardType.Defense,
-                    Kw("guard"), Block(12)),
+                    Kw("guard"), ApplyStat(StatusCatalog.Guard, 1, 1, EffectTarget.Self)),
                 FatalStrike = SaveCard("w_fatal_strike", "致命打击", "char_knight", 3, CardType.Attack,
-                    Kw("melee"), AtkDmg(6, 180)),
+                    Kw("melee"), AtkDmg(6, 180, bonusHitThisTurnPercent: 50)),
                 Unyielding = SaveCard("w_unyielding", "不屈意志", "char_knight", 0, CardType.Status,
-                    Kw("survival"), Heal(20, EffectTarget.Self))
+                    Kw("survival", "exhaust"),
+                    ApplyStat(StatusCatalog.Unyielding, 1, -1, EffectTarget.Self))
             };
         }
 
@@ -136,17 +135,16 @@ namespace Grimhand.Content.Editor
                 SolarWrath = SaveCard("p_solar_wrath", "太阳之怒", "char_mage", 2, CardType.Attack,
                     Kw("aoe", "magic"), Merge(AoeDmg(3, 70))),
                 LifeSteal = SaveCard("p_lifesteal", "生命汲取", "char_mage", 2, CardType.Attack,
-                    Kw("magic", "lifesteal"),
-                    AtkDmg(4, 100),
-                    Heal(5, EffectTarget.Self)),
+                    Kw("magic", "lifesteal"), AtkDmg(4, 100, lifestealPercent: 50)),
                 Decree = SaveCard("p_decree", "法老权令", "char_mage", 2, CardType.Status,
                     Kw("buff"),
                     Draw(2),
-                    AllyBlock(EffectTarget.AllyFrontSlot, 3)),
+                    ApplyStat(StatusCatalog.AttackUp, 3, 1, EffectTarget.FrontAlly),
+                    ApplyStat(StatusCatalog.DefenseUp, 2, 1, EffectTarget.FrontAlly)),
                 UndeadCurse = SaveCard("p_undead_curse", "亡灵诅咒", "char_mage", 3, CardType.Attack,
                     Kw("magic", "poison"),
                     AtkDmg(6, 120),
-                    Poison(5)),
+                    ApplyStat(StatusCatalog.NecroticPoison, 1, 3, EffectTarget.DefaultEnemy)),
                 ScarabShield = SaveCard("p_scarab_shield", "圣甲虫护盾", "char_mage", 1, CardType.Defense,
                     Kw("shield"), Block(12, EffectTarget.FrontAlly)),
                 SandBarrier = SaveCard("p_sand_barrier", "沙尘结界", "char_mage", 2, CardType.Defense,
@@ -155,7 +153,7 @@ namespace Grimhand.Content.Editor
                     AllyBlock(EffectTarget.AllyMiddleSlot, 8),
                     AllyBlock(EffectTarget.AllyBackSlot, 8)),
                 ReviveBless = SaveCard("p_revive_bless", "复活祝福", "char_mage", 3, CardType.Status,
-                    Kw("revive"), Heal(10, EffectTarget.FrontAlly)),
+                    Kw("revive"), ApplyStat(StatusCatalog.ReviveBlessing, 1, -1, EffectTarget.FrontAlly)),
                 SolarJudgment = SaveCard("p_solar_judgment", "太阳审判", "char_mage", 4, CardType.Attack,
                     Kw("magic"), AtkDmg(10, 200))
             };
@@ -168,15 +166,13 @@ namespace Grimhand.Content.Editor
                 ShadowClaw = SaveCard("d_shadow_claw", "暗影爪击", "char_ranger", 1, CardType.Attack,
                     Kw("melee"), AtkDmg(3, 80)),
                 DevilTouch = SaveCard("d_devil_touch", "恶魔之触", "char_ranger", 1, CardType.Attack,
-                    Kw("lifesteal"),
-                    AtkDmg(2, 60),
-                    Heal(7, EffectTarget.Self)),
+                    Kw("lifesteal"), AtkDmg(2, 60, lifestealPercent: 100)),
                 BloodFlame = SaveCard("d_blood_flame", "血焰爆发", "char_ranger", 2, CardType.Attack,
                     Kw("sacrifice"),
                     SelfDmg(8),
                     AtkDmg(8, 130)),
                 SoulRip = SaveCard("d_soul_rip", "灵魂撕裂", "char_ranger", 2, CardType.Attack,
-                    Kw("melee"), AtkDmg(5, 120)),
+                    Kw("melee"), AtkDmg(5, 120, ignoreDefPercent: 100)),
                 DarkSacrifice = SaveCard("d_dark_sacrifice", "暗黑献祭", "char_ranger", 3, CardType.Attack,
                     Kw("sacrifice"),
                     SelfDmg(15),
@@ -184,27 +180,35 @@ namespace Grimhand.Content.Editor
                 DemonPact = SaveCard("d_demon_pact", "恶魔契约", "char_ranger", 2, CardType.Status,
                     Kw("sacrifice"),
                     SelfDmg(5),
-                    Draw(2)),
+                    Draw(2),
+                    ApplyStat(StatusCatalog.AttackUp, 3, 1, EffectTarget.Self)),
                 VampAura = SaveCard("d_vamp_aura", "吸血光环", "char_ranger", 1, CardType.Status,
-                    Kw("lifesteal"), Heal(3, EffectTarget.Self)),
+                    Kw("lifesteal"), ApplyStat(StatusCatalog.VampAura, 30, 1, EffectTarget.Self)),
                 CurseChain = SaveCard("d_curse_chain", "诅咒之链", "char_ranger", 2, CardType.Attack,
                     Kw("curse"),
                     AtkDmg(3, 100),
-                    Slow(1, 2)),
+                    ApplyStat(StatusCatalog.AttackDown, 3, 2, EffectTarget.DefaultEnemy)),
                 HellFire = SaveCard("d_hell_fire", "地狱烈焰", "char_ranger", 3, CardType.Attack,
                     Kw("aoe", "sacrifice"),
                     SelfDmg(8),
-                    AtkDmg(5, 100, EffectTarget.EnemyFrontSlot),
-                    AtkDmg(5, 100, EffectTarget.EnemyMiddleSlot),
-                    AtkDmg(5, 100, EffectTarget.EnemyBackSlot)),
+                    AtkDmg(5, 100, EffectTarget.AllEnemies)),
                 DemonLord = SaveCard("d_demon_lord", "魔王降临", "char_ranger", 4, CardType.Attack,
                     Kw("sacrifice"),
                     SelfDmg(20),
-                    AtkDmg(15, 200))
+                    AtkDmg(15, 200, onKillHeal: 30))
             };
         }
 
-        static EffectActionDefinition AtkDmg(int fixedVal, int atkPercent, EffectTarget target = EffectTarget.DefaultEnemy)
+        static EffectActionDefinition AtkDmg(
+            int fixedVal,
+            int atkPercent,
+            EffectTarget target = EffectTarget.DefaultEnemy,
+            int ignoreDefPercent = 0,
+            int bonusHpBelowPercent = 0,
+            int bonusHpBelowFlat = 0,
+            int bonusHitThisTurnPercent = 0,
+            int lifestealPercent = 0,
+            int onKillHeal = 0)
         {
             return new EffectActionDefinition
             {
@@ -212,7 +216,13 @@ namespace Grimhand.Content.Editor
                 Target = target,
                 Value = fixedVal,
                 ScaleWithAttack = true,
-                AttackScalePercent = atkPercent
+                AttackScalePercent = atkPercent,
+                IgnoreDefPercent = ignoreDefPercent,
+                BonusIfTargetHpBelowPercent = bonusHpBelowPercent,
+                BonusIfTargetHpBelowFlat = bonusHpBelowFlat,
+                BonusIfTargetHitThisTurnPercent = bonusHitThisTurnPercent,
+                LifestealPercent = lifestealPercent,
+                OnKillHealAmount = onKillHeal
             };
         }
 
@@ -234,7 +244,8 @@ namespace Grimhand.Content.Editor
             {
                 Type = EffectActionType.GainBlock,
                 Target = target,
-                Value = amount
+                Value = amount,
+                Reach = IsAllyPickTarget(target) ? TargetReach.Any : TargetReach.FrontAndMiddle
             };
         }
 
@@ -246,9 +257,38 @@ namespace Grimhand.Content.Editor
             {
                 Type = EffectActionType.Heal,
                 Target = target,
-                Value = amount
+                Value = amount,
+                Reach = IsAllyPickTarget(target) ? TargetReach.Any : TargetReach.FrontAndMiddle
             };
         }
+
+        static bool IsAllyPickTarget(EffectTarget target) =>
+            target is EffectTarget.FrontAlly or EffectTarget.BackAlly;
+
+        static EffectActionDefinition ApplyStat(
+            string statusId,
+            int stacks,
+            int duration,
+            EffectTarget target)
+        {
+            return new EffectActionDefinition
+            {
+                Type = EffectActionType.ApplyStatus,
+                Target = target,
+                StatusId = statusId,
+                Stacks = stacks,
+                Duration = duration,
+                Reach = IsAllyPickTarget(target) ? TargetReach.Any : TargetReach.FrontAndMiddle
+            };
+        }
+
+        static EffectActionDefinition[] TeamAttackUp(int stacks, int duration) =>
+            new[]
+            {
+                ApplyStat(StatusCatalog.AttackUp, stacks, duration, EffectTarget.AllyFrontSlot),
+                ApplyStat(StatusCatalog.AttackUp, stacks, duration, EffectTarget.AllyMiddleSlot),
+                ApplyStat(StatusCatalog.AttackUp, stacks, duration, EffectTarget.AllyBackSlot)
+            };
 
         static EffectActionDefinition SelfDmg(int amount)
         {
@@ -293,15 +333,8 @@ namespace Grimhand.Content.Editor
             };
         }
 
-        static EffectActionDefinition[] AoeDmg(int fixedVal, int atkPercent)
-        {
-            return new[]
-            {
-                AtkDmg(fixedVal, atkPercent, EffectTarget.EnemyFrontSlot),
-                AtkDmg(fixedVal, atkPercent, EffectTarget.EnemyMiddleSlot),
-                AtkDmg(fixedVal, atkPercent, EffectTarget.EnemyBackSlot)
-            };
-        }
+        static EffectActionDefinition[] AoeDmg(int fixedVal, int atkPercent) =>
+            new[] { AtkDmg(fixedVal, atkPercent, EffectTarget.AllEnemies) };
 
         static EffectActionDefinition[] Parry(int reductionPercent, int reflectPercent)
         {

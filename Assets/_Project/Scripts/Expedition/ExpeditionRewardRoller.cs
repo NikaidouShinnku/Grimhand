@@ -20,7 +20,7 @@ namespace Grimhand.Expedition
             var rewards = new ExpeditionVictoryRewards { Gold = gold };
 
             if (RollPercent(rng, config.RelicDropChancePercent))
-                rewards.RelicId = PickRandomRelicId(run.Relics, rng);
+                rewards.RelicId = PickRandomRelicId(run.Relics, run, rng);
 
             if (RollPercent(rng, config.CardDropChancePercent))
                 TryRollCardReward(rewards, run, config, rng);
@@ -40,7 +40,7 @@ namespace Grimhand.Expedition
 
             var reward = new ExpeditionChestReward { Gold = gold };
             if (RollPercent(rng, config.TreasureRelicChancePercent))
-                reward.RelicId = PickRandomRelicId(run.Relics, rng);
+                reward.RelicId = PickRandomRelicId(run.Relics, run, rng);
 
             return reward;
         }
@@ -81,12 +81,15 @@ namespace Grimhand.Expedition
             return (int)System.Math.Round(baseGold * (1f + mods.GoldBonusPercent / 100f));
         }
 
-        static string PickRandomRelicId(IReadOnlyList<string> owned, BattleRng rng)
+        static string PickRandomRelicId(IReadOnlyList<string> owned, ExpeditionRunState run, BattleRng rng)
         {
             var pool = new List<string>();
             foreach (var relic in RelicDatabase.All)
             {
                 if (owned != null && OwnsRelic(owned, relic.Id))
+                    continue;
+
+                if (!RelicDatabase.CanAppearInRewardPool(relic, run?.Party))
                     continue;
 
                 pool.Add(relic.Id);

@@ -19,89 +19,126 @@ namespace Grimhand.Battle.Effects
             bool canTriggerParry = true,
             bool isSacrificeDamage = false,
             BattleRng rng = null,
-            string logSuffix = "")
+            string logSuffix = "",
+            int cardCost = 0,
+            int ignoreDefPercent = 0,
+            bool redirectedByGuard = false)
         {
             if (target == null)
                 return;
 
-            var relicMul = RelicBattleRules.GetOutgoingDamageMultiplier(state, actor, cardType, isSacrificeDamage);
-            var adjustedPower = (int)Math.Round(power * relicMul);
-            if (adjustedPower < 1 && power > 0)
-                adjustedPower = 1;
+            var recipient = CombatMechanicsRules.ResolveDamageRecipient(state, actor, target);
+            var isGuardRedirect = recipient.Id != target.Id;
+            if (isGuardRedirect)
+                redirectedByGuard = true;
+
+            var outgoingPower = RelicBattleRules.ComputeOutgoingPower(
+                state,
+                actor,
+                cardType,
+                power,
+                isSacrificeDamage,
+                cardCost,
+                applyPositionMultiplier: true);
 
             RelicBattleRules.MarkFirstAttackConsumed(state, actor, cardType);
 
-            var outgoing = PositionRules.GetDamageMultiplier(PositionRules.GetEffectiveSlot(state, actor));
-            var incoming = PositionRules.GetIncomingDamageMultiplier(PositionRules.GetEffectiveSlot(state, target));
-            var raw = (int)Math.Round(adjustedPower * outgoing * incoming);
-            var blocked = Math.Min(target.Block, raw);
-            target.Block -= blocked;
-            var hpDamage = raw - blocked;
+            var incoming = PositionRules.GetIncomingDamageMultiplier(PositionRules.GetEffectiveSlot(state, recipient));
+            var raw = (int)Math.Round(outgoingPower * incoming);
+            var blocked = Math.Min(recipient.Block, raw);
+            recipient.Block -= blocked;
+            var afterBlock = raw - blocked;
+
+            var effectiveDef = CombatMechanicsRules.GetEffectiveDefense(state, recipient, ignoreDefPercent);
+            var hpDamage = CombatMechanicsRules.ComputeHpDamageAfterDefense(afterBlock, effectiveDef);
+
+            if (redirectedByGuard)
+                hpDamage = CombatMechanicsRules.ApplyGuardReduction(hpDamage);
+
+            hpDamage = RelicBattleRules.ApplyIncomingDamageRelics(
+                state, actor, recipient, hpDamage, rng, events);
 
             var reflectPower = 0;
-            if (canTriggerParry && hpDamage > 0 && target.ActiveParry != null)
+            if (canTriggerParry && hpDamage > 0 && recipient.ActiveParry != null)
             {
-                var stance = target.ActiveParry;
-                target.ActiveParry = null;
+                var stance = recipient.ActiveParry;
+                recipient.ActiveParry = null;
                 var beforeReduction = hpDamage;
                 if (stance.DamageReductionPercent > 0)
                     hpDamage = (int)Math.Round(beforeReduction * (100 - stance.DamageReductionPercent) / 100f);
                 if (stance.ReflectPercent > 0)
-                    reflectPower = (int)Math.Round(adjustedPower * stance.ReflectPercent / 100f);
+                    reflectPower = (int)Math.Round(outgoingPower * stance.ReflectPercent / 100f);
             }
 
             if (hpDamage > 0 && rng != null)
             {
                 var mods = state.Config?.RunModifiers;
-                if (RelicBattleRules.TryWarriorBlockOnHit(target, mods, rng))
+                if (RelicBattleRules.TryWarriorBlockOnHit(recipient, mods, rng))
                 {
                     var relicBlock = Math.Min(hpDamage, mods.WarriorBlockAmountOnHit);
                     hpDamage -= relicBlock;
                     blocked += relicBlock;
-                    events.Add(new BattleEvent(BattleEventKind.BlockGained, $"{target.DisplayName} 不动明王格挡")
+                    events.Add(new BattleEvent(BattleEventKind.BlockGained, $"{recipient.DisplayName} 不动明王格挡")
                     {
-                        CombatantId = target.Id,
+                        CombatantId = recipient.Id,
                         Amount = relicBlock
                     });
                 }
             }
 
-            var wasAlive = target.IsAlive;
-            target.Hp = Math.Max(0, target.Hp - hpDamage);
-            var killed = wasAlive && !target.IsAlive;
+            if (hpDamage > 0)
+                recipient.HitThisTurn = true;
 
-            events.Add(new BattleEvent(BattleEventKind.DamageApplied, $"{actor.DisplayName} -> {target.DisplayName}{logSuffix}")
+            var wasAlive = recipient.IsAlive;
+            if (hpDamage > 0)
+                recipient.Hp = Math.Max(0, recipient.Hp - hpDamage);
+
+            if (!recipient.IsAlive && wasAlive
+                && CombatMechanicsRules.TryPreventDeathWithReviveBlessing(state, recipient, events))
+            {
+                wasAlive = true;
+            }
+
+            var killed = wasAlive && !recipient.IsAlive;
+
+            events.Add(new BattleEvent(BattleEventKind.DamageApplied, $"{actor.DisplayName} -> {recipient.DisplayName}{logSuffix}")
             {
                 CombatantId = actor.Id,
-                TargetId = target.Id,
+                TargetId = recipient.Id,
                 Amount = hpDamage,
                 BlockedAmount = blocked,
                 CardType = cardType
             });
 
-            state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Attack, target.Id, killed, hpDamage);
+            state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Attack, recipient.Id, killed, hpDamage);
+
+            if (hpDamage > 0)
+                CombatMechanicsRules.TryTriggerUnyielding(state, recipient, events);
 
             if (reflectPower > 0 && actor.IsAlive)
             {
                 events.Add(new BattleEvent(BattleEventKind.ParryTriggered,
-                    $"{target.DisplayName} 弹反击退 {actor.DisplayName}")
+                    $"{recipient.DisplayName} 弹反击退 {actor.DisplayName}")
                 {
-                    CombatantId = target.Id,
+                    CombatantId = recipient.Id,
                     TargetId = actor.Id,
                     Amount = reflectPower
                 });
 
-                ApplyDamage(state, target, actor, reflectPower, cardType, events,
+                ApplyDamage(state, recipient, actor, reflectPower, cardType, events,
                     canTriggerParry: false, rng: rng, logSuffix: " (反射)");
             }
 
             if (killed)
             {
-                events.Add(new BattleEvent(BattleEventKind.CharacterDied, target.DisplayName)
+                events.Add(new BattleEvent(BattleEventKind.CharacterDied, recipient.DisplayName)
                 {
-                    CombatantId = target.Id
+                    CombatantId = recipient.Id
                 });
-                CombatantDeathRules.OnCharacterDied(state, target, events);
+                CombatantDeathRules.OnCharacterDied(state, recipient, events);
+
+                if (recipient.Team == TeamSide.Enemy && actor != null)
+                    RelicEffectRules.OnEnemyKilled(state, actor, events, rng);
             }
         }
 
@@ -119,20 +156,55 @@ namespace Grimhand.Battle.Effects
             BattleState state,
             CombatantState actor,
             int amount,
-            System.Collections.Generic.List<BattleEvent> events)
+            System.Collections.Generic.List<BattleEvent> events,
+            CombatantState healer = null)
         {
+            if (actor == null || !actor.IsAlive)
+                return;
+
             var mods = state?.Config?.RunModifiers;
-            var boosted = RelicBattleRules.ApplyHealBonus(mods, amount);
+            var boosted = RelicBattleRules.ApplyHealBonus(mods, healer ?? actor, amount);
             var before = actor.Hp;
             actor.Hp = Math.Min(actor.MaxHp, actor.Hp + boosted);
             var healed = actor.Hp - before;
+            if (healed <= 0)
+                return;
+
             events.Add(new BattleEvent(BattleEventKind.HealApplied, actor.DisplayName)
             {
                 CombatantId = actor.Id,
                 Amount = healed
             });
 
-            if (healed > 0 && mods != null && mods.HealGrantsBlock > 0)
+            if (mods != null && mods.HealGrantsBlock > 0)
+                ApplyBlock(actor, mods.HealGrantsBlock, events);
+        }
+
+        public static void ApplyRevive(
+            BattleState state,
+            CombatantState actor,
+            int amount,
+            System.Collections.Generic.List<BattleEvent> events,
+            CombatantState healer = null)
+        {
+            if (actor == null || actor.IsAlive)
+                return;
+
+            var mods = state?.Config?.RunModifiers;
+            var boosted = RelicBattleRules.ApplyHealBonus(mods, healer ?? actor, amount);
+            var restored = Math.Max(1, Math.Min(actor.MaxHp, boosted));
+            actor.Hp = restored;
+
+            CombatantDeathRules.RestoreUsableCards(state, actor);
+            RelicBattleRules.RefreshDerivedStats(state, actor, mods);
+
+            events.Add(new BattleEvent(BattleEventKind.CharacterRevived, actor.DisplayName)
+            {
+                CombatantId = actor.Id,
+                Amount = restored
+            });
+
+            if (mods != null && mods.HealGrantsBlock > 0)
                 ApplyBlock(actor, mods.HealGrantsBlock, events);
         }
     }

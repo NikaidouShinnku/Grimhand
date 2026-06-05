@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84c30176d181a5747a85983cdd126a0c, type: 3}
+  m_Name: Character_Slime
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
+  CharacterId: char_slime
+  DisplayName: "\u53F2\u83B1\u59C6"
+  Team: 1
+  Slot: 1
+  Level: 1
+  MaxHp: 30
+  BaseAttack: 3
+  BaseDefense: 4
+  Speed: 2
+  Deck: []
+  SkillPool:
+  - {fileID: 11400000, guid: dc78719982122554aa0a8f8631a765a5, type: 2}
+  - {fileID: 11400000, guid: 72780c0a6837d0943b85c3f4a9c4cc8f, type: 2}
+  - {fileID: 11400000, guid: 1132f4d4e6b09a148b13a8f5f3bf79b6, type: 2}
+  - {fileID: 11400000, guid: 057ca7afcc1fd16428626e053b84f56f, type: 2}
+  EnemyRandomDeckSize: 8
+  EnemySkillPickMin: 2
+  EnemySkillPickMax: 4

@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84c30176d181a5747a85983cdd126a0c, type: 3}
+  m_Name: Character_Skeleton_Elite
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
+  CharacterId: char_skeleton_elite
+  DisplayName: "\u9AB7\u9AC5\u7CBE\u82F1"
+  Team: 1
+  Slot: 2
+  Level: 1
+  MaxHp: 45
+  BaseAttack: 9
+  BaseDefense: 5
+  Speed: 5
+  Deck: []
+  SkillPool:
+  - {fileID: 11400000, guid: d6173394313a412489206ad689ff9183, type: 2}
+  - {fileID: 11400000, guid: d5b4e2b549fab7946b2943eb389d0f09, type: 2}
+  - {fileID: 11400000, guid: fe980a7db1d15254b80409509bbbd299, type: 2}
+  - {fileID: 11400000, guid: 9edb9d9455511a24f99cde88640980e5, type: 2}
+  EnemyRandomDeckSize: 8
+  EnemySkillPickMin: 2
+  EnemySkillPickMax: 4

@@ -19,6 +19,14 @@ namespace Grimhand.Battle.Rules
             }
         }
 
+        public static TargetReach GetPickReach(BattleState state, CardInstanceState card, CombatantState owner)
+        {
+            if (RelicEffectRules.ShouldExpandBackRowReach(state, owner, card))
+                return TargetReach.Any;
+
+            return GetPickReach(card);
+        }
+
         public static TargetReach GetPickReach(CardInstanceState card)
         {
             var reach = TargetReach.Any;
@@ -39,10 +47,19 @@ namespace Grimhand.Battle.Rules
             return hasPick ? reach : TargetReach.Any;
         }
 
-        public static bool CanPickUnit(BattleState state, CardInstanceState card, CombatantState target)
+        public static bool CanPickUnit(
+            BattleState state,
+            CardInstanceState card,
+            CombatantState target,
+            CombatantState owner = null)
         {
-            if (target == null || !target.IsAlive)
+            if (target == null)
                 return false;
+
+            if (!target.IsAlive)
+                return false;
+
+            var expandReach = owner != null && RelicEffectRules.ShouldExpandBackRowReach(state, owner, card);
 
             foreach (var action in card.Actions)
             {
@@ -52,8 +69,9 @@ namespace Grimhand.Battle.Rules
                 if (!CardRules.ActionRequiresCharacterPickForReach(action))
                     continue;
 
+                var reach = expandReach ? TargetReach.Any : action.Reach;
                 var effective = PositionRules.GetEffectiveSlot(state, target);
-                if (!IsSlotAllowed(action.Reach, effective))
+                if (!IsSlotAllowed(reach, effective))
                     return false;
             }
 

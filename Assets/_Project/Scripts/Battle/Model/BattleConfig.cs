@@ -35,5 +35,6 @@ namespace Grimhand.Battle.Model
         public List<CombatantConfig> Combatants { get; } = new();
         public Dictionary<string, CardTemplate> CardCatalog { get; } = new();
         public RunModifierSnapshot RunModifiers { get; set; } = RunModifierSnapshot.Empty;
+        public int MiracleLeafRevivesRemaining { get; set; } = -1;
     }
 }

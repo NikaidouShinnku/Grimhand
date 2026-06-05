@@ -21,6 +21,12 @@ namespace Grimhand.Content
         public bool SplashBehindTarget;
         public int SplashPowerPercent = 100;
         public int BackRowPowerPercent = 100;
+        public int IgnoreDefPercent;
+        public int BonusIfTargetHpBelowPercent;
+        public int BonusIfTargetHpBelowFlat;
+        public int BonusIfTargetHitThisTurnPercent;
+        public int LifestealPercent;
+        public int OnKillHealAmount;
 
         public EffectActionSpec ToSpec()
         {
@@ -40,7 +46,13 @@ namespace Grimhand.Content
                 Reach = Reach,
                 SplashBehindTarget = SplashBehindTarget,
                 SplashPowerPercent = SplashPowerPercent,
-                BackRowPowerPercent = BackRowPowerPercent
+                BackRowPowerPercent = BackRowPowerPercent,
+                IgnoreDefPercent = IgnoreDefPercent,
+                BonusIfTargetHpBelowPercent = BonusIfTargetHpBelowPercent,
+                BonusIfTargetHpBelowFlat = BonusIfTargetHpBelowFlat,
+                BonusIfTargetHitThisTurnPercent = BonusIfTargetHitThisTurnPercent,
+                LifestealPercent = LifestealPercent,
+                OnKillHealAmount = OnKillHealAmount
             };
         }
 
@@ -62,7 +74,13 @@ namespace Grimhand.Content
                 Reach = spec.Reach,
                 SplashBehindTarget = spec.SplashBehindTarget,
                 SplashPowerPercent = spec.SplashPowerPercent,
-                BackRowPowerPercent = spec.BackRowPowerPercent
+                BackRowPowerPercent = spec.BackRowPowerPercent,
+                IgnoreDefPercent = spec.IgnoreDefPercent,
+                BonusIfTargetHpBelowPercent = spec.BonusIfTargetHpBelowPercent,
+                BonusIfTargetHpBelowFlat = spec.BonusIfTargetHpBelowFlat,
+                BonusIfTargetHitThisTurnPercent = spec.BonusIfTargetHitThisTurnPercent,
+                LifestealPercent = spec.LifestealPercent,
+                OnKillHealAmount = spec.OnKillHealAmount
             };
         }
     }

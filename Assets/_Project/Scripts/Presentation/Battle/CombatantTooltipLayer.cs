@@ -3,10 +3,13 @@ using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Battle
 {
-    /// <summary>角色悬停详情框的全局顶层容器。</summary>
+    /// <summary>背包/明细/角色悬停等浮层 — 独立 Canvas，排序高于 HudChrome（手牌）。</summary>
     public static class CombatantTooltipLayer
     {
         const string LayerName = "CombatantTooltipLayer";
+
+        /// <summary>必须高于 <see cref="BattleUiLayoutRuntimeFix.HudChromeSortOrder"/>。</summary>
+        public const int OverlaySortOrder = 120;
 
         public static RectTransform GetOrCreate(Transform battleScreenRoot)
         {
@@ -16,11 +19,12 @@ namespace Grimhand.Presentation.Battle
             var existing = battleScreenRoot.Find(LayerName) as RectTransform;
             if (existing != null)
             {
+                Configure(existing);
                 existing.SetAsLastSibling();
                 return existing;
             }
 
-            var go = new GameObject(LayerName, typeof(RectTransform));
+            var go = new GameObject(LayerName, typeof(RectTransform), typeof(Canvas), typeof(GraphicRaycaster));
             go.transform.SetParent(battleScreenRoot, false);
 
             var rt = go.GetComponent<RectTransform>();
@@ -29,6 +33,7 @@ namespace Grimhand.Presentation.Battle
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
 
+            Configure(rt);
             go.transform.SetAsLastSibling();
             return rt;
         }
@@ -42,6 +47,17 @@ namespace Grimhand.Presentation.Battle
             panel.SetParent(layer, worldPositionStays: true);
             panel.SetAsLastSibling();
             layer.SetAsLastSibling();
+        }
+
+        static void Configure(RectTransform root)
+        {
+            var canvas = root.GetComponent<Canvas>();
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = OverlaySortOrder;
+
+            var raycaster = root.GetComponent<GraphicRaycaster>();
+            if (raycaster != null)
+                raycaster.enabled = true;
         }
     }
 }

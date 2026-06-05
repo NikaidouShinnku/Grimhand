@@ -19,6 +19,7 @@ namespace Grimhand.Battle.Events
         DamageApplied,
         BlockGained,
         HealApplied,
+        CharacterRevived,
         CharacterDied,
         StatusApplied,
         StatusRemoved,

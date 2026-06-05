@@ -143,7 +143,7 @@ namespace Grimhand.Content.Editor
                             statusId: StatusCatalog.Poison, stacks: 5)),
                     SaveCard("m_phase", "隐身", "char_wraith", 1, CardType.Defense, Kw("guard"),
                         Action(EffectActionType.GainBlock, EffectTarget.Self, 5)),
-                    SaveCard("g_arrow", "灵箭", "char_wraith", 1, CardType.Attack, Kw("far_shot"),
+                    SaveCard("g_arrow", "箭矢", "char_wraith", 1, CardType.Attack, Kw("far_shot"),
                         Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 8, scaleAttack: true,
                             reach: TargetReach.Any, backRowPowerPercent: 80))
                 },

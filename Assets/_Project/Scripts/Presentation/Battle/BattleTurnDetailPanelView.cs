@@ -8,7 +8,13 @@ namespace Grimhand.Presentation.Battle
     [DisallowMultipleComponent]
     public sealed class BattleTurnDetailPanelView : MonoBehaviour
     {
+        const float PanelWidth = 560f;
+        const float PanelHeight = 640f;
+        const float PanelLeft = 12f;
+        const float PanelBottom = 120f;
+
         BattleSession _session;
+        Transform _battleRoot;
         RectTransform _panel;
         RectTransform _content;
         Text _bodyText;
@@ -21,6 +27,7 @@ namespace Grimhand.Presentation.Battle
         public void Initialize(BattleSession session, Transform battleRoot)
         {
             _session = session;
+            _battleRoot = battleRoot;
             EnsureBuilt(battleRoot);
         }
 
@@ -32,7 +39,7 @@ namespace Grimhand.Presentation.Battle
 
             if (_open)
             {
-                CombatantTooltipLayer.MountToFront(_panel, _panel.root);
+                CombatantTooltipLayer.MountToFront(_panel, _battleRoot != null ? _battleRoot : _panel.root);
                 _panel.gameObject.SetActive(true);
                 Refresh();
             }
@@ -50,21 +57,36 @@ namespace Grimhand.Presentation.Battle
             var lines = _session.TurnLog.LastRound;
             if (lines == null || lines.Count == 0)
             {
-                _bodyText.text = "暂无上回合记录。\n完成一次出牌并结算后可在此查看。";
+                _bodyText.text = "暂无战斗明细。\n出牌结算后可在此查看（最多保留 40 条）。";
             }
             else
             {
                 var sb = new StringBuilder();
-                sb.AppendLine("【上回合明细】");
+                sb.AppendLine("【战斗明细】");
                 for (var i = 0; i < lines.Count; i++)
                     sb.AppendLine($"{i + 1}. {lines[i]}");
 
                 _bodyText.text = sb.ToString();
             }
 
+            ResizeBody();
+        }
+
+        void ResizeBody()
+        {
+            if (_bodyText == null || _content == null)
+                return;
+
+            Canvas.ForceUpdateCanvases();
+            var width = _content.rect.width > 1f ? _content.rect.width - 16f : 500f;
+            var height = _bodyText.preferredHeight + 16f;
+            var bodyRt = _bodyText.rectTransform;
+            bodyRt.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);
+            bodyRt.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, Mathf.Max(height, 80f));
+            _content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, bodyRt.rect.height + 8f);
             LayoutRebuilder.ForceRebuildLayoutImmediate(_content);
             if (_scroll != null)
-                _scroll.verticalNormalizedPosition = 1f;
+                _scroll.verticalNormalizedPosition = 0f;
         }
 
         void EnsureBuilt(Transform battleRoot)
@@ -80,8 +102,8 @@ namespace Grimhand.Presentation.Battle
             _panel.anchorMin = new Vector2(0f, 0f);
             _panel.anchorMax = new Vector2(0f, 0f);
             _panel.pivot = new Vector2(0f, 0f);
-            _panel.anchoredPosition = new Vector2(8f, 140f);
-            _panel.sizeDelta = new Vector2(420f, 460f);
+            _panel.anchoredPosition = new Vector2(PanelLeft, PanelBottom);
+            _panel.sizeDelta = new Vector2(PanelWidth, PanelHeight);
 
             var bg = go.GetComponent<Image>();
             bg.color = new Color(0.08f, 0.1f, 0.14f, 0.97f);
@@ -147,12 +169,12 @@ namespace Grimhand.Presentation.Battle
             bodyFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             var layout = bodyGo.GetComponent<LayoutElement>();
-            layout.minWidth = 360f;
-            layout.preferredWidth = 360f;
+            layout.minWidth = 500f;
+            layout.preferredWidth = 500f;
 
             _bodyText = bodyGo.GetComponent<Text>();
             _bodyText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            _bodyText.fontSize = 15;
+            _bodyText.fontSize = 16;
             _bodyText.fontStyle = FontStyle.Normal;
             _bodyText.alignment = TextAnchor.UpperLeft;
             _bodyText.color = new Color(0.92f, 0.94f, 0.98f, 1f);

@@ -116,6 +116,7 @@ namespace Grimhand.Battle
         {
             SetPhase(TurnPhase.SpeedResolve);
             ParryRules.ClearAll(_state);
+            CombatMechanicsRules.ClearTurnFlags(_state);
 
             var queues = SpeedResolver.BuildPlayQueues(_state, _state.PlayerPlan, _state.EnemyPlan);
             var round = 0;
@@ -210,7 +211,13 @@ namespace Grimhand.Battle
             });
 
             EffectActionExecutor.ExecuteAll(_state, actor, card, _events, _rng);
-            DeckRules.MovePlayedCardToDiscard(_state, actor.Team, card, _events);
+            RelicBattleRules.TryApplyStatusCardTeamBlock(_state, actor, card, _events);
+            RelicEffectRules.OnCardResolved(_state, actor, card, _events, _rng);
+
+            if (card.Keywords.Contains("exhaust"))
+                DeckRules.ExhaustCard(_state, actor.Team, card, _events);
+            else
+                DeckRules.MovePlayedCardToDiscard(_state, actor.Team, card, _events);
 
             _events.Add(new BattleEvent(BattleEventKind.CardResolvedEnded, card.DisplayName)
             {
@@ -236,6 +243,7 @@ namespace Grimhand.Battle
             DeckRules.DiscardHandAtEndOfTurn(_state, TeamSide.Enemy, _events);
 
             StatusRules.ProcessEndOfTurnDurations(_state, _events);
+            RelicEffectRules.ProcessEndOfTurn(_state, _events);
 
             _state.TurnNumber++;
             SetPhase(TurnPhase.Draw);
@@ -247,6 +255,7 @@ namespace Grimhand.Battle
         {
             EnergyRules.ApplyTurnStartRegen(_state);
             StatusRules.ProcessTurnStartStatuses(_state, _events);
+            RelicEffectRules.ProcessTurnStart(_state, _rng, _events);
             EvaluateOutcome();
             _events.Add(new BattleEvent(BattleEventKind.EnergyChanged, "Turn start")
             {
@@ -287,7 +296,8 @@ namespace Grimhand.Battle
             }
 
             DeckRules.DrawCards(_state, TeamSide.Player, _rng,
-                _state.Config.CardsDrawnPerTurn + bonusDraw + backRowDraw, _events);
+                _state.Config.CardsDrawnPerTurn + bonusDraw + backRowDraw +
+                (_state.TurnNumber == 1 ? mods?.ExtraDrawOnBattleStart ?? 0 : 0), _events);
             DeckRules.DrawCards(_state, TeamSide.Enemy, _rng, _state.Config.CardsDrawnPerTurn, _events);
         }
 
@@ -356,6 +366,9 @@ namespace Grimhand.Battle
             if (config.RunModifiers != null)
                 config.RunModifiers.FirstPlayerAttackPending = true;
 
+            _state.MiracleLeafRevivesRemaining = config.MiracleLeafRevivesRemaining;
+            _state.JadeDaggerFirstKillConsumed = false;
+
             var deckRng = new BattleRng(config.Seed ^ 0x5DEECE66);
 
             foreach (var cc in config.Combatants)
@@ -389,11 +402,13 @@ namespace Grimhand.Battle
             }
 
             RelicBattleRules.RefreshAllDerivedStats(_state);
+            RelicBattleRules.ApplyTeamHpBonus(_state, config.RunModifiers);
 
             ApplyBattleStartRelicEffects(config.RunModifiers);
 
             foreach (var combatant in _state.Combatants)
             {
+                RelicEffectRules.ResetTurnFlags(combatant);
                 if (!combatant.IsAlive)
                     CombatantDeathRules.OnCharacterDied(_state, combatant, _events);
             }
@@ -420,15 +435,32 @@ namespace Grimhand.Battle
 
         void ApplyBattleStartRelicEffects(RunModifierSnapshot mods)
         {
-            if (mods == null || mods.BattleStartTeamHeal <= 0)
+            if (mods == null)
                 return;
 
-            foreach (var c in _state.Combatants)
+            if (mods.BattleStartTeamHeal > 0)
             {
-                if (c.Team != TeamSide.Player || !c.IsAlive)
-                    continue;
+                foreach (var c in _state.Combatants)
+                {
+                    if (c.Team != TeamSide.Player || !c.IsAlive)
+                        continue;
 
-                DamageRules.ApplyHeal(_state, c, mods.BattleStartTeamHeal, _events);
+                    DamageRules.ApplyHeal(_state, c, mods.BattleStartTeamHeal, _events);
+                }
+            }
+
+            if (mods.BattleStartFrontBlock > 0)
+            {
+                foreach (var c in _state.Combatants)
+                {
+                    if (c.Team != TeamSide.Player || !c.IsAlive)
+                        continue;
+
+                    if (PositionRules.GetEffectiveSlot(_state, c) != FormationSlot.Front)
+                        continue;
+
+                    DamageRules.ApplyBlock(c, mods.BattleStartFrontBlock, _events);
+                }
             }
         }
 
@@ -470,7 +502,13 @@ namespace Grimhand.Battle
                 Reach = source.Reach,
                 SplashBehindTarget = source.SplashBehindTarget,
                 SplashPowerPercent = source.SplashPowerPercent,
-                BackRowPowerPercent = source.BackRowPowerPercent
+                BackRowPowerPercent = source.BackRowPowerPercent,
+                IgnoreDefPercent = source.IgnoreDefPercent,
+                BonusIfTargetHpBelowPercent = source.BonusIfTargetHpBelowPercent,
+                BonusIfTargetHpBelowFlat = source.BonusIfTargetHpBelowFlat,
+                BonusIfTargetHitThisTurnPercent = source.BonusIfTargetHitThisTurnPercent,
+                LifestealPercent = source.LifestealPercent,
+                OnKillHealAmount = source.OnKillHealAmount
             };
         }
     }

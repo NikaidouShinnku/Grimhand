@@ -21,12 +21,12 @@ MonoBehaviour:
   Keywords:
   - guard
   Actions:
-  - Type: 1
+  - Type: 3
     Target: 1
-    Value: 12
-    StatusId: 
+    Value: 0
+    StatusId: guard
     Stacks: 1
-    Duration: -1
+    Duration: 1
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100
@@ -36,6 +36,12 @@ MonoBehaviour:
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100
+    IgnoreDefPercent: 0
+    BonusIfTargetHpBelowPercent: 0
+    BonusIfTargetHpBelowFlat: 0
+    BonusIfTargetHitThisTurnPercent: 0
+    LifestealPercent: 0
+    OnKillHealAmount: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

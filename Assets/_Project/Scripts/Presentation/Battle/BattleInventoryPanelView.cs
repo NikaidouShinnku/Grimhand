@@ -12,10 +12,16 @@ namespace Grimhand.Presentation.Battle
 {
     public sealed class BattleInventoryPanelView : MonoBehaviour
     {
+        const float PanelWidth = 560f;
+        const float PanelHeight = 640f;
+        const float PanelLeft = 12f;
+        const float PanelBottom = 120f;
+
         GameObject _panel;
         Text _bodyText;
         ScrollRect _scroll;
         RectTransform _contentRt;
+        Transform _battleRoot;
 
         BattleSession _session;
 
@@ -24,6 +30,7 @@ namespace Grimhand.Presentation.Battle
         public void Initialize(BattleSession session, Transform root)
         {
             _session = session;
+            _battleRoot = root;
             EnsureBuilt(root);
             Hide();
         }
@@ -65,7 +72,9 @@ namespace Grimhand.Presentation.Battle
         void Show()
         {
             _panel.SetActive(true);
-            _panel.transform.SetAsLastSibling();
+            if (_panel.TryGetComponent<RectTransform>(out var panelRt) && _battleRoot != null)
+                CombatantTooltipLayer.MountToFront(panelRt, _battleRoot);
+
             Refresh();
         }
 
@@ -183,8 +192,8 @@ namespace Grimhand.Presentation.Battle
             panelRt.anchorMin = new Vector2(0f, 0f);
             panelRt.anchorMax = new Vector2(0f, 0f);
             panelRt.pivot = new Vector2(0f, 0f);
-            panelRt.anchoredPosition = new Vector2(8f, 68f);
-            panelRt.sizeDelta = new Vector2(380f, 460f);
+            panelRt.anchoredPosition = new Vector2(PanelLeft, PanelBottom);
+            panelRt.sizeDelta = new Vector2(PanelWidth, PanelHeight);
 
             var panelImg = _panel.GetComponent<Image>();
             panelImg.color = new Color(0.08f, 0.09f, 0.13f, 0.96f);
@@ -242,7 +251,7 @@ namespace Grimhand.Presentation.Battle
             bodyGo.transform.SetParent(_contentRt, false);
             _bodyText = bodyGo.GetComponent<Text>();
             _bodyText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            _bodyText.fontSize = 15;
+            _bodyText.fontSize = 16;
             _bodyText.color = new Color(0.92f, 0.94f, 0.98f, 1f);
             _bodyText.alignment = TextAnchor.UpperLeft;
             _bodyText.horizontalOverflow = HorizontalWrapMode.Wrap;

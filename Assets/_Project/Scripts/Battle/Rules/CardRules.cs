@@ -70,7 +70,7 @@ namespace Grimhand.Battle.Rules
                     if (!c.IsAlive)
                         continue;
 
-                    if (!TargetReachRules.CanPickUnit(state, card, c))
+                    if (!TargetReachRules.CanPickUnit(state, card, c, owner))
                         continue;
 
                     result.Add(c);

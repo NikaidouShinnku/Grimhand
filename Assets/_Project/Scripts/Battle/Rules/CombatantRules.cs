@@ -15,6 +15,16 @@ namespace Grimhand.Battle.Rules
 
             combatant.Attack = combatant.BaseAttack + levelBonus * AttackPerLevel;
             combatant.Defense = combatant.BaseDefense + levelBonus * DefensePerLevel;
+
+            foreach (var status in combatant.Statuses)
+            {
+                var def = Status.StatusCatalog.Get(status.StatusId);
+                if (def == null)
+                    continue;
+
+                combatant.Attack += def.AttackModifierPerStack * status.Stacks;
+                combatant.Defense += def.DefenseModifierPerStack * status.Stacks;
+            }
         }
     }
 }

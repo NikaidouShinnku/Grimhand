@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f5582e9064bc8243bc8548cd2d30ee4, type: 3}
+  m_Name: RelicVisualCatalog_Demo
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.RelicVisualCatalogSO
+  Entries:
+  - RelicId: sun_pyramid
+    Icon: {fileID: 2284545748763688020, guid: ced92132299a0d54e897808443ef7bfb, type: 3}
+  - RelicId: knight_in_castle
+    Icon: {fileID: -6623528906051501683, guid: 6283797809a12594a8950ee93a631602, type: 3}
+  - RelicId: blood_alter
+    Icon: {fileID: 5438258779495193830, guid: 0a07de17a57b0284598f28ceeca680e1, type: 3}
+  - RelicId: jade_stone
+    Icon: {fileID: 6015271286682459145, guid: f2975d66ad6e3aa4984a500d7ee8c32f, type: 3}
+  - RelicId: jade_ring
+    Icon: {fileID: -1266609489103942726, guid: 56d55e4f7a0f7ff419adb2ec8e021614, type: 3}
+  - RelicId: jade_dagger
+    Icon: {fileID: 362625812377154807, guid: 3baa783742458fe4190aeef6c2fc890c, type: 3}
+  - RelicId: burning_boots
+    Icon: {fileID: -4526845226320170586, guid: 2c1bbaca209a1a54fbd5b8a5530bf84e, type: 3}
+  - RelicId: crimson_burning_boots
+    Icon: {fileID: -6967642853037097647, guid: d1b70eacdb70f404c9a7bc448e875ede, type: 3}
+  - RelicId: flame_sword
+    Icon: {fileID: 2853317181407726274, guid: 043fd17c11eef1e4a803e424a7754aa3, type: 3}
+  - RelicId: iron_armor
+    Icon: {fileID: 1279568147457065114, guid: 154fb40d386255e439b0c754d7a1d01f, type: 3}
+  - RelicId: warrior_helmet
+    Icon: {fileID: -3294998238704826182, guid: e1fe51a5be0af8a45b978d131979066d, type: 3}
+  - RelicId: cat_statue
+    Icon: {fileID: -7716979877945425955, guid: da9081a95aa25ad478cb7e0302108e80, type: 3}
+  - RelicId: elf_bow
+    Icon: {fileID: 3596011848950445253, guid: eba46720070c7f149b02234ceb2d25ae, type: 3}
+  - RelicId: dragon_ring
+    Icon: {fileID: 3064780854609333452, guid: c34978d77acbda14191be4ddf042305c, type: 3}
+  - RelicId: paladin_shield
+    Icon: {fileID: 3509095266776536460, guid: 1ed0ed5ac689527419a7dab448ec18f4, type: 3}
+  - RelicId: silver_moon_pendant
+    Icon: {fileID: 2076262218102695641, guid: 2264a9e8478573f4287ff6a28a7b5c89, type: 3}
+  - RelicId: taichi_ring
+    Icon: {fileID: 2016224780012889102, guid: 9eaf4a3a17266b046ba8118cc4c17e8b, type: 3}
+  - RelicId: leaf_of_miracle
+    Icon: {fileID: 2022231335846479030, guid: 3bf729da48298d5428ce74692d3af82f, type: 3}

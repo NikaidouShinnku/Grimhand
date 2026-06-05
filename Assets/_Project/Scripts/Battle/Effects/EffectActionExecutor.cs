@@ -62,36 +62,34 @@ namespace Grimhand.Battle.Effects
         {
             var target = TargetRules.ResolveTarget(state, actor, action.Target, card.InstanceId);
             var value = CardPowerRules.ComputeActionValue(action, actor);
+            if (action.Type == EffectActionType.DealDamage
+                && action.Target == EffectTarget.Self
+                && card.Keywords.Contains("sacrifice"))
+            {
+                value = RelicEffectRules.AdjustSacrificeSelfDamage(
+                    state.Config?.RunModifiers, actor, value);
+            }
+
             var beneficiary = target ?? actor;
 
             switch (action.Type)
             {
                 case EffectActionType.DealDamage:
-                    if (target != null)
-                    {
-                        var isSacrifice = card.Keywords.Contains("sacrifice");
-                        var primaryPower = TargetReachRules.AdjustPowerForTarget(state, action, target, value);
-                        DamageRules.ApplyDamage(state, actor, target, primaryPower, card.CardType, events,
-                            isSacrificeDamage: isSacrifice, rng: rng);
-
-                        if (action.SplashBehindTarget)
-                        {
-                            var behind = PositionRules.GetCombatantBehind(state, target);
-                            if (behind != null && behind.IsAlive)
-                            {
-                                var splashPower = System.Math.Max(1,
-                                    (int)System.Math.Round(primaryPower * action.SplashPowerPercent / 100f));
-                                DamageRules.ApplyDamage(state, actor, behind, splashPower, card.CardType, events, rng: rng);
-                            }
-                        }
-                    }
+                    if (action.Target == EffectTarget.AllEnemies)
+                        ExecuteDamageToAllEnemies(state, actor, card, action, value, events, rng);
+                    else if (target != null)
+                        ExecuteDamage(state, actor, card, action, target, value, events, rng);
                     break;
                 case EffectActionType.GainBlock:
-                    DamageRules.ApplyBlock(beneficiary, value, events);
+                {
+                    var totalBlock = value + RelicBattleRules.GetOutgoingDefenseFlatBonus(
+                        state.Config?.RunModifiers, actor);
+                    DamageRules.ApplyBlock(beneficiary, totalBlock, events);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Defense, beneficiary.Id, false, 0);
                     break;
+                }
                 case EffectActionType.Heal:
-                    DamageRules.ApplyHeal(state, beneficiary, value, events);
+                    DamageRules.ApplyHeal(state, beneficiary, value, events, actor);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, beneficiary.Id, false, 0);
                     break;
                 case EffectActionType.ApplyStatus:
@@ -135,13 +133,138 @@ namespace Grimhand.Battle.Effects
                     }
                     break;
                 case EffectActionType.GainBlockFromLastDamagePercent:
-                    var block = state.LastAction.DamageAmount * action.Value / 100;
-                    if (block > 0)
+                {
+                    var blockFromDamage = state.LastAction.DamageAmount * action.Value / 100;
+                    if (blockFromDamage > 0)
                     {
-                        DamageRules.ApplyBlock(actor, block, events);
+                        DamageRules.ApplyBlock(actor, blockFromDamage, events);
                         state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Defense, actor.Id, false, 0);
                     }
+
                     break;
+                }
+            }
+        }
+
+        static void ExecuteDamageToAllEnemies(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState card,
+            EffectActionSpec action,
+            int value,
+            List<BattleEvent> events,
+            BattleRng rng)
+        {
+            var enemyTeam = actor.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
+            var aliveAtCast = PositionRules.GetAliveSortedByPhysicalSlot(state, enemyTeam);
+            if (aliveAtCast.Count == 0)
+                return;
+
+            var targetIds = new List<string>(aliveAtCast.Count);
+            foreach (var unit in aliveAtCast)
+                targetIds.Add(unit.Id);
+
+            var totalLifesteal = 0;
+            var anyKill = false;
+
+            foreach (var targetId in targetIds)
+            {
+                var target = state.GetCombatant(targetId);
+                if (target == null || !target.IsAlive)
+                    continue;
+
+                var primaryPower = TargetReachRules.AdjustPowerForTarget(state, action, target, value);
+                primaryPower = CombatMechanicsRules.ComputeConditionalDamageBonus(state, action, target, primaryPower);
+
+                var isSacrifice = card.Keywords.Contains("sacrifice");
+                DamageRules.ApplyDamage(
+                    state,
+                    actor,
+                    target,
+                    primaryPower,
+                    card.CardType,
+                    events,
+                    isSacrificeDamage: isSacrifice,
+                    rng: rng,
+                    cardCost: card.Cost,
+                    ignoreDefPercent: action.IgnoreDefPercent);
+
+                if (state.LastAction.DamageAmount > 0)
+                    totalLifesteal += state.LastAction.DamageAmount;
+                if (state.LastAction.WasKill)
+                    anyKill = true;
+            }
+
+            var lifestealPercent = action.LifestealPercent;
+            if (lifestealPercent <= 0)
+                lifestealPercent = CombatMechanicsRules.GetPendingLifestealPercent(actor);
+
+            if (lifestealPercent > 0 && totalLifesteal > 0)
+            {
+                CombatMechanicsRules.ApplyLifesteal(state, actor, totalLifesteal, lifestealPercent, events);
+                if (action.LifestealPercent <= 0)
+                    CombatMechanicsRules.ConsumeVampAura(actor, events);
+            }
+
+            if (action.OnKillHealAmount > 0 && anyKill)
+                DamageRules.ApplyHeal(state, actor, action.OnKillHealAmount, events, actor);
+        }
+
+        static void ExecuteDamage(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState card,
+            EffectActionSpec action,
+            CombatantState target,
+            int value,
+            List<BattleEvent> events,
+            BattleRng rng)
+        {
+            if (target == null)
+                return;
+
+            var isSacrifice = card.Keywords.Contains("sacrifice");
+            var primaryPower = TargetReachRules.AdjustPowerForTarget(state, action, target, value);
+            primaryPower = CombatMechanicsRules.ComputeConditionalDamageBonus(state, action, target, primaryPower);
+
+            var lifestealPercent = action.LifestealPercent;
+            if (lifestealPercent <= 0)
+                lifestealPercent = CombatMechanicsRules.GetPendingLifestealPercent(actor);
+
+            DamageRules.ApplyDamage(
+                state,
+                actor,
+                target,
+                primaryPower,
+                card.CardType,
+                events,
+                isSacrificeDamage: isSacrifice,
+                rng: rng,
+                cardCost: card.Cost,
+                ignoreDefPercent: action.IgnoreDefPercent);
+
+            if (lifestealPercent > 0 && state.LastAction.DamageAmount > 0)
+            {
+                CombatMechanicsRules.ApplyLifesteal(
+                    state, actor, state.LastAction.DamageAmount, lifestealPercent, events);
+
+                if (action.LifestealPercent <= 0)
+                    CombatMechanicsRules.ConsumeVampAura(actor, events);
+            }
+
+            if (action.OnKillHealAmount > 0 && state.LastAction.WasKill)
+                DamageRules.ApplyHeal(state, actor, action.OnKillHealAmount, events, actor);
+
+            if (action.SplashBehindTarget)
+            {
+                var behind = PositionRules.GetCombatantBehind(state, target);
+                if (behind != null && behind.IsAlive)
+                {
+                    var splashPower = System.Math.Max(1,
+                        (int)System.Math.Round(primaryPower * action.SplashPowerPercent / 100f));
+                    DamageRules.ApplyDamage(state, actor, behind, splashPower, card.CardType, events,
+                        rng: rng, cardCost: card.Cost, ignoreDefPercent: action.IgnoreDefPercent);
+                }
             }
         }
     }

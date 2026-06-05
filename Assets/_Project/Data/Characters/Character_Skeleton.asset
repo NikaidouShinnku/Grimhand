@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84c30176d181a5747a85983cdd126a0c, type: 3}
+  m_Name: Character_Skeleton
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
+  CharacterId: char_skeleton
+  DisplayName: "\u9AB7\u9AC5\u5175"
+  Team: 1
+  Slot: 2
+  Level: 1
+  MaxHp: 25
+  BaseAttack: 6
+  BaseDefense: 3
+  Speed: 4
+  Deck: []
+  SkillPool:
+  - {fileID: 11400000, guid: 08ba5b79f0d6bd742bf01baedd820982, type: 2}
+  - {fileID: 11400000, guid: 073e05dff2a5cbf4eb7ec685ebad5862, type: 2}
+  - {fileID: 11400000, guid: 06602c6f8b4a67f4985b06517c014dd8, type: 2}
+  - {fileID: 11400000, guid: 11a640a40d5b50f4289e97797b181c15, type: 2}
+  EnemyRandomDeckSize: 8
+  EnemySkillPickMin: 2
+  EnemySkillPickMax: 4

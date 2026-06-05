@@ -147,6 +147,9 @@ namespace Grimhand.Presentation.Battle
                         case BattleEventKind.CharacterDied:
                             yield return HandleDeath(e);
                             break;
+                        case BattleEventKind.CharacterRevived:
+                            yield return HandleRevive(e);
+                            break;
                         case BattleEventKind.PortraitIdleRestored:
                             if (card != null && card.ActorId == e.CombatantId)
                             {
@@ -323,6 +326,22 @@ namespace Grimhand.Presentation.Battle
                 yield return target.PlayDeathSequence();
 
             ApplySnapshotAfterDeath(e.CombatantId);
+        }
+
+        IEnumerator HandleRevive(BattleEvent e)
+        {
+            ApplySnapshotAfterHeal(e.CombatantId, e.Amount);
+            if (_portraits.TryGetValue(e.CombatantId, out var target))
+            {
+                var unit = _session.Engine?.State?.GetCombatant(e.CombatantId);
+                if (unit != null)
+                    target.SetIdentity(e.CombatantId, unit.CharacterDefinitionId, true, unit.Team);
+
+                target.ShowHealNumber(e.Amount);
+            }
+
+            _screen?.Refresh();
+            yield return null;
         }
 
         static PortraitPoseKind ResolveCardPose(CardType cardType) =>

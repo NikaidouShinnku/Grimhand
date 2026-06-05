@@ -14,6 +14,7 @@ namespace Grimhand.Expedition
         public int LastXpReward { get; set; }
         public List<PartyMemberSnapshot> Party { get; } = new();
         public List<string> Relics { get; } = new();
+        public int MiracleLeafUsesRemaining { get; set; } = -1;
         public List<ExpeditionRouteOption> PendingRoutes { get; } = new();
         public BattleConfig CurrentBattleConfig { get; set; }
         public ExpeditionVictoryRewards PendingVictoryRewards { get; set; }

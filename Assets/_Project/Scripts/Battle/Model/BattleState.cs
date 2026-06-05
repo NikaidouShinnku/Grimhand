@@ -46,6 +46,9 @@ namespace Grimhand.Battle.Model
 
         public int NextCardInstanceId { get; set; } = 1;
 
+        public int MiracleLeafRevivesRemaining { get; set; }
+        public bool JadeDaggerFirstKillConsumed { get; set; }
+
         public CombatantState GetCombatant(string id)
         {
             foreach (var c in Combatants)

@@ -104,7 +104,7 @@ namespace Grimhand.Battle.Rules
             var groups = new Dictionary<int, List<CombatantState>>();
             foreach (var actor in actors)
             {
-                var speed = StatusRules.GetEffectiveSpeed(actor);
+                var speed = StatusRules.GetEffectiveSpeed(state, actor);
                 if (!groups.TryGetValue(speed, out var list))
                 {
                     list = new List<CombatantState>();

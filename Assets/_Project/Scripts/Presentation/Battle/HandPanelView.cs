@@ -40,7 +40,8 @@ namespace Grimhand.Presentation.Battle
             IReadOnlyDictionary<string, CardDefinitionSO> definitions,
             Action<int> onCardClick,
             Action<CardInstanceState, RectTransform> onHoverEnter,
-            Action onHoverExit)
+            Action onHoverExit,
+            CombatantState damagePreviewTarget = null)
         {
             if (state == null || session?.Engine == null)
                 return;
@@ -89,7 +90,7 @@ namespace Grimhand.Presentation.Battle
                 var interactable = session.CanInteractWithBattle() && !polluted
                     && (isAwaitingTarget || isQueued || canAfford);
                 var visual = CardVisualResolver.Resolve(card, catalog, characterVisuals, definitions);
-                var stats = BattleUiFormatters.BuildCardStatsLine(state, draft, card);
+                var stats = BattleUiFormatters.BuildCardStatsLine(state, draft, card, damagePreviewTarget: damagePreviewTarget);
                 var badge = isQueued
                     ? BattleUiFormatters.BuildSelectionBadge(state, draft, card, resolveSteps)
                     : null;

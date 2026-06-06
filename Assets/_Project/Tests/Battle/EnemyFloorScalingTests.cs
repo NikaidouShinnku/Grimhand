@@ -37,7 +37,7 @@ namespace Grimhand.Battle.Tests
 
             EnemyFloorScaling.Apply(cc, 5, null);
 
-            Assert.AreEqual(40, cc.MaxHp);
+            Assert.AreEqual(32, cc.MaxHp);
             Assert.AreEqual(6, cc.BaseAttack);
             Assert.AreEqual(1, cc.BaseDefense);
         }

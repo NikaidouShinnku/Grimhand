@@ -1,4 +1,4 @@
-namespace Grimhand.Content
+namespace Grimhand.Battle.Model
 {
     public enum CardRarity
     {

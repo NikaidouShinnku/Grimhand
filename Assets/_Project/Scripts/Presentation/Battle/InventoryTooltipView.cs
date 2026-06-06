@@ -7,7 +7,8 @@ namespace Grimhand.Presentation.Battle
 {
     public sealed class InventoryTooltipView : MonoBehaviour
     {
-        const float HideDelaySeconds = 0.04f;
+        const float HideDelaySeconds = 0.05f;
+        const float MaxWidth = 340f;
 
         RectTransform _panel;
         Text _title;
@@ -23,35 +24,32 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             _built = true;
-            var go = new GameObject("InventoryTooltip", typeof(RectTransform), typeof(Image), typeof(CanvasGroup));
+            var go = new GameObject("InventoryTooltip", typeof(RectTransform), typeof(Image), typeof(CanvasGroup), typeof(ContentSizeFitter));
             go.transform.SetParent(parent, false);
             _panel = go.GetComponent<RectTransform>();
-            _panel.sizeDelta = new Vector2(280f, 120f);
+            _panel.sizeDelta = new Vector2(MaxWidth, 120f);
             var bg = go.GetComponent<Image>();
             bg.color = new Color(0.06f, 0.07f, 0.1f, 0.97f);
             bg.raycastTarget = false;
             var group = go.GetComponent<CanvasGroup>();
             group.blocksRaycasts = false;
             group.interactable = false;
+            var fitter = go.GetComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
             go.SetActive(false);
 
-            var titleGo = new GameObject("Title", typeof(RectTransform), typeof(Text));
+            var titleGo = new GameObject("Title", typeof(RectTransform), typeof(Text), typeof(LayoutElement));
             titleGo.transform.SetParent(go.transform, false);
-            var titleRt = titleGo.GetComponent<RectTransform>();
-            titleRt.anchorMin = new Vector2(0f, 1f);
-            titleRt.anchorMax = new Vector2(1f, 1f);
-            titleRt.offsetMin = new Vector2(10f, -34f);
-            titleRt.offsetMax = new Vector2(-10f, -6f);
+            var titleLe = titleGo.GetComponent<LayoutElement>();
+            titleLe.preferredWidth = MaxWidth - 20f;
             _title = titleGo.GetComponent<Text>();
             Style(_title, 16, TextAnchor.UpperLeft);
 
-            var bodyGo = new GameObject("Body", typeof(RectTransform), typeof(Text));
+            var bodyGo = new GameObject("Body", typeof(RectTransform), typeof(Text), typeof(LayoutElement));
             bodyGo.transform.SetParent(go.transform, false);
-            var bodyRt = bodyGo.GetComponent<RectTransform>();
-            bodyRt.anchorMin = Vector2.zero;
-            bodyRt.anchorMax = Vector2.one;
-            bodyRt.offsetMin = new Vector2(10f, 8f);
-            bodyRt.offsetMax = new Vector2(-10f, -38f);
+            var bodyLe = bodyGo.GetComponent<LayoutElement>();
+            bodyLe.preferredWidth = MaxWidth - 20f;
             _body = bodyGo.GetComponent<Text>();
             Style(_body, 14, TextAnchor.UpperLeft);
             _body.fontStyle = FontStyle.Normal;
@@ -90,7 +88,50 @@ namespace Grimhand.Presentation.Battle
             var corners = new Vector3[4];
             anchor.GetWorldCorners(corners);
             var rightCenter = (corners[2] + corners[3]) * 0.5f;
-            _panel.position = rightCenter + new Vector3(_panel.rect.width * 0.5f + 10f, 0f, 0f);
+            var leftCenter = (corners[0] + corners[1]) * 0.5f;
+            var canvas = _panel.GetComponentInParent<Canvas>();
+            var canvasRect = canvas != null ? canvas.transform as RectTransform : null;
+
+            var placeOnRight = true;
+            if (canvasRect != null)
+            {
+                var canvasCorners = new Vector3[4];
+                canvasRect.GetWorldCorners(canvasCorners);
+                var canvasRight = canvasCorners[2].x;
+                var estimatedRightEdge = rightCenter.x + _panel.rect.width + 16f;
+                if (estimatedRightEdge > canvasRight - 12f)
+                    placeOnRight = false;
+            }
+
+            if (placeOnRight)
+                _panel.position = rightCenter + new Vector3(_panel.rect.width * 0.5f + 12f, 0f, 0f);
+            else
+                _panel.position = leftCenter + new Vector3(-_panel.rect.width * 0.5f - 12f, 0f, 0f);
+
+            if (canvasRect != null)
+                ClampToCanvas(canvasRect);
+        }
+
+        void ClampToCanvas(RectTransform canvasRect)
+        {
+            var canvasCorners = new Vector3[4];
+            canvasRect.GetWorldCorners(canvasCorners);
+            var panelCorners = new Vector3[4];
+            _panel.GetWorldCorners(panelCorners);
+
+            var shift = Vector3.zero;
+            if (panelCorners[2].x > canvasCorners[2].x - 8f)
+                shift.x = canvasCorners[2].x - 8f - panelCorners[2].x;
+            else if (panelCorners[0].x < canvasCorners[0].x + 8f)
+                shift.x = canvasCorners[0].x + 8f - panelCorners[0].x;
+
+            if (panelCorners[1].y > canvasCorners[1].y - 8f)
+                shift.y = canvasCorners[1].y - 8f - panelCorners[1].y;
+            else if (panelCorners[0].y < canvasCorners[0].y + 8f)
+                shift.y = canvasCorners[0].y + 8f - panelCorners[0].y;
+
+            if (shift.sqrMagnitude > 0.0001f)
+                _panel.position += shift;
         }
 
         void ScheduleHide(GameObject target)
@@ -111,6 +152,11 @@ namespace Grimhand.Presentation.Battle
             if (_activeTarget != target)
                 yield break;
 
+            HideImmediate();
+        }
+
+        void HideImmediate()
+        {
             if (_panel != null)
                 _panel.gameObject.SetActive(false);
             _activeTarget = null;
@@ -131,9 +177,7 @@ namespace Grimhand.Presentation.Battle
         public void Hide()
         {
             CancelHide();
-            _activeTarget = null;
-            if (_panel != null)
-                _panel.gameObject.SetActive(false);
+            HideImmediate();
         }
 
         static void Style(Text text, int size, TextAnchor anchor)

@@ -64,7 +64,7 @@ namespace Grimhand.Battle
 
         public bool TryBeginConsumableUse(string consumableId, int slotIndex)
         {
-            if (_state.Phase != TurnPhase.Planning || _state.ConsumableUsedThisBattle)
+            if (_state.Phase != TurnPhase.Planning)
                 return false;
 
             if (!Consumables.ConsumableDatabase.TryGet(consumableId, out var definition))

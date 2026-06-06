@@ -73,7 +73,12 @@ namespace Grimhand.Presentation.Battle
             return "";
         }
 
-        public static string BuildCardStatsLine(BattleState state, PlanningDraft draft, CardInstanceState card)
+        public static string BuildCardStatsLine(
+            BattleState state,
+            PlanningDraft draft,
+            CardInstanceState card,
+            bool preferFormulas = false,
+            CombatantState damagePreviewTarget = null)
         {
             if (card == null)
                 return "";
@@ -81,6 +86,7 @@ namespace Grimhand.Presentation.Battle
             var ownerId = state != null ? PositionRules.GetOwnerCombatantId(state, card) : null;
             var owner = ownerId != null ? state.GetCombatant(ownerId) : null;
             var pickSide = CardRules.GetRequiredTargetPick(card);
+            var previewTarget = ResolveDamagePreviewTarget(state, draft, card, owner, damagePreviewTarget);
 
             var lines = new List<string>();
             var keywordLine = CardFaceKeywordFormatter.Build(card, owner, state);
@@ -90,12 +96,12 @@ namespace Grimhand.Presentation.Battle
             var normalActions = CollectNormalActions(card);
             var remaining = normalActions;
 
-            if (TryDescribeAoEEnemyDamage(state, card, normalActions, owner, out var aoeLine, out remaining))
+            if (TryDescribeAoEEnemyDamage(state, card, normalActions, owner, preferFormulas, out var aoeLine, out remaining))
             {
                 lines.Add(aoeLine);
                 normalActions = remaining;
             }
-            else if (TryDescribeAllAllyTeamEffect(normalActions, owner, out var allyLine, out remaining))
+            else if (TryDescribeAllAllyTeamEffect(normalActions, owner, preferFormulas, out var allyLine, out remaining))
             {
                 lines.Add(allyLine);
                 normalActions = remaining;
@@ -113,7 +119,8 @@ namespace Grimhand.Presentation.Battle
                     continue;
 
                 var usesPick = UsesManualPick(action, pickSide);
-                var clause = DescribeEffectClause(action, owner, usesPick, pickSide, state, card);
+                var clause = DescribeEffectClause(
+                    action, owner, usesPick, pickSide, state, card, reaction: false, preferFormulas, previewTarget);
                 if (string.IsNullOrEmpty(clause))
                     continue;
 
@@ -142,7 +149,7 @@ namespace Grimhand.Presentation.Battle
                 if (action.Condition == ReactionConditionType.None)
                     continue;
 
-                var clause = DescribeEffectClause(action, owner, usesPick: false, pickSide, state, card, reaction: true);
+                var clause = DescribeEffectClause(action, owner, usesPick: false, pickSide, state, card, reaction: true, preferFormulas);
                 if (!string.IsNullOrEmpty(clause))
                     lines.Add(clause);
             }
@@ -169,7 +176,7 @@ namespace Grimhand.Presentation.Battle
         }
 
         public static string BuildCardStatsLinePreview(CardInstanceState card) =>
-            BuildCardStatsLine(state: null, draft: null, card);
+            BuildCardStatsLine(state: null, draft: null, card, preferFormulas: true);
 
         static bool UsesManualPick(EffectActionSpec action, TargetPickSide pickSide)
         {
@@ -251,7 +258,9 @@ namespace Grimhand.Presentation.Battle
             TargetPickSide pickSide,
             BattleState state = null,
             CardInstanceState card = null,
-            bool reaction = false)
+            bool reaction = false,
+            bool preferFormulas = false,
+            CombatantState damagePreviewTarget = null)
         {
             var prefix = "";
             var target = usesPick ? "" : DescribeAutoTarget(action.Target, action.Type);
@@ -261,19 +270,38 @@ namespace Grimhand.Presentation.Battle
             {
                 case EffectActionType.DealDamage:
                 {
-                    var dmg = state != null && owner != null && card != null
-                        ? CardPreviewRules.ComputeExpectedDamage(state, owner, card, action)
-                        : CardPowerRules.ComputeActionValue(action, owner);
                     var extra = DescribeDamageExtras(action);
                     if (action.Target == EffectTarget.Self)
-                        return prefix + $"对自身造成 {dmg} 点伤害{extra}";
+                    {
+                        var selfDmg = preferFormulas && owner == null && CardActionValueText.HasScaledComponent(action)
+                            ? CardActionValueText.FormatPlain(action, useDefense: false)
+                            : (state != null && owner != null && card != null
+                                ? CardPreviewRules.ComputeExpectedDamage(state, owner, card, action)
+                                : CardPowerRules.ComputeActionValue(action, owner)).ToString();
+                        return prefix + $"对自身造成 {selfDmg} 点伤害{extra}";
+                    }
 
-                    return prefix + reachTag + PrefixTarget(target, $"造成 {dmg} 点伤害{extra}");
+                    string body;
+                    if (!preferFormulas
+                        && damagePreviewTarget != null
+                        && state != null
+                        && owner != null
+                        && card != null
+                        && CardPreviewRules.CanPreviewDamageAgainstTarget(state, owner, card, action, damagePreviewTarget))
+                    {
+                        body = $"造成 {CardPreviewRules.PreviewHpDamageAgainstTarget(state, owner, card, action, damagePreviewTarget)} 点伤害";
+                    }
+                    else if (owner != null && state != null && card != null && !preferFormulas)
+                        body = $"造成 {CardPreviewRules.ComputeExpectedDamage(state, owner, card, action)} 点伤害";
+                    else
+                        body = CardActionValueText.DescribeDamage(action, owner, preferFormulas);
+
+                    return prefix + reachTag + PrefixTarget(target, body + extra);
                 }
                 case EffectActionType.GainBlock:
                 {
-                    var block = CardPowerRules.ComputeActionValue(action, owner);
-                    return prefix + reachTag + PrefixTarget(target, $"获得 {block} 点护甲");
+                    var body = CardActionValueText.DescribeBlock(action, owner, preferFormulas);
+                    return prefix + reachTag + PrefixTarget(target, body);
                 }
                 case EffectActionType.GainBlockFromLastDamagePercent:
                     return prefix + (reaction
@@ -283,11 +311,17 @@ namespace Grimhand.Presentation.Battle
                     return prefix + $"将 {action.Value}% 所受伤害反弹给攻击者";
                 case EffectActionType.Heal:
                 {
-                    var heal = CardPowerRules.ComputeActionValue(action, owner);
                     if (action.Target == EffectTarget.Self)
-                        return prefix + $"恢复 {heal} 点生命";
+                    {
+                        if (preferFormulas && owner == null && action.ScaleWithAttack)
+                            return prefix + $"恢复自身 {CardActionValueText.FormatPlain(action, useDefense: false)} 的生命";
 
-                    return prefix + reachTag + PrefixTarget(target, $"恢复 {heal} 点生命");
+                        var selfHeal = CardPowerRules.ComputeActionValue(action, owner);
+                        return prefix + $"恢复 {selfHeal} 点生命";
+                    }
+
+                    var body = CardActionValueText.DescribeHeal(action, owner, preferFormulas);
+                    return prefix + reachTag + PrefixTarget(target, body);
                 }
                 case EffectActionType.DrawCards:
                     return prefix + $"抽 {action.Value} 张牌";
@@ -352,23 +386,27 @@ namespace Grimhand.Presentation.Battle
             CardInstanceState card,
             List<EffectActionSpec> actions,
             CombatantState owner,
+            bool preferFormulas,
             out string line,
             out List<EffectActionSpec> remaining)
         {
             line = "";
             remaining = actions;
 
-            int ExpectedDamage(EffectActionSpec action) =>
-                state != null && owner != null && card != null
-                    ? CardPreviewRules.ComputeExpectedDamage(state, owner, card, action)
-                    : CardPowerRules.ComputeActionValue(action, owner);
+            string FormatDamage(EffectActionSpec action)
+            {
+                if (owner != null && state != null && card != null && !preferFormulas)
+                    return $"对全体敌人各造成 {CardPreviewRules.ComputeExpectedDamage(state, owner, card, action)} 点伤害{DescribeDamageExtras(action)}";
+
+                return $"对全体敌人各{CardActionValueText.DescribeDamage(action, owner, preferFormulas)}{DescribeDamageExtras(action)}";
+            }
 
             foreach (var action in actions)
             {
                 if (action.Type != EffectActionType.DealDamage || action.Target != EffectTarget.AllEnemies)
                     continue;
 
-                line = $"对全体敌人各造成 {ExpectedDamage(action)} 点伤害{DescribeDamageExtras(action)}";
+                line = FormatDamage(action);
                 remaining = new List<EffectActionSpec>();
                 foreach (var other in actions)
                 {
@@ -404,7 +442,7 @@ namespace Grimhand.Presentation.Battle
                 || front.AttackScalePercent != back.AttackScalePercent)
                 return false;
 
-            line = $"对全体敌人各造成 {ExpectedDamage(front)} 点伤害{DescribeDamageExtras(front)}";
+            line = FormatDamage(front);
             remaining = new List<EffectActionSpec>();
             foreach (var action in actions)
             {
@@ -464,10 +502,11 @@ namespace Grimhand.Presentation.Battle
         static bool TryDescribeAllAllyTeamEffect(
             List<EffectActionSpec> actions,
             CombatantState owner,
+            bool preferFormulas,
             out string line,
             out List<EffectActionSpec> remaining)
         {
-            if (TryDescribeAllAllyBlock(actions, owner, out line, out remaining))
+            if (TryDescribeAllAllyBlock(actions, owner, preferFormulas, out line, out remaining))
                 return true;
 
             return TryDescribeAllAllyAttackUp(actions, owner, out line, out remaining);
@@ -476,6 +515,7 @@ namespace Grimhand.Presentation.Battle
         static bool TryDescribeAllAllyBlock(
             List<EffectActionSpec> actions,
             CombatantState owner,
+            bool preferFormulas,
             out string line,
             out List<EffectActionSpec> remaining)
         {
@@ -505,8 +545,13 @@ namespace Grimhand.Presentation.Battle
             if (front.Value != middle.Value || front.Value != back.Value)
                 return false;
 
-            var block = CardPowerRules.ComputeActionValue(front, owner);
-            line = $"三名队友各获得 {block} 点护甲";
+            if (preferFormulas && owner == null && front.ScaleWithDefense)
+                line = $"三名队友各获得 {CardActionValueText.FormatPlain(front, useDefense: true)} 的护甲";
+            else
+            {
+                var block = CardPowerRules.ComputeActionValue(front, owner);
+                line = $"三名队友各获得 {block} 点护甲";
+            }
             remaining = new List<EffectActionSpec>();
             foreach (var action in actions)
             {
@@ -767,14 +812,11 @@ namespace Grimhand.Presentation.Battle
 
                 TryGetOwnerResolveOrder(state, playerOrder, card, out var ownerOrder, out var ownerTotal);
 
-                var targetNote = "";
-                if (snapshot.TurnTargetByCardId.TryGetValue(step.CardInstanceId, out var assignedId)
-                    && !string.IsNullOrEmpty(assignedId))
-                {
-                    var assigned = state.GetCombatant(assignedId);
-                    if (assigned != null)
-                        targetNote = $" → {assigned.DisplayName}";
-                }
+                string assignedId = null;
+                if (snapshot.TurnTargetByCardId.TryGetValue(step.CardInstanceId, out var snapshotTarget))
+                    assignedId = snapshotTarget;
+
+                var targetNote = BuildQueueTargetNote(state, owner, card, assignedId);
 
                 var ownerOrderNote = ownerTotal > 1 ? $" [{ownerOrder}/{ownerTotal}]" : "";
                 lines.Add($"#{global} {ownerName} · {card.DisplayName}{ownerOrderNote}{targetNote}");
@@ -822,20 +864,97 @@ namespace Grimhand.Presentation.Battle
 
                 TryGetOwnerResolveOrder(state, playerOrder, card, out var ownerOrder, out var ownerTotal);
 
-                var targetNote = "";
                 var assignedId = draft?.GetAssignedTarget(step.CardInstanceId);
-                if (!string.IsNullOrEmpty(assignedId))
-                {
-                    var assigned = state.GetCombatant(assignedId);
-                    if (assigned != null)
-                        targetNote = $" → {assigned.DisplayName}";
-                }
-
+                var targetNote = BuildQueueTargetNote(state, owner, card, assignedId);
                 var ownerOrderNote = ownerTotal > 1 ? $" [{ownerOrder}/{ownerTotal}]" : "";
                 lines.Add($"#{global} {ownerName} · {card.DisplayName}{ownerOrderNote}{targetNote}");
             }
 
             return lines;
+        }
+
+        static CombatantState ResolveDamagePreviewTarget(
+            BattleState state,
+            PlanningDraft draft,
+            CardInstanceState card,
+            CombatantState owner,
+            CombatantState hoverTarget)
+        {
+            if (state == null || card == null || !CardPreviewRules.CardUsesSingleTargetEnemyPreview(card))
+                return null;
+
+            var assignedId = draft?.GetAssignedTarget(card.InstanceId);
+            if (!string.IsNullOrEmpty(assignedId))
+            {
+                var assigned = state.GetCombatant(assignedId);
+                if (assigned != null && assigned.IsAlive)
+                    return assigned;
+            }
+
+            if (draft?.AwaitingTargetCardId != card.InstanceId || hoverTarget == null || owner == null)
+                return null;
+
+            foreach (var action in card.Actions)
+            {
+                if (action.Condition != ReactionConditionType.None || action.Type != EffectActionType.DealDamage)
+                    continue;
+
+                if (CardPreviewRules.CanPreviewDamageAgainstTarget(state, owner, card, action, hoverTarget))
+                    return hoverTarget;
+            }
+
+            return null;
+        }
+
+        static string BuildQueueTargetNote(
+            BattleState state,
+            CombatantState owner,
+            CardInstanceState card,
+            string assignedId)
+        {
+            if (state == null || card == null || owner == null)
+                return "";
+
+            if (CardPreviewRules.CardUsesAoeEnemyPreview(card))
+            {
+                var aoe = CardPreviewRules.FormatAoeDamagePerEnemy(state, owner, card);
+                return string.IsNullOrEmpty(aoe) ? "" : $" → {aoe}";
+            }
+
+            if (string.IsNullOrEmpty(assignedId))
+                return "";
+
+            var assigned = state.GetCombatant(assignedId);
+            if (assigned == null)
+                return "";
+
+            var damageNote = FormatPrimaryDamagePreview(state, owner, card, assigned);
+            return string.IsNullOrEmpty(damageNote)
+                ? $" → {assigned.DisplayName}"
+                : $" → {assigned.DisplayName} ({damageNote})";
+        }
+
+        static string FormatPrimaryDamagePreview(
+            BattleState state,
+            CombatantState owner,
+            CardInstanceState card,
+            CombatantState target)
+        {
+            if (state == null || owner == null || card == null || target == null)
+                return "";
+
+            foreach (var action in card.Actions)
+            {
+                if (action.Condition != ReactionConditionType.None || action.Type != EffectActionType.DealDamage)
+                    continue;
+
+                if (!CardPreviewRules.CanPreviewDamageAgainstTarget(state, owner, card, action, target))
+                    continue;
+
+                return $"{CardPreviewRules.PreviewHpDamageAgainstTarget(state, owner, card, action, target)}伤";
+            }
+
+            return "";
         }
 
         public static List<string> BuildSelectedQueueSummary(
@@ -858,20 +977,13 @@ namespace Grimhand.Presentation.Battle
                 TryGetOwnerResolveOrder(state, playerResolveOrder, card, out var ownerOrder, out var ownerTotal);
 
                 var ownerCombatantId = PositionRules.GetOwnerCombatantId(state, card);
-                var ownerName = ownerCombatantId != null
-                    ? state.GetCombatant(ownerCombatantId)?.DisplayName
-                    : null;
+                var owner = ownerCombatantId != null ? state.GetCombatant(ownerCombatantId) : null;
+                var ownerName = owner?.DisplayName;
                 if (string.IsNullOrEmpty(ownerName))
                     ownerName = ShortOwner(card.OwnerCharacterId);
 
-                var targetNote = "";
                 var assignedId = draft.GetAssignedTarget(id);
-                if (!string.IsNullOrEmpty(assignedId))
-                {
-                    var assigned = state.GetCombatant(assignedId);
-                    if (assigned != null)
-                        targetNote = $" → {assigned.DisplayName}";
-                }
+                var targetNote = BuildQueueTargetNote(state, owner, card, assignedId);
 
                 var ownerOrderNote = ownerTotal > 1 ? $" [{ownerOrder}/{ownerTotal}]" : "";
                 lines.Add($"#{global} {ownerName} · {card.DisplayName}{ownerOrderNote}{targetNote}");

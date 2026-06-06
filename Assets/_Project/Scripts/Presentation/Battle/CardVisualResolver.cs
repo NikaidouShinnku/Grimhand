@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Grimhand.Battle;
 using Grimhand.Battle.Model;
 using Grimhand.Content;
 
@@ -83,6 +84,7 @@ namespace Grimhand.Presentation.Battle
                     continue;
 
                 map[card.CardId] = card;
+                CardRarityTable.Register(card.CardId, card.Rarity);
             }
         }
 

@@ -56,6 +56,28 @@ namespace Grimhand.Battle.Rules
             return list;
         }
 
+        /// <summary>
+        /// 结算开始时存活单位的 Id 快照（按物理站位排序）。
+        /// AOE、链式溅射等效果在主目标死亡或阵型前移后仍应命中快照中的单位。
+        /// </summary>
+        public static List<string> SnapshotAliveCombatantIds(BattleState state, TeamSide team)
+        {
+            var alive = GetAliveSortedByPhysicalSlot(state, team);
+            var ids = new List<string>(alive.Count);
+            foreach (var unit in alive)
+                ids.Add(unit.Id);
+            return ids;
+        }
+
+        /// <summary>
+        /// 结算开始时，比 target 更深一格存活单位的 Id；主目标可先死亡，溅射仍命中该 Id。
+        /// </summary>
+        public static string SnapshotCombatantBehindId(BattleState state, CombatantState target)
+        {
+            var behind = GetCombatantBehind(state, target);
+            return behind?.Id;
+        }
+
         public static int GetEffectiveRank(BattleState state, CombatantState combatant)
         {
             if (state == null || combatant == null || !combatant.IsAlive)

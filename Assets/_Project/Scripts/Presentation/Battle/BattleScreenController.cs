@@ -31,6 +31,19 @@ namespace Grimhand.Presentation.Battle
             _portraitDirector = GetComponent<BattlePortraitDirector>();
             if (_portraitDirector == null)
                 _portraitDirector = gameObject.AddComponent<BattlePortraitDirector>();
+
+            EnsureCatalogReferences();
+        }
+
+        void EnsureCatalogReferences()
+        {
+#if UNITY_EDITOR
+            if (consumableVisualCatalog == null)
+            {
+                consumableVisualCatalog = UnityEditor.AssetDatabase.LoadAssetAtPath<ConsumableVisualCatalogSO>(
+                    "Assets/_Project/Data/ConsumableVisualCatalog_Demo.asset");
+            }
+#endif
         }
 
         void Start()

@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using Grimhand.Battle.Model;
 using Grimhand.Content;
 using UnityEditor;
 using UnityEngine;

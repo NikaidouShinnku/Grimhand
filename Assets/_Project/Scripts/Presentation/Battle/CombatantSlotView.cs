@@ -1,3 +1,4 @@
+using System;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
 using Grimhand.Content;
@@ -46,6 +47,8 @@ namespace Grimhand.Presentation.Battle
         RectTransform _portraitHit;
         Outline _targetOutline;
         CombatantDetailPopupView _detailPopup;
+        Action<CombatantState> _hoverPreviewEnter;
+        Action _hoverPreviewExit;
         CombatantPortraitView _portraitView;
         CombatantState _currentUnit;
         BattleUiIconCatalogSO _currentIcons;
@@ -369,6 +372,12 @@ namespace Grimhand.Presentation.Battle
 
         public Vector3 GetDuelReferenceWorldPosition() => GetFeetWorldPosition();
 
+        public void SetHoverPreviewCallbacks(Action<CombatantState> onEnter, Action onExit)
+        {
+            _hoverPreviewEnter = onEnter;
+            _hoverPreviewExit = onExit;
+        }
+
         public void SetSelectHandler(System.Action<string> onSelect)
         {
             if (selectButton == null)
@@ -609,7 +618,9 @@ namespace Grimhand.Presentation.Battle
 
             _hovered = true;
             ApplyTargetVisuals();
-            if (!_targetMode || !_isValidTarget)
+            if (_targetMode && _isValidTarget && _currentUnit != null)
+                _hoverPreviewEnter?.Invoke(_currentUnit);
+            else if (!_targetMode || !_isValidTarget)
             {
                 _detailPopup?.Refresh(_currentUnit, _currentIcons, _showExpBar, _currentUnit.Xp);
                 _detailPopup?.SetVisible(true);
@@ -623,6 +634,8 @@ namespace Grimhand.Presentation.Battle
 
             _hovered = false;
             ApplyTargetVisuals();
+            if (_targetMode && _isValidTarget)
+                _hoverPreviewExit?.Invoke();
             _detailPopup?.SetVisible(false);
         }
 

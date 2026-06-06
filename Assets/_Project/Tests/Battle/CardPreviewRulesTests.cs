@@ -84,19 +84,49 @@ namespace Grimhand.Battle.Tests
             return c;
         }
 
-        static void AddEnemy(BattleState state, FormationSlot slot)
+        [Test]
+        public void PreviewHpDamage_SubtractsBlockFromFlatDamage()
         {
-            state.Combatants.Add(new CombatantState
+            var state = BuildState();
+            var owner = AddPlayer(state, FormationSlot.Middle, attack: 0);
+            var enemy = AddEnemy(state, FormationSlot.Back, block: 2);
+            var card = AttackCard(value: 10, scaleWithAttack: false);
+
+            var preview = CardPreviewRules.PreviewHpDamageAgainstTarget(
+                state, owner, card, card.Actions[0], enemy);
+
+            Assert.AreEqual(8, preview);
+        }
+
+        [Test]
+        public void PreviewHpDamage_BaseExpectedDamageIgnoresTargetDefense()
+        {
+            var state = BuildState();
+            var owner = AddPlayer(state, FormationSlot.Middle, attack: 0);
+            AddEnemy(state, FormationSlot.Back, block: 2);
+            var card = AttackCard(value: 10, scaleWithAttack: false);
+
+            var basePreview = CardPreviewRules.ComputeExpectedDamage(
+                state, owner, card, card.Actions[0]);
+            Assert.AreEqual(10, basePreview);
+        }
+
+        static CombatantState AddEnemy(BattleState state, FormationSlot slot, int block = 0)
+        {
+            var enemy = new CombatantState
             {
                 Id = $"enemy_{slot}",
                 Team = TeamSide.Enemy,
                 Slot = slot,
                 Hp = 20,
-                MaxHp = 20
-            });
+                MaxHp = 20,
+                Block = block
+            };
+            state.Combatants.Add(enemy);
+            return enemy;
         }
 
-        static CardInstanceState AttackCard(int value, int cost = 1)
+        static CardInstanceState AttackCard(int value, int cost = 1, bool scaleWithAttack = true)
         {
             return new CardInstanceState
             {
@@ -108,7 +138,7 @@ namespace Grimhand.Battle.Tests
                     {
                         Type = EffectActionType.DealDamage,
                         Value = value,
-                        ScaleWithAttack = true
+                        ScaleWithAttack = scaleWithAttack
                     }
                 }
             };

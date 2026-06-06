@@ -213,13 +213,6 @@ namespace Grimhand.Presentation.Battle
             if (string.IsNullOrEmpty(consumableId))
                 return false;
 
-            if (Engine.State.ConsumableUsedThisBattle)
-            {
-                AddLog("本场战斗已使用过消耗品。");
-                NotifyChanged();
-                return false;
-            }
-
             if (!ConsumableDatabase.TryGet(consumableId, out var definition))
                 return false;
 
@@ -337,16 +330,25 @@ namespace Grimhand.Presentation.Battle
             return true;
         }
 
-        public bool ResolveShopChoice(int choiceIndex)
+        public bool BuyShopOffer(int slotIndex)
         {
-            if (Expedition?.TryResolveShopChoice(choiceIndex) != true)
+            if (Expedition?.TryBuyShopOffer(slotIndex) != true)
                 return false;
 
             if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
                 AddLog(Expedition.Run.LastEventMessage);
 
-            if (Expedition.Run.Phase == ExpeditionPhase.RouteSelect)
-                AddLog("请选择前进路线");
+            NotifyChanged();
+            return true;
+        }
+
+        public bool RefreshShop()
+        {
+            if (Expedition?.TryRefreshShop() != true)
+                return false;
+
+            if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
+                AddLog(Expedition.Run.LastEventMessage);
 
             NotifyChanged();
             return true;
@@ -458,15 +460,20 @@ namespace Grimhand.Presentation.Battle
 
         public bool ClaimVictoryCard() => ClaimRewardCard();
 
-        public bool SkipVictoryOptionalRewards()
+        public bool SkipAllRemainingRewards()
         {
-            if (Expedition?.TrySkipVictoryOptionalRewards() != true)
+            if (Expedition?.TrySkipAllRemainingRewards() != true)
                 return false;
 
-            AddLog("放弃剩余奖励");
+            AddLog("已放弃剩余奖励");
+            if (Expedition.Run.Phase == ExpeditionPhase.RouteSelect)
+                AddLog("请选择前进路线");
+
             NotifyChanged();
             return true;
         }
+
+        public bool SkipVictoryOptionalRewards() => SkipAllRemainingRewards();
 
         public bool ClaimChestGold() => ClaimRewardGold();
 

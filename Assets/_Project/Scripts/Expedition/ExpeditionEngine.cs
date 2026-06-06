@@ -4,6 +4,7 @@ using Grimhand.Core;
 using Grimhand.Expedition.Events;
 using Grimhand.Expedition.Map;
 using Grimhand.Expedition.Model;
+using Grimhand.Expedition.Shop;
 
 namespace Grimhand.Expedition
 {
@@ -23,6 +24,7 @@ namespace Grimhand.Expedition
         }
 
         public ExpeditionRunState Run => _run;
+        public ExpeditionConfig Config => _config;
 
         public void StartRun()
         {
@@ -51,6 +53,7 @@ namespace Grimhand.Expedition
             _run.PendingRewardPickup = null;
             _run.PendingEvent = null;
             _run.PendingShrine = null;
+            _run.Shop.Clear();
             _run.CurrentBattleConfig = null;
 
             _run.Map = ExpeditionMapGenerator.Generate(_config, _run, _rng);
@@ -219,11 +222,12 @@ namespace Grimhand.Expedition
 
         public bool TryClaimVictoryGold() => TryClaimRewardGold();
 
-        public bool TrySkipVictoryOptionalRewards()
+        public bool TrySkipVictoryOptionalRewards() => TrySkipAllRemainingRewards();
+
+        public bool TrySkipAllRemainingRewards()
         {
             var rewards = _run.PendingRewardPickup;
-            if (_run.Phase != ExpeditionPhase.RewardPickup || rewards == null ||
-                rewards.Kind != RewardPickupKind.BattleVictory)
+            if (_run.Phase != ExpeditionPhase.RewardPickup || rewards == null)
                 return false;
 
             if (rewards.HasGold && !rewards.GoldClaimed && !rewards.GoldSkipped)
@@ -282,6 +286,7 @@ namespace Grimhand.Expedition
                     return true;
                 case ExpeditionNodeType.Shop:
                     _run.Phase = ExpeditionPhase.ShopVisit;
+                    ExpeditionShopRoller.OpenShop(_run.Shop, _config, _run, _rng);
                     return true;
                 default:
                     _run.Phase = ExpeditionPhase.InBattle;
@@ -345,21 +350,97 @@ namespace Grimhand.Expedition
             return true;
         }
 
-        public bool TryResolveShopChoice(int choiceIndex)
+        public bool TryBuyShopOffer(int slotIndex)
         {
             if (_run.Phase != ExpeditionPhase.ShopVisit)
                 return false;
 
-            var outcome = ExpeditionEventResolver.ResolveShopChoice(_run, choiceIndex);
-            _run.LastEventMessage = outcome.Message;
-            CompleteCurrentNode();
+            if (slotIndex < 0 || slotIndex >= _run.Shop.Offers.Count)
+                return false;
 
-            if (_run.Phase == ExpeditionPhase.RunComplete)
-                return true;
+            var offer = _run.Shop.Offers[slotIndex];
+            if (offer.Sold)
+                return false;
 
-            LoadRoutesForNextLayer();
-            _run.Phase = ExpeditionPhase.RouteSelect;
+            if (_run.Gold < offer.Price)
+            {
+                _run.LastEventMessage = "金币不足。";
+                return false;
+            }
+
+            if (!TryFulfillShopOffer(offer, out var message))
+            {
+                _run.LastEventMessage = message;
+                return false;
+            }
+
+            _run.Gold -= offer.Price;
+            offer.Sold = true;
+            _run.LastEventMessage = message;
             return true;
+        }
+
+        public bool TryRefreshShop()
+        {
+            if (_run.Phase != ExpeditionPhase.ShopVisit)
+                return false;
+
+            var cost = _run.Shop.NextRefreshCost;
+            if (_run.Gold < cost)
+            {
+                _run.LastEventMessage = "金币不足以刷新商品。";
+                return false;
+            }
+
+            _run.Gold -= cost;
+            ExpeditionShopRoller.RefreshStock(_run.Shop, _config, _run, _rng);
+            _run.LastEventMessage = $"已刷新商品（-{cost} 金币）。";
+            return true;
+        }
+
+        bool TryFulfillShopOffer(ShopOffer offer, out string message)
+        {
+            message = "";
+            switch (offer.Kind)
+            {
+                case ShopOfferKind.Card:
+                    if (!TryGrantCardReward(offer.CardOwnerCharacterId, offer.CardDefinitionId, offer.CardDisplayName))
+                    {
+                        message = "无法加入该卡牌。";
+                        return false;
+                    }
+
+                    message = $"购买卡牌：{offer.CardDisplayName}（-{offer.Price} 金币）";
+                    return true;
+
+                case ShopOfferKind.Consumable:
+                    if (!ConsumableInventory.TryAdd(_run.ConsumableSlots, offer.ConsumableId, out var inventoryFull))
+                    {
+                        message = "无法获得该消耗品。";
+                        return false;
+                    }
+
+                    if (inventoryFull)
+                        _run.PendingConsumableOfferId = offer.ConsumableId;
+
+                    var suffix = inventoryFull ? "（栏位已满，请选择替换或放弃）" : "";
+                    message = $"购买 {offer.ConsumableDisplayName}（-{offer.Price} 金币）{suffix}";
+                    return true;
+
+                case ShopOfferKind.Relic:
+                    if (!TryAddRelic(offer.RelicId))
+                    {
+                        message = "无法获得该遗物。";
+                        return false;
+                    }
+
+                    message = $"购买遗物：{offer.RelicDisplayName}（-{offer.Price} 金币）";
+                    return true;
+
+                default:
+                    message = "无效商品。";
+                    return false;
+            }
         }
 
         public bool TryLeaveShop()
@@ -368,6 +449,7 @@ namespace Grimhand.Expedition
                 return false;
 
             _run.LastEventMessage = "你离开了商店。";
+            _run.Shop.Clear();
             CompleteCurrentNode();
             LoadRoutesForNextLayer();
             _run.Phase = ExpeditionPhase.RouteSelect;

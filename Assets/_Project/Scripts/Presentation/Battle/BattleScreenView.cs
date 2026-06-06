@@ -62,6 +62,7 @@ namespace Grimhand.Presentation.Battle
         ExpeditionNodeInteractOverlayView _nodeInteractOverlay;
         BattleBackgroundView _backgroundView;
         ExpeditionPostBattleOverlayView _postBattleOverlay;
+        ExpeditionShopOverlayView _shopOverlay;
         Button _inventoryButton;
         Button _turnLogButton;
         Button _mapButton;
@@ -69,6 +70,7 @@ namespace Grimhand.Presentation.Battle
 
         BattleSession _session;
         System.Func<bool> _presentationBusy;
+        string _damagePreviewCombatantId;
         CardVisualCatalogSO _catalog;
         CharacterVisualCatalogSO _characterVisuals;
         RelicVisualCatalogSO _relicCatalog;
@@ -107,9 +109,16 @@ namespace Grimhand.Presentation.Battle
             runRestartButton.onClick.AddListener(() => _session?.RestartRunOrBattle());
 
             foreach (var slot in playerSlots)
+            {
                 slot?.SetSelectHandler(id => _session?.AssignTarget(id));
+                slot?.SetHoverPreviewCallbacks(OnDamagePreviewEnter, OnDamagePreviewExit);
+            }
+
             foreach (var slot in enemySlots)
+            {
                 slot?.SetSelectHandler(id => _session?.AssignTarget(id));
+                slot?.SetHoverPreviewCallbacks(OnDamagePreviewEnter, OnDamagePreviewExit);
+            }
 
             HideKeywordTooltip();
             ConfigureKeywordTooltipRaycast();
@@ -499,6 +508,21 @@ namespace Grimhand.Presentation.Battle
                 _nodeInteractOverlay = gameObject.AddComponent<ExpeditionNodeInteractOverlayView>();
                 _nodeInteractOverlay.Initialize(_session, transform);
             }
+
+            if (_shopOverlay == null)
+            {
+                _shopOverlay = gameObject.AddComponent<ExpeditionShopOverlayView>();
+                _shopOverlay.Initialize(
+                    _session,
+                    transform,
+                    _uiIcons,
+                    handPanel?.CardPrefab,
+                    _catalog,
+                    _characterVisuals,
+                    _relicCatalog,
+                    _consumableCatalog,
+                    _definitions);
+            }
         }
 
         void ApplyTurnLogButtonLayout()
@@ -681,6 +705,7 @@ namespace Grimhand.Presentation.Battle
             {
                 _mapPanel?.Refresh();
                 _nodeInteractOverlay?.Refresh();
+                _shopOverlay?.Refresh();
             }
 
             RefreshPlanningChromeVisibility();
@@ -755,6 +780,9 @@ namespace Grimhand.Presentation.Battle
             }
 
             var targetMode = awaitingCardState != null || awaitingConsumable;
+            if (!targetMode)
+                ClearDamagePreviewTarget(silent: true);
+
             RefreshSlotRow(enemySlots, state, targetMode, validTargets, _session.PresentationSnapshot, showExpBar: false);
             RefreshSlotRow(playerSlots, state, targetMode, validTargets, _session.PresentationSnapshot,
                 showExpBar: _session.IsExpeditionMode);
@@ -908,6 +936,30 @@ namespace Grimhand.Presentation.Battle
                 $"已选「{card.DisplayName}」— 点击高亮的{sideLabel}（再点卡牌取消）";
         }
 
+        void OnDamagePreviewEnter(CombatantState unit)
+        {
+            if (unit == null || string.IsNullOrEmpty(unit.Id))
+                return;
+
+            if (_damagePreviewCombatantId == unit.Id)
+                return;
+
+            _damagePreviewCombatantId = unit.Id;
+            RefreshHand(_session?.Engine?.State);
+        }
+
+        void OnDamagePreviewExit() => ClearDamagePreviewTarget();
+
+        void ClearDamagePreviewTarget(bool silent = false)
+        {
+            if (string.IsNullOrEmpty(_damagePreviewCombatantId))
+                return;
+
+            _damagePreviewCombatantId = null;
+            if (!silent)
+                RefreshHand(_session?.Engine?.State);
+        }
+
         void RefreshHand(BattleState state)
         {
             if (handPanel == null)
@@ -918,6 +970,10 @@ namespace Grimhand.Presentation.Battle
             if (!showHand)
                 return;
 
+            CombatantState damagePreviewTarget = null;
+            if (!string.IsNullOrEmpty(_damagePreviewCombatantId))
+                damagePreviewTarget = state.GetCombatant(_damagePreviewCombatantId);
+
             handPanel.Refresh(
                 state,
                 _session,
@@ -927,11 +983,13 @@ namespace Grimhand.Presentation.Battle
                 _definitions,
                 id =>
                 {
+                    ClearDamagePreviewTarget(silent: true);
                     _session.ToggleCard(id);
                     Refresh();
                 },
                 ShowKeywordTooltip,
-                HideKeywordTooltip);
+                HideKeywordTooltip,
+                damagePreviewTarget);
         }
 
         void RefreshActions(BattleState state, bool expeditionBlocks)

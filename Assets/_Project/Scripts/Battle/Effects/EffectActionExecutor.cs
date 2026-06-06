@@ -180,13 +180,9 @@ namespace Grimhand.Battle.Effects
             int sourceCardInstanceId)
         {
             var enemyTeam = actor.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
-            var aliveAtCast = PositionRules.GetAliveSortedByPhysicalSlot(state, enemyTeam);
-            if (aliveAtCast.Count == 0)
+            var targetIds = PositionRules.SnapshotAliveCombatantIds(state, enemyTeam);
+            if (targetIds.Count == 0)
                 return;
-
-            var targetIds = new List<string>(aliveAtCast.Count);
-            foreach (var unit in aliveAtCast)
-                targetIds.Add(unit.Id);
 
             var totalLifesteal = 0;
             var anyKill = false;
@@ -257,6 +253,10 @@ namespace Grimhand.Battle.Effects
             if (lifestealPercent <= 0)
                 lifestealPercent = CombatMechanicsRules.GetPendingLifestealPercent(actor);
 
+            var splashTargetId = action.SplashBehindTarget
+                ? PositionRules.SnapshotCombatantBehindId(state, target)
+                : null;
+
             DamageRules.ApplyDamage(
                 state,
                 actor,
@@ -282,9 +282,9 @@ namespace Grimhand.Battle.Effects
             if (action.OnKillHealAmount > 0 && state.LastAction.WasKill)
                 DamageRules.ApplyHeal(state, actor, action.OnKillHealAmount, events, actor);
 
-            if (action.SplashBehindTarget)
+            if (action.SplashBehindTarget && !string.IsNullOrEmpty(splashTargetId))
             {
-                var behind = PositionRules.GetCombatantBehind(state, target);
+                var behind = state.GetCombatant(splashTargetId);
                 if (behind != null && behind.IsAlive)
                 {
                     var splashPower = System.Math.Max(1,

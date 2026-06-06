@@ -232,6 +232,10 @@ namespace Grimhand.Presentation.Battle
             if (!_portraits.TryGetValue(card.ActorId, out var actor))
                 yield break;
 
+            // 同一角色连续行动：若仍停留在中央，先完整归位再第二次出场。
+            if (actor.IsAwayFromHome)
+                yield return actor.ReturnHome();
+
             var center = _screen.GetDuelCenterWorldPosition();
             var pose = ResolveCardPose(card.CardType);
             card.ActorAtCenter = true;
@@ -251,8 +255,13 @@ namespace Grimhand.Presentation.Battle
             else
                 yield return actor.HoldPose(NeutralCardHoldDuration);
 
-            if (card.ActorAtCenter && actor.IsAwayFromHome)
-                yield return actor.ReturnHome();
+            if (card.ActorAtCenter)
+            {
+                if (actor.IsAwayFromHome)
+                    yield return actor.ReturnHome();
+                else
+                    actor.RestoreHomePosition();
+            }
         }
 
         IEnumerator HandleDamage(BattleEvent e, CardPlayContext card)

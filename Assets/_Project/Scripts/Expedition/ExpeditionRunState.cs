@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
 using Grimhand.Expedition.Model;
+using Grimhand.Expedition.Shop;
 
 namespace Grimhand.Expedition
 {
@@ -27,5 +28,6 @@ namespace Grimhand.Expedition
         public ExpeditionRewardPickup PendingRewardPickup { get; set; }
         public ExpeditionPendingEvent PendingEvent { get; set; }
         public ExpeditionPendingShrine PendingShrine { get; set; }
+        public ExpeditionShopState Shop { get; } = new();
     }
 }

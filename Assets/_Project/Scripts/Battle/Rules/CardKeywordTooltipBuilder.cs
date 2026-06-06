@@ -157,42 +157,13 @@ namespace Grimhand.Battle.Rules
 
         static string FormatScaledFormula(string label, EffectActionSpec action, CombatantState owner, bool useDefense)
         {
-            var percent = useDefense ? action.DefenseScalePercent : action.AttackScalePercent;
-            var flat = action.Value;
-            var pct = percent / 100f;
-            var statName = useDefense ? "DEF" : "ATK";
-
-            string formula;
-            if (flat == 0 && pct == 1f)
-                formula = $"{statName}×1";
-            else if (flat == 0)
-                formula = $"{statName}×{FormatMultiplier(pct)}";
-            else if (pct == 1f)
-                formula = $"{statName}×1+{flat}";
-            else
-                formula = $"{statName}×{FormatMultiplier(pct)}+{flat}";
+            string formula = CardActionValueText.FormatPlain(action, useDefense);
 
             var preview = owner != null
                 ? $"（当前约 {CardPowerRules.ComputeActionValue(action, owner)}）"
                 : "";
 
             return $"<b>【{label}计算公式】</b>\n{formula}{preview}";
-        }
-
-        static string FormatMultiplier(float m)
-        {
-            if (System.Math.Abs(m - 0.8f) < 0.001f) return "0.8";
-            if (System.Math.Abs(m - 1.2f) < 0.001f) return "1.2";
-            if (System.Math.Abs(m - 1.5f) < 0.001f) return "1.5";
-            if (System.Math.Abs(m - 1.6f) < 0.001f) return "1.6";
-            if (System.Math.Abs(m - 1.7f) < 0.001f) return "1.7";
-            if (System.Math.Abs(m - 1.8f) < 0.001f) return "1.8";
-            if (System.Math.Abs(m - 2f) < 0.001f) return "2.0";
-            if (System.Math.Abs(m - 0.5f) < 0.001f) return "0.5";
-            if (System.Math.Abs(m - 0.7f) < 0.001f) return "0.7";
-            if (System.Math.Abs(m - 1f) < 0.001f) return "1.0";
-            if (System.Math.Abs(m - 1.3f) < 0.001f) return "1.3";
-            return m.ToString("0.##");
         }
     }
 }

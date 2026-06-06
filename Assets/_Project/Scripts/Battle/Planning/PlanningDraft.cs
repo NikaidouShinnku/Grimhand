@@ -151,7 +151,7 @@ namespace Grimhand.Battle.Planning
 
         public bool TryBeginConsumableUse(string consumableId, int slotIndex)
         {
-            if (_state.Phase != TurnPhase.Planning || _state.ConsumableUsedThisBattle)
+            if (_state.Phase != TurnPhase.Planning)
                 return false;
 
             if (!Consumables.ConsumableDatabase.TryGet(consumableId, out var definition))
@@ -194,7 +194,7 @@ namespace Grimhand.Battle.Planning
         public bool TryApplyInstantConsumable(string consumableId, out string errorMessage)
         {
             errorMessage = "";
-            if (_state.Phase != TurnPhase.Planning || _state.ConsumableUsedThisBattle)
+            if (_state.Phase != TurnPhase.Planning)
             {
                 errorMessage = "当前无法使用消耗品。";
                 return false;

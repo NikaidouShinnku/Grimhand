@@ -86,7 +86,8 @@ namespace Grimhand.Presentation.Battle
             _rewardRow.gameObject.SetActive(phase == ExpeditionPhase.RewardPickup && !isChest);
             _doorRow.gameObject.SetActive(phase == ExpeditionPhase.RouteSelect);
             if (_skipVictoryButton != null)
-                _skipVictoryButton.gameObject.SetActive(false);
+                _skipVictoryButton.gameObject.SetActive(
+                    phase == ExpeditionPhase.RewardPickup && HasRemainingRewards(rewards));
 
             if (phase == ExpeditionPhase.RewardPickup)
                 RefreshRewardPickup(isChest);
@@ -195,15 +196,15 @@ namespace Grimhand.Presentation.Battle
             if (rewards.Kind == RewardPickupKind.BattleVictory)
             {
                 _headerText.text =
-                    $"第 {run.BattlesWon}/{run.TargetBattleCount} 场胜利\n点击领取或放弃每项奖励";
+                    $"第 {run.BattlesWon}/{run.TargetBattleCount} 场胜利\n点击领取奖励";
             }
             else if (!string.IsNullOrEmpty(rewards.HeaderText))
             {
-                _headerText.text = rewards.HeaderText + "\n点击领取或放弃每项奖励";
+                _headerText.text = rewards.HeaderText + "\n点击领取奖励";
             }
             else
             {
-                _headerText.text = "拾取奖励\n点击领取或放弃每项奖励";
+                _headerText.text = "拾取奖励\n点击领取奖励";
             }
 
             var parent = useChestPanel
@@ -224,33 +225,31 @@ namespace Grimhand.Presentation.Battle
 
             if (rewards.HasGold && !rewards.GoldClaimed && !rewards.GoldSkipped)
             {
-                AddRewardWithSkip(
+                AddClaimReward(
                     parent,
                     ref x,
                     spacing,
                     BuildGoldLabel(rewards.Gold),
                     _icons?.GoldIcon,
-                    () => _session.ClaimRewardGold(),
-                    () => _session.SkipRewardGold());
+                    () => _session.ClaimRewardGold());
             }
 
             if (rewards.HasRelic && !rewards.RelicClaimed && !rewards.RelicSkipped)
             {
                 RelicDatabase.TryGet(rewards.RelicId, out var relic);
-                AddRelicRewardWithSkip(
+                AddClaimRelicReward(
                     parent,
                     ref x,
                     spacing,
                     relic,
                     rewards.RelicId,
-                    () => _session.ClaimRewardRelic(),
-                    () => _session.SkipRewardRelic());
+                    () => _session.ClaimRewardRelic());
             }
 
             if (rewards.HasCard && !rewards.CardClaimed && !rewards.CardSkipped)
             {
                 _definitions.TryGetValue(rewards.CardDefinitionId, out var definition);
-                AddCardRewardWithSkip(
+                AddClaimCardReward(
                     parent,
                     ref x,
                     spacing,
@@ -258,71 +257,81 @@ namespace Grimhand.Presentation.Battle
                     rewards.CardOwnerCharacterId,
                     rewards.CardDisplayName,
                     definition,
-                    () => _session.ClaimRewardCard(),
-                    () => _session.SkipRewardCard());
+                    () => _session.ClaimRewardCard());
             }
 
             if (rewards.HasConsumable && !rewards.ConsumableClaimed && !rewards.ConsumableSkipped)
             {
                 ConsumableDatabase.TryGet(rewards.ConsumableId, out var consumable);
-                AddConsumableRewardWithSkip(
+                AddClaimConsumableReward(
                     parent,
                     ref x,
                     spacing,
                     consumable,
                     rewards.ConsumableId,
-                    () => _session.ClaimRewardConsumable(),
-                    () => _session.SkipRewardConsumable());
+                    () => _session.ClaimRewardConsumable());
             }
         }
 
-        void AddConsumableRewardWithSkip(
+        static bool HasRemainingRewards(ExpeditionRewardPickup rewards)
+        {
+            if (rewards == null)
+                return false;
+
+            if (rewards.HasGold && !rewards.GoldClaimed && !rewards.GoldSkipped)
+                return true;
+            if (rewards.HasRelic && !rewards.RelicClaimed && !rewards.RelicSkipped)
+                return true;
+            if (rewards.HasCard && !rewards.CardClaimed && !rewards.CardSkipped)
+                return true;
+            if (rewards.HasConsumable && !rewards.ConsumableClaimed && !rewards.ConsumableSkipped)
+                return true;
+
+            return false;
+        }
+
+        void AddClaimConsumableReward(
             Transform parent,
             ref float x,
             float spacing,
             ConsumableDefinition consumable,
             string consumableId,
-            Action onClaim,
-            Action onSkip)
+            Action onClaim)
         {
             var label = consumable?.DisplayName ?? consumableId ?? "消耗品";
             var icon = _consumableCatalog?.GetIcon(consumableId);
-            AddRewardWithSkip(parent, ref x, spacing, label, icon, onClaim, onSkip);
+            AddClaimReward(parent, ref x, spacing, label, icon, onClaim);
         }
 
-        void AddRewardWithSkip(
+        void AddClaimReward(
             Transform parent,
             ref float x,
             float spacing,
             string label,
             Sprite icon,
-            Action onClaim,
-            Action onSkip)
+            Action onClaim)
         {
             var container = CreateRewardContainer(parent, new Vector2(x, 0f));
             var btn = CreateIconButton(container, Vector2.zero, 112f, icon, label, onClaim);
             _rewardButtons.Add(btn);
-            AddSkipButton(container, onSkip);
             x += spacing;
         }
 
-        void AddRelicRewardWithSkip(
+        void AddClaimRelicReward(
             Transform parent,
             ref float x,
             float spacing,
             RelicDefinition relic,
             string relicId,
-            Action onClaim,
-            Action onSkip)
+            Action onClaim)
         {
             var container = CreateRewardContainer(parent, new Vector2(x, 0f));
             var btn = CreateRelicRewardButton(container, Vector2.zero, relic, relicId, onClaim);
             _rewardButtons.Add(btn);
-            AddSkipButton(container, onSkip);
             x += spacing;
         }
 
-        void AddCardRewardWithSkip(
+        void AddClaimCardReward(
             Transform parent,
             ref float x,
             float spacing,
@@ -330,13 +339,11 @@ namespace Grimhand.Presentation.Battle
             string ownerCharacterId,
             string displayName,
             CardDefinitionSO definition,
-            Action onClaim,
-            Action onSkip)
+            Action onClaim)
         {
             var container = CreateRewardContainer(parent, new Vector2(x, 0f));
             var btn = CreateCardRewardButton(container, Vector2.zero, definitionId, ownerCharacterId, displayName, definition, onClaim);
             _rewardButtons.Add(btn);
-            AddSkipButton(container, onSkip);
             x += spacing;
         }
 
@@ -351,33 +358,6 @@ namespace Grimhand.Presentation.Battle
             rt.anchoredPosition = pos;
             rt.sizeDelta = new Vector2(148f, 160f);
             return rt;
-        }
-
-        void AddSkipButton(Transform parent, Action onSkip)
-        {
-            var go = new GameObject("Skip", typeof(RectTransform), typeof(Image), typeof(Button));
-            go.transform.SetParent(parent, false);
-            var rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0.5f, 0f);
-            rt.anchorMax = new Vector2(0.5f, 0f);
-            rt.pivot = new Vector2(0.5f, 0f);
-            rt.anchoredPosition = new Vector2(0f, -8f);
-            rt.sizeDelta = new Vector2(112f, 28f);
-            go.GetComponent<Image>().color = new Color(0.2f, 0.22f, 0.28f, 0.95f);
-
-            var labelGo = new GameObject("Label", typeof(RectTransform), typeof(Text));
-            labelGo.transform.SetParent(go.transform, false);
-            var labelRt = labelGo.GetComponent<RectTransform>();
-            labelRt.anchorMin = Vector2.zero;
-            labelRt.anchorMax = Vector2.one;
-            labelRt.offsetMin = Vector2.zero;
-            labelRt.offsetMax = Vector2.zero;
-            var label = labelGo.GetComponent<Text>();
-            StyleText(label, 14, TextAnchor.MiddleCenter);
-            label.text = "放弃";
-
-            var btn = go.GetComponent<Button>();
-            btn.onClick.AddListener(() => onSkip?.Invoke());
         }
 
         void RefreshDoors()
@@ -480,7 +460,7 @@ namespace Grimhand.Presentation.Battle
                 cardRt.anchoredPosition = Vector2.zero;
             }
 
-            CardView.ApplyHandPresentationScale(cardView, RewardCardScale);
+            CardView.ApplyHandPresentationScaleCentered(cardView, RewardCardScale);
 
             var preview = CardVisualResolver.CreatePreviewInstance(
                 definitionId,
@@ -532,11 +512,11 @@ namespace Grimhand.Presentation.Battle
             var go = new GameObject("SkipVictoryRewards", typeof(RectTransform), typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
             var rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0.5f, 0.52f);
-            rt.anchorMax = new Vector2(0.5f, 0.52f);
+            rt.anchorMin = new Vector2(0.5f, 0.42f);
+            rt.anchorMax = new Vector2(0.5f, 0.42f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = Vector2.zero;
-            rt.sizeDelta = new Vector2(280f, 44f);
+            rt.sizeDelta = new Vector2(320f, 44f);
 
             var image = go.GetComponent<Image>();
             image.color = new Color(0.22f, 0.24f, 0.32f, 0.96f);
@@ -550,11 +530,11 @@ namespace Grimhand.Presentation.Battle
             labelRt.offsetMax = Vector2.zero;
             var label = labelGo.GetComponent<Text>();
             StyleText(label, 18, TextAnchor.MiddleCenter);
-            label.text = "放弃奖励";
+            label.text = "放弃剩余奖励";
 
             var btn = go.GetComponent<Button>();
             btn.targetGraphic = image;
-            btn.onClick.AddListener(() => _session?.SkipVictoryOptionalRewards());
+            btn.onClick.AddListener(() => _session?.SkipAllRemainingRewards());
             go.SetActive(false);
             return btn;
         }
@@ -734,22 +714,43 @@ namespace Grimhand.Presentation.Battle
 
             var img = go.GetComponent<Image>();
             img.color = new Color(0.14f, 0.16f, 0.22f, 0.96f);
+
             if (icon != null)
             {
-                img.sprite = icon;
-                img.preserveAspect = true;
-                img.color = Color.white;
+                var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+                iconGo.transform.SetParent(go.transform, false);
+                var iconRt = iconGo.GetComponent<RectTransform>();
+                iconRt.anchorMin = new Vector2(0.12f, 0.22f);
+                iconRt.anchorMax = new Vector2(0.88f, 0.92f);
+                iconRt.offsetMin = Vector2.zero;
+                iconRt.offsetMax = Vector2.zero;
+                var iconImg = iconGo.GetComponent<Image>();
+                iconImg.sprite = icon;
+                iconImg.preserveAspect = true;
+                iconImg.type = Image.Type.Simple;
+                iconImg.color = Color.white;
+                iconImg.raycastTarget = false;
             }
 
             var labelGo = new GameObject("Label", typeof(RectTransform), typeof(Text));
             labelGo.transform.SetParent(go.transform, false);
             var labelRt = labelGo.GetComponent<RectTransform>();
-            labelRt.anchorMin = Vector2.zero;
-            labelRt.anchorMax = Vector2.one;
-            labelRt.offsetMin = new Vector2(4f, 4f);
-            labelRt.offsetMax = new Vector2(-4f, -4f);
+            if (icon != null)
+            {
+                labelRt.anchorMin = new Vector2(0.06f, 0.04f);
+                labelRt.anchorMax = new Vector2(0.94f, 0.2f);
+                labelRt.offsetMin = Vector2.zero;
+                labelRt.offsetMax = Vector2.zero;
+            }
+            else
+            {
+                labelRt.anchorMin = Vector2.zero;
+                labelRt.anchorMax = Vector2.one;
+                labelRt.offsetMin = new Vector2(4f, 4f);
+                labelRt.offsetMax = new Vector2(-4f, -4f);
+            }
             var text = labelGo.GetComponent<Text>();
-            StyleText(text, 16, TextAnchor.MiddleCenter);
+            StyleText(text, icon != null ? 13 : 16, TextAnchor.MiddleCenter);
             text.text = label;
 
             var btn = go.GetComponent<Button>();

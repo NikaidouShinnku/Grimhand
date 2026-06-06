@@ -84,19 +84,6 @@ namespace Grimhand.Expedition.Events
             };
         }
 
-        public static ExpeditionEventOutcome ResolveShopChoice(ExpeditionRunState run, int choiceIndex)
-        {
-            return choiceIndex switch
-            {
-                0 when run.Gold >= 25 => BuyHeal(run),
-                1 when run.Gold >= 20 => BuyRemoveCard(run),
-                2 when run.Gold >= 10 => BuyConsumable(run, ConsumableIds.SmallHealingPotion, 10),
-                3 when run.Gold >= 20 => BuyConsumable(run, ConsumableIds.LargeHealingPotion, 20),
-                4 when run.Gold >= 15 => BuyConsumable(run, ConsumableIds.SmokeBomb, 15),
-                _ => new ExpeditionEventOutcome { Message = "你没有购买任何东西。" }
-            };
-        }
-
         static ExpeditionEventOutcome ResolveMysteriousTraveler(ExpeditionRunState run, int choice, BattleRng rng)
         {
             return choice switch

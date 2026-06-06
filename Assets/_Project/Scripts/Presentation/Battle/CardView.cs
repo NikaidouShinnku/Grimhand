@@ -13,8 +13,8 @@ namespace Grimhand.Presentation.Battle
         const float NormalScale = 1f;
         const float HoverScale = 1.14f;
         const float ScaleLerpDuration = 0.1f;
-        const int DescriptionFontNormal = 15;
-        const int DescriptionFontHover = 18;
+        const int DescriptionFontNormal = 17;
+        const int DescriptionFontHover = 20;
 
         static readonly Color SelectedHighlightColor = new(1f, 1f, 1f, 0.26f);
 
@@ -255,6 +255,27 @@ namespace Grimhand.Presentation.Battle
             le.minHeight = height;
             le.flexibleWidth = 0f;
             le.flexibleHeight = 0f;
+        }
+
+        public static void CenterInParent(CardView view)
+        {
+            if (view == null)
+                return;
+
+            var rt = view.transform as RectTransform;
+            if (rt == null)
+                return;
+
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = Vector2.zero;
+        }
+
+        public static void ApplyHandPresentationScaleCentered(CardView view, float scale)
+        {
+            ApplyHandPresentationScale(view, scale);
+            CenterInParent(view);
         }
 
         const float CardBaseLayoutWidth = 168f;

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Grimhand.Battle.Model;
 
 namespace Grimhand.Battle.Rules
@@ -33,6 +34,221 @@ namespace Grimhand.Battle.Rules
                 isSacrifice,
                 cost,
                 applyPositionMultiplier: true);
+        }
+
+        /// <summary>对指定目标预览最终 HP 伤害（含站位 incoming、护甲、DEF；不修改战斗状态）。</summary>
+        public static int PreviewHpDamageAgainstTarget(
+            BattleState state,
+            CombatantState owner,
+            CardInstanceState card,
+            EffectActionSpec action,
+            CombatantState intendedTarget)
+        {
+            if (state == null || owner == null || card == null || action == null || intendedTarget == null)
+                return 0;
+
+            if (action.Type != EffectActionType.DealDamage || action.Target == EffectTarget.Self)
+                return 0;
+
+            if (!CanPreviewDamageAgainstTarget(state, owner, card, action, intendedTarget))
+                return 0;
+
+            var value = CardPowerRules.ComputeActionValue(action, owner);
+            var primaryPower = TargetReachRules.AdjustPowerForTarget(state, action, intendedTarget, value);
+            primaryPower = CombatMechanicsRules.ComputeConditionalDamageBonus(state, action, intendedTarget, primaryPower);
+
+            return PreviewHpDamageFromPower(
+                state,
+                owner,
+                card,
+                action,
+                intendedTarget,
+                primaryPower,
+                isSacrificeSelfDamage: false);
+        }
+
+        public static bool CanPreviewDamageAgainstTarget(
+            BattleState state,
+            CombatantState owner,
+            CardInstanceState card,
+            EffectActionSpec action,
+            CombatantState target)
+        {
+            if (card == null || action == null || target == null || !target.IsAlive)
+                return false;
+
+            if (action.Type != EffectActionType.DealDamage)
+                return false;
+
+            if (action.Target == EffectTarget.AllEnemies)
+                return target.Team == TeamSide.Enemy;
+
+            if (action.Target == EffectTarget.Self)
+                return false;
+
+            var pickSide = CardRules.GetRequiredTargetPick(card);
+            if (pickSide == TargetPickSide.Enemy)
+            {
+                if (target.Team != TeamSide.Enemy)
+                    return false;
+
+                return state == null || owner == null
+                    || TargetReachRules.CanPickUnit(state, card, target, owner);
+            }
+
+            if (pickSide == TargetPickSide.Ally)
+                return target.Team == TeamSide.Player;
+
+            if (action.Target == EffectTarget.DefaultEnemy)
+                return target.Team == TeamSide.Enemy;
+
+            return false;
+        }
+
+        public static bool CardUsesSingleTargetEnemyPreview(CardInstanceState card)
+        {
+            if (card == null)
+                return false;
+
+            foreach (var action in card.Actions)
+            {
+                if (action.Condition != ReactionConditionType.None)
+                    continue;
+
+                if (action.Type != EffectActionType.DealDamage)
+                    continue;
+
+                if (action.Target == EffectTarget.AllEnemies || action.Target == EffectTarget.Self)
+                    continue;
+
+                var pickSide = CardRules.GetRequiredTargetPick(card);
+                if (pickSide == TargetPickSide.Enemy || action.Target == EffectTarget.DefaultEnemy)
+                    return true;
+            }
+
+            return false;
+        }
+
+        public static bool CardUsesAoeEnemyPreview(CardInstanceState card)
+        {
+            if (card == null)
+                return false;
+
+            foreach (var action in card.Actions)
+            {
+                if (action.Condition != ReactionConditionType.None)
+                    continue;
+
+                if (action.Type == EffectActionType.DealDamage && action.Target == EffectTarget.AllEnemies)
+                    return true;
+            }
+
+            return false;
+        }
+
+        public static List<(CombatantState target, int damage)> PreviewAoeDamagePerEnemy(
+            BattleState state,
+            CombatantState owner,
+            CardInstanceState card,
+            EffectActionSpec action)
+        {
+            var result = new List<(CombatantState, int)>();
+            if (state == null || owner == null || card == null || action == null)
+                return result;
+
+            if (action.Type != EffectActionType.DealDamage || action.Target != EffectTarget.AllEnemies)
+                return result;
+
+            var enemyTeam = owner.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
+            foreach (var target in PositionRules.GetAliveSortedByPhysicalSlot(state, enemyTeam))
+            {
+                var value = CardPowerRules.ComputeActionValue(action, owner);
+                var primaryPower = TargetReachRules.AdjustPowerForTarget(state, action, target, value);
+                primaryPower = CombatMechanicsRules.ComputeConditionalDamageBonus(state, action, target, primaryPower);
+                var hpDamage = PreviewHpDamageFromPower(
+                    state,
+                    owner,
+                    card,
+                    action,
+                    target,
+                    primaryPower,
+                    isSacrificeSelfDamage: false);
+                result.Add((target, hpDamage));
+            }
+
+            return result;
+        }
+
+        public static string FormatAoeDamagePerEnemy(
+            BattleState state,
+            CombatantState owner,
+            CardInstanceState card)
+        {
+            EffectActionSpec aoeAction = null;
+            foreach (var action in card.Actions)
+            {
+                if (action.Condition != ReactionConditionType.None)
+                    continue;
+
+                if (action.Type == EffectActionType.DealDamage && action.Target == EffectTarget.AllEnemies)
+                {
+                    aoeAction = action;
+                    break;
+                }
+            }
+
+            if (aoeAction == null)
+                return "";
+
+            var parts = PreviewAoeDamagePerEnemy(state, owner, card, aoeAction);
+            if (parts.Count == 0)
+                return "";
+
+            var sb = new System.Text.StringBuilder();
+            for (var i = 0; i < parts.Count; i++)
+            {
+                if (i > 0)
+                    sb.Append(' ');
+                sb.Append(parts[i].target.DisplayName).Append('(').Append(parts[i].damage).Append(')');
+            }
+
+            return sb.ToString();
+        }
+
+        static int PreviewHpDamageFromPower(
+            BattleState state,
+            CombatantState owner,
+            CardInstanceState card,
+            EffectActionSpec action,
+            CombatantState intendedTarget,
+            int primaryPower,
+            bool isSacrificeSelfDamage)
+        {
+            var recipient = CombatMechanicsRules.ResolveDamageRecipient(state, owner, intendedTarget);
+            var redirectedByGuard = recipient.Id != intendedTarget.Id;
+
+            var outgoing = RelicBattleRules.ComputeOutgoingPower(
+                state,
+                owner,
+                card.CardType,
+                primaryPower,
+                isSacrificeSelfDamage,
+                card.Cost,
+                applyPositionMultiplier: true);
+
+            var incoming = PositionRules.GetIncomingDamageMultiplier(
+                PositionRules.GetEffectiveSlot(state, recipient));
+            var raw = (int)System.Math.Round(outgoing * incoming);
+            var blocked = System.Math.Min(recipient.Block, raw);
+            var afterBlock = raw - blocked;
+
+            var effectiveDef = CombatMechanicsRules.GetEffectiveDefense(state, recipient, action.IgnoreDefPercent);
+            var hpDamage = CombatMechanicsRules.ComputeHpDamageAfterDefense(afterBlock, effectiveDef);
+
+            if (redirectedByGuard)
+                hpDamage = CombatMechanicsRules.ApplyGuardReduction(hpDamage);
+
+            return System.Math.Max(0, hpDamage);
         }
     }
 }

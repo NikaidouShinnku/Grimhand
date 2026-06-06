@@ -15,6 +15,8 @@ namespace Grimhand.Presentation.Battle
 
         public void SetDragTarget(RectTransform target) => dragTarget = target;
 
+        public System.Action HideTooltipOnDrag { get; set; }
+
         void Awake()
         {
             _target = dragTarget != null ? dragTarget : transform.parent as RectTransform;
@@ -22,6 +24,7 @@ namespace Grimhand.Presentation.Battle
 
         public void OnBeginDrag(PointerEventData eventData)
         {
+            HideTooltipOnDrag?.Invoke();
             if (_target == null)
                 return;
 

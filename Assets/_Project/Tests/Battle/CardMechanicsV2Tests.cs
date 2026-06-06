@@ -276,6 +276,31 @@ namespace Grimhand.Battle.Tests
             Assert.Less(state.GetCombatant("skel").Hp, 25);
         }
 
+        [Test]
+        public void SplashBehind_HitsBehindEvenWhenPrimaryDies()
+        {
+            var state = BuildState();
+            var demon = AddUnit(state, "demon", TeamSide.Player, FormationSlot.Middle, atk: 0);
+            AddUnit(state, "goblin", TeamSide.Enemy, FormationSlot.Front, hp: 5, maxHp: 20, def: 0);
+            var skeleton = AddUnit(state, "skeleton", TeamSide.Enemy, FormationSlot.Middle, hp: 25, maxHp: 25, def: 0);
+
+            var card = CardWith(new EffectActionSpec
+            {
+                Type = EffectActionType.DealDamage,
+                Target = EffectTarget.DefaultEnemy,
+                Value = 20,
+                ScaleWithAttack = false,
+                SplashBehindTarget = true,
+                SplashPowerPercent = 80
+            });
+            state.ResolutionTargets[card.InstanceId] = "goblin";
+
+            EffectActionExecutor.ExecuteAll(state, demon, card, new List<BattleEvent>());
+
+            Assert.AreEqual(0, state.GetCombatant("goblin").Hp);
+            Assert.AreEqual(9, skeleton.Hp);
+        }
+
         static CardInstanceState CardWith(params EffectActionSpec[] actions)
         {
             var card = new CardInstanceState

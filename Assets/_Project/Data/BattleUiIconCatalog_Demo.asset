@@ -24,6 +24,7 @@ MonoBehaviour:
   SkipIcon: {fileID: -2563035158529919731, guid: 3e6ae0d3d3896cb439cd8d977ab7b529, type: 3}
   NoteIcon: {fileID: 2382542705151310463, guid: 0ba76329affbe974cb3fc6d920f7bd31, type: 3}
   MapIcon: {fileID: 4804446361586417100, guid: 16422e1bda6922249b68f89a00c3dcb6, type: 3}
+  ShopRefreshIcon: {fileID: -8687029706193621143, guid: 02213fe47ae2c3c47bc10e8cd35c1e6b, type: 3}
   UnknownPathIcon: {fileID: -7903860423745096787, guid: 978dbf954c118db47a4b5da9e149b729, type: 3}
   CaveBackground: {fileID: 4714104671338776558, guid: 0d05dee52e0214c49a433c68c2420016, type: 3}
   CavePathVariants:

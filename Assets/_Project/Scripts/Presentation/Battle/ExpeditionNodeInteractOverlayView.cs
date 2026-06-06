@@ -32,8 +32,7 @@ namespace Grimhand.Presentation.Battle
 
             var phase = _session.Expedition.Run.Phase;
             var show = phase is ExpeditionPhase.EventChoice
-                or ExpeditionPhase.ShrineChoice
-                or ExpeditionPhase.ShopVisit;
+                or ExpeditionPhase.ShrineChoice;
 
             SetVisible(show);
             if (!show)
@@ -49,9 +48,6 @@ namespace Grimhand.Presentation.Battle
                     break;
                 case ExpeditionPhase.ShrineChoice:
                     RefreshShrine();
-                    break;
-                case ExpeditionPhase.ShopVisit:
-                    RefreshShop();
                     break;
             }
         }
@@ -103,19 +99,6 @@ namespace Grimhand.Presentation.Battle
                     : $"{choice.Label}) {choice.Description}";
                 AddChoiceButton(label, () => _session.ResolveShrineChoice(index));
             }
-        }
-
-        void RefreshShop()
-        {
-            var gold = _session.Expedition.Run.Gold;
-            _titleText.text = "流浪商人";
-            _bodyText.text = $"金币：{gold}\n\n购买服务、消耗品或离开。";
-            AddChoiceButton("治疗（25 金币）", () => _session.ResolveShopChoice(0));
-            AddChoiceButton("删牌（20 金币）", () => _session.ResolveShopChoice(1));
-            AddChoiceButton("小治疗药水（10 金币）", () => _session.ResolveShopChoice(2));
-            AddChoiceButton("大治疗药水（20 金币）", () => _session.ResolveShopChoice(3));
-            AddChoiceButton("烟雾弹（15 金币）", () => _session.ResolveShopChoice(4));
-            AddChoiceButton("离开", () => _session.LeaveShop());
         }
 
         void AddChoiceButton(string label, System.Action onClick)

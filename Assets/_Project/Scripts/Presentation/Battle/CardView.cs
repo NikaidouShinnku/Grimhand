@@ -44,6 +44,7 @@ namespace Grimhand.Presentation.Battle
         Action<int> _onClick;
         Action<CardInstanceState, RectTransform> _onHoverEnter;
         Action _onHoverExit;
+        string _statsBaseLine = "";
 
         public int InstanceId => _instanceId;
         public CardInstanceState CurrentCard { get; private set; }
@@ -83,6 +84,7 @@ namespace Grimhand.Presentation.Battle
             _onClick = onClick;
             _onHoverEnter = onHoverEnter;
             _onHoverExit = onHoverExit;
+            _statsBaseLine = statsLine ?? "";
 
             if (frameImage != null)
             {
@@ -127,7 +129,7 @@ namespace Grimhand.Presentation.Battle
 
             if (statsText != null)
             {
-                statsText.text = statsLine ?? "";
+                statsText.text = _statsBaseLine;
                 statsText.horizontalOverflow = HorizontalWrapMode.Wrap;
                 statsText.verticalOverflow = VerticalWrapMode.Overflow;
             }
@@ -330,10 +332,10 @@ namespace Grimhand.Presentation.Battle
             rt.anchorMax = new Vector2(1f, 0f);
             rt.pivot = new Vector2(0.5f, 0f);
             rt.offsetMin = new Vector2(10f, 12f);
-            rt.offsetMax = new Vector2(-10f, 96f);
+            rt.offsetMax = new Vector2(-10f, 108f);
             statsText.alignment = TextAnchor.UpperCenter;
             statsText.horizontalOverflow = HorizontalWrapMode.Wrap;
-            statsText.verticalOverflow = VerticalWrapMode.Truncate;
+            statsText.verticalOverflow = VerticalWrapMode.Overflow;
         }
 
         void ApplyVisualState(bool immediate = false)
@@ -348,7 +350,10 @@ namespace Grimhand.Presentation.Battle
                 selectedOutline.enabled = false;
 
             if (statsText != null)
+            {
                 statsText.fontSize = _hovered ? DescriptionFontHover : DescriptionFontNormal;
+                statsText.text = _statsBaseLine;
+            }
 
             var targetScale = _hovered ? HoverScale : NormalScale;
             if (_scaleRoutine != null)

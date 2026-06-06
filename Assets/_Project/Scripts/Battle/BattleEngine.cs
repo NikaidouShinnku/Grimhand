@@ -2,10 +2,10 @@ using System.Collections.Generic;
 using Grimhand.Battle.AI;
 using Grimhand.Battle.Consumables;
 using Grimhand.Battle.Effects;
-using Grimhand.Battle.Reactions;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Planning;
+using Grimhand.Battle.Reactions;
 using Grimhand.Battle.Rules;
 using Grimhand.Core;
 
@@ -68,22 +68,37 @@ namespace Grimhand.Battle
 
         public void CancelConsumableTargeting() => Draft.CancelConsumableTargeting();
 
-        /// <summary>预览本回合速度结算顺序（不消耗 RNG）。</summary>
+        /// <summary>预览本回合速度结算顺序（含应对插队，不消耗 RNG）。</summary>
         public IReadOnlyList<ResolutionStep> PreviewResolutionSteps()
         {
             var playerPlan = Draft.CommitToPlan();
-            return SpeedResolver.BuildResolutionOrder(_state, playerPlan, _state.EnemyPlan, _rng.Copy());
+            return PreviewResolutionSchedule(playerPlan);
+        }
+
+        /// <summary>预览指定我方计划下的完整结算顺序（含应对插队）。</summary>
+        public IReadOnlyList<ResolutionStep> PreviewResolutionSchedule(BattlePlan playerPlan)
+        {
+            var baseline = SpeedResolver.BuildResolutionOrder(
+                _state, playerPlan, _state.EnemyPlan, _rng.Copy());
+            var schedule = RespondResolutionPlanner.BuildSchedule(_state, baseline);
+            var steps = new List<ResolutionStep>(schedule.Count);
+            foreach (var entry in schedule)
+                steps.Add(entry.Step);
+            return steps;
         }
 
         /// <summary>我方已选牌按届时速度结算顺序排列的 instanceId 列表。</summary>
         public List<int> GetPlayerCardsInResolveOrder()
         {
             var result = new List<int>();
-            foreach (var step in PreviewResolutionSteps())
+            var baseline = SpeedResolver.BuildResolutionOrder(
+                _state, _state.PlayerPlan, _state.EnemyPlan, _rng.Copy());
+            var schedule = RespondResolutionPlanner.BuildSchedule(_state, baseline);
+            foreach (var entry in schedule)
             {
-                var owner = _state.GetCombatant(step.CombatantId);
+                var owner = _state.GetCombatant(entry.Step.CombatantId);
                 if (owner != null && owner.Team == TeamSide.Player)
-                    result.Add(step.CardInstanceId);
+                    result.Add(entry.Step.CardInstanceId);
             }
 
             return result;
@@ -137,46 +152,28 @@ namespace Grimhand.Battle
         void ResolveTurn()
         {
             SetPhase(TurnPhase.SpeedResolve);
-            ParryRules.ClearAll(_state);
             CombatMechanicsRules.ClearTurnFlags(_state);
+            _state.RespondMitigationByEnemyCard.Clear();
 
-            var queues = SpeedResolver.BuildPlayQueues(_state, _state.PlayerPlan, _state.EnemyPlan);
-            var round = 0;
+            var baseline = SpeedResolver.BuildResolutionOrder(
+                _state, _state.PlayerPlan, _state.EnemyPlan, _rng);
+            var schedule = RespondResolutionPlanner.BuildSchedule(_state, baseline);
 
-            while (true)
+            foreach (var entry in schedule)
             {
-                var actors = new List<CombatantState>();
-                foreach (var pair in queues)
+                if (entry.RespondContext.HasValue)
+                    ResolveRespondStep(entry);
+                else
                 {
-                    if (pair.Value.Count == 0)
-                        continue;
-
-                    var combatant = _state.GetCombatant(pair.Key);
-                    if (combatant != null && combatant.IsAlive)
-                        actors.Add(combatant);
+                    RevealIntentIfHidden(entry.Step.CardInstanceId);
+                    ResolveStep(entry.Step);
                 }
 
-                if (actors.Count == 0)
-                    break;
-
-                var ordered = SpeedResolver.OrderByEffectiveSpeed(_state, actors, _rng);
-                foreach (var actor in ordered)
+                if (_state.Outcome != BattleOutcome.Ongoing)
                 {
-                    if (!queues.TryGetValue(actor.Id, out var queue) || queue.Count == 0)
-                        continue;
-
-                    var cardId = queue.Dequeue();
-                    RevealIntentIfHidden(cardId);
-                    ResolveStep(new ResolutionStep(actor.Id, cardId, round));
-
-                    if (_state.Outcome != BattleOutcome.Ongoing)
-                    {
-                        SetPhase(TurnPhase.BattleEnd);
-                        return;
-                    }
+                    SetPhase(TurnPhase.BattleEnd);
+                    return;
                 }
-
-                round++;
             }
 
             if (_state.Outcome != BattleOutcome.Ongoing)
@@ -186,6 +183,54 @@ namespace Grimhand.Battle
             }
 
             ProcessEndOfTurn();
+        }
+
+        void ResolveRespondStep(ScheduledResolution entry)
+        {
+            var step = entry.Step;
+            var actor = _state.GetCombatant(step.CombatantId);
+            var card = _state.GetCard(step.CardInstanceId);
+            if (actor == null || card == null || !actor.IsAlive)
+                return;
+
+            _events.Add(new BattleEvent(BattleEventKind.PortraitPoseChanged, actor.DisplayName)
+            {
+                CombatantId = actor.Id,
+                CardType = card.CardType,
+                CardInstanceId = card.InstanceId
+            });
+            _events.Add(new BattleEvent(BattleEventKind.CardResolvedStarted, card.DisplayName)
+            {
+                CombatantId = actor.Id,
+                CardInstanceId = card.InstanceId,
+                CardType = card.CardType
+            });
+
+            if (entry.ApplyConditionalEffects && entry.RespondContext.HasValue)
+                RespondEffectExecutor.Execute(
+                    _state, actor, card, entry.RespondContext.Value, _events, _rng);
+
+            EffectActionExecutor.ExecuteUnconditionalActions(_state, actor, card, _events, _rng);
+            ConsumableRules.RecordLastPlayerAttackCard(_state, actor, card);
+            RelicBattleRules.TryApplyStatusCardTeamBlock(_state, actor, card, _events);
+            RelicEffectRules.OnCardResolved(_state, actor, card, _events, _rng);
+
+            if (card.Keywords.Contains("exhaust"))
+                DeckRules.ExhaustCard(_state, actor.Team, card, _events);
+            else
+                DeckRules.MovePlayedCardToDiscard(_state, actor.Team, card, _events);
+
+            _events.Add(new BattleEvent(BattleEventKind.CardResolvedEnded, card.DisplayName)
+            {
+                CombatantId = actor.Id,
+                CardInstanceId = card.InstanceId
+            });
+            _events.Add(new BattleEvent(BattleEventKind.PortraitIdleRestored, actor.DisplayName)
+            {
+                CombatantId = actor.Id
+            });
+
+            EvaluateOutcome();
         }
 
         void RevealIntentIfHidden(int cardInstanceId)
@@ -396,9 +441,10 @@ namespace Grimhand.Battle
             var deckRng = new BattleRng(config.Seed ^ 0x5DEECE66);
 
             foreach (var cc in config.Combatants)
-            {
                 PrepareCombatantDeck(cc, deckRng);
 
+            foreach (var cc in config.Combatants)
+            {
                 var combatant = new CombatantState
                 {
                     Id = cc.Id,
@@ -416,6 +462,13 @@ namespace Grimhand.Battle
                 var startHp = cc.StartHp ?? cc.MaxHp;
                 combatant.Hp = System.Math.Max(0, System.Math.Min(startHp, cc.MaxHp));
                 _state.Combatants.Add(combatant);
+            }
+
+            foreach (var cc in config.Combatants)
+            {
+                var combatant = _state.GetCombatant(cc.Id);
+                if (combatant == null || !combatant.IsAlive)
+                    continue;
 
                 var drawPile = cc.Team == TeamSide.Player ? _state.PlayerDrawPile : _state.EnemyDrawPile;
                 foreach (var template in cc.DeckTemplates)

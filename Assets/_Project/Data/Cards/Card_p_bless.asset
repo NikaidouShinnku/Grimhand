@@ -18,16 +18,15 @@ MonoBehaviour:
   Cost: 1
   CardType: 2
   Rarity: 0
-  Keywords:
-  - heal
+  Keywords: []
   Actions:
   - Type: 2
     Target: 2
-    Value: 12
+    Value: 2
     StatusId: 
     Stacks: 1
     Duration: -1
-    ScaleWithAttack: 0
+    ScaleWithAttack: 1
     ScaleWithDefense: 0
     AttackScalePercent: 100
     DefenseScalePercent: 100

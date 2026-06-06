@@ -102,9 +102,9 @@ namespace Grimhand.Content.Editor
                         Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 4, scaleAttack: true)),
                     SaveCard("m_slime_shield", "凝胶护盾", "char_slime", 1, CardType.Defense, Kw("guard"),
                         Action(EffectActionType.GainBlock, EffectTarget.Self, 6, scaleDefense: true)),
-                    SaveCard("m_slime_split", "分裂", "char_slime", 2, CardType.Status, Kw("summon"),
-                        Action(EffectActionType.ApplyStatus, EffectTarget.Self, 0,
-                            statusId: StatusCatalog.Slow, stacks: 1, duration: 1)),
+                    SaveCard("m_slime_split", "分裂", "char_slime", 2, CardType.Status, Kw("slow"),
+                        Action(EffectActionType.ApplyStatus, EffectTarget.DefaultEnemy, 0,
+                            statusId: StatusCatalog.Slow, stacks: 1, duration: 2)),
                     SaveCard("m_slime_absorb", "吸收", "char_slime", 2, CardType.Attack, Kw("melee"),
                         Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 5, scaleAttack: true),
                         Action(EffectActionType.Heal, EffectTarget.Self, 4))
@@ -150,7 +150,7 @@ namespace Grimhand.Content.Editor
                 WraithElitePool = new[]
                 {
                     SaveCard("m_soul_storm", "灵魂风暴", "char_wraith_elite", 3, CardType.Attack, Kw("aoe"),
-                        Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 10, scaleAttack: true)),
+                        Action(EffectActionType.DealDamage, EffectTarget.AllEnemies, 10, scaleAttack: true)),
                     SaveCard("m_curse", "诅咒", "char_wraith_elite", 2, CardType.Status, Kw("slow"),
                         Action(EffectActionType.ApplyStatus, EffectTarget.DefaultEnemy, 0,
                             statusId: StatusCatalog.Slow, stacks: 2, duration: 2)),

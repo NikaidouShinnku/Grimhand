@@ -64,6 +64,7 @@ namespace Grimhand.Expedition
                     break;
                 case "warrior_only":
                     mods.WarriorFirstHitBlockAmount += 8;
+                    mods.WarriorTauntDamageReductionPercent += 20f;
                     break;
                 case "demon_only":
                     mods.SacrificeHpCostReduction += 3;
@@ -146,7 +147,7 @@ namespace Grimhand.Expedition
                     "法老治疗效果+30%。法老每次施放状态类卡牌时，全队获得3点护甲。",
                     "pharaoh_only", requiredCharacterId: "char_mage"),
                 Def(RelicIds.KnightInCastle, "城堡骑士", RelicRarity.Rare, "战士专属",
-                    "战士每回合首次被攻击时自动获得8点护甲。",
+                    "战士嘲讽期间受到的伤害额外减少20%。战士每回合首次被攻击时自动获得8点护甲。",
                     "warrior_only", requiredCharacterId: "char_knight"),
                 Def(RelicIds.BloodAlter, "血祭坛", RelicRarity.Rare, "恶魔专属",
                     "恶魔使用献祭类卡牌时HP消耗减少3点。每次献祭后本场战斗ATK+1（可叠加，战斗结束重置）。",
@@ -170,8 +171,8 @@ namespace Grimhand.Expedition
                     "全队ATK+2。攻击类卡牌有20%概率附加灼烧（3伤害/回合×2回合，无视DEF）。",
                     "burn_proc_20pct", atk: 2),
                 Def(RelicIds.IronArmor, "铁壁战甲", RelicRarity.Common, "通用",
-                    "全队DEF+2。每场战斗开始时前排角色获得10点护甲。",
-                    "front_armor_10", def: 2),
+                    "全队DEF+1。每场战斗开始时前排角色获得10点护甲。",
+                    "front_armor_10", def: 1),
                 Def(RelicIds.WarriorHelmet, "角斗士之盔", RelicRarity.Common, "通用",
                     "全队HP+8。角色被攻击后，该角色下一次攻击伤害+4。",
                     "revenge_atk_4", hp: 8),

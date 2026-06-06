@@ -1,5 +1,8 @@
 using System.Collections.Generic;
+using Grimhand.Battle;
 using Grimhand.Battle.Model;
+using Grimhand.Battle.Planning;
+using Grimhand.Battle.Rules;
 
 namespace Grimhand.Presentation.Battle
 {
@@ -11,6 +14,14 @@ namespace Grimhand.Presentation.Battle
         readonly Dictionary<string, int> _block = new();
         readonly HashSet<string> _dead = new();
         readonly List<int> _playerHandInstanceIds = new();
+        readonly List<EnemyIntentSlot> _turnEnemyIntents = new();
+        readonly List<ResolutionStep> _turnResolutionSteps = new();
+        readonly Dictionary<int, string> _turnTargetByCardId = new();
+
+        public IReadOnlyList<EnemyIntentSlot> TurnEnemyIntents => _turnEnemyIntents;
+        public IReadOnlyList<ResolutionStep> TurnResolutionSteps => _turnResolutionSteps;
+        public IReadOnlyDictionary<int, string> TurnTargetByCardId => _turnTargetByCardId;
+        public bool HasTurnPresentation => _turnResolutionSteps.Count > 0;
 
         public static PresentationSnapshot Capture(BattleState state)
         {
@@ -29,6 +40,36 @@ namespace Grimhand.Presentation.Battle
 
             foreach (var card in state.PlayerHand)
                 snap._playerHandInstanceIds.Add(card.InstanceId);
+
+            return snap;
+        }
+
+        public static PresentationSnapshot CaptureForTurnPresentation(
+            BattleState state,
+            PlanningDraft draft,
+            BattleEngine engine)
+        {
+            var snap = Capture(state);
+            if (state == null || engine == null)
+                return snap;
+
+            foreach (var intent in state.EnemyIntents)
+            {
+                snap._turnEnemyIntents.Add(new EnemyIntentSlot
+                {
+                    CardInstanceId = intent.CardInstanceId,
+                    OwnerCombatantId = intent.OwnerCombatantId,
+                    IsHidden = intent.IsHidden,
+                    OrderIndex = intent.OrderIndex
+                });
+            }
+
+            var playerPlan = draft?.CommitToPlan() ?? new BattlePlan();
+            foreach (var pair in playerPlan.TargetByCardInstanceId)
+                snap._turnTargetByCardId[pair.Key] = pair.Value;
+
+            foreach (var step in engine.PreviewResolutionSchedule(playerPlan))
+                snap._turnResolutionSteps.Add(step);
 
             return snap;
         }

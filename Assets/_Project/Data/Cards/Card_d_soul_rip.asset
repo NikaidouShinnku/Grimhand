@@ -18,21 +18,20 @@ MonoBehaviour:
   Cost: 2
   CardType: 0
   Rarity: 0
-  Keywords:
-  - melee
+  Keywords: []
   Actions:
   - Type: 0
     Target: 0
-    Value: 5
+    Value: 4
     StatusId: 
     Stacks: 1
     Duration: -1
     ScaleWithAttack: 1
     ScaleWithDefense: 0
-    AttackScalePercent: 120
+    AttackScalePercent: 80
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 1
+    Reach: 0
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
+using Grimhand.Battle.Rules;
 using UnityEngine;
 
 namespace Grimhand.Content
@@ -71,6 +72,7 @@ namespace Grimhand.Content
                 config.Combatants.Add(cc);
             }
 
+            FormationSlotRules.AssignUniqueSlotsPerTeam(config.Combatants);
             return config;
         }
     }

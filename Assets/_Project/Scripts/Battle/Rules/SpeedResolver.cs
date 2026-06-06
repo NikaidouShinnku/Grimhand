@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
-using Grimhand.Battle.Rules;
 using Grimhand.Core;
 
 namespace Grimhand.Battle.Rules

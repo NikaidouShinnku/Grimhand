@@ -19,7 +19,6 @@ MonoBehaviour:
   CardType: 2
   Rarity: 0
   Keywords:
-  - survival
   - exhaust
   Actions:
   - Type: 3

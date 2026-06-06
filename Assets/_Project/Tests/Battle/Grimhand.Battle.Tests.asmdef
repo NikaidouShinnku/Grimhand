@@ -3,6 +3,7 @@
     "rootNamespace": "Grimhand.Battle.Tests",
     "references": [
         "Grimhand.Battle",
+        "Grimhand.Content",
         "Grimhand.Core",
         "Grimhand.Expedition",
         "Grimhand.Presentation"

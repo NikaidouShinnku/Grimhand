@@ -788,10 +788,22 @@ namespace Grimhand.Presentation.Battle
                 return;
             }
 
+            var presenting = _session.PresentationLocked
+                && _session.PresentationSnapshot?.HasTurnPresentation == true;
             var planning = state.Phase == TurnPhase.Planning;
-            enemyIntentPanel.SetActive(planning);
-            if (!planning || enemyIntentText == null)
+            enemyIntentPanel.SetActive(planning || presenting);
+            if (enemyIntentText == null || (!planning && !presenting))
                 return;
+
+            if (presenting)
+            {
+                var lines = BattleUiFormatters.BuildActionOrderSummaryFromSnapshot(
+                    state, _session.PresentationSnapshot);
+                enemyIntentText.text = lines.Count > 0
+                    ? "【行动顺序】\n" + string.Join("\n", lines)
+                    : "【行动顺序】\n（暂无）";
+                return;
+            }
 
             var hasPlayerCards = draft != null && draft.SelectedQueue.Count > 0;
             var hasEnemyIntents = state.EnemyIntents.Count > 0;
@@ -1027,8 +1039,82 @@ namespace Grimhand.Presentation.Battle
 
         void ShowKeywordTooltip(CardInstanceState card, RectTransform anchor)
         {
-            // 卡牌悬停已在牌面展示描述；额外 tooltip 容易引发布局抖动，暂不弹出。
-            HideKeywordTooltip();
+            if (keywordTooltipPanel == null || keywordTooltipText == null || card == null || anchor == null)
+            {
+                HideKeywordTooltip();
+                return;
+            }
+
+            var body = BattleUiFormatters.BuildCardKeywordTooltip(_session?.Engine?.State, card);
+            if (string.IsNullOrEmpty(body))
+            {
+                HideKeywordTooltip();
+                return;
+            }
+
+            keywordTooltipText.supportRichText = true;
+            keywordTooltipText.fontStyle = FontStyle.Normal;
+            keywordTooltipText.alignment = TextAnchor.UpperLeft;
+            keywordTooltipText.text = body;
+
+            var panel = keywordTooltipPanel.transform as RectTransform;
+            if (panel == null)
+                return;
+
+            keywordTooltipPanel.SetActive(true);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
+            PositionTooltipBesideCard(panel, anchor);
+
+            var battleRoot = transform;
+            CombatantTooltipLayer.MountToFront(panel, battleRoot);
+        }
+
+        void PositionTooltipBesideCard(RectTransform panel, RectTransform anchor)
+        {
+            var canvasRt = panel.GetComponentInParent<Canvas>()?.transform as RectTransform;
+            if (canvasRt == null)
+                return;
+
+            var anchorCorners = new Vector3[4];
+            anchor.GetWorldCorners(anchorCorners);
+            var anchorRightX = anchorCorners[2].x;
+            var anchorCenterY = (anchorCorners[0].y + anchorCorners[1].y) * 0.5f;
+
+            var canvasCorners = new Vector3[4];
+            canvasRt.GetWorldCorners(canvasCorners);
+            var canvasLeft = canvasCorners[0].x;
+            var canvasRight = canvasCorners[2].x;
+            var canvasTop = canvasCorners[1].y;
+            var canvasBottom = canvasCorners[0].y;
+
+            panel.pivot = new Vector2(0f, 0.5f);
+            panel.position = new Vector3(anchorRightX + 16f, anchorCenterY, panel.position.z);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
+            ClampTooltipX(panel, canvasLeft, canvasRight);
+
+            var panelCorners = new Vector3[4];
+            panel.GetWorldCorners(panelCorners);
+
+            if (panelCorners[2].x > canvasRight - 12f)
+            {
+                var anchorLeftX = anchorCorners[0].x;
+                panel.pivot = new Vector2(1f, 0.5f);
+                panel.position = new Vector3(anchorLeftX - 16f, anchorCenterY, panel.position.z);
+                LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
+                ClampTooltipX(panel, canvasLeft, canvasRight);
+                panel.GetWorldCorners(panelCorners);
+            }
+
+            if (panelCorners[1].y > canvasTop - 8f)
+            {
+                var shift = canvasTop - 8f - panelCorners[1].y;
+                panel.position += new Vector3(0f, shift, 0f);
+            }
+            else if (panelCorners[0].y < canvasBottom + 8f)
+            {
+                var shift = canvasBottom + 8f - panelCorners[0].y;
+                panel.position += new Vector3(0f, shift, 0f);
+            }
         }
 
         void PositionTooltipAboveCard(RectTransform panel, RectTransform anchor)

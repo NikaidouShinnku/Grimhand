@@ -23,15 +23,13 @@ MonoBehaviour:
   Speed: 5
   Deck:
   - {fileID: 11400000, guid: 40b6cb6a321a4d12ac8e17f725057c08, type: 2}
+  - {fileID: 11400000, guid: 40b6cb6a321a4d12ac8e17f725057c08, type: 2}
+  - {fileID: 11400000, guid: 40b6cb6a321a4d12ac8e17f725057c08, type: 2}
+  - {fileID: 11400000, guid: cb1e2a8cacd84850ac1721066a4d6195, type: 2}
   - {fileID: 11400000, guid: cb1e2a8cacd84850ac1721066a4d6195, type: 2}
   - {fileID: 11400000, guid: 5a110342e9a142cca41206e4dba9574d, type: 2}
-  - {fileID: 11400000, guid: f9d47d937e4b41559c16a6bb6f70ca8b, type: 2}
   - {fileID: 11400000, guid: 86be297d405d4e61a37ce34f9726033b, type: 2}
-  - {fileID: 11400000, guid: 5cf7b7b2ee9a4ff29b48c9fce165ce11, type: 2}
   - {fileID: 11400000, guid: 57d519ea1b75420382a734faa363429a, type: 2}
-  - {fileID: 11400000, guid: 788fda69c68544ee9a6e439ec4015c36, type: 2}
-  - {fileID: 11400000, guid: aafaaa675a274768b390290eb1f446bc, type: 2}
-  - {fileID: 11400000, guid: 38f9645f0c4f4d9f809b4e4c6f33fda8, type: 2}
   SkillPool: []
   EnemyRandomDeckSize: 8
   EnemySkillPickMin: 2

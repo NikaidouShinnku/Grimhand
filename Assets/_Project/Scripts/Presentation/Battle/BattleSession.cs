@@ -145,7 +145,8 @@ namespace Grimhand.Presentation.Battle
             if (Engine == null || !CanInteractWithBattle())
                 return false;
 
-            BeginPresentation(PresentationSnapshot.Capture(Engine.State));
+            BeginPresentation(PresentationSnapshot.CaptureForTurnPresentation(
+                Engine.State, Engine.Draft, Engine));
             var ok = Engine.CommitPlayerPlan();
             if (ok)
                 DrainEvents();
@@ -160,7 +161,8 @@ namespace Grimhand.Presentation.Battle
             if (Engine == null || !CanInteractWithBattle())
                 return false;
 
-            BeginPresentation(PresentationSnapshot.Capture(Engine.State));
+            BeginPresentation(PresentationSnapshot.CaptureForTurnPresentation(
+                Engine.State, Engine.Draft, Engine));
             var ok = Engine.SkipPlayerTurn();
             if (ok)
                 DrainEvents();

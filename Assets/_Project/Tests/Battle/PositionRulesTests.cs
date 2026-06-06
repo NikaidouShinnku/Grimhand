@@ -55,6 +55,36 @@ namespace Grimhand.Battle.Tests
             Assert.AreEqual("back", PositionRules.GetCombatantBehind(state, front).Id);
         }
 
+        [Test]
+        public void AssignUniqueSlotsPerTeam_SplitsDuplicateBackRowEnemies()
+        {
+            var config = new BattleConfig();
+            config.Combatants.Add(new CombatantConfig
+            {
+                Team = TeamSide.Enemy,
+                Slot = FormationSlot.Back,
+                CharacterDefinitionId = "char_wraith"
+            });
+            config.Combatants.Add(new CombatantConfig
+            {
+                Team = TeamSide.Enemy,
+                Slot = FormationSlot.Back,
+                CharacterDefinitionId = "char_wraith_elite"
+            });
+            config.Combatants.Add(new CombatantConfig
+            {
+                Team = TeamSide.Enemy,
+                Slot = FormationSlot.Front,
+                CharacterDefinitionId = "char_slime"
+            });
+
+            FormationSlotRules.AssignUniqueSlotsPerTeam(config.Combatants);
+
+            Assert.AreEqual(FormationSlot.Front, config.Combatants[0].Slot);
+            Assert.AreEqual(FormationSlot.Middle, config.Combatants[1].Slot);
+            Assert.AreEqual(FormationSlot.Back, config.Combatants[2].Slot);
+        }
+
         static BattleState Team(params CombatantState[] units)
         {
             var state = new BattleState();
@@ -67,11 +97,12 @@ namespace Grimhand.Battle.Tests
             return state;
         }
 
-        static CombatantState Unit(string id, FormationSlot slot, int hp) =>
+        static CombatantState Unit(string id, FormationSlot slot, int hp, string charId = null) =>
             new()
             {
                 Id = id,
                 DisplayName = id,
+                CharacterDefinitionId = charId ?? id,
                 Slot = slot,
                 Hp = hp,
                 MaxHp = 20,

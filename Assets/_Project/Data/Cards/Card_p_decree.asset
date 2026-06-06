@@ -18,8 +18,7 @@ MonoBehaviour:
   Cost: 2
   CardType: 2
   Rarity: 0
-  Keywords:
-  - buff
+  Keywords: []
   Actions:
   - Type: 7
     Target: 1

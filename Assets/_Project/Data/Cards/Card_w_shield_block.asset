@@ -18,8 +18,7 @@ MonoBehaviour:
   Cost: 1
   CardType: 1
   Rarity: 0
-  Keywords:
-  - block
+  Keywords: []
   Actions:
   - Type: 1
     Target: 1
@@ -30,7 +29,7 @@ MonoBehaviour:
     ScaleWithAttack: 0
     ScaleWithDefense: 1
     AttackScalePercent: 100
-    DefenseScalePercent: 150
+    DefenseScalePercent: 80
     Condition: 0
     Reach: 1
     SplashBehindTarget: 0

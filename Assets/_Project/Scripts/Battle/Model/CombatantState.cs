@@ -24,7 +24,6 @@ namespace Grimhand.Battle.Model
         public List<StatusInstance> Statuses { get; } = new();
 
         /// <summary>出牌后武装，等待下一次受到攻击时消耗。</summary>
-        public ParryStance ActiveParry { get; set; }
 
         public bool FirstAttackBonusPending { get; set; } = true;
         public bool FirstDefenseBonusPending { get; set; } = true;

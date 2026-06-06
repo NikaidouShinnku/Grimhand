@@ -192,7 +192,8 @@ namespace Grimhand.Battle.Tests
             int hp = 30,
             int maxHp = 30,
             int atk = 5,
-            int def = 2)
+            int def = 2,
+            int speed = 5)
         {
             var unit = new CombatantState
             {
@@ -206,7 +207,7 @@ namespace Grimhand.Battle.Tests
                 BaseDefense = def,
                 Attack = atk,
                 Defense = def,
-                Speed = 5
+                Speed = speed
             };
             state.Combatants.Add(unit);
             return unit;
@@ -234,6 +235,45 @@ namespace Grimhand.Battle.Tests
             Assert.AreEqual(0, state.GetCombatant("goblin").Hp);
             Assert.AreEqual(5, state.GetCombatant("skeleton").Hp);
             Assert.AreEqual(0, state.GetCombatant("ghost").Hp);
+        }
+
+        [Test]
+        public void HellFire_SacrificeThenHitsAllEnemies()
+        {
+            var state = BuildState();
+            var demon = AddUnit(state, "demon", TeamSide.Player, FormationSlot.Back, atk: 9, hp: 30, maxHp: 30);
+            AddUnit(state, "goblin", TeamSide.Enemy, FormationSlot.Front, hp: 20, maxHp: 20, def: 0);
+            AddUnit(state, "slime", TeamSide.Enemy, FormationSlot.Middle, hp: 30, maxHp: 30, def: 0);
+            AddUnit(state, "skel", TeamSide.Enemy, FormationSlot.Back, hp: 25, maxHp: 25, def: 0);
+
+            var card = new CardInstanceState
+            {
+                InstanceId = 99,
+                CardType = CardType.Attack
+            };
+            card.Keywords.Add("sacrifice");
+            card.Keywords.Add("aoe");
+            card.Actions.Add(new EffectActionSpec
+            {
+                Type = EffectActionType.DealDamage,
+                Target = EffectTarget.Self,
+                Value = 8
+            });
+            card.Actions.Add(new EffectActionSpec
+            {
+                Type = EffectActionType.DealDamage,
+                Target = EffectTarget.AllEnemies,
+                Value = 5,
+                ScaleWithAttack = true,
+                AttackScalePercent = 100
+            });
+
+            EffectActionExecutor.ExecuteAll(state, demon, card, new List<BattleEvent>());
+
+            Assert.AreEqual(22, demon.Hp);
+            Assert.Less(state.GetCombatant("goblin").Hp, 20);
+            Assert.Less(state.GetCombatant("slime").Hp, 30);
+            Assert.Less(state.GetCombatant("skel").Hp, 25);
         }
 
         static CardInstanceState CardWith(params EffectActionSpec[] actions)
@@ -272,6 +312,22 @@ namespace Grimhand.Battle.Tests
                 LifestealPercent = lifestealPercent,
                 OnKillHealAmount = onKillHeal
             };
+        }
+
+        [Test]
+        public void SlimeSplit_SlowsPlayerNotSelf()
+        {
+            var state = BuildState();
+            var slime = AddUnit(state, "slime", TeamSide.Enemy, FormationSlot.Front, atk: 3, speed: 2);
+            var warrior = AddUnit(state, "warrior", TeamSide.Player, FormationSlot.Front, hp: 40, speed: 7);
+            var card = CardWith(StatusAction(StatusCatalog.Slow, 1, 2, EffectTarget.DefaultEnemy));
+            var events = new List<BattleEvent>();
+
+            EffectActionExecutor.ExecuteAll(state, slime, card, events);
+
+            Assert.IsFalse(StatusRules.HasStatus(slime, StatusCatalog.Slow));
+            Assert.IsTrue(StatusRules.HasStatus(warrior, StatusCatalog.Slow));
+            Assert.AreEqual(5, StatusRules.GetEffectiveSpeed(warrior));
         }
 
         static EffectActionSpec StatusAction(

@@ -53,7 +53,7 @@ namespace Grimhand.Battle.Effects
                 return false;
 
             target = state.GetCombatant(targetId);
-            return target != null;
+            return target != null && target.IsAlive;
         }
 
         static TeamSide OppositeTeam(TeamSide team) =>

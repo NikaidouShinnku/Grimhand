@@ -1,5 +1,6 @@
 using Grimhand.Battle.AI;
 using Grimhand.Battle.Model;
+using Grimhand.Battle.Rules;
 using Grimhand.Core;
 using NUnit.Framework;
 
@@ -62,6 +63,43 @@ namespace Grimhand.Battle.Tests
 
             Assert.AreEqual(1, plan.Plan.PlayQueue.Count);
             Assert.AreEqual(2, plan.Plan.EnergySpent);
+        }
+
+        [Test]
+        public void PrepareEnemyTurn_AllEnemyOwnersCanPlayWhenEachHasUniqueSlot()
+        {
+            var state = new BattleState
+            {
+                Config = new BattleConfig { TurnStartEnergyRegen = 8 }
+            };
+
+            var goblin = new CombatantState
+            {
+                Id = "goblin",
+                Team = TeamSide.Enemy,
+                Slot = FormationSlot.Front,
+                CharacterDefinitionId = "char_goblin",
+                Hp = 20,
+                MaxHp = 20
+            };
+            var slime = new CombatantState
+            {
+                Id = "slime",
+                Team = TeamSide.Enemy,
+                Slot = FormationSlot.Middle,
+                CharacterDefinitionId = "char_slime",
+                Hp = 30,
+                MaxHp = 30
+            };
+            state.Combatants.Add(goblin);
+            state.Combatants.Add(slime);
+
+            AddEnemyCard(state, goblin, 301, "投石", 1);
+            AddEnemyCard(state, slime, 302, "分裂", 2);
+
+            var plan = EnemyTurnPlanner.PrepareEnemyTurn(state, new BattleRng(1));
+
+            Assert.AreEqual(2, plan.Plan.PlayQueue.Count);
         }
 
         static void AddEnemyCard(BattleState state, CombatantState owner, int id, string name, int cost)

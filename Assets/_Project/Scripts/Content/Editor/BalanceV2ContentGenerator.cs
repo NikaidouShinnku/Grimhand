@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace Grimhand.Content.Editor
 {
-    /// <summary>根据数值策划表 v2 生成玩家角色与 30 张卡牌。</summary>
+    /// <summary>根据 Gramhand实际卡牌遗物表.xlsx 生成玩家角色与 32 张卡牌。</summary>
     public static class BalanceV2ContentGenerator
     {
         const string Root = "Assets/_Project/Data";
@@ -30,19 +30,19 @@ namespace Grimhand.Content.Editor
             {
                 Warrior = SaveCharacter("Character_Knight", "char_knight", "战士", TeamSide.Player,
                     FormationSlot.Front, 1, 50, 8, 6, 7,
-                    BuildDeck(cards.Warrior)),
+                    BuildInitialWarriorDeck(cards.Warrior)),
                 Pharaoh = SaveCharacter("Character_Mage", "char_mage", "法老", TeamSide.Player,
                     FormationSlot.Middle, 1, 40, 6, 4, 5,
-                    BuildDeck(cards.Pharaoh)),
+                    BuildInitialPharaohDeck(cards.Pharaoh)),
                 Demon = SaveCharacter("Character_Ranger", "char_ranger", "恶魔", TeamSide.Player,
                     FormationSlot.Back, 1, 30, 9, 2, 6,
-                    BuildDeck(cards.Demon))
+                    BuildInitialDemonDeck(cards.Demon))
             };
         }
 
         struct WarriorCards
         {
-            public CardDefinitionSO BasicSlash, ShieldBlock, PowerCleave, Taunt, IronParry, Charge,
+            public CardDefinitionSO BasicSlash, ShieldBlock, DefensiveStance, PowerCleave, Taunt, IronParry, Charge,
                 WarCry, Guardian, FatalStrike, Unyielding;
         }
 
@@ -54,43 +54,24 @@ namespace Grimhand.Content.Editor
 
         struct DemonCards
         {
-            public CardDefinitionSO ShadowClaw, DevilTouch, BloodFlame, SoulRip, DarkSacrifice, DemonPact,
+            public CardDefinitionSO ShadowClaw, DevilTouch, BloodTail, BloodFlame, SoulRip, DarkSacrifice, DemonPact,
                 VampAura, CurseChain, HellFire, DemonLord;
         }
 
         struct AllPlayerCards
         {
-            public CardDefinitionSO[] Warrior;
-            public CardDefinitionSO[] Pharaoh;
-            public CardDefinitionSO[] Demon;
+            public WarriorCards Warrior;
+            public PharaohCards Pharaoh;
+            public DemonCards Demon;
         }
 
         static AllPlayerCards CreatePlayerCards()
         {
-            var warrior = CreateWarriorCards();
-            var pharaoh = CreatePharaohCards();
-            var demon = CreateDemonCards();
-
             return new AllPlayerCards
             {
-                Warrior = new[]
-                {
-                    warrior.BasicSlash, warrior.ShieldBlock, warrior.PowerCleave, warrior.Taunt,
-                    warrior.IronParry, warrior.Charge, warrior.WarCry, warrior.Guardian,
-                    warrior.FatalStrike, warrior.Unyielding
-                },
-                Pharaoh = new[]
-                {
-                    pharaoh.SandRay, pharaoh.Bless, pharaoh.SolarWrath, pharaoh.LifeSteal,
-                    pharaoh.Decree, pharaoh.UndeadCurse, pharaoh.ScarabShield, pharaoh.SandBarrier,
-                    pharaoh.ReviveBless, pharaoh.SolarJudgment
-                },
-                Demon = new[]
-                {
-                    demon.ShadowClaw, demon.DevilTouch, demon.BloodFlame, demon.SoulRip,
-                    demon.DarkSacrifice, demon.DemonPact, demon.VampAura, demon.CurseChain,
-                    demon.HellFire, demon.DemonLord
-                }
+                Warrior = CreateWarriorCards(),
+                Pharaoh = CreatePharaohCards(),
+                Demon = CreateDemonCards()
             };
         }
 
@@ -99,27 +80,29 @@ namespace Grimhand.Content.Editor
             return new WarriorCards
             {
                 BasicSlash = SaveCard("w_basic_slash", "基础斩击", "char_knight", 1, CardType.Attack,
-                    Kw("melee"), AtkDmg(3, 80)),
+                    null, AtkDmg(3, 80)),
                 ShieldBlock = SaveCard("w_shield_block", "举盾格挡", "char_knight", 1, CardType.Defense,
-                    Kw("block"), DefBlock(2, 150)),
+                    null, DefBlock(2, 80)),
+                DefensiveStance = SaveCard("w_defensive_stance", "防御架势", "char_knight", 1, CardType.Defense,
+                    Kw("parry"), RespondAttack(50)),
                 PowerCleave = SaveCard("w_power_cleave", "猛力劈砍", "char_knight", 2, CardType.Attack,
-                    Kw("melee"), AtkDmg(5, 120, bonusHpBelowPercent: 50, bonusHpBelowFlat: 10)),
+                    null, AtkDmg(5, 120, bonusHpBelowPercent: 50, bonusHpBelowFlat: 10)),
                 Taunt = SaveCard("w_taunt", "嘲讽挑衅", "char_knight", 2, CardType.Defense,
-                    Kw("taunt"),
+                    null,
                     ApplyStat(StatusCatalog.Taunt, 1, 1, EffectTarget.Self),
-                    Block(15)),
+                    DefBlock(0, 120)),
                 IronParry = SaveCard("w_iron_parry", "铁壁弹反", "char_knight", 2, CardType.Defense,
-                    Kw("parry"), Merge(Parry(50, 100))),
+                    Kw("parry"), Merge(RespondAttack(30, 100))),
                 Charge = SaveCard("w_charge", "战士冲锋", "char_knight", 3, CardType.Attack,
-                    Kw("melee"), AtkDmg(8, 160, ignoreDefPercent: 50)),
+                    null, AtkDmg(8, 160, ignoreDefPercent: 50)),
                 WarCry = SaveCard("w_war_cry", "战吼鼓舞", "char_knight", 1, CardType.Status,
-                    Kw("buff"), Merge(TeamAttackUp(3, 1))),
+                    null, Merge(TeamAttackUp(3, 1))),
                 Guardian = SaveCard("w_guardian", "誓死守护", "char_knight", 2, CardType.Defense,
-                    Kw("guard"), ApplyStat(StatusCatalog.Guard, 1, 1, EffectTarget.Self)),
+                    null, ApplyStat(StatusCatalog.Guard, 1, 1, EffectTarget.Self)),
                 FatalStrike = SaveCard("w_fatal_strike", "致命打击", "char_knight", 3, CardType.Attack,
-                    Kw("melee"), AtkDmg(6, 180, bonusHitThisTurnPercent: 50)),
+                    null, AtkDmg(6, 180, bonusHitThisTurnPercent: 50)),
                 Unyielding = SaveCard("w_unyielding", "不屈意志", "char_knight", 0, CardType.Status,
-                    Kw("survival", "exhaust"),
+                    Kw("exhaust"),
                     ApplyStat(StatusCatalog.Unyielding, 1, -1, EffectTarget.Self))
             };
         }
@@ -129,33 +112,33 @@ namespace Grimhand.Content.Editor
             return new PharaohCards
             {
                 SandRay = SaveCard("p_sand_ray", "沙暴射线", "char_mage", 1, CardType.Attack,
-                    Kw("magic"), AtkDmg(3, 80)),
+                    null, AtkDmg(3, 80)),
                 Bless = SaveCard("p_bless", "祈祷祝福", "char_mage", 1, CardType.Status,
-                    Kw("heal"), Heal(12, EffectTarget.FrontAlly)),
+                    null, HealScaled(2, 100, EffectTarget.FrontAlly)),
                 SolarWrath = SaveCard("p_solar_wrath", "太阳之怒", "char_mage", 2, CardType.Attack,
-                    Kw("aoe", "magic"), Merge(AoeDmg(3, 70))),
+                    Kw("aoe"), Merge(AoeDmg(3, 70))),
                 LifeSteal = SaveCard("p_lifesteal", "生命汲取", "char_mage", 2, CardType.Attack,
-                    Kw("magic", "lifesteal"), AtkDmg(4, 100, lifestealPercent: 50)),
+                    null, AtkDmg(4, 100, lifestealPercent: 50)),
                 Decree = SaveCard("p_decree", "法老权令", "char_mage", 2, CardType.Status,
-                    Kw("buff"),
+                    null,
                     Draw(2),
                     ApplyStat(StatusCatalog.AttackUp, 3, 1, EffectTarget.FrontAlly),
                     ApplyStat(StatusCatalog.DefenseUp, 2, 1, EffectTarget.FrontAlly)),
                 UndeadCurse = SaveCard("p_undead_curse", "亡灵诅咒", "char_mage", 3, CardType.Attack,
-                    Kw("magic", "poison"),
-                    AtkDmg(6, 120),
+                    Kw("poison"),
+                    AtkDmg(6, 120, reach: TargetReach.Any),
                     ApplyStat(StatusCatalog.NecroticPoison, 1, 3, EffectTarget.DefaultEnemy)),
                 ScarabShield = SaveCard("p_scarab_shield", "圣甲虫护盾", "char_mage", 1, CardType.Defense,
-                    Kw("shield"), Block(12, EffectTarget.FrontAlly)),
+                    null, AllyDefBlock(EffectTarget.FrontAlly, 0, 120)),
                 SandBarrier = SaveCard("p_sand_barrier", "沙尘结界", "char_mage", 2, CardType.Defense,
-                    Kw("shield"),
-                    AllyBlock(EffectTarget.AllyFrontSlot, 8),
-                    AllyBlock(EffectTarget.AllyMiddleSlot, 8),
-                    AllyBlock(EffectTarget.AllyBackSlot, 8)),
+                    null,
+                    AllyDefBlock(EffectTarget.AllyFrontSlot, 0, 100),
+                    AllyDefBlock(EffectTarget.AllyMiddleSlot, 0, 100),
+                    AllyDefBlock(EffectTarget.AllyBackSlot, 0, 100)),
                 ReviveBless = SaveCard("p_revive_bless", "复活祝福", "char_mage", 3, CardType.Status,
-                    Kw("revive"), ApplyStat(StatusCatalog.ReviveBlessing, 1, -1, EffectTarget.FrontAlly)),
+                    Kw("exhaust"), ApplyStat(StatusCatalog.ReviveBlessing, 1, -1, EffectTarget.FrontAlly)),
                 SolarJudgment = SaveCard("p_solar_judgment", "太阳审判", "char_mage", 4, CardType.Attack,
-                    Kw("magic"), AtkDmg(10, 200))
+                    null, AtkDmg(10, 200, reach: TargetReach.Any))
             };
         }
 
@@ -164,15 +147,17 @@ namespace Grimhand.Content.Editor
             return new DemonCards
             {
                 ShadowClaw = SaveCard("d_shadow_claw", "暗影爪击", "char_ranger", 1, CardType.Attack,
-                    Kw("melee"), AtkDmg(3, 80)),
+                    null, AtkDmg(3, 80)),
                 DevilTouch = SaveCard("d_devil_touch", "恶魔之触", "char_ranger", 1, CardType.Attack,
-                    Kw("lifesteal"), AtkDmg(2, 60, lifestealPercent: 100)),
+                    null, AtkDmg(2, 50, lifestealPercent: 100)),
+                BloodTail = SaveCard("d_blood_tail", "血尾贯穿", "char_ranger", 2, CardType.Attack,
+                    null, AtkDmg(3, 100, splashBehind: true, splashPercent: 80)),
                 BloodFlame = SaveCard("d_blood_flame", "血焰爆发", "char_ranger", 2, CardType.Attack,
                     Kw("sacrifice"),
                     SelfDmg(8),
                     AtkDmg(8, 130)),
                 SoulRip = SaveCard("d_soul_rip", "灵魂撕裂", "char_ranger", 2, CardType.Attack,
-                    Kw("melee"), AtkDmg(5, 120, ignoreDefPercent: 100)),
+                    null, AtkDmg(4, 80, ignoreDefPercent: 100, reach: TargetReach.Any)),
                 DarkSacrifice = SaveCard("d_dark_sacrifice", "暗黑献祭", "char_ranger", 3, CardType.Attack,
                     Kw("sacrifice"),
                     SelfDmg(15),
@@ -183,10 +168,10 @@ namespace Grimhand.Content.Editor
                     Draw(2),
                     ApplyStat(StatusCatalog.AttackUp, 3, 1, EffectTarget.Self)),
                 VampAura = SaveCard("d_vamp_aura", "吸血光环", "char_ranger", 1, CardType.Status,
-                    Kw("lifesteal"), ApplyStat(StatusCatalog.VampAura, 30, 1, EffectTarget.Self)),
+                    null, ApplyStat(StatusCatalog.VampAura, 30, 1, EffectTarget.Self)),
                 CurseChain = SaveCard("d_curse_chain", "诅咒之链", "char_ranger", 2, CardType.Attack,
-                    Kw("curse"),
-                    AtkDmg(3, 100),
+                    null,
+                    AtkDmg(3, 100, reach: TargetReach.Any),
                     ApplyStat(StatusCatalog.AttackDown, 3, 2, EffectTarget.DefaultEnemy)),
                 HellFire = SaveCard("d_hell_fire", "地狱烈焰", "char_ranger", 3, CardType.Attack,
                     Kw("aoe", "sacrifice"),
@@ -195,20 +180,47 @@ namespace Grimhand.Content.Editor
                 DemonLord = SaveCard("d_demon_lord", "魔王降临", "char_ranger", 4, CardType.Attack,
                     Kw("sacrifice"),
                     SelfDmg(20),
-                    AtkDmg(15, 200, onKillHeal: 30))
+                    AtkDmg(15, 200, reach: TargetReach.Any, onKillHeal: 30))
             };
         }
+
+        static CardDefinitionSO[] BuildInitialWarriorDeck(WarriorCards c) =>
+            BuildDeckWithCounts(
+                (c.BasicSlash, 3),
+                (c.ShieldBlock, 2),
+                (c.DefensiveStance, 1),
+                (c.PowerCleave, 1),
+                (c.IronParry, 1));
+
+        static CardDefinitionSO[] BuildInitialPharaohDeck(PharaohCards c) =>
+            BuildDeckWithCounts(
+                (c.SandRay, 3),
+                (c.Bless, 2),
+                (c.SolarWrath, 1),
+                (c.Decree, 1),
+                (c.ScarabShield, 1));
+
+        static CardDefinitionSO[] BuildInitialDemonDeck(DemonCards c) =>
+            BuildDeckWithCounts(
+                (c.ShadowClaw, 3),
+                (c.DevilTouch, 2),
+                (c.BloodTail, 1),
+                (c.DemonPact, 1),
+                (c.HellFire, 1));
 
         static EffectActionDefinition AtkDmg(
             int fixedVal,
             int atkPercent,
             EffectTarget target = EffectTarget.DefaultEnemy,
+            TargetReach reach = TargetReach.FrontAndMiddle,
             int ignoreDefPercent = 0,
             int bonusHpBelowPercent = 0,
             int bonusHpBelowFlat = 0,
             int bonusHitThisTurnPercent = 0,
             int lifestealPercent = 0,
-            int onKillHeal = 0)
+            int onKillHeal = 0,
+            bool splashBehind = false,
+            int splashPercent = 100)
         {
             return new EffectActionDefinition
             {
@@ -222,7 +234,10 @@ namespace Grimhand.Content.Editor
                 BonusIfTargetHpBelowFlat = bonusHpBelowFlat,
                 BonusIfTargetHitThisTurnPercent = bonusHitThisTurnPercent,
                 LifestealPercent = lifestealPercent,
-                OnKillHealAmount = onKillHeal
+                OnKillHealAmount = onKillHeal,
+                Reach = target == EffectTarget.AllEnemies ? TargetReach.Any : reach,
+                SplashBehindTarget = splashBehind,
+                SplashPowerPercent = splashPercent
             };
         }
 
@@ -238,6 +253,19 @@ namespace Grimhand.Content.Editor
             };
         }
 
+        static EffectActionDefinition AllyDefBlock(EffectTarget target, int fixedVal, int defPercent)
+        {
+            return new EffectActionDefinition
+            {
+                Type = EffectActionType.GainBlock,
+                Target = target,
+                Value = fixedVal,
+                ScaleWithDefense = true,
+                DefenseScalePercent = defPercent,
+                Reach = TargetReach.Any
+            };
+        }
+
         static EffectActionDefinition Block(int amount, EffectTarget target = EffectTarget.Self)
         {
             return new EffectActionDefinition
@@ -249,15 +277,15 @@ namespace Grimhand.Content.Editor
             };
         }
 
-        static EffectActionDefinition AllyBlock(EffectTarget slot, int amount) => Block(amount, slot);
-
-        static EffectActionDefinition Heal(int amount, EffectTarget target)
+        static EffectActionDefinition HealScaled(int flat, int atkPercent, EffectTarget target)
         {
             return new EffectActionDefinition
             {
                 Type = EffectActionType.Heal,
                 Target = target,
-                Value = amount,
+                Value = flat,
+                ScaleWithAttack = true,
+                AttackScalePercent = atkPercent,
                 Reach = IsAllyPickTarget(target) ? TargetReach.Any : TargetReach.FrontAndMiddle
             };
         }
@@ -310,51 +338,34 @@ namespace Grimhand.Content.Editor
             };
         }
 
-        static EffectActionDefinition Poison(int stacks)
-        {
-            return new EffectActionDefinition
-            {
-                Type = EffectActionType.ApplyStatus,
-                Target = EffectTarget.DefaultEnemy,
-                StatusId = StatusCatalog.Poison,
-                Stacks = stacks
-            };
-        }
-
-        static EffectActionDefinition Slow(int stacks, int duration)
-        {
-            return new EffectActionDefinition
-            {
-                Type = EffectActionType.ApplyStatus,
-                Target = EffectTarget.DefaultEnemy,
-                StatusId = StatusCatalog.Slow,
-                Stacks = stacks,
-                Duration = duration
-            };
-        }
-
         static EffectActionDefinition[] AoeDmg(int fixedVal, int atkPercent) =>
             new[] { AtkDmg(fixedVal, atkPercent, EffectTarget.AllEnemies) };
 
-        static EffectActionDefinition[] Parry(int reductionPercent, int reflectPercent)
+        static EffectActionDefinition[] RespondAttack(int reductionPercent, int reflectPercent = 0)
         {
-            return new[]
+            var actions = new List<EffectActionDefinition>
             {
-                new EffectActionDefinition
+                new()
                 {
                     Type = EffectActionType.GainBlockFromLastDamagePercent,
                     Target = EffectTarget.Self,
                     Value = reductionPercent,
                     Condition = ReactionConditionType.LastActionAttackOnSelf
-                },
-                new EffectActionDefinition
+                }
+            };
+
+            if (reflectPercent > 0)
+            {
+                actions.Add(new EffectActionDefinition
                 {
                     Type = EffectActionType.ReflectLastDamageToAttacker,
                     Target = EffectTarget.LastActionActor,
                     Value = reflectPercent,
                     Condition = ReactionConditionType.LastActionAttackOnSelf
-                }
-            };
+                });
+            }
+
+            return actions.ToArray();
         }
 
         static EffectActionDefinition[] Merge(params EffectActionDefinition[] actions) => actions;
@@ -428,7 +439,17 @@ namespace Grimhand.Content.Editor
 
         static string[] Kw(params string[] ids) => ids;
 
-        static CardDefinitionSO[] BuildDeck(params CardDefinitionSO[] cards) => cards;
+        static CardDefinitionSO[] BuildDeckWithCounts(params (CardDefinitionSO card, int count)[] entries)
+        {
+            var list = new List<CardDefinitionSO>();
+            foreach (var (card, count) in entries)
+            {
+                for (var i = 0; i < count; i++)
+                    list.Add(card);
+            }
+
+            return list.ToArray();
+        }
 
         static void EnsureFolder(string path)
         {

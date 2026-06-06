@@ -1,6 +1,7 @@
 using Grimhand.Battle.Effects;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
+using Grimhand.Battle.Status;
 using Grimhand.Core;
 
 namespace Grimhand.Battle.Rules
@@ -244,6 +245,16 @@ namespace Grimhand.Battle.Rules
             {
                 target.FirstHitReductionPending = false;
                 hpDamage = (int)System.Math.Round(hpDamage * (100f - mods.FirstHitDamageReductionPercent) / 100f);
+            }
+
+            if (mods != null
+                && mods.WarriorTauntDamageReductionPercent > 0f
+                && hpDamage > 0
+                && target.CharacterDefinitionId == RelicEffectRules.WarriorCharacterId
+                && StatusRules.HasStatus(target, StatusCatalog.Taunt))
+            {
+                hpDamage = (int)System.Math.Round(
+                    hpDamage * (100f - mods.WarriorTauntDamageReductionPercent) / 100f);
             }
 
             if (target.WarriorFirstHitBlockPending

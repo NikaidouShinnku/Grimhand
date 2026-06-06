@@ -21,6 +21,7 @@ namespace Grimhand.Battle.Model
         public float WarriorBlockChanceOnHit { get; set; }
         public int WarriorBlockAmountOnHit { get; set; }
         public int WarriorFirstHitBlockAmount { get; set; }
+        public float WarriorTauntDamageReductionPercent { get; set; }
         public float FirstAttackDamageBonusPercent { get; set; }
         public int FirstAttackFlatBonus { get; set; }
         public int FirstDefenseFlatBonus { get; set; }

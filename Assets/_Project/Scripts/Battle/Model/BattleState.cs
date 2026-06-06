@@ -54,6 +54,9 @@ namespace Grimhand.Battle.Model
         public string LastPlayerAttackActorId { get; set; } = "";
         public CardInstanceState LastPlayerAttackCard { get; set; }
 
+        /// <summary>key = 敌方牌 instanceId；在其造成伤害时按层叠顺序减伤。</summary>
+        public Dictionary<int, List<RespondMitigationLayer>> RespondMitigationByEnemyCard { get; } = new();
+
         public CombatantState GetCombatant(string id)
         {
             foreach (var c in Combatants)

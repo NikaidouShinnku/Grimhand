@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
+using Grimhand.Battle.Rules;
 using Grimhand.Expedition.Model;
 
 namespace Grimhand.Expedition
@@ -66,6 +67,8 @@ namespace Grimhand.Expedition
             config.Seed = battleSeed;
             config.RunModifiers = RelicDatabase.BuildModifiers(relicIds);
             config.MiracleLeafRevivesRemaining = miracleLeafUsesRemaining;
+
+            FormationSlotRules.AssignUniqueSlotsPerTeam(config.Combatants);
 
             ApplyEnemyFloorScaling(config, floor, battleSeed);
 

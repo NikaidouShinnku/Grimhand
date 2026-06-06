@@ -19,7 +19,6 @@ MonoBehaviour:
   CardType: 0
   Rarity: 0
   Keywords:
-  - magic
   - poison
   Actions:
   - Type: 0
@@ -33,7 +32,7 @@ MonoBehaviour:
     AttackScalePercent: 120
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 1
+    Reach: 0
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100

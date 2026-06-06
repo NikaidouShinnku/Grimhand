@@ -151,15 +151,12 @@ namespace Grimhand.Battle.Rules
 
         public static string GetOwnerCombatantId(BattleState state, CardInstanceState card)
         {
-            foreach (var c in state.Combatants)
-            {
-                if (c.CharacterDefinitionId == card.OwnerCharacterId && c.IsAlive)
-                    return c.Id;
-            }
+            if (card == null)
+                return null;
 
             foreach (var c in state.Combatants)
             {
-                if (c.CharacterDefinitionId == card.OwnerCharacterId)
+                if (c.CharacterDefinitionId == card.OwnerCharacterId && c.IsAlive)
                     return c.Id;
             }
 

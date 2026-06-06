@@ -19,14 +19,14 @@ MonoBehaviour:
   CardType: 2
   Rarity: 0
   Keywords:
-  - summon
+  - slow
   Actions:
   - Type: 3
-    Target: 1
+    Target: 0
     Value: 0
     StatusId: slow
     Stacks: 1
-    Duration: 1
+    Duration: 2
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100

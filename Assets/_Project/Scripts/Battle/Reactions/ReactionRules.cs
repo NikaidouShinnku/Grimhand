@@ -1,4 +1,5 @@
 using Grimhand.Battle.Model;
+using Grimhand.Battle.Rules;
 
 namespace Grimhand.Battle.Reactions
 {
@@ -9,16 +10,28 @@ namespace Grimhand.Battle.Reactions
             if (condition == ReactionConditionType.None)
                 return true;
 
-            var last = state.LastAction;
-            switch (condition)
+            return condition switch
             {
-                case ReactionConditionType.LastActionAttackOnSelf:
-                    return last.ActionKind == ActionKind.Attack
-                           && last.TargetId == actorId
-                           && !string.IsNullOrEmpty(last.ActorId);
-                default:
-                    return true;
-            }
+                ReactionConditionType.LastActionAttackOnSelf => false,
+                _ => false
+            };
+        }
+
+        public static bool MeetsRespondCondition(
+            BattleState state,
+            ReactionConditionType condition,
+            string respondOwnerId,
+            ResolutionStep enemyStep)
+        {
+            if (condition == ReactionConditionType.None)
+                return true;
+
+            return condition switch
+            {
+                ReactionConditionType.LastActionAttackOnSelf =>
+                    RespondTriggerMatcher.WouldEnemyStepAttackCombatant(state, enemyStep, respondOwnerId),
+                _ => false
+            };
         }
     }
 }

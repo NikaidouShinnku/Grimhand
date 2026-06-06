@@ -19,7 +19,7 @@ MonoBehaviour:
   CardType: 2
   Rarity: 0
   Keywords:
-  - revive
+  - exhaust
   Actions:
   - Type: 3
     Target: 2

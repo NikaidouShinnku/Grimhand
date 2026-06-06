@@ -22,7 +22,8 @@ namespace Grimhand.Battle.Effects
             string logSuffix = "",
             int cardCost = 0,
             int ignoreDefPercent = 0,
-            bool redirectedByGuard = false)
+            bool redirectedByGuard = false,
+            int sourceCardInstanceId = 0)
         {
             if (target == null)
                 return;
@@ -58,17 +59,8 @@ namespace Grimhand.Battle.Effects
             hpDamage = RelicBattleRules.ApplyIncomingDamageRelics(
                 state, actor, recipient, hpDamage, rng, events);
 
-            var reflectPower = 0;
-            if (canTriggerParry && hpDamage > 0 && recipient.ActiveParry != null)
-            {
-                var stance = recipient.ActiveParry;
-                recipient.ActiveParry = null;
-                var beforeReduction = hpDamage;
-                if (stance.DamageReductionPercent > 0)
-                    hpDamage = (int)Math.Round(beforeReduction * (100 - stance.DamageReductionPercent) / 100f);
-                if (stance.ReflectPercent > 0)
-                    reflectPower = (int)Math.Round(outgoingPower * stance.ReflectPercent / 100f);
-            }
+            hpDamage = RespondEffectExecutor.ApplyMitigation(
+                state, sourceCardInstanceId, recipient.Id, hpDamage);
 
             if (hpDamage > 0 && rng != null)
             {
@@ -114,20 +106,6 @@ namespace Grimhand.Battle.Effects
 
             if (hpDamage > 0)
                 CombatMechanicsRules.TryTriggerUnyielding(state, recipient, events);
-
-            if (reflectPower > 0 && actor.IsAlive)
-            {
-                events.Add(new BattleEvent(BattleEventKind.ParryTriggered,
-                    $"{recipient.DisplayName} 弹反击退 {actor.DisplayName}")
-                {
-                    CombatantId = recipient.Id,
-                    TargetId = actor.Id,
-                    Amount = reflectPower
-                });
-
-                ApplyDamage(state, recipient, actor, reflectPower, cardType, events,
-                    canTriggerParry: false, rng: rng, logSuffix: " (反射)");
-            }
 
             if (killed)
             {

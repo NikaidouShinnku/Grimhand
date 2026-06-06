@@ -23,7 +23,7 @@ MonoBehaviour:
   Actions:
   - Type: 9
     Target: 1
-    Value: 50
+    Value: 30
     StatusId: 
     Stacks: 1
     Duration: -1

@@ -18,8 +18,7 @@ MonoBehaviour:
   Cost: 1
   CardType: 0
   Rarity: 0
-  Keywords:
-  - lifesteal
+  Keywords: []
   Actions:
   - Type: 0
     Target: 0
@@ -29,7 +28,7 @@ MonoBehaviour:
     Duration: -1
     ScaleWithAttack: 1
     ScaleWithDefense: 0
-    AttackScalePercent: 60
+    AttackScalePercent: 50
     DefenseScalePercent: 100
     Condition: 0
     Reach: 1

@@ -22,7 +22,7 @@ MonoBehaviour:
   - aoe
   Actions:
   - Type: 0
-    Target: 0
+    Target: 12
     Value: 10
     StatusId: 
     Stacks: 1

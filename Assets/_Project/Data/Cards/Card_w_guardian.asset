@@ -18,8 +18,7 @@ MonoBehaviour:
   Cost: 2
   CardType: 1
   Rarity: 0
-  Keywords:
-  - guard
+  Keywords: []
   Actions:
   - Type: 3
     Target: 1

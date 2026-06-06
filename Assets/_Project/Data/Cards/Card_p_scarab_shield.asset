@@ -18,19 +18,18 @@ MonoBehaviour:
   Cost: 1
   CardType: 1
   Rarity: 0
-  Keywords:
-  - shield
+  Keywords: []
   Actions:
   - Type: 1
     Target: 2
-    Value: 12
+    Value: 0
     StatusId: 
     Stacks: 1
     Duration: -1
     ScaleWithAttack: 0
-    ScaleWithDefense: 0
+    ScaleWithDefense: 1
     AttackScalePercent: 100
-    DefenseScalePercent: 100
+    DefenseScalePercent: 120
     Condition: 0
     Reach: 0
     SplashBehindTarget: 0

@@ -20,7 +20,6 @@ MonoBehaviour:
   Rarity: 0
   Keywords:
   - aoe
-  - magic
   Actions:
   - Type: 0
     Target: 12
@@ -33,7 +32,7 @@ MonoBehaviour:
     AttackScalePercent: 70
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 1
+    Reach: 0
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100

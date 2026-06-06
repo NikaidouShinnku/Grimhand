@@ -26,8 +26,19 @@ namespace Grimhand.Battle.Rules
                 return;
 
             var draw = state.GetDrawPile(team);
-            draw.AddRange(discard);
-            discard.Clear();
+            for (var i = discard.Count - 1; i >= 0; i--)
+            {
+                var card = discard[i];
+                if (team == TeamSide.Enemy && PositionRules.GetOwnerCombatantId(state, card) == null)
+                    continue;
+
+                draw.Add(card);
+                discard.RemoveAt(i);
+            }
+
+            if (draw.Count == 0)
+                return;
+
             ShuffleDrawPile(state, team, rng, events);
         }
 
@@ -39,17 +50,31 @@ namespace Grimhand.Battle.Rules
 
         static void DrawOne(BattleState state, TeamSide team, BattleRng rng, List<BattleEvent> events)
         {
-            var draw = state.GetDrawPile(team);
-            if (draw.Count == 0)
-                ReshuffleDiscardIntoDraw(state, team, rng, events);
-
-            draw = state.GetDrawPile(team);
-            if (draw.Count == 0)
+            if (TryDrawPlayableCard(state, team, events))
                 return;
 
-            var card = draw[0];
-            draw.RemoveAt(0);
-            TryAddToHand(state, team, card, events);
+            ReshuffleDiscardIntoDraw(state, team, rng, events);
+            TryDrawPlayableCard(state, team, events);
+        }
+
+        static bool TryDrawPlayableCard(BattleState state, TeamSide team, List<BattleEvent> events)
+        {
+            var draw = state.GetDrawPile(team);
+            while (draw.Count > 0)
+            {
+                var card = draw[0];
+                draw.RemoveAt(0);
+                if (team == TeamSide.Enemy && PositionRules.GetOwnerCombatantId(state, card) == null)
+                {
+                    state.GetDiscardPile(team).Add(card);
+                    continue;
+                }
+
+                TryAddToHand(state, team, card, events);
+                return true;
+            }
+
+            return false;
         }
 
         static void TryAddToHand(BattleState state, TeamSide team, CardInstanceState card, List<BattleEvent> events)

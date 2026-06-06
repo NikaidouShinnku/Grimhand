@@ -37,6 +37,7 @@ namespace Grimhand.Presentation.Battle
         Text _refreshLabel;
         Button _refreshButton;
         Button _leaveButton;
+        InventoryTooltipView _tooltip;
         bool _built;
 
         public void Initialize(
@@ -176,6 +177,40 @@ namespace Grimhand.Presentation.Battle
                 var dim = slotGo.AddComponent<CanvasGroup>();
                 dim.alpha = offer.Sold ? 0.42f : 0.72f;
             }
+
+            BindOfferTooltip(slotGo, offer);
+        }
+
+        void BindOfferTooltip(GameObject slotGo, ShopOffer offer)
+        {
+            if (_tooltip == null || slotGo == null)
+                return;
+
+            switch (offer.Kind)
+            {
+                case ShopOfferKind.Card:
+                {
+                    _definitions.TryGetValue(offer.CardDefinitionId, out var definition);
+                    var preview = CardVisualResolver.CreatePreviewInstance(
+                        offer.CardDefinitionId,
+                        offer.CardOwnerCharacterId,
+                        offer.CardDisplayName,
+                        definition);
+                    var stats = BattleUiFormatters.BuildCardStatsLinePreview(preview);
+                    var keywords = BattleUiFormatters.BuildCardKeywordTooltip(null, preview);
+                    var body = string.IsNullOrWhiteSpace(keywords) ? stats : $"{stats}\n\n{keywords}";
+                    _tooltip.BindHover(slotGo, offer.CardDisplayName, body, showTitle: false);
+                    break;
+                }
+                case ShopOfferKind.Relic:
+                    if (RelicDatabase.TryGet(offer.RelicId, out var relic))
+                        _tooltip.BindHover(slotGo, relic.DisplayName, relic.Description);
+                    break;
+                default:
+                    if (ConsumableDatabase.TryGet(offer.ConsumableId, out var consumable))
+                        _tooltip.BindHover(slotGo, consumable.DisplayName, consumable.Description);
+                    break;
+            }
         }
 
         void BuildCardPreview(RectTransform parent, ShopOffer offer, float cardScale)
@@ -197,7 +232,6 @@ namespace Grimhand.Presentation.Battle
                 offer.CardDisplayName,
                 definition);
             var visual = CardVisualResolver.Resolve(preview, _cardCatalog, _characterVisuals, _definitions);
-            var statsLine = BattleUiFormatters.BuildCardStatsLinePreview(preview);
 
             cardView.BindWithCard(
                 preview,
@@ -206,7 +240,7 @@ namespace Grimhand.Presentation.Battle
                 polluted: false,
                 interactable: false,
                 orderBadge: "",
-                statsLine: statsLine,
+                statsLine: "",
                 uiIcons: _icons,
                 characterVisuals: _characterVisuals,
                 onClick: null,
@@ -353,6 +387,9 @@ namespace Grimhand.Presentation.Battle
             _refreshButton.onClick.AddListener(() => _session.RefreshShop());
 
             overlayGo.SetActive(false);
+
+            _tooltip = overlayGo.AddComponent<InventoryTooltipView>();
+            _tooltip.Initialize(_root);
         }
 
         static Button CreateFooterButton(Transform parent, string name, Vector2 pos, string fallbackLabel, Sprite icon)

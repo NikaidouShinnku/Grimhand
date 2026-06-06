@@ -53,6 +53,9 @@ namespace Grimhand.Battle.Model
         public float ConsumableDodgeBonusThisTurn { get; set; }
         public string LastPlayerAttackActorId { get; set; } = "";
         public CardInstanceState LastPlayerAttackCard { get; set; }
+        /// <summary>上一回合最后打出的己方攻击牌（镜之碎片等）。</summary>
+        public string PreviousTurnLastPlayerAttackActorId { get; set; } = "";
+        public CardInstanceState PreviousTurnLastPlayerAttackCard { get; set; }
 
         /// <summary>key = 敌方牌 instanceId；在其造成伤害时按层叠顺序减伤。</summary>
         public Dictionary<int, List<RespondMitigationLayer>> RespondMitigationByEnemyCard { get; } = new();

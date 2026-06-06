@@ -319,6 +319,8 @@ namespace Grimhand.Battle
         {
             SetPhase(TurnPhase.EndOfTurn);
 
+            ArchiveLastTurnAttackForConsumables();
+
             foreach (var c in _state.Combatants)
                 c.Block = 0;
 
@@ -384,6 +386,9 @@ namespace Grimhand.Battle
                 (_state.TurnNumber == 1 ? mods?.ExtraDrawOnBattleStart ?? 0 : 0), _events);
             DeckRules.DrawCards(_state, TeamSide.Enemy, _rng, _state.Config.CardsDrawnPerTurn, _events);
         }
+
+        void ArchiveLastTurnAttackForConsumables() =>
+            ConsumableRules.ArchiveTurnAttackHistory(_state);
 
         void BeginPlanning()
         {

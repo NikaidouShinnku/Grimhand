@@ -56,13 +56,7 @@ namespace Grimhand.Content.Editor
 
             var path = $"{RelicRoot}/{relicId}.png";
             var assets = AssetDatabase.LoadAllAssetsAtPath(path);
-            foreach (var asset in assets)
-            {
-                if (asset is Sprite sprite)
-                    return sprite;
-            }
-
-            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            return RelicSpriteResolver.PickBest(assets, relicId);
         }
     }
 }

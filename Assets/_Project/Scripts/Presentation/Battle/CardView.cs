@@ -129,6 +129,8 @@ namespace Grimhand.Presentation.Battle
 
             if (statsText != null)
             {
+                var hasStats = !string.IsNullOrWhiteSpace(_statsBaseLine);
+                statsText.gameObject.SetActive(hasStats);
                 statsText.text = _statsBaseLine;
                 statsText.horizontalOverflow = HorizontalWrapMode.Wrap;
                 statsText.verticalOverflow = VerticalWrapMode.Overflow;

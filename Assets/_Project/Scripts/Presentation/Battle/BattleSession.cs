@@ -134,6 +134,9 @@ namespace Grimhand.Presentation.Battle
             if (Engine == null || !CanInteractWithBattle())
                 return false;
 
+            if (Engine.Draft.IsAwaitingConsumableTarget)
+                Engine.CancelConsumableTargeting();
+
             var ok = Engine.ToggleCardSelection(instanceId);
             if (ok)
                 DrainEvents();
@@ -216,8 +219,24 @@ namespace Grimhand.Presentation.Battle
             if (!ConsumableDatabase.TryGet(consumableId, out var definition))
                 return false;
 
+            if (definition.EffectKind == ConsumableEffectKind.MirrorLastAttack
+                && !ConsumableRules.CanUseMirrorShard(Engine.State, out var mirrorError))
+            {
+                AddLog(mirrorError);
+                NotifyChanged();
+                return false;
+            }
+
             if (ConsumableRules.NeedsTarget(definition))
             {
+                if (Engine.Draft.IsAwaitingConsumableTarget
+                    && Engine.Draft.AwaitingConsumableSlotIndex == slotIndex)
+                {
+                    CancelTargetSelection();
+                    NotifyChanged();
+                    return true;
+                }
+
                 if (!Engine.TryBeginConsumableUse(consumableId, slotIndex))
                     return false;
 

@@ -80,6 +80,8 @@ namespace Grimhand.Battle.Planning
             if (_state.Phase != TurnPhase.Planning)
                 return false;
 
+            CancelConsumableTargeting();
+
             if (_awaitingTargetCardId == instanceId)
             {
                 CancelAwaitingTarget();
@@ -156,6 +158,12 @@ namespace Grimhand.Battle.Planning
 
             if (!Consumables.ConsumableDatabase.TryGet(consumableId, out var definition))
                 return false;
+
+            if (_awaitingConsumableId == consumableId && _awaitingConsumableSlotIndex == slotIndex)
+            {
+                CancelConsumableTargeting();
+                return true;
+            }
 
             CancelAwaitingTarget();
 

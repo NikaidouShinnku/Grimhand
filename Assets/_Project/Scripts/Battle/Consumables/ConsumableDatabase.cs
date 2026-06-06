@@ -53,7 +53,7 @@ namespace Grimhand.Battle.Consumables
                 [ConsumableIds.MirrorShard] = Def(
                     ConsumableIds.MirrorShard,
                     "镜之碎片",
-                    "复制上一张打出的攻击牌效果（一次性）",
+                    "复制上一回合最后打出的己方攻击牌效果（第一回合或上回合无攻击牌时不可用）",
                     ConsumableTargetKind.MirrorAttack,
                     ConsumableEffectKind.MirrorLastAttack,
                     0),

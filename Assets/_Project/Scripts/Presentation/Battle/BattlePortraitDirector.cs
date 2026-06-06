@@ -300,6 +300,11 @@ namespace Grimhand.Presentation.Battle
                 else
                     yield return target.PlayBlockedReaction(e.BlockedAmount);
             }
+            else if (IsDodgeEvent(e))
+            {
+                target.ShowDodgeNumber();
+                _screen?.Refresh();
+            }
             else
             {
                 _screen?.Refresh();
@@ -352,6 +357,12 @@ namespace Grimhand.Presentation.Battle
             _screen?.Refresh();
             yield return null;
         }
+
+        static bool IsDodgeEvent(BattleEvent e) =>
+            e.Amount == 0
+            && e.BlockedAmount <= 0
+            && !string.IsNullOrEmpty(e.Message)
+            && e.Message.Contains("闪避");
 
         static PortraitPoseKind ResolveCardPose(CardType cardType) =>
             cardType switch

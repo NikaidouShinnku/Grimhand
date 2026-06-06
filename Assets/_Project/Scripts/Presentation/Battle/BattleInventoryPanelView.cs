@@ -20,9 +20,9 @@ namespace Grimhand.Presentation.Battle
         const float CardScale = 0.98f;
         const int CardsPerRow = 5;
         const float CardGridHorizontalPadding = 20f;
-        const float CharacterCardWidth = 200f;
-        const float CharacterCardHeight = 260f;
-        const float CharacterPortraitSize = 148f;
+        const float CharacterCardWidth = 228f;
+        const float CharacterCardHeight = 318f;
+        const float CharacterPortraitSize = 168f;
 
         BattleSession _session;
         Transform _battleRoot;
@@ -191,7 +191,7 @@ namespace Grimhand.Presentation.Battle
             portraitRt.anchorMin = new Vector2(0.5f, 1f);
             portraitRt.anchorMax = new Vector2(0.5f, 1f);
             portraitRt.pivot = new Vector2(0.5f, 1f);
-            portraitRt.anchoredPosition = new Vector2(0f, -12f);
+            portraitRt.anchoredPosition = new Vector2(0f, -10f);
             portraitRt.sizeDelta = new Vector2(CharacterPortraitSize, CharacterPortraitSize);
             var portrait = portraitGo.GetComponent<Image>();
             portrait.sprite = _characterVisuals?.GetPortraitReference(characterDefinitionId)
@@ -200,11 +200,13 @@ namespace Grimhand.Presentation.Battle
             portrait.raycastTarget = false;
             portrait.color = portrait.sprite != null ? Color.white : new Color(0.35f, 0.38f, 0.45f, 1f);
 
+            CreateCharacterStatGrid(card, hp, maxHp, attack, defense, speed);
+
             var nameGo = new GameObject("Name", typeof(RectTransform), typeof(Text));
             nameGo.transform.SetParent(card, false);
             var nameRt = nameGo.GetComponent<RectTransform>();
             nameRt.anchorMin = new Vector2(0.06f, 0f);
-            nameRt.anchorMax = new Vector2(0.94f, 0.18f);
+            nameRt.anchorMax = new Vector2(0.94f, 0.12f);
             nameRt.offsetMin = Vector2.zero;
             nameRt.offsetMax = Vector2.zero;
             var nameText = nameGo.GetComponent<Text>();
@@ -215,12 +217,62 @@ namespace Grimhand.Presentation.Battle
                 ? CharacterProgression.FormatXpLine(level, xp)
                 : "";
             var tooltipBody =
-                $"Lv.{level}" +
-                (string.IsNullOrEmpty(xpLine) ? "" : $"\n{xpLine}") +
-                $"\nHP {hp}/{maxHp}" +
-                $"\n攻 {attack}  防 {defense}  速 {speed}";
+                (string.IsNullOrEmpty(xpLine) ? "" : $"{xpLine}\n") +
+                $"生命 {hp}/{maxHp}\n攻击 {attack}  防御 {defense}  速度 {speed}";
 
-            _tooltip?.BindHover(card.gameObject, displayName, tooltipBody);
+            _tooltip?.BindHover(card.gameObject, displayName, tooltipBody, showTitle: false);
+        }
+
+        void CreateCharacterStatGrid(RectTransform card, int hp, int maxHp, int attack, int defense, int speed)
+        {
+            var gridGo = new GameObject("Stats", typeof(RectTransform));
+            gridGo.transform.SetParent(card, false);
+            var gridRt = gridGo.GetComponent<RectTransform>();
+            gridRt.anchorMin = new Vector2(0.08f, 0.14f);
+            gridRt.anchorMax = new Vector2(0.92f, 0.38f);
+            gridRt.offsetMin = Vector2.zero;
+            gridRt.offsetMax = Vector2.zero;
+
+            CreateStatPair(gridRt, 0f, 0.52f, 0.48f, 1f, _icons?.HpIcon, $"{hp}/{maxHp}");
+            CreateStatPair(gridRt, 0.52f, 0.52f, 1f, 1f, _icons?.AttackIcon, attack.ToString());
+            CreateStatPair(gridRt, 0f, 0f, 0.48f, 0.44f, _icons?.DefenseIcon, defense.ToString());
+            CreateStatPair(gridRt, 0.52f, 0f, 1f, 0.44f, _icons?.SpeedIcon, speed.ToString());
+        }
+
+        void CreateStatPair(RectTransform parent, float xMin, float yMin, float xMax, float yMax, Sprite icon, string value)
+        {
+            var row = new GameObject("Stat", typeof(RectTransform));
+            row.transform.SetParent(parent, false);
+            var rt = row.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(xMin, yMin);
+            rt.anchorMax = new Vector2(xMax, yMax);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+
+            var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+            iconGo.transform.SetParent(row.transform, false);
+            var iconRt = iconGo.GetComponent<RectTransform>();
+            iconRt.anchorMin = new Vector2(0f, 0.5f);
+            iconRt.anchorMax = new Vector2(0f, 0.5f);
+            iconRt.pivot = new Vector2(0f, 0.5f);
+            iconRt.anchoredPosition = Vector2.zero;
+            iconRt.sizeDelta = new Vector2(24f, 24f);
+            var iconImg = iconGo.GetComponent<Image>();
+            iconImg.sprite = icon;
+            iconImg.preserveAspect = true;
+            iconImg.raycastTarget = false;
+            iconImg.color = icon != null ? Color.white : new Color(0.7f, 0.75f, 0.85f, 1f);
+
+            var textGo = new GameObject("Value", typeof(RectTransform), typeof(Text));
+            textGo.transform.SetParent(row.transform, false);
+            var textRt = textGo.GetComponent<RectTransform>();
+            textRt.anchorMin = new Vector2(0f, 0f);
+            textRt.anchorMax = new Vector2(1f, 1f);
+            textRt.offsetMin = new Vector2(28f, 0f);
+            textRt.offsetMax = Vector2.zero;
+            var text = textGo.GetComponent<Text>();
+            StyleText(text, 15, TextAnchor.MiddleLeft);
+            text.text = value;
         }
 
         void RefreshRelics()
@@ -252,8 +304,8 @@ namespace Grimhand.Presentation.Battle
             var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
             iconGo.transform.SetParent(go.transform, false);
             var iconRt = iconGo.GetComponent<RectTransform>();
-            iconRt.anchorMin = new Vector2(0.12f, 0.28f);
-            iconRt.anchorMax = new Vector2(0.88f, 0.92f);
+            iconRt.anchorMin = new Vector2(0.1f, 0.12f);
+            iconRt.anchorMax = new Vector2(0.9f, 0.92f);
             iconRt.offsetMin = Vector2.zero;
             iconRt.offsetMax = Vector2.zero;
             var icon = iconGo.GetComponent<Image>();
@@ -280,14 +332,7 @@ namespace Grimhand.Presentation.Battle
 
             var labelGo = new GameObject("Label", typeof(RectTransform), typeof(Text));
             labelGo.transform.SetParent(go.transform, false);
-            var labelRt = labelGo.GetComponent<RectTransform>();
-            labelRt.anchorMin = new Vector2(0.06f, 0.04f);
-            labelRt.anchorMax = new Vector2(0.94f, 0.24f);
-            labelRt.offsetMin = Vector2.zero;
-            labelRt.offsetMax = Vector2.zero;
-            var label = labelGo.GetComponent<Text>();
-            StyleText(label, 12, TextAnchor.MiddleCenter);
-            label.text = relic.DisplayName;
+            labelGo.SetActive(false);
 
             _tooltip?.BindHover(go, relic.DisplayName, relic.Description);
             _dynamicObjects.Add(go);
@@ -375,7 +420,7 @@ namespace Grimhand.Presentation.Battle
                     polluted: false,
                     interactable: false,
                     orderBadge: "",
-                    statsLine: BattleUiFormatters.BuildCardStatsLinePreview(preview),
+                    statsLine: "",
                     uiIcons: _icons,
                     characterVisuals: _characterVisuals,
                     onClick: null,
@@ -401,7 +446,7 @@ namespace Grimhand.Presentation.Battle
                 : BattleUiFormatters.BuildCardStatsLine(state, null, card);
             var keywords = StripRichText(BattleUiFormatters.BuildCardKeywordTooltip(state, card));
             var body = string.IsNullOrWhiteSpace(keywords) ? stats : $"{stats}\n\n{keywords}";
-            _tooltip.BindHover(target, card.DisplayName, body);
+            _tooltip.BindHover(target, card.DisplayName, body, showTitle: false);
         }
 
         static string StripRichText(string value)
@@ -443,9 +488,7 @@ namespace Grimhand.Presentation.Battle
                     card.DisplayName,
                     definition);
                 var visual = CardVisualResolver.Resolve(preview, _cardCatalog, _characterVisuals, _definitions);
-                var statsLine = useFormulas
-                    ? BattleUiFormatters.BuildCardStatsLinePreview(preview)
-                    : BattleUiFormatters.BuildCardStatsLine(state, null, card);
+                var statsLine = useFormulas ? "" : BattleUiFormatters.BuildCardStatsLine(state, null, card);
                 view.BindWithCard(
                     preview,
                     visual,
@@ -558,7 +601,7 @@ namespace Grimhand.Presentation.Battle
             _panel.anchorMax = new Vector2(0.5f, 0.5f);
             _panel.pivot = new Vector2(0.5f, 0.5f);
             _panel.sizeDelta = new Vector2(PanelWidth, PanelHeight);
-            panelGo.GetComponent<Image>().color = new Color(0.07f, 0.08f, 0.12f, 0.98f);
+            panelGo.GetComponent<Image>().color = new Color(0.07f, 0.08f, 0.12f, 0.995f);
 
             var titleBar = CreateTitleBar(panelGo.transform);
             var dragHandle = titleBar.gameObject.AddComponent<UiPanelDragHandle>();
@@ -594,7 +637,7 @@ namespace Grimhand.Presentation.Battle
             _scroll.onValueChanged.AddListener(_ => _tooltip?.Hide());
 
             CreateSectionHeader(_mainContent, "角色");
-            _characterRow = CreateHorizontalRow(_mainContent, CharacterCardHeight + 8f);
+            _characterRow = CreateHorizontalRow(_mainContent, CharacterCardHeight + 12f);
             CreateSectionHeader(_mainContent, "遗物");
             _relicRow = CreateHorizontalRow(_mainContent, 120f);
             CreateSectionHeader(_mainContent, "卡牌");

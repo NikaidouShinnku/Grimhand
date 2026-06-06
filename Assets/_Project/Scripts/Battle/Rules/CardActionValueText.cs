@@ -37,11 +37,38 @@ namespace Grimhand.Battle.Rules
 
         public static string DescribeDamage(EffectActionSpec action, CombatantState owner, bool preferFormulas)
         {
+            var extra = FormatDamageExtras(action);
             if (preferFormulas && owner == null && HasScaledComponent(action))
-                return $"造成 {FormatPlain(action, useDefense: false)} 的伤害";
+                return $"造成 {FormatPlain(action, useDefense: false)} 的伤害{extra}";
 
             var dmg = CardPowerRules.ComputeActionValue(action, owner);
-            return $"造成 {dmg} 点伤害";
+            return $"造成 {dmg} 点伤害{extra}";
+        }
+
+        public static string FormatDamageExtras(EffectActionSpec action)
+        {
+            if (action == null)
+                return "";
+
+            var parts = new System.Collections.Generic.List<string>();
+            if (action.SplashBehindTarget)
+                parts.Add($"，贯通后方 {action.SplashPowerPercent}% 伤害");
+            if (action.BackRowPowerPercent > 0 && action.BackRowPowerPercent < 100)
+                parts.Add($"，打后排仅 {action.BackRowPowerPercent}% 威力");
+            if (action.IgnoreDefPercent > 0)
+                parts.Add(action.IgnoreDefPercent >= 100 ? "，无视目标防御" : $"，无视目标 {action.IgnoreDefPercent}% 防御");
+            if (action.BonusIfTargetHpBelowPercent > 0 && action.BonusIfTargetHpBelowFlat > 0)
+                parts.Add($"，目标 HP 低于 {action.BonusIfTargetHpBelowPercent}% 时额外 +{action.BonusIfTargetHpBelowFlat}");
+            if (action.BonusIfTargetHitThisTurnPercent > 0)
+                parts.Add($"，目标本回合已被攻击则伤害 +{action.BonusIfTargetHitThisTurnPercent}%");
+            if (action.LifestealPercent >= 100)
+                parts.Add("，回复等量 HP");
+            else if (action.LifestealPercent > 0)
+                parts.Add($"，回复造成伤害 {action.LifestealPercent}% 的 HP");
+            if (action.OnKillHealAmount > 0)
+                parts.Add($"，击杀回复 {action.OnKillHealAmount} HP");
+
+            return string.Concat(parts);
         }
 
         public static string DescribeHeal(EffectActionSpec action, CombatantState owner, bool preferFormulas)

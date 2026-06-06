@@ -38,13 +38,9 @@ namespace Grimhand.Content
         static Sprite LoadEditorSprite(string relicId)
         {
             var path = $"Assets/The Grimhands Asset/relics/{relicId}.png";
-            foreach (var asset in UnityEditor.AssetDatabase.LoadAllAssetsAtPath(path))
-            {
-                if (asset is Sprite sprite)
-                    return sprite;
-            }
-
-            return UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            return RelicSpriteResolver.PickBest(
+                UnityEditor.AssetDatabase.LoadAllAssetsAtPath(path),
+                relicId);
         }
 #endif
     }

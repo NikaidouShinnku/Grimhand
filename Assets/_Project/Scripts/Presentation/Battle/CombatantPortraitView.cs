@@ -266,6 +266,11 @@ namespace Grimhand.Presentation.Battle
                 ShowHeal(amount);
         }
 
+        public void ShowDodgeNumber()
+        {
+            ShowDodge();
+        }
+
         public IEnumerator PlayBlockedReaction(int blockedAmount = 0)
         {
             if (_isDead)
@@ -537,6 +542,19 @@ namespace Grimhand.Presentation.Battle
 
             _damageFloater.color = new Color(0.45f, 1f, 0.55f, 1f);
             _damageFloater.text = $"+{amount}";
+            _damageFloater.gameObject.SetActive(true);
+            if (_damageHideRoutine != null)
+                StopCoroutine(_damageHideRoutine);
+            _damageHideRoutine = StartCoroutine(HideDamageFloaterAfterDelay());
+        }
+
+        void ShowDodge()
+        {
+            if (_damageFloater == null)
+                return;
+
+            _damageFloater.color = new Color(1f, 0.92f, 0.35f, 1f);
+            _damageFloater.text = "闪避！";
             _damageFloater.gameObject.SetActive(true);
             if (_damageHideRoutine != null)
                 StopCoroutine(_damageHideRoutine);

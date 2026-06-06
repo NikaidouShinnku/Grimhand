@@ -26,7 +26,7 @@ MonoBehaviour:
   - RelicId: jade_dagger
     Icon: {fileID: 362625812377154807, guid: 3baa783742458fe4190aeef6c2fc890c, type: 3}
   - RelicId: burning_boots
-    Icon: {fileID: -4526845226320170586, guid: 2c1bbaca209a1a54fbd5b8a5530bf84e, type: 3}
+    Icon: {fileID: 4154943913991736008, guid: 2c1bbaca209a1a54fbd5b8a5530bf84e, type: 3}
   - RelicId: crimson_burning_boots
     Icon: {fileID: -6967642853037097647, guid: d1b70eacdb70f404c9a7bc448e875ede, type: 3}
   - RelicId: flame_sword

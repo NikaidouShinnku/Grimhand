@@ -40,14 +40,15 @@ namespace Grimhand.Battle.Consumables
 
                     break;
                 case ConsumableTargetKind.MirrorAttack:
-                    if (state.LastPlayerAttackCard == null)
+                    if (!CanUseMirrorShard(state, out _))
                         break;
 
-                    var actor = state.GetCombatant(state.LastPlayerAttackActorId);
-                    if (actor == null)
+                    var mirrorActor = GetMirrorAttackActor(state);
+                    var mirrorCard = GetMirrorAttackSourceCard(state);
+                    if (mirrorActor == null || mirrorCard == null)
                         break;
 
-                    return CardRules.GetValidTargetCandidates(state, state.LastPlayerAttackCard, actor);
+                    return CardRules.GetValidTargetCandidates(state, mirrorCard, mirrorActor);
             }
 
             return result;
@@ -67,6 +68,10 @@ namespace Grimhand.Battle.Consumables
                 errorMessage = "无效消耗品。";
                 return false;
             }
+
+            if (definition.EffectKind == ConsumableEffectKind.MirrorLastAttack
+                && !CanUseMirrorShard(state, out errorMessage))
+                return false;
 
             if (NeedsTarget(definition))
             {
@@ -181,11 +186,14 @@ namespace Grimhand.Battle.Consumables
             out string errorMessage)
         {
             errorMessage = "";
-            var source = state.LastPlayerAttackCard;
-            var actor = state.GetCombatant(state.LastPlayerAttackActorId);
+            if (!CanUseMirrorShard(state, out errorMessage))
+                return false;
+
+            var source = GetMirrorAttackSourceCard(state);
+            var actor = GetMirrorAttackActor(state);
             if (source == null || actor == null)
             {
-                errorMessage = "尚无已打出的攻击牌可复制。";
+                errorMessage = "上一回合未打出可用的攻击牌。";
                 return false;
             }
 
@@ -213,6 +221,62 @@ namespace Grimhand.Battle.Consumables
 
             state.LastPlayerAttackActorId = actor.Id;
             state.LastPlayerAttackCard = CloneCard(card);
+        }
+
+        /// <summary>回合结束时归档本回合最后攻击牌，供下一回合镜之碎片使用。</summary>
+        public static void ArchiveTurnAttackHistory(BattleState state)
+        {
+            if (state == null)
+                return;
+
+            state.PreviousTurnLastPlayerAttackCard = state.LastPlayerAttackCard != null
+                ? CloneCard(state.LastPlayerAttackCard)
+                : null;
+            state.PreviousTurnLastPlayerAttackActorId = state.LastPlayerAttackActorId ?? "";
+            state.LastPlayerAttackCard = null;
+            state.LastPlayerAttackActorId = "";
+        }
+
+        public static CardInstanceState GetMirrorAttackSourceCard(BattleState state) =>
+            state?.PreviousTurnLastPlayerAttackCard;
+
+        public static CombatantState GetMirrorAttackActor(BattleState state)
+        {
+            if (state == null || string.IsNullOrEmpty(state.PreviousTurnLastPlayerAttackActorId))
+                return null;
+
+            var actor = state.GetCombatant(state.PreviousTurnLastPlayerAttackActorId);
+            return actor != null && actor.IsAlive ? actor : null;
+        }
+
+        public static bool CanUseMirrorShard(BattleState state, out string errorMessage)
+        {
+            errorMessage = "";
+            if (state == null)
+            {
+                errorMessage = "无效战斗。";
+                return false;
+            }
+
+            if (state.TurnNumber <= 1)
+            {
+                errorMessage = "第一回合无法使用镜之碎片。";
+                return false;
+            }
+
+            if (GetMirrorAttackSourceCard(state) == null)
+            {
+                errorMessage = "上一回合未打出攻击牌。";
+                return false;
+            }
+
+            if (GetMirrorAttackActor(state) == null)
+            {
+                errorMessage = "上一张攻击牌的出牌者已无法行动。";
+                return false;
+            }
+
+            return true;
         }
 
         static CardInstanceState CloneCard(CardInstanceState source)

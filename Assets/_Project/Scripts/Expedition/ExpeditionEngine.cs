@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Grimhand.Battle.Consumables;
 using Grimhand.Battle.Model;
 using Grimhand.Core;
 using Grimhand.Expedition.Events;

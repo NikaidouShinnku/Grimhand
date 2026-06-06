@@ -66,6 +66,7 @@ namespace Grimhand.Presentation.Battle
         Button _inventoryButton;
         Button _turnLogButton;
         Button _mapButton;
+        Button _targetCancelBackdrop;
         Text _inventoryFallbackLabel;
 
         BattleSession _session;
@@ -655,8 +656,22 @@ namespace Grimhand.Presentation.Battle
         void ToggleInventoryPanel()
         {
             _inventoryPanel?.Toggle();
-            if (_inventoryPanel != null && _inventoryPanel.IsOpen)
+            var open = _inventoryPanel != null && _inventoryPanel.IsOpen;
+            if (open)
                 _inventoryPanel.Refresh();
+            ApplyInventoryBackdrop(open);
+        }
+
+        void ApplyInventoryBackdrop(bool inventoryOpen)
+        {
+            if (inventoryOpen)
+            {
+                _postBattleOverlay?.Hide();
+                if (_mapPanel != null && _mapPanel.IsOpen)
+                    _mapPanel.Toggle();
+            }
+
+            Refresh();
         }
 
         void ConfigureBattlefieldSlots()
@@ -691,6 +706,7 @@ namespace Grimhand.Presentation.Battle
                 RefreshBattlefield(state, draft);
                 RefreshActionTimeline(state, draft);
                 RefreshTargetPrompt(state, draft);
+                RefreshTargetCancelBackdrop(draft);
                 RefreshActions(state, expeditionBlocks);
             }
 
@@ -701,7 +717,7 @@ namespace Grimhand.Presentation.Battle
             _inventoryPanel?.Refresh();
             _consumableReplaceOverlay?.Refresh();
             _turnDetailPanel?.Refresh();
-            if (_session.IsExpeditionMode)
+            if (_session.IsExpeditionMode && !(_inventoryPanel?.IsOpen ?? false))
             {
                 _mapPanel?.Refresh();
                 _nodeInteractOverlay?.Refresh();
@@ -914,7 +930,7 @@ namespace Grimhand.Presentation.Battle
                     _ => "目标"
                 };
                 targetPromptText.text =
-                    $"使用「{consumableDef.DisplayName}」— 点击高亮的{consumableSideLabel}";
+                    $"使用「{consumableDef.DisplayName}」— 点击高亮的{consumableSideLabel}（再点消耗品或空白处取消）";
                 return;
             }
 
@@ -934,6 +950,48 @@ namespace Grimhand.Presentation.Battle
             };
             targetPromptText.text =
                 $"已选「{card.DisplayName}」— 点击高亮的{sideLabel}（再点卡牌取消）";
+        }
+
+        void RefreshTargetCancelBackdrop(PlanningDraft draft)
+        {
+            var show = ShouldShowBattlePlanningChrome()
+                && draft != null
+                && (draft.AwaitingTargetCardId != null || draft.IsAwaitingConsumableTarget);
+
+            if (!show)
+            {
+                if (_targetCancelBackdrop != null)
+                    _targetCancelBackdrop.gameObject.SetActive(false);
+                return;
+            }
+
+            EnsureTargetCancelBackdrop();
+            _targetCancelBackdrop.gameObject.SetActive(true);
+            _targetCancelBackdrop.transform.SetAsFirstSibling();
+        }
+
+        void EnsureTargetCancelBackdrop()
+        {
+            if (_targetCancelBackdrop != null)
+                return;
+
+            var go = new GameObject("TargetCancelBackdrop", typeof(RectTransform), typeof(Image), typeof(Button));
+            go.transform.SetParent(transform, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            var img = go.GetComponent<Image>();
+            img.color = new Color(0f, 0f, 0f, 0.01f);
+            img.raycastTarget = true;
+            _targetCancelBackdrop = go.GetComponent<Button>();
+            _targetCancelBackdrop.onClick.AddListener(() =>
+            {
+                _session?.CancelTargetSelection();
+                Refresh();
+            });
+            go.SetActive(false);
         }
 
         void OnDamagePreviewEnter(CombatantState unit)
@@ -1050,6 +1108,12 @@ namespace Grimhand.Presentation.Battle
 
             if (_postBattleOverlay == null)
                 return;
+
+            if (_inventoryPanel != null && _inventoryPanel.IsOpen)
+            {
+                _postBattleOverlay.Hide();
+                return;
+            }
 
             if (_presentationBusy?.Invoke() == true)
             {

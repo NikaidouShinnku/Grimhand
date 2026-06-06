@@ -38,6 +38,21 @@ namespace Grimhand.Battle
 
         public void ClearEvents() => _events.Clear();
 
+        /// <summary>出牌结算已完成，但回合末抽牌/回能等需等演出结束后再执行。</summary>
+        public bool EndOfTurnPending { get; private set; }
+
+        public void FlushPendingEndOfTurn()
+        {
+            if (!EndOfTurnPending)
+                return;
+
+            EndOfTurnPending = false;
+            if (_state.Outcome != BattleOutcome.Ongoing)
+                return;
+
+            ProcessEndOfTurn();
+        }
+
         public void StartBattle()
         {
             SetPhase(TurnPhase.Draw);
@@ -182,7 +197,7 @@ namespace Grimhand.Battle
                 return;
             }
 
-            ProcessEndOfTurn();
+            EndOfTurnPending = true;
         }
 
         void ResolveRespondStep(ScheduledResolution entry)

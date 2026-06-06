@@ -102,7 +102,7 @@ namespace Grimhand.Presentation.Battle
             RebuildLookup();
             _screen?.Refresh();
 
-            if (_session?.Engine?.State.Phase == TurnPhase.Planning)
+            if (_session?.Engine?.State.Phase == TurnPhase.Planning && !_session.PresentationLocked)
                 _screen?.BeginPlanningIdleLoops();
         }
 

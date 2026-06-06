@@ -49,6 +49,7 @@ namespace Grimhand.Battle.Tests
 
             engine.State.PendingDrawNextTurn = 2;
             engine.SkipPlayerTurn();
+            engine.FlushPendingEndOfTurn();
 
             Assert.AreEqual(7, engine.State.PlayerHand.Count);
             Assert.AreEqual(0, engine.State.PendingDrawNextTurn);

@@ -274,6 +274,7 @@ namespace Grimhand.Presentation
             if (GUI.Button(new Rect(contentX, btnY, btnW, bottomH - 4), "确认出牌", _buttonStyle))
             {
                 _engine.CommitPlayerPlan();
+                _engine.FlushPendingEndOfTurn();
                 AppendEngineEvents();
             }
 
@@ -281,6 +282,7 @@ namespace Grimhand.Presentation
             if (GUI.Button(new Rect(contentX + btnW + 6, btnY, btnW, bottomH - 4), "空过", _buttonStyle))
             {
                 _engine.SkipPlayerTurn();
+                _engine.FlushPendingEndOfTurn();
                 AppendEngineEvents();
             }
 

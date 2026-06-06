@@ -51,6 +51,9 @@ namespace Grimhand.Presentation.Battle
         /// <summary>立绘演出全部播完后调用，再处理远征结算 / 路线选择。</summary>
         public void OnPresentationComplete()
         {
+            if (TryFlushPendingEndOfTurn())
+                return;
+
             EndPresentation();
             CheckExpeditionBattleEnd();
             NotifyChanged();
@@ -580,14 +583,43 @@ namespace Grimhand.Presentation.Battle
                 var segments = BattleEventPlayback.SplitIntoSegments(batch);
                 if (segments.Count > 0)
                     EventsProduced?.Invoke(batch);
+                else if (TryFlushPendingEndOfTurn())
+                    return;
+                else if (PresentationLocked)
+                    CompletePresentationAndNotify();
                 else
-                    OnPresentationComplete();
+                    CheckExpeditionBattleEnd();
+            }
+            else if (TryFlushPendingEndOfTurn())
+            {
+                return;
+            }
+            else if (PresentationLocked)
+            {
+                CompletePresentationAndNotify();
             }
             else
             {
                 CheckExpeditionBattleEnd();
             }
 
+            NotifyChanged();
+        }
+
+        bool TryFlushPendingEndOfTurn()
+        {
+            if (Engine == null || !Engine.EndOfTurnPending)
+                return false;
+
+            Engine.FlushPendingEndOfTurn();
+            DrainEvents();
+            return true;
+        }
+
+        void CompletePresentationAndNotify()
+        {
+            EndPresentation();
+            CheckExpeditionBattleEnd();
             NotifyChanged();
         }
 

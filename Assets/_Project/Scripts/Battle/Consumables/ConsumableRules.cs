@@ -122,7 +122,7 @@ namespace Grimhand.Battle.Consumables
                     }
 
                     break;
-                case ConsumableEffectKind.BattleAttackBonus:
+                case ConsumableEffectKind.TurnAttackBonusPercent:
                 {
                     var target = state.GetCombatant(targetCombatantId);
                     if (target == null || !target.IsAlive)
@@ -131,14 +131,16 @@ namespace Grimhand.Battle.Consumables
                         return false;
                     }
 
-                    target.Attack += definition.Value;
-                    events.Add(new BattleEvent(BattleEventKind.StatusApplied, $"{target.DisplayName} ATK+{definition.Value}（消耗品）")
+                    target.TurnAttackBonusPercent = definition.Value;
+                    RelicBattleRules.RefreshDerivedStats(state, target, state.Config?.RunModifiers);
+                    events.Add(new BattleEvent(BattleEventKind.StatusApplied,
+                        $"{target.DisplayName} ATK+{definition.Value}%（本回合·消耗品）")
                     {
                         CombatantId = target.Id
                     });
                     break;
                 }
-                case ConsumableEffectKind.BattleDefenseBonus:
+                case ConsumableEffectKind.TurnDefenseBonusPercent:
                 {
                     var target = state.GetCombatant(targetCombatantId);
                     if (target == null || !target.IsAlive)
@@ -147,8 +149,10 @@ namespace Grimhand.Battle.Consumables
                         return false;
                     }
 
-                    target.Defense += definition.Value;
-                    events.Add(new BattleEvent(BattleEventKind.StatusApplied, $"{target.DisplayName} DEF+{definition.Value}（消耗品）")
+                    target.TurnDefenseBonusPercent = definition.Value;
+                    RelicBattleRules.RefreshDerivedStats(state, target, state.Config?.RunModifiers);
+                    events.Add(new BattleEvent(BattleEventKind.StatusApplied,
+                        $"{target.DisplayName} DEF+{definition.Value}%（本回合·消耗品）")
                     {
                         CombatantId = target.Id
                     });

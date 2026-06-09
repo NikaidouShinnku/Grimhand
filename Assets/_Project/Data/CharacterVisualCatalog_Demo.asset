@@ -30,13 +30,13 @@ MonoBehaviour:
     - {fileID: 1852934030196206690, guid: fc8b3be4a4980ba42bac6f4c8865c4a0, type: 3}
     - {fileID: 6458347289415452579, guid: fc8b3be4a4980ba42bac6f4c8865c4a0, type: 3}
     - {fileID: 1939280711952875256, guid: fc8b3be4a4980ba42bac6f4c8865c4a0, type: 3}
-    IdleAnimationGifPath: The Grimhands Asset/warrior/warrior_idle_anime.gif
+    IdleAnimationGifPath: The Grimhands Asset/characters/warrior/warrior_idle_anime.gif
   - CharacterId: char_mage
     IdlePortrait: {fileID: -2070779048781949823, guid: e68953ff4c1766044ab3a58fd72aa6ff, type: 3}
     AttackPortrait: {fileID: -6862133424684888327, guid: e8638e252801405459b47d8838695a05, type: 3}
     DefensePortrait: {fileID: -2565443622297667775, guid: aa681cbf4cc9a5c468cfb50e39a10498, type: 3}
     HitPortrait: {fileID: 1743283774323791172, guid: 1dd446fe28e208c4fb0caad3c41d2881, type: 3}
-    HitPortraitFacesRight: 1
+    HitPortraitFacesRight: 0
     DeathPortrait: {fileID: 1551221932086916854, guid: e888d392c97476843a5715694006d8aa, type: 3}
     IdleAnimationFrames:
     - {fileID: 7612753104065106894, guid: a667fb37c06f5384ba1b6983c498c1b1, type: 3}
@@ -47,7 +47,7 @@ MonoBehaviour:
     - {fileID: 4669920024138084162, guid: a667fb37c06f5384ba1b6983c498c1b1, type: 3}
     - {fileID: 6939392776825427662, guid: a667fb37c06f5384ba1b6983c498c1b1, type: 3}
     - {fileID: 7703166542985640385, guid: a667fb37c06f5384ba1b6983c498c1b1, type: 3}
-    IdleAnimationGifPath: The Grimhands Asset/pharoah/pharoah_idle_anime.gif
+    IdleAnimationGifPath: The Grimhands Asset/characters/pharoah/pharoah_idle_anime.gif
   - CharacterId: char_ranger
     IdlePortrait: {fileID: 685943926597773782, guid: eb95ea32bacbf2d418f7c26442ea6586, type: 3}
     AttackPortrait: {fileID: 1242017226969909807, guid: fdf829db3b6f3174c9c488108798231e, type: 3}
@@ -64,7 +64,7 @@ MonoBehaviour:
     - {fileID: -3000897080420945877, guid: 491503078b9bac54782d58252a69c5b4, type: 3}
     - {fileID: 8827794706476496560, guid: 491503078b9bac54782d58252a69c5b4, type: 3}
     - {fileID: 6810909756927274166, guid: 491503078b9bac54782d58252a69c5b4, type: 3}
-    IdleAnimationGifPath: The Grimhands Asset/devil/devil_idle_anime.gif
+    IdleAnimationGifPath: The Grimhands Asset/characters/devil/devil_idle_anime.gif
   - CharacterId: char_goblin_brute
     IdlePortrait: {fileID: -7546124878013289674, guid: 4e9517047cbe912459dca45a57e6de36, type: 3}
     AttackPortrait: {fileID: -7546124878013289674, guid: 4e9517047cbe912459dca45a57e6de36, type: 3}

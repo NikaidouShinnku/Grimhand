@@ -26,10 +26,10 @@ namespace Grimhand.Battle.Rules
             RunModifierSnapshot mods)
         {
             CombatantRules.RefreshDerivedStats(combatant);
-            if (mods == null || combatant == null || !combatant.IsAlive)
+            if (combatant == null || !combatant.IsAlive)
                 return;
 
-            if (combatant.Team == TeamSide.Player)
+            if (mods != null && combatant.Team == TeamSide.Player)
             {
                 if (mods.TeamAttackBonus != 0)
                     combatant.Attack += mods.TeamAttackBonus;
@@ -46,6 +46,28 @@ namespace Grimhand.Battle.Rules
 
                 if (mods.FrontDefenseBonus != 0 && effective == FormationSlot.Front)
                     combatant.Defense += mods.FrontDefenseBonus;
+            }
+
+            ApplyTurnStatBonusPercents(combatant);
+        }
+
+        static void ApplyTurnStatBonusPercents(CombatantState combatant)
+        {
+            if (combatant == null)
+                return;
+
+            if (combatant.TurnAttackBonusPercent > 0)
+            {
+                var bonus = (int)System.Math.Round(
+                    combatant.Attack * combatant.TurnAttackBonusPercent / 100f);
+                combatant.Attack += bonus;
+            }
+
+            if (combatant.TurnDefenseBonusPercent > 0)
+            {
+                var bonus = (int)System.Math.Round(
+                    combatant.Defense * combatant.TurnDefenseBonusPercent / 100f);
+                combatant.Defense += bonus;
             }
         }
 

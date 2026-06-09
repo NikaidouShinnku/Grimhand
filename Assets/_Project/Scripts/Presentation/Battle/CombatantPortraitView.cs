@@ -365,8 +365,12 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             _poseFlipX = false;
-            if (pose == PortraitPoseKind.Hit && faceCenter)
-                _poseFlipX = _team == TeamSide.Player;
+            if (pose == PortraitPoseKind.Hit && faceCenter && _visuals != null)
+            {
+                var facesRight = _visuals.GetHitPortraitFacesRight(_characterDefinitionId);
+                var shouldFaceCenterFromRight = _team == TeamSide.Player;
+                _poseFlipX = facesRight != shouldFaceCenterFromRight;
+            }
 
             ApplyPortraitSprite(_visuals.GetPoseSprite(_characterDefinitionId, pose));
             portraitImage.color = _isDead ? DeadTint : Color.white;

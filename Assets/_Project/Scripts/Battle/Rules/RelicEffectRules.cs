@@ -25,6 +25,8 @@ namespace Grimhand.Battle.Rules
             combatant.WarriorFirstHitBlockPending = true;
             combatant.UsedAttackThisTurn = false;
             combatant.UsedDefenseThisTurn = false;
+            combatant.TurnAttackBonusPercent = 0;
+            combatant.TurnDefenseBonusPercent = 0;
         }
 
         public static void ProcessTurnStart(
@@ -44,6 +46,8 @@ namespace Grimhand.Battle.Rules
                 if (c.InvulnerableTurnsRemaining > 0)
                     c.InvulnerableTurnsRemaining--;
             }
+
+            RelicBattleRules.RefreshAllDerivedStats(state);
 
             if (mods == null)
                 return;

@@ -31,6 +31,10 @@ namespace Grimhand.Battle.Model
         public bool WarriorFirstHitBlockPending { get; set; } = true;
         public bool UsedAttackThisTurn { get; set; }
         public bool UsedDefenseThisTurn { get; set; }
+        /// <summary>消耗品等：本回合 ATK 额外 +N%（回合开始时清零）。</summary>
+        public int TurnAttackBonusPercent { get; set; }
+        /// <summary>消耗品等：本回合 DEF 额外 +N%（回合开始时清零）。</summary>
+        public int TurnDefenseBonusPercent { get; set; }
         public int PendingRevengeAttackBonus { get; set; }
         public int InvulnerableTurnsRemaining { get; set; }
         public int SacrificeAttackStacks { get; set; }

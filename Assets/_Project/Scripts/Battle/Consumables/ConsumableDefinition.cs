@@ -12,8 +12,8 @@ namespace Grimhand.Battle.Consumables
     {
         HealSingle,
         HealTeam,
-        BattleAttackBonus,
-        BattleDefenseBonus,
+        TurnAttackBonusPercent,
+        TurnDefenseBonusPercent,
         EnergyThisTurn,
         DodgeAllThisTurn,
         MirrorLastAttack

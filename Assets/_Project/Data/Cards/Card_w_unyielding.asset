@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_w_unyielding
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: w_unyielding
-  DisplayName: "不屈意志"
+  DisplayName: "\u4E0D\u5C48\u610F\u5FD7"
   OwnerCharacterId: char_knight
   Cost: 0
   CardType: 2

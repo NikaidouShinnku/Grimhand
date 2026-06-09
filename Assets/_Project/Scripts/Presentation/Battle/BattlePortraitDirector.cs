@@ -14,6 +14,7 @@ namespace Grimhand.Presentation.Battle
         const float DefenseCardHoldDuration = 1f;
         const float NeutralCardHoldDuration = 1f;
         const float PostActionPause = 0.15f;
+        const float AttackWindUpDuration = 0.18f;
         const float ParryCounterDuration = 0.85f;
 
         BattleSession _session;
@@ -161,7 +162,6 @@ namespace Grimhand.Presentation.Battle
                             i = waveEnd;
                             break;
                         case BattleEventKind.ParryTriggered:
-                            yield return HandleParryCounter(e);
                             break;
                         case BattleEventKind.StatusTickDamage:
                             yield return HandleStatusTick(e);
@@ -263,6 +263,8 @@ namespace Grimhand.Presentation.Battle
             card.ActorAtCenter = true;
             yield return actor.MoveToCenter(center);
             actor.ShowPose(pose);
+            if (pose == PortraitPoseKind.Attack)
+                yield return actor.HoldPose(AttackWindUpDuration);
         }
 
         IEnumerator EndCardPlay(CardPlayContext card)
@@ -293,6 +295,16 @@ namespace Grimhand.Presentation.Battle
 
             if (!_portraits.TryGetValue(e.TargetId, out var target))
                 yield break;
+
+            var enemyAttackingPlayer = card != null
+                                       && card.ActorId == e.CombatantId
+                                       && IsPlayerTeamActor(e.TargetId);
+
+            if (enemyAttackingPlayer)
+            {
+                yield return PlayDamageReactionOnly(e, card, target);
+                yield break;
+            }
 
             yield return PlayDamageOverlayEffects(e);
             yield return PlayDamageReactionOnly(e, card, target);
@@ -409,9 +421,6 @@ namespace Grimhand.Presentation.Battle
                 yield break;
             }
 
-            if (e.RespondMitigatedAmount > 0)
-                yield return PlayBlockingEffect(target);
-
             if (e.Amount > 0 && IsPlayerTeamActor(e.CombatantId))
             {
                 var actorDefId = GetCharacterDefinitionId(e.CombatantId);
@@ -426,30 +435,39 @@ namespace Grimhand.Presentation.Battle
             var retainCardPose = card != null && card.ActorId == e.TargetId;
             var blocked = e.BlockedAmount > 0;
             var hpDamage = e.Amount;
+            var respondDefense = e.HadRespondDefense || e.RespondMitigatedAmount > 0;
 
-            if (blocked)
-                ApplySnapshotAfterBlockConsumed(e.TargetId, e.BlockedAmount);
-
-            if (blocked)
-                target.ShowBlockAbsorbedNumber(e.BlockedAmount);
-
-            if (blocked && !retainCardPose)
+            if ((blocked || respondDefense) && !retainCardPose && IsPlayerTeamActor(e.TargetId))
+            {
+                yield return RunParallel(new List<IEnumerator>
+                {
+                    target.PlayInPlacePose(PortraitPoseKind.Defense, DefenseReactDuration),
+                    PlayBlockingEffect(target)
+                });
+            }
+            else if (blocked && !retainCardPose)
                 yield return target.PlayInPlacePose(PortraitPoseKind.Defense, DefenseReactDuration);
+
+            if (blocked)
+            {
+                ApplySnapshotAfterBlockConsumed(e.TargetId, e.BlockedAmount);
+                target.ShowBlockAbsorbedNumber(e.BlockedAmount);
+            }
 
             if (hpDamage > 0)
             {
-                ApplySnapshotAfterDamage(e.TargetId, hpDamage);
                 yield return target.PlayHitReaction(
                     hpDamage,
                     useHitPose: !blocked && !retainCardPose,
                     retainPoseAfter: retainCardPose);
+                ApplySnapshotAfterDamage(e.TargetId, hpDamage);
             }
-            else if (blocked)
+            else if (blocked || respondDefense)
             {
                 if (retainCardPose)
                     yield return target.PlayDamageFlashOnly();
                 else
-                    yield return target.PlayBlockedReaction(e.BlockedAmount);
+                    yield return target.PlayBlockedReaction(blocked ? e.BlockedAmount : 0);
             }
             else if (IsDodgeEvent(e))
             {
@@ -569,7 +587,8 @@ namespace Grimhand.Presentation.Battle
             if (!_portraits.TryGetValue(e.CombatantId, out var defender))
                 yield break;
 
-            yield return defender.PlayParryCounterAttack(ParryCounterDuration);
+            var center = _screen.GetDuelCenterWorldPosition();
+            yield return defender.PlayParryCounterAttack(ParryCounterDuration, center);
         }
 
         IEnumerator HandleDeath(BattleEvent e)

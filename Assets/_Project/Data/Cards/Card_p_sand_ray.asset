@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_p_sand_ray
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: p_sand_ray
-  DisplayName: "沙暴射线"
+  DisplayName: "\u6C99\u66B4\u5C04\u7EBF"
   OwnerCharacterId: char_mage
   Cost: 1
   CardType: 0
@@ -33,7 +33,7 @@ MonoBehaviour:
     Condition: 0
     Reach: 1
     SplashBehindTarget: 0
-    SplashPowerPercent: 80
+    SplashPowerPercent: 100
     BackRowPowerPercent: 100
     IgnoreDefPercent: 0
     BonusIfTargetHpBelowPercent: 0

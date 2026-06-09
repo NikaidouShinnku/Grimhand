@@ -11,6 +11,10 @@ namespace Grimhand.Battle.Model
         public int Cost { get; set; }
         public CardType CardType { get; set; }
         public bool IsUsable { get; set; } = true;
+        /// <summary>绑定到具体战斗单位（同 charId 多名召唤物时区分归属）。</summary>
+        public string OwnerCombatantId { get; set; } = "";
+        /// <summary>回合开始注入的手牌，不占抽牌上限；回合末移除。</summary>
+        public bool IsBonusHandCard { get; set; }
         public string DisplayName { get; set; } = "";
         public List<string> Keywords { get; } = new();
         public List<EffectActionSpec> Actions { get; } = new();

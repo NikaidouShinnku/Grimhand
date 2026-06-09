@@ -23,6 +23,7 @@ namespace Grimhand.Battle.Model
         public int RandomDeckSize { get; set; } = 8;
         public int RandomSkillPickMin { get; set; } = 2;
         public int RandomSkillPickMax { get; set; } = 4;
+        public List<string> Traits { get; } = new();
     }
 
     public sealed class BattleConfig
@@ -32,7 +33,14 @@ namespace Grimhand.Battle.Model
         public int TurnStartEnergyRegen { get; set; } = 4;
         public int HandLimit { get; set; } = 8;
         public int CardsDrawnPerTurn { get; set; } = 5;
+        /// <summary>敌方每回合抽牌数；0 表示与 <see cref="CardsDrawnPerTurn"/> 相同。</summary>
+        public int EnemyCardsDrawnPerTurn { get; set; }
+        /// <summary>敌方每回合出牌能量预算；0 表示与 <see cref="TurnStartEnergyRegen"/> 相同。</summary>
+        public int EnemyTurnEnergyBudget { get; set; }
+        /// <summary>为 true 时远征楼层缩放不作用于本场敌人（Boss 固定数值）。</summary>
+        public bool SkipFloorScaling { get; set; }
         public List<CombatantConfig> Combatants { get; } = new();
+        public Dictionary<string, CombatantConfig> SummonTemplates { get; } = new();
         public Dictionary<string, CardTemplate> CardCatalog { get; } = new();
         public RunModifierSnapshot RunModifiers { get; set; } = RunModifierSnapshot.Empty;
         public int MiracleLeafRevivesRemaining { get; set; } = -1;

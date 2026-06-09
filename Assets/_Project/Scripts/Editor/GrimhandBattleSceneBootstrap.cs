@@ -124,6 +124,7 @@ namespace Grimhand.Editor
                 IdlePortrait = LoadPortraitSprite($"{folder}/{prefix}_idle_1024.png")
             };
 
+            entry.CardProfilePortrait = LoadPortraitSprite($"card/card_profile_{prefix}.png");
             entry.AttackPortrait = LoadPortraitSprite($"{folder}/{prefix}_attack_1024.png");
             entry.DefensePortrait = LoadPortraitSprite($"{folder}/{prefix}_defend_1024.png");
             entry.HitPortrait = LoadPortraitSprite($"{folder}/{prefix}_hit_1024.png");

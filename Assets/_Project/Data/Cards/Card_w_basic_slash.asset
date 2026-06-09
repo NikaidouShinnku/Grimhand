@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_w_basic_slash
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: w_basic_slash
-  DisplayName: "基础斩击"
+  DisplayName: "\u57FA\u7840\u65A9\u51FB"
   OwnerCharacterId: char_knight
   Cost: 1
   CardType: 0
@@ -33,7 +33,7 @@ MonoBehaviour:
     Condition: 0
     Reach: 1
     SplashBehindTarget: 0
-    SplashPowerPercent: 80
+    SplashPowerPercent: 100
     BackRowPowerPercent: 100
     IgnoreDefPercent: 0
     BonusIfTargetHpBelowPercent: 0

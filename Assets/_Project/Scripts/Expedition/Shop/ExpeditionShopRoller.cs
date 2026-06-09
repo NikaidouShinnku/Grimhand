@@ -112,8 +112,7 @@ namespace Grimhand.Expedition.Shop
         static ShopOffer RollConsumableOffer(BattleRng rng)
         {
             var pool = new List<string>();
-            foreach (var consumable in ConsumableDatabase.All)
-                pool.Add(consumable.Id);
+            ConsumableDatabase.CollectRewardPoolIds(pool);
 
             if (pool.Count == 0)
                 return null;

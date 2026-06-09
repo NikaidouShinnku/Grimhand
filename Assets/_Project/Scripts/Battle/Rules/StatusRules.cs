@@ -60,6 +60,15 @@ namespace Grimhand.Battle.Rules
                     existing.RemainingTurns = turns;
             }
 
+            if (def.MaxHpPercentBonusPerStack > 0 && stacks > 0)
+            {
+                var beforeMax = target.MaxHp;
+                var bonusHp = System.Math.Max(1,
+                    (int)System.Math.Round(beforeMax * def.MaxHpPercentBonusPerStack / 100f * stacks));
+                target.MaxHp = beforeMax + bonusHp;
+                target.Hp = System.Math.Min(target.MaxHp, target.Hp + bonusHp);
+            }
+
             events.Add(new BattleEvent(BattleEventKind.StatusApplied, def.DisplayName)
             {
                 CombatantId = target.Id,

@@ -12,11 +12,6 @@ namespace Grimhand.Battle.Rules
                 return "";
 
             var pickSide = CardRules.GetRequiredTargetPick(card);
-            var hasKeywords = card.Keywords != null && card.Keywords.Count > 0;
-            var hasReach = CardReachFormatter.CardHasReachTooltip(card);
-            if (!hasKeywords && !hasReach)
-                return "";
-
             var sb = new StringBuilder();
             AppendReachTooltips(sb, card, pickSide);
             AppendKeywordTooltips(sb, card);
@@ -54,12 +49,7 @@ namespace Grimhand.Battle.Rules
                     continue;
 
                 if (!KeywordCatalog.TryGet(kw, out var def))
-                {
-                    if (sb.Length > 0)
-                        sb.Append("\n\n");
-                    sb.Append(kw);
                     continue;
-                }
 
                 if (sb.Length > 0)
                     sb.Append("\n\n");
@@ -80,41 +70,62 @@ namespace Grimhand.Battle.Rules
         static IEnumerable<string> BuildFormulaLines(CardInstanceState card, CombatantState owner)
         {
             var skipSacrificeHp = card.Keywords != null && card.Keywords.Contains("sacrifice");
+            var seen = new HashSet<string>();
 
             foreach (var action in card.Actions)
             {
                 if (action.Condition != ReactionConditionType.None)
                 {
                     var respond = FormatRespondFormula(action);
-                    if (!string.IsNullOrEmpty(respond))
+                    if (!string.IsNullOrEmpty(respond) && seen.Add(respond))
                         yield return respond;
                     continue;
                 }
 
-                switch (action.Type)
+                foreach (var line in BuildFormulaLinesForAction(action, owner, skipSacrificeHp))
                 {
-                    case EffectActionType.DealDamage when action.Target != EffectTarget.Self:
-                        yield return FormatScaledFormula("伤害", action, owner, useDefense: false);
-                        foreach (var note in FormatDamageEffectNotes(action))
-                            yield return note;
-                        break;
-                    case EffectActionType.DealDamage when action.Target == EffectTarget.Self:
-                        if (!skipSacrificeHp)
-                            yield return $"<b>【献祭伤害】</b>\n{action.Value} HP";
-                        break;
-                    case EffectActionType.GainBlock:
-                        if (action.ScaleWithDefense)
-                            yield return FormatScaledFormula("护甲", action, owner, useDefense: true);
-                        else if (action.Value > 0)
-                            yield return $"<b>【护甲数值】</b>\n{action.Value}";
-                        break;
-                    case EffectActionType.Heal:
-                        if (action.ScaleWithAttack)
-                            yield return FormatScaledFormula("治疗", action, owner, useDefense: false);
-                        else if (action.Value > 0)
-                            yield return $"<b>【治疗数值】</b>\n{action.Value} HP";
-                        break;
+                    if (seen.Add(line))
+                        yield return line;
                 }
+            }
+        }
+
+        static IEnumerable<string> BuildFormulaLinesForAction(
+            EffectActionSpec action,
+            CombatantState owner,
+            bool skipSacrificeHp)
+        {
+            if (action.Condition != ReactionConditionType.None)
+            {
+                var respond = FormatRespondFormula(action);
+                if (!string.IsNullOrEmpty(respond))
+                    yield return respond;
+                yield break;
+            }
+
+            switch (action.Type)
+            {
+                case EffectActionType.DealDamage when action.Target != EffectTarget.Self:
+                    yield return FormatScaledFormula("伤害", action, owner, useDefense: false);
+                    foreach (var note in FormatDamageEffectNotes(action))
+                        yield return note;
+                    break;
+                case EffectActionType.DealDamage when action.Target == EffectTarget.Self:
+                    if (!skipSacrificeHp)
+                        yield return $"<b>【献祭伤害】</b>\n{action.Value} HP";
+                    break;
+                case EffectActionType.GainBlock:
+                    if (action.ScaleWithDefense)
+                        yield return FormatScaledFormula("护甲", action, owner, useDefense: true);
+                    else if (action.Value > 0)
+                        yield return $"<b>【护甲数值】</b>\n{action.Value}";
+                    break;
+                case EffectActionType.Heal:
+                    if (action.ScaleWithAttack)
+                        yield return FormatScaledFormula("治疗", action, owner, useDefense: false);
+                    else if (action.Value > 0)
+                        yield return $"<b>【治疗数值】</b>\n{action.Value} HP";
+                    break;
             }
         }
 

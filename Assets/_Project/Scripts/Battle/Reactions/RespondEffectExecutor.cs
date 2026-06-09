@@ -59,12 +59,6 @@ namespace Grimhand.Battle.Reactions
             {
                 case EffectActionType.GainBlockFromLastDamagePercent:
                     RegisterMitigation(state, context.EnemyCardInstanceId, actor.Id, action.Value);
-                    events.Add(new BattleEvent(BattleEventKind.BlockGained,
-                        $"{actor.DisplayName} 应对减伤 {action.Value}%")
-                    {
-                        CombatantId = actor.Id,
-                        CardInstanceId = card.InstanceId
-                    });
                     break;
 
                 case EffectActionType.ReflectLastDamageToAttacker:
@@ -76,26 +70,15 @@ namespace Grimhand.Battle.Reactions
                     if (reflected <= 0)
                         break;
 
-                    events.Add(new BattleEvent(BattleEventKind.ParryTriggered,
-                        $"{actor.DisplayName} 应对反击 {attacker.DisplayName}")
+                    state.PendingParryStrikes.Add(new PendingParryStrike
                     {
-                        CombatantId = actor.Id,
-                        TargetId = attacker.Id,
-                        Amount = reflected,
-                        CardInstanceId = card.InstanceId
+                        TriggerEnemyCardInstanceId = context.EnemyCardInstanceId,
+                        DefenderId = actor.Id,
+                        AttackerId = attacker.Id,
+                        Damage = reflected,
+                        RespondCardInstanceId = card.InstanceId,
+                        RespondCardType = card.CardType
                     });
-
-                    DamageRules.ApplyDamage(
-                        state,
-                        actor,
-                        attacker,
-                        reflected,
-                        card.CardType,
-                        events,
-                        canTriggerParry: false,
-                        rng: rng,
-                        logSuffix: " (应对反击)",
-                        sourceCardInstanceId: card.InstanceId);
                     break;
             }
         }
@@ -123,6 +106,63 @@ namespace Grimhand.Battle.Reactions
             });
         }
 
+        public static void ResolvePendingParriesForEnemyCard(
+            BattleState state,
+            int enemyCardInstanceId,
+            List<BattleEvent> events,
+            BattleRng rng)
+        {
+            if (state == null || events == null || enemyCardInstanceId <= 0)
+                return;
+
+            for (var i = state.PendingParryStrikes.Count - 1; i >= 0; i--)
+            {
+                var pending = state.PendingParryStrikes[i];
+                if (pending.TriggerEnemyCardInstanceId != enemyCardInstanceId)
+                    continue;
+
+                state.PendingParryStrikes.RemoveAt(i);
+
+                var defender = state.GetCombatant(pending.DefenderId);
+                var attacker = state.GetCombatant(pending.AttackerId);
+                if (defender == null || attacker == null || !defender.IsAlive || pending.Damage <= 0)
+                    continue;
+
+                events.Add(new BattleEvent(BattleEventKind.PortraitPoseChanged, defender.DisplayName)
+                {
+                    CombatantId = defender.Id,
+                    CardType = CardType.Attack,
+                    CardInstanceId = pending.RespondCardInstanceId
+                });
+
+                events.Add(new BattleEvent(BattleEventKind.ParryTriggered,
+                    $"{defender.DisplayName} 应对反击 {attacker.DisplayName}")
+                {
+                    CombatantId = defender.Id,
+                    TargetId = attacker.Id,
+                    Amount = pending.Damage,
+                    CardInstanceId = pending.RespondCardInstanceId
+                });
+
+                DamageRules.ApplyDamage(
+                    state,
+                    defender,
+                    attacker,
+                    pending.Damage,
+                    pending.RespondCardType,
+                    events,
+                    canTriggerParry: false,
+                    rng: rng,
+                    logSuffix: " (应对反击)",
+                    sourceCardInstanceId: pending.RespondCardInstanceId);
+
+                events.Add(new BattleEvent(BattleEventKind.PortraitIdleRestored, defender.DisplayName)
+                {
+                    CombatantId = defender.Id
+                });
+            }
+        }
+
         public static int ApplyMitigation(
             BattleState state,
             int sourceCardInstanceId,
@@ -144,6 +184,35 @@ namespace Grimhand.Battle.Reactions
             }
 
             return System.Math.Max(0, result);
+        }
+
+        public static bool HasRespondDefenseForHit(
+            BattleState state,
+            int sourceCardInstanceId,
+            string targetCombatantId)
+        {
+            if (state == null || sourceCardInstanceId <= 0 || string.IsNullOrEmpty(targetCombatantId))
+                return false;
+
+            if (state.RespondMitigationByEnemyCard.TryGetValue(sourceCardInstanceId, out var layers))
+            {
+                foreach (var layer in layers)
+                {
+                    if (layer.TargetCombatantId == targetCombatantId)
+                        return true;
+                }
+            }
+
+            foreach (var pending in state.PendingParryStrikes)
+            {
+                if (pending.TriggerEnemyCardInstanceId == sourceCardInstanceId
+                    && pending.DefenderId == targetCombatantId)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

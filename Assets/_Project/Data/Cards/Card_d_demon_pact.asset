@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_d_demon_pact
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: d_demon_pact
-  DisplayName: "恶魔契约"
+  DisplayName: "\u6076\u9B54\u5951\u7EA6"
   OwnerCharacterId: char_ranger
   Cost: 2
   CardType: 2

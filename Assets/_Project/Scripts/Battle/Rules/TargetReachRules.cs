@@ -14,6 +14,8 @@ namespace Grimhand.Battle.Rules
                     return slot == FormationSlot.Front || slot == FormationSlot.Middle;
                 case TargetReach.BackOnly:
                     return slot == FormationSlot.Back;
+                case TargetReach.MiddleAndBack:
+                    return slot == FormationSlot.Middle || slot == FormationSlot.Back;
                 default:
                     return true;
             }

@@ -30,3 +30,4 @@ MonoBehaviour:
   EnemyRandomDeckSize: 8
   EnemySkillPickMin: 2
   EnemySkillPickMax: 4
+  Traits: []

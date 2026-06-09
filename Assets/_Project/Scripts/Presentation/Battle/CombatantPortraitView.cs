@@ -305,20 +305,30 @@ namespace Grimhand.Presentation.Battle
             _isAnimating = false;
         }
 
-        public IEnumerator PlayParryCounterAttack(float duration)
+        public IEnumerator PlayParryCounterAttack(float duration, Vector3? duelCenter = null)
         {
             if (_isDead || portraitImage == null || duration <= 0f)
                 yield break;
 
             _isAnimating = true;
-            if (!_awayFromHome)
+            if (duelCenter.HasValue)
+            {
+                if (_awayFromHome)
+                    yield return ReturnHome();
+                yield return MoveToCenter(duelCenter.Value);
+            }
+            else if (!_awayFromHome)
+            {
                 RestoreHomePosition();
+            }
 
             EnsurePortraitImageStable();
             SetPoseSprite(PortraitPoseKind.Attack);
             yield return new WaitForSeconds(duration);
             _isAnimating = false;
-            if (!_isDead && !_awayFromHome)
+            if (!_isDead && _awayFromHome)
+                yield return ReturnHome();
+            else if (!_isDead && !_awayFromHome)
                 ApplyIdleStill();
         }
 

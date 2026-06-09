@@ -48,6 +48,9 @@ namespace Grimhand.Content
         [Tooltip("普通战斗遭遇；Demo 可只填一张并复用。")]
         public List<BattleSetupSO> CombatEncounters = new();
 
+        [Tooltip("Boss 遭遇（第 10 层等）；留空则 Boss 路线回退为 CombatEncounters[0]。")]
+        public List<BattleSetupSO> BossEncounters = new();
+
         [Tooltip("商店/奖励可 roll 的全部玩家卡牌（含非初始牌组）；留空则回退为遭遇配置中的初始牌。")]
         public List<CardDefinitionSO> PlayerCardCatalog = new();
 
@@ -85,17 +88,20 @@ namespace Grimhand.Content
                 config.CombatEncounters.Add(encounter.ToBattleConfig());
             }
 
+            foreach (var encounter in BossEncounters)
+            {
+                if (encounter == null)
+                    continue;
+
+                config.BossEncounters.Add(encounter.ToBattleConfig());
+            }
+
             foreach (var card in PlayerCardCatalog)
             {
                 if (card == null || string.IsNullOrEmpty(card.CardId))
                     continue;
 
-                config.PlayerCardCatalog.Add(new CardTemplate
-                {
-                    DefinitionId = card.CardId,
-                    DisplayName = card.DisplayName,
-                    OwnerCharacterId = card.OwnerCharacterId
-                });
+                config.PlayerCardCatalog.Add(card.ToTemplate());
             }
 
             return config;

@@ -22,5 +22,6 @@ namespace Grimhand.Content
         public int EnemyRandomDeckSize = 8;
         public int EnemySkillPickMin = 2;
         public int EnemySkillPickMax = 4;
+        public List<string> Traits = new();
     }
 }

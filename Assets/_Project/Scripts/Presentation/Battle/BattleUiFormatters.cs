@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using System.Text;
+using Grimhand.Battle.Effects;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Planning;
 using Grimhand.Battle.Reactions;
 using Grimhand.Battle.Rules;
 using Grimhand.Battle.Status;
+using Grimhand.Content;
 using Grimhand.Expedition.Model;
 
 namespace Grimhand.Presentation.Battle
@@ -85,6 +87,9 @@ namespace Grimhand.Presentation.Battle
 
             var ownerId = state != null ? PositionRules.GetOwnerCombatantId(state, card) : null;
             var owner = ownerId != null ? state.GetCombatant(ownerId) : null;
+            if (TryBuildCurseCardStatsLine(card, out var curseLine))
+                return curseLine;
+
             var pickSide = CardRules.GetRequiredTargetPick(card);
             var previewTarget = ResolveDamagePreviewTarget(state, draft, card, owner, damagePreviewTarget);
 
@@ -96,7 +101,12 @@ namespace Grimhand.Presentation.Battle
             var normalActions = CollectNormalActions(card);
             var remaining = normalActions;
 
-            if (TryDescribeAoEEnemyDamage(state, card, normalActions, owner, preferFormulas, out var aoeLine, out remaining))
+            if (TryDescribeRepeatedRandomHits(card, normalActions, owner, state, preferFormulas, out var randomHitsLine, out remaining))
+            {
+                lines.Add(randomHitsLine);
+                normalActions = remaining;
+            }
+            else if (TryDescribeAoEEnemyDamage(state, card, normalActions, owner, preferFormulas, out var aoeLine, out remaining))
             {
                 lines.Add(aoeLine);
                 normalActions = remaining;
@@ -132,7 +142,7 @@ namespace Grimhand.Presentation.Battle
 
             if (picked.Count > 0)
             {
-                var body = JoinEffectClauses(picked);
+                var body = JoinEffectClauses(CollapseDuplicateClauses(picked));
                 if (pickSide != TargetPickSide.None && !HasReachTagOnPickActions(card, pickSide))
                 {
                     var lead = BuildPickLead(pickSide);
@@ -142,7 +152,7 @@ namespace Grimhand.Presentation.Battle
                     lines.Add(body);
             }
 
-            lines.AddRange(other);
+            lines.AddRange(CollapseDuplicateClauses(other));
 
             foreach (var action in card.Actions)
             {
@@ -165,18 +175,31 @@ namespace Grimhand.Presentation.Battle
             return string.Join("\n", lines);
         }
 
-        public static string BuildCardKeywordTooltip(BattleState state, CardInstanceState card)
+        public static string BuildCardStatsLinePreview(CardInstanceState card) =>
+            BuildCardStatsLine(state: null, draft: null, card, preferFormulas: true);
+
+        public static string BuildCardStatsLinePreview(
+            CardInstanceState card,
+            IReadOnlyDictionary<string, CardDefinitionSO> definitions) =>
+            BuildCardStatsLine(
+                state: null,
+                draft: null,
+                CardVisualResolver.ResolveForDescription(card, definitions),
+                preferFormulas: true);
+
+        public static string BuildCardKeywordTooltip(
+            BattleState state,
+            CardInstanceState card,
+            IReadOnlyDictionary<string, CardDefinitionSO> definitions = null)
         {
             if (card == null)
                 return "";
 
+            card = CardVisualResolver.ResolveForDescription(card, definitions);
             var ownerId = state != null ? PositionRules.GetOwnerCombatantId(state, card) : null;
             var owner = ownerId != null && state != null ? state.GetCombatant(ownerId) : null;
             return CardKeywordTooltipBuilder.BuildRichTooltip(card, owner);
         }
-
-        public static string BuildCardStatsLinePreview(CardInstanceState card) =>
-            BuildCardStatsLine(state: null, draft: null, card, preferFormulas: true);
 
         static bool UsesManualPick(EffectActionSpec action, TargetPickSide pickSide)
         {
@@ -270,7 +293,8 @@ namespace Grimhand.Presentation.Battle
             {
                 case EffectActionType.DealDamage:
                 {
-                    var extra = DescribeDamageExtras(action);
+                    var damageExtras = DescribeDamageExtras(action);
+                    var appendExtras = true;
                     if (action.Target == EffectTarget.Self)
                     {
                         var selfDmg = preferFormulas && owner == null && CardActionValueText.HasScaledComponent(action)
@@ -278,7 +302,7 @@ namespace Grimhand.Presentation.Battle
                             : (state != null && owner != null && card != null
                                 ? CardPreviewRules.ComputeExpectedDamage(state, owner, card, action)
                                 : CardPowerRules.ComputeActionValue(action, owner)).ToString();
-                        return prefix + $"对自身造成 {selfDmg} 点伤害{extra}";
+                        return prefix + $"对自身造成 {selfDmg} 点伤害{damageExtras}";
                     }
 
                     string body;
@@ -294,9 +318,12 @@ namespace Grimhand.Presentation.Battle
                     else if (owner != null && state != null && card != null && !preferFormulas)
                         body = $"造成 {CardPreviewRules.ComputeExpectedDamage(state, owner, card, action)} 点伤害";
                     else
+                    {
                         body = CardActionValueText.DescribeDamage(action, owner, preferFormulas);
+                        appendExtras = false;
+                    }
 
-                    return prefix + reachTag + PrefixTarget(target, body + extra);
+                    return prefix + reachTag + PrefixTarget(target, body + (appendExtras ? damageExtras : ""));
                 }
                 case EffectActionType.GainBlock:
                 {
@@ -328,11 +355,24 @@ namespace Grimhand.Presentation.Battle
                 case EffectActionType.DrawCardsNextTurn:
                     return prefix + $"下回合抽 {action.Value} 张牌";
                 case EffectActionType.ApplyStatus:
+                    if (action.Target == EffectTarget.RandomEnemies)
+                    {
+                        var count = action.Value > 0 ? action.Value : 1;
+                        if (action.StatusId == StatusCatalog.Slow)
+                            return prefix + $"随机使 {count} 名敌人获得减速 {action.Stacks} 层{FormatDurationSuffix(action)}";
+
+                        var def = StatusCatalog.Get(action.StatusId);
+                        var name = def?.DisplayName ?? action.StatusId;
+                        return prefix + $"随机使 {count} 名敌人获得{name} {action.Stacks} 层{FormatDurationSuffix(action)}";
+                    }
+
                     return prefix + reachTag + DescribeStatusEffectClause(action, target, usesPick);
                 case EffectActionType.RemoveStatus:
                     return prefix + PrefixTarget(target, "清除状态");
                 case EffectActionType.SwapPositionWithFrontAlly:
                     return prefix + "与前排队友交换位置";
+                case EffectActionType.ApplyAnubisAvatar:
+                    return prefix + "本场战斗生命上限、攻击、防御 +50%\n接下来 2 回合无法出牌";
                 default:
                     return "";
             }
@@ -364,9 +404,52 @@ namespace Grimhand.Presentation.Battle
                     return "中排队友";
                 case EffectTarget.AllyBackSlot:
                     return "后排队友";
+                case EffectTarget.RandomEnemy:
+                    return "随机敌人";
                 default:
                     return "";
             }
+        }
+
+        static bool TryDescribeRepeatedRandomHits(
+            CardInstanceState card,
+            List<EffectActionSpec> actions,
+            CombatantState owner,
+            BattleState state,
+            bool preferFormulas,
+            out string line,
+            out List<EffectActionSpec> remaining)
+        {
+            line = "";
+            remaining = actions;
+            if (actions == null || actions.Count == 0)
+                return false;
+
+            var first = actions[0];
+            if (first.Type != EffectActionType.DealDamage || first.Target != EffectTarget.RandomEnemy)
+                return false;
+
+            for (var i = 1; i < actions.Count; i++)
+            {
+                var other = actions[i];
+                if (other.Type != EffectActionType.DealDamage || other.Target != EffectTarget.RandomEnemy)
+                    return false;
+
+                if (other.Value != first.Value
+                    || other.ScaleWithAttack != first.ScaleWithAttack
+                    || other.AttackScalePercent != first.AttackScalePercent
+                    || other.DefenseScalePercent != first.DefenseScalePercent
+                    || other.Reach != first.Reach)
+                {
+                    return false;
+                }
+            }
+
+            var clause = DescribeEffectClause(
+                first, owner, usesPick: false, TargetPickSide.None, state, card, reaction: false, preferFormulas);
+            line = string.IsNullOrEmpty(clause) ? "" : $"{clause}，重复 {actions.Count} 次";
+            remaining = new List<EffectActionSpec>();
+            return !string.IsNullOrEmpty(line);
         }
 
         static List<EffectActionSpec> CollectNormalActions(CardInstanceState card)
@@ -545,6 +628,18 @@ namespace Grimhand.Presentation.Battle
             if (front.Value != middle.Value || front.Value != back.Value)
                 return false;
 
+            if (front.ScaleWithDefense != middle.ScaleWithDefense
+                || front.ScaleWithDefense != back.ScaleWithDefense)
+                return false;
+
+            if (front.DefenseScalePercent != middle.DefenseScalePercent
+                || front.DefenseScalePercent != back.DefenseScalePercent)
+                return false;
+
+            if (front.AttackScalePercent != middle.AttackScalePercent
+                || front.AttackScalePercent != back.AttackScalePercent)
+                return false;
+
             if (preferFormulas && owner == null && front.ScaleWithDefense)
                 line = $"三名队友各获得 {CardActionValueText.FormatPlain(front, useDefense: true)} 的护甲";
             else
@@ -630,6 +725,27 @@ namespace Grimhand.Presentation.Battle
             return string.Concat(parts);
         }
 
+        static List<string> CollapseDuplicateClauses(IReadOnlyList<string> clauses)
+        {
+            if (clauses == null || clauses.Count == 0)
+                return new List<string>();
+
+            var result = new List<string>();
+            var index = 0;
+            while (index < clauses.Count)
+            {
+                var clause = clauses[index];
+                var count = 1;
+                while (index + count < clauses.Count && clauses[index + count] == clause)
+                    count++;
+
+                result.Add(clause);
+                index += count;
+            }
+
+            return result;
+        }
+
         static string DescribeActionLine(EffectActionSpec action, CombatantState owner)
         {
             var prefix = action.Condition != ReactionConditionType.None ? "【应对攻击】" : "";
@@ -712,6 +828,7 @@ namespace Grimhand.Presentation.Battle
             {
                 case TargetReach.FrontAndMiddle: return "前中";
                 case TargetReach.BackOnly: return "后排";
+                case TargetReach.MiddleAndBack: return "中后";
                 case TargetReach.Any: return "全排";
                 default: return "";
             }
@@ -806,7 +923,8 @@ namespace Grimhand.Presentation.Battle
                     }
 
                     var effect = CardPowerRules.DescribeCardEffect(card, owner, false);
-                    lines.Add($"#{global} {ownerName} · {card.DisplayName} 费{card.Cost} {effect}");
+                    var enemyTargetNote = BuildEnemyIntentTargetNote(state, owner, card);
+                    lines.Add($"#{global} {ownerName} · {card.DisplayName} 费{card.Cost} {effect}{enemyTargetNote}");
                     continue;
                 }
 
@@ -858,7 +976,8 @@ namespace Grimhand.Presentation.Battle
                     }
 
                     var effect = CardPowerRules.DescribeCardEffect(card, owner, false);
-                    lines.Add($"#{global} {ownerName} · {card.DisplayName} 费{card.Cost} {effect}");
+                    var enemyTargetNote = BuildEnemyIntentTargetNote(state, owner, card);
+                    lines.Add($"#{global} {ownerName} · {card.DisplayName} 费{card.Cost} {effect}{enemyTargetNote}");
                     continue;
                 }
 
@@ -1022,6 +1141,24 @@ namespace Grimhand.Presentation.Battle
             return 0;
         }
 
+        public static string BuildEnemyIntentTargetNote(BattleState state, CombatantState owner, CardInstanceState card)
+        {
+            if (state == null || owner == null || card == null)
+                return "";
+
+            if (CardPreviewRules.CardUsesAoeEnemyPreview(card))
+                return " → 全体玩家";
+
+            var target = TargetRules.PredictIntentTarget(state, owner, card);
+            if (target == null)
+                return "";
+
+            if (target.Id == owner.Id)
+                return " → 自身";
+
+            return $" → {target.DisplayName}";
+        }
+
         static bool IsEnemyIntentHidden(
             BattleState state,
             int cardInstanceId,
@@ -1113,5 +1250,23 @@ namespace Grimhand.Presentation.Battle
                 default: return type.ToString();
             }
         }
+
+        static bool TryBuildCurseCardStatsLine(CardInstanceState card, out string line)
+        {
+            line = "";
+            if (card == null || !IsCurseCard(card))
+                return false;
+
+            line = card.DefinitionId switch
+            {
+                "curse_chaos_touch" => "【诅咒】\n打出后无任何效果，浪费1点能量与1个手牌位。",
+                _ => "【诅咒】\n占用手牌位，可通过商人删牌或祭坛献祭移除。"
+            };
+            return true;
+        }
+
+        static bool IsCurseCard(CardInstanceState card) =>
+            card.Keywords.Contains("curse")
+            || (!string.IsNullOrEmpty(card.DefinitionId) && card.DefinitionId.StartsWith("curse_"));
     }
 }

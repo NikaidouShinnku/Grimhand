@@ -90,7 +90,8 @@ namespace Grimhand.Presentation.Battle
                 var interactable = session.CanInteractWithBattle() && !polluted
                     && (isAwaitingTarget || isQueued || canAfford);
                 var visual = CardVisualResolver.Resolve(card, catalog, characterVisuals, definitions);
-                var stats = BattleUiFormatters.BuildCardStatsLine(state, draft, card, damagePreviewTarget: damagePreviewTarget);
+                var descCard = CardVisualResolver.ResolveForDescription(card, definitions);
+                var stats = BattleUiFormatters.BuildCardStatsLine(state, draft, descCard, damagePreviewTarget: damagePreviewTarget);
                 var badge = isQueued
                     ? BattleUiFormatters.BuildSelectionBadge(state, draft, card, resolveSteps)
                     : null;

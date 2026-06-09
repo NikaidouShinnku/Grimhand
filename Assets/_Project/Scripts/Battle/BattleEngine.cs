@@ -146,8 +146,17 @@ namespace Grimhand.Battle
             _state.PlayerPlan.PlayQueue.AddRange(plan.PlayQueue);
             _state.PlayerPlan.EnergySpent = plan.EnergySpent;
 
+            var enemyResolutionTargets = new Dictionary<int, string>();
+            foreach (var cardId in _state.EnemyPlan.PlayQueue)
+            {
+                if (_state.ResolutionTargets.TryGetValue(cardId, out var targetId))
+                    enemyResolutionTargets[cardId] = targetId;
+            }
+
             _state.ResolutionTargets.Clear();
             foreach (var pair in plan.TargetByCardInstanceId)
+                _state.ResolutionTargets[pair.Key] = pair.Value;
+            foreach (var pair in enemyResolutionTargets)
                 _state.ResolutionTargets[pair.Key] = pair.Value;
 
             _events.Add(new BattleEvent(kind, message)
@@ -169,6 +178,7 @@ namespace Grimhand.Battle
             SetPhase(TurnPhase.SpeedResolve);
             CombatMechanicsRules.ClearTurnFlags(_state);
             _state.RespondMitigationByEnemyCard.Clear();
+            _state.PendingParryStrikes.Clear();
 
             var baseline = SpeedResolver.BuildResolutionOrder(
                 _state, _state.PlayerPlan, _state.EnemyPlan, _rng);
@@ -181,7 +191,12 @@ namespace Grimhand.Battle
                 else
                 {
                     RevealIntentIfHidden(entry.Step.CardInstanceId);
-                    ResolveStep(entry.Step);
+                    var actor = _state.GetCombatant(entry.Step.CombatantId);
+                    var card = _state.GetCard(entry.Step.CardInstanceId);
+                    if (actor?.Team == TeamSide.Player && RespondRules.IsRespondCard(card))
+                        ResolveRespondStep(entry);
+                    else
+                        ResolveStep(entry.Step);
                 }
 
                 if (_state.Outcome != BattleOutcome.Ongoing)
@@ -208,12 +223,6 @@ namespace Grimhand.Battle
             if (actor == null || card == null || !actor.IsAlive)
                 return;
 
-            _events.Add(new BattleEvent(BattleEventKind.PortraitPoseChanged, actor.DisplayName)
-            {
-                CombatantId = actor.Id,
-                CardType = card.CardType,
-                CardInstanceId = card.InstanceId
-            });
             _events.Add(new BattleEvent(BattleEventKind.CardResolvedStarted, card.DisplayName)
             {
                 CombatantId = actor.Id,
@@ -230,7 +239,9 @@ namespace Grimhand.Battle
             RelicBattleRules.TryApplyStatusCardTeamBlock(_state, actor, card, _events);
             RelicEffectRules.OnCardResolved(_state, actor, card, _events, _rng);
 
-            if (card.Keywords.Contains("exhaust"))
+            TrySelfDestructAfterCard(actor, card);
+
+            if (card.Keywords.Contains("exhaust") || card.IsBonusHandCard)
                 DeckRules.ExhaustCard(_state, actor.Team, card, _events);
             else
                 DeckRules.MovePlayedCardToDiscard(_state, actor.Team, card, _events);
@@ -239,10 +250,6 @@ namespace Grimhand.Battle
             {
                 CombatantId = actor.Id,
                 CardInstanceId = card.InstanceId
-            });
-            _events.Add(new BattleEvent(BattleEventKind.PortraitIdleRestored, actor.DisplayName)
-            {
-                CombatantId = actor.Id
             });
 
             EvaluateOutcome();
@@ -297,7 +304,9 @@ namespace Grimhand.Battle
             RelicBattleRules.TryApplyStatusCardTeamBlock(_state, actor, card, _events);
             RelicEffectRules.OnCardResolved(_state, actor, card, _events, _rng);
 
-            if (card.Keywords.Contains("exhaust"))
+            TrySelfDestructAfterCard(actor, card);
+
+            if (card.Keywords.Contains("exhaust") || card.IsBonusHandCard)
                 DeckRules.ExhaustCard(_state, actor.Team, card, _events);
             else
                 DeckRules.MovePlayedCardToDiscard(_state, actor.Team, card, _events);
@@ -312,7 +321,19 @@ namespace Grimhand.Battle
                 CombatantId = actor.Id
             });
 
+            if (actor.Team == TeamSide.Enemy)
+                RespondEffectExecutor.ResolvePendingParriesForEnemyCard(
+                    _state, card.InstanceId, _events, _rng);
+
             EvaluateOutcome();
+        }
+
+        void TrySelfDestructAfterCard(CombatantState actor, CardInstanceState card)
+        {
+            if (actor == null || card == null || !card.Keywords.Contains("self_destruct"))
+                return;
+
+            SummonRules.SelfDestruct(_state, actor, _events);
         }
 
         void ProcessEndOfTurn()
@@ -342,6 +363,9 @@ namespace Grimhand.Battle
             EnergyRules.ApplyTurnStartRegen(_state);
             StatusRules.ProcessTurnStartStatuses(_state, _events);
             RelicEffectRules.ProcessTurnStart(_state, _rng, _events);
+            BossTraitRules.ProcessTurnStart(_state, _events);
+            foreach (var combatant in _state.Combatants)
+                AnubisAvatarRules.ProcessTurnStart(combatant);
             EvaluateOutcome();
             _events.Add(new BattleEvent(BattleEventKind.EnergyChanged, "Turn start")
             {
@@ -384,7 +408,14 @@ namespace Grimhand.Battle
             DeckRules.DrawCards(_state, TeamSide.Player, _rng,
                 _state.Config.CardsDrawnPerTurn + bonusDraw + backRowDraw +
                 (_state.TurnNumber == 1 ? mods?.ExtraDrawOnBattleStart ?? 0 : 0), _events);
-            DeckRules.DrawCards(_state, TeamSide.Enemy, _rng, _state.Config.CardsDrawnPerTurn, _events);
+            DeckRules.DrawCards(_state, TeamSide.Enemy, _rng, ResolveEnemyDrawCount(), _events);
+            SummonRules.GrantSkullSelfDestructHands(_state, _events);
+        }
+
+        int ResolveEnemyDrawCount()
+        {
+            var enemyDraw = _state.Config?.EnemyCardsDrawnPerTurn ?? 0;
+            return enemyDraw > 0 ? enemyDraw : _state.Config.CardsDrawnPerTurn;
         }
 
         void ArchiveLastTurnAttackForConsumables() =>
@@ -400,6 +431,8 @@ namespace Grimhand.Battle
             _state.EnemyPlan.EnergySpent = enemyTurn.Plan.EnergySpent;
             _state.EnemyIntents.Clear();
             _state.EnemyIntents.AddRange(enemyTurn.Intents);
+
+            TargetRules.PrerollEnemyAutoTargets(_state, _state.EnemyPlan, _rng);
 
             _events.Add(new BattleEvent(BattleEventKind.EnemyIntentPrepared,
                 $"Enemy intends {enemyTurn.Intents.Count} card(s)"));
@@ -481,6 +514,9 @@ namespace Grimhand.Battle
                 };
                 var startHp = cc.StartHp ?? cc.MaxHp;
                 combatant.Hp = System.Math.Max(0, System.Math.Min(startHp, cc.MaxHp));
+                combatant.Traits.AddRange(cc.Traits);
+                if (BossTraitRules.HasTrait(combatant, CharacterTraitCatalog.BossFirstHitBlock))
+                    combatant.BossFirstHitBlockPending = true;
                 _state.Combatants.Add(combatant);
             }
 
@@ -490,10 +526,13 @@ namespace Grimhand.Battle
                 if (combatant == null || !combatant.IsAlive)
                     continue;
 
+                if (BossTraitRules.HasTrait(combatant, CharacterTraitCatalog.SkullSelfDestructHand))
+                    continue;
+
                 var drawPile = cc.Team == TeamSide.Player ? _state.PlayerDrawPile : _state.EnemyDrawPile;
                 foreach (var template in cc.DeckTemplates)
                 {
-                    var instance = CreateCardInstance(template);
+                    var instance = CreateCardInstance(template, cc.Id);
                     drawPile.Add(instance);
                 }
             }
@@ -517,17 +556,20 @@ namespace Grimhand.Battle
 
         static void PrepareCombatantDeck(CombatantConfig cc, BattleRng deckRng)
         {
-            if (!cc.UseRandomSkillPool || cc.SkillPoolCandidates.Count == 0)
+            if (cc.UseRandomSkillPool && cc.SkillPoolCandidates.Count >= 2)
+            {
+                cc.DeckTemplates.Clear();
+                var built = EnemyDeckBuilder.BuildRandomDeck(
+                    cc.SkillPoolCandidates,
+                    deckRng,
+                    cc.RandomDeckSize,
+                    cc.RandomSkillPickMin,
+                    cc.RandomSkillPickMax);
+                cc.DeckTemplates.AddRange(built);
                 return;
+            }
 
-            cc.DeckTemplates.Clear();
-            var built = EnemyDeckBuilder.BuildRandomDeck(
-                cc.SkillPoolCandidates,
-                deckRng,
-                cc.RandomDeckSize,
-                cc.RandomSkillPickMin,
-                cc.RandomSkillPickMax);
-            cc.DeckTemplates.AddRange(built);
+            EnemyDeckBuilder.ShuffleFixedDeck(cc.DeckTemplates, deckRng);
         }
 
         void ApplyBattleStartRelicEffects(RunModifierSnapshot mods)
@@ -561,7 +603,7 @@ namespace Grimhand.Battle
             }
         }
 
-        CardInstanceState CreateCardInstance(CardTemplate template)
+        CardInstanceState CreateCardInstance(CardTemplate template, string ownerCombatantId = "")
         {
             var id = _state.NextCardInstanceId++;
             var card = new CardInstanceState
@@ -569,6 +611,7 @@ namespace Grimhand.Battle
                 InstanceId = id,
                 DefinitionId = template.DefinitionId,
                 OwnerCharacterId = template.OwnerCharacterId,
+                OwnerCombatantId = ownerCombatantId ?? "",
                 Cost = template.Cost,
                 CardType = template.CardType,
                 DisplayName = template.DisplayName,

@@ -48,7 +48,7 @@ namespace Grimhand.Battle.Reactions
                     continue;
                 }
 
-                var target = TargetRules.ResolveTarget(state, attacker, action.Target, card.InstanceId);
+                var target = TargetRules.ResolveTarget(state, attacker, action.Target, card.InstanceId, null, action);
                 if (target != null && target.Id == defenderId)
                     return true;
             }
@@ -127,7 +127,7 @@ namespace Grimhand.Battle.Reactions
                     continue;
                 }
 
-                var target = TargetRules.ResolveTarget(state, attacker, action.Target, card.InstanceId);
+                var target = TargetRules.ResolveTarget(state, attacker, action.Target, card.InstanceId, null, action);
                 if (target != null && target.Id == defender.Id)
                 {
                     var adjusted = TargetReachRules.AdjustPowerForTarget(state, action, defender, value);

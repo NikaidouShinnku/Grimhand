@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_p_sand_barrier
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: p_sand_barrier
-  DisplayName: "沙尘结界"
+  DisplayName: "\u6C99\u5C18\u7ED3\u754C"
   OwnerCharacterId: char_mage
   Cost: 2
   CardType: 1

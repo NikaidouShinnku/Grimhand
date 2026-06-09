@@ -24,6 +24,8 @@ namespace Grimhand.Content
         [Tooltip("受击图原始朝向是否朝右；展示时会按阵营翻转，使角色始终面向战场中央。")]
         public bool HitPortraitFacesRight = true;
         public Sprite DeathPortrait;
+        [Tooltip("卡面预绘半身（card/card_profile_*.png），直接覆盖椭圆区。")]
+        public Sprite CardProfilePortrait;
         public List<Sprite> IdleAnimationFrames = new();
         [Tooltip("相对 Assets/ 的 idle GIF 路径；若填写则优先于 IdleAnimationFrames 播放。")]
         public string IdleAnimationGifPath = "";
@@ -61,6 +63,17 @@ namespace Grimhand.Content
             if (entry?.IdlePortrait != null)
                 return entry.IdlePortrait;
             return DefaultPortrait;
+        }
+
+        /// <summary>卡面立绘：优先用 card_profile_* 预绘图。</summary>
+        public Sprite GetCardPortrait(string characterDefinitionId)
+        {
+            var entry = GetEntry(characterDefinitionId);
+            if (entry?.CardProfilePortrait != null)
+                return entry.CardProfilePortrait;
+            if (entry?.IdlePortrait != null)
+                return entry.IdlePortrait;
+            return GetPortrait(characterDefinitionId);
         }
 
         public Sprite GetPortraitReference(string characterDefinitionId)

@@ -289,6 +289,10 @@ namespace Grimhand.Expedition
                     _run.Phase = ExpeditionPhase.ShopVisit;
                     ExpeditionShopRoller.OpenShop(_run.Shop, _config, _run, _rng);
                     return true;
+                case ExpeditionNodeType.Boss:
+                    _run.Phase = ExpeditionPhase.InBattle;
+                    _run.CurrentBattleConfig = BuildBossBattle(applyPartyHp: true);
+                    return true;
                 default:
                     _run.Phase = ExpeditionPhase.InBattle;
                     _run.CurrentBattleConfig = BuildBattleFromEncounter(route.EncounterIndex, applyPartyHp: true);
@@ -664,6 +668,8 @@ namespace Grimhand.Expedition
                 template = ExpeditionBattleConfigBuilder.CloneTemplate(template);
             }
 
+            ExpeditionBattleConfigBuilder.HydrateTemplateFromCatalog(template, _config.PlayerCardCatalog);
+
             if (string.IsNullOrEmpty(template.OwnerCharacterId) && !string.IsNullOrEmpty(ownerCharacterId))
                 template.OwnerCharacterId = ownerCharacterId;
 
@@ -735,7 +741,8 @@ namespace Grimhand.Expedition
                 applyPartyHp,
                 _run.MiracleLeafUsesRemaining,
                 CurrentBattleNumber,
-                _run.Modifiers);
+                _run.Modifiers,
+                _config.PlayerCardCatalog);
 
             if (_run.Modifiers.DivinePunishmentActive)
             {
@@ -750,6 +757,30 @@ namespace Grimhand.Expedition
 
                 _run.Modifiers.DivinePunishmentActive = false;
             }
+
+            config.EnergyCap += _run.Modifiers.EnergyCapBonus;
+            config.TurnStartEnergyRegen = System.Math.Max(config.TurnStartEnergyRegen, 4);
+            return config;
+        }
+
+        BattleConfig BuildBossBattle(bool applyPartyHp)
+        {
+            var template = _config.BossEncounters.Count > 0
+                ? _config.BossEncounters[0]
+                : SkeletonKingBossEncounterBuilder.BuildTemplate(
+                    _config.CombatEncounters.Count > 0 ? _config.CombatEncounters[0] : null);
+
+            var seed = _rng.NextInt(1, int.MaxValue);
+            var config = ExpeditionBattleConfigBuilder.BuildEncounter(
+                template,
+                _run.Party,
+                _run.Relics,
+                seed,
+                applyPartyHp,
+                _run.MiracleLeafUsesRemaining,
+                CurrentBattleNumber,
+                _run.Modifiers,
+                _config.PlayerCardCatalog);
 
             config.EnergyCap += _run.Modifiers.EnergyCapBonus;
             config.TurnStartEnergyRegen = System.Math.Max(config.TurnStartEnergyRegen, 4);

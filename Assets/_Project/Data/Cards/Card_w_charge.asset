@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_w_charge
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: w_charge
-  DisplayName: "战士冲锋"
+  DisplayName: "\u6218\u58EB\u51B2\u950B"
   OwnerCharacterId: char_knight
   Cost: 3
   CardType: 0
@@ -33,7 +33,7 @@ MonoBehaviour:
     Condition: 0
     Reach: 1
     SplashBehindTarget: 0
-    SplashPowerPercent: 80
+    SplashPowerPercent: 100
     BackRowPowerPercent: 100
     IgnoreDefPercent: 50
     BonusIfTargetHpBelowPercent: 0

@@ -45,6 +45,7 @@ namespace Grimhand.Battle.Model
         public Dictionary<int, string> ResolutionTargets { get; } = new();
 
         public int NextCardInstanceId { get; set; } = 1;
+        public int NextSummonInstanceId { get; set; } = 1;
 
         public int MiracleLeafRevivesRemaining { get; set; }
         public bool JadeDaggerFirstKillConsumed { get; set; }
@@ -60,6 +61,9 @@ namespace Grimhand.Battle.Model
 
         /// <summary>key = 敌方牌 instanceId；在其造成伤害时按层叠顺序减伤。</summary>
         public Dictionary<int, List<RespondMitigationLayer>> RespondMitigationByEnemyCard { get; } = new();
+
+        /// <summary>在对应敌方攻击演出结束后结算的弹反反击。</summary>
+        public List<PendingParryStrike> PendingParryStrikes { get; } = new();
 
         public CombatantState GetCombatant(string id)
         {

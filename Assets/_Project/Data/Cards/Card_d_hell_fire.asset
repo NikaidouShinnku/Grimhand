@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_d_hell_fire
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: d_hell_fire
-  DisplayName: "地狱烈焰"
+  DisplayName: "\u5730\u72F1\u70C8\u7130"
   OwnerCharacterId: char_ranger
   Cost: 3
   CardType: 0
@@ -57,7 +57,7 @@ MonoBehaviour:
     Condition: 0
     Reach: 0
     SplashBehindTarget: 0
-    SplashPowerPercent: 80
+    SplashPowerPercent: 100
     BackRowPowerPercent: 100
     IgnoreDefPercent: 0
     BonusIfTargetHpBelowPercent: 0

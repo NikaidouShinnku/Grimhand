@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_w_guardian
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: w_guardian
-  DisplayName: "誓死守护"
+  DisplayName: "\u8A93\u6B7B\u5B88\u62A4"
   OwnerCharacterId: char_knight
   Cost: 2
   CardType: 1

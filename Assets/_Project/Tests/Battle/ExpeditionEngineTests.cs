@@ -168,6 +168,44 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
+        public void BossRoute_WithoutBossEncounters_SpawnsOnlySkeletonKing()
+        {
+            var engine = new ExpeditionEngine(BuildConfig());
+            engine.StartRun();
+
+            SelectFirstCombatRoute(engine);
+            CompleteVictory(engine, 25);
+            ResolveRewardPickup(engine);
+
+            SelectFirstCombatRoute(engine);
+            CompleteVictory(engine, 20);
+            ResolveRewardPickup(engine);
+
+            SelectFirstBossRoute(engine);
+
+            Assert.AreEqual(ExpeditionPhase.InBattle, engine.Run.Phase);
+            Assert.NotNull(engine.Run.CurrentBattleConfig);
+
+            var enemies = 0;
+            CombatantConfig king = null;
+            foreach (var cc in engine.Run.CurrentBattleConfig.Combatants)
+            {
+                if (cc.Team != TeamSide.Enemy)
+                    continue;
+
+                enemies++;
+                if (cc.CharacterDefinitionId == "char_skeleton_king")
+                    king = cc;
+            }
+
+            Assert.AreEqual(1, enemies);
+            Assert.NotNull(king);
+            Assert.AreEqual("骷髅王", king.DisplayName);
+            Assert.AreEqual(800, king.MaxHp);
+            Assert.IsTrue(engine.Run.CurrentBattleConfig.SkipFloorScaling);
+        }
+
+        [Test]
         public void BossVictory_CompletesRun()
         {
             var engine = new ExpeditionEngine(BuildConfig());

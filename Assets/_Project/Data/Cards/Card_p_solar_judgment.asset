@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_p_solar_judgment
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: p_solar_judgment
-  DisplayName: "日光审判"
+  DisplayName: "\u592A\u9633\u5BA1\u5224"
   OwnerCharacterId: char_mage
   Cost: 4
   CardType: 0
@@ -33,7 +33,7 @@ MonoBehaviour:
     Condition: 0
     Reach: 0
     SplashBehindTarget: 0
-    SplashPowerPercent: 80
+    SplashPowerPercent: 100
     BackRowPowerPercent: 100
     IgnoreDefPercent: 0
     BonusIfTargetHpBelowPercent: 0

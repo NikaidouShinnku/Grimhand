@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_p_solar_wrath
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: p_solar_wrath
-  DisplayName: "太阳之怒"
+  DisplayName: "\u592A\u9633\u4E4B\u6012"
   OwnerCharacterId: char_mage
   Cost: 2
   CardType: 0
@@ -34,7 +34,7 @@ MonoBehaviour:
     Condition: 0
     Reach: 0
     SplashBehindTarget: 0
-    SplashPowerPercent: 80
+    SplashPowerPercent: 100
     BackRowPowerPercent: 100
     IgnoreDefPercent: 0
     BonusIfTargetHpBelowPercent: 0

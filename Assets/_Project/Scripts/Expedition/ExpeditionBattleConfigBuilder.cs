@@ -16,6 +16,9 @@ namespace Grimhand.Expedition
                 TurnStartEnergyRegen = source.TurnStartEnergyRegen,
                 HandLimit = source.HandLimit,
                 CardsDrawnPerTurn = source.CardsDrawnPerTurn,
+                EnemyCardsDrawnPerTurn = source.EnemyCardsDrawnPerTurn,
+                EnemyTurnEnergyBudget = source.EnemyTurnEnergyBudget,
+                SkipFloorScaling = source.SkipFloorScaling,
                 RunModifiers = CloneModifiers(source.RunModifiers)
             };
 
@@ -41,6 +44,8 @@ namespace Grimhand.Expedition
                     RandomSkillPickMax = cc.RandomSkillPickMax
                 };
 
+                copy.Traits.AddRange(cc.Traits);
+
                 foreach (var template in cc.DeckTemplates)
                     copy.DeckTemplates.Add(CloneTemplate(template));
 
@@ -50,7 +55,44 @@ namespace Grimhand.Expedition
                 clone.Combatants.Add(copy);
             }
 
+            foreach (var pair in source.SummonTemplates)
+                clone.SummonTemplates[pair.Key] = CloneCombatantConfig(pair.Value);
+
             return clone;
+        }
+
+        static CombatantConfig CloneCombatantConfig(CombatantConfig cc) =>
+            CloneCombatantConfigPublic(cc);
+
+        public static CombatantConfig CloneCombatantConfigPublic(CombatantConfig cc)
+        {
+            var copy = new CombatantConfig
+            {
+                Id = cc.Id,
+                DisplayName = cc.DisplayName,
+                Team = cc.Team,
+                Slot = cc.Slot,
+                CharacterDefinitionId = cc.CharacterDefinitionId,
+                Level = cc.Level,
+                Xp = cc.Xp,
+                MaxHp = cc.MaxHp,
+                BaseAttack = cc.BaseAttack,
+                BaseDefense = cc.BaseDefense,
+                Speed = cc.Speed,
+                StartHp = cc.StartHp,
+                UseRandomSkillPool = cc.UseRandomSkillPool,
+                RandomDeckSize = cc.RandomDeckSize,
+                RandomSkillPickMin = cc.RandomSkillPickMin,
+                RandomSkillPickMax = cc.RandomSkillPickMax
+            };
+
+            copy.Traits.AddRange(cc.Traits);
+            foreach (var template in cc.DeckTemplates)
+                copy.DeckTemplates.Add(CloneTemplate(template));
+            foreach (var template in cc.SkillPoolCandidates)
+                copy.SkillPoolCandidates.Add(CloneTemplate(template));
+
+            return copy;
         }
 
         public static BattleConfig BuildEncounter(
@@ -61,7 +103,8 @@ namespace Grimhand.Expedition
             bool applyPartyHp,
             int miracleLeafUsesRemaining = -1,
             int floor = 1,
-            ExpeditionRunModifiers expeditionModifiers = null)
+            ExpeditionRunModifiers expeditionModifiers = null,
+            IReadOnlyList<CardTemplate> playerCardCatalog = null)
         {
             var config = CloneTemplate(encounterTemplate);
             config.Seed = battleSeed;
@@ -70,7 +113,8 @@ namespace Grimhand.Expedition
 
             FormationSlotRules.AssignUniqueSlotsPerTeam(config.Combatants);
 
-            ApplyEnemyFloorScaling(config, floor, battleSeed);
+            if (!encounterTemplate.SkipFloorScaling)
+                ApplyEnemyFloorScaling(config, floor, battleSeed);
 
             if (applyPartyHp && party != null && party.Count > 0)
             {
@@ -85,7 +129,7 @@ namespace Grimhand.Expedition
                             continue;
 
                         ApplyPartyProgress(cc, member, expeditionModifiers);
-                        ApplyBonusCards(cc, member);
+                        ApplyBonusCards(cc, member, playerCardCatalog);
                         break;
                     }
                 }
@@ -109,7 +153,10 @@ namespace Grimhand.Expedition
             }
         }
 
-        static void ApplyBonusCards(CombatantConfig cc, PartyMemberSnapshot member)
+        static void ApplyBonusCards(
+            CombatantConfig cc,
+            PartyMemberSnapshot member,
+            IReadOnlyList<CardTemplate> cardCatalog)
         {
             if (member?.BonusCards == null || member.BonusCards.Count == 0)
                 return;
@@ -119,7 +166,64 @@ namespace Grimhand.Expedition
                 if (bonus == null || string.IsNullOrEmpty(bonus.DefinitionId))
                     continue;
 
-                cc.DeckTemplates.Add(CloneTemplate(bonus));
+                var template = CloneTemplate(bonus);
+                HydrateTemplateFromCatalog(template, cardCatalog);
+                cc.DeckTemplates.Add(template);
+            }
+        }
+
+        public static void HydrateTemplateFromCatalog(CardTemplate template, IReadOnlyList<CardTemplate> cardCatalog)
+        {
+            if (template == null || template.Actions.Count > 0 || cardCatalog == null)
+                return;
+
+            foreach (var source in cardCatalog)
+            {
+                if (source == null || source.DefinitionId != template.DefinitionId)
+                    continue;
+
+                if (source.Actions.Count == 0)
+                    return;
+
+                template.Cost = source.Cost;
+                template.CardType = source.CardType;
+                if (string.IsNullOrEmpty(template.DisplayName))
+                    template.DisplayName = source.DisplayName;
+                if (string.IsNullOrEmpty(template.OwnerCharacterId))
+                    template.OwnerCharacterId = source.OwnerCharacterId;
+
+                template.Keywords.Clear();
+                template.Keywords.AddRange(source.Keywords);
+                foreach (var action in source.Actions)
+                {
+                    template.Actions.Add(new EffectActionSpec
+                    {
+                        Type = action.Type,
+                        Target = action.Target,
+                        Value = action.Value,
+                        StatusId = action.StatusId,
+                        Stacks = action.Stacks,
+                        Duration = action.Duration,
+                        ScaleWithAttack = action.ScaleWithAttack,
+                        ScaleWithDefense = action.ScaleWithDefense,
+                        AttackScalePercent = action.AttackScalePercent,
+                        DefenseScalePercent = action.DefenseScalePercent,
+                        Condition = action.Condition,
+                        Reach = action.Reach,
+                        SplashBehindTarget = action.SplashBehindTarget,
+                        SplashPowerPercent = action.SplashPowerPercent,
+                        BackRowPowerPercent = action.BackRowPowerPercent,
+                        IgnoreDefPercent = action.IgnoreDefPercent,
+                        BonusIfTargetHpBelowPercent = action.BonusIfTargetHpBelowPercent,
+                        BonusIfTargetHpBelowFlat = action.BonusIfTargetHpBelowFlat,
+                        BonusIfTargetHitThisTurnPercent = action.BonusIfTargetHitThisTurnPercent,
+                        LifestealPercent = action.LifestealPercent,
+                        HealMaxHpPercent = action.HealMaxHpPercent,
+                        OnKillHealAmount = action.OnKillHealAmount
+                    });
+                }
+
+                return;
             }
         }
 

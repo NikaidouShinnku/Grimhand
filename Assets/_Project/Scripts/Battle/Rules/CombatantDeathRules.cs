@@ -14,7 +14,7 @@ namespace Grimhand.Battle.Rules
             var polluted = 0;
             foreach (var card in state.CardsById.Values)
             {
-                if (card.OwnerCharacterId != combatant.CharacterDefinitionId || !card.IsUsable)
+                if (!IsCardOwnedByCombatant(card, combatant) || !card.IsUsable)
                     continue;
 
                 card.IsUsable = false;
@@ -37,11 +37,22 @@ namespace Grimhand.Battle.Rules
 
             foreach (var card in state.CardsById.Values)
             {
-                if (card.OwnerCharacterId != combatant.CharacterDefinitionId)
+                if (!IsCardOwnedByCombatant(card, combatant))
                     continue;
 
                 card.IsUsable = true;
             }
+        }
+
+        static bool IsCardOwnedByCombatant(CardInstanceState card, CombatantState combatant)
+        {
+            if (card == null || combatant == null)
+                return false;
+
+            if (!string.IsNullOrEmpty(card.OwnerCombatantId))
+                return card.OwnerCombatantId == combatant.Id;
+
+            return card.OwnerCharacterId == combatant.CharacterDefinitionId;
         }
     }
 }

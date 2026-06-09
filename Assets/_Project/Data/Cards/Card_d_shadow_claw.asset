@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_d_shadow_claw
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: d_shadow_claw
-  DisplayName: "暗影爪击"
+  DisplayName: "\u6697\u5F71\u722A\u51FB"
   OwnerCharacterId: char_ranger
   Cost: 1
   CardType: 0
@@ -33,7 +33,7 @@ MonoBehaviour:
     Condition: 0
     Reach: 1
     SplashBehindTarget: 0
-    SplashPowerPercent: 80
+    SplashPowerPercent: 100
     BackRowPowerPercent: 100
     IgnoreDefPercent: 0
     BonusIfTargetHpBelowPercent: 0

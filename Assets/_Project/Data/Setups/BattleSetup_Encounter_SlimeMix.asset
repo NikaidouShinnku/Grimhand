@@ -17,6 +17,9 @@ MonoBehaviour:
   TurnStartEnergyRegen: 4
   HandLimit: 8
   CardsDrawnPerTurn: 5
+  EnemyCardsDrawnPerTurn: 0
+  EnemyTurnEnergyBudget: 0
+  SkipFloorScaling: 0
   Combatants:
   - {fileID: 11400000, guid: cff24cfbdd23055499505ea773708ebd, type: 2}
   - {fileID: 11400000, guid: a9c89e0b15b92d345a3cdb5fca8c4a97, type: 2}
@@ -24,3 +27,4 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d9f9a985a259445409aeaadc91692258, type: 2}
   - {fileID: 11400000, guid: 49fe23e738a2b4345810bf3e0e8570d8, type: 2}
   - {fileID: 11400000, guid: f6623581da52a0444bd3722b076539ae, type: 2}
+  SummonTemplates: []

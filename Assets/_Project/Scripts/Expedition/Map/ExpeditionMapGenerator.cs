@@ -290,9 +290,10 @@ namespace Grimhand.Expedition.Map
             new()
             {
                 NodeType = ExpeditionNodeType.Boss,
-                DisplayName = "Boss 关",
-                Description = "未知 Boss 镇守最终层。",
-                PathSpriteIndex = 0
+                DisplayName = "骷髅王",
+                Description = "骨之王座的君王镇守终层。",
+                PathSpriteIndex = 0,
+                EncounterIndex = 0
             };
 
         static string PickEventId(ExpeditionRunState run, BattleRng rng)

@@ -5,7 +5,8 @@
         "Grimhand.Battle",
         "Grimhand.Content",
         "Grimhand.Core",
-        "Grimhand.Expedition"
+        "Grimhand.Expedition",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

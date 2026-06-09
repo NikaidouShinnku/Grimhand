@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_d_vamp_aura
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: d_vamp_aura
-  DisplayName: "吸血光环"
+  DisplayName: "\u5438\u8840\u5149\u73AF"
   OwnerCharacterId: char_ranger
   Cost: 1
   CardType: 2

@@ -74,5 +74,18 @@ namespace Grimhand.Battle.Rules
 
             return copy;
         }
+
+        /// <summary>固定牌组：保持牌种与数量不变，开战前洗牌。</summary>
+        public static void ShuffleFixedDeck(IList<CardTemplate> deck, BattleRng rng)
+        {
+            if (deck == null || deck.Count <= 1 || rng == null)
+                return;
+
+            for (var i = deck.Count - 1; i > 0; i--)
+            {
+                var j = rng.NextIndex(i + 1);
+                (deck[i], deck[j]) = (deck[j], deck[i]);
+            }
+        }
     }
 }

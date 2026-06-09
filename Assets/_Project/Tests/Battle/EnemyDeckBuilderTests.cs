@@ -6,24 +6,37 @@ using NUnit.Framework;
 
 namespace Grimhand.Battle.Tests
 {
-    public class EnemyDeckBuilderTests
+    public sealed class EnemyDeckBuilderTests
     {
         [Test]
-        public void BuildRandomDeck_PicksWithinRangeAndFillsDeck()
+        public void ShuffleFixedDeck_ChangesOrderButKeepsComposition()
         {
-            var pool = new List<CardTemplate>
+            var deck = new List<CardTemplate>
             {
-                Template("a"), Template("b"), Template("c"), Template("d")
+                Template("a"),
+                Template("a"),
+                Template("b"),
+                Template("c")
             };
-            var rng = new BattleRng(42);
-            var deck = EnemyDeckBuilder.BuildRandomDeck(pool, rng, 8, 2, 4);
+            var snapshot = string.Join(",", deck.ConvertAll(t => t.DefinitionId));
 
-            Assert.AreEqual(8, deck.Count);
-            var unique = new HashSet<string>();
+            var rng = new BattleRng(42);
+            EnemyDeckBuilder.ShuffleFixedDeck(deck, rng);
+
+            Assert.AreEqual(4, deck.Count);
+            var counts = new Dictionary<string, int>();
             foreach (var card in deck)
-                unique.Add(card.DefinitionId);
-            Assert.GreaterOrEqual(unique.Count, 2);
-            Assert.LessOrEqual(unique.Count, 4);
+            {
+                counts.TryGetValue(card.DefinitionId, out var n);
+                counts[card.DefinitionId] = n + 1;
+            }
+
+            Assert.AreEqual(2, counts["a"]);
+            Assert.AreEqual(1, counts["b"]);
+            Assert.AreEqual(1, counts["c"]);
+
+            var shuffled = string.Join(",", deck.ConvertAll(t => t.DefinitionId));
+            Assert.AreNotEqual(snapshot, shuffled);
         }
 
         static CardTemplate Template(string id) =>
@@ -31,9 +44,7 @@ namespace Grimhand.Battle.Tests
             {
                 DefinitionId = id,
                 DisplayName = id,
-                OwnerCharacterId = "char_goblin",
-                Cost = 1,
-                CardType = CardType.Attack
+                OwnerCharacterId = "char_test"
             };
     }
 }

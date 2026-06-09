@@ -47,6 +47,10 @@ namespace Grimhand.Battle.Effects
 
             var incoming = PositionRules.GetIncomingDamageMultiplier(PositionRules.GetEffectiveSlot(state, recipient));
             var raw = (int)Math.Round(outgoingPower * incoming);
+
+            if (raw > 0)
+                BossTraitRules.TryApplyFirstHitBlock(state, recipient, events);
+
             var blocked = Math.Min(recipient.Block, raw);
             recipient.Block -= blocked;
             var afterBlock = raw - blocked;
@@ -64,6 +68,8 @@ namespace Grimhand.Battle.Effects
             hpDamage = RespondEffectExecutor.ApplyMitigation(
                 state, sourceCardInstanceId, recipient.Id, hpDamage);
             var respondMitigated = beforeRespondMitigation - hpDamage;
+            var hadRespondDefense = RespondEffectExecutor.HasRespondDefenseForHit(
+                state, sourceCardInstanceId, recipient.Id);
 
             if (hpDamage > 0 && rng != null)
             {
@@ -103,6 +109,7 @@ namespace Grimhand.Battle.Effects
                 Amount = hpDamage,
                 BlockedAmount = blocked,
                 RespondMitigatedAmount = respondMitigated,
+                HadRespondDefense = hadRespondDefense,
                 IsSacrificeDamage = isSacrificeDamage,
                 IsAoEWave = isAoEWave,
                 CardType = cardType,

@@ -27,5 +27,7 @@ namespace Grimhand.Battle.Consumables
         public ConsumableTargetKind TargetKind { get; set; } = ConsumableTargetKind.None;
         public ConsumableEffectKind EffectKind { get; set; }
         public int Value { get; set; }
+        /// <summary>仅特殊事件发放，不出现在宝箱/商店/战后掉落池。</summary>
+        public bool EventOnly { get; set; }
     }
 }

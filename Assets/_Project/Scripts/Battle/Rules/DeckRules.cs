@@ -120,16 +120,27 @@ namespace Grimhand.Battle.Rules
         public static void DiscardHandAtEndOfTurn(BattleState state, TeamSide team, List<BattleEvent> events)
         {
             var hand = state.GetHand(team);
-            foreach (var card in hand)
+            for (var i = hand.Count - 1; i >= 0; i--)
             {
+                var card = hand[i];
+                hand.RemoveAt(i);
+
+                if (card.IsBonusHandCard)
+                {
+                    card.IsUsable = false;
+                    events.Add(new BattleEvent(BattleEventKind.CardDiscarded, "Bonus hand cleared")
+                    {
+                        CardInstanceId = card.InstanceId
+                    });
+                    continue;
+                }
+
                 state.GetDiscardPile(team).Add(card);
                 events.Add(new BattleEvent(BattleEventKind.CardDiscarded, "End of turn hand discard")
                 {
                     CardInstanceId = card.InstanceId
                 });
             }
-
-            hand.Clear();
         }
 
         public static void MovePlayedCardToDiscard(

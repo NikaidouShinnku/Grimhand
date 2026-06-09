@@ -1,4 +1,5 @@
 using System.Collections;
+using Grimhand.Presentation;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -199,6 +200,25 @@ namespace Grimhand.Presentation.Battle
         {
             CancelHide();
             HideImmediate();
+        }
+
+        void LateUpdate()
+        {
+            if (_panel == null || !_panel.gameObject.activeSelf || _activeTarget == null)
+                return;
+
+            if (!_activeTarget.activeInHierarchy)
+            {
+                HideImmediate();
+                return;
+            }
+
+            var rt = _activeTarget.transform as RectTransform;
+            if (rt == null)
+                return;
+
+            if (!UiPointerUtility.IsOverRectTransform(rt, UiPointerUtility.GetEventCamera(rt)))
+                HideImmediate();
         }
 
         static void Style(Text text, int size, TextAnchor anchor)

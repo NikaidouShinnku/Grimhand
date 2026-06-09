@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d1e8e1f9605a6fb4fa4e4fa5586de5ee, type: 3}
+  m_Name: Card_curse_chaos_touch
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
+  CardId: curse_chaos_touch
+  DisplayName: "\u6DF7\u6C8C\u4E4B\u89E6"
+  OwnerCharacterId: 
+  Cost: 1
+  CardType: 2
+  Rarity: 0
+  Keywords:
+  - curse
+  Actions: []
+  CardArt: {fileID: 0}
+  CardFrame: {fileID: 0}
+  CardIcon: {fileID: 0}

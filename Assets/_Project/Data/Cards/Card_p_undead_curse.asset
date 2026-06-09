@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_p_undead_curse
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: p_undead_curse
-  DisplayName: "亡灵诅咒"
+  DisplayName: "\u4EA1\u7075\u8BC5\u5492"
   OwnerCharacterId: char_mage
   Cost: 3
   CardType: 0
@@ -34,7 +34,7 @@ MonoBehaviour:
     Condition: 0
     Reach: 0
     SplashBehindTarget: 0
-    SplashPowerPercent: 80
+    SplashPowerPercent: 100
     BackRowPowerPercent: 100
     IgnoreDefPercent: 0
     BonusIfTargetHpBelowPercent: 0
@@ -54,7 +54,7 @@ MonoBehaviour:
     AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 0
+    Reach: 1
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100

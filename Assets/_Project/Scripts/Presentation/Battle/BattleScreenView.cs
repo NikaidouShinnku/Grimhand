@@ -888,7 +888,8 @@ namespace Grimhand.Presentation.Battle
                 else
                 {
                     var effect = CardPowerRules.DescribeCardEffect(card, owner, false);
-                    intentLines.Add($"#{order} {card.DisplayName} 费{card.Cost} {effect} ({actorName})");
+                    var targetNote = BattleUiFormatters.BuildEnemyIntentTargetNote(state, owner, card);
+                    intentLines.Add($"#{order} {card.DisplayName} 费{card.Cost} {effect}{targetNote} ({actorName})");
                 }
 
                 order++;
@@ -1167,8 +1168,11 @@ namespace Grimhand.Presentation.Battle
                 return;
             }
 
-            var body = BattleUiFormatters.BuildCardKeywordTooltip(_session?.Engine?.State, card);
-            if (string.IsNullOrEmpty(body))
+            var descCard = CardVisualResolver.ResolveForDescription(card, _definitions);
+            var stats = BattleUiFormatters.BuildCardStatsLine(_session?.Engine?.State, _session?.Engine?.Draft, descCard);
+            var keywords = BattleUiFormatters.BuildCardKeywordTooltip(_session?.Engine?.State, descCard, _definitions);
+            var body = string.IsNullOrWhiteSpace(keywords) ? stats : $"{stats}\n\n{keywords}";
+            if (string.IsNullOrWhiteSpace(body))
             {
                 HideKeywordTooltip();
                 return;

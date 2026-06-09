@@ -348,6 +348,9 @@ namespace Grimhand.Battle.Planning
             if (owner == null || owner.Team != TeamSide.Player || !owner.IsAlive)
                 return false;
 
+            if (owner.IsCardsLocked)
+                return false;
+
             return true;
         }
     }

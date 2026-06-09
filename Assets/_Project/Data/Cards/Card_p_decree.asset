@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_p_decree
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: p_decree
-  DisplayName: "法老权令"
+  DisplayName: "\u6CD5\u8001\u6743\u4EE4"
   OwnerCharacterId: char_mage
   Cost: 2
   CardType: 2

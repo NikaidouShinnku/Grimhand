@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_w_taunt
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: w_taunt
-  DisplayName: "嘲讽挑衅"
+  DisplayName: "\u5632\u8BBD\u6311\u8845"
   OwnerCharacterId: char_knight
   Cost: 2
   CardType: 1

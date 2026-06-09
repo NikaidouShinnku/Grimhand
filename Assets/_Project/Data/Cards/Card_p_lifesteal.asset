@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_p_lifesteal
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: p_lifesteal
-  DisplayName: "生命汲取"
+  DisplayName: "\u751F\u547D\u6C72\u53D6"
   OwnerCharacterId: char_mage
   Cost: 2
   CardType: 0
@@ -33,7 +33,7 @@ MonoBehaviour:
     Condition: 0
     Reach: 1
     SplashBehindTarget: 0
-    SplashPowerPercent: 80
+    SplashPowerPercent: 100
     BackRowPowerPercent: 100
     IgnoreDefPercent: 0
     BonusIfTargetHpBelowPercent: 0

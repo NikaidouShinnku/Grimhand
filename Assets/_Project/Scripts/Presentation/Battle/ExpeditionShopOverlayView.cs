@@ -198,7 +198,7 @@ namespace Grimhand.Presentation.Battle
                         offer.CardDisplayName,
                         definition);
                     var stats = BattleUiFormatters.BuildCardStatsLinePreview(preview);
-                    var keywords = BattleUiFormatters.BuildCardKeywordTooltip(null, preview);
+                    var keywords = BattleUiFormatters.BuildCardKeywordTooltip(null, preview, _definitions);
                     var body = string.IsNullOrWhiteSpace(keywords) ? stats : $"{stats}\n\n{keywords}";
                     _tooltip.BindHover(slotGo, offer.CardDisplayName, body, showTitle: false);
                     break;

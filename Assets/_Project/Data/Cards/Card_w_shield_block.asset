@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_w_shield_block
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: w_shield_block
-  DisplayName: "举盾格挡"
+  DisplayName: "\u4E3E\u76FE\u683C\u6321"
   OwnerCharacterId: char_knight
   Cost: 1
   CardType: 1

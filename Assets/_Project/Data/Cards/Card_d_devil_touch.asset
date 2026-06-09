@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_d_devil_touch
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: d_devil_touch
-  DisplayName: "恶魔之触"
+  DisplayName: "\u6076\u9B54\u4E4B\u89E6"
   OwnerCharacterId: char_ranger
   Cost: 1
   CardType: 0
@@ -33,7 +33,7 @@ MonoBehaviour:
     Condition: 0
     Reach: 1
     SplashBehindTarget: 0
-    SplashPowerPercent: 80
+    SplashPowerPercent: 100
     BackRowPowerPercent: 100
     IgnoreDefPercent: 0
     BonusIfTargetHpBelowPercent: 0

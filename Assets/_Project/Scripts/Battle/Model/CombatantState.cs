@@ -26,6 +26,8 @@ namespace Grimhand.Battle.Model
         /// <summary>出牌后武装，等待下一次受到攻击时消耗。</summary>
 
         public bool FirstAttackBonusPending { get; set; } = true;
+        public bool BossFirstHitBlockPending { get; set; } = true;
+        public List<string> Traits { get; } = new();
         public bool FirstDefenseBonusPending { get; set; } = true;
         public bool FirstHitReductionPending { get; set; } = true;
         public bool WarriorFirstHitBlockPending { get; set; } = true;
@@ -42,6 +44,11 @@ namespace Grimhand.Battle.Model
         /// <summary>本回合是否已被攻击命中（用于致命打击等条件加伤）。</summary>
         public bool HitThisTurn { get; set; }
 
+        /// <summary>剩余无法出牌回合数（阿努比斯化身等）。</summary>
+        public int CardsLockedTurnsRemaining { get; set; }
+
         public bool IsAlive => Hp > 0;
+
+        public bool IsCardsLocked => CardsLockedTurnsRemaining > 0;
     }
 }

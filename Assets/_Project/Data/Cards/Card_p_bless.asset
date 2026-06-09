@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_p_bless
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: p_bless
-  DisplayName: "祈祷祝福"
+  DisplayName: "\u7948\u7977\u795D\u798F"
   OwnerCharacterId: char_mage
   Cost: 1
   CardType: 2
@@ -22,11 +22,11 @@ MonoBehaviour:
   Actions:
   - Type: 2
     Target: 2
-    Value: 0
+    Value: 2
     StatusId: 
     Stacks: 1
     Duration: -1
-    ScaleWithAttack: 0
+    ScaleWithAttack: 1
     ScaleWithDefense: 0
     AttackScalePercent: 100
     DefenseScalePercent: 100
@@ -40,7 +40,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
     LifestealPercent: 0
-    HealMaxHpPercent: 5
+    HealMaxHpPercent: 0
     OnKillHealAmount: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}

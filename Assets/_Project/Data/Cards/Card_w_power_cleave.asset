@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_w_power_cleave
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: w_power_cleave
-  DisplayName: "猛力劈砍"
+  DisplayName: "\u731B\u529B\u5288\u780D"
   OwnerCharacterId: char_knight
   Cost: 2
   CardType: 0
@@ -33,7 +33,7 @@ MonoBehaviour:
     Condition: 0
     Reach: 1
     SplashBehindTarget: 0
-    SplashPowerPercent: 80
+    SplashPowerPercent: 100
     BackRowPowerPercent: 100
     IgnoreDefPercent: 0
     BonusIfTargetHpBelowPercent: 50

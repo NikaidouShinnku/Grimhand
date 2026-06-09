@@ -33,7 +33,8 @@ namespace Grimhand.Battle.Events
         EnemyIntentPrepared,
         TurnSkipped,
         BattleEnded,
-        ConsumableUsed
+        ConsumableUsed,
+        CombatantSpawned
     }
 
     public sealed class BattleEvent
@@ -56,9 +57,11 @@ namespace Grimhand.Battle.Events
         public int Amount { get; set; }
         public int BlockedAmount { get; set; }
         public int RespondMitigatedAmount { get; set; }
+        public bool HadRespondDefense { get; set; }
         public bool IsSacrificeDamage { get; set; }
         public bool IsAoEWave { get; set; }
         public CardType CardType { get; set; }
         public BattleOutcome Outcome { get; set; }
+        public bool DeferPresentation { get; set; }
     }
 }

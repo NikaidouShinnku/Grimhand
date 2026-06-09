@@ -176,6 +176,13 @@ namespace Grimhand.Battle.Rules
             if (card == null)
                 return null;
 
+            if (!string.IsNullOrEmpty(card.OwnerCombatantId))
+            {
+                var bound = state.GetCombatant(card.OwnerCombatantId);
+                if (bound != null && bound.IsAlive)
+                    return card.OwnerCombatantId;
+            }
+
             foreach (var c in state.Combatants)
             {
                 if (c.CharacterDefinitionId == card.OwnerCharacterId && c.IsAlive)

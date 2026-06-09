@@ -16,15 +16,33 @@ namespace Grimhand.Battle.Rules
             combatant.Attack = combatant.BaseAttack + levelBonus * AttackPerLevel;
             combatant.Defense = combatant.BaseDefense + levelBonus * DefensePerLevel;
 
+            var attackFlat = 0;
+            var defenseFlat = 0;
+            var attackPercent = 0;
+            var defensePercent = 0;
+
             foreach (var status in combatant.Statuses)
             {
                 var def = Status.StatusCatalog.Get(status.StatusId);
                 if (def == null)
                     continue;
 
-                combatant.Attack += def.AttackModifierPerStack * status.Stacks;
-                combatant.Defense += def.DefenseModifierPerStack * status.Stacks;
+                attackFlat += def.AttackModifierPerStack * status.Stacks;
+                defenseFlat += def.DefenseModifierPerStack * status.Stacks;
+                attackPercent += def.AttackPercentBonusPerStack * status.Stacks;
+                defensePercent += def.DefensePercentBonusPerStack * status.Stacks;
             }
+
+            combatant.Attack += attackFlat;
+            combatant.Defense += defenseFlat;
+
+            if (attackPercent != 0)
+                combatant.Attack = System.Math.Max(1,
+                    (int)System.Math.Round(combatant.Attack * (100 + attackPercent) / 100f));
+
+            if (defensePercent != 0)
+                combatant.Defense = System.Math.Max(0,
+                    (int)System.Math.Round(combatant.Defense * (100 + defensePercent) / 100f));
         }
     }
 }

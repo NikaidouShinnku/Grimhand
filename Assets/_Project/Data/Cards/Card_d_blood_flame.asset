@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_d_blood_flame
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: d_blood_flame
-  DisplayName: "血焰爆发"
+  DisplayName: "\u8840\u7130\u7206\u53D1"
   OwnerCharacterId: char_ranger
   Cost: 2
   CardType: 0
@@ -56,7 +56,7 @@ MonoBehaviour:
     Condition: 0
     Reach: 1
     SplashBehindTarget: 0
-    SplashPowerPercent: 80
+    SplashPowerPercent: 100
     BackRowPowerPercent: 100
     IgnoreDefPercent: 0
     BonusIfTargetHpBelowPercent: 0

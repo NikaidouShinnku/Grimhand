@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_w_iron_parry
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: w_iron_parry
-  DisplayName: "铁壁弹反"
+  DisplayName: "\u94C1\u58C1\u5F39\u53CD"
   OwnerCharacterId: char_knight
   Cost: 2
   CardType: 1

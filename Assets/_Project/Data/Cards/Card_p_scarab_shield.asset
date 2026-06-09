@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_p_scarab_shield
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: p_scarab_shield
-  DisplayName: "圣甲虫护盾"
+  DisplayName: "\u5723\u7532\u866B\u62A4\u76FE"
   OwnerCharacterId: char_mage
   Cost: 1
   CardType: 1

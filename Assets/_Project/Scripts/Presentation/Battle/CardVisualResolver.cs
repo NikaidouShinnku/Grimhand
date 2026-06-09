@@ -27,7 +27,7 @@ namespace Grimhand.Presentation.Battle
                 var icon = def.CardIcon;
 
                 if (art == null && characterVisuals != null)
-                    art = characterVisuals.GetPortrait(card.OwnerCharacterId);
+                    art = characterVisuals.GetCardPortrait(card.OwnerCharacterId);
 
                 if (catalog != null)
                 {
@@ -41,7 +41,7 @@ namespace Grimhand.Presentation.Battle
             }
 
             var fallbackArt = characterVisuals != null
-                ? characterVisuals.GetPortrait(card.OwnerCharacterId)
+                ? characterVisuals.GetCardPortrait(card.OwnerCharacterId)
                 : null;
 
             if (catalog != null)
@@ -91,6 +91,25 @@ namespace Grimhand.Presentation.Battle
                 map[card.CardId] = card;
                 CardRarityTable.Register(card.CardId, card.Rarity);
             }
+        }
+
+        /// <summary>奖励/远征 catalog 可能只有 DefinitionId；描述与悬停需从 SO 补全 actions。</summary>
+        public static CardInstanceState ResolveForDescription(
+            CardInstanceState card,
+            IReadOnlyDictionary<string, CardDefinitionSO> definitionsById)
+        {
+            if (card == null)
+                return null;
+
+            if (card.Actions != null && card.Actions.Count > 0)
+                return card;
+
+            if (definitionsById == null
+                || !definitionsById.TryGetValue(card.DefinitionId, out var def)
+                || def == null)
+                return card;
+
+            return CreatePreviewInstance(card.DefinitionId, card.OwnerCharacterId, card.DisplayName, def);
         }
 
         public static CardInstanceState CreatePreviewInstance(

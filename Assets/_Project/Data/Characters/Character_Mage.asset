@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Character_Mage
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
   CharacterId: char_mage
-  DisplayName: "法老"
+  DisplayName: "\u6CD5\u8001"
   Team: 0
   Slot: 2
   Level: 1
@@ -34,3 +34,4 @@ MonoBehaviour:
   EnemyRandomDeckSize: 8
   EnemySkillPickMin: 2
   EnemySkillPickMax: 4
+  Traits: []

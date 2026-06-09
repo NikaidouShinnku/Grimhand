@@ -45,6 +45,7 @@ namespace Grimhand.Presentation.Battle
         Text _headerText;
         Button _skipVictoryButton;
         Button _chestSkipButton;
+        InventoryTooltipView _tooltip;
         bool _chestRevealed;
         string _chestRewardKey = "";
         readonly List<Button> _rewardButtons = new();
@@ -190,6 +191,9 @@ namespace Grimhand.Presentation.Battle
 
             _chestPanel = BuildChestPanel(_root);
             overlayGo.SetActive(false);
+
+            _tooltip = overlayGo.AddComponent<InventoryTooltipView>();
+            _tooltip.Initialize(_root);
         }
 
         RectTransform BuildChestPanel(RectTransform parent)
@@ -468,7 +472,7 @@ namespace Grimhand.Presentation.Battle
         {
             var label = consumable?.DisplayName ?? consumableId ?? "消耗品";
             var icon = _consumableCatalog?.GetIcon(consumableId);
-            AddClaimReward(parent, ref x, spacing, label, icon, onClaim);
+            AddClaimReward(parent, ref x, spacing, label, icon, onClaim, consumable?.Description);
         }
 
         void AddClaimReward(
@@ -477,10 +481,12 @@ namespace Grimhand.Presentation.Battle
             float spacing,
             string label,
             Sprite icon,
-            Action onClaim)
+            Action onClaim,
+            string tooltipBody = null)
         {
             var container = CreateRewardContainer(parent, new Vector2(x, 0f));
             var btn = CreateIconButton(container, Vector2.zero, 112f, icon, label, onClaim);
+            BindRewardTooltip(btn.gameObject, label, tooltipBody);
             _rewardButtons.Add(btn);
             x += spacing;
         }
@@ -639,7 +645,7 @@ namespace Grimhand.Presentation.Battle
                 displayName,
                 definition);
             var visual = CardVisualResolver.Resolve(preview, _cardCatalog, _characterVisuals, _definitions);
-            var statsLine = BattleUiFormatters.BuildCardStatsLinePreview(preview);
+            var statsLine = BattleUiFormatters.BuildCardStatsLinePreview(preview, _definitions);
 
             cardView.BindWithCard(
                 preview,
@@ -657,6 +663,7 @@ namespace Grimhand.Presentation.Battle
 
             ForceRewardCardOpaque(cardView);
             AttachRewardBadge(rt);
+            BindCardRewardTooltip(go, preview);
 
             var button = cardView.GetComponent<Button>();
             if (button == null)
@@ -782,7 +789,30 @@ namespace Grimhand.Presentation.Battle
             var btn = go.GetComponent<Button>();
             btn.targetGraphic = rootImage;
             btn.onClick.AddListener(() => onClick?.Invoke());
+            BindRewardTooltip(go, relic?.DisplayName ?? relicId ?? "遗物", relic?.Description);
             return btn;
+        }
+
+        void BindRewardTooltip(GameObject target, string title, string body)
+        {
+            if (_tooltip == null || target == null || string.IsNullOrWhiteSpace(body))
+                return;
+
+            _tooltip.BindHover(target, title, body);
+        }
+
+        void BindCardRewardTooltip(GameObject target, CardInstanceState preview)
+        {
+            if (_tooltip == null || target == null || preview == null)
+                return;
+
+            var stats = BattleUiFormatters.BuildCardStatsLinePreview(preview, _definitions);
+            var keywords = BattleUiFormatters.BuildCardKeywordTooltip(null, preview, _definitions);
+            var body = string.IsNullOrWhiteSpace(keywords) ? stats : $"{stats}\n\n{keywords}";
+            if (string.IsNullOrWhiteSpace(body))
+                return;
+
+            _tooltip.BindHover(target, preview.DisplayName, body, showTitle: false);
         }
 
         static void AttachRewardBadge(RectTransform parent)
@@ -1011,6 +1041,9 @@ namespace Grimhand.Presentation.Battle
 
         void SetVisible(bool visible)
         {
+            if (!visible && _tooltip != null)
+                _tooltip.Hide();
+
             if (_root != null)
                 _root.gameObject.SetActive(visible);
         }

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_d_dark_sacrifice
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: d_dark_sacrifice
-  DisplayName: "暗黑献祭"
+  DisplayName: "\u6697\u9ED1\u732E\u796D"
   OwnerCharacterId: char_ranger
   Cost: 3
   CardType: 0
@@ -56,7 +56,7 @@ MonoBehaviour:
     Condition: 0
     Reach: 1
     SplashBehindTarget: 0
-    SplashPowerPercent: 80
+    SplashPowerPercent: 100
     BackRowPowerPercent: 100
     IgnoreDefPercent: 0
     BonusIfTargetHpBelowPercent: 0

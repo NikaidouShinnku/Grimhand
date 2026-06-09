@@ -25,12 +25,7 @@ namespace Grimhand.Battle.Rules
                     continue;
 
                 if (!TryGet(id, out var def))
-                {
-                    if (sb.Length > 0)
-                        sb.Append('\n');
-                    sb.Append(id);
                     continue;
-                }
 
                 if (sb.Length > 0)
                     sb.Append("\n\n");
@@ -53,12 +48,7 @@ namespace Grimhand.Battle.Rules
                     continue;
 
                 if (!TryGet(id, out var def))
-                {
-                    if (sb.Length > 0)
-                        sb.Append("\n\n");
-                    sb.Append(id);
                     continue;
-                }
 
                 if (sb.Length > 0)
                     sb.Append("\n\n");
@@ -81,8 +71,11 @@ namespace Grimhand.Battle.Rules
                 ["aoe"] = new("aoe", "AOE", "对敌方全体生效，无需逐个选择目标。"),
                 ["poison"] = new("poison", "中毒", "回合开始时每层造成1点伤害；层数可叠加。"),
                 ["burn"] = new("burn", "灼烧", "回合结束时每层造成1点火焰伤害（无视DEF）；层数可叠加。"),
-                ["slow"] = new("slow", "减速", "每层使角色减少 2 点速度；持续若干回合。"),
-                ["polluted"] = new("polluted", "污染", "卡牌拥有者已死亡，此牌无法使用。")
+                ["slow"] = new("slow", "减速", "每层使角色减少 1 点速度；持续若干回合。"),
+                ["polluted"] = new("polluted", "污染", "卡牌拥有者已死亡，此牌无法使用。"),
+                ["summon"] = new("summon", "召唤", "召唤额外单位加入战场。"),
+                ["self_destruct"] = new("self_destruct", "自毁", "结算后该单位死亡。"),
+                ["bonus_hand"] = new("bonus_hand", "额外手牌", "回合开始加入手牌，不占抽牌上限。")
             };
         }
     }

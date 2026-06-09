@@ -17,7 +17,7 @@ MonoBehaviour:
   OwnerCharacterId: char_goblin
   Cost: 2
   CardType: 0
-  Rarity: 1
+  Rarity: 0
   Keywords:
   - melee
   Actions:

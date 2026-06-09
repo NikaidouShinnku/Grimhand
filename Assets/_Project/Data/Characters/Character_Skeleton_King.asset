@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84c30176d181a5747a85983cdd126a0c, type: 3}
+  m_Name: Character_Skeleton_King
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
+  CharacterId: char_skeleton_king
+  DisplayName: "\u9AB7\u9AC5\u738B"
+  Team: 1
+  Slot: 1
+  Level: 1
+  MaxHp: 800
+  BaseAttack: 30
+  BaseDefense: 10
+  Speed: 6
+  Deck:
+  - {fileID: 11400000, guid: c71536c43ff1ca849a4aca3687abefab, type: 2}
+  - {fileID: 11400000, guid: c71536c43ff1ca849a4aca3687abefab, type: 2}
+  - {fileID: 11400000, guid: c71536c43ff1ca849a4aca3687abefab, type: 2}
+  - {fileID: 11400000, guid: c71536c43ff1ca849a4aca3687abefab, type: 2}
+  - {fileID: 11400000, guid: 6761fde0a3a0e464d8278db0f72baeea, type: 2}
+  - {fileID: 11400000, guid: 412ebf8fa7771e3409ffa2b597200e0a, type: 2}
+  - {fileID: 11400000, guid: 412ebf8fa7771e3409ffa2b597200e0a, type: 2}
+  - {fileID: 11400000, guid: df0827db81a256247a0f0cb5fb226559, type: 2}
+  - {fileID: 11400000, guid: 2bab50662f0573f498c148a362facaba, type: 2}
+  - {fileID: 11400000, guid: 48da8901ddd6af549b2f74b9de11023f, type: 2}
+  - {fileID: 11400000, guid: 48da8901ddd6af549b2f74b9de11023f, type: 2}
+  - {fileID: 11400000, guid: 08fd43e843f196f4299afe3e230e1fa1, type: 2}
+  SkillPool: []
+  EnemyRandomDeckSize: 12
+  EnemySkillPickMin: 0
+  EnemySkillPickMax: 0
+  Traits:
+  - boss_first_hit_block
+  - boss_turn_def_up

@@ -441,10 +441,11 @@ namespace Grimhand.Presentation.Battle
             if (_tooltip == null || target == null || card == null)
                 return;
 
+            var descCard = CardVisualResolver.ResolveForDescription(card, _definitions);
             var stats = preferFormulas || state == null
-                ? BattleUiFormatters.BuildCardStatsLinePreview(card)
-                : BattleUiFormatters.BuildCardStatsLine(state, null, card);
-            var keywords = StripRichText(BattleUiFormatters.BuildCardKeywordTooltip(state, card));
+                ? BattleUiFormatters.BuildCardStatsLinePreview(descCard, _definitions)
+                : BattleUiFormatters.BuildCardStatsLine(state, null, descCard);
+            var keywords = StripRichText(BattleUiFormatters.BuildCardKeywordTooltip(state, descCard, _definitions));
             var body = string.IsNullOrWhiteSpace(keywords) ? stats : $"{stats}\n\n{keywords}";
             _tooltip.BindHover(target, card.DisplayName, body, showTitle: false);
         }
@@ -862,6 +863,8 @@ namespace Grimhand.Presentation.Battle
 
         void ClearDynamic()
         {
+            _tooltip?.Hide();
+
             foreach (var go in _dynamicObjects)
             {
                 if (go != null)

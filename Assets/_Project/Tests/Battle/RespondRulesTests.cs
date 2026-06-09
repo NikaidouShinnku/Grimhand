@@ -69,12 +69,15 @@ namespace Grimhand.Battle.Tests
             RespondEffectExecutor.Execute(state, knight, state.GetCard(parryId), context, events, new BattleRng(1));
 
             Assert.IsTrue(state.RespondMitigationByEnemyCard.ContainsKey(attackId));
-            Assert.Less(goblin.Hp, 50, "应先结算反击");
+            Assert.AreEqual(1, state.PendingParryStrikes.Count);
+            Assert.AreEqual(50, goblin.Hp, "弹反伤害应等到敌方攻击演出后再结算");
 
             events.Clear();
             var attack = state.GetCard(attackId);
             EffectActionExecutor.ExecuteAll(state, goblin, attack, events, new BattleRng(1));
+            RespondEffectExecutor.ResolvePendingParriesForEnemyCard(state, attackId, events, new BattleRng(1));
 
+            Assert.Less(goblin.Hp, 50, "敌方攻击归位后应结算弹反反击");
             Assert.Greater(knight.Hp, 0, "减伤后应仍能存活（相对无应对）");
         }
 
@@ -117,6 +120,58 @@ namespace Grimhand.Battle.Tests
             Assert.AreEqual(2, schedule.Count);
             Assert.IsFalse(schedule[0].RespondContext.HasValue);
             Assert.IsFalse(schedule[0].ApplyConditionalEffects);
+        }
+
+        [Test]
+        public void Respond_DoesNotMatchFrontRow_WhenEnemyOnlyHitsMiddleReach()
+        {
+            var state = new BattleState();
+            var knight = Unit("knight", TeamSide.Player, FormationSlot.Front, hp: 40);
+            var mage = Unit("mage", TeamSide.Player, FormationSlot.Middle, hp: 35);
+            var goblin = Unit("goblin", TeamSide.Enemy, FormationSlot.Front, hp: 50);
+            state.Combatants.Add(knight);
+            state.Combatants.Add(mage);
+            state.Combatants.Add(goblin);
+
+            var parryId = 1;
+            var parry = ParryCard();
+            parry.InstanceId = parryId;
+            parry.OwnerCharacterId = knight.CharacterDefinitionId;
+            state.CardsById[parryId] = parry;
+
+            var spearId = 2;
+            var spear = new CardInstanceState
+            {
+                InstanceId = spearId,
+                DisplayName = "骨矛",
+                CardType = CardType.Attack,
+                OwnerCharacterId = goblin.CharacterDefinitionId
+            };
+            spear.Actions.Add(new EffectActionSpec
+            {
+                Type = EffectActionType.DealDamage,
+                Target = EffectTarget.DefaultEnemy,
+                Value = 10,
+                Reach = TargetReach.MiddleAndBack
+            });
+            state.CardsById[spearId] = spear;
+
+            var enemyStep = new ResolutionStep(goblin.Id, spearId, 0);
+            Assert.IsFalse(
+                RespondTriggerMatcher.RespondCardMatchesEnemyStep(state, knight, parry, enemyStep),
+                "中/后排攻击不应触发前排战士的应对");
+            Assert.IsTrue(
+                RespondTriggerMatcher.WouldEnemyStepAttackCombatant(state, enemyStep, mage.Id));
+        }
+
+        [Test]
+        public void Respond_MatchesFrontRow_WhenEnemyMeleeTargetsFront()
+        {
+            var state = BuildStateWithCards(out var knight, out var goblin, out _, out var attackId);
+            var parry = state.GetCard(1);
+            var step = new ResolutionStep(goblin.Id, attackId, 0);
+
+            Assert.IsTrue(RespondTriggerMatcher.RespondCardMatchesEnemyStep(state, knight, parry, step));
         }
 
         [Test]

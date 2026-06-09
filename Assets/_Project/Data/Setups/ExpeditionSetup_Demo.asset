@@ -32,6 +32,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 25b1c62db6eb6784c973484210567f6c, type: 2}
   - {fileID: 11400000, guid: 9738066390013b748b37ca5b1cbbab06, type: 2}
   - {fileID: 11400000, guid: 77000c9493ab5ce479d8c851cad6228c, type: 2}
+  BossEncounters:
+  - {fileID: 11400000, guid: dff5d0d4c24230742a3f5467d95c9b4e, type: 2}
   PlayerCardCatalog:
   - {fileID: 11400000, guid: f205770fc9ed47ff978061524db3641b, type: 2}
   - {fileID: 11400000, guid: 295eb981fb524ba9be99392540ab03fd, type: 2}

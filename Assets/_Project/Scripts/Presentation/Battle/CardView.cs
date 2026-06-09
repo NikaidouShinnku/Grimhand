@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using Grimhand.Battle.Model;
 using Grimhand.Content;
+using Grimhand.Presentation;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -13,8 +14,6 @@ namespace Grimhand.Presentation.Battle
         const float NormalScale = 1f;
         const float HoverScale = 1.14f;
         const float ScaleLerpDuration = 0.1f;
-        const int DescriptionFontNormal = 17;
-        const int DescriptionFontHover = 20;
 
         static readonly Color SelectedHighlightColor = new(1f, 1f, 1f, 0.26f);
 
@@ -34,6 +33,15 @@ namespace Grimhand.Presentation.Battle
         [SerializeField] Button button;
 
         const string ScaleRootName = "CardScaleRoot";
+        const string LegacyPortraitClipName = "PortraitClip";
+        static readonly Vector2 NamePanelAnchorMin = new(0.10f, 0.36f);
+        static readonly Vector2 NamePanelAnchorMax = new(0.90f, 0.47f);
+        static readonly Vector2 StatsPanelAnchorMin = new(0.10f, 0.06f);
+        static readonly Vector2 StatsPanelAnchorMax = new(0.90f, 0.36f);
+
+        const int NameFontSize = 15;
+        const int DescriptionFontNormal = 13;
+        const int DescriptionFontHover = 15;
 
         int _instanceId;
         bool _selected;
@@ -54,8 +62,8 @@ namespace Grimhand.Presentation.Battle
             RemoveStaleHoverCanvas();
             EnsureScaleRoot();
             EnsureCardVisuals();
-            EnsureNameLayout();
-            EnsureDescriptionLayout();
+            EnsurePortraitOverlay();
+            EnsureLowerPanelLayout();
         }
 
         public void BindWithCard(
@@ -74,6 +82,8 @@ namespace Grimhand.Presentation.Battle
         {
             EnsureScaleRoot();
             EnsureCardVisuals();
+            EnsurePortraitOverlay();
+            EnsureLowerPanelLayout();
 
             var wasHovered = _hovered && _instanceId == card.InstanceId;
 
@@ -90,20 +100,20 @@ namespace Grimhand.Presentation.Battle
             {
                 frameImage.enabled = true;
                 frameImage.sprite = visual.Frame;
-                frameImage.preserveAspect = true;
+                frameImage.preserveAspect = false;
                 frameImage.color = visual.Frame != null ? Color.white : new Color(0.18f, 0.2f, 0.28f, 1f);
             }
 
             if (artImage != null)
             {
                 var portrait = characterVisuals != null
-                    ? characterVisuals.GetPortrait(card.OwnerCharacterId)
+                    ? characterVisuals.GetCardPortrait(card.OwnerCharacterId)
                     : null;
-                var art = visual.Art ?? portrait;
+                var art = portrait ?? visual.Art;
                 artImage.enabled = true;
                 artImage.sprite = art;
-                artImage.preserveAspect = true;
                 artImage.color = art != null ? Color.white : new Color(0.25f, 0.27f, 0.35f, 1f);
+                ApplyPortraitPresentation();
             }
 
             if (iconImage != null)
@@ -125,13 +135,20 @@ namespace Grimhand.Presentation.Battle
                 costText.text = card.Cost.ToString();
 
             if (nameText != null)
+            {
                 nameText.text = polluted ? "[污] " + card.DisplayName : card.DisplayName;
+                nameText.color = Color.white;
+                nameText.fontStyle = FontStyle.Bold;
+                nameText.fontSize = NameFontSize;
+            }
 
             if (statsText != null)
             {
-                var hasStats = !string.IsNullOrWhiteSpace(_statsBaseLine);
-                statsText.gameObject.SetActive(hasStats);
+                statsText.gameObject.SetActive(true);
                 statsText.text = _statsBaseLine;
+                statsText.color = new Color(0.95f, 0.92f, 0.86f, 1f);
+                statsText.fontStyle = FontStyle.Normal;
+                statsText.fontSize = wasHovered && interactable ? DescriptionFontHover : DescriptionFontNormal;
                 statsText.horizontalOverflow = HorizontalWrapMode.Wrap;
                 statsText.verticalOverflow = VerticalWrapMode.Overflow;
             }
@@ -164,7 +181,26 @@ namespace Grimhand.Presentation.Battle
             }
 
             _hovered = wasHovered && interactable;
+            ApplyCardDrawOrder();
             ApplyVisualState(immediate: true);
+            SyncHoverWithPointer();
+        }
+
+        void SyncHoverWithPointer()
+        {
+            if (!_hovered)
+                return;
+
+            var rt = (_scaleRoot != null ? _scaleRoot : transform) as RectTransform;
+            if (rt == null)
+                return;
+
+            if (UiPointerUtility.IsOverRectTransform(rt, UiPointerUtility.GetEventCamera(rt)))
+                return;
+
+            _hovered = false;
+            ApplyVisualState(immediate: true);
+            _onHoverExit?.Invoke();
         }
 
         void RemoveStaleHoverCanvas()
@@ -208,7 +244,6 @@ namespace Grimhand.Presentation.Battle
             if (_scaleRoot != null)
             {
                 selectedHighlight.transform.SetParent(_scaleRoot, false);
-                selectedHighlight.transform.SetAsLastSibling();
                 var rt = selectedHighlight.rectTransform;
                 rt.anchorMin = Vector2.zero;
                 rt.anchorMax = Vector2.one;
@@ -219,14 +254,95 @@ namespace Grimhand.Presentation.Battle
             if (selectedOutline != null)
                 selectedOutline.raycastTarget = false;
 
+            EnsurePortraitOverlay();
+            EnsureLowerPanelLayout();
+        }
+
+        void EnsurePortraitOverlay()
+        {
+            if (artImage == null)
+                return;
+
+            EnsureScaleRoot();
+            RemoveLegacyPortraitHierarchy();
+            CardPortraitLayout.ApplyProfileOverlay(artImage, _scaleRoot, artImage.sprite);
+            ApplyCardDrawOrder();
+        }
+
+        void RemoveLegacyPortraitHierarchy()
+        {
+            if (_scaleRoot == null)
+                return;
+
+            var clip = _scaleRoot.Find(LegacyPortraitClipName);
+            if (clip == null)
+                return;
+
+            if (Application.isPlaying)
+                Destroy(clip.gameObject);
+            else
+                DestroyImmediate(clip.gameObject);
+        }
+
+        void ApplyPortraitPresentation()
+        {
+            if (artImage == null)
+                return;
+
+            EnsurePortraitOverlay();
+        }
+
+        internal void RefreshPortraitLayout() => ApplyPortraitPresentation();
+
+        void ApplyCardDrawOrder()
+        {
+            if (_scaleRoot == null)
+                EnsureScaleRoot();
+            if (_scaleRoot == null)
+                return;
+
+            var order = 0;
+
+            if (frameImage != null)
+                frameImage.transform.SetSiblingIndex(order++);
+
             if (artImage != null)
+                artImage.transform.SetSiblingIndex(order++);
+
+            if (iconImage != null)
+                iconImage.transform.SetSiblingIndex(order++);
+
+            if (costIconImage != null)
             {
-                var artRt = artImage.rectTransform;
-                artRt.anchorMin = new Vector2(0.06f, 0.30f);
-                artRt.anchorMax = new Vector2(0.94f, 0.90f);
-                artRt.offsetMin = Vector2.zero;
-                artRt.offsetMax = Vector2.zero;
+                var costRoot = costIconImage.transform.parent;
+                if (costRoot != null && costRoot != _scaleRoot)
+                    costRoot.SetSiblingIndex(order++);
+                else
+                    costIconImage.transform.SetSiblingIndex(order++);
             }
+            else if (costText != null)
+                costText.transform.SetSiblingIndex(order++);
+
+            if (nameText != null)
+                nameText.transform.SetSiblingIndex(order++);
+
+            if (statsText != null)
+                statsText.transform.SetSiblingIndex(order++);
+
+            if (ownerText != null)
+                ownerText.transform.SetSiblingIndex(order++);
+
+            if (orderBadgeText != null)
+                orderBadgeText.transform.SetSiblingIndex(order++);
+
+            if (pollutedOverlay != null)
+                pollutedOverlay.transform.SetSiblingIndex(order++);
+
+            if (selectedHighlight != null)
+                selectedHighlight.transform.SetAsLastSibling();
+
+            if (selectedOutline != null)
+                selectedOutline.transform.SetAsLastSibling();
         }
 
         public static void ApplyHandPresentationScale(CardView view, float scale)
@@ -257,6 +373,7 @@ namespace Grimhand.Presentation.Battle
             le.minHeight = height;
             le.flexibleWidth = 0f;
             le.flexibleHeight = 0f;
+            view.RefreshPortraitLayout();
         }
 
         public static void CenterInParent(CardView view)
@@ -280,21 +397,14 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             ApplyHandPresentationScaleCentered(view, scale);
-            view.EnsureDescriptionLayout();
+            view.EnsureLowerPanelLayout();
             if (view.statsText == null)
                 return;
 
-            view.statsText.fontSize = 15;
+            if (view.nameText != null)
+                view.nameText.fontSize = 13;
+            view.statsText.fontSize = 12;
             view.statsText.lineSpacing = 1f;
-            var rt = view.statsText.rectTransform;
-            rt.anchorMin = new Vector2(0f, 0f);
-            rt.anchorMax = new Vector2(1f, 0f);
-            rt.pivot = new Vector2(0.5f, 0f);
-            rt.offsetMin = new Vector2(8f, 14f);
-            rt.offsetMax = new Vector2(-8f, 98f);
-            view.statsText.alignment = TextAnchor.UpperCenter;
-            view.statsText.horizontalOverflow = HorizontalWrapMode.Wrap;
-            view.statsText.verticalOverflow = VerticalWrapMode.Overflow;
         }
 
         public static void ApplyHandPresentationScaleCentered(CardView view, float scale)
@@ -303,8 +413,8 @@ namespace Grimhand.Presentation.Battle
             CenterInParent(view);
         }
 
-        const float CardBaseLayoutWidth = 168f;
-        const float CardBaseLayoutHeight = 236f;
+        const float CardBaseLayoutWidth = CardPortraitLayout.CardWidth;
+        const float CardBaseLayoutHeight = CardPortraitLayout.CardHeight;
 
         internal void EnsureScaleRootForLayout() => EnsureScaleRoot();
 
@@ -355,14 +465,16 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             var rt = nameText.rectTransform;
-            rt.anchorMin = new Vector2(0f, 1f);
-            rt.anchorMax = new Vector2(1f, 1f);
-            rt.pivot = new Vector2(0.5f, 1f);
-            rt.offsetMin = new Vector2(8f, -56f);
-            rt.offsetMax = new Vector2(-8f, -6f);
+            rt.anchorMin = NamePanelAnchorMin;
+            rt.anchorMax = NamePanelAnchorMax;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            rt.pivot = new Vector2(0.5f, 0.5f);
             nameText.alignment = TextAnchor.MiddleCenter;
             nameText.horizontalOverflow = HorizontalWrapMode.Wrap;
             nameText.verticalOverflow = VerticalWrapMode.Truncate;
+            nameText.fontStyle = FontStyle.Bold;
+            nameText.fontSize = NameFontSize;
         }
 
         internal void EnsureDescriptionLayout()
@@ -371,17 +483,23 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             var rt = statsText.rectTransform;
-            if (rt.anchorMin.y <= 0.1f)
-                return;
-
-            rt.anchorMin = new Vector2(0f, 0f);
-            rt.anchorMax = new Vector2(1f, 0f);
-            rt.pivot = new Vector2(0.5f, 0f);
-            rt.offsetMin = new Vector2(10f, 12f);
-            rt.offsetMax = new Vector2(-10f, 108f);
+            rt.anchorMin = StatsPanelAnchorMin;
+            rt.anchorMax = StatsPanelAnchorMax;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            rt.pivot = new Vector2(0.5f, 0.5f);
             statsText.alignment = TextAnchor.UpperCenter;
             statsText.horizontalOverflow = HorizontalWrapMode.Wrap;
             statsText.verticalOverflow = VerticalWrapMode.Overflow;
+            statsText.fontSize = DescriptionFontNormal;
+            statsText.fontStyle = FontStyle.Normal;
+            statsText.color = new Color(0.95f, 0.92f, 0.86f, 1f);
+        }
+
+        void EnsureLowerPanelLayout()
+        {
+            EnsureNameLayout();
+            EnsureDescriptionLayout();
         }
 
         void ApplyVisualState(bool immediate = false)

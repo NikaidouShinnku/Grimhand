@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_p_revive_bless
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: p_revive_bless
-  DisplayName: "复活祝福"
+  DisplayName: "\u590D\u6D3B\u795D\u798F"
   OwnerCharacterId: char_mage
   Cost: 3
   CardType: 2

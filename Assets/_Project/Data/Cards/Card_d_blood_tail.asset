@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_d_blood_tail
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: d_blood_tail
-  DisplayName: "血尾贯穿"
+  DisplayName: "\u8840\u5C3E\u8D2F\u7A7F"
   OwnerCharacterId: char_ranger
   Cost: 2
   CardType: 0

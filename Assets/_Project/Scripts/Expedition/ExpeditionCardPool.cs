@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using Grimhand.Battle;
 using Grimhand.Battle.Model;
+using Grimhand.Core;
 using Grimhand.Expedition.Model;
 
 namespace Grimhand.Expedition
@@ -52,6 +54,34 @@ namespace Grimhand.Expedition
             }
 
             return result;
+        }
+
+        public static bool TryRollCardReward(
+            ExpeditionConfig config,
+            ExpeditionRunState run,
+            CardRarity rarity,
+            BattleRng rng,
+            out CardTemplate picked,
+            out PartyMemberSnapshot owner)
+        {
+            picked = null;
+            owner = null;
+            if (config == null || run?.Party == null || run.Party.Count == 0 || rng == null)
+                return false;
+
+            var pool = new List<CardTemplate>();
+            foreach (var template in CollectPlayerCardTemplates(config))
+            {
+                if (CardRarityTable.GetOrDefault(template.DefinitionId) == rarity)
+                    pool.Add(template);
+            }
+
+            if (pool.Count == 0)
+                return false;
+
+            owner = run.Party[rng.NextIndex(run.Party.Count)];
+            picked = pool[rng.NextIndex(pool.Count)];
+            return true;
         }
 
         public static bool IsPlayerCharacterId(string characterId)

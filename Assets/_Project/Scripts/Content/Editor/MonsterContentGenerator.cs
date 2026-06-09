@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
+using Grimhand.Battle.Rules;
 using Grimhand.Battle.Status;
 using Grimhand.Content;
 using UnityEditor;
@@ -21,6 +22,8 @@ namespace Grimhand.Content.Editor
             public CharacterDefinitionSO SkeletonElite;
             public CharacterDefinitionSO Wraith;
             public CharacterDefinitionSO WraithElite;
+            public CharacterDefinitionSO SkeletonKing;
+            public CharacterDefinitionSO ExplosiveSkull;
         }
 
         public static MonsterSet Generate()
@@ -46,7 +49,25 @@ namespace Grimhand.Content.Editor
                     cards.WraithPool),
                 WraithElite = SaveMonster("Character_Wraith_Elite", "char_wraith_elite", "幽灵精英",
                     FormationSlot.Back, 35, 11, 2, 9,
-                    cards.WraithElitePool)
+                    cards.WraithElitePool),
+                SkeletonKing = SaveBoss("Character_Skeleton_King", "char_skeleton_king", "骷髅王",
+                    FormationSlot.Front, 800, 30, 10, 6,
+                    new[]
+                    {
+                        CharacterTraitCatalog.BossFirstHitBlock
+                    },
+                    BuildFixedDeck(
+                        (cards.KingBoneSlash, 4),
+                        (cards.KingBoneRoar, 1),
+                        (cards.KingBoneSpear, 2),
+                        (cards.KingSummonWorkshop, 1),
+                        (cards.KingBoneBlock, 1),
+                        (cards.KingBoneShield, 2),
+                        (cards.KingWhiteStorm, 1))),
+                ExplosiveSkull = SaveBoss("Character_Explosive_Skull", "char_explosive_skull", "易爆骷髅头",
+                    FormationSlot.Middle, 50, 0, 5, 2,
+                    CharacterTraitCatalog.SkullSelfDestructHand,
+                    BuildFixedDeck((cards.SkullExplode, 1)))
             };
         }
 
@@ -67,6 +88,17 @@ namespace Grimhand.Content.Editor
             UpsertVisual(catalog, "char_goblin_shaman", $"{ArtRoot}/skeleton_idle_1024.png");
             UpsertVisual(catalog, "char_goblin_archer", $"{ArtRoot}/wraith_idle_1024.png");
 
+            var kingArt = ArtRoot + "/skeleton king";
+            UpsertVisualFull(catalog, "char_skeleton_king",
+                idle: kingArt + "/skeletonking_idle_1024.png",
+                attack: kingArt + "/skeletonking_attack_1024.png",
+                hit: kingArt + "/skeletonking_hit_1024.png",
+                death: kingArt + "/skeletonking_defeat_1024.png",
+                profile: kingArt + "/skeletonking_profile.png",
+                gifPath: "The Grimhands Asset/monsters/skeleton king/skeletonking_idle_anime.gif",
+                defendUsesHit: true);
+            UpsertVisual(catalog, "char_explosive_skull", ArtRoot + "/skeletonhead_idle_1024.png");
+
             EditorUtility.SetDirty(catalog);
         }
 
@@ -78,6 +110,14 @@ namespace Grimhand.Content.Editor
             public CardDefinitionSO[] SkeletonElitePool;
             public CardDefinitionSO[] WraithPool;
             public CardDefinitionSO[] WraithElitePool;
+            public CardDefinitionSO KingBoneSlash;
+            public CardDefinitionSO KingBoneRoar;
+            public CardDefinitionSO KingBoneSpear;
+            public CardDefinitionSO KingSummonWorkshop;
+            public CardDefinitionSO KingBoneBlock;
+            public CardDefinitionSO KingBoneShield;
+            public CardDefinitionSO KingWhiteStorm;
+            public CardDefinitionSO SkullExplode;
         }
 
         static MonsterCards CreateMonsterCards()
@@ -159,9 +199,79 @@ namespace Grimhand.Content.Editor
                     SaveCard("g_aim", "瞄准", "char_wraith_elite", 2, CardType.Attack, Kw("snipe"),
                         Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 14, scaleAttack: true,
                             reach: TargetReach.Any))
-                }
+                },
+                KingBoneSlash = SaveCard("m_king_bone_slash", "骨王斩击", "char_skeleton_king", 1,
+                    CardType.Attack, Kw("melee"), CardRarity.Common,
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 15, scaleAttack: true)),
+                KingBoneRoar = SaveCard("m_king_bone_roar", "骨王怒吼", "char_skeleton_king", 1,
+                    CardType.Status, Kw("slow"), CardRarity.Common,
+                    Action(EffectActionType.ApplyStatus, EffectTarget.RandomEnemies, 2,
+                        statusId: StatusCatalog.Slow, stacks: 2, duration: 2)),
+                KingBoneSpear = SaveCard("m_king_bone_spear", "投掷骨矛", "char_skeleton_king", 1,
+                    CardType.Attack, Kw("far_shot"), CardRarity.Common,
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 15, scaleAttack: true,
+                        reach: TargetReach.MiddleAndBack)),
+                KingSummonWorkshop = SaveCard("m_king_summon_workshop", "召唤骨之王座", "char_skeleton_king", 3,
+                    CardType.Status, Kw("exhaust", "summon"), CardRarity.Epic,
+                    Action(EffectActionType.ApplyStatus, EffectTarget.Self, 0,
+                        statusId: StatusCatalog.BoneWorkshop, stacks: 1, duration: -1)),
+                KingBoneBlock = SaveCard("m_king_bone_block", "骨甲格挡", "char_skeleton_king", 1,
+                    CardType.Defense, Kw("guard"), CardRarity.Common,
+                    RespondBlock(80)),
+                KingBoneShield = SaveCard("m_king_bone_shield", "召唤骨盾", "char_skeleton_king", 2,
+                    CardType.Defense, Kw("guard"), CardRarity.Common,
+                    DefBlockScaled(200)),
+                KingWhiteStorm = SaveCard("m_king_white_storm", "白骨风暴", "char_skeleton_king", 3,
+                    CardType.Attack, Kw("aoe"), CardRarity.Epic,
+                    Action(EffectActionType.DealDamage, EffectTarget.AllEnemies, 20, scaleAttack: true,
+                        reach: TargetReach.Any)),
+                SkullExplode = SaveCard("m_skull_explode", "骷髅自爆", "char_explosive_skull", 0,
+                    CardType.Attack, Kw("self_destruct", "bonus_hand"), CardRarity.Common,
+                    Action(EffectActionType.DealDamage, EffectTarget.RandomEnemy, 40))
             };
         }
+
+        static CardDefinitionSO[] BuildFixedDeck(params (CardDefinitionSO card, int count)[] entries)
+        {
+            var deck = new List<CardDefinitionSO>();
+            foreach (var (card, count) in entries)
+            {
+                if (card == null || count <= 0)
+                    continue;
+
+                for (var i = 0; i < count; i++)
+                    deck.Add(card);
+            }
+
+            return deck.ToArray();
+        }
+
+        static CharacterDefinitionSO SaveBoss(
+            string assetName,
+            string charId,
+            string displayName,
+            FormationSlot slot,
+            int hp,
+            int atk,
+            int def,
+            int spd,
+            string[] traits,
+            CardDefinitionSO[] deck) =>
+            SaveBossMonster(assetName, charId, displayName, slot, hp, atk, def, spd, traits, deck);
+
+        static CharacterDefinitionSO SaveBoss(
+            string assetName,
+            string charId,
+            string displayName,
+            FormationSlot slot,
+            int hp,
+            int atk,
+            int def,
+            int spd,
+            string trait,
+            CardDefinitionSO[] deck) =>
+            SaveBossMonster(assetName, charId, displayName, slot, hp, atk, def, spd,
+                string.IsNullOrEmpty(trait) ? null : new[] { trait }, deck);
 
         static CharacterDefinitionSO SaveMonster(
             string assetName,
@@ -201,6 +311,92 @@ namespace Grimhand.Content.Editor
             return character;
         }
 
+        static CharacterDefinitionSO SaveBossMonster(
+            string assetName,
+            string charId,
+            string displayName,
+            FormationSlot slot,
+            int hp,
+            int atk,
+            int def,
+            int spd,
+            string[] traits,
+            CardDefinitionSO[] deck)
+        {
+            var path = $"{Root}/Characters/{assetName}.asset";
+            var character = AssetDatabase.LoadAssetAtPath<CharacterDefinitionSO>(path);
+            if (character == null)
+            {
+                character = ScriptableObject.CreateInstance<CharacterDefinitionSO>();
+                AssetDatabase.CreateAsset(character, path);
+            }
+
+            character.CharacterId = charId;
+            character.DisplayName = displayName;
+            character.Team = TeamSide.Enemy;
+            character.Slot = slot;
+            character.Level = 1;
+            character.MaxHp = hp;
+            character.BaseAttack = atk;
+            character.BaseDefense = def;
+            character.Speed = spd;
+            character.SkillPool.Clear();
+            character.Deck.Clear();
+            character.Deck.AddRange(deck);
+            character.Traits.Clear();
+            if (traits != null)
+                character.Traits.AddRange(traits);
+            character.EnemyRandomDeckSize = deck.Length;
+            character.EnemySkillPickMin = 0;
+            character.EnemySkillPickMax = 0;
+            EditorUtility.SetDirty(character);
+            return character;
+        }
+
+        static void UpsertVisualFull(
+            CharacterVisualCatalogSO catalog,
+            string characterId,
+            string idle,
+            string attack,
+            string hit,
+            string death,
+            string profile = null,
+            string gifPath = null,
+            bool defendUsesHit = false)
+        {
+            var idleSprite = AssetDatabase.LoadAssetAtPath<Sprite>(idle);
+            if (idleSprite == null)
+                return;
+
+            CharacterVisualEntry entry = null;
+            foreach (var e in catalog.Entries)
+            {
+                if (e != null && e.CharacterId == characterId)
+                {
+                    entry = e;
+                    break;
+                }
+            }
+
+            if (entry == null)
+            {
+                entry = new CharacterVisualEntry { CharacterId = characterId };
+                catalog.Entries.Add(entry);
+            }
+
+            entry.IdlePortrait = idleSprite;
+            entry.AttackPortrait = AssetDatabase.LoadAssetAtPath<Sprite>(attack) ?? idleSprite;
+            entry.HitPortrait = AssetDatabase.LoadAssetAtPath<Sprite>(hit) ?? idleSprite;
+            entry.DefensePortrait = defendUsesHit
+                ? entry.HitPortrait
+                : AssetDatabase.LoadAssetAtPath<Sprite>(hit) ?? idleSprite;
+            entry.DeathPortrait = AssetDatabase.LoadAssetAtPath<Sprite>(death) ?? idleSprite;
+            entry.CardProfilePortrait = string.IsNullOrEmpty(profile)
+                ? null
+                : AssetDatabase.LoadAssetAtPath<Sprite>(profile);
+            entry.IdleAnimationGifPath = gifPath ?? "";
+        }
+
         static void UpsertVisual(CharacterVisualCatalogSO catalog, string characterId, string spritePath)
         {
             var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(spritePath);
@@ -237,6 +433,17 @@ namespace Grimhand.Content.Editor
             int cost,
             CardType cardType,
             string[] keywords,
+            params EffectActionDefinition[] actions) =>
+            SaveCard(id, displayName, owner, cost, cardType, keywords, CardRarity.Common, actions);
+
+        static CardDefinitionSO SaveCard(
+            string id,
+            string displayName,
+            string owner,
+            int cost,
+            CardType cardType,
+            string[] keywords,
+            CardRarity rarity,
             params EffectActionDefinition[] actions)
         {
             var path = $"{Root}/Cards/Card_{id}.asset";
@@ -252,6 +459,7 @@ namespace Grimhand.Content.Editor
             card.OwnerCharacterId = owner;
             card.Cost = cost;
             card.CardType = cardType;
+            card.Rarity = rarity;
             card.Keywords.Clear();
             if (keywords != null)
                 card.Keywords.AddRange(keywords);
@@ -260,6 +468,24 @@ namespace Grimhand.Content.Editor
             EditorUtility.SetDirty(card);
             return card;
         }
+
+        static EffectActionDefinition DefBlockScaled(int defenseScalePercent) =>
+            new()
+            {
+                Type = EffectActionType.GainBlock,
+                Target = EffectTarget.Self,
+                ScaleWithDefense = true,
+                DefenseScalePercent = defenseScalePercent
+            };
+
+        static EffectActionDefinition RespondBlock(int reductionPercent) =>
+            new()
+            {
+                Type = EffectActionType.GainBlockFromLastDamagePercent,
+                Target = EffectTarget.Self,
+                Value = reductionPercent,
+                Condition = ReactionConditionType.LastActionAttackOnSelf
+            };
 
         static EffectActionDefinition Action(
             EffectActionType type,
@@ -271,7 +497,8 @@ namespace Grimhand.Content.Editor
             int stacks = 1,
             int duration = -1,
             TargetReach reach = TargetReach.FrontAndMiddle,
-            int backRowPowerPercent = 100) =>
+            int backRowPowerPercent = 100,
+            ReactionConditionType condition = ReactionConditionType.None) =>
             new()
             {
                 Type = type,
@@ -283,7 +510,8 @@ namespace Grimhand.Content.Editor
                 Stacks = stacks,
                 Duration = duration,
                 Reach = reach,
-                BackRowPowerPercent = backRowPowerPercent
+                BackRowPowerPercent = backRowPowerPercent,
+                Condition = condition
             };
 
         static string[] Kw(params string[] ids) => ids;

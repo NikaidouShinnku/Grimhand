@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_d_curse_chain
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: d_curse_chain
-  DisplayName: "诅咒之链"
+  DisplayName: "\u8BC5\u5492\u4E4B\u94FE"
   OwnerCharacterId: char_ranger
   Cost: 2
   CardType: 0
@@ -33,7 +33,7 @@ MonoBehaviour:
     Condition: 0
     Reach: 0
     SplashBehindTarget: 0
-    SplashPowerPercent: 80
+    SplashPowerPercent: 100
     BackRowPowerPercent: 100
     IgnoreDefPercent: 0
     BonusIfTargetHpBelowPercent: 0
@@ -53,7 +53,7 @@ MonoBehaviour:
     AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 0
+    Reach: 1
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100

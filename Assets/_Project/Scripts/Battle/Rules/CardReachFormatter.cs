@@ -45,6 +45,9 @@ namespace Grimhand.Battle.Rules
             if (action.Target == EffectTarget.AllEnemies)
                 return false;
 
+            if (action.Target is EffectTarget.RandomEnemy or EffectTarget.RandomEnemies)
+                return false;
+
             if (action.Target == EffectTarget.Self)
                 return false;
 
@@ -91,6 +94,7 @@ namespace Grimhand.Battle.Rules
                 TargetReach.FrontAndMiddle => "【前/中】",
                 TargetReach.Any => "【前/中/后】",
                 TargetReach.BackOnly => "【后排】",
+                TargetReach.MiddleAndBack => "【中/后】",
                 _ => ""
             };
         }
@@ -103,6 +107,7 @@ namespace Grimhand.Battle.Rules
                 {
                     TargetReach.FrontAndMiddle => "可以选择前排或中排的一名队友",
                     TargetReach.BackOnly => "可以选择后排的一名队友",
+                    TargetReach.MiddleAndBack => "可以选择中排或后排的一名队友",
                     TargetReach.Any => "可以选择任意一名队友",
                     _ => ""
                 };
@@ -113,6 +118,7 @@ namespace Grimhand.Battle.Rules
                 TargetReach.FrontAndMiddle => "可以选择前排和中排的一名敌人",
                 TargetReach.Any => "可以选择前排、中排或后排的一名敌人",
                 TargetReach.BackOnly => "可以选择后排的一名敌人",
+                TargetReach.MiddleAndBack => "可以选择中排和后排的一名敌人",
                 _ => ""
             };
         }

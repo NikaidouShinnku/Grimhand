@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_w_defensive_stance
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: w_defensive_stance
-  DisplayName: "防御架势"
+  DisplayName: "\u9632\u5FA1\u67B6\u52BF"
   OwnerCharacterId: char_knight
   Cost: 1
   CardType: 1

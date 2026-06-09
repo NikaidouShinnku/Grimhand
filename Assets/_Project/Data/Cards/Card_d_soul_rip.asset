@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_d_soul_rip
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: d_soul_rip
-  DisplayName: "灵魂撕裂"
+  DisplayName: "\u7075\u9B42\u6495\u88C2"
   OwnerCharacterId: char_ranger
   Cost: 2
   CardType: 0
@@ -33,7 +33,7 @@ MonoBehaviour:
     Condition: 0
     Reach: 0
     SplashBehindTarget: 0
-    SplashPowerPercent: 80
+    SplashPowerPercent: 100
     BackRowPowerPercent: 100
     IgnoreDefPercent: 100
     BonusIfTargetHpBelowPercent: 0

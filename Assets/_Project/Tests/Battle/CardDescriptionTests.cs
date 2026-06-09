@@ -97,6 +97,49 @@ namespace Grimhand.Battle.Tests
             StringAssert.Contains("所受伤害减少 30%", text);
         }
 
+        [Test]
+        public void SolarBlessing_ShowsTeamBlockDescription()
+        {
+            var card = Preview("p_solar_blessing", CardType.Defense,
+                AllyDefBlock(EffectTarget.AllyFrontSlot, 50),
+                AllyDefBlock(EffectTarget.AllyMiddleSlot, 50),
+                AllyDefBlock(EffectTarget.AllyBackSlot, 50));
+
+            var text = BattleUiFormatters.BuildCardStatsLinePreview(card);
+
+            StringAssert.Contains("三名队友各获得", text);
+            StringAssert.Contains("护甲", text);
+        }
+
+        [Test]
+        public void BladeStorm_RepeatedDamageShowsOnceOnFaceAndTooltip()
+        {
+            var hit = Atk(3, 100, target: EffectTarget.RandomEnemy);
+            var card = Preview("w_blade_storm", CardType.Attack, hit, hit, hit, hit, hit);
+
+            var text = BattleUiFormatters.BuildCardStatsLinePreview(card);
+            var tooltip = CardKeywordTooltipBuilder.BuildRichTooltip(card, owner: null);
+
+            StringAssert.Contains("随机敌人", text);
+            StringAssert.Contains("重复 5 次", text);
+            Assert.AreEqual(1, CountOccurrences(text, "随机敌人"));
+            Assert.AreEqual(1, CountOccurrences(tooltip, "伤害计算公式"));
+        }
+
+        [Test]
+        public void PierceShot_DoesNotShowInternalKeywordsOrDuplicateSplash()
+        {
+            var card = Preview("r_pierce", CardType.Attack, Kw("pierce", "melee"),
+                Atk(11, 100, splashBehind: true, splashPercent: 80));
+
+            var text = BattleUiFormatters.BuildCardStatsLinePreview(card);
+            var tooltip = CardKeywordTooltipBuilder.BuildRichTooltip(card, owner: null);
+
+            StringAssert.DoesNotContain("pierce", tooltip);
+            StringAssert.DoesNotContain("melee", tooltip);
+            Assert.AreEqual(1, CountOccurrences(text, "贯通后方 80% 伤害"));
+        }
+
         static int CountOccurrences(string text, string value)
         {
             var count = 0;
@@ -203,6 +246,15 @@ namespace Grimhand.Battle.Tests
                 Target = EffectTarget.LastActionActor,
                 Value = pct,
                 Condition = ReactionConditionType.LastActionAttackOnSelf
+            };
+
+        static EffectActionDefinition AllyDefBlock(EffectTarget target, int defenseScalePercent) =>
+            new()
+            {
+                Type = EffectActionType.GainBlock,
+                Target = target,
+                ScaleWithDefense = true,
+                DefenseScalePercent = defenseScalePercent
             };
     }
 }

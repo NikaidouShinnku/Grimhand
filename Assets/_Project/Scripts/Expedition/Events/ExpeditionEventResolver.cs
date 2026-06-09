@@ -41,7 +41,7 @@ namespace Grimhand.Expedition.Events
                 ExpeditionEventIds.MagicSpring => ResolveMagicSpring(run, choiceIndex, rng),
                 ExpeditionEventIds.GamblerDice => ResolveGamblerDice(run, choiceIndex, rng),
                 ExpeditionEventIds.MirrorPhantom => ResolveMirrorPhantom(run, choiceIndex, config),
-                ExpeditionEventIds.CursedBookshelf => ResolveCursedBookshelf(run, choiceIndex, rng),
+                ExpeditionEventIds.CursedBookshelf => ResolveCursedBookshelf(run, choiceIndex, rng, config),
                 ExpeditionEventIds.AdventurerRevenge => ResolveAdventurerRevenge(run, choiceIndex, config),
                 ExpeditionEventIds.TrainingDummy => ResolveTrainingDummy(run, choiceIndex),
                 ExpeditionEventIds.SoulRift => ResolveSoulRift(run, choiceIndex, rng),
@@ -206,14 +206,51 @@ namespace Grimhand.Expedition.Events
             };
         }
 
-        static ExpeditionEventOutcome ResolveCursedBookshelf(ExpeditionRunState run, int choice, BattleRng rng)
+        static ExpeditionEventOutcome ResolveCursedBookshelf(ExpeditionRunState run, int choice, BattleRng rng, ExpeditionConfig config)
         {
             return choice switch
             {
-                0 => WithMemberHpLoss(run, 10, "阅读获得一张蓝色卡牌。", rng),
+                0 => ResolveCursedBookshelfRead(run, rng, config),
                 1 => WithMessage("带走古卷残页。", () => AddConsumables(run, ConsumableIds.ScrollPage, 1)),
                 _ => new ExpeditionEventOutcome { Message = "你合上了书。" }
             };
+        }
+
+        static ExpeditionEventOutcome ResolveCursedBookshelfRead(
+            ExpeditionRunState run,
+            BattleRng rng,
+            ExpeditionConfig config)
+        {
+            if (run.Party.Count == 0)
+                return new ExpeditionEventOutcome { Message = "无人阅读古书。" };
+
+            var idx = rng.NextIndex(run.Party.Count);
+            var member = run.Party[idx];
+            var hpLoss = System.Math.Max(1, member.Hp * 10 / 100);
+            member.Hp = System.Math.Max(1, member.Hp - hpLoss);
+
+            if (!ExpeditionCardPool.TryRollCardReward(
+                    config,
+                    run,
+                    CardRarity.Rare,
+                    rng,
+                    out var card,
+                    out var owner))
+            {
+                return new ExpeditionEventOutcome
+                {
+                    Message = $"{member.DisplayName} 失去 {hpLoss} HP，但未找到可授予的蓝色卡牌。"
+                };
+            }
+
+            var cardOwner = card.OwnerCharacterId == member.CharacterDefinitionId
+                || string.IsNullOrEmpty(card.OwnerCharacterId)
+                    ? member
+                    : owner;
+
+            return WithPickup(
+                ExpeditionRewardPickupFactory.Card(card, cardOwner, "古书奖励"),
+                $"{member.DisplayName} 失去 {hpLoss} HP，获得一张蓝色卡牌。请点击领取。");
         }
 
         static ExpeditionEventOutcome ResolveAdventurerRevenge(ExpeditionRunState run, int choice, ExpeditionConfig config)
@@ -489,9 +526,9 @@ namespace Grimhand.Expedition.Events
             {
                 DefinitionId = "curse_chaos_touch",
                 DisplayName = "混沌之触",
-                OwnerCharacterId = run.Party[0].CharacterDefinitionId,
                 Cost = 1,
-                CardType = CardType.Status
+                CardType = CardType.Status,
+                Keywords = { "curse" }
             });
         }
 

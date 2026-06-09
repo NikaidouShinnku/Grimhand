@@ -29,6 +29,7 @@ namespace Grimhand.Expedition.Model
         public int TreasureRouteWeight { get; set; } = 45;
 
         public List<BattleConfig> CombatEncounters { get; } = new();
+        public List<BattleConfig> BossEncounters { get; } = new();
         public List<CardTemplate> PlayerCardCatalog { get; } = new();
     }
 }

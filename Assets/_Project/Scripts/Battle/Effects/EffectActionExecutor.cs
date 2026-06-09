@@ -77,7 +77,7 @@ namespace Grimhand.Battle.Effects
             BattleRng rng,
             int sourceCardInstanceId)
         {
-            var target = TargetRules.ResolveTarget(state, actor, action.Target, card.InstanceId);
+            var target = TargetRules.ResolveTarget(state, actor, action.Target, card.InstanceId, rng, action);
             var value = CardPowerRules.ComputeActionValue(action, actor);
             if (action.Type == EffectActionType.DealDamage
                 && action.Target == EffectTarget.Self
@@ -94,7 +94,8 @@ namespace Grimhand.Battle.Effects
                 case EffectActionType.DealDamage:
                     if (action.Target == EffectTarget.AllEnemies)
                         ExecuteDamageToAllEnemies(state, actor, card, action, value, events, rng, sourceCardInstanceId);
-                    else if (target != null)
+                    else if (target != null
+                             && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
                         ExecuteDamage(
                             state, actor, card, action, target, value, events, rng, sourceCardInstanceId,
                             isSacrificeSelfDamage: action.Target == EffectTarget.Self
@@ -121,10 +122,18 @@ namespace Grimhand.Battle.Effects
                     break;
                 }
                 case EffectActionType.ApplyStatus:
-                    if (target != null)
+                    if (action.Target == EffectTarget.AllEnemies)
+                        ExecuteStatusToAllEnemies(state, actor, card, action, events);
+                    else if (action.Target == EffectTarget.RandomEnemies)
+                        ExecuteStatusToRandomEnemies(state, actor, action, events, rng);
+                    else if (target != null
+                             && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
                         StatusRules.ApplyStatus(state, target, action.StatusId, action.Stacks, action.Duration, events);
-                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status,
-                        target != null ? target.Id : actor.Id, false, 0);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    break;
+                case EffectActionType.ApplyAnubisAvatar:
+                    AnubisAvatarRules.Apply(state, actor, events);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
                 case EffectActionType.RemoveStatus:
                     if (target != null)
@@ -233,6 +242,36 @@ namespace Grimhand.Battle.Effects
 
             if (action.OnKillHealAmount > 0 && anyKill)
                 DamageRules.ApplyHeal(state, actor, action.OnKillHealAmount, events, actor);
+        }
+
+        static void ExecuteStatusToAllEnemies(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState card,
+            EffectActionSpec action,
+            List<BattleEvent> events)
+        {
+            var enemyTeam = actor.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
+            foreach (var targetId in PositionRules.SnapshotAliveCombatantIds(state, enemyTeam))
+            {
+                var target = state.GetCombatant(targetId);
+                if (target == null || !target.IsAlive)
+                    continue;
+
+                StatusRules.ApplyStatus(state, target, action.StatusId, action.Stacks, action.Duration, events);
+            }
+        }
+
+        static void ExecuteStatusToRandomEnemies(
+            BattleState state,
+            CombatantState actor,
+            EffectActionSpec action,
+            List<BattleEvent> events,
+            BattleRng rng)
+        {
+            var count = action.Value > 0 ? action.Value : 1;
+            foreach (var target in TargetRules.PickRandomEnemies(state, actor.Team, count, rng))
+                StatusRules.ApplyStatus(state, target, action.StatusId, action.Stacks, action.Duration, events);
         }
 
         static void ExecuteDamage(

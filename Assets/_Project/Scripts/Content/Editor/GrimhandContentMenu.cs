@@ -48,6 +48,12 @@ namespace Grimhand.Content.Editor
                 players.Warrior, players.Pharaoh, players.Demon,
                 monsters.Slime, monsters.Wraith, monsters.WraithElite);
 
+            var setupSkeletonKingBoss = SaveBossBattleSetup(
+                "BattleSetup_Encounter_SkeletonKingBoss",
+                players.Warrior, players.Pharaoh, players.Demon,
+                monsters.SkeletonKing,
+                monsters.ExplosiveSkull);
+
             var visualCatalog = AssetDatabase.LoadAssetAtPath<CharacterVisualCatalogSO>(
                 Root + "/CharacterVisualCatalog_Demo.asset");
             MonsterContentGenerator.UpdateVisualCatalog(visualCatalog);
@@ -67,6 +73,8 @@ namespace Grimhand.Content.Editor
             expedition.CombatEncounters.Add(setupClassic);
             expedition.CombatEncounters.Add(setupSlimeMix);
             expedition.CombatEncounters.Add(setupWraithPack);
+            expedition.BossEncounters.Clear();
+            expedition.BossEncounters.Add(setupSkeletonKingBoss);
             EditorUtility.SetDirty(expedition);
 
             ExpeditionArtBinder.BindExpeditionArtSilent();
@@ -405,6 +413,39 @@ namespace Grimhand.Content.Editor
                 playerA, playerB, playerC,
                 enemyA, enemyB, enemyC
             });
+            EditorUtility.SetDirty(setup);
+            return setup;
+        }
+
+        static BattleSetupSO SaveBossBattleSetup(
+            string assetName,
+            CharacterDefinitionSO playerA,
+            CharacterDefinitionSO playerB,
+            CharacterDefinitionSO playerC,
+            CharacterDefinitionSO boss,
+            CharacterDefinitionSO summonTemplate)
+        {
+            var path = $"{Root}/Setups/{assetName}.asset";
+            var setup = AssetDatabase.LoadAssetAtPath<BattleSetupSO>(path);
+            if (setup == null)
+            {
+                setup = ScriptableObject.CreateInstance<BattleSetupSO>();
+                AssetDatabase.CreateAsset(setup, path);
+            }
+
+            setup.Seed = 0;
+            setup.EnergyCap = 8;
+            setup.TurnStartEnergyRegen = 4;
+            setup.HandLimit = 8;
+            setup.CardsDrawnPerTurn = 5;
+            setup.EnemyCardsDrawnPerTurn = 3;
+            setup.EnemyTurnEnergyBudget = 3;
+            setup.SkipFloorScaling = true;
+            setup.Combatants.Clear();
+            setup.Combatants.AddRange(new[] { playerA, playerB, playerC, boss });
+            setup.SummonTemplates.Clear();
+            if (summonTemplate != null)
+                setup.SummonTemplates.Add(summonTemplate);
             EditorUtility.SetDirty(setup);
             return setup;
         }

@@ -17,7 +17,9 @@ namespace Grimhand.Battle.Model
         DrawCardsNextTurn,
         DrawCards,
         ReflectLastDamageToAttacker,
-        GainBlockFromLastDamagePercent
+        GainBlockFromLastDamagePercent,
+        /// <summary>阿努比斯化身：本场 +50% 生命上限/攻击/防御，并禁出牌 2 回合。</summary>
+        ApplyAnubisAvatar
     }
 
     public enum EffectTarget
@@ -34,8 +36,12 @@ namespace Grimhand.Battle.Model
         AllyFrontSlot,
         AllyMiddleSlot,
         AllyBackSlot,
-        /// <summary>出牌瞬间快照的所有存活敌人（全体攻击）。</summary>
-        AllEnemies
+        /// <summary>结算开始时快照的所有存活敌人（全体攻击）。</summary>
+        AllEnemies,
+        /// <summary>随机一名敌方（自爆等）。</summary>
+        RandomEnemy,
+        /// <summary>随机 N 名敌方；人数由 EffectActionSpec.Value 指定（如骨王怒吼 Value=2）。</summary>
+        RandomEnemies
     }
 
     public enum ReactionConditionType
@@ -54,6 +60,8 @@ namespace Grimhand.Battle.Model
         /// <summary>仅前排与中排（默认近战/普通射击）。</summary>
         FrontAndMiddle = 1,
         /// <summary>仅后排（特殊卡）。</summary>
-        BackOnly = 2
+        BackOnly = 2,
+        /// <summary>中排与后排。</summary>
+        MiddleAndBack = 3
     }
 }

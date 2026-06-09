@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using Grimhand.Battle.Model;
 using Grimhand.Core;
+using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 
 namespace Grimhand.Expedition.Events
@@ -49,6 +51,27 @@ namespace Grimhand.Expedition.Events
                 HeaderText = header,
                 Kind = kind,
                 Gold = amount
+            };
+        }
+
+        public static ExpeditionRewardPickup Card(
+            CardTemplate template,
+            PartyMemberSnapshot owner,
+            string header,
+            RewardPickupKind kind = RewardPickupKind.EventOrShrine)
+        {
+            if (template == null || owner == null)
+                return null;
+
+            return new ExpeditionRewardPickup
+            {
+                HeaderText = header,
+                Kind = kind,
+                CardDefinitionId = template.DefinitionId,
+                CardOwnerCharacterId = string.IsNullOrEmpty(template.OwnerCharacterId)
+                    ? owner.CharacterDefinitionId
+                    : template.OwnerCharacterId,
+                CardDisplayName = template.DisplayName
             };
         }
     }

@@ -5,6 +5,7 @@ using Grimhand.Battle.Rules;
 using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
+using Grimhand.Presentation;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -21,6 +22,7 @@ namespace Grimhand.Presentation.Battle
 
         const float PlayerPortraitScale = 2.28f;
         const float EnemyPortraitScale = 1.28f;
+        const float BossEnemyPortraitScale = 2.35f;
         /// <summary>玩家立绘脚线（槽内比例）。</summary>
         const float PlayerFeetLine = 0.02f;
         const float EnemyFeetLine = 0.13f;
@@ -244,12 +246,23 @@ namespace Grimhand.Presentation.Battle
             outline.effectDistance = new Vector2(1.5f, -1.5f);
         }
 
+        float ResolvePortraitScale()
+        {
+            if (team == TeamSide.Player)
+                return PlayerPortraitScale;
+
+            if (_currentUnit != null && _currentUnit.CharacterDefinitionId == "char_skeleton_king")
+                return BossEnemyPortraitScale;
+
+            return EnemyPortraitScale;
+        }
+
         void ApplyPortraitMirror()
         {
             if (portraitRoot == null)
                 return;
 
-            var scale = team == TeamSide.Player ? PlayerPortraitScale : EnemyPortraitScale;
+            var scale = ResolvePortraitScale();
             _basePortraitScale = mirrorPortrait
                 ? new Vector3(-scale, scale, 1f)
                 : new Vector3(scale, scale, 1f);
@@ -412,6 +425,7 @@ namespace Grimhand.Presentation.Battle
             _session = session;
             _combatantId = unit?.Id;
             _targetMode = targetMode;
+            ApplyPortraitMirror();
 
             var displayAlive = unit != null
                 && (presentation != null ? presentation.IsAlive(unit.Id) : unit.IsAlive);
@@ -529,6 +543,19 @@ namespace Grimhand.Presentation.Battle
             {
                 _detailPopup?.SetVisible(false);
             }
+
+            SyncHoverWithPointer();
+        }
+
+        void SyncHoverWithPointer()
+        {
+            if (!_hovered || _portraitHit == null)
+                return;
+
+            if (UiPointerUtility.IsOverRectTransform(_portraitHit, UiPointerUtility.GetEventCamera(_portraitHit)))
+                return;
+
+            OnPortraitPointerExit();
         }
 
         void AlignStatusBelowPortrait()

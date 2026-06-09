@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
+using Grimhand.Battle.Rules;
 
 namespace Grimhand.Battle.Status
 {
@@ -17,6 +18,8 @@ namespace Grimhand.Battle.Status
         public const string ReviveBlessing = "revive_blessing";
         public const string Unyielding = "unyielding";
         public const string NecroticPoison = "necrotic_poison";
+        public const string BoneWorkshop = "bone_workshop";
+        public const string AnubisAvatar = "anubis_avatar";
 
         static readonly Dictionary<string, StatusDefinition> Definitions = Build();
 
@@ -42,7 +45,7 @@ namespace Grimhand.Battle.Status
                 DisplayName = "减速",
                 DurationKind = StatusDurationKind.Turns,
                 DefaultDuration = 2,
-                SpeedModifierPerStack = -2
+                SpeedModifierPerStack = -1
             };
             map[Burn] = new StatusDefinition
             {
@@ -116,6 +119,21 @@ namespace Grimhand.Battle.Status
                 DurationKind = StatusDurationKind.Turns,
                 DefaultDuration = 3,
                 TurnStartDamagePerStack = 5
+            };
+            map[BoneWorkshop] = new StatusDefinition
+            {
+                Id = BoneWorkshop,
+                DisplayName = "骨之王座",
+                DurationKind = StatusDurationKind.Permanent
+            };
+            map[AnubisAvatar] = new StatusDefinition
+            {
+                Id = AnubisAvatar,
+                DisplayName = "阿努比斯化身",
+                DurationKind = StatusDurationKind.Permanent,
+                MaxHpPercentBonusPerStack = AnubisAvatarRules.StatPercentBonus,
+                AttackPercentBonusPerStack = AnubisAvatarRules.StatPercentBonus,
+                DefensePercentBonusPerStack = AnubisAvatarRules.StatPercentBonus
             };
             return map;
         }

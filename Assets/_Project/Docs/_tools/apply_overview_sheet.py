@@ -16,6 +16,7 @@ DealDamage, GainBlock, Heal, ApplyStatus, DrawCards = 0, 1, 2, 3, 7
 BlockFromDmgPct, Reflect = 9, 8
 DefaultEnemy, Self, FrontAlly = 0, 1, 2
 AllyFront, AllyMiddle, AllyBack, AllEnemies = 9, 10, 11, 12
+RandomEnemy = 13
 ReachAny, ReachFrontMiddle = 0, 1
 CondAttackOnSelf = 1
 Attack, Defense, Status = 0, 1, 2
@@ -63,7 +64,7 @@ def atk(flat, pct=100, target=DefaultEnemy, reach=ReachFrontMiddle, ignore=0, hp
         hp_bonus=0, hit_bonus=0, lifesteal=0, on_kill=0, splash=False, splash_pct=80):
     return action(
         Type=DealDamage, Target=target, Value=flat, ScaleWithAttack=1,
-        AttackScalePercent=pct, Reach=reach if target != AllEnemies else ReachAny,
+        Reach=reach if target not in (AllEnemies, RandomEnemy) else ReachAny,
         IgnoreDefPercent=ignore, BonusIfTargetHpBelowPercent=hp_below,
         BonusIfTargetHpBelowFlat=hp_bonus, BonusIfTargetHitThisTurnPercent=hit_bonus,
         LifestealPercent=lifesteal, OnKillHealAmount=on_kill,
@@ -246,7 +247,7 @@ def main():
     write_card("w_charge", display="战士冲锋", owner=KNIGHT, cost=3, ctype=Attack, rarity=Rare,
                keywords=[], actions=[atk(10, 160, ignore=50)])
     write_card("w_blade_storm", display="剑刃风暴", owner=KNIGHT, cost=3, ctype=Attack, rarity=Epic,
-               keywords=[], actions=[atk(3, 100)] * 5)
+               keywords=[], actions=[atk(3, 100, target=RandomEnemy, reach=ReachAny)] * 5)
     write_card("w_war_cry", display="战吼鼓舞", owner=KNIGHT, cost=1, ctype=Status, rarity=Common,
                keywords=[], actions=team_attack_up(3, 1))
     write_card("w_guardian", display="誓死守护", owner=KNIGHT, cost=2, ctype=Defense, rarity=Rare,
@@ -289,10 +290,7 @@ def main():
     write_card("p_solar_judgment", display="日光审判", owner=MAGE, cost=4, ctype=Attack, rarity=Rare,
                keywords=[], actions=[atk(10, 200, reach=ReachAny)])
     write_card("p_anubis_avatar", display="阿努比斯化身", owner=MAGE, cost=6, ctype=Status, rarity=Legendary,
-               keywords=["exhaust"], actions=[
-                   status("attack_up", 5, 2, Self),
-                   status("defense_up", 5, 2, Self),
-               ])
+               keywords=["exhaust"], actions=[{"type": "ApplyAnubisAvatar", "target": "Self"}])
     write_card("p_solar_god_wrath", display="太阳神之怒", owner=MAGE, cost=4, ctype=Attack, rarity=Epic,
                keywords=["aoe"], actions=[
                    atk(8, 80, target=AllEnemies),

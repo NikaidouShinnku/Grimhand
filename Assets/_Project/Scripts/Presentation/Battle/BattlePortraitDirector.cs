@@ -19,6 +19,7 @@ namespace Grimhand.Presentation.Battle
         BattleSession _session;
         BattleScreenView _screen;
         CharacterVisualCatalogSO _visuals;
+        BattleActionEffectCatalogSO _effects;
 
         readonly Dictionary<string, CombatantPortraitView> _portraits = new();
         readonly Queue<List<BattleEvent>> _segmentQueue = new();
@@ -27,11 +28,16 @@ namespace Grimhand.Presentation.Battle
 
         public bool IsPlaying => _playing;
 
-        public void Initialize(BattleSession session, BattleScreenView screen, CharacterVisualCatalogSO visuals)
+        public void Initialize(
+            BattleSession session,
+            BattleScreenView screen,
+            CharacterVisualCatalogSO visuals,
+            BattleActionEffectCatalogSO effects = null)
         {
             _session = session;
             _screen = screen;
             _visuals = visuals;
+            _effects = effects;
             RebuildLookup();
             _session.EventsProduced += OnEventsProduced;
         }
@@ -132,11 +138,27 @@ namespace Grimhand.Presentation.Battle
                         case BattleEventKind.HealApplied:
                             ApplySnapshotAfterHeal(e.CombatantId, e.Amount);
                             if (_portraits.TryGetValue(e.CombatantId, out var healed))
+                            {
+                                yield return PlayHealEffect(healed);
                                 healed.ShowHealNumber(e.Amount);
+                            }
+
+                            break;
+                        case BattleEventKind.StatusApplied:
+                            yield return HandleStatusApplied(e);
                             break;
                         case BattleEventKind.DamageApplied:
                             card?.MarkDamage();
-                            yield return HandleDamage(e, card);
+                            var (damageWave, waveGaps, waveEnd) = CollectActorDamageWave(events, i);
+                            if (damageWave.Count > 1)
+                                yield return HandleDamageBatch(damageWave, card);
+                            else
+                                yield return HandleDamage(damageWave[0], card);
+
+                            foreach (var gap in waveGaps)
+                                yield return HandleDamageWaveGap(gap);
+
+                            i = waveEnd;
                             break;
                         case BattleEventKind.ParryTriggered:
                             yield return HandleParryCounter(e);
@@ -272,6 +294,135 @@ namespace Grimhand.Presentation.Battle
             if (!_portraits.TryGetValue(e.TargetId, out var target))
                 yield break;
 
+            yield return PlayDamageOverlayEffects(e);
+            yield return PlayDamageReactionOnly(e, card, target);
+        }
+
+        IEnumerator HandleStatusTick(BattleEvent e)
+        {
+            if (!IsTargetPresentationActive(e.CombatantId))
+                yield break;
+
+            if (!_portraits.TryGetValue(e.CombatantId, out var target))
+                yield break;
+
+            var statusFx = BattleActionEffectResolver.ResolveStatus(_effects, e.TargetId);
+            if (statusFx != null)
+                yield return target.PlayOverlayEffect(statusFx);
+
+            ApplySnapshotAfterDamage(e.CombatantId, e.Amount);
+            yield return target.PlayHitReaction(e.Amount, useHitPose: false);
+        }
+
+        IEnumerator HandleStatusApplied(BattleEvent e)
+        {
+            if (!IsTargetPresentationActive(e.CombatantId))
+                yield break;
+
+            if (!_portraits.TryGetValue(e.CombatantId, out var target))
+                yield break;
+
+            var statusFx = BattleActionEffectResolver.ResolveStatus(_effects, e.TargetId);
+            if (statusFx == null)
+                yield break;
+
+            yield return target.PlayOverlayEffect(statusFx);
+        }
+
+        IEnumerator PlayHealEffect(CombatantPortraitView target)
+        {
+            if (_effects?.Healing == null)
+                yield break;
+
+            yield return target.PlayOverlayEffect(_effects.Healing);
+        }
+
+        IEnumerator PlayBlockingEffect(CombatantPortraitView target)
+        {
+            if (_effects?.Blocking == null)
+                yield break;
+
+            yield return target.PlayOverlayEffect(_effects.Blocking);
+        }
+
+        IEnumerator PlaySacrificeEffect(CombatantPortraitView target)
+        {
+            if (_effects?.SacrificeBurst == null)
+                yield break;
+
+            yield return target.PlayOverlayEffect(_effects.SacrificeBurst);
+        }
+
+        bool IsPlayerTeamActor(string combatantId)
+        {
+            var unit = _session?.Engine?.State?.GetCombatant(combatantId);
+            return unit != null && unit.Team == TeamSide.Player;
+        }
+
+        string GetCharacterDefinitionId(string combatantId)
+        {
+            var unit = _session?.Engine?.State?.GetCombatant(combatantId);
+            return unit?.CharacterDefinitionId ?? "";
+        }
+
+        IEnumerator HandleDamageBatch(IReadOnlyList<BattleEvent> batch, CardPlayContext card)
+        {
+            var overlayRoutines = new List<IEnumerator>();
+            foreach (var e in batch)
+            {
+                if (!IsTargetPresentationActive(e.TargetId))
+                    continue;
+
+                if (!_portraits.TryGetValue(e.TargetId, out _))
+                    continue;
+
+                overlayRoutines.Add(PlayDamageOverlayEffects(e));
+            }
+
+            if (overlayRoutines.Count > 0)
+                yield return RunParallel(overlayRoutines);
+
+            var reactionRoutines = new List<IEnumerator>();
+            foreach (var e in batch)
+            {
+                if (!IsTargetPresentationActive(e.TargetId))
+                    continue;
+
+                if (!_portraits.TryGetValue(e.TargetId, out var target))
+                    continue;
+
+                reactionRoutines.Add(PlayDamageReactionOnly(e, card, target));
+            }
+
+            if (reactionRoutines.Count > 0)
+                yield return RunParallel(reactionRoutines);
+        }
+
+        IEnumerator PlayDamageOverlayEffects(BattleEvent e)
+        {
+            if (!_portraits.TryGetValue(e.TargetId, out var target))
+                yield break;
+
+            if (e.IsSacrificeDamage)
+            {
+                yield return PlaySacrificeEffect(target);
+                yield break;
+            }
+
+            if (e.RespondMitigatedAmount > 0)
+                yield return PlayBlockingEffect(target);
+
+            if (e.Amount > 0 && IsPlayerTeamActor(e.CombatantId))
+            {
+                var actorDefId = GetCharacterDefinitionId(e.CombatantId);
+                var damageFx = BattleActionEffectResolver.ResolvePlayerDamage(_effects, actorDefId);
+                if (damageFx != null)
+                    yield return target.PlayOverlayEffect(damageFx);
+            }
+        }
+
+        IEnumerator PlayDamageReactionOnly(BattleEvent e, CardPlayContext card, CombatantPortraitView target)
+        {
             var retainCardPose = card != null && card.ActorId == e.TargetId;
             var blocked = e.BlockedAmount > 0;
             var hpDamage = e.Amount;
@@ -311,16 +462,103 @@ namespace Grimhand.Presentation.Battle
             }
         }
 
-        IEnumerator HandleStatusTick(BattleEvent e)
+        IEnumerator HandleDamageWaveGap(BattleEvent e)
         {
-            if (!IsTargetPresentationActive(e.CombatantId))
+            switch (e.Kind)
+            {
+                case BattleEventKind.CharacterDied:
+                    yield return HandleDeath(e);
+                    break;
+                case BattleEventKind.BlockGained:
+                    ApplySnapshotAfterBlockGain(e.CombatantId, e.Amount);
+                    break;
+                case BattleEventKind.HealApplied:
+                    ApplySnapshotAfterHeal(e.CombatantId, e.Amount);
+                    if (_portraits.TryGetValue(e.CombatantId, out var healed))
+                    {
+                        yield return PlayHealEffect(healed);
+                        healed.ShowHealNumber(e.Amount);
+                    }
+
+                    break;
+                case BattleEventKind.StatusApplied:
+                    yield return HandleStatusApplied(e);
+                    break;
+                default:
+                    yield break;
+            }
+        }
+
+        static (List<BattleEvent> damages, List<BattleEvent> gaps, int lastConsumed) CollectActorDamageWave(
+            IReadOnlyList<BattleEvent> events,
+            int startIndex)
+        {
+            var gaps = new List<BattleEvent>();
+            var batch = new List<BattleEvent> { events[startIndex] };
+            var actorId = events[startIndex].CombatantId;
+            var aoeWave = events[startIndex].IsAoEWave;
+            var lastConsumed = startIndex;
+
+            for (var j = startIndex + 1; j < events.Count; j++)
+            {
+                var next = events[j];
+                if (next.Kind == BattleEventKind.DamageApplied
+                    && next.CombatantId == actorId
+                    && (!aoeWave || next.IsAoEWave))
+                {
+                    batch.Add(next);
+                    lastConsumed = j;
+                    continue;
+                }
+
+                if (IsDamageWaveGapEvent(next.Kind, aoeWave))
+                {
+                    gaps.Add(next);
+                    lastConsumed = j;
+                    continue;
+                }
+
+                break;
+            }
+
+            return (batch, gaps, lastConsumed);
+        }
+
+        static bool IsDamageWaveGapEvent(BattleEventKind kind, bool aoeWave)
+        {
+            if (kind is BattleEventKind.CharacterDied
+                or BattleEventKind.BlockGained
+                or BattleEventKind.HealApplied
+                or BattleEventKind.StatusApplied
+                or BattleEventKind.DeckPolluted
+                or BattleEventKind.CardDrawn
+                or BattleEventKind.EnergyChanged
+                or BattleEventKind.ReactionTriggered)
+            {
+                return true;
+            }
+
+            return aoeWave && kind == BattleEventKind.CardDiscarded;
+        }
+
+        IEnumerator RunParallel(IReadOnlyList<IEnumerator> routines)
+        {
+            if (routines == null || routines.Count == 0)
                 yield break;
 
-            if (!_portraits.TryGetValue(e.CombatantId, out var target))
-                yield break;
+            var remaining = routines.Count;
+            foreach (var routine in routines)
+                StartCoroutine(RunRoutine(routine, () => remaining--));
 
-            ApplySnapshotAfterDamage(e.CombatantId, e.Amount);
-            yield return target.PlayHitReaction(e.Amount, useHitPose: false);
+            yield return new WaitUntil(() => remaining <= 0);
+        }
+
+        static IEnumerator RunRoutine(IEnumerator routine, System.Action onComplete)
+        {
+            if (routine != null)
+                yield return routine;
+
+            onComplete?.Invoke();
         }
 
         IEnumerator HandleParryCounter(BattleEvent e)

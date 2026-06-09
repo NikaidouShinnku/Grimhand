@@ -20,6 +20,7 @@ namespace Grimhand.Editor
             EnsureUiIconCatalog();
             EnsureCardVisualCatalog();
             AssignDemoCardRarities();
+            Grimhand.Content.Editor.BattleEffectArtBinder.BindBattleEffectsSilent();
             AssetDatabase.SaveAssets();
             EditorUtility.DisplayDialog(
                 "UI 美术目录已刷新",
@@ -56,6 +57,9 @@ namespace Grimhand.Editor
                 "Assets/The Grimhands Asset/path and background/unknown_path.png",
                 UnknownPathFullSpriteName);
             catalog.CaveBackground = LoadFirstSprite("Assets/The Grimhands Asset/path and background/cave_background.png");
+            catalog.ShopBackground = LoadFirstSprite("Assets/The Grimhands Asset/path and background/shop_background.png");
+            catalog.TreasureChestClosed = LoadFirstSprite("Assets/The Grimhands Asset/icon/treasure_chest_closed.png");
+            catalog.TreasureChestOpen = LoadFirstSprite("Assets/The Grimhands Asset/icon/treasure_chest_open.png");
 
             var paths = new System.Collections.Generic.List<Sprite>();
             for (var i = 1; i <= 5; i++)

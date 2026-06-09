@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1b7faba056c00e40af7e23af8145100, type: 3}
+  m_Name: BattleActionEffectCatalog_Demo
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.BattleActionEffectCatalogSO
+  WarriorDamage: {fileID: -2197445467391291454, guid: 257fa434c23478d499db50b4dc1dbb69, type: 3}
+  PharaohDamage: {fileID: -3335633833346279624, guid: 767ca96a80bddfb4c924cdec28655cd2, type: 3}
+  DevilDamage: {fileID: -4548166007503567599, guid: 816cd91626943be4e8f1921aab602abc, type: 3}
+  Blocking: {fileID: 1434721886603217514, guid: f78728bd61b9df64f9805d30daed7ed0, type: 3}
+  Healing: {fileID: -8793936362103082609, guid: 73fb002ad33f4ec4486106c10d896ce3, type: 3}
+  Poisoning: {fileID: 2342332266118351040, guid: 8d473d75aa365124c9f9909406a0f2ee, type: 3}
+  Burning: {fileID: 4247683407508846134, guid: 619a1dac6cf5d8c42b90cef4cda03fe6, type: 3}
+  SacrificeBurst: {fileID: -8178146784444117935, guid: 900a707d792e8f444a015a1079a428a0, type: 3}

@@ -16,12 +16,15 @@ namespace Grimhand.Battle.Model
         public int SacrificeHpCostReduction { get; set; }
         public int SacrificeStackAttackBonus { get; set; }
         public float HealBonusPercent { get; set; }
+        public float PharaohBlockGivenBonusPercent { get; set; }
+        public float SacrificeHpCostReductionPercent { get; set; }
         public int HealGrantsBlock { get; set; }
         public int StatusCardTeamBlock { get; set; }
         public float WarriorBlockChanceOnHit { get; set; }
         public int WarriorBlockAmountOnHit { get; set; }
         public int WarriorFirstHitBlockAmount { get; set; }
         public float WarriorTauntDamageReductionPercent { get; set; }
+        public float WarriorBlockDamageReductionPercent { get; set; }
         public float FirstAttackDamageBonusPercent { get; set; }
         public int FirstAttackFlatBonus { get; set; }
         public int FirstDefenseFlatBonus { get; set; }

@@ -274,6 +274,29 @@ namespace Grimhand.Presentation.Battle
             rt.anchoredPosition = Vector2.zero;
         }
 
+        public static void ConfigureForRewardPresentation(CardView view, float scale)
+        {
+            if (view == null)
+                return;
+
+            ApplyHandPresentationScaleCentered(view, scale);
+            view.EnsureDescriptionLayout();
+            if (view.statsText == null)
+                return;
+
+            view.statsText.fontSize = 15;
+            view.statsText.lineSpacing = 1f;
+            var rt = view.statsText.rectTransform;
+            rt.anchorMin = new Vector2(0f, 0f);
+            rt.anchorMax = new Vector2(1f, 0f);
+            rt.pivot = new Vector2(0.5f, 0f);
+            rt.offsetMin = new Vector2(8f, 14f);
+            rt.offsetMax = new Vector2(-8f, 98f);
+            view.statsText.alignment = TextAnchor.UpperCenter;
+            view.statsText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            view.statsText.verticalOverflow = VerticalWrapMode.Overflow;
+        }
+
         public static void ApplyHandPresentationScaleCentered(CardView view, float scale)
         {
             ApplyHandPresentationScale(view, scale);
@@ -342,7 +365,7 @@ namespace Grimhand.Presentation.Battle
             nameText.verticalOverflow = VerticalWrapMode.Truncate;
         }
 
-        void EnsureDescriptionLayout()
+        internal void EnsureDescriptionLayout()
         {
             if (statsText == null)
                 return;

@@ -19,6 +19,7 @@ namespace Grimhand.Expedition
         public HashSet<string> UsedEventIds { get; } = new();
         public HashSet<string> EventFlags { get; } = new();
         public List<string> ConsumableSlots { get; } = new();
+        public List<string> RunAcquisitionLog { get; } = new();
         public string PendingConsumableOfferId { get; set; } = "";
         public ExpeditionRunModifiers Modifiers { get; } = new();
         public ExpeditionMapState Map { get; set; }

@@ -54,13 +54,46 @@ namespace Grimhand.Expedition
                 Gold = gold
             };
 
-            if (RollPercent(rng, config.TreasureRelicChancePercent))
-                reward.RelicId = PickRandomRelicId(run.Relics, run, rng);
+            RollChestPrimaryReward(reward, config, run, rng);
 
-            if (RollPercent(rng, config.TreasureRelicChancePercent))
+            var consumableChance = config.TreasureConsumableChancePercent > 0
+                ? config.TreasureConsumableChancePercent
+                : 33;
+            if (RollPercent(rng, consumableChance))
                 reward.ConsumableId = PickRandomConsumableId(rng);
 
             return reward;
+        }
+
+        static void RollChestPrimaryReward(
+            ExpeditionRewardPickup reward,
+            ExpeditionConfig config,
+            ExpeditionRunState run,
+            BattleRng rng)
+        {
+            var cardChance = config.TreasureCardChancePercent > 0
+                ? config.TreasureCardChancePercent
+                : 60;
+
+            if (RollPercent(rng, cardChance))
+            {
+                TryRollCardReward(reward, run, config, rng);
+                if (!reward.HasCard)
+                    TryAssignRelicReward(reward, run, rng);
+            }
+            else
+            {
+                TryAssignRelicReward(reward, run, rng);
+                if (!reward.HasRelic)
+                    TryRollCardReward(reward, run, config, rng);
+            }
+        }
+
+        static void TryAssignRelicReward(ExpeditionRewardPickup reward, ExpeditionRunState run, BattleRng rng)
+        {
+            var relicId = PickRandomRelicId(run.Relics, run, rng);
+            if (!string.IsNullOrEmpty(relicId))
+                reward.RelicId = relicId;
         }
 
         public static ExpeditionNodeType RollRouteNodeType(ExpeditionConfig config, BattleRng rng)
@@ -169,31 +202,8 @@ namespace Grimhand.Expedition
             rewards.CardDisplayName = picked.DisplayName;
         }
 
-        static List<CardTemplate> CollectRewardCardTemplates(ExpeditionConfig config)
-        {
-            var result = new List<CardTemplate>();
-            var seen = new HashSet<string>();
-
-            foreach (var encounter in config.CombatEncounters)
-            {
-                foreach (var cc in encounter.Combatants)
-                {
-                    if (cc.Team != TeamSide.Player)
-                        continue;
-
-                    foreach (var template in cc.DeckTemplates)
-                    {
-                        if (string.IsNullOrEmpty(template.DefinitionId))
-                            continue;
-
-                        if (seen.Add(template.DefinitionId))
-                            result.Add(template);
-                    }
-                }
-            }
-
-            return result;
-        }
+        static List<CardTemplate> CollectRewardCardTemplates(ExpeditionConfig config) =>
+            ExpeditionCardPool.CollectPlayerCardTemplates(config);
 
         static bool IsDuplicateOwned(CardTemplate candidate, IReadOnlyList<CardTemplate> owned)
         {

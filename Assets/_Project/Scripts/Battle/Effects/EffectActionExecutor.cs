@@ -104,14 +104,22 @@ namespace Grimhand.Battle.Effects
                 {
                     var totalBlock = value + RelicBattleRules.GetOutgoingDefenseFlatBonus(
                         state.Config?.RunModifiers, actor);
+                    totalBlock = RelicBattleRules.ApplyPharaohBlockBonus(
+                        state.Config?.RunModifiers, actor, totalBlock);
                     DamageRules.ApplyBlock(beneficiary, totalBlock, events);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Defense, beneficiary.Id, false, 0);
                     break;
                 }
                 case EffectActionType.Heal:
-                    DamageRules.ApplyHeal(state, beneficiary, value, events, actor);
+                {
+                    var healAmount = action.HealMaxHpPercent > 0
+                        ? System.Math.Max(1, (int)System.Math.Round(
+                            beneficiary.MaxHp * action.HealMaxHpPercent / 100f))
+                        : value;
+                    DamageRules.ApplyHeal(state, beneficiary, healAmount, events, actor);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, beneficiary.Id, false, 0);
                     break;
+                }
                 case EffectActionType.ApplyStatus:
                     if (target != null)
                         StatusRules.ApplyStatus(state, target, action.StatusId, action.Stacks, action.Duration, events);
@@ -207,7 +215,8 @@ namespace Grimhand.Battle.Effects
                     rng: rng,
                     cardCost: card.Cost,
                     ignoreDefPercent: action.IgnoreDefPercent,
-                    sourceCardInstanceId: sourceCardInstanceId);
+                    sourceCardInstanceId: sourceCardInstanceId,
+                    isAoEWave: true);
 
                 if (state.LastAction.DamageAmount > 0)
                     totalLifesteal += state.LastAction.DamageAmount;
@@ -220,11 +229,7 @@ namespace Grimhand.Battle.Effects
                 lifestealPercent = CombatMechanicsRules.GetPendingLifestealPercent(actor);
 
             if (lifestealPercent > 0 && totalLifesteal > 0)
-            {
                 CombatMechanicsRules.ApplyLifesteal(state, actor, totalLifesteal, lifestealPercent, events);
-                if (action.LifestealPercent <= 0)
-                    CombatMechanicsRules.ConsumeVampAura(actor, events);
-            }
 
             if (action.OnKillHealAmount > 0 && anyKill)
                 DamageRules.ApplyHeal(state, actor, action.OnKillHealAmount, events, actor);
@@ -274,9 +279,6 @@ namespace Grimhand.Battle.Effects
             {
                 CombatMechanicsRules.ApplyLifesteal(
                     state, actor, state.LastAction.DamageAmount, lifestealPercent, events);
-
-                if (action.LifestealPercent <= 0)
-                    CombatMechanicsRules.ConsumeVampAura(actor, events);
             }
 
             if (action.OnKillHealAmount > 0 && state.LastAction.WasKill)

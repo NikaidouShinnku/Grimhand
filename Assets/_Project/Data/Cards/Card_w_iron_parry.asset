@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: Card_w_iron_parry
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: w_iron_parry
-  DisplayName: "\u94C1\u58C1\u5F39\u53CD"
+  DisplayName: "铁壁弹反"
   OwnerCharacterId: char_knight
   Cost: 2
   CardType: 1
-  Rarity: 0
+  Rarity: 1
   Keywords:
   - parry
   Actions:
@@ -41,6 +41,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
     LifestealPercent: 0
+    HealMaxHpPercent: 0
     OnKillHealAmount: 0
   - Type: 8
     Target: 4
@@ -62,6 +63,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
     LifestealPercent: 0
+    HealMaxHpPercent: 0
     OnKillHealAmount: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}

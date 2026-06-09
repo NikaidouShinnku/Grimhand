@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_d_vamp_aura
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: d_vamp_aura
-  DisplayName: "\u5438\u8840\u5149\u73AF"
+  DisplayName: "吸血光环"
   OwnerCharacterId: char_ranger
   Cost: 1
   CardType: 2
@@ -40,6 +40,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
     LifestealPercent: 0
+    HealMaxHpPercent: 0
     OnKillHealAmount: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}

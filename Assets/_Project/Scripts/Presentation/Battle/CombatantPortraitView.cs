@@ -19,12 +19,15 @@ namespace Grimhand.Presentation.Battle
         const float IdleFrameInterval = 0.2f;
         const float HitFlashDuration = 1f;
         const float DamageFloaterFontSize = 34f;
+        const float ActionEffectDuration = 0.55f;
+        const float ActionEffectAlpha = 0.6f;
 
         [SerializeField] RectTransform portraitRoot;
         [SerializeField] Image portraitImage;
 
         CharacterVisualCatalogSO _visuals;
         RectTransform _damageFloaterAnchor;
+        Image _actionEffectImage;
         string _characterDefinitionId;
         TeamSide _team;
         Sprite _referenceSprite;
@@ -271,6 +274,27 @@ namespace Grimhand.Presentation.Battle
             ShowDodge();
         }
 
+        public IEnumerator PlayOverlayEffect(Sprite sprite, float duration = ActionEffectDuration)
+        {
+            if (sprite == null)
+                yield break;
+
+            HideActionEffectImmediate();
+
+            EnsureActionEffectImage();
+            if (_actionEffectImage == null)
+                yield break;
+
+            _actionEffectImage.sprite = sprite;
+            _actionEffectImage.preserveAspect = true;
+            _actionEffectImage.color = new Color(1f, 1f, 1f, ActionEffectAlpha);
+            _actionEffectImage.gameObject.SetActive(true);
+            _actionEffectImage.transform.SetAsLastSibling();
+
+            yield return new WaitForSeconds(duration);
+            HideActionEffectImmediate();
+        }
+
         public IEnumerator PlayBlockedReaction(int blockedAmount = 0)
         {
             if (_isDead)
@@ -507,6 +531,38 @@ namespace Grimhand.Presentation.Battle
             var outline = go.AddComponent<Outline>();
             outline.effectColor = new Color(0f, 0f, 0f, 0.9f);
             outline.effectDistance = new Vector2(2f, -2f);
+        }
+
+        void EnsureActionEffectImage()
+        {
+            if (_actionEffectImage != null)
+                return;
+
+            var parent = portraitRoot != null ? portraitRoot : transform as RectTransform;
+            if (parent == null)
+                return;
+
+            var go = new GameObject("ActionEffect", typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = new Vector2(160f, 160f);
+
+            _actionEffectImage = go.GetComponent<Image>();
+            _actionEffectImage.raycastTarget = false;
+            _actionEffectImage.gameObject.SetActive(false);
+        }
+
+        void HideActionEffectImmediate()
+        {
+            if (_actionEffectImage == null)
+                return;
+
+            _actionEffectImage.gameObject.SetActive(false);
+            _actionEffectImage.sprite = null;
         }
 
         void ShowDamageNumber(int damage)

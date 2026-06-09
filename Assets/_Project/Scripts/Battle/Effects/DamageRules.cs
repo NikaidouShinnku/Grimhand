@@ -23,7 +23,8 @@ namespace Grimhand.Battle.Effects
             int cardCost = 0,
             int ignoreDefPercent = 0,
             bool redirectedByGuard = false,
-            int sourceCardInstanceId = 0)
+            int sourceCardInstanceId = 0,
+            bool isAoEWave = false)
         {
             if (target == null)
                 return;
@@ -59,8 +60,10 @@ namespace Grimhand.Battle.Effects
             hpDamage = RelicBattleRules.ApplyIncomingDamageRelics(
                 state, actor, recipient, hpDamage, rng, events);
 
+            var beforeRespondMitigation = hpDamage;
             hpDamage = RespondEffectExecutor.ApplyMitigation(
                 state, sourceCardInstanceId, recipient.Id, hpDamage);
+            var respondMitigated = beforeRespondMitigation - hpDamage;
 
             if (hpDamage > 0 && rng != null)
             {
@@ -99,7 +102,11 @@ namespace Grimhand.Battle.Effects
                 TargetId = recipient.Id,
                 Amount = hpDamage,
                 BlockedAmount = blocked,
-                CardType = cardType
+                RespondMitigatedAmount = respondMitigated,
+                IsSacrificeDamage = isSacrificeDamage,
+                IsAoEWave = isAoEWave,
+                CardType = cardType,
+                CardInstanceId = sourceCardInstanceId
             });
 
             state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Attack, recipient.Id, killed, hpDamage);

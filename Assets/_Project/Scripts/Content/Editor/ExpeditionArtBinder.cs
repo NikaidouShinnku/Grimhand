@@ -9,6 +9,7 @@ namespace Grimhand.Content.Editor
     {
         const string IconCatalogPath = "Assets/_Project/Data/BattleUiIconCatalog_Demo.asset";
         const string CaveBackgroundPath = "Assets/The Grimhands Asset/path and background/cave_background.png";
+        const string ShopBackgroundPath = "Assets/The Grimhands Asset/path and background/shop_background.png";
         const string NoteIconPath = "Assets/The Grimhands Asset/icon/note.png";
 
         static readonly string[] CavePathAssetPaths =
@@ -37,7 +38,10 @@ namespace Grimhand.Content.Editor
             }
 
             catalog.CaveBackground = LoadSprite(CaveBackgroundPath);
+            catalog.ShopBackground = LoadSprite(ShopBackgroundPath);
             catalog.NoteIcon = LoadSprite(NoteIconPath);
+            catalog.TreasureChestClosed = LoadSprite("Assets/The Grimhands Asset/icon/treasure_chest_closed.png");
+            catalog.TreasureChestOpen = LoadSprite("Assets/The Grimhands Asset/icon/treasure_chest_open.png");
 
             var paths = new Sprite[CavePathAssetPaths.Length];
             for (var i = 0; i < CavePathAssetPaths.Length; i++)

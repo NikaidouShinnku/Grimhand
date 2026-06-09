@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: Card_w_guardian
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: w_guardian
-  DisplayName: "\u8A93\u6B7B\u5B88\u62A4"
+  DisplayName: "誓死守护"
   OwnerCharacterId: char_knight
   Cost: 2
   CardType: 1
-  Rarity: 0
+  Rarity: 1
   Keywords: []
   Actions:
   - Type: 3
@@ -40,6 +40,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
     LifestealPercent: 0
+    HealMaxHpPercent: 0
     OnKillHealAmount: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}

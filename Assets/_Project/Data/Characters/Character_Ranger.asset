@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Character_Ranger
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
   CharacterId: char_ranger
-  DisplayName: "\u6076\u9B54"
+  DisplayName: "恶魔"
   Team: 0
   Slot: 3
   Level: 1

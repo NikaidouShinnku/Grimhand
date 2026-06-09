@@ -6,6 +6,7 @@ using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Battle
@@ -18,8 +19,13 @@ namespace Grimhand.Presentation.Battle
         const float DoorHeight = 360f;
         const float DoorSpacing = 300f;
         const float RewardCardScale = 0.68f;
+        const float ChestRewardCardScale = 0.92f;
         const float RewardCardSpacing = 180f;
         const float RewardIconSpacing = 140f;
+        const float ChestPanelWidth = 920f;
+        const float ChestPanelHeight = 560f;
+        const float DoorHoverScale = 1.12f;
+        const float ChestOpenArtAlpha = 0.8f;
 
         BattleSession _session;
         BattleUiIconCatalogSO _icons;
@@ -33,8 +39,14 @@ namespace Grimhand.Presentation.Battle
         RectTransform _rewardRow;
         RectTransform _doorRow;
         RectTransform _chestPanel;
+        RectTransform _chestClosedLayer;
+        Image _chestPanelBackground;
+        Image _chestOpenArtImage;
         Text _headerText;
         Button _skipVictoryButton;
+        Button _chestSkipButton;
+        bool _chestRevealed;
+        string _chestRewardKey = "";
         readonly List<Button> _rewardButtons = new();
         readonly List<Button> _doorButtons = new();
         bool _built;
@@ -86,8 +98,40 @@ namespace Grimhand.Presentation.Battle
             _rewardRow.gameObject.SetActive(phase == ExpeditionPhase.RewardPickup && !isChest);
             _doorRow.gameObject.SetActive(phase == ExpeditionPhase.RouteSelect);
             if (_skipVictoryButton != null)
-                _skipVictoryButton.gameObject.SetActive(
-                    phase == ExpeditionPhase.RewardPickup && HasRemainingRewards(rewards));
+            {
+                var showSkip = phase == ExpeditionPhase.RewardPickup && HasRemainingRewards(rewards);
+                _skipVictoryButton.gameObject.SetActive(showSkip && !isChest);
+                if (_chestSkipButton != null)
+                    _chestSkipButton.gameObject.SetActive(showSkip && isChest && _chestRevealed);
+            }
+
+            if (isChest)
+            {
+                var rewardKey = BuildChestRewardKey(rewards);
+                if (_chestRewardKey != rewardKey)
+                {
+                    _chestRewardKey = rewardKey;
+                    _chestRevealed = false;
+                }
+
+                if (!_chestRevealed)
+                    ResetChestOpenArt();
+            }
+            else
+            {
+                _chestRevealed = false;
+                _chestRewardKey = "";
+                ResetChestOpenArt();
+            }
+
+            if (_chestClosedLayer != null)
+                _chestClosedLayer.gameObject.SetActive(isChest && !_chestRevealed);
+
+            if (isChest && _chestPanel != null)
+                _chestPanel.SetAsLastSibling();
+
+            if (isChest && !_chestRevealed)
+                _headerText.text = "宝箱\n点击宝箱开启";
 
             if (phase == ExpeditionPhase.RewardPickup)
                 RefreshRewardPickup(isChest);
@@ -134,7 +178,7 @@ namespace Grimhand.Presentation.Battle
             _rewardRow.pivot = new Vector2(0.5f, 0.5f);
             _rewardRow.sizeDelta = new Vector2(720f, 280f);
 
-            _skipVictoryButton = CreateSkipVictoryButton(_root);
+            _skipVictoryButton = CreateSkipVictoryButton(_root, new Vector2(0.5f, 0.14f));
 
             var doorGo = new GameObject("DoorRow", typeof(RectTransform));
             doorGo.transform.SetParent(_root, false);
@@ -156,8 +200,12 @@ namespace Grimhand.Presentation.Battle
             rt.anchorMin = new Vector2(0.5f, 0.5f);
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.sizeDelta = new Vector2(520f, 280f);
-            panelGo.GetComponent<Image>().color = new Color(0.1f, 0.11f, 0.16f, 0.96f);
+            rt.sizeDelta = new Vector2(ChestPanelWidth, ChestPanelHeight);
+            _chestPanelBackground = panelGo.GetComponent<Image>();
+            _chestPanelBackground.color = new Color(0.1f, 0.11f, 0.16f, 0.96f);
+            _chestPanelBackground.raycastTarget = true;
+
+            _chestOpenArtImage = CreateChestOpenArt(panelGo.transform);
 
             var titleGo = new GameObject("Title", typeof(RectTransform), typeof(Text));
             titleGo.transform.SetParent(panelGo.transform, false);
@@ -168,20 +216,135 @@ namespace Grimhand.Presentation.Battle
             titleRt.anchoredPosition = new Vector2(0f, -16f);
             titleRt.sizeDelta = new Vector2(-24f, 40f);
             var title = titleGo.GetComponent<Text>();
-            StyleText(title, 24, TextAnchor.UpperCenter);
+            StyleText(title, 28, TextAnchor.UpperCenter);
             title.text = "宝箱";
 
             var rowGo = new GameObject("RewardRow", typeof(RectTransform));
             rowGo.transform.SetParent(panelGo.transform, false);
             var rowRt = rowGo.GetComponent<RectTransform>();
-            rowRt.anchorMin = new Vector2(0.5f, 0.5f);
-            rowRt.anchorMax = new Vector2(0.5f, 0.5f);
+            rowRt.anchorMin = new Vector2(0.5f, 0.56f);
+            rowRt.anchorMax = new Vector2(0.5f, 0.56f);
             rowRt.pivot = new Vector2(0.5f, 0.5f);
-            rowRt.sizeDelta = new Vector2(420f, 120f);
+            rowRt.sizeDelta = new Vector2(760f, 320f);
             rowGo.name = "ChestRewardRow";
+
+            _chestClosedLayer = BuildChestClosedLayer(rt);
+            _chestSkipButton = CreateSkipVictoryButton(rt, new Vector2(0.5f, 0.08f), "ChestSkipVictoryRewards");
 
             panelGo.SetActive(false);
             return rt;
+        }
+
+        static Image CreateChestOpenArt(Transform parent)
+        {
+            var go = new GameObject("ChestOpenArt", typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+            go.transform.SetAsFirstSibling();
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = new Vector2(0f, -12f);
+            rt.sizeDelta = new Vector2(ChestPanelWidth - 72f, ChestPanelHeight - 72f);
+
+            var image = go.GetComponent<Image>();
+            image.preserveAspect = true;
+            image.type = Image.Type.Simple;
+            image.raycastTarget = false;
+            image.gameObject.SetActive(false);
+            return image;
+        }
+
+        void ResetChestOpenArt()
+        {
+            if (_chestOpenArtImage != null)
+                _chestOpenArtImage.gameObject.SetActive(false);
+
+            if (_chestPanelBackground == null)
+                return;
+
+            _chestPanelBackground.sprite = null;
+            _chestPanelBackground.preserveAspect = false;
+            _chestPanelBackground.color = new Color(0.1f, 0.11f, 0.16f, 0.96f);
+        }
+
+        void ShowChestOpenArt()
+        {
+            if (_chestOpenArtImage == null)
+                return;
+
+            _chestOpenArtImage.sprite = _icons?.TreasureChestOpen;
+            _chestOpenArtImage.color = new Color(1f, 1f, 1f, ChestOpenArtAlpha);
+            _chestOpenArtImage.gameObject.SetActive(true);
+            _chestOpenArtImage.transform.SetAsFirstSibling();
+        }
+
+        RectTransform BuildChestClosedLayer(Transform parent)
+        {
+            var go = new GameObject("ChestClosedLayer", typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+
+            var dim = go.GetComponent<Image>();
+            dim.color = new Color(0.04f, 0.05f, 0.08f, 0.72f);
+            dim.raycastTarget = false;
+
+            var chestGo = new GameObject("ClosedChest", typeof(RectTransform), typeof(Image), typeof(Button));
+            chestGo.transform.SetParent(go.transform, false);
+            var chestRt = chestGo.GetComponent<RectTransform>();
+            chestRt.anchorMin = new Vector2(0.5f, 0.5f);
+            chestRt.anchorMax = new Vector2(0.5f, 0.5f);
+            chestRt.pivot = new Vector2(0.5f, 0.5f);
+            chestRt.sizeDelta = new Vector2(280f, 240f);
+            var chestImg = chestGo.GetComponent<Image>();
+            chestImg.sprite = _icons?.TreasureChestClosed;
+            chestImg.preserveAspect = true;
+            chestImg.color = Color.white;
+            chestImg.raycastTarget = true;
+
+            var hintGo = new GameObject("Hint", typeof(RectTransform), typeof(Text));
+            hintGo.transform.SetParent(go.transform, false);
+            var hintRt = hintGo.GetComponent<RectTransform>();
+            hintRt.anchorMin = new Vector2(0.5f, 0.18f);
+            hintRt.anchorMax = new Vector2(0.5f, 0.18f);
+            hintRt.pivot = new Vector2(0.5f, 0.5f);
+            hintRt.sizeDelta = new Vector2(520f, 40f);
+            var hint = hintGo.GetComponent<Text>();
+            StyleText(hint, 20, TextAnchor.MiddleCenter);
+            hint.text = "点击宝箱开启";
+
+            var btn = chestGo.GetComponent<Button>();
+            btn.targetGraphic = chestImg;
+            btn.transition = Selectable.Transition.None;
+            btn.onClick.AddListener(RevealChest);
+            WireHoverScale(chestRt, chestImg, DoorHoverScale, addOutline: true);
+            return rt;
+        }
+
+        void RevealChest()
+        {
+            _chestRevealed = true;
+            ShowChestOpenArt();
+
+            if (_chestClosedLayer != null)
+                _chestClosedLayer.gameObject.SetActive(false);
+
+            if (_chestSkipButton != null && _session?.Expedition?.Run?.PendingRewardPickup != null)
+                _chestSkipButton.gameObject.SetActive(HasRemainingRewards(_session.Expedition.Run.PendingRewardPickup));
+
+            RefreshRewardPickup(useChestPanel: true);
+        }
+
+        static string BuildChestRewardKey(ExpeditionRewardPickup rewards)
+        {
+            if (rewards == null)
+                return "";
+
+            return $"{rewards.Gold}|{rewards.RelicId}|{rewards.CardDefinitionId}|{rewards.ConsumableId}";
         }
 
         void RefreshRewardPickup(bool useChestPanel)
@@ -191,6 +354,9 @@ namespace Grimhand.Presentation.Battle
             var run = _session.Expedition.Run;
             var rewards = run.PendingRewardPickup;
             if (rewards == null)
+                return;
+
+            if (useChestPanel && !_chestRevealed)
                 return;
 
             if (rewards.Kind == RewardPickupKind.BattleVictory)
@@ -220,8 +386,9 @@ namespace Grimhand.Presentation.Battle
                     Destroy(child.gameObject);
             }
 
-            var x = useChestPanel ? -110f : -220f;
-            var spacing = useChestPanel ? RewardIconSpacing : RewardIconSpacing;
+            var x = useChestPanel ? -240f : -220f;
+            var spacing = useChestPanel ? RewardCardSpacing : RewardIconSpacing;
+            var cardScale = useChestPanel ? ChestRewardCardScale : RewardCardScale;
 
             if (rewards.HasGold && !rewards.GoldClaimed && !rewards.GoldSkipped)
             {
@@ -253,6 +420,7 @@ namespace Grimhand.Presentation.Battle
                     parent,
                     ref x,
                     spacing,
+                    cardScale,
                     rewards.CardDefinitionId,
                     rewards.CardOwnerCharacterId,
                     rewards.CardDisplayName,
@@ -335,19 +503,20 @@ namespace Grimhand.Presentation.Battle
             Transform parent,
             ref float x,
             float spacing,
+            float cardScale,
             string definitionId,
             string ownerCharacterId,
             string displayName,
             CardDefinitionSO definition,
             Action onClaim)
         {
-            var container = CreateRewardContainer(parent, new Vector2(x, 0f));
-            var btn = CreateCardRewardButton(container, Vector2.zero, definitionId, ownerCharacterId, displayName, definition, onClaim);
+            var container = CreateRewardContainer(parent, new Vector2(x, 0f), useChestPanel: cardScale >= ChestRewardCardScale - 0.01f);
+            var btn = CreateCardRewardButton(container, Vector2.zero, definitionId, ownerCharacterId, displayName, definition, onClaim, cardScale);
             _rewardButtons.Add(btn);
             x += spacing;
         }
 
-        static RectTransform CreateRewardContainer(Transform parent, Vector2 pos)
+        static RectTransform CreateRewardContainer(Transform parent, Vector2 pos, bool useChestPanel = false)
         {
             var go = new GameObject("RewardSlot", typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -356,7 +525,7 @@ namespace Grimhand.Presentation.Battle
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = pos;
-            rt.sizeDelta = new Vector2(148f, 160f);
+            rt.sizeDelta = useChestPanel ? new Vector2(220f, 300f) : new Vector2(148f, 160f);
             return rt;
         }
 
@@ -376,10 +545,11 @@ namespace Grimhand.Presentation.Battle
             {
                 var route = routes[i];
                 var index = i;
-                var sprite = PickPathSprite(route.PathSpriteIndex);
+                var isTreasure = route.NodeType == ExpeditionNodeType.Treasure;
+                var sprite = isTreasure ? _icons?.TreasureChestClosed : PickPathSprite(route.PathSpriteIndex);
                 var label = ExpeditionRoutePresentation.BuildDoorLabel(route);
 
-                var btn = CreateDoorButton(_doorRow, new Vector2(startX + i * spacing, 0f), sprite, label,
+                var btn = CreateDoorButton(_doorRow, new Vector2(startX + i * spacing, 0f), sprite, label, isTreasure,
                     () => _session.SelectRoute(index));
                 _doorButtons.Add(btn);
             }
@@ -436,7 +606,8 @@ namespace Grimhand.Presentation.Battle
             string ownerCharacterId,
             string displayName,
             CardDefinitionSO definition,
-            Action onClick)
+            Action onClick,
+            float cardScale = RewardCardScale)
         {
             if (_cardPrefab == null)
                 return CreateIconButton(parent, pos, 112f, null, displayName ?? definitionId, onClick);
@@ -448,7 +619,7 @@ namespace Grimhand.Presentation.Battle
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = pos;
-            rt.sizeDelta = new Vector2(168f * RewardCardScale, 236f * RewardCardScale);
+            rt.sizeDelta = new Vector2(168f * cardScale, 236f * cardScale);
 
             var cardView = Instantiate(_cardPrefab, rt);
             var cardRt = cardView.transform as RectTransform;
@@ -460,7 +631,7 @@ namespace Grimhand.Presentation.Battle
                 cardRt.anchoredPosition = Vector2.zero;
             }
 
-            CardView.ApplyHandPresentationScaleCentered(cardView, RewardCardScale);
+            CardView.ConfigureForRewardPresentation(cardView, cardScale);
 
             var preview = CardVisualResolver.CreatePreviewInstance(
                 definitionId,
@@ -507,16 +678,16 @@ namespace Grimhand.Presentation.Battle
                 canvasGroup.alpha = 1f;
         }
 
-        Button CreateSkipVictoryButton(RectTransform parent)
+        Button CreateSkipVictoryButton(RectTransform parent, Vector2 anchorY, string objectName = "SkipVictoryRewards")
         {
-            var go = new GameObject("SkipVictoryRewards", typeof(RectTransform), typeof(Image), typeof(Button));
+            var go = new GameObject(objectName, typeof(RectTransform), typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
             var rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0.5f, 0.42f);
-            rt.anchorMax = new Vector2(0.5f, 0.42f);
+            rt.anchorMin = anchorY;
+            rt.anchorMax = anchorY;
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = Vector2.zero;
-            rt.sizeDelta = new Vector2(320f, 44f);
+            rt.sizeDelta = new Vector2(360f, 52f);
 
             var image = go.GetComponent<Image>();
             image.color = new Color(0.22f, 0.24f, 0.32f, 0.96f);
@@ -666,7 +837,13 @@ namespace Grimhand.Presentation.Battle
                 _ => new Color(0.95f, 0.82f, 0.55f, 1f)
             };
 
-        Button CreateDoorButton(Transform parent, Vector2 pos, Sprite sprite, string label, Action onClick)
+        Button CreateDoorButton(
+            Transform parent,
+            Vector2 pos,
+            Sprite sprite,
+            string label,
+            bool isTreasure,
+            Action onClick)
         {
             var go = new GameObject("Door", typeof(RectTransform), typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
@@ -675,13 +852,15 @@ namespace Grimhand.Presentation.Battle
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = pos;
-            rt.sizeDelta = new Vector2(DoorWidth, DoorHeight);
+            rt.sizeDelta = isTreasure ? new Vector2(240f, 220f) : new Vector2(DoorWidth, DoorHeight);
 
             var img = go.GetComponent<Image>();
             img.sprite = sprite;
             img.preserveAspect = true;
             img.type = Image.Type.Simple;
             img.color = sprite != null ? Color.white : new Color(0.55f, 0.45f, 0.32f, 1f);
+
+            WireHoverScale(rt, img, DoorHoverScale, addOutline: true);
 
             var labelGo = new GameObject("Label", typeof(RectTransform), typeof(Text));
             labelGo.transform.SetParent(_doorRow, false);
@@ -790,6 +969,44 @@ namespace Grimhand.Presentation.Battle
             }
 
             buttons.Clear();
+        }
+
+        static void WireHoverScale(RectTransform rt, Graphic graphic, float hoverScale, bool addOutline = false)
+        {
+            if (rt == null)
+                return;
+
+            Outline outline = null;
+            if (addOutline && graphic != null)
+            {
+                outline = graphic.gameObject.GetComponent<Outline>();
+                if (outline == null)
+                    outline = graphic.gameObject.AddComponent<Outline>();
+                outline.effectColor = new Color(1f, 0.88f, 0.35f, 0f);
+                outline.effectDistance = new Vector2(2f, -2f);
+            }
+
+            var trigger = rt.gameObject.GetComponent<EventTrigger>();
+            if (trigger == null)
+                trigger = rt.gameObject.AddComponent<EventTrigger>();
+
+            var enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
+            enter.callback.AddListener(_ =>
+            {
+                rt.localScale = Vector3.one * hoverScale;
+                if (outline != null)
+                    outline.effectColor = new Color(1f, 0.88f, 0.35f, 0.95f);
+            });
+            trigger.triggers.Add(enter);
+
+            var exit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
+            exit.callback.AddListener(_ =>
+            {
+                rt.localScale = Vector3.one;
+                if (outline != null)
+                    outline.effectColor = new Color(1f, 0.88f, 0.35f, 0f);
+            });
+            trigger.triggers.Add(exit);
         }
 
         void SetVisible(bool visible)

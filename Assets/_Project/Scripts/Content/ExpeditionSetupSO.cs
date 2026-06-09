@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Grimhand.Battle.Model;
 using Grimhand.Expedition.Model;
 using UnityEngine;
 
@@ -40,9 +41,15 @@ namespace Grimhand.Content
         public int TreasureGoldMin = 20;
         public int TreasureGoldMax = 35;
         [Range(0, 100)] public int TreasureRelicChancePercent = 15;
+        [Tooltip("宝箱在「卡牌 / 遗物」二选一 roll 中，出卡牌的概率（默认 60%）。")]
+        [Range(0, 100)] public int TreasureCardChancePercent = 60;
+        [Range(0, 100)] public int TreasureConsumableChancePercent = 33;
 
         [Tooltip("普通战斗遭遇；Demo 可只填一张并复用。")]
         public List<BattleSetupSO> CombatEncounters = new();
+
+        [Tooltip("商店/奖励可 roll 的全部玩家卡牌（含非初始牌组）；留空则回退为遭遇配置中的初始牌。")]
+        public List<CardDefinitionSO> PlayerCardCatalog = new();
 
         public ExpeditionConfig ToExpeditionConfig()
         {
@@ -65,7 +72,9 @@ namespace Grimhand.Content
                 TreasureRouteWeight = TreasureRouteWeight,
                 TreasureGoldMin = TreasureGoldMin,
                 TreasureGoldMax = TreasureGoldMax,
-                TreasureRelicChancePercent = TreasureRelicChancePercent
+                TreasureRelicChancePercent = TreasureRelicChancePercent,
+                TreasureCardChancePercent = TreasureCardChancePercent,
+                TreasureConsumableChancePercent = TreasureConsumableChancePercent
             };
 
             foreach (var encounter in CombatEncounters)
@@ -74,6 +83,19 @@ namespace Grimhand.Content
                     continue;
 
                 config.CombatEncounters.Add(encounter.ToBattleConfig());
+            }
+
+            foreach (var card in PlayerCardCatalog)
+            {
+                if (card == null || string.IsNullOrEmpty(card.CardId))
+                    continue;
+
+                config.PlayerCardCatalog.Add(new CardTemplate
+                {
+                    DefinitionId = card.CardId,
+                    DisplayName = card.DisplayName,
+                    OwnerCharacterId = card.OwnerCharacterId
+                });
             }
 
             return config;

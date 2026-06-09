@@ -605,6 +605,7 @@ namespace Grimhand.Battle
                 BonusIfTargetHpBelowFlat = source.BonusIfTargetHpBelowFlat,
                 BonusIfTargetHitThisTurnPercent = source.BonusIfTargetHitThisTurnPercent,
                 LifestealPercent = source.LifestealPercent,
+                HealMaxHpPercent = source.HealMaxHpPercent,
                 OnKillHealAmount = source.OnKillHealAmount
             };
         }

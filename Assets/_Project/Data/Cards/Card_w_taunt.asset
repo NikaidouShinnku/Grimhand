@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: Card_w_taunt
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: w_taunt
-  DisplayName: "\u5632\u8BBD\u6311\u8845"
+  DisplayName: "嘲讽挑衅"
   OwnerCharacterId: char_knight
   Cost: 2
   CardType: 1
-  Rarity: 0
+  Rarity: 1
   Keywords: []
   Actions:
   - Type: 3
@@ -40,6 +40,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
     LifestealPercent: 0
+    HealMaxHpPercent: 0
     OnKillHealAmount: 0
   - Type: 1
     Target: 1
@@ -61,6 +62,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
     LifestealPercent: 0
+    HealMaxHpPercent: 0
     OnKillHealAmount: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}

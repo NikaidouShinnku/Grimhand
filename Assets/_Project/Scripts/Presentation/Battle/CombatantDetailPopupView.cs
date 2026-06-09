@@ -1,7 +1,9 @@
+using System.Collections.Generic;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
 using Grimhand.Content;
 using Grimhand.Expedition;
+using Grimhand.Expedition.Model;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -154,7 +156,13 @@ namespace Grimhand.Presentation.Battle
             }
         }
 
-        public void Refresh(CombatantState unit, BattleUiIconCatalogSO icons, bool showExpBar, int xp = 0)
+        public void Refresh(
+            CombatantState unit,
+            BattleUiIconCatalogSO icons,
+            bool showExpBar,
+            int xp = 0,
+            PartyMemberSnapshot expeditionMember = null,
+            IReadOnlyList<string> runRelics = null)
         {
             if (_bodyText == null)
                 return;
@@ -176,6 +184,23 @@ namespace Grimhand.Presentation.Battle
             if (!string.IsNullOrEmpty(status))
                 lines += $"\n状态 {status}";
 
+            if (expeditionMember != null && expeditionMember.BonusCards.Count > 0)
+            {
+                lines += "\n额外卡牌";
+                foreach (var card in expeditionMember.BonusCards)
+                    lines += $"\n· {card.DisplayName}";
+            }
+
+            if (runRelics != null && runRelics.Count > 0 && unit.Team == TeamSide.Player)
+            {
+                lines += "\n遗物";
+                foreach (var relicId in runRelics)
+                {
+                    if (RelicDatabase.TryGet(relicId, out var relic))
+                        lines += $"\n· {relic.DisplayName}";
+                }
+            }
+
             _bodyText.text = lines;
 
             if (_expRow != null)
@@ -192,7 +217,11 @@ namespace Grimhand.Presentation.Battle
             var lineCount = 2 + (string.IsNullOrEmpty(status) ? 0 : 1);
             if (showExp)
                 lineCount++;
-            _panel.sizeDelta = new Vector2(260f, 28f + lineCount * 22f);
+            if (expeditionMember != null)
+                lineCount += expeditionMember.BonusCards.Count > 0 ? 1 + expeditionMember.BonusCards.Count : 0;
+            if (runRelics != null && runRelics.Count > 0 && unit.Team == TeamSide.Player)
+                lineCount += 1 + runRelics.Count;
+            _panel.sizeDelta = new Vector2(280f, 28f + lineCount * 20f);
 
             if (_bodyText.rectTransform != null)
             {

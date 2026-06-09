@@ -54,21 +54,40 @@ namespace Grimhand.Presentation.Battle
             if (!_built || _bodyText == null || _session == null)
                 return;
 
+            var sb = new StringBuilder();
+
+            if (_session.IsExpeditionMode && _session.Expedition?.Run?.RunAcquisitionLog is { Count: > 0 } acquisitions)
+            {
+                sb.AppendLine("【远征获取】");
+                for (var i = 0; i < acquisitions.Count; i++)
+                    sb.AppendLine($"· {acquisitions[i]}");
+                sb.AppendLine();
+            }
+
+            if (_session.ConsumablesUsedThisBattle is { Count: > 0 } consumables)
+            {
+                sb.AppendLine("【本战消耗品】");
+                for (var i = 0; i < consumables.Count; i++)
+                    sb.AppendLine($"· {consumables[i]}");
+                sb.AppendLine();
+            }
+
             var lines = _session.TurnLog.LastRound;
             if (lines == null || lines.Count == 0)
             {
-                _bodyText.text = "暂无战斗明细。\n出牌结算后可在此查看（最多保留 40 条）。";
+                if (sb.Length == 0)
+                    sb.AppendLine("暂无战斗明细。\n出牌结算后可在此查看（最多保留 40 条）。");
+                else
+                    sb.AppendLine("【战斗明细】\n（本回合暂无出牌记录）");
             }
             else
             {
-                var sb = new StringBuilder();
                 sb.AppendLine("【战斗明细】");
                 for (var i = 0; i < lines.Count; i++)
                     sb.AppendLine($"{i + 1}. {lines[i]}");
-
-                _bodyText.text = sb.ToString();
             }
 
+            _bodyText.text = sb.ToString();
             ResizeBody();
         }
 

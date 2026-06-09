@@ -31,6 +31,7 @@ namespace Grimhand.Presentation.Battle
 
         RectTransform _root;
         RectTransform _grid;
+        Image _panelBackground;
         Text _titleText;
         Text _goldText;
         Text _messageText;
@@ -357,7 +358,8 @@ namespace Grimhand.Presentation.Battle
             panelRt.anchorMax = new Vector2(0.98f, 0.97f);
             panelRt.offsetMin = Vector2.zero;
             panelRt.offsetMax = Vector2.zero;
-            panelGo.GetComponent<Image>().color = new Color(0.09f, 0.1f, 0.14f, 0.98f);
+            _panelBackground = panelGo.GetComponent<Image>();
+            ApplyPanelBackground();
 
             _titleText = CreateText(panelGo.transform, "Title", new Vector2(0.04f, 0.91f), new Vector2(0.96f, 0.99f), 42,
                 TextAnchor.MiddleCenter);
@@ -390,6 +392,25 @@ namespace Grimhand.Presentation.Battle
 
             _tooltip = overlayGo.AddComponent<InventoryTooltipView>();
             _tooltip.Initialize(_root);
+        }
+
+        void ApplyPanelBackground()
+        {
+            if (_panelBackground == null)
+                return;
+
+            var sprite = _icons?.ShopBackground;
+            if (sprite != null)
+            {
+                _panelBackground.sprite = sprite;
+                _panelBackground.color = Color.white;
+                _panelBackground.type = Image.Type.Simple;
+                _panelBackground.preserveAspect = false;
+                return;
+            }
+
+            _panelBackground.sprite = null;
+            _panelBackground.color = new Color(0.09f, 0.1f, 0.14f, 0.98f);
         }
 
         static Button CreateFooterButton(Transform parent, string name, Vector2 pos, string fallbackLabel, Sprite icon)

@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: Card_d_hell_fire
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: d_hell_fire
-  DisplayName: "\u5730\u72F1\u70C8\u7130"
+  DisplayName: "地狱烈焰"
   OwnerCharacterId: char_ranger
   Cost: 3
   CardType: 0
-  Rarity: 0
+  Rarity: 1
   Keywords:
   - aoe
   - sacrifice
@@ -42,6 +42,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
     LifestealPercent: 0
+    HealMaxHpPercent: 0
     OnKillHealAmount: 0
   - Type: 0
     Target: 12
@@ -56,13 +57,14 @@ MonoBehaviour:
     Condition: 0
     Reach: 0
     SplashBehindTarget: 0
-    SplashPowerPercent: 100
+    SplashPowerPercent: 80
     BackRowPowerPercent: 100
     IgnoreDefPercent: 0
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
     LifestealPercent: 0
+    HealMaxHpPercent: 0
     OnKillHealAmount: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}

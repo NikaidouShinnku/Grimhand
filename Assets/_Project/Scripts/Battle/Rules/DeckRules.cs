@@ -16,7 +16,27 @@ namespace Grimhand.Battle.Rules
                 (pile[i], pile[j]) = (pile[j], pile[i]);
             }
 
+            if (team == TeamSide.Player)
+                PinPriorityDrawCards(pile);
+
             events.Add(new BattleEvent(BattleEventKind.DeckShuffled, $"{team} draw pile shuffled"));
+        }
+
+        static void PinPriorityDrawCards(List<CardInstanceState> pile)
+        {
+            if (pile == null || pile.Count <= 1)
+                return;
+
+            for (var i = 0; i < pile.Count; i++)
+            {
+                if (pile[i].DefinitionId != TestCardIds.AuthorRealmStrike)
+                    continue;
+
+                var card = pile[i];
+                pile.RemoveAt(i);
+                pile.Insert(0, card);
+                return;
+            }
         }
 
         public static void ReshuffleDiscardIntoDraw(BattleState state, TeamSide team, BattleRng rng, List<BattleEvent> events)

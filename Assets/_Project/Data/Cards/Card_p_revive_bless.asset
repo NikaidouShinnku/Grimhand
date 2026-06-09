@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: Card_p_revive_bless
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: p_revive_bless
-  DisplayName: "\u590D\u6D3B\u795D\u798F"
+  DisplayName: "复活祝福"
   OwnerCharacterId: char_mage
   Cost: 3
   CardType: 2
-  Rarity: 0
+  Rarity: 2
   Keywords:
   - exhaust
   Actions:
@@ -41,6 +41,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
     LifestealPercent: 0
+    HealMaxHpPercent: 0
     OnKillHealAmount: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}

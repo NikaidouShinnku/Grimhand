@@ -17,11 +17,13 @@ namespace Grimhand.Presentation.Battle
     {
         readonly List<string> _log = new();
         readonly BattleTurnLogRecorder _turnLog = new();
+        readonly List<string> _consumablesUsedThisBattle = new();
 
         public BattleEngine Engine { get; private set; }
         public ExpeditionEngine Expedition { get; private set; }
         public bool IsExpeditionMode => Expedition != null;
         public IReadOnlyList<string> Log => _log;
+        public IReadOnlyList<string> ConsumablesUsedThisBattle => _consumablesUsedThisBattle;
         public BattleTurnLogRecorder TurnLog => _turnLog;
 
         bool _battleEndHandled;
@@ -110,6 +112,7 @@ namespace Grimhand.Presentation.Battle
             Engine = new BattleEngine(config);
             _log.Clear();
             _turnLog.Reset();
+            _consumablesUsedThisBattle.Clear();
             Engine.StartBattle();
             DrainEvents();
             AddLog($"战斗开始 — 种子 {config.Seed}");
@@ -124,6 +127,7 @@ namespace Grimhand.Presentation.Battle
             DrainEvents();
             _battleEndHandled = false;
             _turnLog.Reset();
+            _consumablesUsedThisBattle.Clear();
             AddLog($"第 {Expedition.CurrentBattleNumber}/{Expedition.Run.TargetBattleCount} 场 — 种子 {config.Seed}");
             AddLog("队伍 HP: " + BattleUiFormatters.FormatPartyHpLine(Expedition.Run.Party));
             NotifyChanged();
@@ -653,6 +657,13 @@ namespace Grimhand.Presentation.Battle
         {
             if (Engine != null)
                 _turnLog.Feed(e, Engine.State);
+
+            if (e.Kind == BattleEventKind.ConsumableUsed)
+            {
+                var label = string.IsNullOrEmpty(e.Message) ? "消耗品" : e.Message;
+                if (!_consumablesUsedThisBattle.Contains(label))
+                    _consumablesUsedThisBattle.Add(label);
+            }
 
             switch (e.Kind)
             {

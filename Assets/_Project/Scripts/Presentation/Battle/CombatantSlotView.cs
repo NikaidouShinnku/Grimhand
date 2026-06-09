@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
 using Grimhand.Content;
 using Grimhand.Expedition;
+using Grimhand.Expedition.Model;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -52,6 +54,7 @@ namespace Grimhand.Presentation.Battle
         CombatantPortraitView _portraitView;
         CombatantState _currentUnit;
         BattleUiIconCatalogSO _currentIcons;
+        BattleSession _session;
 
         string _combatantId;
         bool _hovered;
@@ -400,11 +403,13 @@ namespace Grimhand.Presentation.Battle
             CharacterVisualCatalogSO visuals,
             BattleUiIconCatalogSO uiIcons,
             PresentationSnapshot presentation = null,
-            bool showExpBar = false)
+            bool showExpBar = false,
+            BattleSession session = null)
         {
             var unit = FindCombatant(state);
             _currentUnit = unit;
             _currentIcons = uiIcons;
+            _session = session;
             _combatantId = unit?.Id;
             _targetMode = targetMode;
 
@@ -508,14 +513,16 @@ namespace Grimhand.Presentation.Battle
             }
 
             var xp = unit?.Xp ?? 0;
+            ResolveExpeditionDetailContextFromSession(session, unit, out var expeditionMember, out var runRelics);
+
             if (!_hovered)
             {
-                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp);
+                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp, expeditionMember, runRelics);
                 _detailPopup?.SetVisible(false);
             }
             else if (!_targetMode || !_isValidTarget)
             {
-                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp);
+                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp, expeditionMember, runRelics);
                 _detailPopup?.SetVisible(unit != null);
             }
             else
@@ -622,8 +629,34 @@ namespace Grimhand.Presentation.Battle
                 _hoverPreviewEnter?.Invoke(_currentUnit);
             else if (!_targetMode || !_isValidTarget)
             {
-                _detailPopup?.Refresh(_currentUnit, _currentIcons, _showExpBar, _currentUnit.Xp);
+                ResolveExpeditionDetailContext(out var member, out var relics);
+                _detailPopup?.Refresh(_currentUnit, _currentIcons, _showExpBar, _currentUnit.Xp, member, relics);
                 _detailPopup?.SetVisible(true);
+            }
+        }
+
+        void ResolveExpeditionDetailContext(out PartyMemberSnapshot member, out IReadOnlyList<string> relics) =>
+            ResolveExpeditionDetailContextFromSession(_session, _currentUnit, out member, out relics);
+
+        static void ResolveExpeditionDetailContextFromSession(
+            BattleSession session,
+            CombatantState unit,
+            out PartyMemberSnapshot member,
+            out IReadOnlyList<string> relics)
+        {
+            member = null;
+            relics = null;
+            if (session?.IsExpeditionMode != true || unit == null || unit.Team != TeamSide.Player)
+                return;
+
+            relics = session.Expedition.Run.Relics;
+            foreach (var partyMember in session.Expedition.Run.Party)
+            {
+                if (partyMember.CharacterDefinitionId == unit.CharacterDefinitionId)
+                {
+                    member = partyMember;
+                    break;
+                }
             }
         }
 

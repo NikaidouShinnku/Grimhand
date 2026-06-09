@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Character_Knight
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
   CharacterId: char_knight
-  DisplayName: "\u6218\u58EB"
+  DisplayName: "战士"
   Team: 0
   Slot: 1
   Level: 1
@@ -22,14 +22,15 @@ MonoBehaviour:
   BaseDefense: 6
   Speed: 7
   Deck:
+  - {fileID: 11400000, guid: a7f3c2e1b4d64980a1e2f3c4d5b6a798, type: 2}
   - {fileID: 11400000, guid: 844da30287e5467395dcbbbd4888b2dd, type: 2}
   - {fileID: 11400000, guid: 844da30287e5467395dcbbbd4888b2dd, type: 2}
   - {fileID: 11400000, guid: 844da30287e5467395dcbbbd4888b2dd, type: 2}
   - {fileID: 11400000, guid: 1a8c6acca3ec45b8a74753b378427b00, type: 2}
   - {fileID: 11400000, guid: 1a8c6acca3ec45b8a74753b378427b00, type: 2}
   - {fileID: 11400000, guid: 1f2de0268abb485d91839453f5a82c72, type: 2}
-  - {fileID: 11400000, guid: 55a69b17b1054fbe8c3bed098ccef5a4, type: 2}
   - {fileID: 11400000, guid: 4c6abdc96a944cd1980eb53292202ef2, type: 2}
+  - {fileID: 11400000, guid: 55a69b17b1054fbe8c3bed098ccef5a4, type: 2}
   SkillPool: []
   EnemyRandomDeckSize: 8
   EnemySkillPickMin: 2

@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: Card_d_blood_tail
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: d_blood_tail
-  DisplayName: "\u8840\u5C3E\u8D2F\u7A7F"
+  DisplayName: "血尾贯穿"
   OwnerCharacterId: char_ranger
   Cost: 2
   CardType: 0
-  Rarity: 0
+  Rarity: 1
   Keywords: []
   Actions:
   - Type: 0
@@ -40,6 +40,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
     LifestealPercent: 0
+    HealMaxHpPercent: 0
     OnKillHealAmount: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}

@@ -59,15 +59,15 @@ namespace Grimhand.Expedition
             switch (relic.SpecialFlag)
             {
                 case "pharaoh_only":
-                    mods.HealBonusPercent += 30f;
+                    mods.PharaohBlockGivenBonusPercent += 33f;
                     mods.StatusCardTeamBlock += 3;
                     break;
                 case "warrior_only":
                     mods.WarriorFirstHitBlockAmount += 8;
-                    mods.WarriorTauntDamageReductionPercent += 20f;
+                    mods.WarriorBlockDamageReductionPercent += 20f;
                     break;
                 case "demon_only":
-                    mods.SacrificeHpCostReduction += 3;
+                    mods.SacrificeHpCostReductionPercent += 15f;
                     mods.SacrificeStackAttackBonus += 1;
                     break;
                 case "front_armor_10":
@@ -144,13 +144,13 @@ namespace Grimhand.Expedition
             var list = new[]
             {
                 Def(RelicIds.SunPyramid, "太阳金字塔", RelicRarity.Rare, "法老专属",
-                    "法老治疗效果+30%。法老每次施放状态类卡牌时，全队获得3点护甲。",
+                    "法老给予的护甲量+33%。法老每次施放状态类卡牌时，全队获得3点护甲。",
                     "pharaoh_only", requiredCharacterId: "char_mage"),
                 Def(RelicIds.KnightInCastle, "城堡骑士", RelicRarity.Rare, "战士专属",
-                    "战士嘲讽期间受到的伤害额外减少20%。战士每回合首次被攻击时自动获得8点护甲。",
+                    "战士拥有护甲期间受到的伤害减少20%。战士每回合首次被攻击时自动获得8点护甲。",
                     "warrior_only", requiredCharacterId: "char_knight"),
                 Def(RelicIds.BloodAlter, "血祭坛", RelicRarity.Rare, "恶魔专属",
-                    "恶魔使用献祭类卡牌时HP消耗减少3点。每次献祭后本场战斗ATK+1（可叠加，战斗结束重置）。",
+                    "恶魔使用献祭类卡牌时，献祭的HP消耗减少15%。每次献祭后本场战斗ATK+1（可叠加，战斗结束重置）。",
                     "demon_only", requiredCharacterId: "char_ranger"),
                 Def(RelicIds.JadeStone, "翡翠原石", RelicRarity.Common, "翡翠系列",
                     "每回合开始时随机1名队友获得2点护甲。",
@@ -177,7 +177,7 @@ namespace Grimhand.Expedition
                     "全队HP+8。角色被攻击后，该角色下一次攻击伤害+4。",
                     "revenge_atk_4", hp: 8),
                 Def(RelicIds.CatStatue, "猫灵雕像", RelicRarity.Common, "通用",
-                    "每场战斗开始时额外抽1张牌（首回合6张手牌）。",
+                    "每场战斗开始时额外抽1张牌（首回合手牌变为6张）。每次远征中，有1次机会在抽到污染的牌时将其替换为随机可用牌。",
                     "extra_draw_1"),
                 Def(RelicIds.ElfBow, "精灵之弓", RelicRarity.Common, "通用",
                     "后排角色的攻击类卡牌可指定攻击敌方任意位置目标（无视敌方位置优先级）。",
@@ -186,13 +186,13 @@ namespace Grimhand.Expedition
                     "全队ATK+3。任何角色打出费用>=3的卡牌时，该卡伤害额外+15%。",
                     "cost3_plus_15pct", atk: 3),
                 Def(RelicIds.PaladinShield, "圣骑之盾", RelicRarity.Rare, "通用",
-                    "全队DEF+3。每回合每个角色首次受伤减少30%（每人每回合各触发1次）。",
+                    "全队DEF+3。每回合第一个受到伤害的角色，受伤减少30%。",
                     "first_hit_minus_30pct", def: 3),
                 Def(RelicIds.SilverMoonPendant, "银月项链", RelicRarity.Rare, "通用",
-                    "每回合结束时回复全队2HP。所有增益/减益状态持续+1回合。",
+                    "每回合结束时回复全队2HP。所有增益/减益状态持续时间+1回合（含中毒、灼烧等）。",
                     "heal_2_per_turn"),
                 Def(RelicIds.TaichiRing, "太极指环", RelicRarity.Rare, "通用",
-                    "每回合每个角色：第一张攻击牌伤害+5，第一张防御牌护甲+5。同一角色本回合既攻又防则回复5HP。",
+                    "每回合中，每个角色打出的第一张攻击牌伤害+5，第一张防御牌获得5护甲。若同一角色本回合既出了攻击又出了防御，该角色在回合结束时回复5HP。",
                     "first_atk_5_first_def_5_both_heal_5"),
                 Def(RelicIds.LeafOfMiracle, "奇迹之叶", RelicRarity.Epic, "通用",
                     "每次远征限2次：队友HP降至0时不死亡，恢复20%HP并获得无敌1回合。",

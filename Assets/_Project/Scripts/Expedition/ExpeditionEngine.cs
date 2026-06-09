@@ -506,6 +506,9 @@ namespace Grimhand.Expedition
 
             _run.Relics.Add(relicId);
 
+            if (RelicDatabase.TryGet(relicId, out var relic))
+                RecordRunAcquisition($"获得遗物：{relic.DisplayName}");
+
             if (relicId == RelicIds.LeafOfMiracle && _run.MiracleLeafUsesRemaining < 0)
                 _run.MiracleLeafUsesRemaining = 2;
 
@@ -679,11 +682,28 @@ namespace Grimhand.Expedition
                 return false;
 
             targetMember.BonusCards.Add(template);
+            RecordRunAcquisition($"获得卡牌：{template.DisplayName}（{targetMember.DisplayName}）");
             return true;
+        }
+
+        void RecordRunAcquisition(string line)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+                return;
+
+            _run.RunAcquisitionLog.Add(line);
+            while (_run.RunAcquisitionLog.Count > 40)
+                _run.RunAcquisitionLog.RemoveAt(0);
         }
 
         CardTemplate FindCardTemplate(string definitionId)
         {
+            foreach (var template in _config.PlayerCardCatalog)
+            {
+                if (template.DefinitionId == definitionId)
+                    return template;
+            }
+
             foreach (var encounter in _config.CombatEncounters)
             {
                 foreach (var cc in encounter.Combatants)

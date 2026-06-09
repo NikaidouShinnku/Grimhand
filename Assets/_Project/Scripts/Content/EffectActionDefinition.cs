@@ -26,6 +26,7 @@ namespace Grimhand.Content
         public int BonusIfTargetHpBelowFlat;
         public int BonusIfTargetHitThisTurnPercent;
         public int LifestealPercent;
+        public int HealMaxHpPercent;
         public int OnKillHealAmount;
 
         public EffectActionSpec ToSpec()
@@ -52,6 +53,7 @@ namespace Grimhand.Content
                 BonusIfTargetHpBelowFlat = BonusIfTargetHpBelowFlat,
                 BonusIfTargetHitThisTurnPercent = BonusIfTargetHitThisTurnPercent,
                 LifestealPercent = LifestealPercent,
+                HealMaxHpPercent = HealMaxHpPercent,
                 OnKillHealAmount = OnKillHealAmount
             };
         }
@@ -80,6 +82,7 @@ namespace Grimhand.Content
                 BonusIfTargetHpBelowFlat = spec.BonusIfTargetHpBelowFlat,
                 BonusIfTargetHitThisTurnPercent = spec.BonusIfTargetHitThisTurnPercent,
                 LifestealPercent = spec.LifestealPercent,
+                HealMaxHpPercent = spec.HealMaxHpPercent,
                 OnKillHealAmount = spec.OnKillHealAmount
             };
         }

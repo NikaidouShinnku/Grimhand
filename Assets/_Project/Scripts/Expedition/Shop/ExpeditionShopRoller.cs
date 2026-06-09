@@ -161,31 +161,8 @@ namespace Grimhand.Expedition.Shop
             };
         }
 
-        static List<CardTemplate> CollectShopCardTemplates(ExpeditionConfig config)
-        {
-            var result = new List<CardTemplate>();
-            var seen = new HashSet<string>();
-
-            foreach (var encounter in config.CombatEncounters)
-            {
-                foreach (var cc in encounter.Combatants)
-                {
-                    if (cc.Team != TeamSide.Player)
-                        continue;
-
-                    foreach (var template in cc.DeckTemplates)
-                    {
-                        if (string.IsNullOrEmpty(template.DefinitionId))
-                            continue;
-
-                        if (seen.Add(template.DefinitionId))
-                            result.Add(template);
-                    }
-                }
-            }
-
-            return result;
-        }
+        static List<CardTemplate> CollectShopCardTemplates(ExpeditionConfig config) =>
+            ExpeditionCardPool.CollectPlayerCardTemplates(config);
 
         static bool IsDuplicateOwned(CardTemplate candidate, ExpeditionRunState run)
         {

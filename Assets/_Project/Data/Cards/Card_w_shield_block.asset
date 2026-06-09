@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_w_shield_block
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: w_shield_block
-  DisplayName: "\u4E3E\u76FE\u683C\u6321"
+  DisplayName: "举盾格挡"
   OwnerCharacterId: char_knight
   Cost: 1
   CardType: 1
@@ -40,6 +40,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
     LifestealPercent: 0
+    HealMaxHpPercent: 0
     OnKillHealAmount: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}

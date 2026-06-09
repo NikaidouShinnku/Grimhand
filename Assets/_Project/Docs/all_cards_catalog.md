@@ -37,7 +37,7 @@
 | 21 | `p_solar_judgment` | 太阳审判 | 4 | Attack | — | 对默认敌人造成攻击×200%+10伤害；任意站位 | `Card_p_solar_judgment.asset` |
 | 22 | `d_devil_touch` | 恶魔之触 | 1 | Attack | — | 对默认敌人造成攻击×50%+4伤害；吸血100% | `Card_d_devil_touch.asset` |
 | 23 | `d_shadow_claw` | 暗影爪击 | 1 | Attack | — | 对默认敌人造成攻击×80%+5伤害 | `Card_d_shadow_claw.asset` |
-| 24 | `d_vamp_aura` | 吸血光环 | 1 | Status | — | 对自身施加状态「vamp_aura」×30，1回合 | `Card_d_vamp_aura.asset` |
+| 24 | `d_vamp_aura` | 吸血光环 | 1 | Status | — | 直到本回合结束，攻击回复造成伤害 30% 的生命 | `Card_d_vamp_aura.asset` |
 | 25 | `d_blood_flame` | 血焰爆发 | 2 | Attack | sacrifice | 对自身造成8点伤害 → 对默认敌人造成攻击×130%+10伤害 | `Card_d_blood_flame.asset` |
 | 26 | `d_blood_tail` | 血尾贯穿 | 2 | Attack | — | 对默认敌人造成攻击×100%+5伤害；后方溅射80% | `Card_d_blood_tail.asset` |
 | 27 | `d_curse_chain` | 诅咒之链 | 2 | Attack | — | 对默认敌人造成攻击×100%+5伤害；任意站位 → 对默认敌人施加状态「attack_down」×3，2回合 | `Card_d_curse_chain.asset` |

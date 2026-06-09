@@ -1,0 +1,17 @@
+using UnityEngine;
+
+namespace Grimhand.Content
+{
+    [CreateAssetMenu(fileName = "BattleActionEffectCatalog", menuName = "Grimhand/Battle Action Effect Catalog")]
+    public sealed class BattleActionEffectCatalogSO : ScriptableObject
+    {
+        public Sprite WarriorDamage;
+        public Sprite PharaohDamage;
+        public Sprite DevilDamage;
+        public Sprite Blocking;
+        public Sprite Healing;
+        public Sprite Poisoning;
+        public Sprite Burning;
+        public Sprite SacrificeBurst;
+    }
+}

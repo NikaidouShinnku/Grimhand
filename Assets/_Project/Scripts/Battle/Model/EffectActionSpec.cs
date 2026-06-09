@@ -45,6 +45,9 @@ namespace Grimhand.Battle.Model
         /// <summary>造成伤害后，按实际伤害回复生命的百分比。</summary>
         public int LifestealPercent { get; set; }
 
+        /// <summary>按目标 MaxHP 百分比治疗（忽略 Value 与攻击缩放）。</summary>
+        public int HealMaxHpPercent { get; set; }
+
         /// <summary>击杀目标后，施法者回复的 HP。</summary>
         public int OnKillHealAmount { get; set; }
     }

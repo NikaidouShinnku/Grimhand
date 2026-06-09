@@ -71,6 +71,8 @@ namespace Grimhand.Content.Editor
 
             ExpeditionArtBinder.BindExpeditionArtSilent();
             RelicArtBinder.BindRelicArtSilent();
+            BattleEffectArtBinder.BindBattleEffectsSilent();
+            PlayerCardCatalogBinder.BindPlayerCardCatalogSilent();
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -163,6 +165,9 @@ namespace Grimhand.Content.Editor
                 AssignObjectReference(screenSo, "battleSetup", setup);
                 AssignObjectReference(screenSo, "expeditionSetup", expedition);
                 AssignObjectReference(screenSo, "relicVisualCatalog", relicCatalog);
+                AssignObjectReference(screenSo, "actionEffectCatalog",
+                    AssetDatabase.LoadAssetAtPath<BattleActionEffectCatalogSO>(
+                        BattleEffectArtBinder.CatalogPath));
                 screenSo.ApplyModifiedPropertiesWithoutUndo();
                 EditorUtility.SetDirty(screenController);
             }

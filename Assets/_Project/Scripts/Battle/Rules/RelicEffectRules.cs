@@ -36,6 +36,8 @@ namespace Grimhand.Battle.Rules
                 return;
 
             var mods = state.Config?.RunModifiers;
+            state.TeamFirstHitReductionPending = mods != null && mods.FirstHitDamageReductionPercent > 0f;
+
             foreach (var c in state.Combatants)
             {
                 ResetTurnFlags(c);
@@ -93,7 +95,8 @@ namespace Grimhand.Battle.Rules
                         $"赤红烈焰靴 -> {enemy.DisplayName}")
                     {
                         TargetId = enemy.Id,
-                        Amount = dealt
+                        Amount = dealt,
+                        IsAoEWave = true
                     });
 
                     if (!enemy.IsAlive)
@@ -136,13 +139,15 @@ namespace Grimhand.Battle.Rules
             CombatantState actor,
             int rawDamage)
         {
-            if (mods == null || actor == null || mods.SacrificeHpCostReduction <= 0)
+            if (mods == null || actor == null || mods.SacrificeHpCostReductionPercent <= 0)
                 return rawDamage;
 
             if (actor.CharacterDefinitionId != DemonCharacterId)
                 return rawDamage;
 
-            return Math.Max(1, rawDamage - mods.SacrificeHpCostReduction);
+            var reduced = (int)System.Math.Round(
+                rawDamage * (100f - mods.SacrificeHpCostReductionPercent) / 100f);
+            return Math.Max(1, reduced);
         }
 
         public static void OnSacrificeCardResolved(

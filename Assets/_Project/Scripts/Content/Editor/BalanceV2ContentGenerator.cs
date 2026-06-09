@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace Grimhand.Content.Editor
 {
-    /// <summary>根据 Gramhand实际卡牌遗物表.xlsx 生成玩家角色与 32 张卡牌。</summary>
+    /// <summary>根据 Grimhand实际卡牌遗物总览表.xlsx 生成玩家 42 张卡牌。批量更新请优先运行 Docs/_tools/apply_overview_sheet.py。</summary>
     public static class BalanceV2ContentGenerator
     {
         const string Root = "Assets/_Project/Data";
@@ -43,7 +43,7 @@ namespace Grimhand.Content.Editor
         struct WarriorCards
         {
             public CardDefinitionSO BasicSlash, ShieldBlock, DefensiveStance, PowerCleave, Taunt, IronParry, Charge,
-                WarCry, Guardian, FatalStrike, Unyielding;
+                WarCry, Guardian, FatalStrike, Unyielding, AuthorRealmStrike;
         }
 
         struct PharaohCards
@@ -80,30 +80,35 @@ namespace Grimhand.Content.Editor
             return new WarriorCards
             {
                 BasicSlash = SaveCard("w_basic_slash", "基础斩击", "char_knight", 1, CardType.Attack,
-                    null, AtkDmg(5, 80)),
+                    null, CardRarity.Common, AtkDmg(5, 80)),
                 ShieldBlock = SaveCard("w_shield_block", "举盾格挡", "char_knight", 1, CardType.Defense,
-                    null, DefBlock(3, 80)),
+                    null, CardRarity.Common, DefBlock(3, 80)),
                 DefensiveStance = SaveCard("w_defensive_stance", "防御架势", "char_knight", 1, CardType.Defense,
-                    Kw("parry"), RespondAttack(50)),
+                    Kw("parry"), CardRarity.Common, RespondAttack(50)),
                 PowerCleave = SaveCard("w_power_cleave", "猛力劈砍", "char_knight", 2, CardType.Attack,
-                    null, AtkDmg(7, 120, bonusHpBelowPercent: 50, bonusHpBelowFlat: 10)),
+                    null, CardRarity.Common, AtkDmg(7, 120, bonusHpBelowPercent: 50, bonusHpBelowFlat: 10)),
                 Taunt = SaveCard("w_taunt", "嘲讽挑衅", "char_knight", 2, CardType.Defense,
-                    null,
+                    null, CardRarity.Rare,
                     ApplyStat(StatusCatalog.Taunt, 1, 1, EffectTarget.Self),
                     DefBlock(0, 120)),
                 IronParry = SaveCard("w_iron_parry", "铁壁弹反", "char_knight", 2, CardType.Defense,
-                    Kw("parry"), Merge(RespondAttack(30, 100))),
+                    Kw("parry"), CardRarity.Rare, Merge(RespondAttack(30, 100))),
                 Charge = SaveCard("w_charge", "战士冲锋", "char_knight", 3, CardType.Attack,
-                    null, AtkDmg(10, 160, ignoreDefPercent: 50)),
+                    null, CardRarity.Rare, AtkDmg(10, 160, ignoreDefPercent: 50)),
                 WarCry = SaveCard("w_war_cry", "战吼鼓舞", "char_knight", 1, CardType.Status,
-                    null, Merge(TeamAttackUp(3, 1))),
+                    null, CardRarity.Common, Merge(TeamAttackUp(3, 1))),
                 Guardian = SaveCard("w_guardian", "誓死守护", "char_knight", 2, CardType.Defense,
-                    null, ApplyStat(StatusCatalog.Guard, 1, 1, EffectTarget.Self)),
+                    null, CardRarity.Rare, ApplyStat(StatusCatalog.Guard, 1, 1, EffectTarget.Self)),
                 FatalStrike = SaveCard("w_fatal_strike", "致命打击", "char_knight", 3, CardType.Attack,
-                    null, AtkDmg(8, 180, bonusHitThisTurnPercent: 50)),
+                    null, CardRarity.Rare, AtkDmg(8, 180, bonusHitThisTurnPercent: 50)),
                 Unyielding = SaveCard("w_unyielding", "不屈意志", "char_knight", 0, CardType.Status,
-                    Kw("exhaust"),
-                    ApplyStat(StatusCatalog.Unyielding, 1, -1, EffectTarget.Self))
+                    Kw("exhaust"), CardRarity.Epic,
+                    ApplyStat(StatusCatalog.Unyielding, 1, -1, EffectTarget.Self)),
+                AuthorRealmStrike = SaveCard("w_author_realm_strike", "作者境的一击", "char_knight", 0,
+                    CardType.Attack,
+                    Kw("aoe"),
+                    CardRarity.Legendary,
+                    FixedAoeDmg(9999))
             };
         }
 
@@ -112,33 +117,34 @@ namespace Grimhand.Content.Editor
             return new PharaohCards
             {
                 SandRay = SaveCard("p_sand_ray", "沙暴射线", "char_mage", 1, CardType.Attack,
-                    null, AtkDmg(5, 80)),
+                    null, CardRarity.Common, AtkDmg(5, 80)),
                 Bless = SaveCard("p_bless", "祈祷祝福", "char_mage", 1, CardType.Status,
-                    null, HealScaled(2, 100, EffectTarget.FrontAlly)),
+                    null, CardRarity.Common, HealScaled(2, 100, EffectTarget.FrontAlly)),
                 SolarWrath = SaveCard("p_solar_wrath", "太阳之怒", "char_mage", 2, CardType.Attack,
-                    Kw("aoe"), Merge(AoeDmg(5, 70))),
+                    Kw("aoe"), CardRarity.Rare, Merge(AoeDmg(5, 70))),
                 LifeSteal = SaveCard("p_lifesteal", "生命汲取", "char_mage", 2, CardType.Attack,
-                    null, AtkDmg(6, 100, lifestealPercent: 50)),
+                    null, CardRarity.Rare, AtkDmg(6, 100, lifestealPercent: 50)),
                 Decree = SaveCard("p_decree", "法老权令", "char_mage", 2, CardType.Status,
-                    null,
+                    null, CardRarity.Rare,
                     Draw(2),
                     ApplyStat(StatusCatalog.AttackUp, 3, 1, EffectTarget.FrontAlly),
                     ApplyStat(StatusCatalog.DefenseUp, 2, 1, EffectTarget.FrontAlly)),
                 UndeadCurse = SaveCard("p_undead_curse", "亡灵诅咒", "char_mage", 3, CardType.Attack,
-                    Kw("poison"),
+                    Kw("poison"), CardRarity.Epic,
                     AtkDmg(7, 120, reach: TargetReach.Any),
                     ApplyStat(StatusCatalog.NecroticPoison, 1, 3, EffectTarget.DefaultEnemy)),
                 ScarabShield = SaveCard("p_scarab_shield", "圣甲虫护盾", "char_mage", 1, CardType.Defense,
-                    null, AllyDefBlock(EffectTarget.FrontAlly, 0, 120)),
+                    null, CardRarity.Common, AllyDefBlock(EffectTarget.FrontAlly, 0, 120)),
                 SandBarrier = SaveCard("p_sand_barrier", "沙尘结界", "char_mage", 2, CardType.Defense,
-                    null,
+                    null, CardRarity.Common,
                     AllyDefBlock(EffectTarget.AllyFrontSlot, 0, 100),
                     AllyDefBlock(EffectTarget.AllyMiddleSlot, 0, 100),
                     AllyDefBlock(EffectTarget.AllyBackSlot, 0, 100)),
                 ReviveBless = SaveCard("p_revive_bless", "复活祝福", "char_mage", 3, CardType.Status,
-                    Kw("exhaust"), ApplyStat(StatusCatalog.ReviveBlessing, 1, -1, EffectTarget.FrontAlly)),
+                    Kw("exhaust"), CardRarity.Epic,
+                    ApplyStat(StatusCatalog.ReviveBlessing, 1, -1, EffectTarget.FrontAlly)),
                 SolarJudgment = SaveCard("p_solar_judgment", "太阳审判", "char_mage", 4, CardType.Attack,
-                    null, AtkDmg(10, 200, reach: TargetReach.Any))
+                    null, CardRarity.Rare, AtkDmg(10, 200, reach: TargetReach.Any))
             };
         }
 
@@ -147,38 +153,38 @@ namespace Grimhand.Content.Editor
             return new DemonCards
             {
                 ShadowClaw = SaveCard("d_shadow_claw", "暗影爪击", "char_ranger", 1, CardType.Attack,
-                    null, AtkDmg(5, 80)),
+                    null, CardRarity.Common, AtkDmg(5, 80)),
                 DevilTouch = SaveCard("d_devil_touch", "恶魔之触", "char_ranger", 1, CardType.Attack,
-                    null, AtkDmg(4, 50, lifestealPercent: 100)),
+                    null, CardRarity.Common, AtkDmg(4, 50, lifestealPercent: 100)),
                 BloodTail = SaveCard("d_blood_tail", "血尾贯穿", "char_ranger", 2, CardType.Attack,
-                    null, AtkDmg(5, 100, splashBehind: true, splashPercent: 80)),
+                    null, CardRarity.Rare, AtkDmg(5, 100, splashBehind: true, splashPercent: 80)),
                 BloodFlame = SaveCard("d_blood_flame", "血焰爆发", "char_ranger", 2, CardType.Attack,
-                    Kw("sacrifice"),
+                    Kw("sacrifice"), CardRarity.Rare,
                     SelfDmg(8),
                     AtkDmg(10, 130)),
                 SoulRip = SaveCard("d_soul_rip", "灵魂撕裂", "char_ranger", 2, CardType.Attack,
-                    null, AtkDmg(6, 80, ignoreDefPercent: 100, reach: TargetReach.Any)),
+                    null, CardRarity.Rare, AtkDmg(6, 80, ignoreDefPercent: 100, reach: TargetReach.Any)),
                 DarkSacrifice = SaveCard("d_dark_sacrifice", "暗黑献祭", "char_ranger", 3, CardType.Attack,
-                    Kw("sacrifice"),
+                    Kw("sacrifice"), CardRarity.Epic,
                     SelfDmg(15),
                     AtkDmg(14, 170)),
                 DemonPact = SaveCard("d_demon_pact", "恶魔契约", "char_ranger", 2, CardType.Status,
-                    Kw("sacrifice"),
+                    Kw("sacrifice"), CardRarity.Common,
                     SelfDmg(5),
                     Draw(2),
                     ApplyStat(StatusCatalog.AttackUp, 3, 1, EffectTarget.Self)),
                 VampAura = SaveCard("d_vamp_aura", "吸血光环", "char_ranger", 1, CardType.Status,
-                    null, ApplyStat(StatusCatalog.VampAura, 30, 1, EffectTarget.Self)),
+                    null, CardRarity.Common, ApplyStat(StatusCatalog.VampAura, 30, 1, EffectTarget.Self)),
                 CurseChain = SaveCard("d_curse_chain", "诅咒之链", "char_ranger", 2, CardType.Attack,
-                    null,
+                    null, CardRarity.Rare,
                     AtkDmg(5, 100, reach: TargetReach.Any),
                     ApplyStat(StatusCatalog.AttackDown, 3, 2, EffectTarget.DefaultEnemy)),
                 HellFire = SaveCard("d_hell_fire", "地狱烈焰", "char_ranger", 3, CardType.Attack,
-                    Kw("aoe", "sacrifice"),
+                    Kw("aoe", "sacrifice"), CardRarity.Rare,
                     SelfDmg(8),
                     AtkDmg(6, 100, EffectTarget.AllEnemies)),
                 DemonLord = SaveCard("d_demon_lord", "魔王降临", "char_ranger", 4, CardType.Attack,
-                    Kw("sacrifice"),
+                    Kw("sacrifice"), CardRarity.Epic,
                     SelfDmg(20),
                     AtkDmg(15, 200, reach: TargetReach.Any, onKillHeal: 30))
             };
@@ -186,6 +192,7 @@ namespace Grimhand.Content.Editor
 
         static CardDefinitionSO[] BuildInitialWarriorDeck(WarriorCards c) =>
             BuildDeckWithCounts(
+                (c.AuthorRealmStrike, 1),
                 (c.BasicSlash, 3),
                 (c.ShieldBlock, 2),
                 (c.DefensiveStance, 1),
@@ -341,6 +348,15 @@ namespace Grimhand.Content.Editor
         static EffectActionDefinition[] AoeDmg(int fixedVal, int atkPercent) =>
             new[] { AtkDmg(fixedVal, atkPercent, EffectTarget.AllEnemies) };
 
+        static EffectActionDefinition FixedAoeDmg(int amount) =>
+            new EffectActionDefinition
+            {
+                Type = EffectActionType.DealDamage,
+                Target = EffectTarget.AllEnemies,
+                Value = amount,
+                Reach = TargetReach.Any
+            };
+
         static EffectActionDefinition[] RespondAttack(int reductionPercent, int reflectPercent = 0)
         {
             var actions = new List<EffectActionDefinition>
@@ -377,6 +393,17 @@ namespace Grimhand.Content.Editor
             int cost,
             CardType cardType,
             string[] keywords,
+            params EffectActionDefinition[] actions) =>
+            SaveCard(id, displayName, owner, cost, cardType, keywords, CardRarity.Common, actions);
+
+        static CardDefinitionSO SaveCard(
+            string id,
+            string displayName,
+            string owner,
+            int cost,
+            CardType cardType,
+            string[] keywords,
+            CardRarity rarity,
             params EffectActionDefinition[] actions)
         {
             var path = $"{Root}/Cards/Card_{id}.asset";
@@ -392,6 +419,7 @@ namespace Grimhand.Content.Editor
             card.OwnerCharacterId = owner;
             card.Cost = cost;
             card.CardType = cardType;
+            card.Rarity = rarity;
             card.Keywords.Clear();
             if (keywords != null)
                 card.Keywords.AddRange(keywords);

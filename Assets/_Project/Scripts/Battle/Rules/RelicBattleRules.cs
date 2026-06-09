@@ -201,6 +201,20 @@ namespace Grimhand.Battle.Rules
                 mods.FirstPlayerAttackPending = false;
         }
 
+        public static int ApplyPharaohBlockBonus(
+            RunModifierSnapshot mods,
+            CombatantState actor,
+            int block)
+        {
+            if (mods == null || actor == null || block <= 0 || mods.PharaohBlockGivenBonusPercent <= 0f)
+                return block;
+
+            if (actor.CharacterDefinitionId != PharaohCharacterId)
+                return block;
+
+            return (int)System.Math.Round(block * (1f + mods.PharaohBlockGivenBonusPercent / 100f));
+        }
+
         public static int ApplyHealBonus(RunModifierSnapshot mods, CombatantState healer, int amount)
         {
             if (mods == null || mods.HealBonusPercent <= 0f)
@@ -241,10 +255,24 @@ namespace Grimhand.Battle.Rules
 
             if (target.FirstHitReductionPending
                 && mods != null
-                && mods.FirstHitDamageReductionPercent > 0f)
+                && mods.FirstHitDamageReductionPercent > 0f
+                && state != null
+                && state.TeamFirstHitReductionPending
+                && target.Team == TeamSide.Player)
             {
                 target.FirstHitReductionPending = false;
+                state.TeamFirstHitReductionPending = false;
                 hpDamage = (int)System.Math.Round(hpDamage * (100f - mods.FirstHitDamageReductionPercent) / 100f);
+            }
+
+            if (mods != null
+                && mods.WarriorBlockDamageReductionPercent > 0f
+                && hpDamage > 0
+                && target.CharacterDefinitionId == RelicEffectRules.WarriorCharacterId
+                && target.Block > 0)
+            {
+                hpDamage = (int)System.Math.Round(
+                    hpDamage * (100f - mods.WarriorBlockDamageReductionPercent) / 100f);
             }
 
             if (mods != null

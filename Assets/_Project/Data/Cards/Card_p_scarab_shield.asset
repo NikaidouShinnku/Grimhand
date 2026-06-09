@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_p_scarab_shield
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: p_scarab_shield
-  DisplayName: "\u5723\u7532\u866B\u62A4\u76FE"
+  DisplayName: "圣甲虫护盾"
   OwnerCharacterId: char_mage
   Cost: 1
   CardType: 1
@@ -40,6 +40,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
     LifestealPercent: 0
+    HealMaxHpPercent: 0
     OnKillHealAmount: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}

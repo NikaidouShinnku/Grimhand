@@ -469,7 +469,7 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.Guard:
                     return "本回合队友伤害转移给自身，减伤 40%";
                 case StatusCatalog.VampAura:
-                    return $"下次攻击回复造成伤害 {action.Stacks}% 的生命";
+                    return $"直到本回合结束，攻击回复造成伤害 {action.Stacks}% 的生命";
                 case StatusCatalog.ReviveBlessing:
                     return PrefixTarget(usesPick ? "" : target, "附加复活：HP 归零时恢复 25% HP（每场 1 次）");
                 case StatusCatalog.Unyielding:

@@ -10,6 +10,7 @@ namespace Grimhand.Presentation.Battle
         [SerializeField] ExpeditionSetupSO expeditionSetup;
         [SerializeField] CardVisualCatalogSO cardVisualCatalog;
         [SerializeField] CharacterVisualCatalogSO characterVisualCatalog;
+        [SerializeField] BattleActionEffectCatalogSO actionEffectCatalog;
         [SerializeField] BattleUiIconCatalogSO uiIconCatalog;
         [SerializeField] RelicVisualCatalogSO relicVisualCatalog;
         [SerializeField] ConsumableVisualCatalogSO consumableVisualCatalog;
@@ -43,12 +44,18 @@ namespace Grimhand.Presentation.Battle
                 consumableVisualCatalog = UnityEditor.AssetDatabase.LoadAssetAtPath<ConsumableVisualCatalogSO>(
                     "Assets/_Project/Data/ConsumableVisualCatalog_Demo.asset");
             }
+
+            if (actionEffectCatalog == null)
+            {
+                actionEffectCatalog = UnityEditor.AssetDatabase.LoadAssetAtPath<BattleActionEffectCatalogSO>(
+                    "Assets/_Project/Data/BattleActionEffectCatalog_Demo.asset");
+            }
 #endif
         }
 
         void Start()
         {
-            _definitions = CardVisualResolver.BuildDefinitionLookup(battleSetup);
+            _definitions = CardVisualResolver.BuildDefinitionLookup(battleSetup, expeditionSetup);
             _session.Configure(battleSetup, expeditionSetup);
             _session.Changed += OnSessionChanged;
             screenView.Initialize(
@@ -59,7 +66,7 @@ namespace Grimhand.Presentation.Battle
                 _definitions,
                 relicVisualCatalog,
                 consumableVisualCatalog);
-            _portraitDirector.Initialize(_session, screenView, characterVisualCatalog);
+            _portraitDirector.Initialize(_session, screenView, characterVisualCatalog, actionEffectCatalog);
             screenView.SetPresentationBusyCheck(() => _portraitDirector.IsPlaying);
             _session.Start();
             screenView.Refresh();

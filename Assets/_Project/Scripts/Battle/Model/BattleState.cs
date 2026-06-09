@@ -48,6 +48,7 @@ namespace Grimhand.Battle.Model
 
         public int MiracleLeafRevivesRemaining { get; set; }
         public bool JadeDaggerFirstKillConsumed { get; set; }
+        public bool TeamFirstHitReductionPending { get; set; } = true;
 
         public bool ConsumableUsedThisBattle { get; set; }
         public float ConsumableDodgeBonusThisTurn { get; set; }

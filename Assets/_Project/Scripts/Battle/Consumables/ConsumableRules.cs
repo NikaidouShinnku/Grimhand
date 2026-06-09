@@ -319,6 +319,7 @@ namespace Grimhand.Battle.Consumables
                     BonusIfTargetHpBelowFlat = action.BonusIfTargetHpBelowFlat,
                     BonusIfTargetHitThisTurnPercent = action.BonusIfTargetHitThisTurnPercent,
                     LifestealPercent = action.LifestealPercent,
+                    HealMaxHpPercent = action.HealMaxHpPercent,
                     OnKillHealAmount = action.OnKillHealAmount
                 });
             }

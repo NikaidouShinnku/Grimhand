@@ -45,6 +45,7 @@ namespace Grimhand.Expedition.Map
                 var optionCount = RollOptionCount(layer, rng);
                 var types = RollNodeTypes(layer, optionCount, state, rng);
                 ApplyGuarantees(layer, layerCount, types, state, rng);
+                EnsureCombatOptionIfNeeded(types, rng);
 
                 for (var i = 0; i < types.Count; i++)
                     row.Options.Add(CreateOption(types[i], layer, i, config, run, rng));
@@ -54,18 +55,50 @@ namespace Grimhand.Expedition.Map
             }
 
             ApplyGuaranteeBackfill(map, state, rng);
+            foreach (var row in map.Layers)
+            {
+                if (row.IsBoss || row.Options.Count < 3)
+                    continue;
+
+                var types = new List<ExpeditionNodeType>();
+                foreach (var option in row.Options)
+                    types.Add(option.NodeType);
+
+                EnsureCombatOptionIfNeeded(types, rng);
+                for (var i = 0; i < types.Count; i++)
+                {
+                    if (row.Options[i].NodeType == types[i])
+                        continue;
+
+                    row.Options[i].NodeType = types[i];
+                    row.Options[i].IsElite = types[i] == ExpeditionNodeType.Elite;
+                    FillOptionMeta(row.Options[i], row.LayerNumber, i, config, run, rng);
+                }
+            }
+
             return map;
         }
 
         static int RollOptionCount(int layer, BattleRng rng)
         {
-            if (layer <= 3)
-                return 3;
+            if (layer == 1)
+                return 1;
 
-            if (layer <= 6)
-                return rng.NextInt(2, 4);
+            return rng.NextInt(2, 5);
+        }
 
-            return 2;
+        static void EnsureCombatOptionIfNeeded(List<ExpeditionNodeType> types, BattleRng rng)
+        {
+            if (types == null || types.Count < 3)
+                return;
+
+            foreach (var type in types)
+            {
+                if (type is ExpeditionNodeType.Combat or ExpeditionNodeType.Elite)
+                    return;
+            }
+
+            types[rng.NextIndex(types.Count)] = ExpeditionNodeType.Combat;
         }
 
         static List<ExpeditionNodeType> RollNodeTypes(int layer, int count, GenState state, BattleRng rng)

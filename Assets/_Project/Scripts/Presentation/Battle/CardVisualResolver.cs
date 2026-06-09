@@ -16,7 +16,7 @@ namespace Grimhand.Presentation.Battle
             if (card == null)
                 return CardVisual.Empty;
 
-            var rarity = CardRarity.Common;
+            var rarity = CardRarityTable.GetOrDefault(card.DefinitionId);
             if (definitionsById != null &&
                 definitionsById.TryGetValue(card.DefinitionId, out var def) &&
                 def != null)
@@ -55,20 +55,25 @@ namespace Grimhand.Presentation.Battle
             return new CardVisual(fallbackArt, null, null);
         }
 
-        public static Dictionary<string, CardDefinitionSO> BuildDefinitionLookup(BattleSetupSO setup)
+        public static Dictionary<string, CardDefinitionSO> BuildDefinitionLookup(
+            BattleSetupSO setup,
+            ExpeditionSetupSO expeditionSetup = null)
         {
             var map = new Dictionary<string, CardDefinitionSO>();
-            if (setup == null)
-                return map;
-
-            foreach (var character in setup.Combatants)
+            if (setup != null)
             {
-                if (character == null)
-                    continue;
+                foreach (var character in setup.Combatants)
+                {
+                    if (character == null)
+                        continue;
 
-                AddCards(map, character.Deck);
-                AddCards(map, character.SkillPool);
+                    AddCards(map, character.Deck);
+                    AddCards(map, character.SkillPool);
+                }
             }
+
+            if (expeditionSetup != null)
+                AddCards(map, expeditionSetup.PlayerCardCatalog);
 
             return map;
         }

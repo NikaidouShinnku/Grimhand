@@ -29,6 +29,12 @@ namespace Grimhand.Presentation.Battle
 
         public void Feed(BattleEvent e, BattleState state)
         {
+            if (e.Kind == BattleEventKind.ConsumableUsed)
+            {
+                AppendLine(FormatConsumableUsed(e, state));
+                return;
+            }
+
             if (ShouldStartRound(e))
                 BeginRound();
 
@@ -138,6 +144,13 @@ namespace Grimhand.Presentation.Battle
             _lines.Add(line);
             while (_lines.Count > MaxLines)
                 _lines.RemoveAt(0);
+        }
+
+        static string FormatConsumableUsed(BattleEvent e, BattleState state)
+        {
+            var user = CombatantLabel(state, e.CombatantId);
+            var name = string.IsNullOrEmpty(e.Message) ? "消耗品" : e.Message;
+            return $"【消耗品】{user} 使用 {name}";
         }
 
         static string FormatResolutionEffect(BattleEvent e, BattleState state)

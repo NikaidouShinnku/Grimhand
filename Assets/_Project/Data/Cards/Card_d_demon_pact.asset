@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_d_demon_pact
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: d_demon_pact
-  DisplayName: "\u6076\u9B54\u5951\u7EA6"
+  DisplayName: "恶魔契约"
   OwnerCharacterId: char_ranger
   Cost: 2
   CardType: 2
@@ -41,6 +41,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
     LifestealPercent: 0
+    HealMaxHpPercent: 0
     OnKillHealAmount: 0
   - Type: 7
     Target: 1
@@ -62,6 +63,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
     LifestealPercent: 0
+    HealMaxHpPercent: 0
     OnKillHealAmount: 0
   - Type: 3
     Target: 1
@@ -83,6 +85,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
     LifestealPercent: 0
+    HealMaxHpPercent: 0
     OnKillHealAmount: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}

@@ -816,7 +816,7 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             foreach (var slot in slots)
-                slot?.Refresh(state, targetMode, validTargets, _characterVisuals, _uiIcons, presentation, showExpBar);
+                slot?.Refresh(state, targetMode, validTargets, _characterVisuals, _uiIcons, presentation, showExpBar, _session);
         }
 
         void RefreshActionTimeline(BattleState state, PlanningDraft draft)

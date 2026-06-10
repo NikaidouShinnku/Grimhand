@@ -201,7 +201,7 @@ namespace Grimhand.Battle.Tests
             Assert.AreEqual(1, enemies);
             Assert.NotNull(king);
             Assert.AreEqual("骷髅王", king.DisplayName);
-            Assert.AreEqual(800, king.MaxHp);
+            Assert.AreEqual(400, king.MaxHp);
             Assert.IsTrue(engine.Run.CurrentBattleConfig.SkipFloorScaling);
         }
 

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_m_king_bone_slash
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: m_king_bone_slash
-  DisplayName: "骨王斩击"
+  DisplayName: "\u9AA8\u738B\u65A9\u51FB"
   OwnerCharacterId: char_skeleton_king
   Cost: 1
   CardType: 0

@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using Grimhand.Battle.Reactions;
+using Grimhand.Battle.Rules;
 
 namespace Grimhand.Battle.Model
 {
@@ -64,6 +66,18 @@ namespace Grimhand.Battle.Model
 
         /// <summary>在对应敌方攻击演出结束后结算的弹反反击。</summary>
         public List<PendingParryStrike> PendingParryStrikes { get; } = new();
+
+        /// <summary>敌方防御【应对攻击】武装层。</summary>
+        public List<DefenderRespondArm> DefenderRespondArms { get; } = new();
+
+        /// <summary>下回合开始时加入 Boss 额外手牌（不占抽牌上限）。</summary>
+        public List<PendingBossBonusHand> PendingBossBonusHandsNextTurn { get; } = new();
+
+        /// <summary>下回合玩家能量回复惩罚（摄魂等）。</summary>
+        public int PendingPlayerEnergyRegenPenaltyNextTurn { get; set; }
+
+        /// <summary>无尽血刃等：单张牌实例在本场战斗中的 outgoing 伤害倍率（100=1×）。</summary>
+        public Dictionary<int, int> CardInstanceDamageMultiplierPercent { get; } = new();
 
         public CombatantState GetCombatant(string id)
         {

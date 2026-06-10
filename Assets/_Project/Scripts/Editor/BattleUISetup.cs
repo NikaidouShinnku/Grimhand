@@ -812,8 +812,8 @@ namespace Grimhand.Editor
             so.FindProperty("nameText").objectReferenceValue = nameText;
             so.FindProperty("statsRow").objectReferenceValue = statsRow;
             so.FindProperty("selectButton").objectReferenceValue = btn;
-            so.FindProperty("formationSlot").enumValueIndex = (int)slot;
-            so.FindProperty("team").enumValueIndex = (int)team;
+            so.FindProperty("formationSlot").intValue = (int)slot;
+            so.FindProperty("team").intValue = (int)team;
             so.FindProperty("mirrorPortrait").boolValue = mirror;
             so.ApplyModifiedPropertiesWithoutUndo();
         }

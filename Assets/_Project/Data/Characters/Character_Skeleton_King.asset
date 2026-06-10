@@ -17,7 +17,7 @@ MonoBehaviour:
   Team: 1
   Slot: 1
   Level: 1
-  MaxHp: 800
+  MaxHp: 400
   BaseAttack: 30
   BaseDefense: 10
   Speed: 6
@@ -40,4 +40,3 @@ MonoBehaviour:
   EnemySkillPickMax: 0
   Traits:
   - boss_first_hit_block
-  - boss_turn_def_up

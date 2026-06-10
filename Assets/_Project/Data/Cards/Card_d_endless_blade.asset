@@ -23,7 +23,7 @@ MonoBehaviour:
   Actions:
   - Type: 0
     Target: 1
-    Value: 8
+    Value: 0
     StatusId: 
     Stacks: 1
     Duration: -1
@@ -41,7 +41,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
     LifestealPercent: 0
-    HealMaxHpPercent: 0
+    HealMaxHpPercent: 25
     OnKillHealAmount: 0
   - Type: 0
     Target: 0

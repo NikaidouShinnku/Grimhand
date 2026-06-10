@@ -26,8 +26,11 @@ namespace Grimhand.Presentation.Battle
         /// <summary>玩家立绘脚线（槽内比例）。</summary>
         const float PlayerFeetLine = 0.02f;
         const float EnemyFeetLine = 0.13f;
+        /// <summary>Boss 敌人与玩家共用地面线，保证血条水平对齐。</summary>
+        const float BossEnemyFeetLine = PlayerFeetLine;
         /// <summary>在脚线锚点基础上，玩家立绘额外下移（Canvas 本地像素）。</summary>
         const float PlayerPortraitExtraDownPx = -52f;
+        const float BossEnemyPortraitExtraDownPx = PlayerPortraitExtraDownPx;
         const float PortraitTop = 0.82f;
         const float PlayerStatusDropPx = 10f;
         const float EnemyStatusDropPx = 10f;
@@ -56,6 +59,7 @@ namespace Grimhand.Presentation.Battle
         CombatantPortraitView _portraitView;
         CombatantState _currentUnit;
         BattleUiIconCatalogSO _currentIcons;
+        CharacterVisualCatalogSO _currentVisuals;
         BattleSession _session;
 
         string _combatantId;
@@ -246,15 +250,50 @@ namespace Grimhand.Presentation.Battle
             outline.effectDistance = new Vector2(1.5f, -1.5f);
         }
 
+        bool IsBossEnemyPortrait()
+        {
+            if (_currentUnit == null)
+                return false;
+
+            var id = _currentUnit.CharacterDefinitionId;
+            return id == "char_skeleton_king" || id == GhostQueenBossEncounterBuilder.CharacterId;
+        }
+
+        float ResolveFeetLine()
+        {
+            if (team == TeamSide.Player)
+                return PlayerFeetLine;
+
+            return IsBossEnemyPortrait() ? BossEnemyFeetLine : EnemyFeetLine;
+        }
+
+        float ResolvePortraitExtraDownPx()
+        {
+            if (team == TeamSide.Player)
+                return PlayerPortraitExtraDownPx;
+
+            return IsBossEnemyPortrait() ? BossEnemyPortraitExtraDownPx : 0f;
+        }
+
         float ResolvePortraitScale()
         {
             if (team == TeamSide.Player)
                 return PlayerPortraitScale;
 
-            if (_currentUnit != null && _currentUnit.CharacterDefinitionId == "char_skeleton_king")
+            if (IsBossEnemyPortrait())
                 return BossEnemyPortraitScale;
 
             return EnemyPortraitScale;
+        }
+
+        bool ResolveMirrorPortrait()
+        {
+            if (_currentUnit != null
+                && _currentVisuals != null
+                && _currentVisuals.GetPreserveOriginalFacing(_currentUnit.CharacterDefinitionId))
+                return false;
+
+            return mirrorPortrait;
         }
 
         void ApplyPortraitMirror()
@@ -263,7 +302,8 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             var scale = ResolvePortraitScale();
-            _basePortraitScale = mirrorPortrait
+            var mirror = ResolveMirrorPortrait();
+            _basePortraitScale = mirror
                 ? new Vector3(-scale, scale, 1f)
                 : new Vector3(scale, scale, 1f);
 
@@ -312,16 +352,14 @@ namespace Grimhand.Presentation.Battle
 
             if (portraitRoot != null)
             {
-                var feetLine = team == TeamSide.Player ? PlayerFeetLine : EnemyFeetLine;
+                var feetLine = ResolveFeetLine();
                 portraitRoot.localScale = Vector3.one;
                 portraitRoot.anchorMin = new Vector2(0.04f, feetLine);
                 portraitRoot.anchorMax = new Vector2(0.96f, PortraitTop);
                 portraitRoot.pivot = new Vector2(0.5f, 0f);
                 portraitRoot.offsetMin = Vector2.zero;
                 portraitRoot.offsetMax = Vector2.zero;
-                portraitRoot.anchoredPosition = team == TeamSide.Player
-                    ? new Vector2(0f, PlayerPortraitExtraDownPx)
-                    : Vector2.zero;
+                portraitRoot.anchoredPosition = new Vector2(0f, ResolvePortraitExtraDownPx());
             }
 
             var footRoot = transform.Find("FootStatusRoot") as RectTransform;
@@ -422,9 +460,11 @@ namespace Grimhand.Presentation.Battle
             var unit = FindCombatant(state);
             _currentUnit = unit;
             _currentIcons = uiIcons;
+            _currentVisuals = visuals;
             _session = session;
             _combatantId = unit?.Id;
             _targetMode = targetMode;
+            ApplyStatusAnchorLayout();
             ApplyPortraitMirror();
 
             var displayAlive = unit != null

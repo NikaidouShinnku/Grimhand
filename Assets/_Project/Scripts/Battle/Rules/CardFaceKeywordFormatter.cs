@@ -22,6 +22,13 @@ namespace Grimhand.Battle.Rules
 
                 if (kw == "sacrifice")
                 {
+                    var pct = GetSacrificeMaxHpPercent(card);
+                    if (pct > 0)
+                    {
+                        sb.Append($"【献祭{pct}%】");
+                        continue;
+                    }
+
                     var cost = GetSacrificeHpCost(card, owner, state);
                     sb.Append(cost > 0 ? $"【献祭{cost}】" : "【献祭】");
                     continue;
@@ -34,6 +41,21 @@ namespace Grimhand.Battle.Rules
             }
 
             return sb.ToString();
+        }
+
+        static int GetSacrificeMaxHpPercent(CardInstanceState card)
+        {
+            foreach (var action in card.Actions)
+            {
+                if (action.Type == EffectActionType.DealDamage
+                    && action.Target == EffectTarget.Self
+                    && action.HealMaxHpPercent > 0)
+                {
+                    return action.HealMaxHpPercent;
+                }
+            }
+
+            return 0;
         }
 
         static int GetSacrificeHpCost(CardInstanceState card, CombatantState owner, BattleState state)

@@ -101,6 +101,34 @@ namespace Grimhand.Presentation.Battle
             NotifyChanged();
         }
 
+        public void BeginGhostQueenBossTest(BattleSetupSO ghostQueenBossSetup)
+        {
+            if (ExpeditionSetup == null)
+            {
+                Debug.LogError("Boss 测试需要 Expedition Setup（卡牌池 / 遗物）。");
+                RestartBattle();
+                return;
+            }
+
+            if (ghostQueenBossSetup == null)
+            {
+                Debug.LogError("Boss 测试需要 Ghost Queen Battle Setup。");
+                RestartBattle();
+                return;
+            }
+
+            var config = BuildExpeditionConfig();
+            Expedition = new ExpeditionEngine(config);
+            Expedition.StartGhostQueenBossTest(ghostQueenBossSetup.ToBattleConfig());
+            _log.Clear();
+            _turnLog.Reset();
+            _battleEndHandled = false;
+            AddLog("幽灵女王 Boss 测试 — 全队 Lv.7 · 3 遗物 · 每人 +3 卡牌");
+            foreach (var line in Expedition.Run.RunAcquisitionLog)
+                AddLog(line);
+            StartExpeditionBattle();
+        }
+
         public void RestartBattle()
         {
             Expedition = null;

@@ -29,6 +29,8 @@ namespace Grimhand.Content
         public List<Sprite> IdleAnimationFrames = new();
         [Tooltip("相对 Assets/ 的 idle GIF 路径；若填写则优先于 IdleAnimationFrames 播放。")]
         public string IdleAnimationGifPath = "";
+        [Tooltip("为 true 时不镜像立绘，受击 pose 也不自动翻转。")]
+        public bool PreserveOriginalFacing;
     }
 
     [CreateAssetMenu(fileName = "CharacterVisualCatalog", menuName = "Grimhand/Character Visual Catalog")]
@@ -133,6 +135,12 @@ namespace Grimhand.Content
         {
             var entry = GetEntry(characterDefinitionId);
             return entry?.HitPortraitFacesRight ?? true;
+        }
+
+        public bool GetPreserveOriginalFacing(string characterDefinitionId)
+        {
+            var entry = GetEntry(characterDefinitionId);
+            return entry != null && entry.PreserveOriginalFacing;
         }
 
         public IReadOnlyList<Sprite> GetIdleAnimationFrames(string characterDefinitionId)

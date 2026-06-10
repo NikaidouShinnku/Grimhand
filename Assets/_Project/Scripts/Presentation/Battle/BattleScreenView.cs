@@ -66,6 +66,8 @@ namespace Grimhand.Presentation.Battle
         Button _inventoryButton;
         Button _turnLogButton;
         Button _mapButton;
+        Button _codexButton;
+        CardCodexOverlayView _codexOverlay;
         Button _targetCancelBackdrop;
         Text _inventoryFallbackLabel;
 
@@ -130,6 +132,7 @@ namespace Grimhand.Presentation.Battle
             EnsureInventoryHud();
             EnsureTurnLogHud();
             EnsureMapHud();
+            EnsureCodexHud();
             EnsureExpeditionPresentation();
             ApplyPlanningButtonIcons();
             CombatantTooltipLayer.GetOrCreate(transform);
@@ -433,6 +436,64 @@ namespace Grimhand.Presentation.Battle
             _turnDetailPanel = gameObject.AddComponent<BattleTurnDetailPanelView>();
             _turnDetailPanel.Initialize(_session, transform);
             ApplyTurnLogButtonLayout();
+        }
+
+        void EnsureCodexHud()
+        {
+            if (_codexButton != null)
+                return;
+
+            var go = new GameObject("CodexButton", typeof(RectTransform), typeof(Image), typeof(Button));
+            go.transform.SetParent(HudRoot, false);
+
+            var img = go.GetComponent<Image>();
+            img.color = new Color(0.18f, 0.12f, 0.22f, 0.96f);
+            img.raycastTarget = true;
+
+            var labelGo = new GameObject("Label", typeof(RectTransform), typeof(Text));
+            labelGo.transform.SetParent(go.transform, false);
+            var label = labelGo.GetComponent<Text>();
+            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            label.fontSize = 16;
+            label.fontStyle = FontStyle.Bold;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.color = new Color(0.95f, 0.88f, 1f, 1f);
+            label.text = "图鉴";
+            label.raycastTarget = false;
+            var labelRt = labelGo.GetComponent<RectTransform>();
+            labelRt.anchorMin = Vector2.zero;
+            labelRt.anchorMax = Vector2.one;
+            labelRt.offsetMin = Vector2.zero;
+            labelRt.offsetMax = Vector2.zero;
+
+            _codexButton = go.GetComponent<Button>();
+            _codexButton.targetGraphic = img;
+            _codexButton.onClick.AddListener(ToggleCodexPanel);
+
+            _codexOverlay = gameObject.AddComponent<CardCodexOverlayView>();
+            _codexOverlay.Initialize(
+                transform,
+                handPanel?.CardPrefab,
+                _catalog,
+                _characterVisuals,
+                _uiIcons,
+                _definitions);
+
+            ApplyCodexButtonLayout();
+        }
+
+        void ToggleCodexPanel()
+        {
+            _codexOverlay?.RefreshCardPrefab(handPanel?.CardPrefab);
+            _codexOverlay?.Toggle();
+        }
+
+        void ApplyCodexButtonLayout()
+        {
+            if (_codexButton == null)
+                return;
+
+            BattleUiLayoutRuntimeFix.LayoutCodexButton(_codexButton.transform as RectTransform);
         }
 
         void EnsureMapHud()

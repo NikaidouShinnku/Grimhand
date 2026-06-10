@@ -34,6 +34,46 @@ namespace Grimhand.Battle.Rules
             }
         }
 
+        public static void TryTriggerGhostQueenEnrage(
+            BattleState state,
+            CombatantState combatant,
+            int hpBeforeDamage,
+            List<BattleEvent> events)
+        {
+            if (state == null || combatant == null || !combatant.IsAlive)
+                return;
+
+            if (!HasTrait(combatant, CharacterTraitCatalog.GhostQueenEnrage))
+                return;
+
+            if (combatant.GhostQueenEnrageTriggered)
+                return;
+
+            if (hpBeforeDamage < CharacterTraitCatalog.GhostQueenEnrageHpThreshold)
+                return;
+
+            if (combatant.Hp >= CharacterTraitCatalog.GhostQueenEnrageHpThreshold)
+                return;
+
+            combatant.GhostQueenEnrageTriggered = true;
+            StatusRules.ApplyStatus(
+                state,
+                combatant,
+                StatusCatalog.Ethereal,
+                1,
+                1,
+                events);
+            BossBonusHandRules.QueueBonusHandNextTurn(
+                state,
+                combatant.Id,
+                CharacterTraitCatalog.GhostQueenWrathCardId);
+            events.Add(new BattleEvent(BattleEventKind.ReactionTriggered,
+                $"{combatant.DisplayName} 虚化并准备「幽灵女王之怒」")
+            {
+                CombatantId = combatant.Id
+            });
+        }
+
         public static void TryApplyFirstHitBlock(
             BattleState state,
             CombatantState recipient,

@@ -12,6 +12,11 @@ namespace Grimhand.Battle.Rules
         /// <summary>存活时每回合开始将自爆牌加入手牌（不占抽牌上限）。</summary>
         public const string SkullSelfDestructHand = "skull_self_destruct_hand";
 
+        /// <summary>首次 HP 低于 120 时虚化并下回合获得「幽灵女王之怒」。</summary>
+        public const string GhostQueenEnrage = "ghost_queen_enrage";
+        public const int GhostQueenEnrageHpThreshold = 120;
+
         public const string SkullExplodeCardId = "m_skull_explode";
+        public const string GhostQueenWrathCardId = "m_queen_wrath";
     }
 }

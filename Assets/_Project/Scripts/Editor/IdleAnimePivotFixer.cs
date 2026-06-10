@@ -11,9 +11,9 @@ namespace Grimhand.Editor
     {
         public static readonly string[] IdleAnimePaths =
         {
-            "Assets/The Grimhands Asset/characters/warrior/warrior_idle_anime.png",
-            "Assets/The Grimhands Asset/characters/pharoah/pharoah_idle_anime.png",
-            "Assets/The Grimhands Asset/characters/devil/devil_idle_anime.png"
+            "Assets/The Grimhands Asset/characters/warrior/warrior_idle_anime.gif",
+            "Assets/The Grimhands Asset/characters/pharoah/pharoah_idle_anime.gif",
+            "Assets/The Grimhands Asset/characters/devil/devil_idle_anime.gif"
         };
 
         static readonly Regex PivotBlockRegex = new(

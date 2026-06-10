@@ -4,6 +4,7 @@ using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
 using Grimhand.Battle.Status;
 using Grimhand.Content;
+using Grimhand.Expedition;
 using UnityEditor;
 using UnityEngine;
 
@@ -24,6 +25,7 @@ namespace Grimhand.Content.Editor
             public CharacterDefinitionSO WraithElite;
             public CharacterDefinitionSO SkeletonKing;
             public CharacterDefinitionSO ExplosiveSkull;
+            public CharacterDefinitionSO GhostQueen;
         }
 
         public static MonsterSet Generate()
@@ -51,7 +53,7 @@ namespace Grimhand.Content.Editor
                     FormationSlot.Back, 35, 11, 2, 9,
                     cards.WraithElitePool),
                 SkeletonKing = SaveBoss("Character_Skeleton_King", "char_skeleton_king", "骷髅王",
-                    FormationSlot.Front, 800, 30, 10, 6,
+                    FormationSlot.Front, 400, 30, 10, 6,
                     new[]
                     {
                         CharacterTraitCatalog.BossFirstHitBlock
@@ -67,7 +69,18 @@ namespace Grimhand.Content.Editor
                 ExplosiveSkull = SaveBoss("Character_Explosive_Skull", "char_explosive_skull", "易爆骷髅头",
                     FormationSlot.Middle, 50, 0, 5, 2,
                     CharacterTraitCatalog.SkullSelfDestructHand,
-                    BuildFixedDeck((cards.SkullExplode, 1)))
+                    BuildFixedDeck((cards.SkullExplode, 1))),
+                GhostQueen = SaveBoss("Character_Ghost_Queen", GhostQueenBossEncounterBuilder.CharacterId, "幽灵女王",
+                    FormationSlot.Front, 360, 25, 8, 7,
+                    new[] { CharacterTraitCatalog.GhostQueenEnrage },
+                    BuildFixedDeck(
+                        (cards.QueenClaw, 4),
+                        (cards.QueenDeterrence, 1),
+                        (cards.QueenSoulDrain, 2),
+                        (cards.QueenCurse, 2),
+                        (cards.QueenCommand, 1),
+                        (cards.QueenSpiritGuard, 2),
+                        (cards.QueenBurst, 1)))
             };
         }
 
@@ -99,6 +112,17 @@ namespace Grimhand.Content.Editor
                 defendUsesHit: true);
             UpsertVisual(catalog, "char_explosive_skull", ArtRoot + "/skeletonhead_idle_1024.png");
 
+            var queenArt = ArtRoot + "/ghost queen";
+            UpsertVisualFull(catalog, GhostQueenBossEncounterBuilder.CharacterId,
+                idle: queenArt + "/ghostqueen_idle_1024.png",
+                attack: queenArt + "/ghostqueen_attack_1024.png",
+                hit: queenArt + "/ghostqueen_hit_1024.png",
+                death: queenArt + "/ghostqueen_defeat_1024.png",
+                profile: queenArt + "/ghostqueen_profile.png",
+                gifPath: "The Grimhands Asset/monsters/ghost queen/ghostqueen_idle_anime.gif",
+                defendUsesHit: true,
+                preserveOriginalFacing: true);
+
             EditorUtility.SetDirty(catalog);
         }
 
@@ -118,6 +142,14 @@ namespace Grimhand.Content.Editor
             public CardDefinitionSO KingBoneShield;
             public CardDefinitionSO KingWhiteStorm;
             public CardDefinitionSO SkullExplode;
+            public CardDefinitionSO QueenClaw;
+            public CardDefinitionSO QueenDeterrence;
+            public CardDefinitionSO QueenSoulDrain;
+            public CardDefinitionSO QueenCurse;
+            public CardDefinitionSO QueenCommand;
+            public CardDefinitionSO QueenSpiritGuard;
+            public CardDefinitionSO QueenBurst;
+            public CardDefinitionSO QueenWrath;
         }
 
         static MonsterCards CreateMonsterCards()
@@ -223,11 +255,40 @@ namespace Grimhand.Content.Editor
                     DefBlockScaled(200)),
                 KingWhiteStorm = SaveCard("m_king_white_storm", "白骨风暴", "char_skeleton_king", 3,
                     CardType.Attack, Kw("aoe"), CardRarity.Epic,
-                    Action(EffectActionType.DealDamage, EffectTarget.AllEnemies, 20, scaleAttack: true,
+                    Action(EffectActionType.DealDamage, EffectTarget.AllEnemies, 12, scaleAttack: true,
                         reach: TargetReach.Any)),
                 SkullExplode = SaveCard("m_skull_explode", "骷髅自爆", "char_explosive_skull", 0,
                     CardType.Attack, Kw("self_destruct", "bonus_hand"), CardRarity.Common,
-                    Action(EffectActionType.DealDamage, EffectTarget.RandomEnemy, 40))
+                    Action(EffectActionType.DealDamage, EffectTarget.RandomEnemy, 40)),
+                QueenClaw = SaveCard("m_queen_claw", "幽灵爪击", GhostQueenBossEncounterBuilder.CharacterId, 1,
+                    CardType.Attack, Kw("snipe"), CardRarity.Common,
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 20, scaleAttack: true,
+                        reach: TargetReach.Any)),
+                QueenDeterrence = SaveCard("m_queen_deterrence", "女王的威慑", GhostQueenBossEncounterBuilder.CharacterId, 1,
+                    CardType.Status, Kw("slow"), CardRarity.Common,
+                    Action(EffectActionType.LockRandomPlayerPlaysThisTurn, EffectTarget.DefaultEnemy, 0)),
+                QueenSoulDrain = SaveCard("m_queen_soul_drain", "摄魂", GhostQueenBossEncounterBuilder.CharacterId, 1,
+                    CardType.Status, Kw("slow"), CardRarity.Common,
+                    Action(EffectActionType.ReducePlayerEnergyRegenNextTurn, EffectTarget.AllEnemies, 2)),
+                QueenCurse = SaveCard("m_queen_curse", "女王的诅咒", GhostQueenBossEncounterBuilder.CharacterId, 2,
+                    CardType.Status, Kw("poison", "aoe"), CardRarity.Common,
+                    Action(EffectActionType.ApplyStatus, EffectTarget.AllEnemies, 0,
+                        statusId: StatusCatalog.Poison, stacks: 3, duration: -1, reach: TargetReach.Any)),
+                QueenCommand = SaveCard("m_queen_command", "女王的命令", GhostQueenBossEncounterBuilder.CharacterId, 2,
+                    CardType.Defense, Kw("parry"), CardRarity.Epic,
+                    Action(EffectActionType.ArmRespondDamageRedirect, EffectTarget.Self, 0,
+                        condition: ReactionConditionType.LastActionAttackOnSelf)),
+                QueenSpiritGuard = SaveCard("m_queen_spirit_guard", "灵气护体", GhostQueenBossEncounterBuilder.CharacterId, 1,
+                    CardType.Defense, Kw("guard"), CardRarity.Common,
+                    DefBlockScaled(200)),
+                QueenBurst = SaveCard("m_queen_burst", "幽灵爆发", GhostQueenBossEncounterBuilder.CharacterId, 4,
+                    CardType.Attack, Kw("aoe"), CardRarity.Common,
+                    Action(EffectActionType.DealDamage, EffectTarget.AllEnemies, 20, scaleAttack: true,
+                        reach: TargetReach.Any)),
+                QueenWrath = SaveCard("m_queen_wrath", "幽灵女王之怒", GhostQueenBossEncounterBuilder.CharacterId, 0,
+                    CardType.Status, Kw("bonus_hand"), CardRarity.Epic,
+                    Action(EffectActionType.ApplyStatus, EffectTarget.Self, 0,
+                        statusId: StatusCatalog.GhostQueenWrath, stacks: 1, duration: -1))
             };
         }
 
@@ -362,7 +423,8 @@ namespace Grimhand.Content.Editor
             string death,
             string profile = null,
             string gifPath = null,
-            bool defendUsesHit = false)
+            bool defendUsesHit = false,
+            bool preserveOriginalFacing = false)
         {
             var idleSprite = AssetDatabase.LoadAssetAtPath<Sprite>(idle);
             if (idleSprite == null)
@@ -395,6 +457,7 @@ namespace Grimhand.Content.Editor
                 ? null
                 : AssetDatabase.LoadAssetAtPath<Sprite>(profile);
             entry.IdleAnimationGifPath = gifPath ?? "";
+            entry.PreserveOriginalFacing = preserveOriginalFacing;
         }
 
         static void UpsertVisual(CharacterVisualCatalogSO catalog, string characterId, string spritePath)

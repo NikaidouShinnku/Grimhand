@@ -19,6 +19,7 @@ AllyFront, AllyMiddle, AllyBack, AllEnemies = 9, 10, 11, 12
 RandomEnemy = 13
 ReachAny, ReachFrontMiddle = 0, 1
 CondAttackOnSelf = 1
+ApplyAnubisAvatar = 10
 Attack, Defense, Status = 0, 1, 2
 Common, Rare, Epic, Legendary = 0, 1, 2, 4
 
@@ -64,6 +65,7 @@ def atk(flat, pct=100, target=DefaultEnemy, reach=ReachFrontMiddle, ignore=0, hp
         hp_bonus=0, hit_bonus=0, lifesteal=0, on_kill=0, splash=False, splash_pct=80):
     return action(
         Type=DealDamage, Target=target, Value=flat, ScaleWithAttack=1,
+        AttackScalePercent=pct,
         Reach=reach if target not in (AllEnemies, RandomEnemy) else ReachAny,
         IgnoreDefPercent=ignore, BonusIfTargetHpBelowPercent=hp_below,
         BonusIfTargetHpBelowFlat=hp_bonus, BonusIfTargetHitThisTurnPercent=hit_bonus,
@@ -84,6 +86,10 @@ def heal_pct(pct, target=FrontAlly):
 
 def self_dmg(v):
     return action(Type=DealDamage, Target=Self, Value=v)
+
+
+def self_dmg_pct(pct):
+    return action(Type=DealDamage, Target=Self, Value=0, HealMaxHpPercent=pct)
 
 
 def draw(n):
@@ -257,7 +263,7 @@ def main():
     write_card("w_unyielding", display="不屈意志", owner=KNIGHT, cost=0, ctype=Status, rarity=Epic,
                keywords=["exhaust"], actions=[status("unyielding", 1, -1, Self)])
     write_card("w_god_descends", display="天神下凡", owner=KNIGHT, cost=5, ctype=Status, rarity=Legendary,
-               keywords=["exhaust"], actions=[atk(5, 120, target=AllEnemies)])
+               keywords=["exhaust"], actions=[status("god_descends", 1, -1, Self)])
 
     # --- Pharaoh ---
     write_card("p_sand_ray", display="沙暴射线", owner=MAGE, cost=1, ctype=Attack, rarity=Common,
@@ -290,7 +296,7 @@ def main():
     write_card("p_solar_judgment", display="日光审判", owner=MAGE, cost=4, ctype=Attack, rarity=Rare,
                keywords=[], actions=[atk(10, 200, reach=ReachAny)])
     write_card("p_anubis_avatar", display="阿努比斯化身", owner=MAGE, cost=6, ctype=Status, rarity=Legendary,
-               keywords=["exhaust"], actions=[{"type": "ApplyAnubisAvatar", "target": "Self"}])
+               keywords=["exhaust"], actions=[action(Type=ApplyAnubisAvatar, Target=Self)])
     write_card("p_solar_god_wrath", display="太阳神之怒", owner=MAGE, cost=4, ctype=Attack, rarity=Epic,
                keywords=["aoe"], actions=[
                    atk(8, 80, target=AllEnemies),
@@ -328,23 +334,12 @@ def main():
     write_card("d_demon_lord", display="魔王降临", owner=DEMON, cost=4, ctype=Attack, rarity=Epic,
                keywords=["sacrifice"], actions=[self_dmg(20), atk(15, 200, reach=ReachAny, on_kill=30)])
     write_card("d_endless_blade", display="无尽血刃", owner=DEMON, cost=3, ctype=Attack, rarity=Legendary,
-               keywords=["sacrifice"], actions=[self_dmg(8), atk(10, 150, reach=ReachAny)])
+               keywords=["sacrifice"], actions=[self_dmg_pct(25), atk(10, 150, reach=ReachAny)])
     write_card("d_final_blood_ritual", display="最终鲜血仪式", owner=DEMON, cost=3, ctype=Status, rarity=Legendary,
-               keywords=["exhaust"], actions=[draw(1), action(Type=Heal, Target=Self, Value=5)])
+               keywords=["exhaust"], actions=[status("final_blood_ritual", 1, -1, Self)])
 
-    print("Writing initial decks...")
-    write_character("Character_Knight", KNIGHT, "战士", 1, 50, 8, 6, 7, [
-        ("w_basic_slash", 3), ("w_shield_block", 2), ("w_defensive_stance", 1),
-        ("w_iron_parry", 1), ("w_power_cleave", 1),
-    ])
-    write_character("Character_Mage", MAGE, "法老", 2, 40, 6, 4, 5, [
-        ("p_sand_ray", 3), ("p_bless", 2), ("p_solar_wrath", 1),
-        ("p_decree", 1), ("p_scarab_shield", 1),
-    ])
-    write_character("Character_Ranger", DEMON, "恶魔", 3, 30, 9, 2, 6, [
-        ("d_shadow_claw", 3), ("d_devil_touch", 2), ("d_blood_tail", 1),
-        ("d_demon_pact", 1), ("d_hell_fire", 1),
-    ])
+    # 不写入 Character_*.asset 初始牌组（含测试卡 w_author_realm_strike）。
+    # 牌组由 BalanceV2ContentGenerator / Grimhand → Generate Demo ScriptableObjects 维护。
     print("Done.")
 
 

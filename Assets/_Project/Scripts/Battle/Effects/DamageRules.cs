@@ -3,6 +3,7 @@ using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Reactions;
 using Grimhand.Battle.Rules;
+using Grimhand.Battle.Status;
 using Grimhand.Core;
 
 namespace Grimhand.Battle.Effects
@@ -64,12 +65,21 @@ namespace Grimhand.Battle.Effects
             hpDamage = RelicBattleRules.ApplyIncomingDamageRelics(
                 state, actor, recipient, hpDamage, rng, events);
 
+            var defenderMitigated = 0;
+            var hadDefenderArm = DefenderRespondArmRules.TryConsumeForIncomingPlayerAttack(
+                state, actor, ref recipient, ref hpDamage, out defenderMitigated);
+
             var beforeRespondMitigation = hpDamage;
             hpDamage = RespondEffectExecutor.ApplyMitigation(
                 state, sourceCardInstanceId, recipient.Id, hpDamage);
-            var respondMitigated = beforeRespondMitigation - hpDamage;
-            var hadRespondDefense = RespondEffectExecutor.HasRespondDefenseForHit(
-                state, sourceCardInstanceId, recipient.Id);
+            var respondMitigated = beforeRespondMitigation - hpDamage + defenderMitigated;
+            var hadRespondDefense = hadDefenderArm
+                || respondMitigated > 0
+                || RespondEffectExecutor.HasRespondDefenseForHit(
+                    state, sourceCardInstanceId, recipient.Id);
+
+            if (StatusRules.HasStatus(recipient, StatusCatalog.Ethereal) && hpDamage > 0)
+                hpDamage = 1;
 
             if (hpDamage > 0 && rng != null)
             {
@@ -90,9 +100,12 @@ namespace Grimhand.Battle.Effects
             if (hpDamage > 0)
                 recipient.HitThisTurn = true;
 
+            var hpBefore = recipient.Hp;
             var wasAlive = recipient.IsAlive;
             if (hpDamage > 0)
                 recipient.Hp = Math.Max(0, recipient.Hp - hpDamage);
+
+            BossTraitRules.TryTriggerGhostQueenEnrage(state, recipient, hpBefore, events);
 
             if (!recipient.IsAlive && wasAlive
                 && CombatMechanicsRules.TryPreventDeathWithReviveBlessing(state, recipient, events))
@@ -134,14 +147,25 @@ namespace Grimhand.Battle.Effects
             }
         }
 
-        public static void ApplyBlock(CombatantState actor, int amount, System.Collections.Generic.List<BattleEvent> events)
+        public static void ApplyBlock(
+            CombatantState actor,
+            int amount,
+            System.Collections.Generic.List<BattleEvent> events,
+            BattleState state = null,
+            BattleRng rng = null)
         {
+            if (actor == null || amount <= 0)
+                return;
+
             actor.Block += amount;
             events.Add(new BattleEvent(BattleEventKind.BlockGained, actor.DisplayName)
             {
                 CombatantId = actor.Id,
                 Amount = amount
             });
+
+            if (state != null)
+                PassiveCardMechanicsRules.TryTriggerGodDescendsOnBlockGain(state, actor, amount, events, rng);
         }
 
         public static void ApplyHeal(

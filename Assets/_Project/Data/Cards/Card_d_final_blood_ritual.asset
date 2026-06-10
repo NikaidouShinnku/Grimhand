@@ -21,32 +21,10 @@ MonoBehaviour:
   Keywords:
   - exhaust
   Actions:
-  - Type: 7
+  - Type: 3
     Target: 1
-    Value: 1
-    StatusId: 
-    Stacks: 1
-    Duration: -1
-    ScaleWithAttack: 0
-    ScaleWithDefense: 0
-    AttackScalePercent: 100
-    DefenseScalePercent: 100
-    Condition: 0
-    Reach: 1
-    SplashBehindTarget: 0
-    SplashPowerPercent: 100
-    BackRowPowerPercent: 100
-    IgnoreDefPercent: 0
-    BonusIfTargetHpBelowPercent: 0
-    BonusIfTargetHpBelowFlat: 0
-    BonusIfTargetHitThisTurnPercent: 0
-    LifestealPercent: 0
-    HealMaxHpPercent: 0
-    OnKillHealAmount: 0
-  - Type: 2
-    Target: 1
-    Value: 5
-    StatusId: 
+    Value: 0
+    StatusId: final_blood_ritual
     Stacks: 1
     Duration: -1
     ScaleWithAttack: 0

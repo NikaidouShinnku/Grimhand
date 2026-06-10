@@ -26,6 +26,7 @@ namespace Grimhand.Expedition
         public int MiracleLeafUsesRemaining { get; set; } = -1;
         public List<ExpeditionRouteOption> PendingRoutes { get; } = new();
         public BattleConfig CurrentBattleConfig { get; set; }
+        public string CurrentBossDisplayName { get; set; } = "";
         public ExpeditionRewardPickup PendingRewardPickup { get; set; }
         public ExpeditionPendingEvent PendingEvent { get; set; }
         public ExpeditionPendingShrine PendingShrine { get; set; }

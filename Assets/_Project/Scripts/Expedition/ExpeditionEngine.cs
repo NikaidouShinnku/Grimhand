@@ -62,6 +62,175 @@ namespace Grimhand.Expedition
             LoadRoutesForNextLayer();
         }
 
+        /// <summary>Boss 测试场景：Lv.7 队伍 + 3 遗物 + 每人 3 张奖励牌，直进幽灵女王战。</summary>
+        public void StartGhostQueenBossTest(BattleConfig ghostQueenTemplate)
+        {
+            const int partyLevel = 7;
+            const int relicCount = 3;
+            const int bonusCardsPerMember = 3;
+
+            ResetRunState(skipMap: true);
+            InitPartyAtLevel(partyLevel);
+            RollStartingRelics(relicCount);
+            RollStartingBonusCards(bonusCardsPerMember);
+
+            _run.Phase = ExpeditionPhase.InBattle;
+            _run.CurrentBossDisplayName = Floor10BossEncounterBuilder.GhostQueenDisplayName;
+
+            if (ghostQueenTemplate == null)
+            {
+                var standard = _config.CombatEncounters.Count > 0 ? _config.CombatEncounters[0] : null;
+                ghostQueenTemplate = GhostQueenBossEncounterBuilder.BuildTemplate(standard);
+            }
+
+            var seed = _rng.NextInt(1, int.MaxValue);
+            _run.CurrentBattleConfig = ExpeditionBattleConfigBuilder.BuildEncounter(
+                ghostQueenTemplate,
+                _run.Party,
+                _run.Relics,
+                seed,
+                applyPartyHp: true,
+                _run.MiracleLeafUsesRemaining,
+                floor: 10,
+                _run.Modifiers,
+                _config.PlayerCardCatalog);
+
+            _run.CurrentBattleConfig.EnergyCap += _run.Modifiers.EnergyCapBonus;
+            _run.CurrentBattleConfig.TurnStartEnergyRegen = System.Math.Max(
+                _run.CurrentBattleConfig.TurnStartEnergyRegen, 4);
+        }
+
+        void ResetRunState(bool skipMap)
+        {
+            _run.BattlesWon = 0;
+            _run.Gold = 0;
+            _run.LastGoldReward = 0;
+            _run.LastXpReward = 0;
+            _run.LastEventMessage = "";
+            _run.Party.Clear();
+            _run.Relics.Clear();
+            _run.UsedEventIds.Clear();
+            _run.EventFlags.Clear();
+            _run.ConsumableSlots.Clear();
+            ConsumableInventory.EnsureInitialized(_run.ConsumableSlots);
+            _run.PendingConsumableOfferId = "";
+            _run.Modifiers.TeamAttackBonus = 0;
+            _run.Modifiers.TeamDefenseBonus = 0;
+            _run.Modifiers.EnergyCapBonus = 0;
+            _run.Modifiers.NextCombatEnemyAttackBonus = false;
+            _run.Modifiers.ForeseenLayerCount = 0;
+            _run.Modifiers.SkipNextRouteSelect = false;
+            _run.Modifiers.LootedInjuredAdventurer = false;
+            _run.Modifiers.DivinePunishmentActive = false;
+            _run.PendingRoutes.Clear();
+            _run.PendingRewardPickup = null;
+            _run.PendingEvent = null;
+            _run.PendingShrine = null;
+            _run.Shop.Clear();
+            _run.CurrentBattleConfig = null;
+            _run.RunAcquisitionLog.Clear();
+            _run.Map = skipMap ? null : ExpeditionMapGenerator.Generate(_config, _run, _rng);
+        }
+
+        void InitPartyAtLevel(int level)
+        {
+            if (_config.CombatEncounters.Count == 0)
+                return;
+
+            foreach (var cc in _config.CombatEncounters[0].Combatants)
+            {
+                if (cc.Team != TeamSide.Player)
+                    continue;
+
+                var clamped = CharacterProgression.ClampLevel(level);
+                var stats = CharacterProgression.GetStatsForCharacter(cc.CharacterDefinitionId, clamped);
+                _run.Party.Add(new PartyMemberSnapshot
+                {
+                    CharacterDefinitionId = cc.CharacterDefinitionId,
+                    DisplayName = cc.DisplayName,
+                    Level = clamped,
+                    Xp = 0,
+                    Hp = stats.MaxHp,
+                    MaxHp = stats.MaxHp
+                });
+            }
+        }
+
+        void RollStartingRelics(int count)
+        {
+            for (var i = 0; i < count; i++)
+            {
+                var relicId = PickRandomRelicId();
+                if (string.IsNullOrEmpty(relicId))
+                    break;
+
+                if (!_run.Relics.Contains(relicId))
+                {
+                    _run.Relics.Add(relicId);
+                    if (RelicDatabase.TryGet(relicId, out var relic))
+                        RecordRunAcquisition($"测试遗物：{relic.DisplayName}");
+                }
+            }
+        }
+
+        string PickRandomRelicId()
+        {
+            var pool = new List<string>();
+            foreach (var relic in RelicDatabase.All)
+            {
+                if (_run.Relics.Contains(relic.Id))
+                    continue;
+
+                if (!RelicDatabase.CanAppearInRewardPool(relic, _run.Party))
+                    continue;
+
+                pool.Add(relic.Id);
+            }
+
+            return pool.Count == 0 ? "" : pool[_rng.NextIndex(pool.Count)];
+        }
+
+        void RollStartingBonusCards(int countPerMember)
+        {
+            var catalog = ExpeditionCardPool.CollectPlayerCardTemplates(_config);
+            foreach (var member in _run.Party)
+            {
+                var pool = new List<CardTemplate>();
+                foreach (var template in catalog)
+                {
+                    if (template == null || string.IsNullOrEmpty(template.DefinitionId))
+                        continue;
+
+                    if (template.OwnerCharacterId != member.CharacterDefinitionId)
+                        continue;
+
+                    pool.Add(ExpeditionBattleConfigBuilder.CloneTemplate(template));
+                }
+
+                var pickedIds = new HashSet<string>();
+                for (var n = 0; n < countPerMember && pool.Count > 0; n++)
+                {
+                    CardTemplate chosen = null;
+                    for (var attempt = 0; attempt < pool.Count * 2; attempt++)
+                    {
+                        var candidate = pool[_rng.NextIndex(pool.Count)];
+                        if (!pickedIds.Add(candidate.DefinitionId))
+                            continue;
+
+                        chosen = candidate;
+                        break;
+                    }
+
+                    if (chosen == null)
+                        break;
+
+                    ExpeditionBattleConfigBuilder.HydrateTemplateFromCatalog(chosen, _config.PlayerCardCatalog);
+                    member.BonusCards.Add(chosen);
+                    RecordRunAcquisition($"测试卡牌：{chosen.DisplayName}（{member.DisplayName}）");
+                }
+            }
+        }
+
         public void OnBattleFinished(BattleState state)
         {
             if (state == null)
@@ -765,10 +934,24 @@ namespace Grimhand.Expedition
 
         BattleConfig BuildBossBattle(bool applyPartyHp)
         {
-            var template = _config.BossEncounters.Count > 0
-                ? _config.BossEncounters[0]
-                : SkeletonKingBossEncounterBuilder.BuildTemplate(
-                    _config.CombatEncounters.Count > 0 ? _config.CombatEncounters[0] : null);
+            BattleConfig template;
+            if (_config.BossEncounters.Count > 1)
+            {
+                template = _config.BossEncounters[_rng.NextIndex(_config.BossEncounters.Count)];
+            }
+            else if (_config.BossEncounters.Count == 1)
+            {
+                template = _config.BossEncounters[0];
+            }
+            else
+            {
+                var standard = _config.CombatEncounters.Count > 0
+                    ? _config.CombatEncounters[0]
+                    : null;
+                template = Floor10BossEncounterBuilder.BuildRandomTemplate(standard, _rng);
+            }
+
+            _run.CurrentBossDisplayName = ResolveBossDisplayName(template);
 
             var seed = _rng.NextInt(1, int.MaxValue);
             var config = ExpeditionBattleConfigBuilder.BuildEncounter(
@@ -785,6 +968,29 @@ namespace Grimhand.Expedition
             config.EnergyCap += _run.Modifiers.EnergyCapBonus;
             config.TurnStartEnergyRegen = System.Math.Max(config.TurnStartEnergyRegen, 4);
             return config;
+        }
+
+        static string ResolveBossDisplayName(BattleConfig template)
+        {
+            if (template?.Combatants == null)
+                return Floor10BossEncounterBuilder.SkeletonKingDisplayName;
+
+            foreach (var cc in template.Combatants)
+            {
+                if (cc.Team != TeamSide.Enemy)
+                    continue;
+
+                if (cc.CharacterDefinitionId == GhostQueenBossEncounterBuilder.CharacterId)
+                    return Floor10BossEncounterBuilder.GhostQueenDisplayName;
+
+                if (cc.CharacterDefinitionId == "char_skeleton_king")
+                    return Floor10BossEncounterBuilder.SkeletonKingDisplayName;
+
+                if (!string.IsNullOrEmpty(cc.DisplayName))
+                    return cc.DisplayName;
+            }
+
+            return Floor10BossEncounterBuilder.SkeletonKingDisplayName;
         }
 
         int RollCombatXp() => _config.XpPerVictory > 0 ? _config.XpPerVictory : 16;

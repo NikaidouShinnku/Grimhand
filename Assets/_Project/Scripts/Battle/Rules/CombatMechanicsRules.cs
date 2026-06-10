@@ -26,6 +26,17 @@ namespace Grimhand.Battle.Rules
                 combatant.HitThisTurn = false;
         }
 
+        public static void ClearResolveTurnFlags(BattleState state)
+        {
+            if (state == null)
+                return;
+
+            foreach (var combatant in state.Combatants)
+                combatant.SkipRemainingPlaysThisTurn = false;
+
+            state.DefenderRespondArms.Clear();
+        }
+
         public static CombatantState FindTauntHolder(BattleState state, TeamSide defenderTeam)
         {
             if (state == null)

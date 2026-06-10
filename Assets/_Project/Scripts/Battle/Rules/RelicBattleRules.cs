@@ -316,7 +316,7 @@ namespace Grimhand.Battle.Rules
                 target.WarriorFirstHitBlockPending = false;
                 var block = System.Math.Min(hpDamage, mods.WarriorFirstHitBlockAmount);
                 hpDamage -= block;
-                DamageRules.ApplyBlock(target, block, events);
+                DamageRules.ApplyBlock(target, block, events, state);
             }
 
             if (mods != null
@@ -353,7 +353,7 @@ namespace Grimhand.Battle.Rules
                 if (ally.Team != TeamSide.Player || !ally.IsAlive)
                     continue;
 
-                DamageRules.ApplyBlock(ally, mods.StatusCardTeamBlock, events);
+                DamageRules.ApplyBlock(ally, mods.StatusCardTeamBlock, events, state);
             }
 
             events.Add(new BattleEvent(BattleEventKind.BlockGained,

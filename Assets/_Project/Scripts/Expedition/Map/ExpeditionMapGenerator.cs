@@ -290,8 +290,8 @@ namespace Grimhand.Expedition.Map
             new()
             {
                 NodeType = ExpeditionNodeType.Boss,
-                DisplayName = "骷髅王",
-                Description = "骨之王座的君王镇守终层。",
+                DisplayName = "守关 Boss",
+                Description = "终层守关者：骷髅王或幽灵女王。",
                 PathSpriteIndex = 0,
                 EncounterIndex = 0
             };

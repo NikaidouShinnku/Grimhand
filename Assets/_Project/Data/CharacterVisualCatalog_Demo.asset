@@ -15,23 +15,16 @@ MonoBehaviour:
   DefaultPortrait: {fileID: 0}
   Entries:
   - CharacterId: char_knight
-    IdlePortrait: {fileID: 4468830512903037591, guid: bf1965c7ed1ef7047adb61d9f31333ae, type: 3}
+    IdlePortrait: {fileID: 0}
     AttackPortrait: {fileID: 5250032595024207069, guid: 481a9e287ec83cb448f95e3b8018cd32, type: 3}
     DefensePortrait: {fileID: -8537783292972971152, guid: a49ade7cf358ab24aa6ba302b4ec5f1d, type: 3}
     HitPortrait: {fileID: -2075482069185573185, guid: e1398618d7ccbb74c98a07b577d99c96, type: 3}
     HitPortraitFacesRight: 1
     DeathPortrait: {fileID: 5936519392888024579, guid: fec5fdb16892e584da66c002a693f2b1, type: 3}
     CardProfilePortrait: {fileID: 6753754607097149493, guid: 2537c61af0b8c4e47b72dea084a826f7, type: 3}
-    IdleAnimationFrames:
-    - {fileID: 2670208551542050995, guid: fc8b3be4a4980ba42bac6f4c8865c4a0, type: 3}
-    - {fileID: 1392275807464658457, guid: fc8b3be4a4980ba42bac6f4c8865c4a0, type: 3}
-    - {fileID: -7278485902620759602, guid: fc8b3be4a4980ba42bac6f4c8865c4a0, type: 3}
-    - {fileID: 3760605260942016204, guid: fc8b3be4a4980ba42bac6f4c8865c4a0, type: 3}
-    - {fileID: 5930121957314577447, guid: fc8b3be4a4980ba42bac6f4c8865c4a0, type: 3}
-    - {fileID: 1852934030196206690, guid: fc8b3be4a4980ba42bac6f4c8865c4a0, type: 3}
-    - {fileID: 6458347289415452579, guid: fc8b3be4a4980ba42bac6f4c8865c4a0, type: 3}
-    - {fileID: 1939280711952875256, guid: fc8b3be4a4980ba42bac6f4c8865c4a0, type: 3}
+    IdleAnimationFrames: []
     IdleAnimationGifPath: The Grimhands Asset/characters/warrior/warrior_idle_anime.gif
+    PreserveOriginalFacing: 0
   - CharacterId: char_mage
     IdlePortrait: {fileID: -2070779048781949823, guid: e68953ff4c1766044ab3a58fd72aa6ff, type: 3}
     AttackPortrait: {fileID: -6862133424684888327, guid: e8638e252801405459b47d8838695a05, type: 3}
@@ -40,16 +33,9 @@ MonoBehaviour:
     HitPortraitFacesRight: 0
     DeathPortrait: {fileID: 1551221932086916854, guid: e888d392c97476843a5715694006d8aa, type: 3}
     CardProfilePortrait: {fileID: 4280497604660114028, guid: 3e2bc5854538f334abc8b31b0d798519, type: 3}
-    IdleAnimationFrames:
-    - {fileID: 7612753104065106894, guid: a667fb37c06f5384ba1b6983c498c1b1, type: 3}
-    - {fileID: -4128952662995761708, guid: a667fb37c06f5384ba1b6983c498c1b1, type: 3}
-    - {fileID: 8336544005260077725, guid: a667fb37c06f5384ba1b6983c498c1b1, type: 3}
-    - {fileID: -994760939572658406, guid: a667fb37c06f5384ba1b6983c498c1b1, type: 3}
-    - {fileID: 2303377027485266271, guid: a667fb37c06f5384ba1b6983c498c1b1, type: 3}
-    - {fileID: 4669920024138084162, guid: a667fb37c06f5384ba1b6983c498c1b1, type: 3}
-    - {fileID: 6939392776825427662, guid: a667fb37c06f5384ba1b6983c498c1b1, type: 3}
-    - {fileID: 7703166542985640385, guid: a667fb37c06f5384ba1b6983c498c1b1, type: 3}
+    IdleAnimationFrames: []
     IdleAnimationGifPath: The Grimhands Asset/characters/pharoah/pharoah_idle_anime.gif
+    PreserveOriginalFacing: 0
   - CharacterId: char_ranger
     IdlePortrait: {fileID: 685943926597773782, guid: eb95ea32bacbf2d418f7c26442ea6586, type: 3}
     AttackPortrait: {fileID: 1242017226969909807, guid: fdf829db3b6f3174c9c488108798231e, type: 3}
@@ -58,16 +44,9 @@ MonoBehaviour:
     HitPortraitFacesRight: 0
     DeathPortrait: {fileID: 3753124022583683356, guid: 6db4dba6bfa07b6409a057e00c08663a, type: 3}
     CardProfilePortrait: {fileID: 8612228163388145054, guid: 57b1a93d6bdf2ef4b9035de37d78abaf, type: 3}
-    IdleAnimationFrames:
-    - {fileID: 5745208221346620586, guid: 491503078b9bac54782d58252a69c5b4, type: 3}
-    - {fileID: -7470312055189457954, guid: 491503078b9bac54782d58252a69c5b4, type: 3}
-    - {fileID: -3685594287130738811, guid: 491503078b9bac54782d58252a69c5b4, type: 3}
-    - {fileID: -6552049372771210532, guid: 491503078b9bac54782d58252a69c5b4, type: 3}
-    - {fileID: 7393272369781536973, guid: 491503078b9bac54782d58252a69c5b4, type: 3}
-    - {fileID: -3000897080420945877, guid: 491503078b9bac54782d58252a69c5b4, type: 3}
-    - {fileID: 8827794706476496560, guid: 491503078b9bac54782d58252a69c5b4, type: 3}
-    - {fileID: 6810909756927274166, guid: 491503078b9bac54782d58252a69c5b4, type: 3}
+    IdleAnimationFrames: []
     IdleAnimationGifPath: The Grimhands Asset/characters/devil/devil_idle_anime.gif
+    PreserveOriginalFacing: 0
   - CharacterId: char_goblin_brute
     IdlePortrait: {fileID: -7546124878013289674, guid: 4e9517047cbe912459dca45a57e6de36, type: 3}
     AttackPortrait: {fileID: -7546124878013289674, guid: 4e9517047cbe912459dca45a57e6de36, type: 3}
@@ -78,6 +57,7 @@ MonoBehaviour:
     CardProfilePortrait: {fileID: 0}
     IdleAnimationFrames: []
     IdleAnimationGifPath: 
+    PreserveOriginalFacing: 0
   - CharacterId: char_goblin_shaman
     IdlePortrait: {fileID: 3727514190393640177, guid: c21823f0fb8c8e642805cf4373333346, type: 3}
     AttackPortrait: {fileID: 3727514190393640177, guid: c21823f0fb8c8e642805cf4373333346, type: 3}
@@ -88,6 +68,7 @@ MonoBehaviour:
     CardProfilePortrait: {fileID: 0}
     IdleAnimationFrames: []
     IdleAnimationGifPath: 
+    PreserveOriginalFacing: 0
   - CharacterId: char_goblin_archer
     IdlePortrait: {fileID: -9055158821392389110, guid: d288c1460a6d0d644b4a5de3cdd479a1, type: 3}
     AttackPortrait: {fileID: -9055158821392389110, guid: d288c1460a6d0d644b4a5de3cdd479a1, type: 3}
@@ -98,6 +79,7 @@ MonoBehaviour:
     CardProfilePortrait: {fileID: 0}
     IdleAnimationFrames: []
     IdleAnimationGifPath: 
+    PreserveOriginalFacing: 0
   - CharacterId: char_goblin
     IdlePortrait: {fileID: -7546124878013289674, guid: 4e9517047cbe912459dca45a57e6de36, type: 3}
     AttackPortrait: {fileID: -7546124878013289674, guid: 4e9517047cbe912459dca45a57e6de36, type: 3}
@@ -108,6 +90,7 @@ MonoBehaviour:
     CardProfilePortrait: {fileID: 0}
     IdleAnimationFrames: []
     IdleAnimationGifPath: 
+    PreserveOriginalFacing: 0
   - CharacterId: char_slime
     IdlePortrait: {fileID: -4708950253590393852, guid: 9a1fd1640af3b18418cce79790a1436c, type: 3}
     AttackPortrait: {fileID: -4708950253590393852, guid: 9a1fd1640af3b18418cce79790a1436c, type: 3}
@@ -118,6 +101,7 @@ MonoBehaviour:
     CardProfilePortrait: {fileID: 0}
     IdleAnimationFrames: []
     IdleAnimationGifPath: 
+    PreserveOriginalFacing: 0
   - CharacterId: char_skeleton
     IdlePortrait: {fileID: 3727514190393640177, guid: c21823f0fb8c8e642805cf4373333346, type: 3}
     AttackPortrait: {fileID: 3727514190393640177, guid: c21823f0fb8c8e642805cf4373333346, type: 3}
@@ -128,6 +112,7 @@ MonoBehaviour:
     CardProfilePortrait: {fileID: 0}
     IdleAnimationFrames: []
     IdleAnimationGifPath: 
+    PreserveOriginalFacing: 0
   - CharacterId: char_skeleton_elite
     IdlePortrait: {fileID: -4373429155611144609, guid: 52300e792c63f1746867e2527049d77a, type: 3}
     AttackPortrait: {fileID: -4373429155611144609, guid: 52300e792c63f1746867e2527049d77a, type: 3}
@@ -138,6 +123,7 @@ MonoBehaviour:
     CardProfilePortrait: {fileID: 0}
     IdleAnimationFrames: []
     IdleAnimationGifPath: 
+    PreserveOriginalFacing: 0
   - CharacterId: char_wraith
     IdlePortrait: {fileID: -9055158821392389110, guid: d288c1460a6d0d644b4a5de3cdd479a1, type: 3}
     AttackPortrait: {fileID: -9055158821392389110, guid: d288c1460a6d0d644b4a5de3cdd479a1, type: 3}
@@ -148,6 +134,7 @@ MonoBehaviour:
     CardProfilePortrait: {fileID: 0}
     IdleAnimationFrames: []
     IdleAnimationGifPath: 
+    PreserveOriginalFacing: 0
   - CharacterId: char_wraith_elite
     IdlePortrait: {fileID: 7205583530371514723, guid: b8dc1a03eb9a90542ba3079d1a53112f, type: 3}
     AttackPortrait: {fileID: 7205583530371514723, guid: b8dc1a03eb9a90542ba3079d1a53112f, type: 3}
@@ -158,6 +145,7 @@ MonoBehaviour:
     CardProfilePortrait: {fileID: 0}
     IdleAnimationFrames: []
     IdleAnimationGifPath: 
+    PreserveOriginalFacing: 0
   - CharacterId: char_skeleton_king
     IdlePortrait: {fileID: -7880434421887366650, guid: e43a809f508935f48b66e38eea252908, type: 3}
     AttackPortrait: {fileID: 8548173571865743955, guid: 5fb9fb3c9b2d367448f94935786f1849, type: 3}
@@ -168,6 +156,7 @@ MonoBehaviour:
     CardProfilePortrait: {fileID: 3981678469540152780, guid: 98a226c35dcde044c84b786048bcaf50, type: 3}
     IdleAnimationFrames: []
     IdleAnimationGifPath: The Grimhands Asset/monsters/skeleton king/skeletonking_idle_anime.gif
+    PreserveOriginalFacing: 0
   - CharacterId: char_explosive_skull
     IdlePortrait: {fileID: 6744673319396852467, guid: 7a63637d0a1e7314585c9e0bd4bd55b9, type: 3}
     AttackPortrait: {fileID: 6744673319396852467, guid: 7a63637d0a1e7314585c9e0bd4bd55b9, type: 3}
@@ -178,3 +167,15 @@ MonoBehaviour:
     CardProfilePortrait: {fileID: 0}
     IdleAnimationFrames: []
     IdleAnimationGifPath: 
+    PreserveOriginalFacing: 0
+  - CharacterId: char_ghost_queen
+    IdlePortrait: {fileID: -2729189057294182202, guid: b6c6d8af461468d41b0007091523f394, type: 3}
+    AttackPortrait: {fileID: 2127544818864198287, guid: e94f3502277deb84c92c6eaed637a565, type: 3}
+    DefensePortrait: {fileID: -3011956222156467538, guid: 4484f30fc7541a34aa036af19c94b2e9, type: 3}
+    HitPortrait: {fileID: -3011956222156467538, guid: 4484f30fc7541a34aa036af19c94b2e9, type: 3}
+    HitPortraitFacesRight: 1
+    DeathPortrait: {fileID: -1839123942592938977, guid: b9477205fecd5ec4a81c5d368c400df0, type: 3}
+    CardProfilePortrait: {fileID: 3020939268557196992, guid: 915ca54ae937eab4387b486a4a8b9d63, type: 3}
+    IdleAnimationFrames: []
+    IdleAnimationGifPath: The Grimhands Asset/monsters/ghost queen/ghostqueen_idle_anime.gif
+    PreserveOriginalFacing: 1

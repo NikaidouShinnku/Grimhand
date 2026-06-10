@@ -58,14 +58,14 @@ namespace Grimhand.Battle.Rules
                 if (allies.Count > 0 && rng != null)
                 {
                     var pick = allies[rng.NextIndex(allies.Count)];
-                    DamageRules.ApplyBlock(pick, mods.TurnStartRandomAllyBlock, events);
+                    DamageRules.ApplyBlock(pick, mods.TurnStartRandomAllyBlock, events, state);
                 }
             }
 
             if (mods.TurnStartTeamBlock > 0)
             {
                 foreach (var ally in CollectAlivePlayerTeam(state))
-                    DamageRules.ApplyBlock(ally, mods.TurnStartTeamBlock, events);
+                    DamageRules.ApplyBlock(ally, mods.TurnStartTeamBlock, events, state);
             }
         }
 
@@ -158,10 +158,14 @@ namespace Grimhand.Battle.Rules
             BattleState state,
             CombatantState actor,
             CardInstanceState card,
-            List<BattleEvent> events)
+            List<BattleEvent> events,
+            BattleRng rng = null)
         {
             if (state == null || actor == null || card == null || !card.Keywords.Contains("sacrifice"))
                 return;
+
+            PassiveCardMechanicsRules.TryTriggerFinalBloodRitualOnSacrifice(
+                state, actor, card, events, rng);
 
             var mods = state.Config?.RunModifiers;
             if (mods == null || mods.SacrificeStackAttackBonus <= 0)
@@ -204,7 +208,7 @@ namespace Grimhand.Battle.Rules
             if (card.CardType == CardType.Attack && rng != null)
                 TryProcAttackBurn(state, actor, card, events, rng);
 
-            OnSacrificeCardResolved(state, actor, card, events);
+            OnSacrificeCardResolved(state, actor, card, events, rng);
         }
 
         public static void OnEnemyKilled(

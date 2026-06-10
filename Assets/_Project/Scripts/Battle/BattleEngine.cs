@@ -177,6 +177,7 @@ namespace Grimhand.Battle
         {
             SetPhase(TurnPhase.SpeedResolve);
             CombatMechanicsRules.ClearTurnFlags(_state);
+            CombatMechanicsRules.ClearResolveTurnFlags(_state);
             _state.RespondMitigationByEnemyCard.Clear();
             _state.PendingParryStrikes.Clear();
 
@@ -186,12 +187,15 @@ namespace Grimhand.Battle
 
             foreach (var entry in schedule)
             {
+                var actor = _state.GetCombatant(entry.Step.CombatantId);
+                if (actor != null && actor.SkipRemainingPlaysThisTurn)
+                    continue;
+
                 if (entry.RespondContext.HasValue)
                     ResolveRespondStep(entry);
                 else
                 {
                     RevealIntentIfHidden(entry.Step.CardInstanceId);
-                    var actor = _state.GetCombatant(entry.Step.CombatantId);
                     var card = _state.GetCard(entry.Step.CardInstanceId);
                     if (actor?.Team == TeamSide.Player && RespondRules.IsRespondCard(card))
                         ResolveRespondStep(entry);
@@ -238,6 +242,7 @@ namespace Grimhand.Battle
             ConsumableRules.RecordLastPlayerAttackCard(_state, actor, card);
             RelicBattleRules.TryApplyStatusCardTeamBlock(_state, actor, card, _events);
             RelicEffectRules.OnCardResolved(_state, actor, card, _events, _rng);
+            PassiveCardMechanicsRules.OnEndlessBladeResolved(_state, card, _events);
 
             TrySelfDestructAfterCard(actor, card);
 
@@ -303,6 +308,10 @@ namespace Grimhand.Battle
             ConsumableRules.RecordLastPlayerAttackCard(_state, actor, card);
             RelicBattleRules.TryApplyStatusCardTeamBlock(_state, actor, card, _events);
             RelicEffectRules.OnCardResolved(_state, actor, card, _events, _rng);
+            PassiveCardMechanicsRules.OnEndlessBladeResolved(_state, card, _events);
+
+            if (actor.Team == TeamSide.Enemy)
+                DefenderRespondArmRules.TryArmFromEnemyCardResolve(_state, actor, card);
 
             TrySelfDestructAfterCard(actor, card);
 
@@ -410,6 +419,7 @@ namespace Grimhand.Battle
                 (_state.TurnNumber == 1 ? mods?.ExtraDrawOnBattleStart ?? 0 : 0), _events);
             DeckRules.DrawCards(_state, TeamSide.Enemy, _rng, ResolveEnemyDrawCount(), _events);
             SummonRules.GrantSkullSelfDestructHands(_state, _events);
+            BossBonusHandRules.GrantPendingBonusHands(_state, _events);
         }
 
         int ResolveEnemyDrawCount()
@@ -598,7 +608,7 @@ namespace Grimhand.Battle
                     if (PositionRules.GetEffectiveSlot(_state, c) != FormationSlot.Front)
                         continue;
 
-                    DamageRules.ApplyBlock(c, mods.BattleStartFrontBlock, _events);
+                    DamageRules.ApplyBlock(c, mods.BattleStartFrontBlock, _events, _state);
                 }
             }
         }

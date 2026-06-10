@@ -52,7 +52,17 @@ namespace Grimhand.Content.Editor
                 "BattleSetup_Encounter_SkeletonKingBoss",
                 players.Warrior, players.Pharaoh, players.Demon,
                 monsters.SkeletonKing,
-                monsters.ExplosiveSkull);
+                monsters.ExplosiveSkull,
+                enemyDrawPerTurn: 3,
+                enemyEnergyBudget: 3);
+
+            var setupGhostQueenBoss = SaveBossBattleSetup(
+                "BattleSetup_Encounter_GhostQueenBoss",
+                players.Warrior, players.Pharaoh, players.Demon,
+                monsters.GhostQueen,
+                summonTemplate: null,
+                enemyDrawPerTurn: 4,
+                enemyEnergyBudget: 4);
 
             var visualCatalog = AssetDatabase.LoadAssetAtPath<CharacterVisualCatalogSO>(
                 Root + "/CharacterVisualCatalog_Demo.asset");
@@ -75,6 +85,7 @@ namespace Grimhand.Content.Editor
             expedition.CombatEncounters.Add(setupWraithPack);
             expedition.BossEncounters.Clear();
             expedition.BossEncounters.Add(setupSkeletonKingBoss);
+            expedition.BossEncounters.Add(setupGhostQueenBoss);
             EditorUtility.SetDirty(expedition);
 
             ExpeditionArtBinder.BindExpeditionArtSilent();
@@ -423,7 +434,9 @@ namespace Grimhand.Content.Editor
             CharacterDefinitionSO playerB,
             CharacterDefinitionSO playerC,
             CharacterDefinitionSO boss,
-            CharacterDefinitionSO summonTemplate)
+            CharacterDefinitionSO summonTemplate,
+            int enemyDrawPerTurn = 3,
+            int enemyEnergyBudget = 3)
         {
             var path = $"{Root}/Setups/{assetName}.asset";
             var setup = AssetDatabase.LoadAssetAtPath<BattleSetupSO>(path);
@@ -438,8 +451,8 @@ namespace Grimhand.Content.Editor
             setup.TurnStartEnergyRegen = 4;
             setup.HandLimit = 8;
             setup.CardsDrawnPerTurn = 5;
-            setup.EnemyCardsDrawnPerTurn = 3;
-            setup.EnemyTurnEnergyBudget = 3;
+            setup.EnemyCardsDrawnPerTurn = enemyDrawPerTurn;
+            setup.EnemyTurnEnergyBudget = enemyEnergyBudget;
             setup.SkipFloorScaling = true;
             setup.Combatants.Clear();
             setup.Combatants.AddRange(new[] { playerA, playerB, playerC, boss });

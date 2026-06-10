@@ -107,7 +107,7 @@ namespace Grimhand.Battle.Effects
                         state.Config?.RunModifiers, actor);
                     totalBlock = RelicBattleRules.ApplyPharaohBlockBonus(
                         state.Config?.RunModifiers, actor, totalBlock);
-                    DamageRules.ApplyBlock(beneficiary, totalBlock, events);
+                    DamageRules.ApplyBlock(beneficiary, totalBlock, events, state, rng);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Defense, beneficiary.Id, false, 0);
                     break;
                 }
@@ -177,13 +177,62 @@ namespace Grimhand.Battle.Effects
                     var blockFromDamage = state.LastAction.DamageAmount * action.Value / 100;
                     if (blockFromDamage > 0)
                     {
-                        DamageRules.ApplyBlock(actor, blockFromDamage, events);
+                        DamageRules.ApplyBlock(actor, blockFromDamage, events, state, rng);
                         state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Defense, actor.Id, false, 0);
                     }
 
                     break;
                 }
+                case EffectActionType.LockRandomPlayerPlaysThisTurn:
+                    ApplyRandomPlayerPlayLock(state, actor, events, rng);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    break;
+                case EffectActionType.ReducePlayerEnergyRegenNextTurn:
+                    if (action.Value > 0)
+                    {
+                        state.PendingPlayerEnergyRegenPenaltyNextTurn += action.Value;
+                        events.Add(new BattleEvent(BattleEventKind.StatusApplied,
+                            $"下回合能量回复 -{action.Value}")
+                        {
+                            CombatantId = actor.Id,
+                            Amount = action.Value
+                        });
+                    }
+
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    break;
+                case EffectActionType.ArmRespondDamageRedirect:
+                    DefenderRespondArmRules.ArmRedirectDouble(state, actor.Id);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Defense, actor.Id, false, 0);
+                    break;
             }
+        }
+
+        static void ApplyRandomPlayerPlayLock(
+            BattleState state,
+            CombatantState actor,
+            List<BattleEvent> events,
+            BattleRng rng)
+        {
+            var pool = new List<CombatantState>();
+            foreach (var unit in state.GetTeam(TeamSide.Player))
+            {
+                if (unit.IsAlive)
+                    pool.Add(unit);
+            }
+
+            if (pool.Count == 0)
+                return;
+
+            var index = rng != null ? rng.NextIndex(pool.Count) : 0;
+            var victim = pool[index];
+            victim.SkipRemainingPlaysThisTurn = true;
+            events.Add(new BattleEvent(BattleEventKind.StatusApplied,
+                $"{victim.DisplayName} 被威慑，本回合后续出牌被打断")
+            {
+                CombatantId = victim.Id,
+                TargetId = actor.Id
+            });
         }
 
         static void ExecuteDamageToAllEnemies(
@@ -212,6 +261,7 @@ namespace Grimhand.Battle.Effects
 
                 var primaryPower = TargetReachRules.AdjustPowerForTarget(state, action, target, value);
                 primaryPower = CombatMechanicsRules.ComputeConditionalDamageBonus(state, action, target, primaryPower);
+                primaryPower = PassiveCardMechanicsRules.ApplyEndlessBladeMultiplier(state, card, primaryPower);
 
                 DamageRules.ApplyDamage(
                     state,
@@ -292,6 +342,7 @@ namespace Grimhand.Battle.Effects
             var isSacrifice = isSacrificeSelfDamage;
             var primaryPower = TargetReachRules.AdjustPowerForTarget(state, action, target, value);
             primaryPower = CombatMechanicsRules.ComputeConditionalDamageBonus(state, action, target, primaryPower);
+            primaryPower = PassiveCardMechanicsRules.ApplyEndlessBladeMultiplier(state, card, primaryPower);
 
             var lifestealPercent = action.LifestealPercent;
             if (lifestealPercent <= 0)

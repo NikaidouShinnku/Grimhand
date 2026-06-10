@@ -29,6 +29,13 @@ namespace Grimhand.Battle.Rules
             if (action.Type == EffectActionType.Heal && action.HealMaxHpPercent > 0)
                 return Math.Max(1, (int)Math.Round(owner.MaxHp * action.HealMaxHpPercent / 100f));
 
+            if (action.Type == EffectActionType.DealDamage
+                && action.Target == EffectTarget.Self
+                && action.HealMaxHpPercent > 0)
+            {
+                return Math.Max(1, (int)Math.Round(owner.MaxHp * action.HealMaxHpPercent / 100f));
+            }
+
             return value;
         }
 

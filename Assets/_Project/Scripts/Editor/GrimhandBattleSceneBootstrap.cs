@@ -107,6 +107,9 @@ namespace Grimhand.Editor
             AddIdleOnlyVisual(catalog, "char_wraith", "monsters/wraith_idle_1024.png");
             AddIdleOnlyVisual(catalog, "char_wraith_elite", "monsters/wraith2_idle_1024.png");
 
+            // Boss / 特殊敌人（含 idle GIF 动画）；Upsert 不会覆盖已有玩家条目。
+            MonsterContentGenerator.UpdateVisualCatalog(catalog);
+
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();
         }

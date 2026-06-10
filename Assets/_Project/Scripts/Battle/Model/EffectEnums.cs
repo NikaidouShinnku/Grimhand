@@ -19,7 +19,13 @@ namespace Grimhand.Battle.Model
         ReflectLastDamageToAttacker,
         GainBlockFromLastDamagePercent,
         /// <summary>阿努比斯化身：本场 +50% 生命上限/攻击/防御，并禁出牌 2 回合。</summary>
-        ApplyAnubisAvatar
+        ApplyAnubisAvatar,
+        /// <summary>使随机一名玩家本回合后续出牌被跳过。</summary>
+        LockRandomPlayerPlaysThisTurn,
+        /// <summary>下回合玩家能量回复减少 Value 点。</summary>
+        ReducePlayerEnergyRegenNextTurn,
+        /// <summary>敌方应对：下次受到玩家攻击时将伤害×2并转嫁给随机队友。</summary>
+        ArmRespondDamageRedirect
     }
 
     public enum EffectTarget

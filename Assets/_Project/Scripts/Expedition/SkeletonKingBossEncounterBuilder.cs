@@ -48,7 +48,7 @@ namespace Grimhand.Expedition
                 Team = TeamSide.Enemy,
                 Slot = FormationSlot.Front,
                 CharacterDefinitionId = "char_skeleton_king",
-                MaxHp = 800,
+                MaxHp = 400,
                 BaseAttack = 30,
                 BaseDefense = 10,
                 Speed = 6
@@ -160,7 +160,7 @@ namespace Grimhand.Expedition
             {
                 Type = EffectActionType.DealDamage,
                 Target = EffectTarget.AllEnemies,
-                Value = 20,
+                Value = 12,
                 ScaleWithAttack = true,
                 Reach = TargetReach.Any
             });

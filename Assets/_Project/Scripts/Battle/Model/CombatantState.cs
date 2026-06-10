@@ -47,6 +47,9 @@ namespace Grimhand.Battle.Model
         /// <summary>剩余无法出牌回合数（阿努比斯化身等）。</summary>
         public int CardsLockedTurnsRemaining { get; set; }
 
+        public bool GhostQueenEnrageTriggered { get; set; }
+        public bool SkipRemainingPlaysThisTurn { get; set; }
+
         public bool IsAlive => Hp > 0;
 
         public bool IsCardsLocked => CardsLockedTurnsRemaining > 0;

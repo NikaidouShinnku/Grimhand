@@ -375,7 +375,10 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             _poseFlipX = false;
-            if (pose == PortraitPoseKind.Hit && faceCenter && _visuals != null)
+            if (pose == PortraitPoseKind.Hit
+                && faceCenter
+                && _visuals != null
+                && !_visuals.GetPreserveOriginalFacing(_characterDefinitionId))
             {
                 var facesRight = _visuals.GetHitPortraitFacesRight(_characterDefinitionId);
                 var shouldFaceCenterFromRight = _team == TeamSide.Player;
@@ -414,7 +417,12 @@ namespace Grimhand.Presentation.Battle
                 var refSize = _referenceSprite.rect.size;
                 var size = sprite.rect.size;
                 if (size.x > 0.01f && size.y > 0.01f)
-                    scale = Mathf.Min(refSize.x / size.x, refSize.y / size.y);
+                {
+                    var fit = Mathf.Min(refSize.x / size.x, refSize.y / size.y);
+                    // Image 已拉伸铺满 parent；小图不再额外放大，只缩小过大的 pose。
+                    if (fit < 1f)
+                        scale = fit;
+                }
             }
 
             var flipX = _poseFlipX ? -1f : 1f;

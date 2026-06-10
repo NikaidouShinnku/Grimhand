@@ -20,6 +20,10 @@ namespace Grimhand.Battle.Status
         public const string NecroticPoison = "necrotic_poison";
         public const string BoneWorkshop = "bone_workshop";
         public const string AnubisAvatar = "anubis_avatar";
+        public const string Ethereal = "ethereal";
+        public const string GhostQueenWrath = "ghost_queen_wrath";
+        public const string FinalBloodRitual = "final_blood_ritual";
+        public const string GodDescends = "god_descends";
 
         static readonly Dictionary<string, StatusDefinition> Definitions = Build();
 
@@ -134,6 +138,32 @@ namespace Grimhand.Battle.Status
                 MaxHpPercentBonusPerStack = AnubisAvatarRules.StatPercentBonus,
                 AttackPercentBonusPerStack = AnubisAvatarRules.StatPercentBonus,
                 DefensePercentBonusPerStack = AnubisAvatarRules.StatPercentBonus
+            };
+            map[Ethereal] = new StatusDefinition
+            {
+                Id = Ethereal,
+                DisplayName = "虚化",
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 1
+            };
+            map[GhostQueenWrath] = new StatusDefinition
+            {
+                Id = GhostQueenWrath,
+                DisplayName = "幽灵女王之怒",
+                DurationKind = StatusDurationKind.Permanent,
+                AttackPercentBonusPerStack = 100
+            };
+            map[FinalBloodRitual] = new StatusDefinition
+            {
+                Id = FinalBloodRitual,
+                DisplayName = "最终鲜血仪式",
+                DurationKind = StatusDurationKind.Permanent
+            };
+            map[GodDescends] = new StatusDefinition
+            {
+                Id = GodDescends,
+                DisplayName = "天神下凡",
+                DurationKind = StatusDurationKind.Permanent
             };
             return map;
         }

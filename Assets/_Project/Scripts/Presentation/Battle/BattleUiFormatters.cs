@@ -172,6 +172,9 @@ namespace Grimhand.Presentation.Battle
                     lines.Add($"→ {assigned.DisplayName}");
             }
 
+            if (card.DefinitionId == PassiveCardMechanicsRules.EndlessBladeCardId)
+                lines.Add("使用后此牌伤害在本场战斗中翻倍");
+
             return string.Join("\n", lines);
         }
 
@@ -297,11 +300,22 @@ namespace Grimhand.Presentation.Battle
                     var appendExtras = true;
                     if (action.Target == EffectTarget.Self)
                     {
-                        var selfDmg = preferFormulas && owner == null && CardActionValueText.HasScaledComponent(action)
-                            ? CardActionValueText.FormatPlain(action, useDefense: false)
-                            : (state != null && owner != null && card != null
-                                ? CardPreviewRules.ComputeExpectedDamage(state, owner, card, action)
-                                : CardPowerRules.ComputeActionValue(action, owner)).ToString();
+                        string selfDmg;
+                        if (action.HealMaxHpPercent > 0)
+                        {
+                            selfDmg = preferFormulas || owner == null
+                                ? $"最大生命 {action.HealMaxHpPercent}%"
+                                : CardPowerRules.ComputeActionValue(action, owner).ToString();
+                        }
+                        else
+                        {
+                            selfDmg = preferFormulas && owner == null && CardActionValueText.HasScaledComponent(action)
+                                ? CardActionValueText.FormatPlain(action, useDefense: false)
+                                : (state != null && owner != null && card != null
+                                    ? CardPreviewRules.ComputeExpectedDamage(state, owner, card, action)
+                                    : CardPowerRules.ComputeActionValue(action, owner)).ToString();
+                        }
+
                         return prefix + $"对自身造成 {selfDmg} 点伤害{damageExtras}";
                     }
 
@@ -373,6 +387,12 @@ namespace Grimhand.Presentation.Battle
                     return prefix + "与前排队友交换位置";
                 case EffectActionType.ApplyAnubisAvatar:
                     return prefix + "本场战斗生命上限、攻击、防御 +50%\n接下来 2 回合无法出牌";
+                case EffectActionType.LockRandomPlayerPlaysThisTurn:
+                    return prefix + "随机使一名敌人本回合无法继续出牌";
+                case EffectActionType.ReducePlayerEnergyRegenNextTurn:
+                    return prefix + $"下回合玩家能量回复 -{action.Value}";
+                case EffectActionType.ArmRespondDamageRedirect:
+                    return prefix + "将所受伤害×2并转嫁给随机一名队友";
                 default:
                     return "";
             }
@@ -557,6 +577,10 @@ namespace Grimhand.Presentation.Battle
                     return PrefixTarget(usesPick ? "" : target, "附加复活：HP 归零时恢复 25% HP（每场 1 次）");
                 case StatusCatalog.Unyielding:
                     return "HP 低于 25% 时恢复 20 HP（每场 1 次，使用后移出牌组）";
+                case StatusCatalog.FinalBloodRitual:
+                    return "本场战斗中，每当触发【献祭】，抽 1 张牌并回复 5 点生命";
+                case StatusCatalog.GodDescends:
+                    return "本场战斗中，获得护甲时对全体敌人造成 ATK×1.2+5 伤害";
                 case StatusCatalog.NecroticPoison:
                     return PrefixTarget(usesPick ? "" : target, $"附加中毒 5 伤害/回合 × {FormatDuration(action)}");
                 case StatusCatalog.Slow:
@@ -772,6 +796,12 @@ namespace Grimhand.Presentation.Battle
                     return prefix + "清除状态";
                 case EffectActionType.SwapPositionWithFrontAlly:
                     return prefix + "与前排队友换位";
+                case EffectActionType.LockRandomPlayerPlaysThisTurn:
+                    return prefix + "随机打断一名敌人";
+                case EffectActionType.ReducePlayerEnergyRegenNextTurn:
+                    return prefix + $"下回合能量-{action.Value}";
+                case EffectActionType.ArmRespondDamageRedirect:
+                    return prefix + "伤害×2转嫁";
                 default:
                     return "";
             }

@@ -15,6 +15,12 @@ namespace Grimhand.Battle.Rules
             }
 
             var regen = state.Config.TurnStartEnergyRegen;
+            if (state.PendingPlayerEnergyRegenPenaltyNextTurn > 0)
+            {
+                regen = System.Math.Max(0, regen - state.PendingPlayerEnergyRegenPenaltyNextTurn);
+                state.PendingPlayerEnergyRegenPenaltyNextTurn = 0;
+            }
+
             state.EnergyCurrent = System.Math.Min(state.EnergyCurrent + regen, state.EnergyMax);
         }
 

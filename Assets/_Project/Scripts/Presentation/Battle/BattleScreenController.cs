@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Grimhand.Content;
+using Grimhand.Expedition.Model;
 using UnityEngine;
 
 namespace Grimhand.Presentation.Battle
@@ -23,6 +24,14 @@ namespace Grimhand.Presentation.Battle
         BattleDemoController _legacyDemo;
         BattlePortraitDirector _portraitDirector;
 
+        public BattleSession Session => _session;
+        public CardView HandCardPrefab => screenView != null ? screenView.HandCardPrefab : null;
+        public CardVisualCatalogSO CardVisualCatalog => cardVisualCatalog;
+        public CharacterVisualCatalogSO CharacterVisualCatalog => characterVisualCatalog;
+        public BattleUiIconCatalogSO UiIconCatalog => uiIconCatalog;
+        public BattleSetupSO BattleSetup => battleSetup;
+        public ExpeditionSetupSO ExpeditionSetup => expeditionSetup;
+
         void Awake()
         {
             _legacyDemo = GetComponent<BattleDemoController>();
@@ -38,23 +47,74 @@ namespace Grimhand.Presentation.Battle
 
         void EnsureCatalogReferences()
         {
+            if (screenView == null)
+                screenView = FindAnyObjectByType<BattleScreenView>(FindObjectsInactive.Include);
+
 #if UNITY_EDITOR
+            const string dataRoot = "Assets/_Project/Data";
+            if (battleSetup == null)
+            {
+                battleSetup = UnityEditor.AssetDatabase.LoadAssetAtPath<BattleSetupSO>(
+                    dataRoot + "/Setups/BattleSetup_Demo.asset");
+            }
+
+            if (expeditionSetup == null)
+            {
+                expeditionSetup = UnityEditor.AssetDatabase.LoadAssetAtPath<ExpeditionSetupSO>(
+                    dataRoot + "/Setups/ExpeditionSetup_Demo.asset");
+            }
+
+            if (cardVisualCatalog == null)
+            {
+                cardVisualCatalog = UnityEditor.AssetDatabase.LoadAssetAtPath<CardVisualCatalogSO>(
+                    dataRoot + "/CardVisualCatalog_Demo.asset");
+            }
+
+            if (characterVisualCatalog == null)
+            {
+                characterVisualCatalog = UnityEditor.AssetDatabase.LoadAssetAtPath<CharacterVisualCatalogSO>(
+                    dataRoot + "/CharacterVisualCatalog_Demo.asset");
+            }
+
             if (consumableVisualCatalog == null)
             {
                 consumableVisualCatalog = UnityEditor.AssetDatabase.LoadAssetAtPath<ConsumableVisualCatalogSO>(
-                    "Assets/_Project/Data/ConsumableVisualCatalog_Demo.asset");
+                    dataRoot + "/ConsumableVisualCatalog_Demo.asset");
             }
 
             if (actionEffectCatalog == null)
             {
                 actionEffectCatalog = UnityEditor.AssetDatabase.LoadAssetAtPath<BattleActionEffectCatalogSO>(
-                    "Assets/_Project/Data/BattleActionEffectCatalog_Demo.asset");
+                    dataRoot + "/BattleActionEffectCatalog_Demo.asset");
+            }
+
+            if (uiIconCatalog == null)
+            {
+                uiIconCatalog = UnityEditor.AssetDatabase.LoadAssetAtPath<BattleUiIconCatalogSO>(
+                    dataRoot + "/BattleUiIconCatalog_Demo.asset");
             }
 #endif
         }
 
         void Start()
         {
+            if (GetComponent<Camp.GameFlowController>() != null)
+                return;
+
+            PrepareSession(startExpedition: true);
+        }
+
+        /// <summary>初始化战斗 UI；营地模式下由 GameFlowController 调用且不自动开远征。</summary>
+        public void PrepareSession(bool startExpedition)
+        {
+            EnsureCatalogReferences();
+
+            if (screenView == null)
+            {
+                Debug.LogError("[BattleScreen] 未找到 BattleScreenView。请执行 Grimhand → Open Battle Test Scene。");
+                return;
+            }
+
             _definitions = CardVisualResolver.BuildDefinitionLookup(battleSetup, expeditionSetup);
             _session.Configure(battleSetup, expeditionSetup);
             _session.Changed += OnSessionChanged;
@@ -68,7 +128,31 @@ namespace Grimhand.Presentation.Battle
                 consumableVisualCatalog);
             _portraitDirector.Initialize(_session, screenView, characterVisualCatalog, actionEffectCatalog);
             screenView.SetPresentationBusyCheck(() => _portraitDirector.IsPlaying);
-            _session.Start();
+
+            if (startExpedition)
+            {
+                _session.Start();
+                screenView.Refresh();
+                screenView.BeginPlanningIdleLoops();
+            }
+            else
+            {
+                screenView.Refresh();
+            }
+        }
+
+        public void SetCampRoster(CampRosterState roster) => _session.SetCampRoster(roster);
+
+        public void SetBattleScreenVisible(bool visible)
+        {
+            if (screenView != null)
+                screenView.gameObject.SetActive(visible);
+        }
+
+        public void BeginExpeditionFromCamp(CampRosterState roster)
+        {
+            _session.SetCampRoster(roster);
+            _session.BeginExpedition(roster);
             screenView.Refresh();
             screenView.BeginPlanningIdleLoops();
         }

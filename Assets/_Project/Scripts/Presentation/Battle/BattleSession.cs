@@ -73,6 +73,10 @@ namespace Grimhand.Presentation.Battle
         public BattleSetupSO BattleSetup { get; private set; }
         public ExpeditionSetupSO ExpeditionSetup { get; private set; }
 
+        CampRosterState _campRoster;
+
+        public void SetCampRoster(CampRosterState roster) => _campRoster = roster;
+
         public void Start()
         {
             if (ExpeditionSetup != null)
@@ -81,8 +85,11 @@ namespace Grimhand.Presentation.Battle
                 RestartBattle();
         }
 
-        public void BeginExpedition()
+        public void BeginExpedition(CampRosterState campRoster = null)
         {
+            if (campRoster != null)
+                _campRoster = campRoster;
+
             var config = BuildExpeditionConfig();
             if (config.CombatEncounters.Count == 0)
             {
@@ -93,7 +100,7 @@ namespace Grimhand.Presentation.Battle
             }
 
             Expedition = new ExpeditionEngine(config);
-            Expedition.StartRun();
+            Expedition.StartRun(_campRoster);
             _log.Clear();
             _turnLog.Reset();
             _battleEndHandled = false;

@@ -21,6 +21,10 @@ namespace Grimhand.Content
         public Sprite UnknownPathIcon;
         public Sprite CaveBackground;
         public Sprite ShopBackground;
+        public Sprite CampSiteBackground;
+        public Sprite ChampionCampBuilding;
+        public Sprite MerchantCampBuilding;
+        public Sprite PortalBuilding;
         public Sprite TreasureChestClosed;
         public Sprite TreasureChestOpen;
         public Sprite[] CavePathVariants = System.Array.Empty<Sprite>();

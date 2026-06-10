@@ -309,6 +309,8 @@ namespace Grimhand.Expedition
 
                         snap.BonusCards.Add(CloneTemplate(bonus));
                     }
+
+                    snap.CampDeckCardIds.AddRange(existing.CampDeckCardIds);
                 }
 
                 party.Add(snap);

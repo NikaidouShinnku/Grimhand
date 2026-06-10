@@ -13,6 +13,7 @@ namespace Grimhand.Editor
         public const string UnknownPathFullSpriteName = "unknown_path_1";
         const string IconRoot = "Assets/The Grimhands Asset/icon/";
         const string CardRoot = "Assets/The Grimhands Asset/card/";
+        const string CampArtRoot = "Assets/The Grimhands Asset/path and background/";
 
         [MenuItem("Grimhand/Content/Refresh UI Visual Catalogs")]
         public static void RefreshUiVisualCatalogsMenu()
@@ -57,7 +58,11 @@ namespace Grimhand.Editor
                 "Assets/The Grimhands Asset/path and background/unknown_path.png",
                 UnknownPathFullSpriteName);
             catalog.CaveBackground = LoadFirstSprite("Assets/The Grimhands Asset/path and background/cave_background.png");
-            catalog.ShopBackground = LoadFirstSprite("Assets/The Grimhands Asset/path and background/shop_background.png");
+            catalog.ShopBackground = LoadFirstSprite(CampArtRoot + "shop_background.png");
+            catalog.CampSiteBackground = LoadFirstSprite(CampArtRoot + "campsite_background.png");
+            catalog.ChampionCampBuilding = LoadNamedSprite(CampArtRoot + "champion_camp.png", "champion_camp_0");
+            catalog.MerchantCampBuilding = LoadNamedSprite(CampArtRoot + "merchant_camp.png", "merchant_camp_0");
+            catalog.PortalBuilding = LoadNamedSprite(CampArtRoot + "portal.png", "portal_0");
             catalog.TreasureChestClosed = LoadFirstSprite("Assets/The Grimhands Asset/icon/treasure_chest_closed.png");
             catalog.TreasureChestOpen = LoadFirstSprite("Assets/The Grimhands Asset/icon/treasure_chest_open.png");
 

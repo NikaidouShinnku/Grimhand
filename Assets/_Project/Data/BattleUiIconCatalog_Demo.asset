@@ -28,6 +28,10 @@ MonoBehaviour:
   UnknownPathIcon: {fileID: -7903860423745096787, guid: 978dbf954c118db47a4b5da9e149b729, type: 3}
   CaveBackground: {fileID: 4714104671338776558, guid: 0d05dee52e0214c49a433c68c2420016, type: 3}
   ShopBackground: {fileID: -7590638603020057717, guid: 5cf7f9ce0c813364492217dd72e7cc5b, type: 3}
+  CampSiteBackground: {fileID: 8853133380120315180, guid: 832fbb818c54e9a44b314c2f4650b122, type: 3}
+  ChampionCampBuilding: {fileID: -7344717493082030579, guid: 648ebbf42bc7b564c822f634853fcda6, type: 3}
+  MerchantCampBuilding: {fileID: 1068998374052479245, guid: 24f6602b4c282414b8ba9f8fb4d661ac, type: 3}
+  PortalBuilding: {fileID: -5816642994671486895, guid: 8001fab66b4b9164f897cd99ce75c3c9, type: 3}
   TreasureChestClosed: {fileID: -7219296677170973702, guid: a869e9d4f75b44e40bd0a5bba6b0122e, type: 3}
   TreasureChestOpen: {fileID: 4853945434919486788, guid: 5bc009981bcff9d4cb2419a05e08ffe0, type: 3}
   CavePathVariants:

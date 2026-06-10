@@ -17,5 +17,7 @@ namespace Grimhand.Expedition.Model
         /// <summary>卡牌效果强化百分比累加（definitionId → +N%）。</summary>
         public Dictionary<string, int> CardPowerBonusPercent { get; } = new();
         public List<CardTemplate> BonusCards { get; } = new();
+        /// <summary>营地配置的 10 张牌；非空时取代默认牌组。</summary>
+        public List<string> CampDeckCardIds { get; } = new();
     }
 }

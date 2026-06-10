@@ -45,6 +45,7 @@ namespace Grimhand.Editor
             }
 
             BattleUISetup.SetupBattleUIInternal(saveScene: true);
+            CampUISetup.SetupCampUIInternal(saveScene: true);
 
             if (!showDialog)
                 return;
@@ -53,7 +54,7 @@ namespace Grimhand.Editor
                 "战斗测试场景已就绪",
                 "已打开：\nAssets/_Project/Scenes/BattleSandbox.unity\n\n" +
                 "直接点击 Unity 顶部的 ▶ Play 即可开始游戏。\n\n" +
-                "左右大立绘对峙布局：玩家左、敌人右（镜像），手牌在下方居中。\n" +
+                "进入后先显示营地界面：军营配队 → 传送门开始 Demo 远征。\n" +
                 "若看不到立绘，请再次执行本菜单以刷新 UI 与美术目录。",
                 "好的");
 

@@ -88,6 +88,8 @@ namespace Grimhand.Presentation.Battle
             FormationSlot.Back
         };
 
+        public CardView HandCardPrefab => handPanel != null ? handPanel.CardPrefab : null;
+
         public void Initialize(
             BattleSession session,
             CardVisualCatalogSO catalog,

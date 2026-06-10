@@ -611,6 +611,29 @@ namespace Grimhand.Battle
                     DamageRules.ApplyBlock(c, mods.BattleStartFrontBlock, _events, _state);
                 }
             }
+
+            if (mods.SoulRiftBattleStartRandomHpLoss > 0)
+            {
+                var alivePlayers = new System.Collections.Generic.List<CombatantState>();
+                foreach (var c in _state.Combatants)
+                {
+                    if (c.Team == TeamSide.Player && c.IsAlive)
+                        alivePlayers.Add(c);
+                }
+
+                if (alivePlayers.Count > 0)
+                {
+                    var target = alivePlayers[_rng.NextIndex(alivePlayers.Count)];
+                    var loss = mods.SoulRiftBattleStartRandomHpLoss;
+                    target.Hp = System.Math.Max(1, target.Hp - loss);
+                    _events.Add(new BattleEvent(BattleEventKind.DamageApplied,
+                        $"灵魂裂隙：{target.DisplayName} 失去 {loss} 生命")
+                    {
+                        TargetId = target.Id,
+                        Amount = loss
+                    });
+                }
+            }
         }
 
         CardInstanceState CreateCardInstance(CardTemplate template, string ownerCombatantId = "")

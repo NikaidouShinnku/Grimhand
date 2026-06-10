@@ -447,6 +447,17 @@ namespace Grimhand.Presentation.Battle
             });
         }
 
+        public void DismissHoverDetail()
+        {
+            if (!_hovered)
+            {
+                _detailPopup?.SetVisible(false);
+                return;
+            }
+
+            OnPortraitPointerExit();
+        }
+
         public void Refresh(
             BattleState state,
             bool targetMode,
@@ -464,6 +475,13 @@ namespace Grimhand.Presentation.Battle
             _session = session;
             _combatantId = unit?.Id;
             _targetMode = targetMode;
+
+            var allowHoverDetail = session == null
+                                   || !session.IsExpeditionMode
+                                   || session.Expedition.Run.Phase == ExpeditionPhase.InBattle;
+            if (!allowHoverDetail)
+                DismissHoverDetail();
+
             ApplyStatusAnchorLayout();
             ApplyPortraitMirror();
 
@@ -569,7 +587,12 @@ namespace Grimhand.Presentation.Battle
             var xp = unit?.Xp ?? 0;
             ResolveExpeditionDetailContextFromSession(session, unit, out var expeditionMember, out var runRelics);
 
-            if (!_hovered)
+            if (!allowHoverDetail)
+            {
+                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp, expeditionMember, runRelics);
+                _detailPopup?.SetVisible(false);
+            }
+            else if (!_hovered)
             {
                 _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp, expeditionMember, runRelics);
                 _detailPopup?.SetVisible(false);

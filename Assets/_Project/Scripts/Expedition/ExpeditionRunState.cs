@@ -29,6 +29,10 @@ namespace Grimhand.Expedition
         public string CurrentBossDisplayName { get; set; } = "";
         public ExpeditionRewardPickup PendingRewardPickup { get; set; }
         public ExpeditionPendingEvent PendingEvent { get; set; }
+        public Expedition.Events.ExpeditionEventInteractionState EventInteraction { get; set; }
+        public string PendingEventBattleKey { get; set; } = "";
+        public ExpeditionRewardPickup PendingEventBattleVictoryReward { get; set; }
+        public ExpeditionRewardPickup PendingDeferredReward { get; set; }
         public ExpeditionPendingShrine PendingShrine { get; set; }
         public ExpeditionShopState Shop { get; } = new();
     }

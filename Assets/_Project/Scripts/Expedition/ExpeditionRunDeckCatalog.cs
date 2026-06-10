@@ -1,18 +1,41 @@
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
+using Grimhand.Expedition.Events;
 using Grimhand.Expedition.Model;
 
 namespace Grimhand.Expedition
 {
-    /// <summary>远征非战斗界面：按角色顺序汇总牌组（基础牌 + 奖励牌）。</summary>
     public static class ExpeditionRunDeckCatalog
     {
+        public sealed class DeckEntry
+        {
+            public string Key { get; set; } = "";
+            public CardTemplate Template { get; set; }
+            public bool IsBonus { get; set; }
+            public int BonusIndex { get; set; } = -1;
+        }
+
         public static List<CardTemplate> CollectMemberDeck(ExpeditionConfig config, PartyMemberSnapshot member)
         {
-            var cards = new List<CardTemplate>();
+            var entries = CollectMemberDeckEntries(config, member);
+            var cards = new List<CardTemplate>(entries.Count);
+            foreach (var entry in entries)
+                cards.Add(ExpeditionBattleConfigBuilder.CloneTemplate(entry.Template));
+
+            cards.Sort(CompareTemplates);
+            return cards;
+        }
+
+        public static List<DeckEntry> CollectMemberDeckEntries(ExpeditionConfig config, PartyMemberSnapshot member)
+        {
+            var entries = new List<DeckEntry>();
             if (config?.CombatEncounters == null || config.CombatEncounters.Count == 0
                 || member == null || string.IsNullOrEmpty(member.CharacterDefinitionId))
-                return cards;
+                return entries;
+
+            var removedLeft = new Dictionary<string, int>();
+            foreach (var pair in member.RemovedCardCounts)
+                removedLeft[pair.Key] = pair.Value;
 
             var baseDecks = BuildBaseDeckLookup(config.CombatEncounters[0]);
             if (baseDecks.TryGetValue(member.CharacterDefinitionId, out var baseDeck))
@@ -22,23 +45,71 @@ namespace Grimhand.Expedition
                     if (template == null || string.IsNullOrEmpty(template.DefinitionId))
                         continue;
 
+                    if (removedLeft.TryGetValue(template.DefinitionId, out var left) && left > 0)
+                    {
+                        removedLeft[template.DefinitionId] = left - 1;
+                        continue;
+                    }
+
                     var copy = ExpeditionBattleConfigBuilder.CloneTemplate(template);
+                    ApplyCardPowerBonus(copy, member);
                     if (string.IsNullOrEmpty(copy.OwnerCharacterId))
                         copy.OwnerCharacterId = member.CharacterDefinitionId;
-                    cards.Add(copy);
+
+                    entries.Add(new DeckEntry
+                    {
+                        Key = ExpeditionDeckCardKey.Build(member.CharacterDefinitionId, template.DefinitionId, entries.Count),
+                        Template = copy,
+                        IsBonus = false
+                    });
                 }
             }
 
-            foreach (var bonus in member.BonusCards)
+            for (var i = 0; i < member.BonusCards.Count; i++)
             {
+                var bonus = member.BonusCards[i];
                 if (bonus == null || string.IsNullOrEmpty(bonus.DefinitionId))
                     continue;
 
-                cards.Add(ExpeditionBattleConfigBuilder.CloneTemplate(bonus));
+                var copy = ExpeditionBattleConfigBuilder.CloneTemplate(bonus);
+                ApplyCardPowerBonus(copy, member);
+                entries.Add(new DeckEntry
+                {
+                    Key = ExpeditionDeckCardKey.Build(member.CharacterDefinitionId, bonus.DefinitionId, entries.Count),
+                    Template = copy,
+                    IsBonus = true,
+                    BonusIndex = i
+                });
             }
 
-            cards.Sort(CompareTemplates);
-            return cards;
+            return entries;
+        }
+
+        public static void ApplyCardPowerBonus(CardTemplate template, PartyMemberSnapshot member)
+        {
+            if (template == null || member == null)
+                return;
+
+            if (!member.CardPowerBonusPercent.TryGetValue(template.DefinitionId, out var bonus) || bonus <= 0)
+                return;
+
+            foreach (var action in template.Actions)
+            {
+                if (action.ScaleWithAttack || action.Type == EffectActionType.DealDamage)
+                {
+                    var basePct = action.AttackScalePercent > 0 ? action.AttackScalePercent : 100;
+                    action.AttackScalePercent = basePct + bonus;
+                }
+
+                if (action.ScaleWithDefense || action.Type == EffectActionType.GainBlock)
+                {
+                    var basePct = action.DefenseScalePercent > 0 ? action.DefenseScalePercent : 100;
+                    action.DefenseScalePercent = basePct + bonus;
+                }
+
+                if (action.Value > 0 && !action.ScaleWithAttack && !action.ScaleWithDefense)
+                    action.Value = action.Value * (100 + bonus) / 100;
+            }
         }
 
         public static List<CardTemplate> CollectSortedDeck(ExpeditionConfig config, IReadOnlyList<PartyMemberSnapshot> party)

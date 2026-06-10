@@ -57,6 +57,12 @@ namespace Grimhand.Presentation.Battle
         public int InstanceId => _instanceId;
         public CardInstanceState CurrentCard { get; private set; }
 
+        public void SetSelected(bool selected)
+        {
+            _selected = selected;
+            ApplyVisualState(immediate: true);
+        }
+
         void Awake()
         {
             RemoveStaleHoverCanvas();

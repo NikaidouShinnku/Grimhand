@@ -1,0 +1,16 @@
+﻿  Card_d_vamp_aura.asset: σÉ╕ΦíÇσàëτÄ» -> Rarity 1
+  Card_d_hell_fire.asset: σ£░τï▒τâêτä░ -> Rarity 3
+  Card_w_charge.asset: µêÿσú½σå▓Θöï -> Rarity 3
+  Card_p_sand_barrier.asset: µ▓Öσ░ÿτ╗ôτòî -> Rarity 1
+  Card_p_decree.asset: µ│òΦÇüµ¥âΣ╗ñ -> Rarity 3
+  Card_d_soul_rip.asset: τü╡Θ¡éµÆòΦúé -> Rarity 3
+  Card_w_power_cleave.asset: τî¢σè¢σèêτáì -> Rarity 1
+  Card_p_lifesteal.asset: τöƒσæ╜µ▒▓σÅû -> Rarity 3
+  Card_w_fatal_strike.asset: Φç┤σæ╜µëôσç╗ -> Rarity 3
+  Card_d_blood_tail.asset: ΦíÇσ░╛Φ┤»τ⌐┐ -> Rarity 3
+  Card_d_blood_flame.asset: ΦíÇτä░τêåσÅæ -> Rarity 3
+  Card_w_guardian.asset: Φ¬ôµ¡╗σ«êµèñ -> Rarity 3
+  Card_w_iron_parry.asset: Θôüσúüσ╝╣σÅì -> Rarity 3
+Updated 13 cards.
+No asset for 1 xlsx rows (skipped):
+  - µùÑσàëσ«íσêñ

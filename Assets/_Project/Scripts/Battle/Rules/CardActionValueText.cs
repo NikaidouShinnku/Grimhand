@@ -38,7 +38,7 @@ namespace Grimhand.Battle.Rules
         public static string DescribeDamage(EffectActionSpec action, CombatantState owner, bool preferFormulas)
         {
             var extra = FormatDamageExtras(action);
-            if (preferFormulas && owner == null && HasScaledComponent(action))
+            if (preferFormulas && HasScaledComponent(action))
                 return $"造成 {FormatPlain(action, useDefense: false)} 的伤害{extra}";
 
             var dmg = CardPowerRules.ComputeActionValue(action, owner);

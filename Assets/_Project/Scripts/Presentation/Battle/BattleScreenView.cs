@@ -60,6 +60,7 @@ namespace Grimhand.Presentation.Battle
         BattleTurnDetailPanelView _turnDetailPanel;
         ExpeditionMapPanelView _mapPanel;
         ExpeditionNodeInteractOverlayView _nodeInteractOverlay;
+        ExpeditionEventInteractSequenceView _eventSequenceOverlay;
         BattleBackgroundView _backgroundView;
         ExpeditionPostBattleOverlayView _postBattleOverlay;
         ExpeditionShopOverlayView _shopOverlay;
@@ -565,12 +566,6 @@ namespace Grimhand.Presentation.Battle
                     _definitions);
             }
 
-            if (_nodeInteractOverlay == null)
-            {
-                _nodeInteractOverlay = gameObject.AddComponent<ExpeditionNodeInteractOverlayView>();
-                _nodeInteractOverlay.Initialize(_session, transform);
-            }
-
             if (_shopOverlay == null)
             {
                 _shopOverlay = gameObject.AddComponent<ExpeditionShopOverlayView>();
@@ -585,6 +580,39 @@ namespace Grimhand.Presentation.Battle
                     _consumableCatalog,
                     _definitions);
             }
+
+            EnsureExpeditionOverlays();
+        }
+
+        void EnsureExpeditionOverlays()
+        {
+            if (_nodeInteractOverlay == null)
+            {
+                _nodeInteractOverlay = gameObject.AddComponent<ExpeditionNodeInteractOverlayView>();
+                _nodeInteractOverlay.Initialize(_session, transform);
+            }
+
+            if (_eventSequenceOverlay == null)
+            {
+                _eventSequenceOverlay = gameObject.AddComponent<ExpeditionEventInteractSequenceView>();
+                _eventSequenceOverlay.Initialize(
+                    _session,
+                    transform,
+                    handPanel?.CardPrefab,
+                    _catalog,
+                    _characterVisuals,
+                    _uiIcons,
+                    _definitions);
+            }
+        }
+
+        void RefreshExpeditionOverlays()
+        {
+            if (!_session.IsExpeditionMode)
+                return;
+
+            _nodeInteractOverlay?.Refresh();
+            _eventSequenceOverlay?.Refresh();
         }
 
         void ApplyTurnLogButtonLayout()
@@ -781,7 +809,7 @@ namespace Grimhand.Presentation.Battle
             if (_session.IsExpeditionMode && !(_inventoryPanel?.IsOpen ?? false))
             {
                 _mapPanel?.Refresh();
-                _nodeInteractOverlay?.Refresh();
+                RefreshExpeditionOverlays();
                 _shopOverlay?.Refresh();
             }
 
@@ -829,6 +857,7 @@ namespace Grimhand.Presentation.Battle
             if (!ShouldShowBattlePlanningChrome())
             {
                 SetBattlefieldVisible(false);
+                ClearCombatantHoverDetails();
                 return;
             }
 
@@ -878,6 +907,21 @@ namespace Grimhand.Presentation.Battle
 
             foreach (var slot in slots)
                 slot?.Refresh(state, targetMode, validTargets, _characterVisuals, _uiIcons, presentation, showExpBar, _session);
+        }
+
+        void ClearCombatantHoverDetails()
+        {
+            ClearSlotRowHoverDetails(enemySlots);
+            ClearSlotRowHoverDetails(playerSlots);
+        }
+
+        void ClearSlotRowHoverDetails(CombatantSlotView[] slots)
+        {
+            if (slots == null)
+                return;
+
+            foreach (var slot in slots)
+                slot?.DismissHoverDetail();
         }
 
         void RefreshActionTimeline(BattleState state, PlanningDraft draft)

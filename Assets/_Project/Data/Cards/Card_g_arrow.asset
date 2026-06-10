@@ -17,7 +17,7 @@ MonoBehaviour:
   OwnerCharacterId: char_wraith
   Cost: 1
   CardType: 0
-  Rarity: 1
+  Rarity: 0
   Keywords:
   - far_shot
   Actions:

@@ -52,6 +52,9 @@ namespace Grimhand.Battle.Model
         public bool BackRowAttackAnyTarget { get; set; }
         public bool JadeDaggerFirstKillBonus { get; set; }
 
+        /// <summary>灵魂裂隙：每场战斗开始随机 1 名队员失去 HP。</summary>
+        public int SoulRiftBattleStartRandomHpLoss { get; set; }
+
         public bool FirstPlayerAttackPending { get; set; } = true;
 
         public static RunModifierSnapshot Empty { get; } = new();

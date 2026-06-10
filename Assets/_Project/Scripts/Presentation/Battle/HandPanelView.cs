@@ -91,7 +91,8 @@ namespace Grimhand.Presentation.Battle
                     && (isAwaitingTarget || isQueued || canAfford);
                 var visual = CardVisualResolver.Resolve(card, catalog, characterVisuals, definitions);
                 var descCard = CardVisualResolver.ResolveForDescription(card, definitions);
-                var stats = BattleUiFormatters.BuildCardStatsLine(state, draft, descCard, damagePreviewTarget: damagePreviewTarget);
+                var stats = BattleUiFormatters.BuildCardStatsLine(
+                    state, draft, descCard, preferFormulas: true, damagePreviewTarget: damagePreviewTarget);
                 var badge = isQueued
                     ? BattleUiFormatters.BuildSelectionBadge(state, draft, card, resolveSteps)
                     : null;

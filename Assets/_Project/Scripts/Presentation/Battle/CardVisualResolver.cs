@@ -93,7 +93,7 @@ namespace Grimhand.Presentation.Battle
             }
         }
 
-        /// <summary>奖励/远征 catalog 可能只有 DefinitionId；描述与悬停需从 SO 补全 actions。</summary>
+        /// <summary>奖励/远征 catalog 可能只有 DefinitionId；描述与悬停始终以 SO 为准。</summary>
         public static CardInstanceState ResolveForDescription(
             CardInstanceState card,
             IReadOnlyDictionary<string, CardDefinitionSO> definitionsById)
@@ -101,15 +101,12 @@ namespace Grimhand.Presentation.Battle
             if (card == null)
                 return null;
 
-            if (card.Actions != null && card.Actions.Count > 0)
-                return card;
+            if (definitionsById != null
+                && definitionsById.TryGetValue(card.DefinitionId, out var def)
+                && def != null)
+                return CreatePreviewInstance(card.DefinitionId, card.OwnerCharacterId, card.DisplayName, def);
 
-            if (definitionsById == null
-                || !definitionsById.TryGetValue(card.DefinitionId, out var def)
-                || def == null)
-                return card;
-
-            return CreatePreviewInstance(card.DefinitionId, card.OwnerCharacterId, card.DisplayName, def);
+            return card;
         }
 
         public static CardInstanceState CreatePreviewInstance(

@@ -17,7 +17,7 @@ MonoBehaviour:
   OwnerCharacterId: char_wraith
   Cost: 2
   CardType: 2
-  Rarity: 1
+  Rarity: 0
   Keywords:
   - poison
   Actions:

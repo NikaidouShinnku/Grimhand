@@ -176,11 +176,19 @@ namespace Grimhand.Presentation.Battle
             var status = BattleUiFormatters.FormatStatusListDisplay(unit);
             var speed = StatusRules.GetEffectiveSpeed(unit);
             var showExp = showExpBar && unit.Team == TeamSide.Player;
+            var attackDisplay = unit.Attack;
+            if (expeditionMember != null && expeditionMember.PersonalAttackBonus > 0)
+            {
+                var baseStats = CharacterProgression.GetStatsForCharacter(
+                    unit.CharacterDefinitionId,
+                    CharacterProgression.ClampLevel(unit.Level));
+                attackDisplay = baseStats.BaseAttack + expeditionMember.PersonalAttackBonus;
+            }
 
             var lines = CharacterProgression.FormatLevelLabel(unit.Level);
             if (showExp)
                 lines += "\n";
-            lines += $"\n攻击 {unit.Attack}    防御 {unit.Defense}    速度 {speed}";
+            lines += $"\n攻击 {attackDisplay}    防御 {unit.Defense}    速度 {speed}";
             if (!string.IsNullOrEmpty(status))
                 lines += $"\n状态 {status}";
 

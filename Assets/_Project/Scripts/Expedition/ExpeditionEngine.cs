@@ -50,10 +50,15 @@ namespace Grimhand.Expedition
             _run.Modifiers.SkipNextRouteSelect = false;
             _run.Modifiers.LootedInjuredAdventurer = false;
             _run.Modifiers.DivinePunishmentActive = false;
+            _run.Modifiers.SoulRiftBattleStartRandomHpLoss = 0;
             _run.PendingRoutes.Clear();
             _run.PendingRewardPickup = null;
             _run.PendingEvent = null;
             _run.PendingShrine = null;
+            _run.EventInteraction = null;
+            _run.PendingEventBattleKey = "";
+            _run.PendingEventBattleVictoryReward = null;
+            _run.PendingDeferredReward = null;
             _run.Shop.Clear();
             _run.CurrentBattleConfig = null;
 
@@ -93,7 +98,8 @@ namespace Grimhand.Expedition
                 _run.MiracleLeafUsesRemaining,
                 floor: 10,
                 _run.Modifiers,
-                _config.PlayerCardCatalog);
+                _config.PlayerCardCatalog,
+                _config);
 
             _run.CurrentBattleConfig.EnergyCap += _run.Modifiers.EnergyCapBonus;
             _run.CurrentBattleConfig.TurnStartEnergyRegen = System.Math.Max(
@@ -122,10 +128,15 @@ namespace Grimhand.Expedition
             _run.Modifiers.SkipNextRouteSelect = false;
             _run.Modifiers.LootedInjuredAdventurer = false;
             _run.Modifiers.DivinePunishmentActive = false;
+            _run.Modifiers.SoulRiftBattleStartRandomHpLoss = 0;
             _run.PendingRoutes.Clear();
             _run.PendingRewardPickup = null;
             _run.PendingEvent = null;
             _run.PendingShrine = null;
+            _run.EventInteraction = null;
+            _run.PendingEventBattleKey = "";
+            _run.PendingEventBattleVictoryReward = null;
+            _run.PendingDeferredReward = null;
             _run.Shop.Clear();
             _run.CurrentBattleConfig = null;
             _run.RunAcquisitionLog.Clear();
@@ -236,8 +247,12 @@ namespace Grimhand.Expedition
             if (state == null)
                 return;
 
+            if (_run.MiracleLeafUsesRemaining >= 0)
+                _run.MiracleLeafUsesRemaining = state.MiracleLeafRevivesRemaining;
+
+            var previousParty = _run.Party;
             _run.Party.Clear();
-            _run.Party.AddRange(ExpeditionBattleConfigBuilder.CaptureParty(state));
+            _run.Party.AddRange(ExpeditionBattleConfigBuilder.CaptureParty(state, previousParty));
 
             if (_run.MiracleLeafUsesRemaining >= 0)
                 _run.MiracleLeafUsesRemaining = state.MiracleLeafRevivesRemaining;
@@ -247,6 +262,8 @@ namespace Grimhand.Expedition
                 _run.Phase = ExpeditionPhase.RunFailed;
                 _run.PendingRoutes.Clear();
                 _run.PendingRewardPickup = null;
+                _run.PendingEventBattleKey = "";
+                _run.PendingEventBattleVictoryReward = null;
                 return;
             }
 
@@ -261,6 +278,26 @@ namespace Grimhand.Expedition
 
             _run.LastXpReward = RollCombatXp();
             ExpeditionBattleConfigBuilder.GrantXpToParty(_run.Party, _run.LastXpReward);
+
+            if (!string.IsNullOrEmpty(_run.PendingEventBattleKey))
+            {
+                var eventReward = _run.PendingEventBattleVictoryReward;
+                _run.PendingEventBattleKey = "";
+                _run.PendingEventBattleVictoryReward = null;
+
+                if (eventReward != null && eventReward.HasAnyReward)
+                {
+                    _run.PendingRewardPickup = eventReward;
+                    _run.LastGoldReward = eventReward.Gold;
+                    _run.Phase = ExpeditionPhase.RewardPickup;
+                    return;
+                }
+
+                LoadRoutesForNextLayer();
+                _run.Phase = ExpeditionPhase.RouteSelect;
+                return;
+            }
+
             _run.PendingRewardPickup = ExpeditionRewardRoller.RollVictoryRewards(_config, _run, _rng);
             _run.LastGoldReward = _run.PendingRewardPickup.Gold;
             _run.Phase = ExpeditionPhase.RewardPickup;
@@ -474,30 +511,27 @@ namespace Grimhand.Expedition
             if (_run.Phase != ExpeditionPhase.EventChoice || _run.PendingEvent == null)
                 return false;
 
+            var eventId = _run.PendingEvent.EventId;
             var outcome = ExpeditionEventResolver.ResolveChoice(
-                _run, _config, _run.PendingEvent.EventId, choiceIndex, _rng);
+                _run, _config, eventId, choiceIndex, _rng);
             _run.LastEventMessage = outcome.Message;
             _run.PendingEvent = null;
 
-            if (outcome.StartsCombat)
+            if (outcome.InteractionSteps.Count > 0)
             {
-                _run.Phase = ExpeditionPhase.InBattle;
-                _run.CurrentBattleConfig = BuildBattleFromEncounter(outcome.CombatEncounterIndex, applyPartyHp: true);
+                var interaction = new ExpeditionEventInteractionState
+                {
+                    EventId = eventId,
+                    ChoiceIndex = choiceIndex,
+                    DeferredOutcome = outcome.DeferredOutcome
+                };
+                interaction.Steps.AddRange(outcome.InteractionSteps);
+                _run.EventInteraction = interaction;
+                _run.Phase = ExpeditionPhase.EventInteraction;
                 return true;
             }
 
-            if (outcome.AdvanceNode)
-                CompleteCurrentNode();
-
-            if (_run.Phase == ExpeditionPhase.RunComplete)
-                return true;
-
-            if (TryEnterRewardPickupPhase(outcome.PendingRewardPickup))
-                return true;
-
-            LoadRoutesForNextLayer();
-            _run.Phase = ExpeditionPhase.RouteSelect;
-            return true;
+            return ApplyEventOutcome(outcome);
         }
 
         public bool TryResolveShrineChoice(int choiceIndex)
@@ -894,13 +928,50 @@ namespace Grimhand.Expedition
             return null;
         }
 
+        bool ApplyEventOutcome(ExpeditionEventOutcome outcome)
+        {
+            if (outcome == null)
+                return false;
+
+            if (!string.IsNullOrEmpty(outcome.EventBattleKey))
+                _run.PendingEventBattleKey = outcome.EventBattleKey;
+
+            if (outcome.StartsCombat)
+            {
+                _run.Phase = ExpeditionPhase.InBattle;
+                _run.CurrentBattleConfig = BuildBattleFromEncounter(outcome.CombatEncounterIndex, applyPartyHp: true);
+                return true;
+            }
+
+            if (outcome.AdvanceNode)
+                CompleteCurrentNode();
+
+            if (_run.Phase == ExpeditionPhase.RunComplete)
+                return true;
+
+            if (TryEnterRewardPickupPhase(outcome.PendingRewardPickup))
+                return true;
+
+            LoadRoutesForNextLayer();
+            _run.Phase = ExpeditionPhase.RouteSelect;
+            return true;
+        }
+
         BattleConfig BuildBattleFromEncounter(int encounterIndex, bool applyPartyHp)
         {
             if (_config.CombatEncounters.Count == 0)
                 throw new System.InvalidOperationException("ExpeditionConfig.CombatEncounters is empty.");
 
             var index = encounterIndex % _config.CombatEncounters.Count;
-            var template = _config.CombatEncounters[index];
+            var standard = _config.CombatEncounters[index];
+            BattleConfig template;
+            if (_run.PendingEventBattleKey == MirrorPhantomEncounterBuilder.BattleKey)
+                template = MirrorPhantomEncounterBuilder.BuildMirrorBattle(standard, _run.Party);
+            else if (_run.PendingEventBattleKey == AdventurerRevengeEncounterBuilder.BattleKey)
+                template = AdventurerRevengeEncounterBuilder.BuildRevengeBattle(standard);
+            else
+                template = standard;
+
             var seed = _rng.NextInt(1, int.MaxValue);
             var config = ExpeditionBattleConfigBuilder.BuildEncounter(
                 template,
@@ -911,7 +982,8 @@ namespace Grimhand.Expedition
                 _run.MiracleLeafUsesRemaining,
                 CurrentBattleNumber,
                 _run.Modifiers,
-                _config.PlayerCardCatalog);
+                _config.PlayerCardCatalog,
+                _config);
 
             if (_run.Modifiers.DivinePunishmentActive)
             {
@@ -963,7 +1035,8 @@ namespace Grimhand.Expedition
                 _run.MiracleLeafUsesRemaining,
                 CurrentBattleNumber,
                 _run.Modifiers,
-                _config.PlayerCardCatalog);
+                _config.PlayerCardCatalog,
+                _config);
 
             config.EnergyCap += _run.Modifiers.EnergyCapBonus;
             config.TurnStartEnergyRegen = System.Math.Max(config.TurnStartEnergyRegen, 4);
@@ -994,5 +1067,183 @@ namespace Grimhand.Expedition
         }
 
         int RollCombatXp() => _config.XpPerVictory > 0 ? _config.XpPerVictory : 16;
+
+        public bool CompleteEventInteractionStep(string selectedCharacterId = null, string selectedCardKey = null)
+        {
+            if (_run.Phase != ExpeditionPhase.EventInteraction || _run.EventInteraction == null)
+                return false;
+
+            var interaction = _run.EventInteraction;
+            if (interaction.StepIndex < 0 || interaction.StepIndex >= interaction.Steps.Count)
+                return false;
+
+            var step = interaction.Steps[interaction.StepIndex];
+            switch (step.Kind)
+            {
+                case ExpeditionEventStepKind.ShowTeamHpLoss:
+                    ApplyEventStepTeamHpLoss(step);
+                    break;
+                case ExpeditionEventStepKind.PickMemberHpLoss:
+                    if (!TryFindPartyMember(selectedCharacterId, out var lossMember))
+                        return false;
+                    ApplyEventStepMemberHpLoss(lossMember, step);
+                    interaction.SelectedCharacterId = selectedCharacterId;
+                    break;
+                case ExpeditionEventStepKind.PickMemberForBuff:
+                    if (interaction.StepIndex > 0 &&
+                        interaction.Steps[interaction.StepIndex - 1].Kind == ExpeditionEventStepKind.PickMemberHpLoss &&
+                        !string.IsNullOrEmpty(interaction.SelectedCharacterId))
+                    {
+                        selectedCharacterId = interaction.SelectedCharacterId;
+                    }
+
+                    if (!TryFindPartyMember(selectedCharacterId, out var buffMember))
+                        return false;
+                    buffMember.PersonalAttackBonus += step.PersonalAttackBonus > 0 ? step.PersonalAttackBonus : 2;
+                    break;
+                case ExpeditionEventStepKind.PickCardRemove:
+                    if (!TryResolveDeckEntry(selectedCardKey, out var removeEntry))
+                        return false;
+                    if (!ExpeditionRunDeckMutations.TryRemoveCard(_run, _config, removeEntry))
+                        return false;
+                    break;
+                case ExpeditionEventStepKind.PickCardUpgrade:
+                    if (!TryResolveDeckEntry(selectedCardKey, out var upgradeEntry))
+                        return false;
+                    if (!TryFindPartyMember(upgradeEntry.MemberId, out var upgradeMember))
+                        return false;
+                    if (!ExpeditionRunDeckMutations.TryUpgradeCard(
+                            upgradeMember,
+                            upgradeEntry.Template.DefinitionId,
+                            step.PersonalAttackBonus > 0 ? step.PersonalAttackBonus : 20))
+                        return false;
+                    break;
+                case ExpeditionEventStepKind.PickCardFusionFirst:
+                    if (!TryResolveDeckEntry(selectedCardKey, out var firstEntry))
+                        return false;
+                    interaction.FusionFirstCardKey = selectedCardKey;
+                    interaction.FusionCardType = firstEntry.Template.CardType;
+                    interaction.SelectedCardKey = selectedCardKey;
+                    break;
+                case ExpeditionEventStepKind.PickCardFusionSecond:
+                    if (!TryResolveDeckEntry(selectedCardKey, out var secondEntry))
+                        return false;
+                    if (!TryResolveDeckEntry(interaction.FusionFirstCardKey, out var firstFusionEntry))
+                        return false;
+                    if (secondEntry.Template.CardType != firstFusionEntry.Template.CardType)
+                        return false;
+                    if (!ExpeditionRunDeckMutations.TryFuseCards(
+                            _config, _run, firstFusionEntry, secondEntry, _rng, out _, out _))
+                        return false;
+                    break;
+                case ExpeditionEventStepKind.ShowMessage:
+                    break;
+                default:
+                    return false;
+            }
+
+            interaction.StepIndex++;
+            if (interaction.StepIndex >= interaction.Steps.Count)
+                FinishEventInteractionSequence();
+
+            return true;
+        }
+
+        void ApplyEventStepTeamHpLoss(ExpeditionEventInteractionStep step)
+        {
+            if (!string.IsNullOrEmpty(step.TargetCharacterId))
+            {
+                if (TryFindPartyMember(step.TargetCharacterId, out var target))
+                    ApplyEventStepMemberHpChange(target, step);
+                return;
+            }
+
+            foreach (var member in _run.Party)
+                ApplyEventStepMemberHpChange(member, step);
+        }
+
+        static void ApplyEventStepMemberHpLoss(PartyMemberSnapshot member, ExpeditionEventInteractionStep step) =>
+            ApplyEventStepMemberHpChange(member, step);
+
+        static void ApplyEventStepMemberHpChange(PartyMemberSnapshot member, ExpeditionEventInteractionStep step)
+        {
+            if (member == null)
+                return;
+
+            if (step.FlatHpDelta != 0)
+            {
+                if (step.FlatHpDelta > 0)
+                    member.Hp = System.Math.Min(member.MaxHp, member.Hp + step.FlatHpDelta);
+                else
+                    member.Hp = System.Math.Max(1, member.Hp - System.Math.Abs(step.FlatHpDelta));
+                return;
+            }
+
+            if (step.PercentHpDelta == 0)
+                return;
+
+            if (step.PercentHpDelta > 0)
+            {
+                var heal = System.Math.Max(1, member.MaxHp * step.PercentHpDelta / 100);
+                member.Hp = System.Math.Min(member.MaxHp, member.Hp + heal);
+                return;
+            }
+
+            var loss = System.Math.Max(1, member.Hp * System.Math.Abs(step.PercentHpDelta) / 100);
+            member.Hp = System.Math.Max(1, member.Hp - loss);
+        }
+
+        bool TryFindPartyMember(string characterId, out PartyMemberSnapshot member)
+        {
+            member = null;
+            if (string.IsNullOrEmpty(characterId))
+                return false;
+
+            foreach (var candidate in _run.Party)
+            {
+                if (candidate.CharacterDefinitionId != characterId)
+                    continue;
+
+                member = candidate;
+                return true;
+            }
+
+            return false;
+        }
+
+        bool TryResolveDeckEntry(string cardKey, out ExpeditionRunDeckMutations.DeckCardEntry entry)
+        {
+            entry = null;
+            if (string.IsNullOrEmpty(cardKey))
+                return false;
+
+            foreach (var candidate in ExpeditionRunDeckMutations.ListSelectableCards(_config, _run))
+            {
+                if (candidate.Key != cardKey)
+                    continue;
+
+                entry = candidate;
+                return true;
+            }
+
+            return false;
+        }
+
+        void FinishEventInteractionSequence()
+        {
+            var interaction = _run.EventInteraction;
+            _run.EventInteraction = null;
+
+            if (_run.Phase != ExpeditionPhase.EventInteraction)
+                return;
+
+            if (interaction?.DeferredOutcome != null)
+            {
+                ApplyEventOutcome(interaction.DeferredOutcome);
+                return;
+            }
+
+            ApplyEventOutcome(new ExpeditionEventOutcome { Message = _run.LastEventMessage });
+        }
     }
 }

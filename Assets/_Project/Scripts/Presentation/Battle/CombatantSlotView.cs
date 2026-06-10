@@ -23,17 +23,17 @@ namespace Grimhand.Presentation.Battle
         const float PlayerPortraitScale = 2.28f;
         const float EnemyPortraitScale = 1.28f;
         const float BossEnemyPortraitScale = 2.35f;
-        /// <summary>玩家立绘脚线（槽内比例）。</summary>
-        const float PlayerFeetLine = 0.02f;
-        const float EnemyFeetLine = 0.13f;
+        /// <summary>六人共用脚线；敌人位置已调好，玩家通过额外下移对齐同一地面线。</summary>
+        const float UnifiedFeetLine = 0.12f;
+        const float PlayerFeetLine = UnifiedFeetLine;
+        const float EnemyFeetLine = UnifiedFeetLine;
         /// <summary>Boss 敌人与玩家共用地面线，保证血条水平对齐。</summary>
-        const float BossEnemyFeetLine = PlayerFeetLine;
-        /// <summary>在脚线锚点基础上，玩家立绘额外下移（Canvas 本地像素）。</summary>
-        const float PlayerPortraitExtraDownPx = -52f;
+        const float BossEnemyFeetLine = UnifiedFeetLine;
+        /// <summary>玩家立绘 sprite 留白较多，额外下移到与敌人脚线对齐。</summary>
+        const float PlayerPortraitExtraDownPx = -96f;
         const float BossEnemyPortraitExtraDownPx = PlayerPortraitExtraDownPx;
-        const float PortraitTop = 0.82f;
-        const float PlayerStatusDropPx = 10f;
-        const float EnemyStatusDropPx = 10f;
+        const float PortraitTop = 0.88f;
+        const float FootStatusDropPx = 2f;
         const float HoverScaleMul = 1.07f;
         const float TargetScaleMul = 1.05f;
         const float HitboxPadding = 2f;
@@ -624,11 +624,15 @@ namespace Grimhand.Presentation.Battle
         void AlignStatusBelowPortrait()
         {
             var footRoot = transform.Find("FootStatusRoot") as RectTransform;
-            if (footRoot == null || _portraitHit == null)
+            if (footRoot == null)
+                return;
+
+            var hitRect = _portraitHit != null ? _portraitHit : portraitRoot;
+            if (hitRect == null)
                 return;
 
             var corners = new Vector3[4];
-            _portraitHit.GetWorldCorners(corners);
+            hitRect.GetWorldCorners(corners);
             var footWorld = new Vector3(
                 (corners[0].x + corners[2].x) * 0.5f,
                 corners[0].y,
@@ -647,13 +651,13 @@ namespace Grimhand.Presentation.Battle
                     slotRt, footWorld, cam, out var localFoot))
                 return;
 
-            var statusDrop = team == TeamSide.Player ? PlayerStatusDropPx : EnemyStatusDropPx;
-            localFoot.y -= statusDrop;
+            localFoot.y -= FootStatusDropPx;
 
             footRoot.anchorMin = new Vector2(0.5f, 0.5f);
             footRoot.anchorMax = new Vector2(0.5f, 0.5f);
             footRoot.pivot = new Vector2(0.5f, 0f);
             footRoot.anchoredPosition = localFoot;
+            footRoot.localScale = Vector3.one;
         }
 
         void ApplyInteractionBounds(Sprite sprite)

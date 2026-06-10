@@ -89,6 +89,8 @@ namespace Grimhand.Content.Editor
             if (catalog == null)
                 return;
 
+            catalog.MonsterCardProfilePortrait = LoadMonsterCardProfilePortrait();
+
             UpsertVisual(catalog, "char_goblin", $"{ArtRoot}/goblin_idle_1024.png");
             UpsertVisual(catalog, "char_slime", $"{ArtRoot}/slime_idle_1024.png");
             UpsertVisual(catalog, "char_skeleton", $"{ArtRoot}/skeleton_idle_1024.png");
@@ -124,6 +126,18 @@ namespace Grimhand.Content.Editor
                 preserveOriginalFacing: true);
 
             EditorUtility.SetDirty(catalog);
+        }
+
+        static Sprite LoadMonsterCardProfilePortrait()
+        {
+            const string path = "Assets/The Grimhands Asset/card/card_profile_monsters.png";
+            foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(path))
+            {
+                if (asset is Sprite sprite)
+                    return sprite;
+            }
+
+            return null;
         }
 
         struct MonsterCards

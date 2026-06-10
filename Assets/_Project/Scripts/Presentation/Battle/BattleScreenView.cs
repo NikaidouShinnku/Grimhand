@@ -69,6 +69,7 @@ namespace Grimhand.Presentation.Battle
         Button _mapButton;
         Button _codexButton;
         CardCodexOverlayView _codexOverlay;
+        BattleActionOrderBarView _actionOrderBar;
         Button _targetCancelBackdrop;
         Text _inventoryFallbackLabel;
 
@@ -140,6 +141,7 @@ namespace Grimhand.Presentation.Battle
             ApplyPlanningButtonIcons();
             CombatantTooltipLayer.GetOrCreate(transform);
             EnsureActiveCardBanner();
+            EnsureActionOrderBar();
 
             if (GetComponent<BattleUiBootstrap>() == null)
                 gameObject.AddComponent<BattleUiBootstrap>();
@@ -165,6 +167,20 @@ namespace Grimhand.Presentation.Battle
                 _uiIcons,
                 _definitions,
                 transform);
+        }
+
+        void EnsureActionOrderBar()
+        {
+            if (_actionOrderBar != null || handPanel == null)
+                return;
+
+            var prefab = handPanel.CardPrefab;
+            if (prefab == null)
+                return;
+
+            var chromeRoot = BattleUiLayoutRuntimeFix.GetHudChromeRoot(transform) ?? transform;
+            _actionOrderBar = gameObject.AddComponent<BattleActionOrderBarView>();
+            _actionOrderBar.Initialize(chromeRoot, prefab, _catalog, _characterVisuals, _uiIcons, _definitions);
         }
 
         public void ShowActiveCard(int cardInstanceId) =>
@@ -676,12 +692,15 @@ namespace Grimhand.Presentation.Battle
                 : transform.Find("HudChromeRoot/EnemyIntentPanel") ?? transform.Find("EnemyIntentPanel");
             var actions = transform.Find("HudChromeRoot/PlanningActionsRight")
                 ?? transform.Find("PlanningActionsRight");
+            var orderBar = transform.Find("HudChromeRoot/ActionOrderBar");
             var energyHud = HudRoot.Find("EnergyHud");
             var info = transform.Find("HudChromeRoot/PlanningInfoLeft") ?? transform.Find("PlanningInfoLeft");
 
             info?.gameObject.SetActive(false);
             intent?.gameObject.SetActive(showBattleChrome);
             actions?.gameObject.SetActive(showBattleChrome);
+            if (!showBattleChrome)
+                orderBar?.gameObject.SetActive(false);
             energyHud?.gameObject.SetActive(showBattleChrome);
             selectedQueuePanel?.SetActive(false);
 
@@ -929,6 +948,7 @@ namespace Grimhand.Presentation.Battle
         void RefreshActionTimeline(BattleState state, PlanningDraft draft)
         {
             selectedQueuePanel?.SetActive(false);
+            RefreshActionOrderBar(state, draft);
 
             if (enemyIntentPanel == null)
                 return;
@@ -1003,6 +1023,50 @@ namespace Grimhand.Presentation.Battle
             }
 
             enemyIntentText.text = string.Join("\n", intentLines);
+        }
+
+        void RefreshActionOrderBar(BattleState state, PlanningDraft draft)
+        {
+            EnsureActionOrderBar();
+            if (_actionOrderBar == null)
+                return;
+
+            if (!ShouldShowBattlePlanningChrome())
+            {
+                _actionOrderBar.SetVisible(false);
+                return;
+            }
+
+            var presenting = _session.PresentationLocked
+                && _session.PresentationSnapshot?.HasTurnPresentation == true;
+            var planning = state.Phase == TurnPhase.Planning;
+            if (!planning && !presenting)
+            {
+                _actionOrderBar.SetVisible(false);
+                return;
+            }
+
+            List<ActionOrderVisualEntry> entries;
+            if (presenting)
+            {
+                entries = BattleUiFormatters.BuildActionOrderVisualEntriesFromSnapshot(
+                    state, _session.PresentationSnapshot);
+            }
+            else
+            {
+                var hasPlayerCards = draft != null && draft.SelectedQueue.Count > 0;
+                var steps = _session.Engine.PreviewResolutionSteps();
+                entries = BattleUiFormatters.BuildActionOrderVisualEntries(state, draft, steps);
+                if (!hasPlayerCards && (entries == null || entries.Count == 0))
+                {
+                    entries = BattleUiFormatters.BuildActionOrderVisualEntriesFromEnemyIntents(state);
+                }
+            }
+
+            var hasEntries = entries != null && entries.Count > 0;
+            _actionOrderBar.SetVisible(hasEntries);
+            if (hasEntries)
+                _actionOrderBar.RefreshEntries(entries);
         }
 
         void RefreshSelectedQueue(BattleState state, PlanningDraft draft)

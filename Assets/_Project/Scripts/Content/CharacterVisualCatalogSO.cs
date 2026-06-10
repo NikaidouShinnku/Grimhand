@@ -37,6 +37,8 @@ namespace Grimhand.Content
     public class CharacterVisualCatalogSO : ScriptableObject
     {
         public Sprite DefaultPortrait;
+        [Tooltip("非 Boss 怪物卡面椭圆预绘图（card/card_profile_monsters.png）。")]
+        public Sprite MonsterCardProfilePortrait;
         public List<CharacterVisualEntry> Entries = new();
 
         public CharacterVisualEntry GetEntry(string characterDefinitionId)
@@ -67,14 +69,29 @@ namespace Grimhand.Content
             return DefaultPortrait;
         }
 
-        /// <summary>卡面立绘：优先用 card_profile_* 预绘图。</summary>
+        /// <summary>卡面立绘：玩家/Boss 用 card_profile_*；普通怪物统一用 MonsterCardProfilePortrait。</summary>
         public Sprite GetCardPortrait(string characterDefinitionId)
         {
             var entry = GetEntry(characterDefinitionId);
+
+            if (BossCharacterRules.IsBoss(characterDefinitionId))
+            {
+                if (entry?.CardProfilePortrait != null)
+                    return entry.CardProfilePortrait;
+                if (entry?.IdlePortrait != null)
+                    return entry.IdlePortrait;
+                return DefaultPortrait;
+            }
+
             if (entry?.CardProfilePortrait != null)
                 return entry.CardProfilePortrait;
+
+            if (MonsterCardProfilePortrait != null)
+                return MonsterCardProfilePortrait;
+
             if (entry?.IdlePortrait != null)
                 return entry.IdlePortrait;
+
             return GetPortrait(characterDefinitionId);
         }
 

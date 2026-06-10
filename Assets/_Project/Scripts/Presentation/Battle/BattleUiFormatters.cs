@@ -11,6 +11,14 @@ using Grimhand.Expedition.Model;
 
 namespace Grimhand.Presentation.Battle
 {
+    public struct ActionOrderVisualEntry
+    {
+        public int OrderIndex;
+        public CardInstanceState Card;
+        public bool IsHidden;
+        public string DisplayName;
+    }
+
     /// <summary>战斗 UI 文本格式化。</summary>
     public static class BattleUiFormatters
     {
@@ -1020,6 +1028,97 @@ namespace Grimhand.Presentation.Battle
             }
 
             return lines;
+        }
+
+        public static List<ActionOrderVisualEntry> BuildActionOrderVisualEntriesFromSnapshot(
+            BattleState state,
+            PresentationSnapshot snapshot)
+        {
+            var entries = new List<ActionOrderVisualEntry>();
+            if (state == null || snapshot == null || !snapshot.HasTurnPresentation)
+                return entries;
+
+            var resolutionSteps = snapshot.TurnResolutionSteps;
+            for (var i = 0; i < resolutionSteps.Count; i++)
+            {
+                var step = resolutionSteps[i];
+                var card = state.GetCard(step.CardInstanceId);
+                if (card == null)
+                    continue;
+
+                var owner = state.GetCombatant(step.CombatantId);
+                var hidden = owner != null
+                    && owner.Team == TeamSide.Enemy
+                    && IsEnemyIntentHidden(state, step.CardInstanceId, snapshot.TurnEnemyIntents);
+
+                entries.Add(new ActionOrderVisualEntry
+                {
+                    OrderIndex = i + 1,
+                    Card = card,
+                    IsHidden = hidden,
+                    DisplayName = hidden ? "?" : card.DisplayName
+                });
+            }
+
+            return entries;
+        }
+
+        public static List<ActionOrderVisualEntry> BuildActionOrderVisualEntries(
+            BattleState state,
+            PlanningDraft draft,
+            IReadOnlyList<ResolutionStep> resolutionSteps)
+        {
+            var entries = new List<ActionOrderVisualEntry>();
+            if (state == null || resolutionSteps == null)
+                return entries;
+
+            for (var i = 0; i < resolutionSteps.Count; i++)
+            {
+                var step = resolutionSteps[i];
+                var card = state.GetCard(step.CardInstanceId);
+                if (card == null)
+                    continue;
+
+                var owner = state.GetCombatant(step.CombatantId);
+                var hidden = owner != null
+                    && owner.Team == TeamSide.Enemy
+                    && IsEnemyIntentHidden(state, step.CardInstanceId);
+
+                entries.Add(new ActionOrderVisualEntry
+                {
+                    OrderIndex = i + 1,
+                    Card = card,
+                    IsHidden = hidden,
+                    DisplayName = hidden ? "?" : card.DisplayName
+                });
+            }
+
+            return entries;
+        }
+
+        public static List<ActionOrderVisualEntry> BuildActionOrderVisualEntriesFromEnemyIntents(BattleState state)
+        {
+            var entries = new List<ActionOrderVisualEntry>();
+            if (state?.EnemyIntents == null)
+                return entries;
+
+            var order = 1;
+            foreach (var intent in state.EnemyIntents)
+            {
+                var card = state.GetCard(intent.CardInstanceId);
+                if (card == null)
+                    continue;
+
+                entries.Add(new ActionOrderVisualEntry
+                {
+                    OrderIndex = order++,
+                    Card = card,
+                    IsHidden = intent.IsHidden,
+                    DisplayName = intent.IsHidden ? "?" : card.DisplayName
+                });
+            }
+
+            return entries;
         }
 
         static CombatantState ResolveDamagePreviewTarget(

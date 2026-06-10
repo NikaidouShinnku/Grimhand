@@ -189,15 +189,12 @@ namespace Grimhand.Presentation.Camp
             if (sprite != null)
                 img.sprite = sprite;
 
+            var hover = go.AddComponent<CampBuildingHoverView>();
+            hover.Bind(rt);
+
             var btn = go.AddComponent<Button>();
             btn.targetGraphic = img;
-            btn.transition = Selectable.Transition.ColorTint;
-            var colors = btn.colors;
-            colors.normalColor = Color.white;
-            colors.highlightedColor = new Color(1f, 1f, 1f, 0.92f);
-            colors.pressedColor = new Color(0.85f, 0.85f, 0.85f, 1f);
-            colors.fadeDuration = 0.08f;
-            btn.colors = colors;
+            btn.transition = Selectable.Transition.None;
             btn.onClick.AddListener(() => onClick?.Invoke());
         }
 

@@ -33,22 +33,32 @@ namespace Grimhand.Presentation.Battle
         const float ExpeditionPanelWidth = 320f;
         const float ExpeditionPanelHeight = 84f;
         const float PlanningActionsWidth = 208f;
-        const float PlanningActionsHeight = 120f;
+        const float PlanningActionsHeight = 104f;
         const float PlanningActionButtonWidth = 96f;
+        const float PlanningActionsAboveIntentGap = 10f;
 
-        const float StageBottom = 0.27f;
-        const float StageTop = 0.80f;
+        const float ActionOrderBarTop = 56f;
+        const float ActionOrderBarHeight = 136f;
+        const float ActionOrderBarLeft = 120f;
+        const float ActionOrderBarRight = 24f;
+        public const float ActionOrderBarMiniCardScale = 0.44f;
+
+        const float StageBottom = 0.19f;
+        const float StageTop = 0.78f;
         const int HudChromeSortOrder = 45;
 
         public static int HudChromeSortOrderValue => HudChromeSortOrder;
 
         public static float ScaledCardWidth => CardBaseWidth * HandCardScale;
         public static float ScaledCardHeight => CardBaseHeight * HandCardScale;
+        public static float ScaledOrderBarCardWidth => CardBaseWidth * ActionOrderBarMiniCardScale;
+        public static float ScaledOrderBarCardHeight => CardBaseHeight * ActionOrderBarMiniCardScale;
         static float CardRowHeight => ScaledCardHeight + HandLabelHeight + 2f;
         static float HandRightInset => IntentPanelWidth + IntentPanelRight + RowGap;
         static float HandLeftInset => InventoryButtonSize + InventoryGap + EnergyHudWidth + RowGap + 12f;
         static float EnergyHudLeft => InventoryButtonSize + InventoryGap * 2f;
         static float UpperRowBottom => CardRowBottom + CardRowHeight + RowGap;
+        static float PlanningActionsBottom => CardRowBottom + IntentPanelHeight + PlanningActionsAboveIntentGap;
 
         public static void ApplyIfNeeded(Transform battleScreenRoot)
         {
@@ -207,7 +217,7 @@ namespace Grimhand.Presentation.Battle
             if (actions != null)
             {
                 StripNestedCanvas(actions.gameObject);
-                PinBottomRight(actions, IntentPanelRight, UpperRowBottom, PlanningActionsWidth, PlanningActionsHeight);
+                PinBottomRight(actions, IntentPanelRight, PlanningActionsBottom, PlanningActionsWidth, PlanningActionsHeight);
                 var actionsBg = actions.GetComponent<Image>();
                 if (actionsBg != null)
                 {
@@ -232,6 +242,18 @@ namespace Grimhand.Presentation.Battle
             var battleScreenRoot = layoutRoot.parent != null ? layoutRoot.parent : layoutRoot;
             ApplyPortraitScale(battleScreenRoot);
             EnsurePlanningInfoLayout(battleScreenRoot);
+
+            var orderBar = layoutRoot.Find("ActionOrderBar") as RectTransform;
+            if (orderBar != null)
+                LayoutActionOrderBar(orderBar);
+        }
+
+        public static void LayoutActionOrderBar(RectTransform bar)
+        {
+            if (bar == null)
+                return;
+
+            PinTopHeight(bar, ActionOrderBarLeft, ActionOrderBarRight, ActionOrderBarTop, ActionOrderBarHeight);
         }
 
         static void StripNestedCanvas(GameObject panel)
@@ -259,8 +281,8 @@ namespace Grimhand.Presentation.Battle
             if (stage == null)
                 return;
 
-            const float rowMinY = 0.14f;
-            const float rowMaxY = 0.90f;
+            const float rowMinY = 0.08f;
+            const float rowMaxY = 0.92f;
 
             if (team == TeamSide.Player)
             {
@@ -431,7 +453,7 @@ namespace Grimhand.Presentation.Battle
                 actionsGo.transform.SetParent(battleScreenRoot, false);
                 var actionsImg = actionsGo.GetComponent<Image>();
                 actionsImg.color = new Color(0.1f, 0.11f, 0.15f, 0.94f);
-                PinBottomRight(actionsGo.GetComponent<RectTransform>(), 12f, UpperRowBottom, PlanningActionsWidth, PlanningActionsHeight);
+                PinBottomRight(actionsGo.GetComponent<RectTransform>(), 12f, PlanningActionsBottom, PlanningActionsWidth, PlanningActionsHeight);
 
                 actionBar.SetParent(actionsGo.transform, false);
                 StretchFull(actionBar as RectTransform, 8f, 8f, -8f, -8f);
@@ -754,6 +776,17 @@ namespace Grimhand.Presentation.Battle
             rt.anchorMin = new Vector2(left / RefWidth, fromBottom / RefHeight);
             rt.anchorMax = new Vector2(1f - right / RefWidth, (fromBottom + height) / RefHeight);
             rt.pivot = new Vector2(0.5f, 0f);
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = Vector2.zero;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+        }
+
+        static void PinTopHeight(RectTransform rt, float left, float right, float fromTop, float height)
+        {
+            rt.anchorMin = new Vector2(left / RefWidth, 1f - (fromTop + height) / RefHeight);
+            rt.anchorMax = new Vector2(1f - right / RefWidth, 1f - fromTop / RefHeight);
+            rt.pivot = new Vector2(0.5f, 1f);
             rt.anchoredPosition = Vector2.zero;
             rt.sizeDelta = Vector2.zero;
             rt.offsetMin = Vector2.zero;

@@ -419,6 +419,43 @@ namespace Grimhand.Presentation.Battle
             CenterInParent(view);
         }
 
+        /// <summary>顶部顺序条：隐藏描述/归属，可选隐藏未知意图。</summary>
+        public void SetOrderBarPresentation(bool compact, bool hiddenIntent = false)
+        {
+            if (statsText != null)
+                statsText.gameObject.SetActive(!compact);
+
+            if (ownerText != null)
+                ownerText.gameObject.SetActive(!compact);
+
+            if (nameText != null)
+                nameText.gameObject.SetActive(!compact);
+
+            if (orderBadgeText != null)
+                orderBadgeText.gameObject.SetActive(false);
+
+            if (button != null)
+            {
+                button.interactable = false;
+                button.onClick.RemoveAllListeners();
+            }
+
+            if (canvasGroup != null)
+            {
+                canvasGroup.blocksRaycasts = false;
+                canvasGroup.alpha = 1f;
+            }
+
+            _interactable = false;
+
+            if (!hiddenIntent || artImage == null)
+                return;
+
+            artImage.color = new Color(0.12f, 0.12f, 0.14f, 1f);
+            if (frameImage != null)
+                frameImage.color = new Color(0.55f, 0.55f, 0.6f, 1f);
+        }
+
         const float CardBaseLayoutWidth = CardPortraitLayout.CardWidth;
         const float CardBaseLayoutHeight = CardPortraitLayout.CardHeight;
 

@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: CharacterVisualCatalog_Demo
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterVisualCatalogSO
   DefaultPortrait: {fileID: 0}
+  MonsterCardProfilePortrait: {fileID: -68503874529091543, guid: 6eb932c1b30ca7c438abaf3ed528b1d2, type: 3}
   Entries:
   - CharacterId: char_knight
     IdlePortrait: {fileID: 0}

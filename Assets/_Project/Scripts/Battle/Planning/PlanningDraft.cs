@@ -94,11 +94,11 @@ namespace Grimhand.Battle.Planning
             if (!TryGetSelectableCard(instanceId, out var card))
                 return false;
 
-            if (!EnergyRules.CanAfford(_state.EnergyCurrent, card.Cost))
-                return false;
-
             var ownerId = PositionRules.GetOwnerCombatantId(_state, card);
             var owner = ownerId != null ? _state.GetCombatant(ownerId) : null;
+
+            if (!EnergyRules.CanAfford(_state.EnergyCurrent, TalentBattleRules.GetEffectivePlayCost(_state, owner, card)))
+                return false;
 
             if (CardRules.ShouldPromptForTarget(_state, card, owner) && !_targetByCard.ContainsKey(instanceId))
             {
@@ -259,7 +259,7 @@ namespace Grimhand.Battle.Planning
 
             _selectedQueue.RemoveAt(index);
             _targetByCard.Remove(instanceId);
-            _state.EnergyCurrent += card.Cost;
+            _state.EnergyCurrent += GetPlayCost(card);
 
             EmitEnergyEvent(BattleEventKind.CardDeselectedFromPlay, card.DisplayName, instanceId);
             return true;
@@ -279,7 +279,7 @@ namespace Grimhand.Battle.Planning
                 if (card == null)
                     continue;
 
-                plan.EnergySpent += card.Cost;
+                plan.EnergySpent += GetPlayCost(card);
                 if (_targetByCard.TryGetValue(cardId, out var targetId))
                     plan.TargetByCardInstanceId[cardId] = targetId;
             }
@@ -305,8 +305,13 @@ namespace Grimhand.Battle.Planning
 
         void CompleteSelect(CardInstanceState card, int instanceId)
         {
+            var ownerId = PositionRules.GetOwnerCombatantId(_state, card);
+            var owner = ownerId != null ? _state.GetCombatant(ownerId) : null;
+            var cost = GetPlayCost(card);
+
             _selectedQueue.Add(instanceId);
-            _state.EnergyCurrent -= card.Cost;
+            _state.EnergyCurrent -= cost;
+            ConsumeTalentDiscountIfApplied(owner, card, cost);
             EmitEnergyEvent(BattleEventKind.CardSelectedForPlay, card.DisplayName, instanceId);
         }
 
@@ -352,6 +357,31 @@ namespace Grimhand.Battle.Planning
                 return false;
 
             return true;
+        }
+
+        int GetPlayCost(CardInstanceState card)
+        {
+            if (card == null)
+                return 0;
+
+            var ownerId = PositionRules.GetOwnerCombatantId(_state, card);
+            var owner = ownerId != null ? _state.GetCombatant(ownerId) : null;
+            return TalentBattleRules.GetEffectivePlayCost(_state, owner, card);
+        }
+
+        void ConsumeTalentDiscountIfApplied(CombatantState owner, CardInstanceState card, int cost)
+        {
+            if (owner == null || card == null || cost >= card.Cost)
+                return;
+
+            if (owner.TalentNextSacrificeEnergyDiscount)
+                owner.TalentNextSacrificeEnergyDiscount = false;
+            else if (_state.TalentMageFirstStatusDiscountPending
+                     && owner.CharacterDefinitionId == TalentBattleRules.MageId
+                     && card.CardType == CardType.Status)
+            {
+                _state.TalentMageFirstStatusDiscountPending = false;
+            }
         }
     }
 }

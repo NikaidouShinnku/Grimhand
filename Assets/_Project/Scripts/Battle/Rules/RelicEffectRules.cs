@@ -27,6 +27,7 @@ namespace Grimhand.Battle.Rules
             combatant.UsedDefenseThisTurn = false;
             combatant.TurnAttackBonusPercent = 0;
             combatant.TurnDefenseBonusPercent = 0;
+            TalentBattleRules.ResetTurnFlags(combatant);
         }
 
         public static void ProcessTurnStart(
@@ -50,7 +51,10 @@ namespace Grimhand.Battle.Rules
             RelicBattleRules.RefreshAllDerivedStats(state);
 
             if (mods == null)
+            {
+                TalentBattleRules.ProcessTurnStart(state, events);
                 return;
+            }
 
             if (mods.TurnStartRandomAllyBlock > 0)
             {
@@ -67,6 +71,8 @@ namespace Grimhand.Battle.Rules
                 foreach (var ally in CollectAlivePlayerTeam(state))
                     DamageRules.ApplyBlock(ally, mods.TurnStartTeamBlock, events, state);
             }
+
+            TalentBattleRules.ProcessTurnStart(state, events);
         }
 
         public static void ProcessEndOfTurn(BattleState state, List<BattleEvent> events)
@@ -124,6 +130,8 @@ namespace Grimhand.Battle.Rules
                     DamageRules.ApplyHeal(state, ally, mods.AttackAndDefenseSameTurnHeal, events);
                 }
             }
+
+            TalentBattleRules.ProcessEndOfTurn(state, events);
         }
 
         public static int GetBattleSpeedBonus(BattleState state, CombatantState combatant)
@@ -143,15 +151,16 @@ namespace Grimhand.Battle.Rules
             CombatantState actor,
             int rawDamage)
         {
-            if (mods == null || actor == null || mods.SacrificeHpCostReductionPercent <= 0)
-                return rawDamage;
+            return AdjustSacrificeSelfDamage(null, mods, actor, rawDamage);
+        }
 
-            if (actor.CharacterDefinitionId != DemonCharacterId)
-                return rawDamage;
-
-            var reduced = (int)System.Math.Round(
-                rawDamage * (100f - mods.SacrificeHpCostReductionPercent) / 100f);
-            return Math.Max(1, reduced);
+        public static int AdjustSacrificeSelfDamage(
+            BattleState state,
+            RunModifierSnapshot mods,
+            CombatantState actor,
+            int rawDamage)
+        {
+            return TalentBattleRules.AdjustSacrificeSelfDamage(mods, state, actor, rawDamage);
         }
 
         public static void OnSacrificeCardResolved(
@@ -209,6 +218,7 @@ namespace Grimhand.Battle.Rules
                 TryProcAttackBurn(state, actor, card, events, rng);
 
             OnSacrificeCardResolved(state, actor, card, events, rng);
+            TalentBattleRules.OnCardResolved(state, actor, card, events);
             MinionTraitRules.OnCardResolved(state, actor, card, events);
             if (card.CardType == CardType.Attack)
                 MinionTraitRules.ConsumeBloodRageAfterAttack(actor, card.CardType);

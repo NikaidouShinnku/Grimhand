@@ -482,8 +482,13 @@ namespace Grimhand.Presentation.Battle
             if (!allowHoverDetail)
                 DismissHoverDetail();
 
-            ApplyStatusAnchorLayout();
-            ApplyPortraitMirror();
+            var preservePortraitLayout = _portraitView != null
+                && (_portraitView.IsAwayFromHome || _portraitView.IsAnimating);
+            if (!preservePortraitLayout)
+            {
+                ApplyStatusAnchorLayout();
+                ApplyPortraitMirror();
+            }
 
             var displayAlive = unit != null
                 && (presentation != null ? presentation.IsAlive(unit.Id) : unit.IsAlive);

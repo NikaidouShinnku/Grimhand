@@ -1171,6 +1171,10 @@ namespace Grimhand.Presentation.Battle
             if (unit == null || string.IsNullOrEmpty(unit.Id))
                 return;
 
+            var draft = _session?.Engine?.Draft;
+            if (draft?.AwaitingTargetCardId == null)
+                return;
+
             if (_damagePreviewCombatantId == unit.Id)
                 return;
 

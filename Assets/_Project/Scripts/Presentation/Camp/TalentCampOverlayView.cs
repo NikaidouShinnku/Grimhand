@@ -252,13 +252,13 @@ namespace Grimhand.Presentation.Camp
             CampUiRuntime.Stretch(_detailPanel, 32f, 32f, -32f, -32f);
             _detailPanel.gameObject.SetActive(false);
 
-            var backBtn = CampUiRuntime.CreateButton(_detailPanel, "← 返回角色列表", new Color(0.28f, 0.3f, 0.36f, 1f),
-                new Vector2(160f, 40f));
+            var backBtn = CampUiRuntime.CreateButton(_detailPanel, "返回角色列表", new Color(0.28f, 0.3f, 0.36f, 1f),
+                new Vector2(140f, 42f));
             var backRt = backBtn.GetComponent<RectTransform>();
-            backRt.anchorMin = new Vector2(0f, 1f);
-            backRt.anchorMax = new Vector2(0f, 1f);
-            backRt.pivot = new Vector2(0f, 1f);
-            backRt.anchoredPosition = new Vector2(8f, -8f);
+            backRt.anchorMin = new Vector2(1f, 1f);
+            backRt.anchorMax = new Vector2(1f, 1f);
+            backRt.pivot = new Vector2(1f, 1f);
+            backRt.anchoredPosition = new Vector2(-8f, -8f);
             backBtn.onClick.AddListener(ShowListPanel);
 
             var top = CampUiRuntime.CreateRect("DetailTop", _detailPanel);

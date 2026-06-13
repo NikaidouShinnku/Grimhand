@@ -80,13 +80,24 @@ namespace Grimhand.Battle.Rules
         static bool TryDrawPlayableCard(BattleState state, TeamSide team, List<BattleEvent> events)
         {
             var draw = state.GetDrawPile(team);
-            while (draw.Count > 0)
+            var skipPolluted = team == TeamSide.Player
+                               && state.Config?.RunModifiers?.SkipPollutedCardsOnDraw == true;
+            var attempts = draw.Count;
+
+            while (draw.Count > 0 && attempts > 0)
             {
+                attempts--;
                 var card = draw[0];
                 draw.RemoveAt(0);
                 if (team == TeamSide.Enemy && PositionRules.GetOwnerCombatantId(state, card) == null)
                 {
                     state.GetDiscardPile(team).Add(card);
+                    continue;
+                }
+
+                if (skipPolluted && !card.IsUsable)
+                {
+                    draw.Add(card);
                     continue;
                 }
 

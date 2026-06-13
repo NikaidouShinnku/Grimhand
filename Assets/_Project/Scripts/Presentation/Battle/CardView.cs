@@ -84,7 +84,8 @@ namespace Grimhand.Presentation.Battle
             CharacterVisualCatalogSO characterVisuals,
             Action<int> onClick,
             Action<CardInstanceState, RectTransform> onHoverEnter,
-            Action onHoverExit)
+            Action onHoverExit,
+            int? displayCost = null)
         {
             EnsureScaleRoot();
             EnsureCardVisuals();
@@ -138,7 +139,7 @@ namespace Grimhand.Presentation.Battle
             }
 
             if (costText != null)
-                costText.text = card.Cost.ToString();
+                costText.text = (displayCost ?? card.Cost).ToString();
 
             if (nameText != null)
             {

@@ -49,6 +49,7 @@ namespace Grimhand.Battle.Rules
             }
 
             ApplyTurnStatBonusPercents(combatant);
+            TalentBattleRules.ApplyDerivedStatModifiers(state, combatant, mods);
         }
 
         static void ApplyTurnStatBonusPercents(CombatantState combatant)
@@ -84,6 +85,8 @@ namespace Grimhand.Battle.Rules
                 combatant.MaxHp += mods.TeamHpBonus;
                 combatant.Hp += mods.TeamHpBonus;
             }
+
+            TalentBattleRules.ApplyTeamHpBonus(state, mods);
         }
 
         public static int GetBackRowExtraDraw(
@@ -195,8 +198,10 @@ namespace Grimhand.Battle.Rules
                 return 0;
 
             var mul = GetOutgoingDamageMultiplier(state, actor, cardType, isSacrificeDamage, cardCost);
+            mul *= TalentBattleRules.GetOutgoingDamageMultiplier(state, actor, cardType);
             var power = (int)System.Math.Round(basePower * mul);
             power += GetOutgoingDamageFlatBonus(state, actor, cardType);
+            power += TalentBattleRules.GetOutgoingDamageFlatBonus(state, actor, cardType);
 
             if (power < 1)
                 power = 1;
@@ -331,6 +336,8 @@ namespace Grimhand.Battle.Rules
             }
 
             RelicEffectRules.TryMiracleLeafSave(state, target, events, ref hpDamage);
+            TalentBattleRules.TryMageRevive(state, target, events, ref hpDamage);
+            hpDamage = TalentBattleRules.ApplyIncomingDamageTalents(state, target, hpDamage, events);
 
             return hpDamage;
         }

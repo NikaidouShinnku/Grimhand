@@ -165,6 +165,46 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
+        public void Respond_DoesNotMatchFrontRow_WhenOnlyFrontAlive_AndEnemyMiddleBackReach()
+        {
+            var state = new BattleState();
+            var knight = Unit("knight", TeamSide.Player, FormationSlot.Front, hp: 40);
+            var goblin = Unit("goblin", TeamSide.Enemy, FormationSlot.Front, hp: 50);
+            state.Combatants.Add(knight);
+            state.Combatants.Add(goblin);
+
+            var parryId = 1;
+            var parry = ParryCard();
+            parry.InstanceId = parryId;
+            parry.OwnerCharacterId = knight.CharacterDefinitionId;
+            state.CardsById[parryId] = parry;
+
+            var spearId = 2;
+            var spear = new CardInstanceState
+            {
+                InstanceId = spearId,
+                DisplayName = "骨矛",
+                CardType = CardType.Attack,
+                OwnerCharacterId = goblin.CharacterDefinitionId
+            };
+            spear.Actions.Add(new EffectActionSpec
+            {
+                Type = EffectActionType.DealDamage,
+                Target = EffectTarget.DefaultEnemy,
+                Value = 10,
+                Reach = TargetReach.MiddleAndBack
+            });
+            state.CardsById[spearId] = spear;
+
+            var enemyStep = new ResolutionStep(goblin.Id, spearId, 0);
+            Assert.IsFalse(
+                RespondTriggerMatcher.WouldEnemyStepAttackCombatant(state, enemyStep, knight.Id),
+                "仅有前排存活时，中/后排攻击不应命中前排");
+            Assert.IsFalse(
+                RespondTriggerMatcher.RespondCardMatchesEnemyStep(state, knight, parry, enemyStep));
+        }
+
+        [Test]
         public void Respond_MatchesFrontRow_WhenEnemyMeleeTargetsFront()
         {
             var state = BuildStateWithCards(out var knight, out var goblin, out _, out var attackId);

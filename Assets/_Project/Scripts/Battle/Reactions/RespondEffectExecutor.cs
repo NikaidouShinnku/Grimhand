@@ -42,6 +42,7 @@ namespace Grimhand.Battle.Reactions
                     CombatantId = actor.Id,
                     CardInstanceId = card.InstanceId
                 });
+                TalentBattleRules.OnRespondSuccess(state, actor);
             }
         }
 

@@ -81,6 +81,12 @@ namespace Grimhand.Battle.Model
         /// <summary>无尽血刃等：单张牌实例在本场战斗中的 outgoing 伤害倍率（100=1×）。</summary>
         public Dictionary<int, int> CardInstanceDamageMultiplierPercent { get; } = new();
 
+        public bool TalentMageFirstStatusDiscountPending { get; set; }
+        public bool TalentMageFirstHitSlowPending { get; set; }
+        public bool TalentMageReviveAvailable { get; set; }
+        public int TalentRangerBloodDebtAttackBonus { get; set; }
+        public int TalentSacrificeHpAccumulatedBattle { get; set; }
+
         public CombatantState GetCombatant(string id)
         {
             foreach (var c in Combatants)

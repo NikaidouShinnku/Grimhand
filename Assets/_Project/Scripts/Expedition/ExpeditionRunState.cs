@@ -35,5 +35,6 @@ namespace Grimhand.Expedition
         public ExpeditionRewardPickup PendingDeferredReward { get; set; }
         public ExpeditionPendingShrine PendingShrine { get; set; }
         public ExpeditionShopState Shop { get; } = new();
+        public ExpeditionTalentRunState TalentRun { get; } = new();
     }
 }

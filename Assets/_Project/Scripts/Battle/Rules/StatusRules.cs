@@ -135,6 +135,7 @@ namespace Grimhand.Battle.Rules
                         continue;
 
                     var damage = def.TurnStartDamagePerStack * status.Stacks;
+                    TalentBattleRules.ProcessPoisonTick(state, def, status, ref damage);
                     ApplyStatusTickDamage(state, combatant, def, status.StatusId, damage, events);
                 }
             }

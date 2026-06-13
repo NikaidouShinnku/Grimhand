@@ -86,19 +86,21 @@ namespace Grimhand.Presentation.Battle
                 var isQueued = draft.IsSelected(card.InstanceId);
                 var showSelected = isQueued;
                 var polluted = CardRules.IsPolluted(card);
-                var canAfford = draft.EnergyRemaining >= card.Cost;
+                var ownerId = PositionRules.GetOwnerCombatantId(state, card);
+                var owner = ownerId != null ? state.GetCombatant(ownerId) : null;
+                var playCost = TalentBattleRules.GetEffectivePlayCost(state, owner, card);
+                var canAfford = draft.EnergyRemaining >= playCost;
                 var interactable = session.CanInteractWithBattle() && !polluted
                     && (isAwaitingTarget || isQueued || canAfford);
                 var visual = CardVisualResolver.Resolve(card, catalog, characterVisuals, definitions);
-                var descCard = CardVisualResolver.ResolveForDescription(card, definitions);
-                var stats = BattleUiFormatters.BuildCardStatsLine(
-                    state, draft, descCard, preferFormulas: true, damagePreviewTarget: damagePreviewTarget);
+                var stats = BattleUiFormatters.BuildCardStatsLineForHand(
+                    state, draft, card, damagePreviewTarget);
                 var badge = isQueued
                     ? BattleUiFormatters.BuildSelectionBadge(state, draft, card, resolveSteps)
                     : null;
 
                 view.BindWithCard(card, visual, showSelected, polluted, interactable, badge, stats,
-                    uiIcons, characterVisuals, onCardClick, onHoverEnter, onHoverExit);
+                    uiIcons, characterVisuals, onCardClick, onHoverEnter, onHoverExit, playCost);
             }
 
             if (scrollRect != null && contentRoot != null)

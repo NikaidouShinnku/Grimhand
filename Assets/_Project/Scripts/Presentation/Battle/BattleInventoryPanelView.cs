@@ -350,9 +350,9 @@ namespace Grimhand.Presentation.Battle
                     return;
 
                 var state = _session.Engine.State;
-                AddCardGroup("手牌", state.PlayerHand, useFormulas: false);
-                AddCardGroup("抽牌堆", state.PlayerDrawPile, useFormulas: false);
-                AddCardGroup("弃牌堆", state.PlayerDiscardPile, useFormulas: false);
+                AddCardGroup("手牌", state.PlayerHand, useFormulas: true);
+                AddCardGroup("抽牌堆", state.PlayerDrawPile, useFormulas: true);
+                AddCardGroup("弃牌堆", state.PlayerDiscardPile, useFormulas: true);
                 return;
             }
 

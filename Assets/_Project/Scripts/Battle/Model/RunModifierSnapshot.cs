@@ -11,6 +11,8 @@ namespace Grimhand.Battle.Model
         public int BattleStartTeamHeal { get; set; }
         public int BattleStartFrontBlock { get; set; }
         public int ExtraDrawOnBattleStart { get; set; }
+        /// <summary>抽牌时跳过污染牌（猫灵雕像）。</summary>
+        public bool SkipPollutedCardsOnDraw { get; set; }
         public float GoldBonusPercent { get; set; }
         public float SacrificeDamageBonusPercent { get; set; }
         public int SacrificeHpCostReduction { get; set; }
@@ -18,6 +20,8 @@ namespace Grimhand.Battle.Model
         public float HealBonusPercent { get; set; }
         public float PharaohBlockGivenBonusPercent { get; set; }
         public float SacrificeHpCostReductionPercent { get; set; }
+        /// <summary>献祭血量消耗增加（血怒献祭等）。</summary>
+        public float SacrificeHpCostIncreasePercent { get; set; }
         public int HealGrantsBlock { get; set; }
         public int StatusCardTeamBlock { get; set; }
         public float WarriorBlockChanceOnHit { get; set; }

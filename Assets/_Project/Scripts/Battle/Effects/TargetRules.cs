@@ -39,11 +39,16 @@ namespace Grimhand.Battle.Effects
                         return picked;
                     }
 
-                    var rolled = PickRandomTargetForReach(state, actor.Team, reach, action, rng);
-                    if (rolled != null)
+                    if (UsesAutoReachRoll(action))
                     {
-                        state.ResolutionTargets[cardInstanceId] = rolled.Id;
-                        return rolled;
+                        var rolled = PickRandomTargetForReach(state, actor.Team, reach, action, rng);
+                        if (rolled != null)
+                        {
+                            state.ResolutionTargets[cardInstanceId] = rolled.Id;
+                            return rolled;
+                        }
+
+                        return null;
                     }
 
                     return PositionRules.PickDefaultTarget(state, actor.Team);

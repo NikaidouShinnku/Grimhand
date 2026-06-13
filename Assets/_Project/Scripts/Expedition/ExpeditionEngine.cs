@@ -70,6 +70,9 @@ namespace Grimhand.Expedition
                 CampRunPartyApplier.Apply(campRoster, _run, campMeta);
             else
                 InitPartyFromTemplate();
+
+            _run.TalentRun.Reset();
+            TalentDatabase.ApplyRunStartEffects(_run, _config);
             LoadRoutesForNextLayer();
         }
 
@@ -105,7 +108,9 @@ namespace Grimhand.Expedition
                 floor: 10,
                 _run.Modifiers,
                 _config.PlayerCardCatalog,
-                _config);
+                _config,
+                _run.TalentRun,
+                isBossBattle: true);
 
             _run.CurrentBattleConfig.EnergyCap += _run.Modifiers.EnergyCapBonus;
             _run.CurrentBattleConfig.TurnStartEnergyRegen = System.Math.Max(
@@ -145,6 +150,7 @@ namespace Grimhand.Expedition
             _run.PendingDeferredReward = null;
             _run.Shop.Clear();
             _run.CurrentBattleConfig = null;
+            _run.TalentRun.Reset();
             _run.RunAcquisitionLog.Clear();
             _run.Map = skipMap ? null : ExpeditionMapGenerator.Generate(_config, _run, _rng);
         }
@@ -259,6 +265,7 @@ namespace Grimhand.Expedition
             var previousParty = _run.Party;
             _run.Party.Clear();
             _run.Party.AddRange(ExpeditionBattleConfigBuilder.CaptureParty(state, previousParty));
+            TalentDatabase.SyncRunStateFromBattle(state, _run.TalentRun);
 
             if (_run.MiracleLeafUsesRemaining >= 0)
                 _run.MiracleLeafUsesRemaining = state.MiracleLeafRevivesRemaining;
@@ -1018,7 +1025,9 @@ namespace Grimhand.Expedition
                 floor,
                 _run.Modifiers,
                 _config.PlayerCardCatalog,
-                _config);
+                _config,
+                _run.TalentRun,
+                isBossBattle: false);
 
             if (_run.Modifiers.DivinePunishmentActive)
             {
@@ -1083,7 +1092,9 @@ namespace Grimhand.Expedition
                 CurrentBattleNumber,
                 _run.Modifiers,
                 _config.PlayerCardCatalog,
-                _config);
+                _config,
+                _run.TalentRun,
+                isBossBattle: true);
 
             config.EnergyCap += _run.Modifiers.EnergyCapBonus;
             config.TurnStartEnergyRegen = System.Math.Max(config.TurnStartEnergyRegen, 4);

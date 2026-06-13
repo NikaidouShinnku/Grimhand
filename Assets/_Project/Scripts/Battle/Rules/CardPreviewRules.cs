@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Grimhand.Battle.Effects;
 using Grimhand.Battle.Model;
 
 namespace Grimhand.Battle.Rules
@@ -21,6 +22,9 @@ namespace Grimhand.Battle.Rules
             var basePower = CardPowerRules.ComputeActionValue(action, owner);
             if (state == null || owner == null)
                 return basePower;
+
+            if (card != null)
+                basePower = PassiveCardMechanicsRules.ApplyEndlessBladeMultiplier(state, card, basePower);
 
             var cardType = card?.CardType ?? CardType.Attack;
             var cost = card?.Cost ?? 0;
@@ -56,6 +60,7 @@ namespace Grimhand.Battle.Rules
             var value = CardPowerRules.ComputeActionValue(action, owner);
             var primaryPower = TargetReachRules.AdjustPowerForTarget(state, action, intendedTarget, value);
             primaryPower = CombatMechanicsRules.ComputeConditionalDamageBonus(state, action, intendedTarget, primaryPower);
+            primaryPower = PassiveCardMechanicsRules.ApplyEndlessBladeMultiplier(state, card, primaryPower);
 
             return PreviewHpDamageFromPower(
                 state,
@@ -213,6 +218,74 @@ namespace Grimhand.Battle.Rules
             }
 
             return sb.ToString();
+        }
+
+        public static string DescribeIntentEffect(BattleState state, CombatantState owner, CardInstanceState card)
+        {
+            if (card == null)
+                return "";
+
+            if (state == null || owner == null)
+                return CardPowerRules.DescribeCardEffect(card, owner, false);
+
+            foreach (var action in card.Actions)
+            {
+                if (action.Condition != ReactionConditionType.None)
+                    continue;
+
+                switch (action.Type)
+                {
+                    case EffectActionType.DealDamage:
+                        if (action.Target == EffectTarget.AllEnemies)
+                        {
+                            var victimTeam = owner.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
+                            var parts = new List<(CombatantState target, int damage)>();
+                            foreach (var target in PositionRules.GetAliveSortedByPhysicalSlot(state, victimTeam))
+                            {
+                                var dmg = PreviewHpDamageAgainstTarget(state, owner, card, action, target);
+                                parts.Add((target, dmg));
+                            }
+
+                            if (parts.Count == 0)
+                                return $"伤害 {ComputeExpectedDamage(state, owner, card, action)}";
+
+                            if (parts.Count == 1)
+                                return $"伤害 {parts[0].damage}";
+
+                            var sb = new System.Text.StringBuilder("伤害 ");
+                            for (var i = 0; i < parts.Count; i++)
+                            {
+                                if (i > 0)
+                                    sb.Append(' ');
+                                sb.Append(parts[i].target.DisplayName).Append('(').Append(parts[i].damage).Append(')');
+                            }
+
+                            return sb.ToString();
+                        }
+
+                        var predicted = TargetRules.PredictIntentTarget(state, owner, card);
+                        if (predicted != null)
+                            return $"伤害 {PreviewHpDamageAgainstTarget(state, owner, card, action, predicted)}";
+
+                        return $"伤害 {ComputeExpectedDamage(state, owner, card, action)}";
+                    case EffectActionType.GainBlock:
+                    {
+                        var block = CardPowerRules.ComputeActionValue(action, owner);
+                        block += RelicBattleRules.GetOutgoingDefenseFlatBonus(state.Config?.RunModifiers, owner);
+                        block = RelicBattleRules.ApplyPharaohBlockBonus(state.Config?.RunModifiers, owner, block);
+                        return $"护甲 {block}";
+                    }
+                    case EffectActionType.Heal:
+                        return $"治疗 {CardPowerRules.ComputeActionValue(action, owner)}";
+                    case EffectActionType.ApplyStatus:
+                        return $"状态 {action.Stacks}";
+                    case EffectActionType.DrawCards:
+                    case EffectActionType.DrawCardsNextTurn:
+                        return $"抽牌 {action.Value}";
+                }
+            }
+
+            return CardPowerRules.DescribeCardEffect(card, owner, false);
         }
 
         static int PreviewHpDamageFromPower(

@@ -75,6 +75,7 @@ namespace Grimhand.Expedition
                     break;
                 case "extra_draw_1":
                     mods.ExtraDrawOnBattleStart += 1;
+                    mods.SkipPollutedCardsOnDraw = true;
                     break;
                 case "burn_proc_20pct":
                     mods.AttackBurnProcChance = 0.20f;
@@ -177,7 +178,7 @@ namespace Grimhand.Expedition
                     "全队HP+8。角色被攻击后，该角色下一次攻击伤害+4。",
                     "revenge_atk_4", hp: 8),
                 Def(RelicIds.CatStatue, "猫灵雕像", RelicRarity.Common, "通用",
-                    "每场战斗开始时额外抽1张牌（首回合手牌变为6张）。每次远征中，有1次机会在抽到污染的牌时将其替换为随机可用牌。",
+                    "每场战斗开始时额外抽1张牌（首回合手牌变为6张）。不会抽到污染的卡牌。",
                     "extra_draw_1"),
                 Def(RelicIds.ElfBow, "精灵之弓", RelicRarity.Common, "通用",
                     "后排角色的攻击类卡牌可指定攻击敌方任意位置目标（无视敌方位置优先级）。",

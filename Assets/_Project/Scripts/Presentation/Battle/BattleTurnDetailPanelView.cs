@@ -105,7 +105,7 @@ namespace Grimhand.Presentation.Battle
             _content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, bodyRt.rect.height + 8f);
             LayoutRebuilder.ForceRebuildLayoutImmediate(_content);
             if (_scroll != null)
-                _scroll.verticalNormalizedPosition = 0f;
+                _scroll.verticalNormalizedPosition = 1f;
         }
 
         void EnsureBuilt(Transform battleRoot)
@@ -144,22 +144,53 @@ namespace Grimhand.Presentation.Battle
             title.color = Color.white;
             title.text = "上回合明细";
 
-            var scrollGo = new GameObject("Scroll", typeof(RectTransform), typeof(ScrollRect), typeof(Image), typeof(RectMask2D));
+            var scrollGo = new GameObject("Scroll", typeof(RectTransform), typeof(ScrollRect), typeof(Image));
             scrollGo.transform.SetParent(go.transform, false);
             var scrollRt = scrollGo.GetComponent<RectTransform>();
             scrollRt.anchorMin = new Vector2(0f, 0f);
             scrollRt.anchorMax = new Vector2(1f, 1f);
             scrollRt.offsetMin = new Vector2(10f, 10f);
-            scrollRt.offsetMax = new Vector2(-10f, -44f);
-            scrollGo.GetComponent<Image>().color = new Color(0.05f, 0.06f, 0.09f, 0.85f);
+            scrollRt.offsetMax = new Vector2(-26f, -44f);
+            var scrollBg = scrollGo.GetComponent<Image>();
+            scrollBg.color = new Color(0.05f, 0.06f, 0.09f, 0.85f);
+            scrollBg.raycastTarget = true;
 
-            var viewportGo = new GameObject("Viewport", typeof(RectTransform), typeof(RectMask2D));
+            var viewportGo = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(Mask));
             viewportGo.transform.SetParent(scrollGo.transform, false);
             var viewportRt = viewportGo.GetComponent<RectTransform>();
             viewportRt.anchorMin = Vector2.zero;
             viewportRt.anchorMax = Vector2.one;
             viewportRt.offsetMin = Vector2.zero;
             viewportRt.offsetMax = Vector2.zero;
+            var viewportImage = viewportGo.GetComponent<Image>();
+            viewportImage.color = new Color(1f, 1f, 1f, 0.01f);
+            viewportImage.raycastTarget = true;
+            var viewportMask = viewportGo.GetComponent<Mask>();
+            viewportMask.showMaskGraphic = false;
+
+            var scrollbarGo = new GameObject("Scrollbar", typeof(RectTransform), typeof(Image), typeof(Scrollbar));
+            scrollbarGo.transform.SetParent(scrollGo.transform, false);
+            var scrollbarRt = scrollbarGo.GetComponent<RectTransform>();
+            scrollbarRt.anchorMin = new Vector2(1f, 0f);
+            scrollbarRt.anchorMax = new Vector2(1f, 1f);
+            scrollbarRt.pivot = new Vector2(1f, 0.5f);
+            scrollbarRt.sizeDelta = new Vector2(12f, 0f);
+            scrollbarGo.GetComponent<Image>().color = new Color(0.18f, 0.2f, 0.26f, 0.95f);
+
+            var handleGo = new GameObject("Handle", typeof(RectTransform), typeof(Image));
+            handleGo.transform.SetParent(scrollbarGo.transform, false);
+            var handleRt = handleGo.GetComponent<RectTransform>();
+            handleRt.anchorMin = Vector2.zero;
+            handleRt.anchorMax = Vector2.one;
+            handleRt.offsetMin = new Vector2(2f, 2f);
+            handleRt.offsetMax = new Vector2(-2f, -2f);
+            var handleImage = handleGo.GetComponent<Image>();
+            handleImage.color = new Color(0.45f, 0.5f, 0.62f, 1f);
+
+            var scrollbar = scrollbarGo.GetComponent<Scrollbar>();
+            scrollbar.handleRect = handleRt;
+            scrollbar.targetGraphic = handleImage;
+            scrollbar.direction = Scrollbar.Direction.BottomToTop;
 
             var contentGo = new GameObject("Content", typeof(RectTransform), typeof(ContentSizeFitter));
             contentGo.transform.SetParent(viewportGo.transform, false);
@@ -206,8 +237,10 @@ namespace Grimhand.Presentation.Battle
             _scroll.viewport = viewportRt;
             _scroll.horizontal = false;
             _scroll.vertical = true;
-            _scroll.movementType = ScrollRect.MovementType.Clamped;
-            _scroll.scrollSensitivity = 24f;
+            _scroll.movementType = ScrollRect.MovementType.Elastic;
+            _scroll.scrollSensitivity = 30f;
+            _scroll.verticalScrollbar = scrollbar;
+            _scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHideAndExpandViewport;
 
             go.SetActive(false);
         }

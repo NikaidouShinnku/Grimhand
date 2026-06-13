@@ -86,7 +86,7 @@ namespace Grimhand.Battle.Effects
                 && card.Keywords.Contains("sacrifice"))
             {
                 value = RelicEffectRules.AdjustSacrificeSelfDamage(
-                    state.Config?.RunModifiers, actor, value);
+                    state, state.Config?.RunModifiers, actor, value);
             }
 
             var beneficiary = target ?? actor;
@@ -110,6 +110,8 @@ namespace Grimhand.Battle.Effects
                     totalBlock = RelicBattleRules.ApplyPharaohBlockBonus(
                         state.Config?.RunModifiers, actor, totalBlock);
                     DamageRules.ApplyBlock(beneficiary, totalBlock, events, state, rng);
+                    TalentBattleRules.AfterDefenseBlockApplied(
+                        state, actor, beneficiary, totalBlock, events, rng);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Defense, beneficiary.Id, false, 0);
                     break;
                 }
@@ -133,12 +135,11 @@ namespace Grimhand.Battle.Effects
                         var randomTarget = TargetRules.ResolveTarget(
                             state, actor, EffectTarget.RandomEnemy, card.InstanceId, rng, action);
                         if (randomTarget != null)
-                            StatusRules.ApplyStatus(
-                                state, randomTarget, action.StatusId, action.Stacks, action.Duration, events);
+                            ApplyStatusWithTalents(state, actor, randomTarget, action, events);
                     }
                     else if (target != null
                              && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
-                        StatusRules.ApplyStatus(state, target, action.StatusId, action.Stacks, action.Duration, events);
+                        ApplyStatusWithTalents(state, actor, target, action, events);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
                 case EffectActionType.ApplyAnubisAvatar:
@@ -345,8 +346,20 @@ namespace Grimhand.Battle.Effects
                 if (target == null || !target.IsAlive)
                     continue;
 
-                StatusRules.ApplyStatus(state, target, action.StatusId, action.Stacks, action.Duration, events);
+                ApplyStatusWithTalents(state, actor, target, action, events);
             }
+        }
+
+        static void ApplyStatusWithTalents(
+            BattleState state,
+            CombatantState actor,
+            CombatantState target,
+            EffectActionSpec action,
+            List<BattleEvent> events)
+        {
+            var stacks = action.Stacks;
+            TalentBattleRules.AdjustPoisonStacks(state, actor, ref stacks);
+            StatusRules.ApplyStatus(state, target, action.StatusId, stacks, action.Duration, events);
         }
 
         static void ExecuteStatusToRandomEnemies(
@@ -358,7 +371,7 @@ namespace Grimhand.Battle.Effects
         {
             var count = action.Value > 0 ? action.Value : 1;
             foreach (var target in TargetRules.PickRandomEnemies(state, actor.Team, count, rng))
-                StatusRules.ApplyStatus(state, target, action.StatusId, action.Stacks, action.Duration, events);
+                ApplyStatusWithTalents(state, actor, target, action, events);
         }
 
         static void ExecuteDamage(
@@ -448,6 +461,9 @@ namespace Grimhand.Battle.Effects
                 sourceCardInstanceId: sourceCardInstanceId);
 
             var hpDamage = state.LastAction.DamageAmount;
+            if (isSacrificeSelfDamage && hpDamage > 0)
+                TalentBattleRules.OnSacrificeHpSpent(state, actor, hpDamage);
+
             if (action.LifestealUnblockedOnly && hpDamage > 0)
                 DamageRules.ApplyHeal(state, actor, hpDamage, events, actor, isLifesteal: true);
             else if (lifestealPercent > 0 && hpDamage > 0)

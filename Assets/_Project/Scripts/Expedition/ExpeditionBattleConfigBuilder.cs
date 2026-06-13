@@ -21,6 +21,17 @@ namespace Grimhand.Expedition
                 SkipFloorScaling = source.SkipFloorScaling,
                 RunModifiers = CloneModifiers(source.RunModifiers)
             };
+            if (source.Talents != null)
+            {
+                clone.Talents = new TalentBattleContext
+                {
+                    MageReviveAvailable = source.Talents.MageReviveAvailable,
+                    RangerBloodDebtAttackBonus = source.Talents.RangerBloodDebtAttackBonus,
+                    NonBossSoloEnemyBattle = source.Talents.NonBossSoloEnemyBattle
+                };
+                foreach (var id in source.Talents.ActiveTalentIds)
+                    clone.Talents.ActiveTalentIds.Add(id);
+            }
 
             foreach (var cc in source.Combatants)
             {
@@ -99,11 +110,14 @@ namespace Grimhand.Expedition
             int floor = 1,
             ExpeditionRunModifiers expeditionModifiers = null,
             IReadOnlyList<CardTemplate> playerCardCatalog = null,
-            ExpeditionConfig expeditionConfig = null)
+            ExpeditionConfig expeditionConfig = null,
+            ExpeditionTalentRunState talentRunState = null,
+            bool isBossBattle = false)
         {
             var config = CloneTemplate(encounterTemplate);
             config.Seed = battleSeed;
             config.RunModifiers = RelicDatabase.BuildModifiers(relicIds);
+            TalentDatabase.MergeIntoBattleConfig(config, party, talentRunState, isBossBattle);
             if (expeditionModifiers != null)
                 config.RunModifiers.SoulRiftBattleStartRandomHpLoss =
                     expeditionModifiers.SoulRiftBattleStartRandomHpLoss;
@@ -299,7 +313,9 @@ namespace Grimhand.Expedition
                     Xp = c.Xp,
                     Hp = c.Hp,
                     MaxHp = c.MaxHp,
-                    PersonalAttackBonus = existing?.PersonalAttackBonus ?? 0
+                    PersonalAttackBonus = existing?.PersonalAttackBonus ?? 0,
+                    SelectedTalentSlot1Id = existing?.SelectedTalentSlot1Id ?? "",
+                    SelectedTalentSlot2Id = existing?.SelectedTalentSlot2Id ?? ""
                 };
 
                 if (existing != null)
@@ -377,6 +393,9 @@ namespace Grimhand.Expedition
                 FrontDefenseBonus = source.FrontDefenseBonus,
                 BackRowExtraDrawPerTurn = source.BackRowExtraDrawPerTurn,
                 BattleStartTeamHeal = source.BattleStartTeamHeal,
+                BattleStartFrontBlock = source.BattleStartFrontBlock,
+                ExtraDrawOnBattleStart = source.ExtraDrawOnBattleStart,
+                SkipPollutedCardsOnDraw = source.SkipPollutedCardsOnDraw,
                 GoldBonusPercent = source.GoldBonusPercent,
                 SacrificeDamageBonusPercent = source.SacrificeDamageBonusPercent,
                 HealBonusPercent = source.HealBonusPercent,

@@ -186,6 +186,14 @@ namespace Grimhand.Presentation.Battle
             return string.Join("\n", lines);
         }
 
+        /// <summary>战斗手牌专用：显示加成后数值；单体选目标时悬停敌人可预览最终 HP 伤害。</summary>
+        public static string BuildCardStatsLineForHand(
+            BattleState state,
+            PlanningDraft draft,
+            CardInstanceState card,
+            CombatantState damagePreviewTarget = null) =>
+            BuildCardStatsLine(state, draft, card, preferFormulas: false, damagePreviewTarget);
+
         public static string BuildCardStatsLinePreview(CardInstanceState card) =>
             BuildCardStatsLine(state: null, draft: null, card, preferFormulas: true);
 
@@ -294,7 +302,7 @@ namespace Grimhand.Presentation.Battle
             CardInstanceState card = null,
             bool reaction = false,
             bool preferFormulas = false,
-            CombatantState damagePreviewTarget = null)
+            CombatantState previewTarget = null)
         {
             var prefix = "";
             var target = usesPick ? "" : DescribeAutoTarget(action.Target, action.Type);
@@ -329,13 +337,13 @@ namespace Grimhand.Presentation.Battle
 
                     string body;
                     if (!preferFormulas
-                        && damagePreviewTarget != null
+                        && previewTarget != null
                         && state != null
                         && owner != null
                         && card != null
-                        && CardPreviewRules.CanPreviewDamageAgainstTarget(state, owner, card, action, damagePreviewTarget))
+                        && CardPreviewRules.CanPreviewDamageAgainstTarget(state, owner, card, action, previewTarget))
                     {
-                        body = $"造成 {CardPreviewRules.PreviewHpDamageAgainstTarget(state, owner, card, action, damagePreviewTarget)} 点伤害";
+                        body = $"造成 {CardPreviewRules.PreviewHpDamageAgainstTarget(state, owner, card, action, previewTarget)} 点伤害";
                     }
                     else if (owner != null && state != null && card != null && !preferFormulas)
                         body = $"造成 {CardPreviewRules.ComputeExpectedDamage(state, owner, card, action)} 点伤害";
@@ -507,7 +515,13 @@ namespace Grimhand.Presentation.Battle
             string FormatDamage(EffectActionSpec action)
             {
                 if (owner != null && state != null && card != null && !preferFormulas)
+                {
+                    var perEnemy = CardPreviewRules.FormatAoeDamagePerEnemy(state, owner, card);
+                    if (!string.IsNullOrEmpty(perEnemy))
+                        return $"对全体敌人：{perEnemy}{DescribeDamageExtras(action)}";
+
                     return $"对全体敌人各造成 {CardPreviewRules.ComputeExpectedDamage(state, owner, card, action)} 点伤害{DescribeDamageExtras(action)}";
+                }
 
                 return $"对全体敌人各{CardActionValueText.DescribeDamage(action, owner, preferFormulas)}{DescribeDamageExtras(action)}";
             }
@@ -960,7 +974,7 @@ namespace Grimhand.Presentation.Battle
                         continue;
                     }
 
-                    var effect = CardPowerRules.DescribeCardEffect(card, owner, false);
+                    var effect = CardPreviewRules.DescribeIntentEffect(state, owner, card);
                     var enemyTargetNote = BuildEnemyIntentTargetNote(state, owner, card);
                     lines.Add($"#{global} {ownerName} · {card.DisplayName} 费{card.Cost} {effect}{enemyTargetNote}");
                     continue;
@@ -1013,7 +1027,7 @@ namespace Grimhand.Presentation.Battle
                         continue;
                     }
 
-                    var effect = CardPowerRules.DescribeCardEffect(card, owner, false);
+                    var effect = CardPreviewRules.DescribeIntentEffect(state, owner, card);
                     var enemyTargetNote = BuildEnemyIntentTargetNote(state, owner, card);
                     lines.Add($"#{global} {ownerName} · {card.DisplayName} 费{card.Cost} {effect}{enemyTargetNote}");
                     continue;
@@ -1280,7 +1294,7 @@ namespace Grimhand.Presentation.Battle
             if (isHidden || card == null)
                 return $"{actorName} ？";
 
-            var effect = CardPowerRules.DescribeCardEffect(card, owner, false);
+            var effect = CardPreviewRules.DescribeIntentEffect(state, owner, card);
             var targetNote = BuildEnemyIntentTargetNote(state, owner, card);
             return $"{actorName} 使用 {card.DisplayName} {effect}{targetNote}";
         }

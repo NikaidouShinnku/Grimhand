@@ -69,7 +69,7 @@ namespace Grimhand.Battle.Rules
                 if (state != null && owner != null)
                 {
                     value = RelicEffectRules.AdjustSacrificeSelfDamage(
-                        state.Config?.RunModifiers, owner, value);
+                        state, state.Config?.RunModifiers, owner, value);
                 }
 
                 return value;

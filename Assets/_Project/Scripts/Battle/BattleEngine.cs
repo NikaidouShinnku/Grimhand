@@ -554,6 +554,7 @@ namespace Grimhand.Battle
             }
 
             RelicBattleRules.RefreshAllDerivedStats(_state);
+            TalentBattleRules.OnBattleInitialized(_state);
             RelicBattleRules.ApplyTeamHpBonus(_state, config.RunModifiers);
 
             foreach (var combatant in _state.Combatants)

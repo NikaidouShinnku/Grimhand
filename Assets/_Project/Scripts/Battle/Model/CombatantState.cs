@@ -83,6 +83,21 @@ namespace Grimhand.Battle.Model
         /// <summary>下回合继承的护甲（石傀儡）。</summary>
         public int CarryOverBlock { get; set; }
 
+        /// <summary>天赋：本回合已打出的攻击牌数（连击）。</summary>
+        public int TalentAttackCardsThisTurn { get; set; }
+        /// <summary>天赋：应对成功后下次受伤减伤。</summary>
+        public bool TalentRespondDamageReductionPending { get; set; }
+        /// <summary>天赋：应对成功后下次攻击增伤。</summary>
+        public bool TalentRespondAttackBonusPending { get; set; }
+        /// <summary>天赋：铁壁转化待加到下一张伤害牌的数值。</summary>
+        public int TalentIronWallPendingDamageBonus { get; set; }
+        /// <summary>天赋：绝地格挡已触发。</summary>
+        public bool TalentLastStandBlockUsed { get; set; }
+        /// <summary>天赋：不再获得护甲，转为伤害加成。</summary>
+        public bool TalentDisableBlockGain { get; set; }
+        /// <summary>天赋：献祭后下一张牌减费。</summary>
+        public bool TalentNextSacrificeEnergyDiscount { get; set; }
+
         /// <summary>石像鬼本回合攻击姿态加值。</summary>
         public int GargoyleStanceAttackBonus { get; set; }
 

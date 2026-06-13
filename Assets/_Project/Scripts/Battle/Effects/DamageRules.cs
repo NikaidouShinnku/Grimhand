@@ -149,6 +149,10 @@ namespace Grimhand.Battle.Effects
                 if (recipient.Team == TeamSide.Enemy && actor != null)
                     RelicEffectRules.OnEnemyKilled(state, actor, events, rng);
             }
+            else if (hpDamage > 0 && actor != null && recipient.Team == TeamSide.Enemy)
+            {
+                TalentBattleRules.OnMageDamageDealt(state, actor, recipient, hpDamage, events);
+            }
         }
 
         public static void ApplyBlock(
@@ -160,6 +164,19 @@ namespace Grimhand.Battle.Effects
         {
             if (actor == null || amount <= 0)
                 return;
+
+            if (state != null
+                && actor.TalentDisableBlockGain
+                && TalentBattleRules.HasTalent(state, "talent_knight_s2_lv10"))
+            {
+                actor.TalentIronWallPendingDamageBonus += amount;
+                events.Add(new BattleEvent(BattleEventKind.BlockGained, $"{actor.DisplayName} 铁壁转化")
+                {
+                    CombatantId = actor.Id,
+                    Amount = amount
+                });
+                return;
+            }
 
             actor.Block += amount;
             events.Add(new BattleEvent(BattleEventKind.BlockGained, actor.DisplayName)
@@ -188,17 +205,36 @@ namespace Grimhand.Battle.Effects
             var before = actor.Hp;
             actor.Hp = Math.Min(actor.MaxHp, actor.Hp + boosted);
             var healed = actor.Hp - before;
-            if (healed <= 0)
+            var overflow = boosted - healed;
+            if (healed <= 0 && overflow <= 0)
                 return;
 
-            events.Add(new BattleEvent(BattleEventKind.HealApplied, actor.DisplayName)
+            if (healed > 0)
             {
-                CombatantId = actor.Id,
-                Amount = healed,
-                IsLifesteal = isLifesteal
-            });
+                events.Add(new BattleEvent(BattleEventKind.HealApplied, actor.DisplayName)
+                {
+                    CombatantId = actor.Id,
+                    Amount = healed,
+                    IsLifesteal = isLifesteal
+                });
+            }
 
-            if (mods != null && mods.HealGrantsBlock > 0)
+            if (overflow > 0)
+            {
+                if (isLifesteal
+                    && actor.CharacterDefinitionId == TalentBattleRules.RangerId
+                    && TalentBattleRules.HasTalent(state, "talent_ranger_s2_lv2"))
+                {
+                    ApplyBlock(actor, overflow, events, state);
+                }
+                else if (healer?.CharacterDefinitionId == TalentBattleRules.MageId
+                         && TalentBattleRules.HasTalent(state, "talent_mage_s1_lv8"))
+                {
+                    ApplyBlock(actor, overflow, events, state);
+                }
+            }
+
+            if (mods != null && mods.HealGrantsBlock > 0 && healed > 0)
                 ApplyBlock(actor, mods.HealGrantsBlock, events);
         }
 

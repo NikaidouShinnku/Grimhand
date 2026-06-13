@@ -1051,9 +1051,20 @@ namespace Grimhand.Expedition
         BattleConfig BuildBossBattle(bool applyPartyHp)
         {
             BattleConfig template;
-            var isDungeonBoss = _run.Map?.ChapterLayerCount >= ExpeditionRegionRules.FullLayerCount;
+            var chapterLayers = _run.Map?.ChapterLayerCount ?? ExpeditionRegionRules.CaveLayerCount;
+            var isAbyssBoss = chapterLayers >= ExpeditionRegionRules.FullLayerCount;
+            var isDungeonBoss = !isAbyssBoss && chapterLayers >= ExpeditionRegionRules.DungeonLayerCount;
 
-            if (isDungeonBoss)
+            if (isAbyssBoss)
+            {
+                var standard = _config.CombatEncounters.Count > 0
+                    ? _config.CombatEncounters[0]
+                    : null;
+                var templates = MonsterEncounterBuilder.BuildMonsterTemplateMap(_config.MonsterTemplates);
+                template = AbyssBossEncounterBuilder.BuildTemplate(standard, templates);
+                _run.CurrentBossDisplayName = AbyssBossEncounterBuilder.DisplayName;
+            }
+            else if (isDungeonBoss)
             {
                 var standard = _config.CombatEncounters.Count > 0
                     ? _config.CombatEncounters[0]

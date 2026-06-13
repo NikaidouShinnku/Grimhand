@@ -32,6 +32,7 @@ namespace Grimhand.Content.Editor
             var players = BalanceV2ContentGenerator.GeneratePlayerContent();
             var monsters = MonsterContentGenerator.Generate();
             var dungeonMonsters = MonsterContentGenerator.GenerateDungeonMonsters();
+            var abyssMonsters = MonsterContentGenerator.GenerateAbyssMonsters();
             RelicArtBinder.BindRelicArtSilent();
 
             var setupClassic = SavePlayerBattleSetup(
@@ -97,7 +98,13 @@ namespace Grimhand.Content.Editor
                 dungeonMonsters.ChainWraith,
                 dungeonMonsters.Gargoyle,
                 dungeonMonsters.SpiderLady,
-                dungeonMonsters.StoneGolem
+                dungeonMonsters.StoneGolem,
+                abyssMonsters.SeahorseGuard,
+                abyssMonsters.JellyfishCaster,
+                abyssMonsters.MermaidWarrior,
+                abyssMonsters.AbyssCreature,
+                abyssMonsters.CorruptedCrab,
+                abyssMonsters.PhantomCaptain
             });
             expedition.BossEncounters.Clear();
             expedition.BossEncounters.Add(setupSkeletonKingBoss);

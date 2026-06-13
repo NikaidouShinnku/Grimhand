@@ -11,9 +11,13 @@ namespace Grimhand.Presentation.Battle
             if (icons == null)
                 return null;
 
-            return ExpeditionRegionRules.IsDungeonLayer(layerNumber)
-                ? icons.DungeonBackground != null ? icons.DungeonBackground : icons.CaveBackground
-                : icons.CaveBackground;
+            if (ExpeditionRegionRules.IsAbyssLayer(layerNumber))
+                return icons.AbyssBackground != null ? icons.AbyssBackground : icons.DungeonBackground;
+
+            if (ExpeditionRegionRules.IsDungeonLayer(layerNumber))
+                return icons.DungeonBackground != null ? icons.DungeonBackground : icons.CaveBackground;
+
+            return icons.CaveBackground;
         }
 
         public static Sprite[] ResolvePathVariants(BattleUiIconCatalogSO icons, int layerNumber)
@@ -21,8 +25,14 @@ namespace Grimhand.Presentation.Battle
             if (icons == null)
                 return System.Array.Empty<Sprite>();
 
-            var dungeon = ExpeditionRegionRules.IsDungeonLayer(layerNumber);
-            var paths = dungeon ? icons.DungeonPathVariants : icons.CavePathVariants;
+            Sprite[] paths;
+            if (ExpeditionRegionRules.IsAbyssLayer(layerNumber))
+                paths = icons.AbyssPathVariants;
+            else if (ExpeditionRegionRules.IsDungeonLayer(layerNumber))
+                paths = icons.DungeonPathVariants;
+            else
+                paths = icons.CavePathVariants;
+
             if (paths != null && paths.Length > 0)
                 return paths;
 

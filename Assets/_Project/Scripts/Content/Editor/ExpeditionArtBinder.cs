@@ -57,6 +57,16 @@ namespace Grimhand.Content.Editor
                 LoadSprite("Assets/The Grimhands Asset/path and background/dungeon_path3.png")
             };
             catalog.DungeonPathVariants = dungeonPaths;
+
+            catalog.AbyssBackground = LoadSprite(
+                "Assets/The Grimhands Asset/path and background/underwaterruin_background.png");
+            var abyssPaths = new Sprite[]
+            {
+                LoadSprite("Assets/The Grimhands Asset/path and background/underwaterruin_path1.png"),
+                LoadSprite("Assets/The Grimhands Asset/path and background/underwaterruin_path2.png"),
+                LoadSprite("Assets/The Grimhands Asset/path and background/underwaterruin_path3.png")
+            };
+            catalog.AbyssPathVariants = abyssPaths;
             EditorUtility.SetDirty(catalog);
             return true;
         }

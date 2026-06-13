@@ -54,6 +54,8 @@ namespace Grimhand.Battle.Effects
 
             var blocked = Math.Min(recipient.Block, raw);
             recipient.Block -= blocked;
+            if (raw > 0)
+                MinionTraitRules.OnIncomingDamageHit(state, actor, recipient, events);
             var afterBlock = raw - blocked;
 
             var effectiveDef = CombatMechanicsRules.GetEffectiveDefense(state, recipient, ignoreDefPercent);
@@ -110,6 +112,9 @@ namespace Grimhand.Battle.Effects
             BossTraitRules.TryTriggerGhostQueenEnrage(state, recipient, hpBefore, events);
             if (hpDamage > 0)
                 MinionTraitRules.OnDamageTaken(state, recipient, hpDamage, events);
+
+            if (hpDamage > 0)
+                MinionTraitRules.OnDamageDealt(state, actor, recipient, hpDamage, events);
 
             if (!recipient.IsAlive && wasAlive
                 && CombatMechanicsRules.TryPreventDeathWithReviveBlessing(state, recipient, events))

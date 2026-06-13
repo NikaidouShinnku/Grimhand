@@ -47,3 +47,8 @@ MonoBehaviour:
   - {fileID: -5074124878924022668, guid: 344cbb201debf354d8ebdc9410282d90, type: 3}
   - {fileID: -1750541262561690569, guid: 6c9d5eeb733be69489bf1a49da170f5b, type: 3}
   - {fileID: 5576632795534058508, guid: 0ac7eed4f96f57c4cb975df49648f2e8, type: 3}
+  AbyssBackground: {fileID: -502073333250325513, guid: 9ff5ec08be1d93043bfba210ee104e74, type: 3}
+  AbyssPathVariants:
+  - {fileID: -972667787962235512, guid: f539451bdc1b977448783c9e8d58a5b5, type: 3}
+  - {fileID: 121210507401309378, guid: 091d25c1df8dfd544ad5cc290631fa3b, type: 3}
+  - {fileID: 6327604409582053871, guid: e3d7fe0cc4b6c234c95f43c45b5db30c, type: 3}

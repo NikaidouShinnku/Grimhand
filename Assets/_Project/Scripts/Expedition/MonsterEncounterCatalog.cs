@@ -55,6 +55,27 @@ namespace Grimhand.Expedition
         public const string DunEliteGargoyleGolem = "enc_dun_elite_gargoyle_golem";
         public const string DunEliteGolemSpider = "enc_dun_elite_golem_spider";
 
+        public const string AbyMermaidDuo = "enc_aby_mermaid_duo";
+        public const string AbyMermaidSeahorse = "enc_aby_mermaid_seahorse";
+        public const string AbyMermaidChainWraith = "enc_aby_mermaid_chain_wraith";
+        public const string AbySeahorseJellyfish = "enc_aby_seahorse_jellyfish";
+        public const string AbySkeletonJellyfish = "enc_aby_skeleton_jellyfish";
+        public const string AbyMermaidWraithEliteJellyfish = "enc_aby_mermaid_wraith_elite_jellyfish";
+        public const string AbyMermaidTriple = "enc_aby_mermaid_triple";
+        public const string AbySeahorseDuoJellyfish = "enc_aby_seahorse_duo_jellyfish";
+        public const string AbyMermaidSeahorseJellyfish = "enc_aby_mermaid_seahorse_jellyfish";
+        public const string AbyCrabAbyss = "enc_aby_crab_abyss";
+        public const string AbyCrabSeahorse = "enc_aby_crab_seahorse";
+        public const string AbyMermaidAbyss = "enc_aby_mermaid_abyss";
+        public const string AbyEliteMermaidSeahorseJellyfish = "enc_aby_elite_mermaid_seahorse_jellyfish";
+        public const string AbyEliteMermaidDuoJellyfish = "enc_aby_elite_mermaid_duo_jellyfish";
+        public const string AbyEliteSkeletonCaptain = "enc_aby_elite_skeleton_captain";
+        public const string AbyEliteSkelEliteCaptain = "enc_aby_elite_skel_elite_captain";
+        public const string AbyEliteMermaidSeahorseCaptain = "enc_aby_elite_mermaid_seahorse_captain";
+        public const string AbyEliteMermaidDuoCaptain = "enc_aby_elite_mermaid_duo_captain";
+        public const string AbyEliteCrabAbyssJellyfish = "enc_aby_elite_crab_abyss_jellyfish";
+        public const string AbyEliteAbyssDuoJellyfish = "enc_aby_elite_abyss_duo_jellyfish";
+
         static readonly List<MonsterEncounterDefinition> All = BuildAll();
 
         public static IReadOnlyList<MonsterEncounterDefinition> Entries => All;
@@ -198,7 +219,49 @@ namespace Grimhand.Expedition
                 Def(DunEliteGargoyleGolem, true, 25, 39,
                     "char_gargoyle", "char_stone_golem"),
                 Def(DunEliteGolemSpider, true, 25, 39,
-                    "char_stone_golem", "char_spider_lady")
+                    "char_stone_golem", "char_spider_lady"),
+
+                Def(AbyMermaidDuo, false, 41, 49,
+                    "char_mermaid_warrior", "char_mermaid_warrior"),
+                Def(AbyMermaidSeahorse, false, 41, 49,
+                    "char_mermaid_warrior", "char_seahorse_guard"),
+                Def(AbyMermaidChainWraith, false, 41, 49,
+                    "char_mermaid_warrior", "char_chain_wraith", "char_wraith"),
+                Def(AbySeahorseJellyfish, false, 41, 49,
+                    "char_seahorse_guard", "char_jellyfish_caster"),
+                Def(AbySkeletonJellyfish, false, 41, 49,
+                    "char_skeleton", "char_skeleton", "char_jellyfish_caster"),
+                Def(AbyMermaidWraithEliteJellyfish, false, 45, 54,
+                    "char_mermaid_warrior", "char_wraith_elite", "char_jellyfish_caster"),
+                Def(AbyMermaidTriple, false, 45, 54,
+                    "char_mermaid_warrior", "char_mermaid_warrior", "char_mermaid_warrior"),
+                Def(AbySeahorseDuoJellyfish, false, 45, 54,
+                    "char_seahorse_guard", "char_seahorse_guard", "char_jellyfish_caster"),
+                Def(AbyMermaidSeahorseJellyfish, false, 45, 54,
+                    "char_mermaid_warrior", "char_seahorse_guard", "char_jellyfish_caster"),
+                Def(AbyCrabAbyss, false, 51, 59,
+                    "char_corrupted_crab", "char_abyss_creature"),
+                Def(AbyCrabSeahorse, false, 51, 59,
+                    "char_corrupted_crab", "char_seahorse_guard"),
+                Def(AbyMermaidAbyss, false, 51, 59,
+                    "char_mermaid_warrior", "char_abyss_creature"),
+
+                Def(AbyEliteMermaidSeahorseJellyfish, true, 41, 44,
+                    "char_mermaid_warrior", "char_seahorse_guard", "char_jellyfish_caster"),
+                Def(AbyEliteMermaidDuoJellyfish, true, 41, 44,
+                    "char_mermaid_warrior", "char_mermaid_warrior", "char_jellyfish_caster"),
+                Def(AbyEliteSkeletonCaptain, true, 45, 49,
+                    "char_skeleton", "char_skeleton", "char_phantom_captain"),
+                Def(AbyEliteSkelEliteCaptain, true, 45, 54,
+                    "char_skeleton_elite", "char_skeleton", "char_phantom_captain"),
+                Def(AbyEliteMermaidSeahorseCaptain, true, 51, 59,
+                    "char_mermaid_warrior", "char_seahorse_guard", "char_phantom_captain"),
+                Def(AbyEliteMermaidDuoCaptain, true, 51, 59,
+                    "char_mermaid_warrior", "char_mermaid_warrior", "char_phantom_captain"),
+                Def(AbyEliteCrabAbyssJellyfish, true, 51, 59,
+                    "char_corrupted_crab", "char_abyss_creature", "char_jellyfish_caster"),
+                Def(AbyEliteAbyssDuoJellyfish, true, 51, 59,
+                    "char_abyss_creature", "char_abyss_creature", "char_jellyfish_caster")
             };
 
         static MonsterEncounterDefinition Def(

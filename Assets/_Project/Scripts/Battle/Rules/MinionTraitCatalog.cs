@@ -49,5 +49,47 @@ namespace Grimhand.Battle.Rules
 
         /// <summary>回合结束保留一半护甲至下回合。</summary>
         public const string StoneGolemArmorRetain = "minion_stone_golem_armor_retain";
+
+        /// <summary>比同排敌人每多 1 点速度 +10% 攻击（最多 50%）。</summary>
+        public const string SeahorseGuardSpeedAttack = "minion_seahorse_speed_attack";
+
+        /// <summary>敌人换位时 +10 最大生命（占位，后续接 PositionRules）。</summary>
+        public const string JellyfishCasterSwapMaxHp = "minion_jellyfish_swap_max_hp";
+
+        /// <summary>每使用一张 0 费牌 +5% 攻击。</summary>
+        public const string MermaidZeroCostAttack = "minion_mermaid_zero_cost_attack";
+
+        /// <summary>对敌人造成 HP 伤害时附加中毒×5。</summary>
+        public const string AbyssCreaturePoisonOnDamage = "minion_abyss_poison_on_damage";
+        public const string AbyssCreatureCharacterId = "char_abyss_creature";
+        public const int AbyssCreaturePoisonStacks = 5;
+
+        /// <summary>受到伤害时对随机敌人施加中毒×5。</summary>
+        public const string CorruptedCrabPoisonOnHit = "minion_crab_poison_on_hit";
+        public const int CorruptedCrabPoisonStacks = 5;
+
+        /// <summary>任意敌人低于 25% 生命或死亡时 +33% 攻击、-20% 防御。</summary>
+        public const string PhantomCaptainFrenzy = "minion_phantom_captain_frenzy";
+        public const int PhantomCaptainFrenzyAttackPercent = 33;
+        public const int PhantomCaptainFrenzyDefensePercent = 20;
+
+        public static bool IsAbyssRegionCharacter(string characterDefinitionId) =>
+            characterDefinitionId is "char_seahorse_guard"
+                or "char_jellyfish_caster"
+                or "char_mermaid_warrior"
+                or AbyssCreatureCharacterId
+                or "char_corrupted_crab"
+                or "char_phantom_captain";
+
+        /// <summary>地牢怪 + 幽灵/骷髅精英：立绘略大于普通洞穴怪。</summary>
+        public static bool UsesElevatedPortraitScale(string characterDefinitionId) =>
+            characterDefinitionId is "char_rat"
+                or "char_chain_wraith"
+                or "char_gargoyle"
+                or "char_spider_lady"
+                or "char_stone_golem"
+                or "char_wraith"
+                or "char_wraith_elite"
+                or "char_skeleton_elite";
     }
 }

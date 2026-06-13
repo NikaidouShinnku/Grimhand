@@ -180,7 +180,7 @@ namespace Grimhand.Battle.Rules
             }
 
             if (owner != null && action.Type == EffectActionType.DealDamage)
-                power = MinionTraitRules.ApplyBloodRageOutgoingBonus(owner, CardType.Attack, power);
+                power = MinionTraitRules.ApplyMinionOutgoingAttackBonus(state, owner, target, CardType.Attack, power);
 
             return power;
         }

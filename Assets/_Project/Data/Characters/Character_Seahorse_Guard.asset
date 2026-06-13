@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84c30176d181a5747a85983cdd126a0c, type: 3}
+  m_Name: Character_Seahorse_Guard
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
+  CharacterId: char_seahorse_guard
+  DisplayName: "\u8E0F\u6F6E\u5B88\u536B"
+  Team: 1
+  Slot: 2
+  Level: 1
+  MaxHp: 100
+  BaseAttack: 14
+  BaseDefense: 7
+  Speed: 8
+  Deck: []
+  SkillPool:
+  - {fileID: 11400000, guid: 00fc770d22b53254a92da46e27d2fd94, type: 2}
+  - {fileID: 11400000, guid: 00fc770d22b53254a92da46e27d2fd94, type: 2}
+  - {fileID: 11400000, guid: 83216e62ba2fa1e448efa4b44bd5ac82, type: 2}
+  - {fileID: 11400000, guid: 83216e62ba2fa1e448efa4b44bd5ac82, type: 2}
+  - {fileID: 11400000, guid: 605633f38c043dd42ac4fee2f8ce3ee4, type: 2}
+  - {fileID: 11400000, guid: b1b40f4b0408f4e44b40e7b6e72ccb6c, type: 2}
+  - {fileID: 11400000, guid: b1b40f4b0408f4e44b40e7b6e72ccb6c, type: 2}
+  - {fileID: 11400000, guid: 14a20808da3f2b643818390cd79b6e7e, type: 2}
+  - {fileID: 11400000, guid: 81255a629ab015545ba9434166c07cf8, type: 2}
+  Traits:
+  - minion_seahorse_speed_attack

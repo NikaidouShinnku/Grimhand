@@ -47,6 +47,12 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 08a077092df684947b9aa0e91e4f687a, type: 2}
   - {fileID: 11400000, guid: 861a544d785e67b409fcf3d4b6ca6b34, type: 2}
   - {fileID: 11400000, guid: 6bcf4b1754ed78141a8f6e8a6f802270, type: 2}
+  - {fileID: 11400000, guid: 46b81200bc65c96449ba742cd6349a97, type: 2}
+  - {fileID: 11400000, guid: e3c6e09aa1a276c499fcf0f6d7f40222, type: 2}
+  - {fileID: 11400000, guid: d6a5cff7b01df0049bf40bc75c97894b, type: 2}
+  - {fileID: 11400000, guid: 5740362bc06da484a9c96c9a0eb3a05c, type: 2}
+  - {fileID: 11400000, guid: 32800f810b7f9ca438bcffa5544c672b, type: 2}
+  - {fileID: 11400000, guid: 2ad5f5d0eb0fdba4d997e8d04fb37227, type: 2}
   PlayerCardCatalog:
   - {fileID: 11400000, guid: f205770fc9ed47ff978061524db3641b, type: 2}
   - {fileID: 11400000, guid: 295eb981fb524ba9be99392540ab03fd, type: 2}

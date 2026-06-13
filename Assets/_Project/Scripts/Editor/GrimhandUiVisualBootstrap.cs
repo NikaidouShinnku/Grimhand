@@ -89,6 +89,19 @@ namespace Grimhand.Editor
             catalog.DungeonPathVariants = dungeonPaths.ToArray();
             catalog.DungeonBackground = LoadFirstSprite(CampArtRoot + "dungeon_background.png");
 
+            var abyssPaths = new System.Collections.Generic.List<Sprite>();
+            for (var i = 1; i <= 3; i++)
+            {
+                var sprite = LoadFirstSprite(
+                    $"Assets/The Grimhands Asset/path and background/underwaterruin_path{i}.png");
+                if (sprite != null)
+                    abyssPaths.Add(sprite);
+            }
+
+            catalog.AbyssPathVariants = abyssPaths.ToArray();
+            catalog.AbyssBackground = LoadFirstSprite(
+                "Assets/The Grimhands Asset/path and background/underwaterruin_background.png");
+
             EditorUtility.SetDirty(catalog);
         }
 

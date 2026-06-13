@@ -45,6 +45,28 @@ namespace Grimhand.Tests.Battle
         }
 
         [Test]
+        public void Roll_AbyssEncounterAtLayer45()
+        {
+            var rng = new BattleRng(11);
+            var id = MonsterEncounterCatalog.Roll(45, isElite: false, rng);
+            var def = MonsterEncounterCatalog.GetById(id);
+            Assert.NotNull(def);
+            Assert.GreaterOrEqual(def.MinFloor, ExpeditionRegionRules.AbyssStartLayer);
+            Assert.LessOrEqual(def.MinFloor, 45);
+            Assert.GreaterOrEqual(def.MaxFloor, 45);
+        }
+
+        [Test]
+        public void ApplyMapStartLayer_AbyssUsesSixtyLayers()
+        {
+            var config = new Grimhand.Expedition.Model.ExpeditionConfig();
+            ExpeditionRegionRules.ApplyMapStartLayer(config, 41);
+            Assert.AreEqual(60, config.ChapterLayerCount);
+            Assert.AreEqual(59, config.TargetBattleCount);
+            Assert.AreEqual(41, config.MapStartLayer);
+        }
+
+        [Test]
         public void ApplyMapStartLayer_DungeonUsesFortyLayers()
         {
             var config = new Grimhand.Expedition.Model.ExpeditionConfig();

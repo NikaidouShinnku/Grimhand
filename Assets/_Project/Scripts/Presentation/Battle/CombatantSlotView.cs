@@ -22,6 +22,8 @@ namespace Grimhand.Presentation.Battle
 
         const float PlayerPortraitScale = 2.28f;
         const float EnemyPortraitScale = 1.28f;
+        const float ElevatedEnemyPortraitScale = 1.62f;
+        const float AbyssEnemyPortraitScale = 2.15f;
         const float BossEnemyPortraitScale = 2.35f;
         /// <summary>六人共用脚线；敌人位置已调好，玩家通过额外下移对齐同一地面线。</summary>
         const float UnifiedFeetLine = 0.12f;
@@ -282,6 +284,12 @@ namespace Grimhand.Presentation.Battle
 
             if (IsBossEnemyPortrait())
                 return BossEnemyPortraitScale;
+
+            if (_currentUnit != null && MinionTraitCatalog.IsAbyssRegionCharacter(_currentUnit.CharacterDefinitionId))
+                return AbyssEnemyPortraitScale;
+
+            if (_currentUnit != null && MinionTraitCatalog.UsesElevatedPortraitScale(_currentUnit.CharacterDefinitionId))
+                return ElevatedEnemyPortraitScale;
 
             return EnemyPortraitScale;
         }

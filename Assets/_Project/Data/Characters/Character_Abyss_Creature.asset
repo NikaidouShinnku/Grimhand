@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84c30176d181a5747a85983cdd126a0c, type: 3}
+  m_Name: Character_Abyss_Creature
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
+  CharacterId: char_abyss_creature
+  DisplayName: "\u6DF1\u6E0A\u602A\u7269"
+  Team: 1
+  Slot: 2
+  Level: 1
+  MaxHp: 115
+  BaseAttack: 12
+  BaseDefense: 8
+  Speed: 4
+  Deck: []
+  SkillPool:
+  - {fileID: 11400000, guid: 8b1d01751c2d2f249b46d46952d1f9a6, type: 2}
+  - {fileID: 11400000, guid: 8b1d01751c2d2f249b46d46952d1f9a6, type: 2}
+  - {fileID: 11400000, guid: 59ddedb3a4109a44991cb02d6ae7d2f2, type: 2}
+  - {fileID: 11400000, guid: ed89ebb67724d8b44b3844c6076e375f, type: 2}
+  - {fileID: 11400000, guid: e709ee99868b850418b79032ecfe7a03, type: 2}
+  - {fileID: 11400000, guid: e709ee99868b850418b79032ecfe7a03, type: 2}
+  - {fileID: 11400000, guid: bf4d2bd12e1936e418cd57671124416e, type: 2}
+  - {fileID: 11400000, guid: bf4d2bd12e1936e418cd57671124416e, type: 2}
+  Traits:
+  - minion_abyss_poison_on_damage

@@ -104,6 +104,9 @@ namespace Grimhand.Battle.Model
         /// <summary>石像鬼本回合防御姿态加值。</summary>
         public int GargoyleStanceDefenseBonus { get; set; }
 
+        /// <summary>人鱼战士：每打出 0 费牌累计 +5% 攻击。</summary>
+        public int MermaidZeroCostAttackBonusPercent { get; set; }
+
         /// <summary>鼠人族群攻击加成（百分比）。</summary>
         public int RatPackAttackBonusPercent { get; set; }
 

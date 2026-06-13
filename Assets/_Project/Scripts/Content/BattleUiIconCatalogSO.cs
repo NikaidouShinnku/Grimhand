@@ -34,5 +34,7 @@ namespace Grimhand.Content
         public Sprite[] CavePathVariants = System.Array.Empty<Sprite>();
         public Sprite DungeonBackground;
         public Sprite[] DungeonPathVariants = System.Array.Empty<Sprite>();
+        public Sprite AbyssBackground;
+        public Sprite[] AbyssPathVariants = System.Array.Empty<Sprite>();
     }
 }

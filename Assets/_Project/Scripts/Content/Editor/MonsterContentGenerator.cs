@@ -142,6 +142,7 @@ namespace Grimhand.Content.Editor
                 preserveOriginalFacing: true);
 
             UpdateDungeonVisualCatalog(catalog);
+            UpdateAbyssVisualCatalog(catalog);
 
             EditorUtility.SetDirty(catalog);
         }
@@ -572,6 +573,20 @@ namespace Grimhand.Content.Editor
             if (sprite == null)
                 return;
 
+            ApplyVisualSprite(catalog, characterId, sprite);
+        }
+
+        static void UpsertVisualLargest(CharacterVisualCatalogSO catalog, string characterId, string spritePath)
+        {
+            var sprite = LoadLargestSprite(spritePath);
+            if (sprite == null)
+                return;
+
+            ApplyVisualSprite(catalog, characterId, sprite);
+        }
+
+        static void ApplyVisualSprite(CharacterVisualCatalogSO catalog, string characterId, Sprite sprite)
+        {
             CharacterVisualEntry entry = null;
             foreach (var e in catalog.Entries)
             {
@@ -593,6 +608,30 @@ namespace Grimhand.Content.Editor
             entry.DefensePortrait = sprite;
             entry.HitPortrait = sprite;
             entry.DeathPortrait = sprite;
+        }
+
+        /// <summary>多 Sprite 图集时取面积最大的子图（仅海渊怪绑定使用）。</summary>
+        static Sprite LoadLargestSprite(string spritePath)
+        {
+            if (string.IsNullOrEmpty(spritePath))
+                return null;
+
+            Sprite best = null;
+            var bestArea = 0f;
+            foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(spritePath))
+            {
+                if (asset is not Sprite sprite)
+                    continue;
+
+                var area = sprite.rect.width * sprite.rect.height;
+                if (area <= bestArea)
+                    continue;
+
+                bestArea = area;
+                best = sprite;
+            }
+
+            return best ?? AssetDatabase.LoadAssetAtPath<Sprite>(spritePath);
         }
 
         static CardDefinitionSO SaveCard(

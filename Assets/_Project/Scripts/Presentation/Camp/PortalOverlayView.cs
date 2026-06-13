@@ -1,5 +1,6 @@
 using System;
 using Grimhand.Content;
+using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 using UnityEngine;
 using UnityEngine.UI;
@@ -24,6 +25,7 @@ namespace Grimhand.Presentation.Camp
         Button _confirmButton;
         Button _caveStartButton;
         Button _dungeonStartButton;
+        Button _abyssStartButton;
         int _selectedStartLayer = 1;
         bool _built;
 
@@ -128,22 +130,32 @@ namespace Grimhand.Presentation.Camp
             regionLabel.rectTransform.offsetMax = new Vector2(-32f, 0f);
 
             _caveStartButton = CampUiRuntime.CreateButton(_body, "洞穴（1层）", new Color(0.22f, 0.34f, 0.28f, 1f),
-                new Vector2(150f, 40f));
+                new Vector2(132f, 40f));
             var caveRt = _caveStartButton.GetComponent<RectTransform>();
             caveRt.anchorMin = new Vector2(0.5f, 0f);
             caveRt.anchorMax = new Vector2(0.5f, 0f);
-            caveRt.pivot = new Vector2(1f, 0f);
-            caveRt.anchoredPosition = new Vector2(-8f, 72f);
+            caveRt.pivot = new Vector2(0.5f, 0f);
+            caveRt.anchoredPosition = new Vector2(-150f, 72f);
 
             _dungeonStartButton = CampUiRuntime.CreateButton(_body, "地牢（21层）", new Color(0.28f, 0.24f, 0.38f, 1f),
-                new Vector2(150f, 40f));
+                new Vector2(132f, 40f));
             var dungeonRt = _dungeonStartButton.GetComponent<RectTransform>();
             dungeonRt.anchorMin = new Vector2(0.5f, 0f);
             dungeonRt.anchorMax = new Vector2(0.5f, 0f);
-            dungeonRt.pivot = new Vector2(0f, 0f);
-            dungeonRt.anchoredPosition = new Vector2(8f, 72f);
+            dungeonRt.pivot = new Vector2(0.5f, 0f);
+            dungeonRt.anchoredPosition = new Vector2(0f, 72f);
+
+            _abyssStartButton = CampUiRuntime.CreateButton(_body, "海渊（41层）", new Color(0.16f, 0.30f, 0.42f, 1f),
+                new Vector2(132f, 40f));
+            var abyssRt = _abyssStartButton.GetComponent<RectTransform>();
+            abyssRt.anchorMin = new Vector2(0.5f, 0f);
+            abyssRt.anchorMax = new Vector2(0.5f, 0f);
+            abyssRt.pivot = new Vector2(0.5f, 0f);
+            abyssRt.anchoredPosition = new Vector2(150f, 72f);
+
             _caveStartButton.onClick.AddListener(() => SelectStartLayer(1));
             _dungeonStartButton.onClick.AddListener(() => SelectStartLayer(21));
+            _abyssStartButton.onClick.AddListener(() => SelectStartLayer(41));
 
             _statusText = CampUiRuntime.CreateText(_body, "", 16, FontStyle.Italic, TextAnchor.MiddleLeft);
             _statusText.rectTransform.anchorMin = new Vector2(0f, 0.04f);
@@ -259,12 +271,12 @@ namespace Grimhand.Presentation.Camp
 
         void RefreshRegionButtons()
         {
-            if (_caveStartButton == null || _dungeonStartButton == null)
+            if (_caveStartButton == null || _dungeonStartButton == null || _abyssStartButton == null)
                 return;
 
-            var caveSelected = _selectedStartLayer <= 1;
-            _caveStartButton.interactable = !caveSelected;
-            _dungeonStartButton.interactable = caveSelected;
+            _caveStartButton.interactable = _selectedStartLayer != 1;
+            _dungeonStartButton.interactable = _selectedStartLayer != ExpeditionRegionRules.DungeonStartLayer;
+            _abyssStartButton.interactable = _selectedStartLayer != ExpeditionRegionRules.AbyssStartLayer;
         }
     }
 }

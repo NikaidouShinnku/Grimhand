@@ -201,6 +201,13 @@ namespace Grimhand.Battle.Rules
 
             actor.CardsResolvedThisTurn++;
             actor.CardsResolvedCount++;
+
+            if (HasTrait(actor, MinionTraitCatalog.MermaidZeroCostAttack) && card.Cost == 0)
+            {
+                actor.MermaidZeroCostAttackBonusPercent = System.Math.Min(
+                    100, actor.MermaidZeroCostAttackBonusPercent + 5);
+            }
+
             if (actor.CardsResolvedCount % MinionTraitCatalog.CardsPerStatBonus != 0)
                 return;
 
@@ -224,6 +231,154 @@ namespace Grimhand.Battle.Rules
                     CombatantId = actor.Id
                 });
             }
+        }
+
+        public static int ApplyMinionOutgoingAttackBonus(
+            BattleState state,
+            CombatantState actor,
+            CombatantState target,
+            CardType cardType,
+            int power)
+        {
+            if (actor == null || cardType != CardType.Attack || power <= 0)
+                return power;
+
+            power = ApplyBloodRageOutgoingBonus(actor, cardType, power);
+            power = ApplySeahorseSpeedAttackBonus(state, actor, target, power);
+            power = ApplyPhantomCaptainFrenzyBonus(state, actor, power);
+
+            if (HasTrait(actor, MinionTraitCatalog.MermaidZeroCostAttack)
+                && actor.MermaidZeroCostAttackBonusPercent > 0)
+            {
+                power = System.Math.Max(1,
+                    (int)System.Math.Round(power * (100 + actor.MermaidZeroCostAttackBonusPercent) / 100f));
+            }
+
+            return power;
+        }
+
+        public static void OnDamageDealt(
+            BattleState state,
+            CombatantState actor,
+            CombatantState recipient,
+            int hpDamage,
+            List<BattleEvent> events)
+        {
+            if (state == null || actor == null || recipient == null || hpDamage <= 0)
+                return;
+
+            if (recipient.Team != TeamSide.Player || !HasTrait(actor, MinionTraitCatalog.AbyssCreaturePoisonOnDamage))
+                return;
+
+            StatusRules.ApplyStatus(
+                state,
+                recipient,
+                StatusCatalog.Poison,
+                MinionTraitCatalog.AbyssCreaturePoisonStacks,
+                -1,
+                events);
+        }
+
+        public static void OnIncomingDamageHit(
+            BattleState state,
+            CombatantState actor,
+            CombatantState recipient,
+            List<BattleEvent> events)
+        {
+            if (state == null || recipient == null || !recipient.IsAlive)
+                return;
+
+            if (!HasTrait(recipient, MinionTraitCatalog.CorruptedCrabPoisonOnHit))
+                return;
+
+            var target = PickRandomAlivePlayer(state);
+            if (target == null)
+                return;
+
+            StatusRules.ApplyStatus(
+                state,
+                target,
+                StatusCatalog.Poison,
+                MinionTraitCatalog.CorruptedCrabPoisonStacks,
+                -1,
+                events);
+        }
+
+        static CombatantState PickRandomAlivePlayer(BattleState state)
+        {
+            CombatantState first = null;
+            var count = 0;
+            foreach (var unit in state.Combatants)
+            {
+                if (!unit.IsAlive || unit.Team != TeamSide.Player)
+                    continue;
+
+                count++;
+                if (count == 1)
+                    first = unit;
+            }
+
+            return first;
+        }
+
+        static int ApplySeahorseSpeedAttackBonus(
+            BattleState state,
+            CombatantState actor,
+            CombatantState target,
+            int power)
+        {
+            if (state == null || actor == null || !HasTrait(actor, MinionTraitCatalog.SeahorseGuardSpeedAttack))
+                return power;
+
+            var sameSlotEnemy = FindAliveEnemyInSlot(state, actor.Slot);
+            var bonusPercent = sameSlotEnemy == null
+                ? 50
+                : System.Math.Min(50, System.Math.Max(0, actor.Speed - sameSlotEnemy.Speed) * 10);
+
+            if (bonusPercent <= 0)
+                return power;
+
+            return System.Math.Max(1, (int)System.Math.Round(power * (100 + bonusPercent) / 100f));
+        }
+
+        static int ApplyPhantomCaptainFrenzyBonus(BattleState state, CombatantState actor, int power)
+        {
+            if (state == null || actor == null || !HasTrait(actor, MinionTraitCatalog.PhantomCaptainFrenzy))
+                return power;
+
+            if (!HasLowHpOrDeadPlayer(state))
+                return power;
+
+            return System.Math.Max(1,
+                (int)System.Math.Round(power * (100 + MinionTraitCatalog.PhantomCaptainFrenzyAttackPercent) / 100f));
+        }
+
+        static bool HasLowHpOrDeadPlayer(BattleState state)
+        {
+            foreach (var unit in state.Combatants)
+            {
+                if (unit.Team != TeamSide.Player)
+                    continue;
+
+                if (!unit.IsAlive)
+                    return true;
+
+                if (unit.MaxHp > 0 && unit.Hp * 100 / unit.MaxHp < 25)
+                    return true;
+            }
+
+            return false;
+        }
+
+        static CombatantState FindAliveEnemyInSlot(BattleState state, FormationSlot slot)
+        {
+            foreach (var unit in state.Combatants)
+            {
+                if (unit.IsAlive && unit.Team == TeamSide.Enemy && unit.Slot == slot)
+                    return unit;
+            }
+
+            return null;
         }
 
         public static int ApplyBloodRageOutgoingBonus(CombatantState actor, CardType cardType, int power)

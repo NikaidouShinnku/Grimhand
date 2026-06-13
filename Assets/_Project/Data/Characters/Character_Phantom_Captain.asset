@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84c30176d181a5747a85983cdd126a0c, type: 3}
+  m_Name: Character_Phantom_Captain
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
+  CharacterId: char_phantom_captain
+  DisplayName: "\u9B3C\u7075\u6D77\u76D7\u8239\u957F"
+  Team: 1
+  Slot: 2
+  Level: 1
+  MaxHp: 150
+  BaseAttack: 18
+  BaseDefense: 7
+  Speed: 7
+  Deck: []
+  SkillPool:
+  - {fileID: 11400000, guid: a4f7b04efa30037498d22102bf6ccc24, type: 2}
+  - {fileID: 11400000, guid: a4f7b04efa30037498d22102bf6ccc24, type: 2}
+  - {fileID: 11400000, guid: a903641268b73dd4aabf4cbeffb019e9, type: 2}
+  - {fileID: 11400000, guid: a903641268b73dd4aabf4cbeffb019e9, type: 2}
+  - {fileID: 11400000, guid: a89859a11565357489fcf43cddf7d4b3, type: 2}
+  - {fileID: 11400000, guid: bcf854eac7db13e48b76124e3593a86f, type: 2}
+  - {fileID: 11400000, guid: bcf854eac7db13e48b76124e3593a86f, type: 2}
+  - {fileID: 11400000, guid: 5cb3e1bf8c796754e946e577ee95fa1e, type: 2}
+  - {fileID: 11400000, guid: 98bfd87acb18caa44828300de955c4d8, type: 2}
+  - {fileID: 11400000, guid: 98bfd87acb18caa44828300de955c4d8, type: 2}
+  - {fileID: 11400000, guid: bb3c7d81d77ac0a48a4e0eb3edaf3694, type: 2}
+  Traits:
+  - minion_phantom_captain_frenzy

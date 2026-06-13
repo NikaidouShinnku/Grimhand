@@ -224,3 +224,69 @@ MonoBehaviour:
     IdleAnimationFrames: []
     IdleAnimationGifPath: 
     PreserveOriginalFacing: 0
+  - CharacterId: char_seahorse_guard
+    IdlePortrait: {fileID: 742442169983655313, guid: c69faadde0808c146916a66e95c3a13a, type: 3}
+    AttackPortrait: {fileID: 742442169983655313, guid: c69faadde0808c146916a66e95c3a13a, type: 3}
+    DefensePortrait: {fileID: 742442169983655313, guid: c69faadde0808c146916a66e95c3a13a, type: 3}
+    HitPortrait: {fileID: 742442169983655313, guid: c69faadde0808c146916a66e95c3a13a, type: 3}
+    HitPortraitFacesRight: 1
+    DeathPortrait: {fileID: 742442169983655313, guid: c69faadde0808c146916a66e95c3a13a, type: 3}
+    CardProfilePortrait: {fileID: 0}
+    IdleAnimationFrames: []
+    IdleAnimationGifPath: 
+    PreserveOriginalFacing: 0
+  - CharacterId: char_jellyfish_caster
+    IdlePortrait: {fileID: -4147135919978939730, guid: 13b9b03fc3a26574ea9435bd844d2031, type: 3}
+    AttackPortrait: {fileID: -4147135919978939730, guid: 13b9b03fc3a26574ea9435bd844d2031, type: 3}
+    DefensePortrait: {fileID: -4147135919978939730, guid: 13b9b03fc3a26574ea9435bd844d2031, type: 3}
+    HitPortrait: {fileID: -4147135919978939730, guid: 13b9b03fc3a26574ea9435bd844d2031, type: 3}
+    HitPortraitFacesRight: 1
+    DeathPortrait: {fileID: -4147135919978939730, guid: 13b9b03fc3a26574ea9435bd844d2031, type: 3}
+    CardProfilePortrait: {fileID: 0}
+    IdleAnimationFrames: []
+    IdleAnimationGifPath: 
+    PreserveOriginalFacing: 0
+  - CharacterId: char_mermaid_warrior
+    IdlePortrait: {fileID: 3170052643020936684, guid: 18cc23ef7cd0fdf478e9f5e571b18829, type: 3}
+    AttackPortrait: {fileID: 3170052643020936684, guid: 18cc23ef7cd0fdf478e9f5e571b18829, type: 3}
+    DefensePortrait: {fileID: 3170052643020936684, guid: 18cc23ef7cd0fdf478e9f5e571b18829, type: 3}
+    HitPortrait: {fileID: 3170052643020936684, guid: 18cc23ef7cd0fdf478e9f5e571b18829, type: 3}
+    HitPortraitFacesRight: 1
+    DeathPortrait: {fileID: 3170052643020936684, guid: 18cc23ef7cd0fdf478e9f5e571b18829, type: 3}
+    CardProfilePortrait: {fileID: 0}
+    IdleAnimationFrames: []
+    IdleAnimationGifPath: 
+    PreserveOriginalFacing: 0
+  - CharacterId: char_abyss_creature
+    IdlePortrait: {fileID: -6318528132692167962, guid: f818bcd6afe5def468e2ed10a3f9087a, type: 3}
+    AttackPortrait: {fileID: -6318528132692167962, guid: f818bcd6afe5def468e2ed10a3f9087a, type: 3}
+    DefensePortrait: {fileID: -6318528132692167962, guid: f818bcd6afe5def468e2ed10a3f9087a, type: 3}
+    HitPortrait: {fileID: -6318528132692167962, guid: f818bcd6afe5def468e2ed10a3f9087a, type: 3}
+    HitPortraitFacesRight: 1
+    DeathPortrait: {fileID: -6318528132692167962, guid: f818bcd6afe5def468e2ed10a3f9087a, type: 3}
+    CardProfilePortrait: {fileID: 0}
+    IdleAnimationFrames: []
+    IdleAnimationGifPath: 
+    PreserveOriginalFacing: 0
+  - CharacterId: char_corrupted_crab
+    IdlePortrait: {fileID: 2730391580199483752, guid: 34af813a741f4ca43b081800f63fa093, type: 3}
+    AttackPortrait: {fileID: 2730391580199483752, guid: 34af813a741f4ca43b081800f63fa093, type: 3}
+    DefensePortrait: {fileID: 2730391580199483752, guid: 34af813a741f4ca43b081800f63fa093, type: 3}
+    HitPortrait: {fileID: 2730391580199483752, guid: 34af813a741f4ca43b081800f63fa093, type: 3}
+    HitPortraitFacesRight: 1
+    DeathPortrait: {fileID: 2730391580199483752, guid: 34af813a741f4ca43b081800f63fa093, type: 3}
+    CardProfilePortrait: {fileID: 0}
+    IdleAnimationFrames: []
+    IdleAnimationGifPath: 
+    PreserveOriginalFacing: 0
+  - CharacterId: char_phantom_captain
+    IdlePortrait: {fileID: 2899069306685035449, guid: 853760aac19bd9f48b2be8bf0c7e189d, type: 3}
+    AttackPortrait: {fileID: 2899069306685035449, guid: 853760aac19bd9f48b2be8bf0c7e189d, type: 3}
+    DefensePortrait: {fileID: 2899069306685035449, guid: 853760aac19bd9f48b2be8bf0c7e189d, type: 3}
+    HitPortrait: {fileID: 2899069306685035449, guid: 853760aac19bd9f48b2be8bf0c7e189d, type: 3}
+    HitPortraitFacesRight: 1
+    DeathPortrait: {fileID: 2899069306685035449, guid: 853760aac19bd9f48b2be8bf0c7e189d, type: 3}
+    CardProfilePortrait: {fileID: 0}
+    IdleAnimationFrames: []
+    IdleAnimationGifPath: 
+    PreserveOriginalFacing: 0

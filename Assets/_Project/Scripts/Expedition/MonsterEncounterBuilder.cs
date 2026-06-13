@@ -49,6 +49,13 @@ namespace Grimhand.Expedition
                     ExpeditionBattleConfigBuilder.CloneCombatantConfigPublic(skeleton);
             }
 
+            if (monsterTemplates != null
+                && monsterTemplates.TryGetValue(MinionTraitCatalog.AbyssCreatureCharacterId, out var abyss))
+            {
+                config.SummonTemplates[MinionTraitCatalog.AbyssCreatureCharacterId] =
+                    ExpeditionBattleConfigBuilder.CloneCombatantConfigPublic(abyss);
+            }
+
             FormationSlotRules.AssignUniqueSlotsPerTeam(config.Combatants);
 
             var enemyCount = 0;

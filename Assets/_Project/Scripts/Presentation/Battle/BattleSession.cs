@@ -74,8 +74,10 @@ namespace Grimhand.Presentation.Battle
         public ExpeditionSetupSO ExpeditionSetup { get; private set; }
 
         CampRosterState _campRoster;
+        CampMetaState _campMeta;
 
         public void SetCampRoster(CampRosterState roster) => _campRoster = roster;
+        public void SetCampMeta(CampMetaState meta) => _campMeta = meta ?? CampMetaState.CreateDefaultDemo();
 
         public void Start()
         {
@@ -100,7 +102,7 @@ namespace Grimhand.Presentation.Battle
             }
 
             Expedition = new ExpeditionEngine(config);
-            Expedition.StartRun(_campRoster);
+            Expedition.StartRun(_campRoster, _campMeta ?? CampMetaState.CreateDefaultDemo());
             _log.Clear();
             _turnLog.Reset();
             _battleEndHandled = false;

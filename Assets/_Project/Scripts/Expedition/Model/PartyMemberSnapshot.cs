@@ -19,5 +19,7 @@ namespace Grimhand.Expedition.Model
         public List<CardTemplate> BonusCards { get; } = new();
         /// <summary>营地配置的 10 张牌；非空时取代默认牌组。</summary>
         public List<string> CampDeckCardIds { get; } = new();
+        public string SelectedTalentSlot1Id { get; set; } = "";
+        public string SelectedTalentSlot2Id { get; set; } = "";
     }
 }

@@ -21,7 +21,7 @@ namespace Grimhand.Editor
             EditorUtility.DisplayDialog(
                 "营地 UI 已搭建",
                 "已在当前场景创建 CampScreen。\n\n" +
-                "Play 后先进入营地，点击「军营」配队，「传送门」开始 Demo 远征。\n\n" +
+                "Play 后先进入营地，点击「军营」配队，「天赋祭坛」配置天赋，「传送门」开始 Demo 远征。\n\n" +
                 "推荐：Grimhand → Open Battle Test Scene 一键准备。",
                 "好的");
         }
@@ -67,13 +67,14 @@ namespace Grimhand.Editor
             EnsureOverlayHost(canvas.transform, out var overlayHost);
             EnsureOverlayHostOnTop(canvas.transform, overlayHost);
             var champion = EnsureComponent<ChampionCampOverlayView>(overlayHost, "ChampionCampOverlay");
+            var talent = EnsureComponent<TalentCampOverlayView>(overlayHost, "TalentCampOverlay");
             var portal = EnsureComponent<PortalOverlayView>(overlayHost, "PortalOverlay");
             var soPortal = new SerializedObject(portal);
             soPortal.FindProperty("portalBackground").objectReferenceValue =
                 GrimhandBattleSceneBootstrap.LoadFirstSprite(PortalBackgroundPath);
             soPortal.ApplyModifiedPropertiesWithoutUndo();
 
-            WireGameFlowController(campView, champion, portal);
+            WireGameFlowController(campView, champion, talent, portal);
 
             campGo.transform.SetSiblingIndex(canvas.transform.childCount - 2);
 
@@ -92,6 +93,7 @@ namespace Grimhand.Editor
         static void WireGameFlowController(
             CampScreenView campView,
             ChampionCampOverlayView championCamp,
+            TalentCampOverlayView talentCamp,
             PortalOverlayView portalOverlay)
         {
             var demoGo = GameObject.Find("BattleDemo");
@@ -121,6 +123,7 @@ namespace Grimhand.Editor
             soFlow.FindProperty("battleController").objectReferenceValue = controller;
             soFlow.FindProperty("campScreen").objectReferenceValue = campView;
             soFlow.FindProperty("championCamp").objectReferenceValue = championCamp;
+            soFlow.FindProperty("talentCamp").objectReferenceValue = talentCamp;
             soFlow.FindProperty("portalOverlay").objectReferenceValue = portalOverlay;
             soFlow.FindProperty("battleSetup").objectReferenceValue = battleSetup;
             soFlow.FindProperty("expeditionSetup").objectReferenceValue = expeditionSetup;

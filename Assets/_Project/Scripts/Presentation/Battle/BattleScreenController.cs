@@ -142,6 +142,7 @@ namespace Grimhand.Presentation.Battle
         }
 
         public void SetCampRoster(CampRosterState roster) => _session.SetCampRoster(roster);
+        public void SetCampMeta(CampMetaState meta) => _session.SetCampMeta(meta);
 
         public void SetBattleScreenVisible(bool visible)
         {

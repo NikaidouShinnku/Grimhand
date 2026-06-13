@@ -27,7 +27,7 @@ namespace Grimhand.Expedition
         public ExpeditionRunState Run => _run;
         public ExpeditionConfig Config => _config;
 
-        public void StartRun(CampRosterState campRoster = null)
+        public void StartRun(CampRosterState campRoster = null, CampMetaState campMeta = null)
         {
             _run.Phase = ExpeditionPhase.RouteSelect;
             _run.BattlesWon = 0;
@@ -64,7 +64,7 @@ namespace Grimhand.Expedition
 
             _run.Map = ExpeditionMapGenerator.Generate(_config, _run, _rng);
             if (campRoster != null && campRoster.Members.Count > 0)
-                CampRunPartyApplier.Apply(campRoster, _run);
+                CampRunPartyApplier.Apply(campRoster, _run, campMeta);
             else
                 InitPartyFromTemplate();
             LoadRoutesForNextLayer();

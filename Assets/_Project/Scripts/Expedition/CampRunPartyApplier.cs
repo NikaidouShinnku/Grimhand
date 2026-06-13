@@ -5,7 +5,7 @@ namespace Grimhand.Expedition
 {
     public static class CampRunPartyApplier
     {
-        public static void Apply(CampRosterState roster, ExpeditionRunState run)
+        public static void Apply(CampRosterState roster, ExpeditionRunState run, CampMetaState meta = null)
         {
             if (roster == null || run == null)
                 return;
@@ -25,6 +25,13 @@ namespace Grimhand.Expedition
                     Hp = stats.MaxHp,
                     MaxHp = stats.MaxHp
                 };
+
+                if (meta != null)
+                {
+                    var progress = meta.GetOrCreate(loadout.CharacterDefinitionId);
+                    member.SelectedTalentSlot1Id = progress.SelectedSlot1TalentId ?? "";
+                    member.SelectedTalentSlot2Id = progress.SelectedSlot2TalentId ?? "";
+                }
 
                 member.CampDeckCardIds.Clear();
                 foreach (var cardId in loadout.DeckCardIds)

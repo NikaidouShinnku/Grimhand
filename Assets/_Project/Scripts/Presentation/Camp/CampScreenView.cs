@@ -12,6 +12,7 @@ namespace Grimhand.Presentation.Camp
         const float ChampionHeight = 400f;
         const float PortalHeight = 360f;
         const float MerchantHeight = 400f;
+        const float TalentAltarHeight = 340f;
 
         [SerializeField] BattleUiIconCatalogSO uiIcons;
 
@@ -20,6 +21,7 @@ namespace Grimhand.Presentation.Camp
         Text _toastText;
         Action _onChampionCamp;
         Action _onPortal;
+        Action _onTalentAltar;
         Action<string> _onComingSoon;
 
         public void ConfigureArt(BattleUiIconCatalogSO icons) => uiIcons = icons;
@@ -27,6 +29,7 @@ namespace Grimhand.Presentation.Camp
         public void Initialize(
             Action onChampionCamp,
             Action onPortal,
+            Action onTalentAltar,
             Action<string> onComingSoon,
             BattleUiIconCatalogSO icons = null)
         {
@@ -35,6 +38,7 @@ namespace Grimhand.Presentation.Camp
 
             _onChampionCamp = onChampionCamp;
             _onPortal = onPortal;
+            _onTalentAltar = onTalentAltar;
             _onComingSoon = onComingSoon;
             EnsureBuilt();
             HideToast();
@@ -149,6 +153,9 @@ namespace Grimhand.Presentation.Camp
             CreateBuilding(zone.transform, "ChampionCamp", uiIcons?.ChampionCampBuilding,
                 new Vector2(0.21f, 0.06f), ChampionHeight, _onChampionCamp);
 
+            CreateBuilding(zone.transform, "TalentAltar", uiIcons?.TalentAltarBuilding,
+                new Vector2(0.38f, 0.06f), TalentAltarHeight, _onTalentAltar);
+
             CreateBuilding(zone.transform, "MerchantCamp", uiIcons?.MerchantCampBuilding,
                 new Vector2(0.79f, 0.06f), MerchantHeight,
                 () => _onComingSoon?.Invoke("商店"));
@@ -187,7 +194,10 @@ namespace Grimhand.Presentation.Camp
             img.type = Image.Type.Simple;
 
             if (sprite != null)
+            {
                 img.sprite = sprite;
+                img.ApplyShapeHitTestIfSupported();
+            }
 
             var hover = go.AddComponent<CampBuildingHoverView>();
             hover.Bind(rt);

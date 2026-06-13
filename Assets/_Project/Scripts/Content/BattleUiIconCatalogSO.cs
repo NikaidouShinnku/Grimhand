@@ -25,6 +25,10 @@ namespace Grimhand.Content
         public Sprite ChampionCampBuilding;
         public Sprite MerchantCampBuilding;
         public Sprite PortalBuilding;
+        /// <summary>Assets/The Grimhands Asset/path and background/talent_alter.png</summary>
+        public Sprite TalentAltarBuilding;
+        /// <summary>Assets/The Grimhands Asset/icon/talent_rune_plate.png</summary>
+        public Sprite TalentRunePlate;
         public Sprite TreasureChestClosed;
         public Sprite TreasureChestOpen;
         public Sprite[] CavePathVariants = System.Array.Empty<Sprite>();

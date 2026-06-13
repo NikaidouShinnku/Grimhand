@@ -164,7 +164,7 @@ namespace Grimhand.Presentation.Camp
             battleController.SetCampRoster(_roster);
             battleController.SetCampMeta(_meta);
             ShowBattle();
-            battleController.BeginExpeditionFromCamp(_roster);
+            battleController.BeginExpeditionFromCamp(_roster, portalOverlay?.SelectedStartLayer ?? 1);
         }
 
         void ShowComingSoon(string feature)

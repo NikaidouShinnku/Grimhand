@@ -16,7 +16,12 @@ namespace Grimhand.Content
             "Assets/_Project/Data/Characters/Character_Wraith.asset",
             "Assets/_Project/Data/Characters/Character_Wraith_Elite.asset",
             "Assets/_Project/Data/Characters/Character_Ogre.asset",
-            "Assets/_Project/Data/Characters/Character_Bat.asset"
+            "Assets/_Project/Data/Characters/Character_Bat.asset",
+            "Assets/_Project/Data/Characters/Character_Rat.asset",
+            "Assets/_Project/Data/Characters/Character_Chain_Wraith.asset",
+            "Assets/_Project/Data/Characters/Character_Gargoyle.asset",
+            "Assets/_Project/Data/Characters/Character_Spider_Lady.asset",
+            "Assets/_Project/Data/Characters/Character_Stone_Golem.asset"
         };
 
         public static void EnsureMonsterTemplates(ExpeditionConfig config, ExpeditionSetupSO setup = null)

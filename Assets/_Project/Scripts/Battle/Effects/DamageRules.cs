@@ -100,6 +100,8 @@ namespace Grimhand.Battle.Effects
             if (hpDamage > 0)
                 recipient.HitThisTurn = true;
 
+            hpDamage = MinionTraitRules.ApplySpiderPoisonVulnerability(state, recipient, hpDamage);
+
             var hpBefore = recipient.Hp;
             var wasAlive = recipient.IsAlive;
             if (hpDamage > 0)

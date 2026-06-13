@@ -32,5 +32,26 @@ namespace Grimhand.Tests.Battle
 
             Assert.IsTrue(foundOgre);
         }
+        [Test]
+        public void Roll_DungeonEncounterAtLayer25()
+        {
+            var rng = new BattleRng(7);
+            var id = MonsterEncounterCatalog.Roll(25, isElite: false, rng);
+            var def = MonsterEncounterCatalog.GetById(id);
+            Assert.NotNull(def);
+            Assert.GreaterOrEqual(def.MinFloor, ExpeditionRegionRules.DungeonStartLayer);
+            Assert.LessOrEqual(def.MinFloor, 25);
+            Assert.GreaterOrEqual(def.MaxFloor, 25);
+        }
+
+        [Test]
+        public void ApplyMapStartLayer_DungeonUsesFortyLayers()
+        {
+            var config = new Grimhand.Expedition.Model.ExpeditionConfig();
+            ExpeditionRegionRules.ApplyMapStartLayer(config, 21);
+            Assert.AreEqual(40, config.ChapterLayerCount);
+            Assert.AreEqual(39, config.TargetBattleCount);
+            Assert.AreEqual(21, config.MapStartLayer);
+        }
     }
 }

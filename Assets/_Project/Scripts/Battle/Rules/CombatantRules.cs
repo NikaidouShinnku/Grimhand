@@ -43,6 +43,15 @@ namespace Grimhand.Battle.Rules
             if (defensePercent != 0)
                 combatant.Defense = System.Math.Max(0,
                     (int)System.Math.Round(combatant.Defense * (100 + defensePercent) / 100f));
+
+            combatant.Attack += combatant.GargoyleStanceAttackBonus;
+            combatant.Defense += combatant.GargoyleStanceDefenseBonus;
+
+            if (combatant.RatPackAttackBonusPercent > 0)
+            {
+                combatant.Attack = System.Math.Max(1,
+                    (int)System.Math.Round(combatant.Attack * (100 + combatant.RatPackAttackBonusPercent) / 100f));
+            }
         }
     }
 }

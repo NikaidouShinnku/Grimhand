@@ -77,6 +77,21 @@ namespace Grimhand.Battle.Model
         /// <summary>低血速度加成已应用的数值。</summary>
         public int LowHpSpeedBonusApplied { get; set; }
 
+        /// <summary>本回合已结算卡牌数（石像鬼等）。</summary>
+        public int CardsResolvedThisTurn { get; set; }
+
+        /// <summary>下回合继承的护甲（石傀儡）。</summary>
+        public int CarryOverBlock { get; set; }
+
+        /// <summary>石像鬼本回合攻击姿态加值。</summary>
+        public int GargoyleStanceAttackBonus { get; set; }
+
+        /// <summary>石像鬼本回合防御姿态加值。</summary>
+        public int GargoyleStanceDefenseBonus { get; set; }
+
+        /// <summary>鼠人族群攻击加成（百分比）。</summary>
+        public int RatPackAttackBonusPercent { get; set; }
+
         public bool IsAlive => Hp > 0;
 
         public bool IsCardsLocked => CardsLockedTurnsRemaining > 0;

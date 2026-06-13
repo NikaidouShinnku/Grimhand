@@ -13,6 +13,10 @@ namespace Grimhand.Expedition
         public int Weight { get; set; } = 100;
         /// <summary>第 10 层前使用的权重；&lt;=0 表示与普通权重相同。</summary>
         public int PreTenWeight { get; set; }
+        /// <summary>第 25 层前使用的权重（地牢）。</summary>
+        public int PreTwentyFiveWeight { get; set; }
+        /// <summary>第 30 层前使用的权重（地牢）。</summary>
+        public int PreThirtyWeight { get; set; }
     }
 
     public static class MonsterEncounterCatalog
@@ -31,6 +35,25 @@ namespace Grimhand.Expedition
         public const string EliteSkeletonMix = "enc_elite_skeleton_mix";
         public const string EliteOgreSolo = "enc_elite_ogre_solo";
         public const string EliteSkeletonBat = "enc_elite_skeleton_bat";
+
+        public const string DunSkeletonChainWraith = "enc_dun_skeleton_chain_wraith";
+        public const string DunSkeletonBatWraith = "enc_dun_skeleton_bat_wraith";
+        public const string DunRatWraithWraith = "enc_dun_rat_wraith_wraith";
+        public const string DunRatBat = "enc_dun_rat_bat";
+        public const string DunRatChain = "enc_dun_rat_chain";
+        public const string DunSlimeEliteMix = "enc_dun_slime_elite_mix";
+        public const string DunEliteSkelChainSkeleton = "enc_dun_elite_skel_chain_skeleton";
+        public const string DunEliteWraithBatWraith = "enc_dun_elite_wraith_bat_wraith";
+        public const string DunEliteSkeletonTriple = "enc_dun_elite_skeleton_triple";
+        public const string DunEliteWraithTriple = "enc_dun_elite_wraith_triple";
+        public const string DunBatDouble = "enc_dun_bat_double";
+        public const string DunEliteRatRatEliteSkel = "enc_dun_elite_rat_rat_elite_skel";
+        public const string DunEliteRatRatEliteWraith = "enc_dun_elite_rat_rat_elite_wraith";
+        public const string DunEliteGargoyleDuo = "enc_dun_elite_gargoyle_duo";
+        public const string DunEliteGargoyleSkeletonSpider = "enc_dun_elite_gargoyle_skeleton_spider";
+        public const string DunEliteRatTriple = "enc_dun_elite_rat_triple";
+        public const string DunEliteGargoyleGolem = "enc_dun_elite_gargoyle_golem";
+        public const string DunEliteGolemSpider = "enc_dun_elite_golem_spider";
 
         static readonly List<MonsterEncounterDefinition> All = BuildAll();
 
@@ -70,12 +93,12 @@ namespace Grimhand.Expedition
             var weights = new int[pool.Count];
             for (var i = 0; i < pool.Count; i++)
             {
-                var weight = pool[i].Weight;
-                if (floor < 10 && pool[i].PreTenWeight > 0)
-                    weight = pool[i].PreTenWeight;
-                weights[i] = weight;
-                total += weight;
+                weights[i] = ResolveWeight(pool[i], floor);
+                total += weights[i];
             }
+
+            if (total <= 0)
+                return pool[0].Id;
 
             var roll = rng.NextInt(0, total);
             for (var i = 0; i < pool.Count; i++)
@@ -86,6 +109,18 @@ namespace Grimhand.Expedition
             }
 
             return pool[pool.Count - 1].Id;
+        }
+
+        static int ResolveWeight(MonsterEncounterDefinition entry, int floor)
+        {
+            var weight = entry.Weight;
+            if (floor < 30 && entry.PreThirtyWeight > 0)
+                weight = entry.PreThirtyWeight;
+            else if (floor < 25 && entry.PreTwentyFiveWeight > 0)
+                weight = entry.PreTwentyFiveWeight;
+            else if (floor < 10 && entry.PreTenWeight > 0)
+                weight = entry.PreTenWeight;
+            return weight;
         }
 
         public static string GetDisplayName(MonsterEncounterDefinition encounter)
@@ -111,9 +146,9 @@ namespace Grimhand.Expedition
                     "char_skeleton", "char_wraith", "char_wraith"),
                 Def(SkeletonSkeletonWraith, false, 5, 9,
                     "char_skeleton", "char_skeleton", "char_wraith"),
-                Def(SkeletonSkeletonElite, false, 5, 19, 100, 35,
+                Def(SkeletonSkeletonElite, false, 5, 19, 100, 35, 0, 0,
                     "char_skeleton", "char_skeleton", "char_skeleton_elite"),
-                Def(SkeletonWraithEliteWraith, false, 5, 19, 100, 35,
+                Def(SkeletonWraithEliteWraith, false, 5, 19, 100, 35, 0, 0,
                     "char_skeleton", "char_wraith", "char_wraith_elite"),
                 Def(EliteSkeletonSandwich, true, 1, 5,
                     "char_skeleton", "char_skeleton_elite", "char_skeleton"),
@@ -126,7 +161,44 @@ namespace Grimhand.Expedition
                 Def(EliteOgreSolo, true, 10, 19,
                     "char_ogre"),
                 Def(EliteSkeletonBat, true, 10, 19,
-                    "char_skeleton", "char_bat")
+                    "char_skeleton", "char_bat"),
+
+                Def(DunSkeletonChainWraith, false, 21, 29,
+                    "char_skeleton", "char_chain_wraith", "char_wraith"),
+                Def(DunSkeletonBatWraith, false, 21, 29,
+                    "char_skeleton", "char_bat", "char_wraith"),
+                Def(DunRatWraithWraith, false, 21, 29,
+                    "char_rat", "char_wraith", "char_wraith"),
+                Def(DunRatBat, false, 21, 29,
+                    "char_rat", "char_bat"),
+                Def(DunRatChain, false, 21, 29,
+                    "char_rat", "char_chain_wraith"),
+                Def(DunSlimeEliteMix, false, 21, 29,
+                    "char_slime", "char_skeleton_elite", "char_wraith_elite"),
+                Def(DunEliteSkelChainSkeleton, false, 25, 34,
+                    "char_skeleton_elite", "char_chain_wraith", "char_skeleton"),
+                Def(DunEliteWraithBatWraith, false, 25, 34,
+                    "char_wraith_elite", "char_bat", "char_wraith"),
+                Def(DunEliteSkeletonTriple, false, 25, 39,
+                    "char_skeleton_elite", "char_skeleton_elite", "char_skeleton_elite"),
+                Def(DunEliteWraithTriple, false, 25, 39,
+                    "char_wraith_elite", "char_wraith_elite", "char_wraith_elite"),
+                Def(DunBatDouble, false, 25, 39,
+                    "char_bat", "char_bat"),
+                Def(DunEliteRatRatEliteSkel, true, 21, 24,
+                    "char_rat", "char_rat", "char_skeleton_elite"),
+                Def(DunEliteRatRatEliteWraith, true, 21, 24,
+                    "char_rat", "char_rat", "char_wraith_elite"),
+                Def(DunEliteGargoyleDuo, true, 21, 34, 100, 0, 35, 0,
+                    "char_gargoyle", "char_gargoyle"),
+                Def(DunEliteGargoyleSkeletonSpider, true, 21, 34, 100, 0, 35, 0,
+                    "char_gargoyle", "char_skeleton", "char_spider_lady"),
+                Def(DunEliteRatTriple, true, 25, 39, 100, 0, 0, 35,
+                    "char_rat", "char_rat", "char_rat"),
+                Def(DunEliteGargoyleGolem, true, 25, 39,
+                    "char_gargoyle", "char_stone_golem"),
+                Def(DunEliteGolemSpider, true, 25, 39,
+                    "char_stone_golem", "char_spider_lady")
             };
 
         static MonsterEncounterDefinition Def(
@@ -135,7 +207,7 @@ namespace Grimhand.Expedition
             int minFloor,
             int maxFloor,
             params string[] enemies) =>
-            Def(id, elite, minFloor, maxFloor, 100, 0, enemies);
+            Def(id, elite, minFloor, maxFloor, 100, 0, 0, 0, enemies);
 
         static MonsterEncounterDefinition Def(
             string id,
@@ -144,6 +216,8 @@ namespace Grimhand.Expedition
             int maxFloor,
             int weight,
             int preTenWeight,
+            int preTwentyFiveWeight,
+            int preThirtyWeight,
             params string[] enemies) =>
             new()
             {
@@ -153,6 +227,8 @@ namespace Grimhand.Expedition
                 MaxFloor = maxFloor,
                 Weight = weight,
                 PreTenWeight = preTenWeight,
+                PreTwentyFiveWeight = preTwentyFiveWeight,
+                PreThirtyWeight = preThirtyWeight,
                 EnemyCharacterIds = enemies
             };
     }

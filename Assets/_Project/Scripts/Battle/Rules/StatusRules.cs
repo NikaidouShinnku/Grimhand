@@ -34,7 +34,17 @@ namespace Grimhand.Battle.Rules
             string statusId,
             int stacks,
             int durationOverride,
-            List<BattleEvent> events)
+            List<BattleEvent> events) =>
+            ApplyStatusInternal(state, target, statusId, stacks, durationOverride, events, mirrorChainWraith: true);
+
+        public static void ApplyStatusInternal(
+            BattleState state,
+            CombatantState target,
+            string statusId,
+            int stacks,
+            int durationOverride,
+            List<BattleEvent> events,
+            bool mirrorChainWraith)
         {
             var def = StatusCatalog.Get(statusId);
             if (def == null || target == null || !target.IsAlive)
@@ -78,6 +88,15 @@ namespace Grimhand.Battle.Rules
 
             CombatantRules.RefreshDerivedStats(target);
             RelicBattleRules.RefreshDerivedStats(state, target, state?.Config?.RunModifiers);
+
+            if (mirrorChainWraith)
+                MinionTraitRules.ShareChainWraithDebuff(state, target, statusId, stacks, durationOverride, events);
+        }
+
+        public static int GetStatusStacks(CombatantState target, string statusId)
+        {
+            var existing = FindStatus(target, statusId);
+            return existing?.Stacks ?? 0;
         }
 
         public static bool HasStatus(CombatantState target, string statusId) =>
@@ -116,32 +135,63 @@ namespace Grimhand.Battle.Rules
                         continue;
 
                     var damage = def.TurnStartDamagePerStack * status.Stacks;
-                    if (damage <= 0)
-                        continue;
-
-                    combatant.Hp = System.Math.Max(0, combatant.Hp - damage);
-                    events.Add(new BattleEvent(BattleEventKind.StatusTickDamage, def.DisplayName)
-                    {
-                        CombatantId = combatant.Id,
-                        Amount = damage,
-                        TargetId = status.StatusId
-                    });
-
-                    if (!combatant.IsAlive
-                        && CombatMechanicsRules.TryPreventDeathWithReviveBlessing(state, combatant, events))
-                    {
-                        continue;
-                    }
-
-                    if (!combatant.IsAlive)
-                    {
-                        events.Add(new BattleEvent(BattleEventKind.CharacterDied, combatant.DisplayName)
-                        {
-                            CombatantId = combatant.Id
-                        });
-                        CombatantDeathRules.OnCharacterDied(state, combatant, events);
-                    }
+                    ApplyStatusTickDamage(state, combatant, def, status.StatusId, damage, events);
                 }
+            }
+        }
+
+        public static void ProcessTurnEndStatuses(BattleState state, List<BattleEvent> events)
+        {
+            foreach (var combatant in state.Combatants)
+            {
+                if (!combatant.IsAlive)
+                    continue;
+
+                foreach (var status in combatant.Statuses)
+                {
+                    var def = StatusCatalog.Get(status.StatusId);
+                    if (def == null || def.TurnEndDamagePerStack <= 0)
+                        continue;
+
+                    var damage = def.TurnEndDamagePerStack * status.Stacks;
+                    ApplyStatusTickDamage(state, combatant, def, status.StatusId, damage, events);
+                }
+            }
+        }
+
+        static void ApplyStatusTickDamage(
+            BattleState state,
+            CombatantState combatant,
+            StatusDefinition def,
+            string statusId,
+            int damage,
+            List<BattleEvent> events)
+        {
+            if (combatant == null || damage <= 0)
+                return;
+
+            // 中毒/灼烧跳伤：直扣 HP，不经过护甲与 DEF（设计表：中毒忽视护甲、灼烧忽视 DEF）。
+            combatant.Hp = System.Math.Max(0, combatant.Hp - damage);
+            events.Add(new BattleEvent(BattleEventKind.StatusTickDamage, def.DisplayName)
+            {
+                CombatantId = combatant.Id,
+                Amount = damage,
+                TargetId = statusId
+            });
+
+            if (!combatant.IsAlive
+                && CombatMechanicsRules.TryPreventDeathWithReviveBlessing(state, combatant, events))
+            {
+                return;
+            }
+
+            if (!combatant.IsAlive)
+            {
+                events.Add(new BattleEvent(BattleEventKind.CharacterDied, combatant.DisplayName)
+                {
+                    CombatantId = combatant.Id
+                });
+                CombatantDeathRules.OnCharacterDied(state, combatant, events);
             }
         }
 
@@ -198,6 +248,7 @@ namespace Grimhand.Battle.Rules
                     continue;
 
                 if (def.TurnStartDamagePerStack > 0
+                    || def.TurnEndDamagePerStack > 0
                     || def.SpeedModifierPerStack < 0
                     || def.AttackModifierPerStack < 0
                     || def.DefenseModifierPerStack < 0

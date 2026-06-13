@@ -78,6 +78,17 @@ namespace Grimhand.Editor
 
             catalog.CavePathVariants = paths.ToArray();
 
+            var dungeonPaths = new System.Collections.Generic.List<Sprite>();
+            for (var i = 1; i <= 3; i++)
+            {
+                var sprite = LoadFirstSprite($"Assets/The Grimhands Asset/path and background/dungeon_path{i}.png");
+                if (sprite != null)
+                    dungeonPaths.Add(sprite);
+            }
+
+            catalog.DungeonPathVariants = dungeonPaths.ToArray();
+            catalog.DungeonBackground = LoadFirstSprite(CampArtRoot + "dungeon_background.png");
+
             EditorUtility.SetDirty(catalog);
         }
 

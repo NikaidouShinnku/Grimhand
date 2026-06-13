@@ -169,3 +169,58 @@ MonoBehaviour:
     IdleAnimationFrames: []
     IdleAnimationGifPath: 
     PreserveOriginalFacing: 0
+  - CharacterId: char_rat
+    IdlePortrait: {fileID: 4295112752498059574, guid: 8ec209c5ca36f8a41a401f06ee7f5661, type: 3}
+    AttackPortrait: {fileID: 4295112752498059574, guid: 8ec209c5ca36f8a41a401f06ee7f5661, type: 3}
+    DefensePortrait: {fileID: 4295112752498059574, guid: 8ec209c5ca36f8a41a401f06ee7f5661, type: 3}
+    HitPortrait: {fileID: 4295112752498059574, guid: 8ec209c5ca36f8a41a401f06ee7f5661, type: 3}
+    HitPortraitFacesRight: 1
+    DeathPortrait: {fileID: 4295112752498059574, guid: 8ec209c5ca36f8a41a401f06ee7f5661, type: 3}
+    CardProfilePortrait: {fileID: 0}
+    IdleAnimationFrames: []
+    IdleAnimationGifPath: 
+    PreserveOriginalFacing: 0
+  - CharacterId: char_chain_wraith
+    IdlePortrait: {fileID: -1783803610595819964, guid: 4f0120cd048b8aa4d9e6b11aaea319af, type: 3}
+    AttackPortrait: {fileID: -1783803610595819964, guid: 4f0120cd048b8aa4d9e6b11aaea319af, type: 3}
+    DefensePortrait: {fileID: -1783803610595819964, guid: 4f0120cd048b8aa4d9e6b11aaea319af, type: 3}
+    HitPortrait: {fileID: -1783803610595819964, guid: 4f0120cd048b8aa4d9e6b11aaea319af, type: 3}
+    HitPortraitFacesRight: 1
+    DeathPortrait: {fileID: -1783803610595819964, guid: 4f0120cd048b8aa4d9e6b11aaea319af, type: 3}
+    CardProfilePortrait: {fileID: 0}
+    IdleAnimationFrames: []
+    IdleAnimationGifPath: 
+    PreserveOriginalFacing: 0
+  - CharacterId: char_gargoyle
+    IdlePortrait: {fileID: -7765291846256676818, guid: 8667fea41db7f2543b1de0332f88f881, type: 3}
+    AttackPortrait: {fileID: -7765291846256676818, guid: 8667fea41db7f2543b1de0332f88f881, type: 3}
+    DefensePortrait: {fileID: -7765291846256676818, guid: 8667fea41db7f2543b1de0332f88f881, type: 3}
+    HitPortrait: {fileID: -7765291846256676818, guid: 8667fea41db7f2543b1de0332f88f881, type: 3}
+    HitPortraitFacesRight: 1
+    DeathPortrait: {fileID: -7765291846256676818, guid: 8667fea41db7f2543b1de0332f88f881, type: 3}
+    CardProfilePortrait: {fileID: 0}
+    IdleAnimationFrames: []
+    IdleAnimationGifPath: 
+    PreserveOriginalFacing: 0
+  - CharacterId: char_spider_lady
+    IdlePortrait: {fileID: 5200289027945451014, guid: 23bbdad79c3e9ca42b574a071ec203e1, type: 3}
+    AttackPortrait: {fileID: 5200289027945451014, guid: 23bbdad79c3e9ca42b574a071ec203e1, type: 3}
+    DefensePortrait: {fileID: 5200289027945451014, guid: 23bbdad79c3e9ca42b574a071ec203e1, type: 3}
+    HitPortrait: {fileID: 5200289027945451014, guid: 23bbdad79c3e9ca42b574a071ec203e1, type: 3}
+    HitPortraitFacesRight: 1
+    DeathPortrait: {fileID: 5200289027945451014, guid: 23bbdad79c3e9ca42b574a071ec203e1, type: 3}
+    CardProfilePortrait: {fileID: 0}
+    IdleAnimationFrames: []
+    IdleAnimationGifPath: 
+    PreserveOriginalFacing: 0
+  - CharacterId: char_stone_golem
+    IdlePortrait: {fileID: -6459047473378946515, guid: afa7e45cc23c30244958bdaa305372bd, type: 3}
+    AttackPortrait: {fileID: -6459047473378946515, guid: afa7e45cc23c30244958bdaa305372bd, type: 3}
+    DefensePortrait: {fileID: -6459047473378946515, guid: afa7e45cc23c30244958bdaa305372bd, type: 3}
+    HitPortrait: {fileID: -6459047473378946515, guid: afa7e45cc23c30244958bdaa305372bd, type: 3}
+    HitPortraitFacesRight: 1
+    DeathPortrait: {fileID: -6459047473378946515, guid: afa7e45cc23c30244958bdaa305372bd, type: 3}
+    CardProfilePortrait: {fileID: 0}
+    IdleAnimationFrames: []
+    IdleAnimationGifPath: 
+    PreserveOriginalFacing: 0

@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84c30176d181a5747a85983cdd126a0c, type: 3}
+  m_Name: Character_Chain_Wraith
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
+  CharacterId: char_chain_wraith
+  DisplayName: "\u9501\u94FE\u6028\u7075"
+  Team: 1
+  Slot: 2
+  Level: 1
+  MaxHp: 65
+  BaseAttack: 11
+  BaseDefense: 5
+  Speed: 5
+  Deck: []
+  SkillPool:
+  - {fileID: 11400000, guid: 2bd3867b21a79614781bcc43aea80c4c, type: 2}
+  - {fileID: 11400000, guid: 2bd3867b21a79614781bcc43aea80c4c, type: 2}
+  - {fileID: 11400000, guid: 0003be0265ba1c244a342dfd6b92196d, type: 2}
+  - {fileID: 11400000, guid: 0003be0265ba1c244a342dfd6b92196d, type: 2}
+  - {fileID: 11400000, guid: 6554f45ad30362b42974b023cca4e666, type: 2}
+  - {fileID: 11400000, guid: 2a9300ab352cfe34f8e23583728e9644, type: 2}
+  - {fileID: 11400000, guid: 2a9300ab352cfe34f8e23583728e9644, type: 2}
+  - {fileID: 11400000, guid: 3a704fdb5cfb5a34687b3009f3ce2762, type: 2}
+  - {fileID: 11400000, guid: 0630d9516bc9c8f47b561ca492633c59, type: 2}
+  Traits:
+  - minion_chain_wraith_debuff_share

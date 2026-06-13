@@ -63,6 +63,9 @@ namespace Grimhand.Expedition
             _run.CurrentBattleConfig = null;
 
             _run.Map = ExpeditionMapGenerator.Generate(_config, _run, _rng);
+            if (_config.MapStartLayer > 1 && _run.Map != null)
+                _run.Map.NodesCompleted = _config.MapStartLayer - 1;
+
             if (campRoster != null && campRoster.Members.Count > 0)
                 CampRunPartyApplier.Apply(campRoster, _run, campMeta);
             else
@@ -1039,13 +1042,26 @@ namespace Grimhand.Expedition
         BattleConfig BuildBossBattle(bool applyPartyHp)
         {
             BattleConfig template;
-            if (_config.BossEncounters.Count > 1)
+            var isDungeonBoss = _run.Map?.ChapterLayerCount >= ExpeditionRegionRules.FullLayerCount;
+
+            if (isDungeonBoss)
+            {
+                var standard = _config.CombatEncounters.Count > 0
+                    ? _config.CombatEncounters[0]
+                    : null;
+                var templates = MonsterEncounterBuilder.BuildMonsterTemplateMap(_config.MonsterTemplates);
+                template = StoneGolemBossEncounterBuilder.BuildTemplate(standard, templates);
+                _run.CurrentBossDisplayName = StoneGolemBossEncounterBuilder.DisplayName;
+            }
+            else if (_config.BossEncounters.Count > 1)
             {
                 template = _config.BossEncounters[_rng.NextIndex(_config.BossEncounters.Count)];
+                _run.CurrentBossDisplayName = ResolveBossDisplayName(template);
             }
             else if (_config.BossEncounters.Count == 1)
             {
                 template = _config.BossEncounters[0];
+                _run.CurrentBossDisplayName = ResolveBossDisplayName(template);
             }
             else
             {
@@ -1053,9 +1069,8 @@ namespace Grimhand.Expedition
                     ? _config.CombatEncounters[0]
                     : null;
                 template = Floor10BossEncounterBuilder.BuildRandomTemplate(standard, _rng);
+                _run.CurrentBossDisplayName = ResolveBossDisplayName(template);
             }
-
-            _run.CurrentBossDisplayName = ResolveBossDisplayName(template);
 
             var seed = _rng.NextInt(1, int.MaxValue);
             var config = ExpeditionBattleConfigBuilder.BuildEncounter(
@@ -1087,6 +1102,9 @@ namespace Grimhand.Expedition
 
                 if (cc.CharacterDefinitionId == GhostQueenBossEncounterBuilder.CharacterId)
                     return Floor10BossEncounterBuilder.GhostQueenDisplayName;
+
+                if (cc.CharacterDefinitionId == StoneGolemBossEncounterBuilder.CharacterId)
+                    return StoneGolemBossEncounterBuilder.DisplayName;
 
                 if (cc.CharacterDefinitionId == "char_skeleton_king")
                     return Floor10BossEncounterBuilder.SkeletonKingDisplayName;

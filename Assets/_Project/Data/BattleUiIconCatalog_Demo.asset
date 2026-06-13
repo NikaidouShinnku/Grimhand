@@ -42,3 +42,8 @@ MonoBehaviour:
   - {fileID: 2324293664701428765, guid: 1a4fb8ecc2e6bc845a7730ce3186ab9e, type: 3}
   - {fileID: 6525756207177096557, guid: 387885b527a1ded4e9a13b63a83bade0, type: 3}
   - {fileID: 6659219929621819091, guid: a394a3e57aab15d44a0908599c3f9827, type: 3}
+  DungeonBackground: {fileID: -5521389433338677368, guid: 10cccdc226161514d95c045dc4a2a537, type: 3}
+  DungeonPathVariants:
+  - {fileID: -5074124878924022668, guid: 344cbb201debf354d8ebdc9410282d90, type: 3}
+  - {fileID: -1750541262561690569, guid: 6c9d5eeb733be69489bf1a49da170f5b, type: 3}
+  - {fileID: 5576632795534058508, guid: 0ac7eed4f96f57c4cb975df49648f2e8, type: 3}

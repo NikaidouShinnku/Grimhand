@@ -31,6 +31,7 @@ namespace Grimhand.Content.Editor
 
             var players = BalanceV2ContentGenerator.GeneratePlayerContent();
             var monsters = MonsterContentGenerator.Generate();
+            var dungeonMonsters = MonsterContentGenerator.GenerateDungeonMonsters();
             RelicArtBinder.BindRelicArtSilent();
 
             var setupClassic = SavePlayerBattleSetup(
@@ -91,7 +92,12 @@ namespace Grimhand.Content.Editor
                 monsters.Wraith,
                 monsters.WraithElite,
                 monsters.Ogre,
-                monsters.Bat
+                monsters.Bat,
+                dungeonMonsters.Rat,
+                dungeonMonsters.ChainWraith,
+                dungeonMonsters.Gargoyle,
+                dungeonMonsters.SpiderLady,
+                dungeonMonsters.StoneGolem
             });
             expedition.BossEncounters.Clear();
             expedition.BossEncounters.Add(setupSkeletonKingBoss);

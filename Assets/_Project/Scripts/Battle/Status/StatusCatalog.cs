@@ -44,7 +44,8 @@ namespace Grimhand.Battle.Status
                 Id = Poison,
                 DisplayName = "中毒",
                 DurationKind = StatusDurationKind.Permanent,
-                TurnStartDamagePerStack = 1
+                TurnStartDamagePerStack = 1,
+                TickIgnoresBlock = true
             };
             map[Slow] = new StatusDefinition
             {
@@ -60,7 +61,8 @@ namespace Grimhand.Battle.Status
                 DisplayName = "灼烧",
                 DurationKind = StatusDurationKind.Turns,
                 DefaultDuration = 2,
-                TurnStartDamagePerStack = 3
+                TurnEndDamagePerStack = 1,
+                TickIgnoresDefense = true
             };
             map[AttackUp] = new StatusDefinition
             {
@@ -123,9 +125,9 @@ namespace Grimhand.Battle.Status
             {
                 Id = NecroticPoison,
                 DisplayName = "亡灵毒",
-                DurationKind = StatusDurationKind.Turns,
-                DefaultDuration = 3,
-                TurnStartDamagePerStack = 5
+                DurationKind = StatusDurationKind.Permanent,
+                TurnStartDamagePerStack = 1,
+                TickIgnoresBlock = true
             };
             map[BoneWorkshop] = new StatusDefinition
             {

@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84c30176d181a5747a85983cdd126a0c, type: 3}
+  m_Name: Character_Spider_Lady
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
+  CharacterId: char_spider_lady
+  DisplayName: "\u8718\u86DB\u8D35\u5987"
+  Team: 1
+  Slot: 3
+  Level: 1
+  MaxHp: 60
+  BaseAttack: 9
+  BaseDefense: 4
+  Speed: 7
+  Deck: []
+  SkillPool:
+  - {fileID: 11400000, guid: 904d41eeae3cfd5459058ca97dd848e3, type: 2}
+  - {fileID: 11400000, guid: 904d41eeae3cfd5459058ca97dd848e3, type: 2}
+  - {fileID: 11400000, guid: 7da5258df9d8080409e9c2eeb3a70074, type: 2}
+  - {fileID: 11400000, guid: 7da5258df9d8080409e9c2eeb3a70074, type: 2}
+  - {fileID: 11400000, guid: 1ec598852dd696c4a857e38aa42b9d76, type: 2}
+  - {fileID: 11400000, guid: 9588d250e31761d4ab14ef3b2d1b8193, type: 2}
+  - {fileID: 11400000, guid: ae492b61df9d34e4ea8c004651830afe, type: 2}
+  Traits:
+  - minion_spider_poison_vuln

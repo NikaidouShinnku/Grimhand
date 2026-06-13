@@ -60,9 +60,9 @@ MonoBehaviour:
   - Type: 3
     Target: 0
     Value: 0
-    StatusId: necrotic_poison
-    Stacks: 1
-    Duration: 3
+    StatusId: poison
+    Stacks: 5
+    Duration: -1
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100

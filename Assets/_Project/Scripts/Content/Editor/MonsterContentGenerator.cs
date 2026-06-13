@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace Grimhand.Content.Editor
 {
-    public static class MonsterContentGenerator
+    public static partial class MonsterContentGenerator
     {
         const string Root = "Assets/_Project/Data";
         const string ArtRoot = "Assets/The Grimhands Asset/monsters";
@@ -140,6 +140,8 @@ namespace Grimhand.Content.Editor
                 gifPath: "The Grimhands Asset/monsters/ghost queen/ghostqueen_idle_anime.gif",
                 defendUsesHit: true,
                 preserveOriginalFacing: true);
+
+            UpdateDungeonVisualCatalog(catalog);
 
             EditorUtility.SetDirty(catalog);
         }

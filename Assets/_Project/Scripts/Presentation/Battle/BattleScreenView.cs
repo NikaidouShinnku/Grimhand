@@ -1275,7 +1275,9 @@ namespace Grimhand.Presentation.Battle
         void RefreshExpeditionPresentation()
         {
             var expedition = _session.IsExpeditionMode;
-            _backgroundView?.EnsureBuilt(transform, _uiIcons?.CaveBackground);
+            var layer = _session.Expedition?.Run?.Map?.NodesCompleted + 1 ?? 1;
+            var bg = ExpeditionPathArt.ResolveBackground(_uiIcons, layer);
+            _backgroundView?.EnsureBuilt(transform, bg ?? _uiIcons?.CaveBackground);
             _backgroundView?.SetVisible(expedition);
 
             if (_postBattleOverlay == null)

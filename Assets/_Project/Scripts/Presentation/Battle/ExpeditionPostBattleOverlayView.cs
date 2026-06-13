@@ -552,7 +552,9 @@ namespace Grimhand.Presentation.Battle
                 var route = routes[i];
                 var index = i;
                 var isTreasure = route.NodeType == ExpeditionNodeType.Treasure;
-                var sprite = isTreasure ? _icons?.TreasureChestClosed : PickPathSprite(route.PathSpriteIndex);
+                var sprite = isTreasure
+                    ? _icons?.TreasureChestClosed
+                    : PickPathSprite(route.PathSpriteIndex, route.LayerNumber);
                 var label = ExpeditionRoutePresentation.BuildDoorLabel(route);
 
                 var btn = CreateDoorButton(_doorRow, new Vector2(startX + i * spacing, 0f), sprite, label, isTreasure,
@@ -968,17 +970,8 @@ namespace Grimhand.Presentation.Battle
             return btn;
         }
 
-        Sprite PickPathSprite(int index)
-        {
-            var paths = _icons?.CavePathVariants;
-            if (paths == null || paths.Length == 0)
-                return null;
-
-            if (index < 0)
-                index = 0;
-
-            return paths[index % paths.Length];
-        }
+        Sprite PickPathSprite(int index, int layerNumber) =>
+            ExpeditionPathArt.PickPathSprite(_icons, layerNumber, index);
 
         void ClearDoorRow()
         {

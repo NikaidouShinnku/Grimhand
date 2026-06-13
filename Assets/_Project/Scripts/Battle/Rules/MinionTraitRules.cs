@@ -9,6 +9,16 @@ namespace Grimhand.Battle.Rules
 {
     public static class MinionTraitRules
     {
+        static readonly HashSet<string> ChainWraithSharedDebuffs = new()
+        {
+            StatusCatalog.Poison,
+            StatusCatalog.Slow,
+            StatusCatalog.Burn,
+            StatusCatalog.AttackDown,
+            StatusCatalog.DefenseDownPercent,
+            StatusCatalog.NecroticPoison
+        };
+
         public static bool HasTrait(CombatantState combatant, string traitId)
         {
             if (combatant == null || string.IsNullOrEmpty(traitId))
@@ -35,9 +45,114 @@ namespace Grimhand.Battle.Rules
                 combatant.InvulnerableRestOfTurn = false;
                 combatant.RespondArmedThisTurn = false;
                 combatant.DodgeChanceBonus = 0f;
+                combatant.CardsResolvedThisTurn = 0;
+                combatant.GargoyleStanceAttackBonus = 0;
+                combatant.GargoyleStanceDefenseBonus = 0;
+
+                if (combatant.CarryOverBlock > 0)
+                {
+                    combatant.Block += combatant.CarryOverBlock;
+                    combatant.CarryOverBlock = 0;
+                }
             }
 
             state.EnemyAttackCardsPlayedThisTurn = 0;
+        }
+
+        public static void PrepareTurnEndArmorRetain(BattleState state)
+        {
+            if (state == null)
+                return;
+
+            foreach (var combatant in state.Combatants)
+            {
+                if (!combatant.IsAlive || !HasTrait(combatant, MinionTraitCatalog.StoneGolemArmorRetain))
+                    continue;
+
+                if (combatant.Block > 0)
+                    combatant.CarryOverBlock = combatant.Block / 2;
+            }
+        }
+
+        public static void OnCharacterDied(BattleState state, CombatantState combatant, List<BattleEvent> events)
+        {
+            if (state == null || combatant == null)
+                return;
+
+            if (combatant.CharacterDefinitionId != MinionTraitCatalog.RatCharacterId)
+                return;
+
+            foreach (var ally in state.Combatants)
+            {
+                if (!ally.IsAlive || ally.Team != TeamSide.Enemy)
+                    continue;
+
+                if (ally.CharacterDefinitionId != MinionTraitCatalog.RatCharacterId)
+                    continue;
+
+                ally.RatPackAttackBonusPercent += MinionTraitCatalog.RatPackAttackBonusPercentPerDeath;
+                RelicBattleRules.RefreshDerivedStats(state, ally, state.Config?.RunModifiers);
+                events?.Add(new BattleEvent(BattleEventKind.StatusApplied,
+                    $"{ally.DisplayName} 鼠群狂怒 +{MinionTraitCatalog.RatPackAttackBonusPercentPerDeath}% 攻击")
+                {
+                    CombatantId = ally.Id
+                });
+            }
+        }
+
+        public static void ShareChainWraithDebuff(
+            BattleState state,
+            CombatantState target,
+            string statusId,
+            int stacks,
+            int durationOverride,
+            List<BattleEvent> events)
+        {
+            if (state == null || target == null || stacks <= 0)
+                return;
+
+            if (!HasTrait(target, MinionTraitCatalog.ChainWraithDebuffShare)
+                || !ChainWraithSharedDebuffs.Contains(statusId))
+                return;
+
+            foreach (var enemy in state.Combatants)
+            {
+                if (!enemy.IsAlive || enemy.Team != TeamSide.Enemy || enemy.Id == target.Id)
+                    continue;
+
+                StatusRules.ApplyStatusInternal(state, enemy, statusId, stacks, durationOverride, events, mirrorChainWraith: false);
+            }
+        }
+
+        public static int ApplySpiderPoisonVulnerability(BattleState state, CombatantState recipient, int hpDamage)
+        {
+            if (state == null || recipient == null || hpDamage <= 0 || recipient.Team != TeamSide.Enemy)
+                return hpDamage;
+
+            if (!HasAliveSpiderLady(state))
+                return hpDamage;
+
+            var poisonStacks = StatusRules.GetStatusStacks(recipient, StatusCatalog.Poison);
+            if (poisonStacks < 5)
+                return hpDamage;
+
+            var bonusPercent = poisonStacks / 5 * MinionTraitCatalog.SpiderPoisonVulnPercentPerFiveStacks;
+            return System.Math.Max(1,
+                (int)System.Math.Round(hpDamage * (100 + bonusPercent) / 100f));
+        }
+
+        static bool HasAliveSpiderLady(BattleState state)
+        {
+            foreach (var combatant in state.Combatants)
+            {
+                if (!combatant.IsAlive || combatant.Team != TeamSide.Enemy)
+                    continue;
+
+                if (HasTrait(combatant, MinionTraitCatalog.SpiderLadyPoisonVulnerability))
+                    return true;
+            }
+
+            return false;
         }
 
         public static void OnDamageTaken(
@@ -74,6 +189,17 @@ namespace Grimhand.Battle.Rules
             if (actor.Team == TeamSide.Enemy && card.CardType == CardType.Attack)
                 state.EnemyAttackCardsPlayedThisTurn++;
 
+            if (HasTrait(actor, MinionTraitCatalog.GargoyleFirstCardStance) && actor.CardsResolvedThisTurn == 0)
+            {
+                if (card.CardType == CardType.Attack)
+                    actor.GargoyleStanceAttackBonus = MinionTraitCatalog.GargoyleStanceBonus;
+                else if (card.CardType is CardType.Defense or CardType.Status)
+                    actor.GargoyleStanceDefenseBonus = MinionTraitCatalog.GargoyleStanceBonus;
+
+                RelicBattleRules.RefreshDerivedStats(state, actor, state.Config?.RunModifiers);
+            }
+
+            actor.CardsResolvedThisTurn++;
             actor.CardsResolvedCount++;
             if (actor.CardsResolvedCount % MinionTraitCatalog.CardsPerStatBonus != 0)
                 return;

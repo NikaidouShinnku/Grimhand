@@ -590,7 +590,7 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.GodDescends:
                     return "本场战斗中，获得护甲时对全体敌人造成 ATK×1.2+5 伤害";
                 case StatusCatalog.NecroticPoison:
-                    return PrefixTarget(usesPick ? "" : target, $"附加中毒 5 伤害/回合 × {FormatDuration(action)}");
+                    return PrefixTarget(usesPick ? "" : target, $"附加中毒 {action.Stacks} 层{FormatDurationSuffix(action)}");
                 case StatusCatalog.Slow:
                     return PrefixTarget(usesPick ? "" : target, $"施加减速 {action.Stacks} 层{FormatDurationSuffix(action)}");
                 default:

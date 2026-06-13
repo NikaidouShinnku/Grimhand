@@ -87,12 +87,12 @@ namespace Grimhand.Presentation.Battle
                 RestartBattle();
         }
 
-        public void BeginExpedition(CampRosterState campRoster = null)
+        public void BeginExpedition(CampRosterState campRoster = null, int mapStartLayer = 1)
         {
             if (campRoster != null)
                 _campRoster = campRoster;
 
-            var config = BuildExpeditionConfig();
+            var config = BuildExpeditionConfig(mapStartLayer);
             if (config.CombatEncounters.Count == 0)
             {
                 Debug.LogError("远征配置无战斗遭遇，回退单场战斗。");
@@ -586,25 +586,30 @@ namespace Grimhand.Presentation.Battle
             CheckExpeditionBattleEnd();
         }
 
-        ExpeditionConfig BuildExpeditionConfig()
+        ExpeditionConfig BuildExpeditionConfig(int mapStartLayer = 1)
         {
+            ExpeditionConfig config;
             if (ExpeditionSetup != null)
-                return ExpeditionSetup.ToExpeditionConfig();
-
-            var config = new ExpeditionConfig
+                config = ExpeditionSetup.ToExpeditionConfig();
+            else
             {
-                RunSeed = UnityEngine.Random.Range(1, int.MaxValue),
-                TargetBattleCount = 19,
-                RoutesPerVictory = 3,
-                GoldMinPerVictory = 15,
-                GoldMaxPerVictory = 25
-            };
+                config = new ExpeditionConfig
+                {
+                    RunSeed = UnityEngine.Random.Range(1, int.MaxValue),
+                    TargetBattleCount = 19,
+                    RoutesPerVictory = 3,
+                    GoldMinPerVictory = 15,
+                    GoldMaxPerVictory = 25
+                };
 
-            var encounter = BattleSetup != null
-                ? BattleSetup.ToBattleConfig()
-                : DemoBattleFactory.CreateDefault3v3();
-            config.CombatEncounters.Add(encounter);
-            MonsterTemplateBootstrap.EnsureMonsterTemplates(config);
+                var encounter = BattleSetup != null
+                    ? BattleSetup.ToBattleConfig()
+                    : DemoBattleFactory.CreateDefault3v3();
+                config.CombatEncounters.Add(encounter);
+                MonsterTemplateBootstrap.EnsureMonsterTemplates(config);
+            }
+
+            ExpeditionRegionRules.ApplyMapStartLayer(config, mapStartLayer);
             return config;
         }
 

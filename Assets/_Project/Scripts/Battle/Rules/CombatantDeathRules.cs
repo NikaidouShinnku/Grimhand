@@ -11,6 +11,8 @@ namespace Grimhand.Battle.Rules
             if (combatant == null)
                 return;
 
+            MinionTraitRules.OnCharacterDied(state, combatant, events);
+
             var polluted = 0;
             foreach (var card in state.CardsById.Values)
             {

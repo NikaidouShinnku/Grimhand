@@ -150,10 +150,10 @@ namespace Grimhand.Presentation.Battle
                 screenView.gameObject.SetActive(visible);
         }
 
-        public void BeginExpeditionFromCamp(CampRosterState roster)
+        public void BeginExpeditionFromCamp(CampRosterState roster, int mapStartLayer = 1)
         {
             _session.SetCampRoster(roster);
-            _session.BeginExpedition(roster);
+            _session.BeginExpedition(roster, mapStartLayer);
             screenView.Refresh();
             screenView.BeginPlanningIdleLoops();
         }

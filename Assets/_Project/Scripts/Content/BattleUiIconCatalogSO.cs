@@ -32,5 +32,7 @@ namespace Grimhand.Content
         public Sprite TreasureChestClosed;
         public Sprite TreasureChestOpen;
         public Sprite[] CavePathVariants = System.Array.Empty<Sprite>();
+        public Sprite DungeonBackground;
+        public Sprite[] DungeonPathVariants = System.Array.Empty<Sprite>();
     }
 }

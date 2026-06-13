@@ -195,11 +195,11 @@ namespace Grimhand.Presentation.Battle
                 return GetUnknownPathIcon();
 
             if (layer.IsBoss)
-                return GetCavePathSprite(0);
+                return ExpeditionPathArt.PickPathSprite(_icons, layer.LayerNumber, 0);
 
             var idx = layer.ChosenOptionIndex ?? 0;
             var option = layer.Options.Count > idx ? layer.Options[idx] : null;
-            return GetCavePathSprite(option?.PathSpriteIndex ?? 0);
+            return ExpeditionPathArt.PickPathSprite(_icons, layer.LayerNumber, option?.PathSpriteIndex ?? 0);
         }
 
         Sprite GetUnknownPathIcon()
@@ -209,18 +209,6 @@ namespace Grimhand.Presentation.Battle
                 return sprite;
 
             return sprite;
-        }
-
-        Sprite GetCavePathSprite(int index)
-        {
-            var paths = _icons?.CavePathVariants;
-            if (paths == null || paths.Length == 0)
-                return GetUnknownPathIcon();
-
-            if (index < 0)
-                index = 0;
-
-            return paths[index % paths.Length];
         }
 
         static string BuildRowLabel(ExpeditionMapLayer layer, ExpeditionMapState map, ExpeditionRunState run)

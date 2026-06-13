@@ -264,8 +264,9 @@ namespace Grimhand.Battle.Rules
             if (target == null || !target.IsAlive)
                 return;
 
-            var duration = mods.AttackBurnDurationTurns > 0 ? mods.AttackBurnDurationTurns : 2;
-            StatusRules.ApplyStatus(state, target, StatusCatalog.Burn, 1, duration, events);
+            var stacks = mods.AttackBurnStacks > 0 ? mods.AttackBurnStacks : 5;
+            var duration = mods.AttackBurnDurationTurns > 0 ? mods.AttackBurnDurationTurns : 5;
+            StatusRules.ApplyStatus(state, target, StatusCatalog.Burn, stacks, duration, events);
         }
 
         public static bool TryDodgeIncoming(

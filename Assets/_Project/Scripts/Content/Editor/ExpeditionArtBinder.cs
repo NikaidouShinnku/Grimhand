@@ -48,6 +48,15 @@ namespace Grimhand.Content.Editor
                 paths[i] = LoadSprite(CavePathAssetPaths[i]);
 
             catalog.CavePathVariants = paths;
+            catalog.DungeonBackground = LoadSprite("Assets/The Grimhands Asset/path and background/dungeon_background.png");
+
+            var dungeonPaths = new Sprite[]
+            {
+                LoadSprite("Assets/The Grimhands Asset/path and background/dungeon_path1.png"),
+                LoadSprite("Assets/The Grimhands Asset/path and background/dungeon_path2.png"),
+                LoadSprite("Assets/The Grimhands Asset/path and background/dungeon_path3.png")
+            };
+            catalog.DungeonPathVariants = dungeonPaths;
             EditorUtility.SetDirty(catalog);
             return true;
         }

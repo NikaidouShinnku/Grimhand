@@ -132,7 +132,7 @@ namespace Grimhand.Content.Editor
                 UndeadCurse = SaveCard("p_undead_curse", "亡灵诅咒", "char_mage", 3, CardType.Attack,
                     Kw("poison"), CardRarity.Epic,
                     AtkDmg(7, 120, reach: TargetReach.Any),
-                    ApplyStat(StatusCatalog.NecroticPoison, 1, 3, EffectTarget.DefaultEnemy)),
+                    ApplyStat(StatusCatalog.Poison, 5, -1, EffectTarget.DefaultEnemy)),
                 ScarabShield = SaveCard("p_scarab_shield", "圣甲虫护盾", "char_mage", 1, CardType.Defense,
                     null, CardRarity.Common, AllyDefBlock(EffectTarget.FrontAlly, 0, 120)),
                 SandBarrier = SaveCard("p_sand_barrier", "沙尘结界", "char_mage", 2, CardType.Defense,

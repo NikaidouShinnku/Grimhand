@@ -351,12 +351,15 @@ namespace Grimhand.Battle
 
             ArchiveLastTurnAttackForConsumables();
 
+            MinionTraitRules.PrepareTurnEndArmorRetain(_state);
+
             foreach (var c in _state.Combatants)
                 c.Block = 0;
 
             DeckRules.DiscardHandAtEndOfTurn(_state, TeamSide.Player, _events);
             DeckRules.DiscardHandAtEndOfTurn(_state, TeamSide.Enemy, _events);
 
+            StatusRules.ProcessTurnEndStatuses(_state, _events);
             StatusRules.ProcessEndOfTurnDurations(_state, _events);
             RelicEffectRules.ProcessEndOfTurn(_state, _events);
             _state.ConsumableDodgeBonusThisTurn = 0f;

@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84c30176d181a5747a85983cdd126a0c, type: 3}
+  m_Name: Character_Gargoyle
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
+  CharacterId: char_gargoyle
+  DisplayName: "\u77F3\u50CF\u9B3C"
+  Team: 1
+  Slot: 1
+  Level: 1
+  MaxHp: 70
+  BaseAttack: 8
+  BaseDefense: 7
+  Speed: 4
+  Deck: []
+  SkillPool:
+  - {fileID: 11400000, guid: 8b5142f09591b8647bd37aec03d91d9b, type: 2}
+  - {fileID: 11400000, guid: 8b5142f09591b8647bd37aec03d91d9b, type: 2}
+  - {fileID: 11400000, guid: 560c90fdcf425154eb2d4bd202d15b19, type: 2}
+  - {fileID: 11400000, guid: 560c90fdcf425154eb2d4bd202d15b19, type: 2}
+  - {fileID: 11400000, guid: 9c13fb726b907a64588b6b6e81b0c1ff, type: 2}
+  - {fileID: 11400000, guid: a457ecc43273997478bd56fee29d7159, type: 2}
+  - {fileID: 11400000, guid: acad05cb51efc9b43b94a3f48daa580c, type: 2}
+  - {fileID: 11400000, guid: 1f5bdf35d5571034b8bb430cd01f1248, type: 2}
+  Traits:
+  - minion_gargoyle_first_card

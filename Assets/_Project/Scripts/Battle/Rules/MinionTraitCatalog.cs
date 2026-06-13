@@ -30,5 +30,24 @@ namespace Grimhand.Battle.Rules
         public const int OgreBloodRageMaxStacks = 5;
         public const int OgreBloodRageDamagePercentPerStack = 15;
         public const float BatFirstHitDodgeChance = 0.5f;
+
+        /// <summary>本场每有一只鼠人死亡，存活鼠人 +20% ATK。</summary>
+        public const string RatPackAttackOnAllyDeath = "minion_rat_pack_attack";
+        public const string RatCharacterId = "char_rat";
+        public const int RatPackAttackBonusPercentPerDeath = 20;
+
+        /// <summary>自身负面状态同步至所有敌人。</summary>
+        public const string ChainWraithDebuffShare = "minion_chain_wraith_debuff_share";
+
+        /// <summary>每回合首张牌：攻击 +3 ATK，否则 +3 DEF。</summary>
+        public const string GargoyleFirstCardStance = "minion_gargoyle_first_card";
+        public const int GargoyleStanceBonus = 3;
+
+        /// <summary>场上有蜘蛛贵妇时，敌人每 5 层中毒额外 +10% 受伤。</summary>
+        public const string SpiderLadyPoisonVulnerability = "minion_spider_poison_vuln";
+        public const int SpiderPoisonVulnPercentPerFiveStacks = 10;
+
+        /// <summary>回合结束保留一半护甲至下回合。</summary>
+        public const string StoneGolemArmorRetain = "minion_stone_golem_armor_retain";
     }
 }

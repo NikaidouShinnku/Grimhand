@@ -8,6 +8,8 @@ namespace Grimhand.Expedition.Model
         public int RunSeed { get; set; } = 42;
         public int ChapterLayerCount { get; set; } = 20;
         public int TargetBattleCount { get; set; } = 19;
+        /// <summary>远征起始层（1=洞穴，21=地牢测试）。</summary>
+        public int MapStartLayer { get; set; } = 1;
         public int RoutesPerVictory { get; set; } = 3;
 
         public int GoldMinPerVictory { get; set; } = 15;

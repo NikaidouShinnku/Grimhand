@@ -22,7 +22,12 @@ namespace Grimhand.Presentation.Camp
         RectTransform _partyRow;
         Text _statusText;
         Button _confirmButton;
+        Button _caveStartButton;
+        Button _dungeonStartButton;
+        int _selectedStartLayer = 1;
         bool _built;
+
+        public int SelectedStartLayer => _selectedStartLayer;
 
         public bool IsOpen => _overlayRoot != null && _overlayRoot.gameObject.activeSelf;
 
@@ -42,6 +47,7 @@ namespace Grimhand.Presentation.Camp
         {
             _roster = roster;
             EnsureBuilt();
+            SelectStartLayer(1);
             _overlayRoot.gameObject.SetActive(true);
             transform.SetAsLastSibling();
             RebuildPartySummary();
@@ -110,14 +116,38 @@ namespace Grimhand.Presentation.Camp
 
             var difficulty = CampUiRuntime.CreateText(_body, "难度：Demo（标准）", 18, FontStyle.Bold,
                 TextAnchor.MiddleLeft);
-            difficulty.rectTransform.anchorMin = new Vector2(0f, 0.22f);
-            difficulty.rectTransform.anchorMax = new Vector2(1f, 0.32f);
+            difficulty.rectTransform.anchorMin = new Vector2(0f, 0.28f);
+            difficulty.rectTransform.anchorMax = new Vector2(1f, 0.36f);
             difficulty.rectTransform.offsetMin = new Vector2(32f, 0f);
             difficulty.rectTransform.offsetMax = new Vector2(-32f, 0f);
 
+            var regionLabel = CampUiRuntime.CreateText(_body, "起始区域", 17, FontStyle.Bold, TextAnchor.MiddleLeft);
+            regionLabel.rectTransform.anchorMin = new Vector2(0f, 0.20f);
+            regionLabel.rectTransform.anchorMax = new Vector2(1f, 0.28f);
+            regionLabel.rectTransform.offsetMin = new Vector2(32f, 0f);
+            regionLabel.rectTransform.offsetMax = new Vector2(-32f, 0f);
+
+            _caveStartButton = CampUiRuntime.CreateButton(_body, "洞穴（1层）", new Color(0.22f, 0.34f, 0.28f, 1f),
+                new Vector2(150f, 40f));
+            var caveRt = _caveStartButton.GetComponent<RectTransform>();
+            caveRt.anchorMin = new Vector2(0.5f, 0f);
+            caveRt.anchorMax = new Vector2(0.5f, 0f);
+            caveRt.pivot = new Vector2(1f, 0f);
+            caveRt.anchoredPosition = new Vector2(-8f, 72f);
+
+            _dungeonStartButton = CampUiRuntime.CreateButton(_body, "地牢（21层）", new Color(0.28f, 0.24f, 0.38f, 1f),
+                new Vector2(150f, 40f));
+            var dungeonRt = _dungeonStartButton.GetComponent<RectTransform>();
+            dungeonRt.anchorMin = new Vector2(0.5f, 0f);
+            dungeonRt.anchorMax = new Vector2(0.5f, 0f);
+            dungeonRt.pivot = new Vector2(0f, 0f);
+            dungeonRt.anchoredPosition = new Vector2(8f, 72f);
+            _caveStartButton.onClick.AddListener(() => SelectStartLayer(1));
+            _dungeonStartButton.onClick.AddListener(() => SelectStartLayer(21));
+
             _statusText = CampUiRuntime.CreateText(_body, "", 16, FontStyle.Italic, TextAnchor.MiddleLeft);
-            _statusText.rectTransform.anchorMin = new Vector2(0f, 0.14f);
-            _statusText.rectTransform.anchorMax = new Vector2(1f, 0.22f);
+            _statusText.rectTransform.anchorMin = new Vector2(0f, 0.04f);
+            _statusText.rectTransform.anchorMax = new Vector2(1f, 0.12f);
             _statusText.rectTransform.offsetMin = new Vector2(32f, 0f);
             _statusText.rectTransform.offsetMax = new Vector2(-32f, 0f);
             _statusText.color = new Color(0.95f, 0.72f, 0.55f, 1f);
@@ -218,6 +248,23 @@ namespace Grimhand.Presentation.Camp
                 ? new Color(0.7f, 0.95f, 0.72f, 1f)
                 : new Color(0.95f, 0.72f, 0.55f, 1f);
             _confirmButton.interactable = ready;
+            RefreshRegionButtons();
+        }
+
+        void SelectStartLayer(int layer)
+        {
+            _selectedStartLayer = layer;
+            RefreshRegionButtons();
+        }
+
+        void RefreshRegionButtons()
+        {
+            if (_caveStartButton == null || _dungeonStartButton == null)
+                return;
+
+            var caveSelected = _selectedStartLayer <= 1;
+            _caveStartButton.interactable = !caveSelected;
+            _dungeonStartButton.interactable = caveSelected;
         }
     }
 }

@@ -456,7 +456,7 @@ MonoBehaviour:
     m_FontSize: 1
     m_FontStyle: 1
     m_BestFit: 0
-    m_MinSize: 10
+    m_MinSize: 1
     m_MaxSize: 40
     m_Alignment: 0
     m_AlignByGeometry: 0
@@ -3159,7 +3159,7 @@ MonoBehaviour:
     m_FontSize: 1
     m_FontStyle: 1
     m_BestFit: 0
-    m_MinSize: 10
+    m_MinSize: 1
     m_MaxSize: 40
     m_Alignment: 0
     m_AlignByGeometry: 0
@@ -4068,7 +4068,7 @@ MonoBehaviour:
     m_FontSize: 1
     m_FontStyle: 1
     m_BestFit: 0
-    m_MinSize: 10
+    m_MinSize: 1
     m_MaxSize: 40
     m_Alignment: 0
     m_AlignByGeometry: 0
@@ -6540,7 +6540,7 @@ MonoBehaviour:
     m_FontSize: 1
     m_FontStyle: 1
     m_BestFit: 0
-    m_MinSize: 10
+    m_MinSize: 1
     m_MaxSize: 40
     m_Alignment: 0
     m_AlignByGeometry: 0
@@ -6657,7 +6657,7 @@ MonoBehaviour:
     m_FontSize: 1
     m_FontStyle: 1
     m_BestFit: 0
-    m_MinSize: 10
+    m_MinSize: 1
     m_MaxSize: 40
     m_Alignment: 0
     m_AlignByGeometry: 0
@@ -8456,6 +8456,7 @@ MonoBehaviour:
   battleController: {fileID: 2032981764}
   campScreen: {fileID: 1500378709}
   championCamp: {fileID: 569567864}
+  talentCamp: {fileID: 0}
   portalOverlay: {fileID: 885937740}
   battleSetup: {fileID: 11400000, guid: 25b1c62db6eb6784c973484210567f6c, type: 2}
   expeditionSetup: {fileID: 11400000, guid: 37486697fa2b45946b3be8a80dcd659e, type: 2}
@@ -8697,7 +8698,7 @@ MonoBehaviour:
     m_FontSize: 1
     m_FontStyle: 1
     m_BestFit: 0
-    m_MinSize: 10
+    m_MinSize: 1
     m_MaxSize: 40
     m_Alignment: 0
     m_AlignByGeometry: 0

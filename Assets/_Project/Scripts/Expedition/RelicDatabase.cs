@@ -78,8 +78,8 @@ namespace Grimhand.Expedition
                     break;
                 case "burn_proc_20pct":
                     mods.AttackBurnProcChance = 0.20f;
-                    mods.AttackBurnDamagePerTurn = 3;
-                    mods.AttackBurnDurationTurns = 2;
+                    mods.AttackBurnStacks = 5;
+                    mods.AttackBurnDurationTurns = 5;
                     break;
                 case "cost3_plus_15pct":
                     mods.HighCostCardDamageBonusPercent += 15f;
@@ -165,10 +165,10 @@ namespace Grimhand.Expedition
                     "每场战斗第一回合全队SPD临时+2（仅影响第一回合结算顺序）。",
                     "evolvable"),
                 Def(RelicIds.CrimsonBurningBoots, "赤红烈焰靴", RelicRarity.Rare, "烈焰进化",
-                    "每场战斗前2回合全队SPD临时+2。每回合结束时对所有敌人造成3点火焰伤害（无视DEF）。",
+                    "每场战斗前2回合全队SPD临时+2。每回合结束时对所有敌人造成3点伤害（无视DEF）。",
                     "evolved_from_burning_boots", evolutionOnly: true),
                 Def(RelicIds.FlameSword, "烈焰之剑", RelicRarity.Common, "通用",
-                    "全队ATK+2。攻击类卡牌有20%概率附加灼烧（3伤害/回合×2回合，无视DEF）。",
+                    "全队ATK+2。攻击类卡牌有20%概率附加5层灼烧（5回合，每层回合结束1伤害，无视DEF）。",
                     "burn_proc_20pct", atk: 2),
                 Def(RelicIds.IronArmor, "铁壁战甲", RelicRarity.Common, "通用",
                     "全队DEF+1。每场战斗开始时前排角色获得10点护甲。",

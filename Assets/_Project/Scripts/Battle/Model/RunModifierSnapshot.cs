@@ -34,7 +34,7 @@ namespace Grimhand.Battle.Model
         public int EndTurnTeamHeal { get; set; }
         public int StatusDurationBonusTurns { get; set; }
         public float AttackBurnProcChance { get; set; }
-        public int AttackBurnDamagePerTurn { get; set; }
+        public int AttackBurnStacks { get; set; }
         public int AttackBurnDurationTurns { get; set; }
         public int ExtraEnergyCap { get; set; }
         public bool RandomDiscardEachTurn { get; set; }

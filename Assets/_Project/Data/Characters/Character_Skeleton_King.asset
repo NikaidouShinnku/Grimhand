@@ -35,8 +35,5 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 48da8901ddd6af549b2f74b9de11023f, type: 2}
   - {fileID: 11400000, guid: 08fd43e843f196f4299afe3e230e1fa1, type: 2}
   SkillPool: []
-  EnemyRandomDeckSize: 12
-  EnemySkillPickMin: 0
-  EnemySkillPickMax: 0
   Traits:
   - boss_first_hit_block

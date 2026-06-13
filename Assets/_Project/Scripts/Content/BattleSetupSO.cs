@@ -58,7 +58,10 @@ namespace Grimhand.Content
             return config;
         }
 
-        static CombatantConfig BuildCombatantConfig(CharacterDefinitionSO character)
+        static CombatantConfig BuildCombatantConfig(CharacterDefinitionSO character) =>
+            BuildCombatantConfigPublic(character);
+
+        public static CombatantConfig BuildCombatantConfigPublic(CharacterDefinitionSO character)
         {
             var cc = new CombatantConfig
             {

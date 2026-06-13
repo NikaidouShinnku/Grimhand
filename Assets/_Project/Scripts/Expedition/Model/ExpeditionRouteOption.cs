@@ -7,6 +7,7 @@ namespace Grimhand.Expedition.Model
         public string Description { get; set; } = "";
         public ExpeditionNodeType NodeType { get; set; } = ExpeditionNodeType.Combat;
         public int EncounterIndex { get; set; }
+        public string MonsterEncounterId { get; set; } = "";
         public string EventId { get; set; } = "";
         public string ShrineId { get; set; } = "";
         public string TreasureTier { get; set; } = "";

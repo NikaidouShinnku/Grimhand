@@ -24,6 +24,9 @@ namespace Grimhand.Battle.Status
         public const string GhostQueenWrath = "ghost_queen_wrath";
         public const string FinalBloodRitual = "final_blood_ritual";
         public const string GodDescends = "god_descends";
+        public const string AttackUpPercent = "attack_up_pct";
+        public const string DefenseUpPercent = "defense_up_pct";
+        public const string DefenseDownPercent = "defense_down_pct";
 
         static readonly Dictionary<string, StatusDefinition> Definitions = Build();
 
@@ -164,6 +167,30 @@ namespace Grimhand.Battle.Status
                 Id = GodDescends,
                 DisplayName = "天神下凡",
                 DurationKind = StatusDurationKind.Permanent
+            };
+            map[AttackUpPercent] = new StatusDefinition
+            {
+                Id = AttackUpPercent,
+                DisplayName = "攻击提升",
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 3,
+                AttackPercentBonusPerStack = 1
+            };
+            map[DefenseUpPercent] = new StatusDefinition
+            {
+                Id = DefenseUpPercent,
+                DisplayName = "防御提升",
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 2,
+                DefensePercentBonusPerStack = 1
+            };
+            map[DefenseDownPercent] = new StatusDefinition
+            {
+                Id = DefenseDownPercent,
+                DisplayName = "防御降低",
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 2,
+                DefensePercentBonusPerStack = -1
             };
             return map;
         }

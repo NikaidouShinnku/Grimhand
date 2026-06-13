@@ -3,6 +3,7 @@ using Grimhand.Battle.Effects;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Status;
+using Grimhand.Core;
 
 namespace Grimhand.Battle.Rules
 {
@@ -114,7 +115,10 @@ namespace Grimhand.Battle.Rules
             });
         }
 
-        public static FormationSlot? FindNextEnemySummonSlot(BattleState state, TeamSide team)
+        public static FormationSlot? FindNextEnemySummonSlot(BattleState state, TeamSide team) =>
+            FindEmptyTeamSlot(state, team);
+
+        public static FormationSlot? FindEmptyTeamSlot(BattleState state, TeamSide team)
         {
             var occupied = new HashSet<FormationSlot>();
             foreach (var unit in state.GetTeam(team))
@@ -123,12 +127,58 @@ namespace Grimhand.Battle.Rules
                     occupied.Add(unit.Slot);
             }
 
+            if (!occupied.Contains(FormationSlot.Front))
+                return FormationSlot.Front;
             if (!occupied.Contains(FormationSlot.Middle))
                 return FormationSlot.Middle;
             if (!occupied.Contains(FormationSlot.Back))
                 return FormationSlot.Back;
 
             return null;
+        }
+
+        public static void MergeSummonedSkillPoolIntoTeamDeck(
+            BattleState state,
+            CombatantConfig template,
+            TeamSide team,
+            BattleRng rng,
+            List<BattleEvent> events)
+        {
+            if (state == null || template == null || template.SkillPoolCandidates.Count == 0)
+                return;
+
+            var deck = new List<CardTemplate>();
+            EnemyDeckBuilder.ApplySkillPoolEntries(deck, template.SkillPoolCandidates);
+            var drawPile = state.GetDrawPile(team);
+            foreach (var cardTemplate in deck)
+            {
+                var instance = CreateDeckCardInstance(state, cardTemplate);
+                drawPile.Add(instance);
+            }
+
+            DeckRules.ShuffleDrawPile(state, team, rng, events);
+        }
+
+        public static CardInstanceState CreateDeckCardInstance(BattleState state, CardTemplate template)
+        {
+            var id = state.NextCardInstanceId++;
+            var card = new CardInstanceState
+            {
+                InstanceId = id,
+                DefinitionId = template.DefinitionId,
+                OwnerCharacterId = template.OwnerCharacterId,
+                Cost = template.Cost,
+                CardType = template.CardType,
+                DisplayName = template.DisplayName,
+                IsUsable = true
+            };
+
+            card.Keywords.AddRange(template.Keywords);
+            foreach (var action in template.Actions)
+                card.Actions.Add(EffectActionSpec.Clone(action));
+
+            state.CardsById[id] = card;
+            return card;
         }
 
         public static void SelfDestruct(BattleState state, CombatantState actor, List<BattleEvent> events)

@@ -42,6 +42,20 @@ MonoBehaviour:
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0
+    HitCount: 1
+    AlternateAttackScalePercent: 0
+    AlternateValue: 0
+    UseAlternateIfTargetHasDebuff: 0
+    AlternateAttackScaleIfActorUsedAttack: 0
+    AlternateValueIfActorUsedAttack: 0
+    DamageMultiplierPercentIfRespondArmed: 100
+    SelfDamageFlat: 0
+    RepeatPerEnemyAttackCardThisTurn: 0
+    FallbackBlockDefenseScalePercent: 100
+    FallbackBlockValue: 0
+    SummonCharacterId: 
+    GrantInvulnerableOnRespondArm: 0
+    LifestealUnblockedOnly: 0
   - Type: 1
     Target: 10
     Value: 0
@@ -64,6 +78,20 @@ MonoBehaviour:
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0
+    HitCount: 1
+    AlternateAttackScalePercent: 0
+    AlternateValue: 0
+    UseAlternateIfTargetHasDebuff: 0
+    AlternateAttackScaleIfActorUsedAttack: 0
+    AlternateValueIfActorUsedAttack: 0
+    DamageMultiplierPercentIfRespondArmed: 100
+    SelfDamageFlat: 0
+    RepeatPerEnemyAttackCardThisTurn: 0
+    FallbackBlockDefenseScalePercent: 100
+    FallbackBlockValue: 0
+    SummonCharacterId: 
+    GrantInvulnerableOnRespondArm: 0
+    LifestealUnblockedOnly: 0
   - Type: 1
     Target: 11
     Value: 0
@@ -86,6 +114,20 @@ MonoBehaviour:
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0
+    HitCount: 1
+    AlternateAttackScalePercent: 0
+    AlternateValue: 0
+    UseAlternateIfTargetHasDebuff: 0
+    AlternateAttackScaleIfActorUsedAttack: 0
+    AlternateValueIfActorUsedAttack: 0
+    DamageMultiplierPercentIfRespondArmed: 100
+    SelfDamageFlat: 0
+    RepeatPerEnemyAttackCardThisTurn: 0
+    FallbackBlockDefenseScalePercent: 100
+    FallbackBlockValue: 0
+    SummonCharacterId: 
+    GrantInvulnerableOnRespondArm: 0
+    LifestealUnblockedOnly: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

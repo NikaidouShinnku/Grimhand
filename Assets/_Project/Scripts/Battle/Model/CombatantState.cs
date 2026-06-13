@@ -50,6 +50,33 @@ namespace Grimhand.Battle.Model
         public bool GhostQueenEnrageTriggered { get; set; }
         public bool SkipRemainingPlaysThisTurn { get; set; }
 
+        /// <summary>血怒层数（绿皮巨魔）。</summary>
+        public int BloodRageStacks { get; set; }
+
+        /// <summary>本回合首次受击闪避（巨翼蝙蝠）。</summary>
+        public bool FirstHitDodgePending { get; set; } = true;
+
+        /// <summary>本回合剩余时间无敌（幽灵隐身应对）。</summary>
+        public bool InvulnerableRestOfTurn { get; set; }
+
+        /// <summary>上一完整回合是否受过 HP 伤害（史莱姆再生）。</summary>
+        public bool TookDamageLastTurn { get; set; }
+
+        /// <summary>本场已结算卡牌数（骷髅特性）。</summary>
+        public int CardsResolvedCount { get; set; }
+
+        /// <summary>幽灵精英低血虚化是否已触发。</summary>
+        public bool WraithEliteEnrageTriggered { get; set; }
+
+        /// <summary>本回合是否处于应对武装（偷袭增伤等）。</summary>
+        public bool RespondArmedThisTurn { get; set; }
+
+        /// <summary>额外闪避率（暗影闪避等）。</summary>
+        public float DodgeChanceBonus { get; set; }
+
+        /// <summary>低血速度加成已应用的数值。</summary>
+        public int LowHpSpeedBonusApplied { get; set; }
+
         public bool IsAlive => Hp > 0;
 
         public bool IsCardsLocked => CardsLockedTurnsRemaining > 0;

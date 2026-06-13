@@ -24,8 +24,5 @@ MonoBehaviour:
   Deck:
   - {fileID: 11400000, guid: 1c84cbeb194ed1847b770b9c5afcb424, type: 2}
   SkillPool: []
-  EnemyRandomDeckSize: 1
-  EnemySkillPickMin: 0
-  EnemySkillPickMax: 0
   Traits:
   - skull_self_destruct_hand

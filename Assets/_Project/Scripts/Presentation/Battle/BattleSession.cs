@@ -594,7 +594,7 @@ namespace Grimhand.Presentation.Battle
             var config = new ExpeditionConfig
             {
                 RunSeed = UnityEngine.Random.Range(1, int.MaxValue),
-                TargetBattleCount = 3,
+                TargetBattleCount = 19,
                 RoutesPerVictory = 3,
                 GoldMinPerVictory = 15,
                 GoldMaxPerVictory = 25
@@ -604,6 +604,7 @@ namespace Grimhand.Presentation.Battle
                 ? BattleSetup.ToBattleConfig()
                 : DemoBattleFactory.CreateDefault3v3();
             config.CombatEncounters.Add(encounter);
+            MonsterTemplateBootstrap.EnsureMonsterTemplates(config);
             return config;
         }
 

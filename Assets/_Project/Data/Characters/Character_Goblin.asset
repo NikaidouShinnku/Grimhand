@@ -23,11 +23,10 @@ MonoBehaviour:
   Speed: 5
   Deck: []
   SkillPool:
-  - {fileID: 11400000, guid: aef4fbff2aece5041975e8ba3ecc12d2, type: 2}
   - {fileID: 11400000, guid: 9edb9d9455511a24f99cde88640980e5, type: 2}
-  - {fileID: 11400000, guid: 60cb8c1c6591bcc46a25f4d718e2e4d4, type: 2}
+  - {fileID: 11400000, guid: 9edb9d9455511a24f99cde88640980e5, type: 2}
+  - {fileID: 11400000, guid: 7d8552035756d77498fa393f7dd36c11, type: 2}
+  - {fileID: 11400000, guid: 7d8552035756d77498fa393f7dd36c11, type: 2}
   - {fileID: 11400000, guid: 48e865e5b9e12844c8737a98abd4f4e6, type: 2}
-  EnemyRandomDeckSize: 8
-  EnemySkillPickMin: 2
-  EnemySkillPickMax: 4
+  - {fileID: 11400000, guid: 48e865e5b9e12844c8737a98abd4f4e6, type: 2}
   Traits: []

@@ -28,6 +28,20 @@ namespace Grimhand.Content
         public int LifestealPercent;
         public int HealMaxHpPercent;
         public int OnKillHealAmount;
+        public int HitCount = 1;
+        public int AlternateAttackScalePercent;
+        public int AlternateValue;
+        public bool UseAlternateIfTargetHasDebuff;
+        public int AlternateAttackScaleIfActorUsedAttack;
+        public int AlternateValueIfActorUsedAttack;
+        public int DamageMultiplierPercentIfRespondArmed = 100;
+        public int SelfDamageFlat;
+        public int RepeatPerEnemyAttackCardThisTurn;
+        public int FallbackBlockDefenseScalePercent = 100;
+        public int FallbackBlockValue;
+        public string SummonCharacterId = "";
+        public bool GrantInvulnerableOnRespondArm;
+        public bool LifestealUnblockedOnly;
 
         public EffectActionSpec ToSpec()
         {
@@ -54,7 +68,21 @@ namespace Grimhand.Content
                 BonusIfTargetHitThisTurnPercent = BonusIfTargetHitThisTurnPercent,
                 LifestealPercent = LifestealPercent,
                 HealMaxHpPercent = HealMaxHpPercent,
-                OnKillHealAmount = OnKillHealAmount
+                OnKillHealAmount = OnKillHealAmount,
+                HitCount = HitCount,
+                AlternateAttackScalePercent = AlternateAttackScalePercent,
+                AlternateValue = AlternateValue,
+                UseAlternateIfTargetHasDebuff = UseAlternateIfTargetHasDebuff,
+                AlternateAttackScaleIfActorUsedAttack = AlternateAttackScaleIfActorUsedAttack,
+                AlternateValueIfActorUsedAttack = AlternateValueIfActorUsedAttack,
+                DamageMultiplierPercentIfRespondArmed = DamageMultiplierPercentIfRespondArmed,
+                SelfDamageFlat = SelfDamageFlat,
+                RepeatPerEnemyAttackCardThisTurn = RepeatPerEnemyAttackCardThisTurn,
+                FallbackBlockDefenseScalePercent = FallbackBlockDefenseScalePercent,
+                FallbackBlockValue = FallbackBlockValue,
+                SummonCharacterId = SummonCharacterId,
+                GrantInvulnerableOnRespondArm = GrantInvulnerableOnRespondArm,
+                LifestealUnblockedOnly = LifestealUnblockedOnly
             };
         }
 
@@ -83,7 +111,21 @@ namespace Grimhand.Content
                 BonusIfTargetHitThisTurnPercent = spec.BonusIfTargetHitThisTurnPercent,
                 LifestealPercent = spec.LifestealPercent,
                 HealMaxHpPercent = spec.HealMaxHpPercent,
-                OnKillHealAmount = spec.OnKillHealAmount
+                OnKillHealAmount = spec.OnKillHealAmount,
+                HitCount = spec.HitCount,
+                AlternateAttackScalePercent = spec.AlternateAttackScalePercent,
+                AlternateValue = spec.AlternateValue,
+                UseAlternateIfTargetHasDebuff = spec.UseAlternateIfTargetHasDebuff,
+                AlternateAttackScaleIfActorUsedAttack = spec.AlternateAttackScaleIfActorUsedAttack,
+                AlternateValueIfActorUsedAttack = spec.AlternateValueIfActorUsedAttack,
+                DamageMultiplierPercentIfRespondArmed = spec.DamageMultiplierPercentIfRespondArmed,
+                SelfDamageFlat = spec.SelfDamageFlat,
+                RepeatPerEnemyAttackCardThisTurn = spec.RepeatPerEnemyAttackCardThisTurn,
+                FallbackBlockDefenseScalePercent = spec.FallbackBlockDefenseScalePercent,
+                FallbackBlockValue = spec.FallbackBlockValue,
+                SummonCharacterId = spec.SummonCharacterId,
+                GrantInvulnerableOnRespondArm = spec.GrantInvulnerableOnRespondArm,
+                LifestealUnblockedOnly = spec.LifestealUnblockedOnly
             };
         }
     }

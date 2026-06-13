@@ -9,20 +9,26 @@ namespace Grimhand.Battle.Reactions
         public int MitigationPercent { get; set; }
         public bool RedirectDoubleToRandomAlly { get; set; }
         public bool Consumed { get; set; }
+        public bool GrantInvulnerableUntilTurnEnd { get; set; }
     }
 
     /// <summary>敌方防御牌【应对攻击】：出牌后武装，下次受到玩家攻击时生效。</summary>
     public static class DefenderRespondArmRules
     {
-        public static void ArmMitigation(BattleState state, string defenderId, int mitigationPercent)
+        public static void ArmMitigation(
+            BattleState state,
+            string defenderId,
+            int mitigationPercent,
+            bool grantInvulnerableUntilTurnEnd = false)
         {
-            if (state == null || mitigationPercent <= 0 || string.IsNullOrEmpty(defenderId))
+            if (state == null || string.IsNullOrEmpty(defenderId))
                 return;
 
             state.DefenderRespondArms.Add(new DefenderRespondArm
             {
                 DefenderId = defenderId,
-                MitigationPercent = mitigationPercent
+                MitigationPercent = mitigationPercent,
+                GrantInvulnerableUntilTurnEnd = grantInvulnerableUntilTurnEnd
             });
         }
 
@@ -52,7 +58,8 @@ namespace Grimhand.Battle.Reactions
                     && action.Condition == ReactionConditionType.LastActionAttackOnSelf
                     && action.Value > 0)
                 {
-                    ArmMitigation(state, actor.Id, action.Value);
+                    ArmMitigation(state, actor.Id, action.Value, action.GrantInvulnerableOnRespondArm);
+                    actor.RespondArmedThisTurn = true;
                     return;
                 }
 
@@ -96,6 +103,9 @@ namespace Grimhand.Battle.Reactions
                 hpDamage = (int)System.Math.Round(hpDamage * (100 - arm.MitigationPercent) / 100f);
                 mitigatedAmount = before - hpDamage;
             }
+
+            if (arm.GrantInvulnerableUntilTurnEnd)
+                recipient.InvulnerableRestOfTurn = true;
 
             return true;
         }

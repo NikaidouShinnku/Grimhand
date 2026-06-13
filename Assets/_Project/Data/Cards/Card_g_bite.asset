@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: g_bite
   DisplayName: "\u6495\u54AC"
-  OwnerCharacterId: char_skeleton_elite
+  OwnerCharacterId: char_goblin
   Cost: 1
   CardType: 0
   Rarity: 0
@@ -43,6 +43,20 @@ MonoBehaviour:
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0
+    HitCount: 1
+    AlternateAttackScalePercent: 0
+    AlternateValue: 0
+    UseAlternateIfTargetHasDebuff: 0
+    AlternateAttackScaleIfActorUsedAttack: 0
+    AlternateValueIfActorUsedAttack: 0
+    DamageMultiplierPercentIfRespondArmed: 100
+    SelfDamageFlat: 0
+    RepeatPerEnemyAttackCardThisTurn: 0
+    FallbackBlockDefenseScalePercent: 100
+    FallbackBlockValue: 0
+    SummonCharacterId: 
+    GrantInvulnerableOnRespondArm: 0
+    LifestealUnblockedOnly: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

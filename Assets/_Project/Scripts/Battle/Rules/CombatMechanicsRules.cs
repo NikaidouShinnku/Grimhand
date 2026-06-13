@@ -139,6 +139,52 @@ namespace Grimhand.Battle.Rules
             return power;
         }
 
+        public static int ComputeActionValueForTarget(
+            BattleState state,
+            EffectActionSpec action,
+            CombatantState owner,
+            CombatantState target)
+        {
+            if (action == null)
+                return 0;
+
+            var useAlternateDebuff = action.UseAlternateIfTargetHasDebuff
+                                     && target != null
+                                     && StatusRules.HasDebuff(target);
+            var useAlternateAttack = action.AlternateAttackScaleIfActorUsedAttack > 0
+                                     && owner != null
+                                     && owner.UsedAttackThisTurn;
+
+            var working = EffectActionSpec.Clone(action);
+            if (useAlternateDebuff)
+            {
+                working.Value = action.AlternateValue;
+                working.AttackScalePercent = action.AlternateAttackScalePercent > 0
+                    ? action.AlternateAttackScalePercent
+                    : action.AttackScalePercent;
+            }
+            else if (useAlternateAttack)
+            {
+                working.Value = action.AlternateValueIfActorUsedAttack;
+                working.AttackScalePercent = action.AlternateAttackScaleIfActorUsedAttack;
+            }
+
+            var power = CardPowerRules.ComputeActionValue(working, owner);
+
+            if (action.DamageMultiplierPercentIfRespondArmed > 0
+                && action.DamageMultiplierPercentIfRespondArmed != 100
+                && owner != null
+                && (owner.RespondArmedThisTurn || owner.DodgeChanceBonus > 0f))
+            {
+                power = Math.Max(1, (int)Math.Round(power * action.DamageMultiplierPercentIfRespondArmed / 100f));
+            }
+
+            if (owner != null && action.Type == EffectActionType.DealDamage)
+                power = MinionTraitRules.ApplyBloodRageOutgoingBonus(owner, CardType.Attack, power);
+
+            return power;
+        }
+
         public static int ComputeHpDamageAfterDefense(int afterBlock, int effectiveDefense)
         {
             if (afterBlock <= 0)
@@ -202,7 +248,7 @@ namespace Grimhand.Battle.Rules
                 return;
 
             var heal = Math.Max(1, (int)Math.Round(damageDealt * lifestealPercent / 100f));
-            DamageRules.ApplyHeal(state, actor, heal, events, actor);
+            DamageRules.ApplyHeal(state, actor, heal, events, actor, isLifesteal: true);
         }
 
         public static int GetPendingLifestealPercent(CombatantState actor)

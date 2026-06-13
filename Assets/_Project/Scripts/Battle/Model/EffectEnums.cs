@@ -25,7 +25,11 @@ namespace Grimhand.Battle.Model
         /// <summary>下回合玩家能量回复减少 Value 点。</summary>
         ReducePlayerEnergyRegenNextTurn,
         /// <summary>敌方应对：下次受到玩家攻击时将伤害×2并转嫁给随机队友。</summary>
-        ArmRespondDamageRedirect
+        ArmRespondDamageRedirect,
+        /// <summary>有空位则召唤 SummonCharacterId，否则获得 DEF 缩放护甲。</summary>
+        SummonOrGainBlock,
+        /// <summary>获得闪避率（写入 DodgeChanceBonus，持续若干回合）。</summary>
+        GrantDodgeChance
     }
 
     public enum EffectTarget

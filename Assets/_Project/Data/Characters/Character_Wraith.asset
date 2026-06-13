@@ -23,11 +23,11 @@ MonoBehaviour:
   Speed: 7
   Deck: []
   SkillPool:
+  - {fileID: 11400000, guid: 2b02c9c1503f77b4bb88b9cacb046b7e, type: 2}
+  - {fileID: 11400000, guid: 2b02c9c1503f77b4bb88b9cacb046b7e, type: 2}
+  - {fileID: 11400000, guid: 6265e721dd5c9224eaaaafea42808b98, type: 2}
+  - {fileID: 11400000, guid: a747bea1264c21f4a9aabda1b3ba408c, type: 2}
   - {fileID: 11400000, guid: a747bea1264c21f4a9aabda1b3ba408c, type: 2}
   - {fileID: 11400000, guid: c8f1929b106d02341ac9b848cac4d0ea, type: 2}
-  - {fileID: 11400000, guid: 6265e721dd5c9224eaaaafea42808b98, type: 2}
-  - {fileID: 11400000, guid: 2b02c9c1503f77b4bb88b9cacb046b7e, type: 2}
-  EnemyRandomDeckSize: 8
-  EnemySkillPickMin: 2
-  EnemySkillPickMax: 4
-  Traits: []
+  Traits:
+  - minion_wraith_low_hp_speed

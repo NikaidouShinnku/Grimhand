@@ -373,6 +373,7 @@ namespace Grimhand.Battle
             StatusRules.ProcessTurnStartStatuses(_state, _events);
             RelicEffectRules.ProcessTurnStart(_state, _rng, _events);
             BossTraitRules.ProcessTurnStart(_state, _events);
+            MinionTraitRules.ProcessTurnStart(_state, _events);
             foreach (var combatant in _state.Combatants)
                 AnubisAvatarRules.ProcessTurnStart(combatant);
             EvaluateOutcome();
@@ -527,6 +528,8 @@ namespace Grimhand.Battle
                 combatant.Traits.AddRange(cc.Traits);
                 if (BossTraitRules.HasTrait(combatant, CharacterTraitCatalog.BossFirstHitBlock))
                     combatant.BossFirstHitBlockPending = true;
+                if (MinionTraitRules.HasTrait(combatant, MinionTraitCatalog.BatFirstHitDodge))
+                    combatant.FirstHitDodgePending = true;
                 _state.Combatants.Add(combatant);
             }
 
@@ -549,6 +552,9 @@ namespace Grimhand.Battle
 
             RelicBattleRules.RefreshAllDerivedStats(_state);
             RelicBattleRules.ApplyTeamHpBonus(_state, config.RunModifiers);
+
+            foreach (var combatant in _state.Combatants)
+                MinionTraitRules.RefreshLowHpSpeed(_state, combatant);
 
             ApplyBattleStartRelicEffects(config.RunModifiers);
 
@@ -650,33 +656,6 @@ namespace Grimhand.Battle
             return card;
         }
 
-        static EffectActionSpec CloneAction(EffectActionSpec source)
-        {
-            return new EffectActionSpec
-            {
-                Type = source.Type,
-                Target = source.Target,
-                Value = source.Value,
-                StatusId = source.StatusId,
-                Stacks = source.Stacks,
-                Duration = source.Duration,
-                ScaleWithAttack = source.ScaleWithAttack,
-                ScaleWithDefense = source.ScaleWithDefense,
-                AttackScalePercent = source.AttackScalePercent,
-                DefenseScalePercent = source.DefenseScalePercent,
-                Condition = source.Condition,
-                Reach = source.Reach,
-                SplashBehindTarget = source.SplashBehindTarget,
-                SplashPowerPercent = source.SplashPowerPercent,
-                BackRowPowerPercent = source.BackRowPowerPercent,
-                IgnoreDefPercent = source.IgnoreDefPercent,
-                BonusIfTargetHpBelowPercent = source.BonusIfTargetHpBelowPercent,
-                BonusIfTargetHpBelowFlat = source.BonusIfTargetHpBelowFlat,
-                BonusIfTargetHitThisTurnPercent = source.BonusIfTargetHitThisTurnPercent,
-                LifestealPercent = source.LifestealPercent,
-                HealMaxHpPercent = source.HealMaxHpPercent,
-                OnKillHealAmount = source.OnKillHealAmount
-            };
-        }
+        static EffectActionSpec CloneAction(EffectActionSpec source) => EffectActionSpec.Clone(source);
     }
 }

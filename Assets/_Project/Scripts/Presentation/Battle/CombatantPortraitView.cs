@@ -13,6 +13,7 @@ namespace Grimhand.Presentation.Battle
     {
         static readonly Color DeadTint = new(0.35f, 0.35f, 0.35f, 1f);
         static readonly Color HitFlashTint = new(1f, 0.55f, 0.55f, 1f);
+        static readonly Color HealFlashTint = new(0.45f, 1f, 0.55f, 1f);
 
         const float MoveDuration = 0.35f;
         const float PoseHoldDuration = 1f;
@@ -272,6 +273,26 @@ namespace Grimhand.Presentation.Battle
         public void ShowDodgeNumber()
         {
             ShowDodge();
+        }
+
+        public IEnumerator PlayHealFlash(float duration = 0.55f)
+        {
+            if (_isDead || portraitImage == null)
+                yield break;
+
+            _isAnimating = true;
+            duration = BattlePresentationSpeed.ScaleDuration(duration);
+            var elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                var t = Mathf.PingPong(elapsed * 3f, 1f);
+                portraitImage.color = Color.Lerp(_isDead ? DeadTint : Color.white, HealFlashTint, t * 0.65f);
+                yield return null;
+            }
+
+            portraitImage.color = _isDead ? DeadTint : Color.white;
+            _isAnimating = false;
         }
 
         public IEnumerator PlayOverlayEffect(Sprite sprite, float duration = ActionEffectDuration)

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
+using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 using UnityEngine;
 
@@ -12,10 +13,10 @@ namespace Grimhand.Content
         public int RunSeed = 0;
 
         [Tooltip("大关层数（顶层为 Boss）。")]
-        public int ChapterLayerCount = 10;
+        public int ChapterLayerCount = 20;
 
-        [Tooltip("通关所需节点数（不含起始选路；默认等于层数-1）。")]
-        public int TargetBattleCount = 9;
+        [Tooltip("通关所需节点数（不含起始选路；默认等于层数-1，第 20 层为 Boss）。")]
+        public int TargetBattleCount = 19;
 
         [Tooltip("每场胜利后提供的路线数量。")]
         public int RoutesPerVictory = 3;
@@ -50,6 +51,9 @@ namespace Grimhand.Content
 
         [Tooltip("Boss 遭遇（第 10 层等）；留空则 Boss 路线回退为 CombatEncounters[0]。")]
         public List<BattleSetupSO> BossEncounters = new();
+
+        [Tooltip("远征小怪角色模板（组合遭遇从此选取）。")]
+        public List<CharacterDefinitionSO> MonsterCharacters = new();
 
         [Tooltip("商店/奖励可 roll 的全部玩家卡牌（含非初始牌组）；留空则回退为遭遇配置中的初始牌。")]
         public List<CardDefinitionSO> PlayerCardCatalog = new();
@@ -103,6 +107,18 @@ namespace Grimhand.Content
 
                 config.PlayerCardCatalog.Add(card.ToTemplate());
             }
+
+            foreach (var monster in MonsterCharacters)
+            {
+                if (monster == null || string.IsNullOrEmpty(monster.CharacterId))
+                    continue;
+
+                MonsterTemplateRegistry.TryAddTemplate(
+                    config,
+                    BattleSetupSO.BuildCombatantConfigPublic(monster));
+            }
+
+            MonsterTemplateBootstrap.EnsureMonsterTemplates(config, this);
 
             return config;
         }

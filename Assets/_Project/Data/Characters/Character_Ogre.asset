@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84c30176d181a5747a85983cdd126a0c, type: 3}
+  m_Name: Character_Ogre
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
+  CharacterId: char_ogre
+  DisplayName: "\u7EFF\u76AE\u5DE8\u9B54"
+  Team: 1
+  Slot: 1
+  Level: 1
+  MaxHp: 75
+  BaseAttack: 12
+  BaseDefense: 8
+  Speed: 3
+  Deck: []
+  SkillPool:
+  - {fileID: 11400000, guid: 0fef82cad3bf0d34181e08bb08d96b9b, type: 2}
+  - {fileID: 11400000, guid: 0fef82cad3bf0d34181e08bb08d96b9b, type: 2}
+  - {fileID: 11400000, guid: 02cbefb3b37bdc045af365fbe87a7cb4, type: 2}
+  - {fileID: 11400000, guid: 02cbefb3b37bdc045af365fbe87a7cb4, type: 2}
+  - {fileID: 11400000, guid: bb84864d6da2b7e42854ff5aca8bdaf0, type: 2}
+  - {fileID: 11400000, guid: bb84864d6da2b7e42854ff5aca8bdaf0, type: 2}
+  - {fileID: 11400000, guid: 5acf34a6b75bf0042a0b30b0042d146a, type: 2}
+  - {fileID: 11400000, guid: 9056cf7a648884c468fb9715c6dba1f3, type: 2}
+  Traits:
+  - minion_ogre_blood_rage

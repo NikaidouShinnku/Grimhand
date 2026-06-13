@@ -60,6 +60,8 @@ namespace Grimhand.Battle.Events
         public bool HadRespondDefense { get; set; }
         public bool IsSacrificeDamage { get; set; }
         public bool IsAoEWave { get; set; }
+        /// <summary>吸血回复（用于播放专属治疗特效）。</summary>
+        public bool IsLifesteal { get; set; }
         public CardType CardType { get; set; }
         public BattleOutcome Outcome { get; set; }
         public bool DeferPresentation { get; set; }

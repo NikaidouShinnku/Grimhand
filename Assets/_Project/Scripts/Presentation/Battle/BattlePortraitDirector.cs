@@ -137,13 +137,7 @@ namespace Grimhand.Presentation.Battle
                             ApplySnapshotAfterBlockGain(e.CombatantId, e.Amount);
                             break;
                         case BattleEventKind.HealApplied:
-                            ApplySnapshotAfterHeal(e.CombatantId, e.Amount);
-                            if (_portraits.TryGetValue(e.CombatantId, out var healed))
-                            {
-                                yield return PlayHealEffect(healed);
-                                healed.ShowHealNumber(e.Amount);
-                            }
-
+                            yield return PlayHealPresentation(e);
                             break;
                         case BattleEventKind.StatusApplied:
                             yield return HandleStatusApplied(e);
@@ -341,12 +335,29 @@ namespace Grimhand.Presentation.Battle
             yield return target.PlayOverlayEffect(statusFx);
         }
 
-        IEnumerator PlayHealEffect(CombatantPortraitView target)
+        IEnumerator PlayHealEffect(CombatantPortraitView target, bool isLifesteal = false)
         {
-            if (_effects?.Healing == null)
+            if (target == null)
                 yield break;
 
-            yield return target.PlayOverlayEffect(_effects.Healing);
+            if (_effects?.Healing != null)
+            {
+                var duration = isLifesteal ? 0.75f : 0.55f;
+                yield return target.PlayOverlayEffect(_effects.Healing, duration);
+                yield break;
+            }
+
+            yield return target.PlayHealFlash();
+        }
+
+        IEnumerator PlayHealPresentation(BattleEvent e)
+        {
+            ApplySnapshotAfterHeal(e.CombatantId, e.Amount);
+            if (!_portraits.TryGetValue(e.CombatantId, out var healed))
+                yield break;
+
+            yield return PlayHealEffect(healed, e.IsLifesteal);
+            healed.ShowHealNumber(e.Amount);
         }
 
         IEnumerator PlayBlockingEffect(CombatantPortraitView target)
@@ -491,13 +502,7 @@ namespace Grimhand.Presentation.Battle
                     ApplySnapshotAfterBlockGain(e.CombatantId, e.Amount);
                     break;
                 case BattleEventKind.HealApplied:
-                    ApplySnapshotAfterHeal(e.CombatantId, e.Amount);
-                    if (_portraits.TryGetValue(e.CombatantId, out var healed))
-                    {
-                        yield return PlayHealEffect(healed);
-                        healed.ShowHealNumber(e.Amount);
-                    }
-
+                    yield return PlayHealPresentation(e);
                     break;
                 case BattleEventKind.StatusApplied:
                     yield return HandleStatusApplied(e);
@@ -608,11 +613,11 @@ namespace Grimhand.Presentation.Battle
                 if (unit != null)
                     target.SetIdentity(e.CombatantId, unit.CharacterDefinitionId, true, unit.Team);
 
+                yield return PlayHealEffect(target);
                 target.ShowHealNumber(e.Amount);
             }
 
             _screen?.Refresh();
-            yield return null;
         }
 
         static bool IsDodgeEvent(BattleEvent e) =>

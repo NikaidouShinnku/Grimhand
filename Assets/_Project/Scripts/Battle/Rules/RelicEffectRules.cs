@@ -209,6 +209,9 @@ namespace Grimhand.Battle.Rules
                 TryProcAttackBurn(state, actor, card, events, rng);
 
             OnSacrificeCardResolved(state, actor, card, events, rng);
+            MinionTraitRules.OnCardResolved(state, actor, card, events);
+            if (card.CardType == CardType.Attack)
+                MinionTraitRules.ConsumeBloodRageAfterAttack(actor, card.CardType);
         }
 
         public static void OnEnemyKilled(
@@ -275,6 +278,7 @@ namespace Grimhand.Battle.Rules
                 return false;
 
             var dodge = state?.ConsumableDodgeBonusThisTurn ?? 0f;
+            dodge += target.DodgeChanceBonus;
             if (mods != null && target.Team == TeamSide.Player)
                 dodge += mods.DodgeChanceOnHit;
 

@@ -78,7 +78,8 @@ namespace Grimhand.Presentation
             var config = new ExpeditionConfig
             {
                 RunSeed = Random.Range(1, int.MaxValue),
-                TargetBattleCount = 3,
+                ChapterLayerCount = 20,
+                TargetBattleCount = 19,
                 RoutesPerVictory = 3
             };
 
@@ -86,6 +87,7 @@ namespace Grimhand.Presentation
                 ? battleSetup.ToBattleConfig()
                 : DemoBattleFactory.CreateDefault3v3();
             config.CombatEncounters.Add(encounter);
+            MonsterTemplateBootstrap.EnsureMonsterTemplates(config);
             return config;
         }
 

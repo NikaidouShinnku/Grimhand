@@ -36,8 +36,5 @@ MonoBehaviour:
   - {fileID: 11400000, guid: f903aa87f112ff442be04a96f72c3908, type: 2}
   - {fileID: 11400000, guid: 58131e60747cc8c448191e4e43650864, type: 2}
   SkillPool: []
-  EnemyRandomDeckSize: 13
-  EnemySkillPickMin: 0
-  EnemySkillPickMax: 0
   Traits:
   - ghost_queen_enrage

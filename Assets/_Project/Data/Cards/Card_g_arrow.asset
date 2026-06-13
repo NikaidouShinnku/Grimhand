@@ -15,9 +15,9 @@ MonoBehaviour:
   CardId: g_arrow
   DisplayName: "\u7BAD\u77E2"
   OwnerCharacterId: char_wraith
-  Cost: 1
+  Cost: 2
   CardType: 0
-  Rarity: 1
+  Rarity: 0
   Keywords:
   - far_shot
   Actions:
@@ -35,7 +35,7 @@ MonoBehaviour:
     Reach: 0
     SplashBehindTarget: 0
     SplashPowerPercent: 100
-    BackRowPowerPercent: 80
+    BackRowPowerPercent: 130
     IgnoreDefPercent: 0
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
@@ -43,6 +43,20 @@ MonoBehaviour:
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0
+    HitCount: 1
+    AlternateAttackScalePercent: 0
+    AlternateValue: 0
+    UseAlternateIfTargetHasDebuff: 0
+    AlternateAttackScaleIfActorUsedAttack: 0
+    AlternateValueIfActorUsedAttack: 0
+    DamageMultiplierPercentIfRespondArmed: 100
+    SelfDamageFlat: 0
+    RepeatPerEnemyAttackCardThisTurn: 0
+    FallbackBlockDefenseScalePercent: 100
+    FallbackBlockValue: 0
+    SummonCharacterId: 
+    GrantInvulnerableOnRespondArm: 0
+    LifestealUnblockedOnly: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

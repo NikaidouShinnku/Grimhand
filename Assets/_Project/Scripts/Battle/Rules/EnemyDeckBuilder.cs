@@ -45,26 +45,7 @@ namespace Grimhand.Battle.Rules
             };
             copy.Keywords.AddRange(source.Keywords);
             foreach (var action in source.Actions)
-            {
-                copy.Actions.Add(new EffectActionSpec
-                {
-                    Type = action.Type,
-                    Target = action.Target,
-                    Value = action.Value,
-                    StatusId = action.StatusId,
-                    Stacks = action.Stacks,
-                    Duration = action.Duration,
-                    ScaleWithAttack = action.ScaleWithAttack,
-                    ScaleWithDefense = action.ScaleWithDefense,
-                    AttackScalePercent = action.AttackScalePercent,
-                    DefenseScalePercent = action.DefenseScalePercent,
-                    Condition = action.Condition,
-                    Reach = action.Reach,
-                    SplashBehindTarget = action.SplashBehindTarget,
-                    SplashPowerPercent = action.SplashPowerPercent,
-                    BackRowPowerPercent = action.BackRowPowerPercent
-                });
-            }
+                copy.Actions.Add(EffectActionSpec.Clone(action));
 
             return copy;
         }

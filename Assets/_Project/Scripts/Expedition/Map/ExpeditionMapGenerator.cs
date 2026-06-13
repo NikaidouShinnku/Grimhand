@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Grimhand.Core;
+using Grimhand.Expedition;
 using Grimhand.Expedition.Events;
 using Grimhand.Expedition.Model;
 
@@ -72,6 +73,8 @@ namespace Grimhand.Expedition.Map
 
                     row.Options[i].NodeType = types[i];
                     row.Options[i].IsElite = types[i] == ExpeditionNodeType.Elite;
+                    if (types[i] is ExpeditionNodeType.Combat or ExpeditionNodeType.Elite)
+                        AssignMonsterEncounter(row.Options[i], row.LayerNumber, rng);
                     FillOptionMeta(row.Options[i], row.LayerNumber, i, config, run, rng);
                 }
             }
@@ -125,7 +128,7 @@ namespace Grimhand.Expedition.Map
         static List<ExpeditionNodeType> BuildPool(int layer, GenState state)
         {
             var pool = new List<ExpeditionNodeType>();
-            var stage = layer <= 3 ? 0 : layer <= 6 ? 1 : 2;
+            var stage = layer <= 7 ? 0 : layer <= 14 ? 1 : 2;
 
             AddWeighted(pool, ExpeditionNodeType.Combat, stage == 0 ? 45 : stage == 1 ? 35 : 25);
             if (layer >= 4)
@@ -154,13 +157,13 @@ namespace Grimhand.Expedition.Map
 
         static void ApplyGuarantees(int layer, int layerCount, List<ExpeditionNodeType> types, GenState state, BattleRng rng)
         {
-            if (layer is >= 3 and <= 7 && !state.MerchantPlaced && !types.Contains(ExpeditionNodeType.Shop))
+            if (layer is >= 3 and <= 10 && !state.MerchantPlaced && !types.Contains(ExpeditionNodeType.Shop))
             {
                 types[rng.NextIndex(types.Count)] = ExpeditionNodeType.Shop;
                 state.MerchantPlaced = true;
             }
 
-            if (layer is >= 4 and <= 9 && !state.ElitePlaced && !types.Contains(ExpeditionNodeType.Elite))
+            if (layer >= 4 && layer <= layerCount - 2 && !state.ElitePlaced && !types.Contains(ExpeditionNodeType.Elite))
             {
                 types[rng.NextIndex(types.Count)] = ExpeditionNodeType.Elite;
                 state.ElitePlaced = true;
@@ -183,18 +186,19 @@ namespace Grimhand.Expedition.Map
                 if (row == null || row.Options.Count == 0)
                     continue;
 
-                if (!state.MerchantPlaced && layer is >= 3 and <= 7)
+                if (!state.MerchantPlaced && layer is >= 3 and <= 10)
                 {
                     row.Options[0].NodeType = ExpeditionNodeType.Shop;
                     FillOptionMeta(row.Options[0], layer, 0, null, null, rng);
                     state.MerchantPlaced = true;
                 }
 
-                if (!state.ElitePlaced && layer is >= 4 and <= 9)
+                if (!state.ElitePlaced && layer >= 4 && layer <= map.ChapterLayerCount - 2)
                 {
                     var idx = System.Math.Min(1, row.Options.Count - 1);
                     row.Options[idx].NodeType = ExpeditionNodeType.Elite;
                     row.Options[idx].IsElite = true;
+                    AssignMonsterEncounter(row.Options[idx], layer, rng);
                     FillOptionMeta(row.Options[idx], layer, idx, null, null, rng);
                     state.ElitePlaced = true;
                 }
@@ -230,8 +234,21 @@ namespace Grimhand.Expedition.Map
                     : 0,
                 IsElite = type == ExpeditionNodeType.Elite
             };
+
+            if (type is ExpeditionNodeType.Combat or ExpeditionNodeType.Elite)
+                AssignMonsterEncounter(option, layer, rng);
+
             FillOptionMeta(option, layer, index, config, run, rng);
             return option;
+        }
+
+        static void AssignMonsterEncounter(ExpeditionMapOption option, int layer, BattleRng rng)
+        {
+            if (option == null || rng == null)
+                return;
+
+            option.IsElite = option.NodeType == ExpeditionNodeType.Elite;
+            option.MonsterEncounterId = MonsterEncounterCatalog.Roll(layer, option.IsElite, rng);
         }
 
         static void FillOptionMeta(
@@ -244,6 +261,10 @@ namespace Grimhand.Expedition.Map
         {
             switch (option.NodeType)
             {
+                case ExpeditionNodeType.Boss:
+                    option.DisplayName = "守关 Boss";
+                    option.Description = $"第 {layer} 层终局守关：骷髅王或幽灵女王。";
+                    break;
                 case ExpeditionNodeType.Combat:
                     option.DisplayName = Pick(ExpeditionNodeNames.Combat, layer, index);
                     option.Description = "普通战斗：获得经验与金币。";

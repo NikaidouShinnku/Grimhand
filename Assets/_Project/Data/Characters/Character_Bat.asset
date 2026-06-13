@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84c30176d181a5747a85983cdd126a0c, type: 3}
+  m_Name: Character_Bat
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
+  CharacterId: char_bat
+  DisplayName: "\u5DE8\u7FFC\u8759\u8760"
+  Team: 1
+  Slot: 2
+  Level: 1
+  MaxHp: 55
+  BaseAttack: 10
+  BaseDefense: 3
+  Speed: 9
+  Deck: []
+  SkillPool:
+  - {fileID: 11400000, guid: ce0d4326059cc654fb691d9c631da680, type: 2}
+  - {fileID: 11400000, guid: ce0d4326059cc654fb691d9c631da680, type: 2}
+  - {fileID: 11400000, guid: 021a8b84854b4d24e9823336c11581b9, type: 2}
+  - {fileID: 11400000, guid: b54c3debc81e94d4dae98ec910696936, type: 2}
+  - {fileID: 11400000, guid: b54c3debc81e94d4dae98ec910696936, type: 2}
+  - {fileID: 11400000, guid: 3a53696086c8dd04d976d25346ffa0f5, type: 2}
+  - {fileID: 11400000, guid: 517aa1610511cc34e84668d54231123c, type: 2}
+  - {fileID: 11400000, guid: 517aa1610511cc34e84668d54231123c, type: 2}
+  - {fileID: 11400000, guid: 107d39010bd603f46abb2250aa58ef19, type: 2}
+  Traits:
+  - minion_bat_first_hit_dodge

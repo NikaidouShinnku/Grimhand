@@ -50,5 +50,93 @@ namespace Grimhand.Battle.Model
 
         /// <summary>击杀目标后，施法者回复的 HP。</summary>
         public int OnKillHealAmount { get; set; }
+
+        /// <summary>同目标重复造成伤害的次数（如重拳打两次）。</summary>
+        public int HitCount { get; set; } = 1;
+
+        /// <summary>目标带负面状态时改用的 ATK 缩放百分比。</summary>
+        public int AlternateAttackScalePercent { get; set; }
+
+        /// <summary>目标带负面状态时改用的固定加值。</summary>
+        public int AlternateValue { get; set; }
+
+        /// <summary>为 true 时，目标有负面状态则改用 Alternate* 字段计算威力。</summary>
+        public bool UseAlternateIfTargetHasDebuff { get; set; }
+
+        /// <summary>本回合已出过攻击牌时改用的 ATK 缩放。</summary>
+        public int AlternateAttackScaleIfActorUsedAttack { get; set; }
+
+        /// <summary>本回合已出过攻击牌时改用的固定加值。</summary>
+        public int AlternateValueIfActorUsedAttack { get; set; }
+
+        /// <summary>处于应对武装状态时，最终威力 × 此百分比 / 100。</summary>
+        public int DamageMultiplierPercentIfRespondArmed { get; set; } = 100;
+
+        /// <summary>结算后对施法者造成固定自伤。</summary>
+        public int SelfDamageFlat { get; set; }
+
+        /// <summary>按本回合敌方已出的攻击牌次数，额外重复此伤害动作。</summary>
+        public int RepeatPerEnemyAttackCardThisTurn { get; set; }
+
+        /// <summary>召唤失败时 DEF 缩放护甲的百分比。</summary>
+        public int FallbackBlockDefenseScalePercent { get; set; } = 100;
+
+        /// <summary>召唤失败时的固定护甲加值。</summary>
+        public int FallbackBlockValue { get; set; }
+
+        /// <summary>SummonOrGainBlock 要召唤的角色定义 Id。</summary>
+        public string SummonCharacterId { get; set; } = "";
+
+        /// <summary>应对武装时额外赋予本回合无敌。</summary>
+        public bool GrantInvulnerableOnRespondArm { get; set; }
+
+        /// <summary>按实际 HP 伤害（非格挡部分）吸血。</summary>
+        public bool LifestealUnblockedOnly { get; set; }
+
+        public static EffectActionSpec Clone(EffectActionSpec source)
+        {
+            if (source == null)
+                return null;
+
+            return new EffectActionSpec
+            {
+                Type = source.Type,
+                Target = source.Target,
+                Value = source.Value,
+                StatusId = source.StatusId,
+                Stacks = source.Stacks,
+                Duration = source.Duration,
+                ScaleWithAttack = source.ScaleWithAttack,
+                ScaleWithDefense = source.ScaleWithDefense,
+                AttackScalePercent = source.AttackScalePercent,
+                DefenseScalePercent = source.DefenseScalePercent,
+                Condition = source.Condition,
+                Reach = source.Reach,
+                SplashBehindTarget = source.SplashBehindTarget,
+                SplashPowerPercent = source.SplashPowerPercent,
+                BackRowPowerPercent = source.BackRowPowerPercent,
+                IgnoreDefPercent = source.IgnoreDefPercent,
+                BonusIfTargetHpBelowPercent = source.BonusIfTargetHpBelowPercent,
+                BonusIfTargetHpBelowFlat = source.BonusIfTargetHpBelowFlat,
+                BonusIfTargetHitThisTurnPercent = source.BonusIfTargetHitThisTurnPercent,
+                LifestealPercent = source.LifestealPercent,
+                HealMaxHpPercent = source.HealMaxHpPercent,
+                OnKillHealAmount = source.OnKillHealAmount,
+                HitCount = source.HitCount,
+                AlternateAttackScalePercent = source.AlternateAttackScalePercent,
+                AlternateValue = source.AlternateValue,
+                UseAlternateIfTargetHasDebuff = source.UseAlternateIfTargetHasDebuff,
+                AlternateAttackScaleIfActorUsedAttack = source.AlternateAttackScaleIfActorUsedAttack,
+                AlternateValueIfActorUsedAttack = source.AlternateValueIfActorUsedAttack,
+                DamageMultiplierPercentIfRespondArmed = source.DamageMultiplierPercentIfRespondArmed,
+                SelfDamageFlat = source.SelfDamageFlat,
+                RepeatPerEnemyAttackCardThisTurn = source.RepeatPerEnemyAttackCardThisTurn,
+                FallbackBlockDefenseScalePercent = source.FallbackBlockDefenseScalePercent,
+                FallbackBlockValue = source.FallbackBlockValue,
+                SummonCharacterId = source.SummonCharacterId,
+                GrantInvulnerableOnRespondArm = source.GrantInvulnerableOnRespondArm,
+                LifestealUnblockedOnly = source.LifestealUnblockedOnly
+            };
+        }
     }
 }

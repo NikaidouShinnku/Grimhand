@@ -12,6 +12,7 @@ namespace Grimhand.Expedition
 
         public static void Apply(CombatantConfig combatant, int floor, BattleRng rng)
         {
+            // 层数加成仅作用于敌方；玩家只受等级、遗物、事件等影响。
             if (combatant == null || combatant.Team != TeamSide.Enemy || floor <= 1)
                 return;
 

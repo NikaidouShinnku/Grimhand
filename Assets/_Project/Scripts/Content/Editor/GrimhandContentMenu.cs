@@ -33,10 +33,9 @@ namespace Grimhand.Content.Editor
             var monsters = MonsterContentGenerator.Generate();
             RelicArtBinder.BindRelicArtSilent();
 
-            var setupClassic = SaveBattleSetup(
+            var setupClassic = SavePlayerBattleSetup(
                 "BattleSetup_Demo",
-                players.Warrior, players.Pharaoh, players.Demon,
-                monsters.Goblin, monsters.Skeleton, monsters.Wraith);
+                players.Warrior, players.Pharaoh, players.Demon);
 
             var setupSlimeMix = SaveBattleSetup(
                 "BattleSetup_Encounter_SlimeMix",
@@ -77,12 +76,23 @@ namespace Grimhand.Content.Editor
             }
 
             expedition.RunSeed = 0;
-            expedition.TargetBattleCount = 3;
+            expedition.ChapterLayerCount = 20;
+            expedition.TargetBattleCount = 19;
             expedition.RoutesPerVictory = 3;
             expedition.CombatEncounters.Clear();
             expedition.CombatEncounters.Add(setupClassic);
-            expedition.CombatEncounters.Add(setupSlimeMix);
-            expedition.CombatEncounters.Add(setupWraithPack);
+            expedition.MonsterCharacters.Clear();
+            expedition.MonsterCharacters.AddRange(new[]
+            {
+                monsters.Goblin,
+                monsters.Slime,
+                monsters.Skeleton,
+                monsters.SkeletonElite,
+                monsters.Wraith,
+                monsters.WraithElite,
+                monsters.Ogre,
+                monsters.Bat
+            });
             expedition.BossEncounters.Clear();
             expedition.BossEncounters.Add(setupSkeletonKingBoss);
             expedition.BossEncounters.Add(setupGhostQueenBoss);
@@ -398,6 +408,30 @@ namespace Grimhand.Content.Editor
             foreach (var part in parts)
                 list.AddRange(part);
             return list.ToArray();
+        }
+
+        static BattleSetupSO SavePlayerBattleSetup(
+            string assetName,
+            CharacterDefinitionSO playerA,
+            CharacterDefinitionSO playerB,
+            CharacterDefinitionSO playerC)
+        {
+            var path = $"{Root}/Setups/{assetName}.asset";
+            var setup = AssetDatabase.LoadAssetAtPath<BattleSetupSO>(path);
+            if (setup == null)
+            {
+                setup = ScriptableObject.CreateInstance<BattleSetupSO>();
+                AssetDatabase.CreateAsset(setup, path);
+            }
+
+            setup.Seed = 0;
+            setup.EnemyCardsDrawnPerTurn = 5;
+            setup.EnemyTurnEnergyBudget = 4;
+            setup.Combatants.Clear();
+            setup.Combatants.AddRange(new[] { playerA, playerB, playerC });
+            setup.SummonTemplates.Clear();
+            EditorUtility.SetDirty(setup);
+            return setup;
         }
 
         static BattleSetupSO SaveBattleSetup(

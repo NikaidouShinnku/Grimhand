@@ -23,11 +23,11 @@ MonoBehaviour:
   Speed: 4
   Deck: []
   SkillPool:
-  - {fileID: 11400000, guid: 08ba5b79f0d6bd742bf01baedd820982, type: 2}
   - {fileID: 11400000, guid: 073e05dff2a5cbf4eb7ec685ebad5862, type: 2}
+  - {fileID: 11400000, guid: 08ba5b79f0d6bd742bf01baedd820982, type: 2}
+  - {fileID: 11400000, guid: 08ba5b79f0d6bd742bf01baedd820982, type: 2}
   - {fileID: 11400000, guid: 06602c6f8b4a67f4985b06517c014dd8, type: 2}
-  - {fileID: 11400000, guid: 11a640a40d5b50f4289e97797b181c15, type: 2}
-  EnemyRandomDeckSize: 8
-  EnemySkillPickMin: 2
-  EnemySkillPickMax: 4
-  Traits: []
+  - {fileID: 11400000, guid: 06602c6f8b4a67f4985b06517c014dd8, type: 2}
+  - {fileID: 11400000, guid: 2038b18818c523d43b7242ca118bbe6d, type: 2}
+  Traits:
+  - minion_skeleton_card_def

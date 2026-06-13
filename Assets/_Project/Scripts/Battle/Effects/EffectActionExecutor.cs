@@ -78,7 +78,9 @@ namespace Grimhand.Battle.Effects
             int sourceCardInstanceId)
         {
             var target = TargetRules.ResolveTarget(state, actor, action.Target, card.InstanceId, rng, action);
-            var value = CardPowerRules.ComputeActionValue(action, actor);
+            var value = action.Type == EffectActionType.DealDamage
+                ? CombatMechanicsRules.ComputeActionValueForTarget(state, action, actor, target)
+                : CardPowerRules.ComputeActionValue(action, actor);
             if (action.Type == EffectActionType.DealDamage
                 && action.Target == EffectTarget.Self
                 && card.Keywords.Contains("sacrifice"))
@@ -126,6 +128,14 @@ namespace Grimhand.Battle.Effects
                         ExecuteStatusToAllEnemies(state, actor, card, action, events);
                     else if (action.Target == EffectTarget.RandomEnemies)
                         ExecuteStatusToRandomEnemies(state, actor, action, events, rng);
+                    else if (action.Target == EffectTarget.RandomEnemy)
+                    {
+                        var randomTarget = TargetRules.ResolveTarget(
+                            state, actor, EffectTarget.RandomEnemy, card.InstanceId, rng, action);
+                        if (randomTarget != null)
+                            StatusRules.ApplyStatus(
+                                state, randomTarget, action.StatusId, action.Stacks, action.Duration, events);
+                    }
                     else if (target != null
                              && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
                         StatusRules.ApplyStatus(state, target, action.StatusId, action.Stacks, action.Duration, events);
@@ -205,6 +215,32 @@ namespace Grimhand.Battle.Effects
                     DefenderRespondArmRules.ArmRedirectDouble(state, actor.Id);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Defense, actor.Id, false, 0);
                     break;
+                case EffectActionType.SummonOrGainBlock:
+                    ExecuteSummonOrGainBlock(state, actor, action, events, rng);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    break;
+                case EffectActionType.GrantDodgeChance:
+                    if (action.Value > 0)
+                    {
+                        actor.DodgeChanceBonus = action.Value / 100f;
+                        events.Add(new BattleEvent(BattleEventKind.StatusApplied,
+                            $"{actor.DisplayName} 闪避率 +{action.Value}%")
+                        {
+                            CombatantId = actor.Id,
+                            Amount = action.Value
+                        });
+                    }
+
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Defense, actor.Id, false, 0);
+                    break;
+            }
+
+            if (action.SelfDamageFlat > 0 && actor.IsAlive)
+            {
+                DamageRules.ApplyDamage(
+                    state, actor, actor, action.SelfDamageFlat, CardType.Status, events,
+                    canTriggerParry: false, isSacrificeDamage: true, rng: rng,
+                    sourceCardInstanceId: sourceCardInstanceId);
             }
         }
 
@@ -259,7 +295,8 @@ namespace Grimhand.Battle.Effects
                 if (target == null || !target.IsAlive)
                     continue;
 
-                var primaryPower = TargetReachRules.AdjustPowerForTarget(state, action, target, value);
+                var primaryPower = CombatMechanicsRules.ComputeActionValueForTarget(state, action, actor, target);
+                primaryPower = TargetReachRules.AdjustPowerForTarget(state, action, target, primaryPower);
                 primaryPower = CombatMechanicsRules.ComputeConditionalDamageBonus(state, action, target, primaryPower);
                 primaryPower = PassiveCardMechanicsRules.ApplyEndlessBladeMultiplier(state, card, primaryPower);
 
@@ -339,13 +376,58 @@ namespace Grimhand.Battle.Effects
             if (target == null)
                 return;
 
-            var isSacrifice = isSacrificeSelfDamage;
-            var primaryPower = TargetReachRules.AdjustPowerForTarget(state, action, target, value);
+            var hitCount = System.Math.Max(1, action.HitCount);
+            var repeatTimes = 1;
+            if (action.RepeatPerEnemyAttackCardThisTurn > 0)
+            {
+                repeatTimes = state.EnemyAttackCardsPlayedThisTurn;
+                if (card.CardType == CardType.Attack)
+                    repeatTimes += 1;
+                repeatTimes = System.Math.Max(1, repeatTimes);
+            }
+
+            for (var repeat = 0; repeat < repeatTimes; repeat++)
+            {
+                var damageTarget = target;
+                if (action.RepeatPerEnemyAttackCardThisTurn > 0 && repeat > 0)
+                {
+                    damageTarget = TargetRules.ResolveTarget(
+                        state, actor, EffectTarget.RandomEnemy, card.InstanceId, rng, action);
+                    if (damageTarget == null)
+                        continue;
+                }
+
+                for (var hit = 0; hit < hitCount; hit++)
+                {
+                    ApplySingleHit(
+                        state, actor, card, action, damageTarget, value, events, rng,
+                        sourceCardInstanceId, isSacrificeSelfDamage);
+                }
+            }
+        }
+
+        static void ApplySingleHit(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState card,
+            EffectActionSpec action,
+            CombatantState target,
+            int value,
+            List<BattleEvent> events,
+            BattleRng rng,
+            int sourceCardInstanceId,
+            bool isSacrificeSelfDamage)
+        {
+            if (target == null || !target.IsAlive)
+                return;
+
+            var primaryPower = CombatMechanicsRules.ComputeActionValueForTarget(state, action, actor, target);
+            primaryPower = TargetReachRules.AdjustPowerForTarget(state, action, target, primaryPower);
             primaryPower = CombatMechanicsRules.ComputeConditionalDamageBonus(state, action, target, primaryPower);
             primaryPower = PassiveCardMechanicsRules.ApplyEndlessBladeMultiplier(state, card, primaryPower);
 
             var lifestealPercent = action.LifestealPercent;
-            if (lifestealPercent <= 0)
+            if (lifestealPercent <= 0 && !action.LifestealUnblockedOnly)
                 lifestealPercent = CombatMechanicsRules.GetPendingLifestealPercent(actor);
 
             var splashTargetId = action.SplashBehindTarget
@@ -359,16 +441,19 @@ namespace Grimhand.Battle.Effects
                 primaryPower,
                 card.CardType,
                 events,
-                isSacrificeDamage: isSacrifice,
+                isSacrificeDamage: isSacrificeSelfDamage,
                 rng: rng,
                 cardCost: card.Cost,
                 ignoreDefPercent: action.IgnoreDefPercent,
                 sourceCardInstanceId: sourceCardInstanceId);
 
-            if (lifestealPercent > 0 && state.LastAction.DamageAmount > 0)
+            var hpDamage = state.LastAction.DamageAmount;
+            if (action.LifestealUnblockedOnly && hpDamage > 0)
+                DamageRules.ApplyHeal(state, actor, hpDamage, events, actor, isLifesteal: true);
+            else if (lifestealPercent > 0 && hpDamage > 0)
             {
                 CombatMechanicsRules.ApplyLifesteal(
-                    state, actor, state.LastAction.DamageAmount, lifestealPercent, events);
+                    state, actor, hpDamage, lifestealPercent, events);
             }
 
             if (action.OnKillHealAmount > 0 && state.LastAction.WasKill)
@@ -386,6 +471,37 @@ namespace Grimhand.Battle.Effects
                         sourceCardInstanceId: sourceCardInstanceId);
                 }
             }
+        }
+
+        static void ExecuteSummonOrGainBlock(
+            BattleState state,
+            CombatantState actor,
+            EffectActionSpec action,
+            List<BattleEvent> events,
+            BattleRng rng)
+        {
+            if (state == null || actor == null)
+                return;
+
+            var slot = SummonRules.FindEmptyTeamSlot(state, actor.Team);
+            if (slot.HasValue
+                && !string.IsNullOrEmpty(action.SummonCharacterId)
+                && state.Config.SummonTemplates.TryGetValue(action.SummonCharacterId, out var template))
+            {
+                SummonRules.SpawnFromTemplate(state, template, slot.Value, events);
+                SummonRules.MergeSummonedSkillPoolIntoTeamDeck(state, template, actor.Team, rng, events);
+                return;
+            }
+
+            var blockValue = action.FallbackBlockValue;
+            if (action.FallbackBlockDefenseScalePercent > 0)
+            {
+                blockValue += (int)System.Math.Round(
+                    actor.Defense * action.FallbackBlockDefenseScalePercent / 100f);
+            }
+
+            if (blockValue > 0)
+                DamageRules.ApplyBlock(actor, blockValue, events, state, rng);
         }
     }
 }

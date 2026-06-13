@@ -111,29 +111,43 @@ namespace Grimhand.Expedition
 
             FormationSlotRules.AssignUniqueSlotsPerTeam(config.Combatants);
 
+            ApplyPlayerPartyProgress(config, party, applyPartyHp, expeditionModifiers, expeditionConfig, playerCardCatalog);
+
             if (!encounterTemplate.SkipFloorScaling)
                 ApplyEnemyFloorScaling(config, floor, battleSeed);
 
-            if (applyPartyHp && party != null && party.Count > 0)
-            {
-                foreach (var cc in config.Combatants)
-                {
-                    if (cc.Team != TeamSide.Player)
-                        continue;
-
-                    foreach (var member in party)
-                    {
-                        if (member.CharacterDefinitionId != cc.CharacterDefinitionId)
-                            continue;
-
-                        ApplyPartyProgress(cc, member, expeditionModifiers);
-                        ApplyMemberDeckFromSnapshot(cc, member, expeditionConfig, playerCardCatalog);
-                        break;
-                    }
-                }
-            }
+            // 层数缩放只应作用于敌人；再次刷新玩家数值以防模板被误改。
+            ApplyPlayerPartyProgress(config, party, applyPartyHp, expeditionModifiers, expeditionConfig, playerCardCatalog);
 
             return config;
+        }
+
+        static void ApplyPlayerPartyProgress(
+            BattleConfig config,
+            IReadOnlyList<PartyMemberSnapshot> party,
+            bool applyPartyHp,
+            ExpeditionRunModifiers expeditionModifiers,
+            ExpeditionConfig expeditionConfig,
+            IReadOnlyList<CardTemplate> playerCardCatalog)
+        {
+            if (!applyPartyHp || party == null || party.Count == 0)
+                return;
+
+            foreach (var cc in config.Combatants)
+            {
+                if (cc.Team != TeamSide.Player)
+                    continue;
+
+                foreach (var member in party)
+                {
+                    if (member.CharacterDefinitionId != cc.CharacterDefinitionId)
+                        continue;
+
+                    ApplyPartyProgress(cc, member, expeditionModifiers);
+                    ApplyMemberDeckFromSnapshot(cc, member, expeditionConfig, playerCardCatalog);
+                    break;
+                }
+            }
         }
 
         static void ApplyEnemyFloorScaling(BattleConfig config, int floor, int battleSeed)
@@ -392,26 +406,7 @@ namespace Grimhand.Expedition
 
             copy.Keywords.AddRange(source.Keywords);
             foreach (var action in source.Actions)
-            {
-                copy.Actions.Add(new EffectActionSpec
-                {
-                    Type = action.Type,
-                    Target = action.Target,
-                    Value = action.Value,
-                    StatusId = action.StatusId,
-                    Stacks = action.Stacks,
-                    Duration = action.Duration,
-                    ScaleWithAttack = action.ScaleWithAttack,
-                    ScaleWithDefense = action.ScaleWithDefense,
-                    AttackScalePercent = action.AttackScalePercent,
-                    DefenseScalePercent = action.DefenseScalePercent,
-                    Condition = action.Condition,
-                    Reach = action.Reach,
-                    SplashBehindTarget = action.SplashBehindTarget,
-                    SplashPowerPercent = action.SplashPowerPercent,
-                    BackRowPowerPercent = action.BackRowPowerPercent
-                });
-            }
+                copy.Actions.Add(EffectActionSpec.Clone(action));
 
             return copy;
         }

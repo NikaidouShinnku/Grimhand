@@ -17,16 +17,16 @@ MonoBehaviour:
   OwnerCharacterId: char_skeleton_elite
   Cost: 3
   CardType: 2
-  Rarity: 0
+  Rarity: 1
   Keywords:
   - summon
   Actions:
-  - Type: 3
+  - Type: 14
     Target: 1
     Value: 0
-    StatusId: slow
+    StatusId: 
     Stacks: 1
-    Duration: 2
+    Duration: -1
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100
@@ -43,6 +43,20 @@ MonoBehaviour:
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0
+    HitCount: 1
+    AlternateAttackScalePercent: 0
+    AlternateValue: 0
+    UseAlternateIfTargetHasDebuff: 0
+    AlternateAttackScaleIfActorUsedAttack: 0
+    AlternateValueIfActorUsedAttack: 0
+    DamageMultiplierPercentIfRespondArmed: 100
+    SelfDamageFlat: 0
+    RepeatPerEnemyAttackCardThisTurn: 0
+    FallbackBlockDefenseScalePercent: 200
+    FallbackBlockValue: 0
+    SummonCharacterId: char_skeleton
+    GrantInvulnerableOnRespondArm: 0
+    LifestealUnblockedOnly: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

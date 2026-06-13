@@ -182,5 +182,31 @@ namespace Grimhand.Battle.Rules
 
             return null;
         }
+
+        public static bool HasDebuff(CombatantState target)
+        {
+            if (target == null)
+                return false;
+
+            foreach (var status in target.Statuses)
+            {
+                if (status.Stacks <= 0)
+                    continue;
+
+                var def = StatusCatalog.Get(status.StatusId);
+                if (def == null)
+                    continue;
+
+                if (def.TurnStartDamagePerStack > 0
+                    || def.SpeedModifierPerStack < 0
+                    || def.AttackModifierPerStack < 0
+                    || def.DefenseModifierPerStack < 0
+                    || def.AttackPercentBonusPerStack < 0
+                    || def.DefensePercentBonusPerStack < 0)
+                    return true;
+            }
+
+            return false;
+        }
     }
 }

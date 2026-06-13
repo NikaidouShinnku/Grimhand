@@ -14,6 +14,8 @@ namespace Grimhand.Presentation.Battle
                 BattleEventKind.StatusTickDamage => true,
                 BattleEventKind.CharacterDied => true,
                 BattleEventKind.ParryTriggered => true,
+                BattleEventKind.HealApplied => true,
+                BattleEventKind.CharacterRevived => true,
                 _ => false
             };
 
@@ -31,7 +33,7 @@ namespace Grimhand.Presentation.Battle
             return false;
         }
 
-        /// <summary>按「单次出牌 / 独立受击」拆成演出段落；段落内保留 BlockGained 等非立绘事件以便同步护甲 UI。</summary>
+        /// <summary>按「单次出牌 / 独立受击 / 独立治疗」拆成演出段落；段落内保留 BlockGained 等非立绘事件以便同步护甲 UI。</summary>
         public static List<List<BattleEvent>> SplitIntoSegments(IReadOnlyList<BattleEvent> events)
         {
             var segments = new List<List<BattleEvent>>();
@@ -67,7 +69,9 @@ namespace Grimhand.Presentation.Battle
                     continue;
 
                 current = new List<BattleEvent> { e };
-                if (e.Kind == BattleEventKind.PortraitIdleRestored)
+                if (e.Kind is BattleEventKind.PortraitIdleRestored
+                    or BattleEventKind.HealApplied
+                    or BattleEventKind.CharacterRevived)
                 {
                     segments.Add(current);
                     current = null;

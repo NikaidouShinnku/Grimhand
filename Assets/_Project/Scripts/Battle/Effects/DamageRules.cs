@@ -106,6 +106,8 @@ namespace Grimhand.Battle.Effects
                 recipient.Hp = Math.Max(0, recipient.Hp - hpDamage);
 
             BossTraitRules.TryTriggerGhostQueenEnrage(state, recipient, hpBefore, events);
+            if (hpDamage > 0)
+                MinionTraitRules.OnDamageTaken(state, recipient, hpDamage, events);
 
             if (!recipient.IsAlive && wasAlive
                 && CombatMechanicsRules.TryPreventDeathWithReviveBlessing(state, recipient, events))
@@ -173,7 +175,8 @@ namespace Grimhand.Battle.Effects
             CombatantState actor,
             int amount,
             System.Collections.Generic.List<BattleEvent> events,
-            CombatantState healer = null)
+            CombatantState healer = null,
+            bool isLifesteal = false)
         {
             if (actor == null || !actor.IsAlive)
                 return;
@@ -189,7 +192,8 @@ namespace Grimhand.Battle.Effects
             events.Add(new BattleEvent(BattleEventKind.HealApplied, actor.DisplayName)
             {
                 CombatantId = actor.Id,
-                Amount = healed
+                Amount = healed,
+                IsLifesteal = isLifesteal
             });
 
             if (mods != null && mods.HealGrantsBlock > 0)

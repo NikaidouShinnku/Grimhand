@@ -504,7 +504,12 @@ namespace Grimhand.Expedition
                     return true;
                 default:
                     _run.Phase = ExpeditionPhase.InBattle;
-                    _run.CurrentBattleConfig = BuildBattleFromEncounter(route.EncounterIndex, applyPartyHp: true);
+                    _run.CurrentBattleConfig = BuildBattleFromEncounter(
+                        route.EncounterIndex,
+                        applyPartyHp: true,
+                        route.MonsterEncounterId,
+                        route.IsElite,
+                        route.LayerNumber);
                     return true;
             }
         }
@@ -809,6 +814,7 @@ namespace Grimhand.Expedition
                 Description = option.Description,
                 NodeType = option.NodeType,
                 EncounterIndex = option.EncounterIndex,
+                MonsterEncounterId = option.MonsterEncounterId,
                 EventId = option.EventId,
                 ShrineId = option.ShrineId,
                 TreasureTier = option.TreasureTier,
@@ -960,20 +966,43 @@ namespace Grimhand.Expedition
             return true;
         }
 
-        BattleConfig BuildBattleFromEncounter(int encounterIndex, bool applyPartyHp)
+        BattleConfig BuildBattleFromEncounter(
+            int encounterIndex,
+            bool applyPartyHp,
+            string monsterEncounterId = "",
+            bool isElite = false,
+            int battleLayer = 0)
         {
             if (_config.CombatEncounters.Count == 0)
                 throw new System.InvalidOperationException("ExpeditionConfig.CombatEncounters is empty.");
 
-            var index = encounterIndex % _config.CombatEncounters.Count;
-            var standard = _config.CombatEncounters[index];
+            if (_config.MonsterTemplates.Count == 0)
+                throw new System.InvalidOperationException(
+                    "ExpeditionConfig.MonsterTemplates 为空。请在 ExpeditionSetup 配置 MonsterCharacters，" +
+                    "或执行 Grimhand → Content → Generate Demo ScriptableObjects。");
+
+            var standard = _config.CombatEncounters[encounterIndex % _config.CombatEncounters.Count];
+            var floor = battleLayer > 0 ? battleLayer : CurrentBattleNumber;
             BattleConfig template;
             if (_run.PendingEventBattleKey == MirrorPhantomEncounterBuilder.BattleKey)
                 template = MirrorPhantomEncounterBuilder.BuildMirrorBattle(standard, _run.Party);
             else if (_run.PendingEventBattleKey == AdventurerRevengeEncounterBuilder.BattleKey)
                 template = AdventurerRevengeEncounterBuilder.BuildRevengeBattle(standard);
             else
-                template = standard;
+            {
+                var encounterId = string.IsNullOrEmpty(monsterEncounterId)
+                    ? MonsterEncounterCatalog.Roll(floor, isElite, _rng)
+                    : monsterEncounterId;
+                var encounter = MonsterEncounterCatalog.GetById(encounterId)
+                                ?? MonsterEncounterCatalog.GetById(
+                                    MonsterEncounterCatalog.Roll(floor, isElite, _rng));
+                if (encounter == null)
+                    throw new System.InvalidOperationException(
+                        $"无法解析怪物组合：layer={floor}, elite={isElite}, id={encounterId}");
+
+                var map = MonsterTemplateRegistry.BuildTemplateMap(_config);
+                template = MonsterEncounterBuilder.Build(standard, encounter, map);
+            }
 
             var seed = _rng.NextInt(1, int.MaxValue);
             var config = ExpeditionBattleConfigBuilder.BuildEncounter(
@@ -983,7 +1012,7 @@ namespace Grimhand.Expedition
                 seed,
                 applyPartyHp,
                 _run.MiracleLeafUsesRemaining,
-                CurrentBattleNumber,
+                floor,
                 _run.Modifiers,
                 _config.PlayerCardCatalog,
                 _config);

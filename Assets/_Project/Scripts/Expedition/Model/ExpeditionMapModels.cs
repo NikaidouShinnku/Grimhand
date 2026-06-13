@@ -9,6 +9,7 @@ namespace Grimhand.Expedition.Model
         public string Description { get; set; } = "";
         public int PathSpriteIndex { get; set; }
         public int EncounterIndex { get; set; }
+        public string MonsterEncounterId { get; set; } = "";
         public string EventId { get; set; } = "";
         public string ShrineId { get; set; } = "";
         public string TreasureTier { get; set; } = "";
@@ -26,7 +27,7 @@ namespace Grimhand.Expedition.Model
 
     public sealed class ExpeditionMapState
     {
-        public const int DefaultChapterLayerCount = 10;
+        public const int DefaultChapterLayerCount = 20;
 
         public int ChapterLayerCount { get; set; } = DefaultChapterLayerCount;
         public List<ExpeditionMapLayer> Layers { get; } = new();

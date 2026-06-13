@@ -261,7 +261,10 @@ namespace Grimhand.Battle.Rules
 
             var mods = state?.Config?.RunModifiers;
 
-            if (target.InvulnerableTurnsRemaining > 0)
+            if (target.InvulnerableTurnsRemaining > 0 || target.InvulnerableRestOfTurn)
+                return 0;
+
+            if (MinionTraitRules.TryFirstHitDodge(state, target, rng, events))
                 return 0;
 
             if (rng != null && RelicEffectRules.TryDodgeIncoming(state, mods, target, rng))

@@ -55,6 +55,8 @@ namespace Grimhand.Battle.Model
 
         public bool ConsumableUsedThisBattle { get; set; }
         public float ConsumableDodgeBonusThisTurn { get; set; }
+        /// <summary>本回合敌方已结算的攻击牌数量（夜袭连斩等）。</summary>
+        public int EnemyAttackCardsPlayedThisTurn { get; set; }
         public string LastPlayerAttackActorId { get; set; } = "";
         public CardInstanceState LastPlayerAttackCard { get; set; }
         /// <summary>上一回合最后打出的己方攻击牌（镜之碎片等）。</summary>

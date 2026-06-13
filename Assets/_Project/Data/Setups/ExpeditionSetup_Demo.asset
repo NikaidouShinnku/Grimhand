@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: ExpeditionSetup_Demo
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.ExpeditionSetupSO
   RunSeed: 0
-  ChapterLayerCount: 10
-  TargetBattleCount: 3
+  ChapterLayerCount: 20
+  TargetBattleCount: 19
   RoutesPerVictory: 3
   GoldMinPerVictory: 15
   GoldMaxPerVictory: 25
@@ -30,11 +30,18 @@ MonoBehaviour:
   TreasureConsumableChancePercent: 33
   CombatEncounters:
   - {fileID: 11400000, guid: 25b1c62db6eb6784c973484210567f6c, type: 2}
-  - {fileID: 11400000, guid: 9738066390013b748b37ca5b1cbbab06, type: 2}
-  - {fileID: 11400000, guid: 77000c9493ab5ce479d8c851cad6228c, type: 2}
   BossEncounters:
   - {fileID: 11400000, guid: dff5d0d4c24230742a3f5467d95c9b4e, type: 2}
   - {fileID: 11400000, guid: 2af54b4da52c32b42b9310c2536648e4, type: 2}
+  MonsterCharacters:
+  - {fileID: 11400000, guid: d9f9a985a259445409aeaadc91692258, type: 2}
+  - {fileID: 11400000, guid: 49fe23e738a2b4345810bf3e0e8570d8, type: 2}
+  - {fileID: 11400000, guid: f6623581da52a0444bd3722b076539ae, type: 2}
+  - {fileID: 11400000, guid: 55eeac90c71c2f14b94698557a4fea9d, type: 2}
+  - {fileID: 11400000, guid: ec1150abccacaee49a4c0c9626479cab, type: 2}
+  - {fileID: 11400000, guid: b7b6d8e19ce7a624e99fd427829f80d2, type: 2}
+  - {fileID: 11400000, guid: cc781a5dd9e44a94aa4a623c464ad6be, type: 2}
+  - {fileID: 11400000, guid: d1a76e0ad8ec7984bac67ffd07659695, type: 2}
   PlayerCardCatalog:
   - {fileID: 11400000, guid: f205770fc9ed47ff978061524db3641b, type: 2}
   - {fileID: 11400000, guid: 295eb981fb524ba9be99392540ab03fd, type: 2}

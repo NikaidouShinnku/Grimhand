@@ -23,11 +23,11 @@ MonoBehaviour:
   Speed: 2
   Deck: []
   SkillPool:
-  - {fileID: 11400000, guid: dc78719982122554aa0a8f8631a765a5, type: 2}
   - {fileID: 11400000, guid: 72780c0a6837d0943b85c3f4a9c4cc8f, type: 2}
-  - {fileID: 11400000, guid: 1132f4d4e6b09a148b13a8f5f3bf79b6, type: 2}
+  - {fileID: 11400000, guid: 72780c0a6837d0943b85c3f4a9c4cc8f, type: 2}
+  - {fileID: 11400000, guid: dc78719982122554aa0a8f8631a765a5, type: 2}
+  - {fileID: 11400000, guid: dc78719982122554aa0a8f8631a765a5, type: 2}
   - {fileID: 11400000, guid: 057ca7afcc1fd16428626e053b84f56f, type: 2}
-  EnemyRandomDeckSize: 8
-  EnemySkillPickMin: 2
-  EnemySkillPickMax: 4
-  Traits: []
+  - {fileID: 11400000, guid: 7899473974006164d98a205abee5b427, type: 2}
+  Traits:
+  - minion_slime_regen

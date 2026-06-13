@@ -20,14 +20,15 @@ MonoBehaviour:
   MaxHp: 35
   BaseAttack: 11
   BaseDefense: 2
-  Speed: 9
+  Speed: 8
   Deck: []
   SkillPool:
+  - {fileID: 11400000, guid: a747bea1264c21f4a9aabda1b3ba408c, type: 2}
+  - {fileID: 11400000, guid: a747bea1264c21f4a9aabda1b3ba408c, type: 2}
+  - {fileID: 11400000, guid: 6265e721dd5c9224eaaaafea42808b98, type: 2}
+  - {fileID: 11400000, guid: 5d25b2c721b14014db290be3ad4222d0, type: 2}
+  - {fileID: 11400000, guid: 5d25b2c721b14014db290be3ad4222d0, type: 2}
   - {fileID: 11400000, guid: 48f016b0178bce24c95e92f1236d0a40, type: 2}
-  - {fileID: 11400000, guid: 7762862161091b74994c15a3ffa42343, type: 2}
-  - {fileID: 11400000, guid: ffc828102c67fcf488c14aeb01ae1529, type: 2}
-  - {fileID: 11400000, guid: 61a46663ed2b2474589f3f8d1fa99b4d, type: 2}
-  EnemyRandomDeckSize: 8
-  EnemySkillPickMin: 2
-  EnemySkillPickMax: 4
-  Traits: []
+  - {fileID: 11400000, guid: 3f7b6ddc7018ceb44853068e5478d26e, type: 2}
+  Traits:
+  - minion_wraith_elite_low_hp_ethereal

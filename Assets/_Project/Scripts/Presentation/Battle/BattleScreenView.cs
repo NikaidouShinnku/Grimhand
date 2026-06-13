@@ -70,6 +70,7 @@ namespace Grimhand.Presentation.Battle
         Button _codexButton;
         CardCodexOverlayView _codexOverlay;
         BattleActionOrderBarView _actionOrderBar;
+        BattlePresentationSpeedToggleView _presentationSpeedToggle;
         Button _targetCancelBackdrop;
         Text _inventoryFallbackLabel;
 
@@ -137,6 +138,7 @@ namespace Grimhand.Presentation.Battle
             EnsureTurnLogHud();
             EnsureMapHud();
             EnsureCodexHud();
+            EnsurePresentationSpeedHud();
             EnsureExpeditionPresentation();
             ApplyPlanningButtonIcons();
             CombatantTooltipLayer.GetOrCreate(transform);
@@ -499,6 +501,14 @@ namespace Grimhand.Presentation.Battle
                 _definitions);
 
             ApplyCodexButtonLayout();
+        }
+
+        void EnsurePresentationSpeedHud()
+        {
+            if (_presentationSpeedToggle == null)
+                _presentationSpeedToggle = gameObject.AddComponent<BattlePresentationSpeedToggleView>();
+
+            _presentationSpeedToggle.EnsureCreated(HudRoot);
         }
 
         void ToggleCodexPanel()
@@ -993,7 +1003,6 @@ namespace Grimhand.Presentation.Battle
             }
 
             var intentLines = new List<string> { "【敌方意图】" };
-            var order = 1;
             foreach (var intent in state.EnemyIntents)
             {
                 var card = state.GetCard(intent.CardInstanceId);
@@ -1009,17 +1018,8 @@ namespace Grimhand.Presentation.Battle
                     owner = ownerId != null ? state.GetCombatant(ownerId) : null;
                 }
 
-                var actorName = owner != null ? owner.DisplayName : "敌";
-                if (intent.IsHidden)
-                    intentLines.Add($"#{order} ? ({actorName})");
-                else
-                {
-                    var effect = CardPowerRules.DescribeCardEffect(card, owner, false);
-                    var targetNote = BattleUiFormatters.BuildEnemyIntentTargetNote(state, owner, card);
-                    intentLines.Add($"#{order} {card.DisplayName} 费{card.Cost} {effect}{targetNote} ({actorName})");
-                }
-
-                order++;
+                intentLines.Add(BattleUiFormatters.BuildEnemyIntentDisplayLine(
+                    state, owner, card, intent.IsHidden));
             }
 
             enemyIntentText.text = string.Join("\n", intentLines);

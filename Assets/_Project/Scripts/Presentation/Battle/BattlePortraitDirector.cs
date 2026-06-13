@@ -273,7 +273,7 @@ namespace Grimhand.Presentation.Battle
                 yield break;
 
             if (card.HadDamage)
-                yield return new WaitForSeconds(PostActionPause);
+                yield return BattlePresentationSpeed.Wait(PostActionPause);
             else if (card.CardType == CardType.Defense)
                 yield return actor.HoldPose(DefenseCardHoldDuration);
             else

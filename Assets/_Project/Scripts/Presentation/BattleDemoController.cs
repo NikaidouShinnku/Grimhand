@@ -8,6 +8,7 @@ using Grimhand.Battle.Rules;
 using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
+using Grimhand.Presentation.Battle;
 using UnityEngine;
 
 namespace Grimhand.Presentation
@@ -962,7 +963,6 @@ namespace Grimhand.Presentation
         {
             var slotW = (width - 12f) / Mathf.Max(1, _engine.State.EnemyIntents.Count);
             var ix = x;
-            var order = 1;
 
             foreach (var intent in _engine.State.EnemyIntents)
             {
@@ -979,15 +979,8 @@ namespace Grimhand.Presentation
                     owner = ownerId != null ? _engine.State.GetCombatant(ownerId) : null;
                 }
 
-                var actorName = owner != null ? owner.DisplayName : "敌";
-                string label;
-                if (intent.IsHidden)
-                    label = $"#{order} ?  {actorName}";
-                else
-                {
-                    var effect = CardPowerRules.DescribeCardEffect(card, owner, false);
-                    label = $"#{order} {card.DisplayName} 费{card.Cost} {effect} ({actorName})";
-                }
+                var label = BattleUiFormatters.BuildEnemyIntentDisplayLine(
+                    _engine.State, owner, card, intent.IsHidden);
 
                 var prev = GUI.backgroundColor;
                 GUI.backgroundColor = intent.IsHidden
@@ -996,7 +989,6 @@ namespace Grimhand.Presentation
                 GUI.Label(new Rect(ix, y, slotW - 4f, 32), label, _slotStyle);
                 GUI.backgroundColor = prev;
                 ix += slotW;
-                order++;
             }
         }
 

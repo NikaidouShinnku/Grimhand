@@ -1270,6 +1270,21 @@ namespace Grimhand.Presentation.Battle
             return 0;
         }
 
+        public static string BuildEnemyIntentDisplayLine(
+            BattleState state,
+            CombatantState owner,
+            CardInstanceState card,
+            bool isHidden)
+        {
+            var actorName = owner != null ? owner.DisplayName : "敌";
+            if (isHidden || card == null)
+                return $"{actorName} ？";
+
+            var effect = CardPowerRules.DescribeCardEffect(card, owner, false);
+            var targetNote = BuildEnemyIntentTargetNote(state, owner, card);
+            return $"{actorName} 使用 {card.DisplayName} {effect}{targetNote}";
+        }
+
         public static string BuildEnemyIntentTargetNote(BattleState state, CombatantState owner, CardInstanceState card)
         {
             if (state == null || owner == null || card == null)

@@ -27,6 +27,8 @@ namespace Grimhand.Presentation.Battle
         const float TurnLogButtonGap = 6f;
         const float MapButtonGap = 6f;
         const float CodexButtonGap = 12f;
+        const float PresentationSpeedButtonGap = 12f;
+        const float PresentationSpeedButtonSize = 48f;
         const float EnergyHudWidth = 132f;
         const float EnergyHudHeight = 56f;
 
@@ -391,6 +393,19 @@ namespace Grimhand.Presentation.Battle
             PinTopLeft(codexButton, CodexButtonGap, CodexButtonGap, InventoryButtonSize + 16f, InventoryButtonSize);
         }
 
+        public static void LayoutPresentationSpeedButton(RectTransform speedButton)
+        {
+            if (speedButton == null)
+                return;
+
+            PinTopRight(
+                speedButton,
+                PresentationSpeedButtonGap,
+                PresentationSpeedButtonGap,
+                PresentationSpeedButtonSize,
+                PresentationSpeedButtonSize);
+        }
+
         public static void LayoutMapButton(RectTransform mapButton)
         {
             if (mapButton == null)
@@ -411,6 +426,7 @@ namespace Grimhand.Presentation.Battle
             LayoutTurnLogButton(chromeRoot.Find("TurnLogButton") as RectTransform);
             LayoutMapButton(chromeRoot.Find("MapButton") as RectTransform);
             LayoutCodexButton(chromeRoot.Find("CodexButton") as RectTransform);
+            LayoutPresentationSpeedButton(chromeRoot.Find("PresentationSpeedButton") as RectTransform);
             FixHandArea(chromeRoot.Find("HandArea"));
             ApplyBottomRowLayout(chromeRoot);
             EnsureBottomHudDrawOrder(battleScreenRoot, chromeRoot);
@@ -736,6 +752,17 @@ namespace Grimhand.Presentation.Battle
             rt.anchorMax = Vector2.one;
             rt.offsetMin = new Vector2(left, bottom);
             rt.offsetMax = new Vector2(right, top);
+        }
+
+        static void PinTopRight(RectTransform rt, float right, float fromTop, float width, float height)
+        {
+            rt.anchorMin = new Vector2(1f - (right + width) / RefWidth, 1f - (fromTop + height) / RefHeight);
+            rt.anchorMax = new Vector2(1f - right / RefWidth, 1f - fromTop / RefHeight);
+            rt.pivot = new Vector2(1f, 1f);
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = Vector2.zero;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
         }
 
         static void PinTopLeft(RectTransform rt, float left, float fromTop, float width, float height)

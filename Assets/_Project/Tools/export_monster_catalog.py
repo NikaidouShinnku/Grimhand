@@ -14,7 +14,6 @@ REF_XLSX = r"c:\Users\Kelthuzad\Desktop\The Grimhands Asset\Grimhand实际内容
 OUT_XLSX = r"c:\Users\Kelthuzad\Desktop\Grimhand怪物总览表_2026-06-10.xlsx"
 
 BOSS_IDS = {"char_skeleton_king", "char_ghost_queen", "char_explosive_skull"}
-LEGACY_IDS = {"char_goblin_brute", "char_goblin_shaman", "char_goblin_archer"}
 
 SLOT = {1: "前排", 2: "中排", 3: "后排"}
 CARD_TYPE = {0: "攻击", 1: "防御", 2: "状态"}
@@ -259,7 +258,6 @@ def load_characters(char_dir):
             "PickMax": parse_int(text, "EnemySkillPickMax", 4),
             "Traits": [t for t in parse_list(text, "Traits") if t],
             "IsBoss": cid in BOSS_IDS,
-            "IsLegacy": cid in LEGACY_IDS,
         }
         chars.append(char)
         meta_path = path + ".meta"
@@ -316,8 +314,6 @@ def monster_sort_key(c):
     order = ["char_goblin", "char_slime", "char_skeleton", "char_skeleton_elite", "char_wraith", "char_wraith_elite"]
     if c["Id"] in order:
         return (0, order.index(c["Id"]))
-    if c["IsLegacy"]:
-        return (2, c["Id"])
     return (1, c["Id"])
 
 
@@ -474,9 +470,9 @@ def main():
         ws = wb.create_sheet("小怪设计")
 
     row = 1
-    write_cell(ws, row, 1, "关于能量：小怪每回合能量上限=遭遇配置（Demo 默认4点，与玩家 TurnStartEnergyRegen 相同）；每回合抽牌=5（EnemyCardsDrawnPerTurn=0 时同玩家）。开战从技能池随机抽 2~4 种技能组成 8 张牌库。")
+    write_cell(ws, row, 1, "关于能量：小怪每回合最多 4 点能量、抽 5 张牌（Demo 与玩家相同）。")
     row += 1
-    write_cell(ws, row, 1, "关于牌组：普通小怪使用 SkillPool + 随机牌库（EnemyDeckBuilder）；旧 Demo 哥布林三变种使用固定 Deck。")
+    write_cell(ws, row, 1, "关于牌组：每只小怪的 SkillPool 按配置逐张加入（默认每种 1 张，重复条目即多张）；全场小怪牌汇入同一抽牌堆并洗牌。Boss 使用固定 Deck。")
     row += 1
     write_cell(ws, row, 1, "关于缩放：远征战斗按层数缩放 HP+15%/层、ATK+10%/层、DEF+5%/层（Boss 遭遇 SkipFloorScaling）。")
     row += 2
@@ -488,12 +484,11 @@ def main():
 
     for m in monsters:
         if m["PoolGuids"]:
-            deck_rule = f"技能池随机：从{len(m['PoolGuids'])}种中选{m['PickMin']}~{m['PickMax']}种，组成{m['DeckSize']}张牌库"
+            deck_rule = f"技能池：{len(m['PoolGuids'])} 项（默认每项 1 张，可重复配置数量）"
         elif m["DeckGuids"]:
-            deck_rule = f"固定牌库：{len(m['DeckGuids'])}张（旧Demo）"
+            deck_rule = f"固定牌库：{len(m['DeckGuids'])}张"
         else:
             deck_rule = "无"
-        note = "旧Demo占位（待重制）" if m["IsLegacy"] else ""
         write_cell(ws, row, 1, m["Name"])
         write_cell(ws, row, 2, m["Id"])
         write_cell(ws, row, 3, m["MaxHp"])
@@ -505,7 +500,7 @@ def main():
         write_cell(ws, row, 9, 5)
         write_cell(ws, row, 10, deck_rule)
         write_cell(ws, row, 11, format_traits(m["Traits"]))
-        write_cell(ws, row, 12, note)
+        write_cell(ws, row, 12, "")
         row += 1
 
     row += 1

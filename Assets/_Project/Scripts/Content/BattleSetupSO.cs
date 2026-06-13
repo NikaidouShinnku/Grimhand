@@ -72,15 +72,12 @@ namespace Grimhand.Content
                 BaseAttack = character.BaseAttack,
                 BaseDefense = character.BaseDefense,
                 Speed = character.Speed,
-                UseRandomSkillPool = character.Team == TeamSide.Enemy && character.SkillPool.Count >= 2,
-                RandomDeckSize = character.EnemyRandomDeckSize,
-                RandomSkillPickMin = character.EnemySkillPickMin,
-                RandomSkillPickMax = character.EnemySkillPickMax
+                UseSkillPool = character.Team == TeamSide.Enemy && character.SkillPool.Count > 0,
             };
 
             cc.Traits.AddRange(character.Traits);
 
-            if (cc.UseRandomSkillPool)
+            if (cc.UseSkillPool)
             {
                 foreach (var card in character.SkillPool)
                 {

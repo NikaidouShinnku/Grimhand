@@ -16,7 +16,7 @@ namespace Grimhand.Presentation.Battle
 
         const float MoveDuration = 0.35f;
         const float PoseHoldDuration = 1f;
-        const float IdleFrameInterval = 0.2f;
+        const float IdleFrameInterval = 0.13f;
         const float HitFlashDuration = 1f;
         const float DamageFloaterFontSize = 34f;
         const float ActionEffectDuration = 0.55f;
@@ -151,7 +151,7 @@ namespace Grimhand.Presentation.Battle
             if (duration <= 0f)
                 yield break;
 
-            yield return new WaitForSeconds(duration);
+            yield return BattlePresentationSpeed.Wait(duration);
         }
 
         public IEnumerator MoveToCenterAndPose(Vector3 centerWorld, PortraitPoseKind pose)
@@ -172,7 +172,7 @@ namespace Grimhand.Presentation.Battle
                 RestoreHomePosition();
             EnsurePortraitImageStable();
             SetPoseSprite(pose);
-            yield return new WaitForSeconds(duration);
+            yield return BattlePresentationSpeed.Wait(duration);
             _isAnimating = false;
             if (!_isDead)
                 ApplyIdleStill();
@@ -291,7 +291,7 @@ namespace Grimhand.Presentation.Battle
             _actionEffectImage.gameObject.SetActive(true);
             _actionEffectImage.transform.SetAsLastSibling();
 
-            yield return new WaitForSeconds(duration);
+            yield return BattlePresentationSpeed.Wait(duration);
             HideActionEffectImmediate();
         }
 
@@ -324,7 +324,7 @@ namespace Grimhand.Presentation.Battle
 
             EnsurePortraitImageStable();
             SetPoseSprite(PortraitPoseKind.Attack);
-            yield return new WaitForSeconds(duration);
+            yield return BattlePresentationSpeed.Wait(duration);
             _isAnimating = false;
             if (!_isDead && _awayFromHome)
                 yield return ReturnHome();
@@ -470,6 +470,7 @@ namespace Grimhand.Presentation.Battle
             if (_flashRoutine != null)
                 StopCoroutine(_flashRoutine);
 
+            duration = BattlePresentationSpeed.ScaleDuration(duration);
             var elapsed = 0f;
             while (elapsed < duration)
             {
@@ -485,6 +486,7 @@ namespace Grimhand.Presentation.Battle
 
         IEnumerator TweenWorldPosition(RectTransform rt, Vector3 targetWorld, float duration)
         {
+            duration = BattlePresentationSpeed.ScaleDuration(duration);
             var start = rt.position;
             var elapsed = 0f;
             while (elapsed < duration)
@@ -641,7 +643,7 @@ namespace Grimhand.Presentation.Battle
 
         IEnumerator HideDamageFloaterAfterDelay()
         {
-            yield return new WaitForSeconds(HitFlashDuration);
+            yield return BattlePresentationSpeed.Wait(HitFlashDuration);
             if (_damageFloater != null)
                 _damageFloater.gameObject.SetActive(false);
             _damageHideRoutine = null;

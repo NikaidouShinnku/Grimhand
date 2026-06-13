@@ -98,11 +98,6 @@ namespace Grimhand.Content.Editor
             UpsertVisual(catalog, "char_wraith", $"{ArtRoot}/wraith_idle_1024.png");
             UpsertVisual(catalog, "char_wraith_elite", $"{ArtRoot}/wraith2_idle_1024.png");
 
-            // Demo 旧 ID 兼容
-            UpsertVisual(catalog, "char_goblin_brute", $"{ArtRoot}/goblin_idle_1024.png");
-            UpsertVisual(catalog, "char_goblin_shaman", $"{ArtRoot}/skeleton_idle_1024.png");
-            UpsertVisual(catalog, "char_goblin_archer", $"{ArtRoot}/wraith_idle_1024.png");
-
             var kingArt = ArtRoot + "/skeleton king";
             UpsertVisualFull(catalog, "char_skeleton_king",
                 idle: kingArt + "/skeletonking_idle_1024.png",
@@ -379,9 +374,6 @@ namespace Grimhand.Content.Editor
             character.Deck.Clear();
             character.SkillPool.Clear();
             character.SkillPool.AddRange(skillPool);
-            character.EnemyRandomDeckSize = 8;
-            character.EnemySkillPickMin = 2;
-            character.EnemySkillPickMax = System.Math.Min(4, skillPool.Length);
             EditorUtility.SetDirty(character);
             return character;
         }
@@ -421,9 +413,6 @@ namespace Grimhand.Content.Editor
             character.Traits.Clear();
             if (traits != null)
                 character.Traits.AddRange(traits);
-            character.EnemyRandomDeckSize = deck.Length;
-            character.EnemySkillPickMin = 0;
-            character.EnemySkillPickMax = 0;
             EditorUtility.SetDirty(character);
             return character;
         }

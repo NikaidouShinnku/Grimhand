@@ -34,32 +34,45 @@ namespace Grimhand.Expedition
                 }
             }
 
-            config.Combatants.Add(BuildSkeleton("复仇冒险者", FormationSlot.Front));
-            config.Combatants.Add(BuildSkeleton("骷髅佣兵", FormationSlot.Middle));
+            var skeletonTemplate = FindSkeletonTemplate(standardEncounter);
+            config.Combatants.Add(BuildSkeleton("复仇冒险者", FormationSlot.Front, skeletonTemplate));
+            config.Combatants.Add(BuildSkeleton("骷髅佣兵", FormationSlot.Middle, skeletonTemplate));
             return config;
         }
 
-        static CombatantConfig BuildSkeleton(string name, FormationSlot slot)
+        static CombatantConfig FindSkeletonTemplate(BattleConfig standardEncounter)
         {
-            var sk = new CombatantConfig
-            {
-                Id = $"Revenge_{slot}",
-                DisplayName = name,
-                Team = TeamSide.Enemy,
-                Slot = slot,
-                CharacterDefinitionId = SkeletonId,
-                Level = 2,
-                MaxHp = 42,
-                BaseAttack = 10,
-                BaseDefense = 6,
-                Speed = 6,
-                UseRandomSkillPool = true,
-                RandomDeckSize = 6,
-                RandomSkillPickMin = 2,
-                RandomSkillPickMax = 3
-            };
+            if (standardEncounter == null)
+                return null;
 
-            sk.RandomSkillPickMax = 3;
+            foreach (var cc in standardEncounter.Combatants)
+            {
+                if (cc.Team == TeamSide.Enemy && cc.CharacterDefinitionId == SkeletonId)
+                    return cc;
+            }
+
+            return null;
+        }
+
+        static CombatantConfig BuildSkeleton(string name, FormationSlot slot, CombatantConfig template)
+        {
+            var sk = template != null
+                ? ExpeditionBattleConfigBuilder.CloneCombatantConfigPublic(template)
+                : new CombatantConfig
+                {
+                    CharacterDefinitionId = SkeletonId,
+                    Team = TeamSide.Enemy,
+                    UseSkillPool = true
+                };
+
+            sk.Id = $"Revenge_{slot}";
+            sk.DisplayName = name;
+            sk.Slot = slot;
+            sk.Level = 2;
+            sk.MaxHp = 42;
+            sk.BaseAttack = 10;
+            sk.BaseDefense = 6;
+            sk.Speed = 6;
             return sk;
         }
     }

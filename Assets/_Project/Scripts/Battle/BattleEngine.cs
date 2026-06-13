@@ -566,16 +566,9 @@ namespace Grimhand.Battle
 
         static void PrepareCombatantDeck(CombatantConfig cc, BattleRng deckRng)
         {
-            if (cc.UseRandomSkillPool && cc.SkillPoolCandidates.Count >= 2)
+            if (cc.UseSkillPool && cc.SkillPoolCandidates.Count > 0)
             {
-                cc.DeckTemplates.Clear();
-                var built = EnemyDeckBuilder.BuildRandomDeck(
-                    cc.SkillPoolCandidates,
-                    deckRng,
-                    cc.RandomDeckSize,
-                    cc.RandomSkillPickMin,
-                    cc.RandomSkillPickMax);
-                cc.DeckTemplates.AddRange(built);
+                EnemyDeckBuilder.ApplySkillPoolEntries(cc.DeckTemplates, cc.SkillPoolCandidates);
                 return;
             }
 

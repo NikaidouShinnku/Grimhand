@@ -6,40 +6,34 @@ namespace Grimhand.Battle.Rules
 {
     public static class EnemyDeckBuilder
     {
-        public static List<CardTemplate> BuildRandomDeck(
-            IReadOnlyList<CardTemplate> pool,
-            BattleRng rng,
-            int deckSize,
-            int pickMin,
-            int pickMax)
+        /// <summary>
+        /// 按技能池条目逐张加入（默认每项 1 张；SkillPool 中重复引用即多张）。
+        /// 各小怪贡献的牌会在开战时汇入同一敌方抽牌堆并统一洗牌。
+        /// </summary>
+        public static void ApplySkillPoolEntries(IList<CardTemplate> deck, IReadOnlyList<CardTemplate> pool)
         {
-            var result = new List<CardTemplate>();
-            if (pool == null || pool.Count == 0 || deckSize <= 0)
-                return result;
+            deck.Clear();
+            if (pool == null || pool.Count == 0)
+                return;
 
-            pickMin = System.Math.Max(1, pickMin);
-            pickMax = System.Math.Max(pickMin, pickMax);
-            var uniqueCount = System.Math.Min(pool.Count, rng.NextInt(pickMin, pickMax + 1));
-
-            var picked = new List<CardTemplate>();
-            var indices = new List<int>();
-            for (var i = 0; i < pool.Count; i++)
-                indices.Add(i);
-
-            for (var i = 0; i < uniqueCount && indices.Count > 0; i++)
-            {
-                var pick = rng.NextIndex(indices.Count);
-                picked.Add(pool[indices[pick]]);
-                indices.RemoveAt(pick);
-            }
-
-            for (var i = 0; i < deckSize; i++)
-                result.Add(CloneTemplate(picked[rng.NextIndex(picked.Count)]));
-
-            return result;
+            foreach (var template in pool)
+                deck.Add(CloneTemplate(template));
         }
 
-        static CardTemplate CloneTemplate(CardTemplate source)
+        /// <summary>固定牌组：保持牌种与数量不变，开战前洗牌。</summary>
+        public static void ShuffleFixedDeck(IList<CardTemplate> deck, BattleRng rng)
+        {
+            if (deck == null || deck.Count <= 1 || rng == null)
+                return;
+
+            for (var i = deck.Count - 1; i > 0; i--)
+            {
+                var j = rng.NextIndex(i + 1);
+                (deck[i], deck[j]) = (deck[j], deck[i]);
+            }
+        }
+
+        public static CardTemplate CloneTemplate(CardTemplate source)
         {
             var copy = new CardTemplate
             {
@@ -73,19 +67,6 @@ namespace Grimhand.Battle.Rules
             }
 
             return copy;
-        }
-
-        /// <summary>固定牌组：保持牌种与数量不变，开战前洗牌。</summary>
-        public static void ShuffleFixedDeck(IList<CardTemplate> deck, BattleRng rng)
-        {
-            if (deck == null || deck.Count <= 1 || rng == null)
-                return;
-
-            for (var i = deck.Count - 1; i > 0; i--)
-            {
-                var j = rng.NextIndex(i + 1);
-                (deck[i], deck[j]) = (deck[j], deck[i]);
-            }
         }
     }
 }

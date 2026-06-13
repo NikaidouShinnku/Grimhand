@@ -98,9 +98,6 @@ namespace Grimhand.Editor
             AddCharacterVisuals(catalog, "char_knight", "characters/warrior", "warrior", hitPortraitFacesRight: true);
             AddCharacterVisuals(catalog, "char_mage", "characters/pharoah", "pharoah", hitPortraitFacesRight: false);
             AddCharacterVisuals(catalog, "char_ranger", "characters/devil", "devil", hitPortraitFacesRight: false);
-            AddIdleOnlyVisual(catalog, "char_goblin_brute", "monsters/goblin_idle_1024.png");
-            AddIdleOnlyVisual(catalog, "char_goblin_shaman", "monsters/skeleton_idle_1024.png");
-            AddIdleOnlyVisual(catalog, "char_goblin_archer", "monsters/wraith_idle_1024.png");
             AddIdleOnlyVisual(catalog, "char_goblin", "monsters/goblin_idle_1024.png");
             AddIdleOnlyVisual(catalog, "char_slime", "monsters/slime_idle_1024.png");
             AddIdleOnlyVisual(catalog, "char_skeleton", "monsters/skeleton_idle_1024.png");

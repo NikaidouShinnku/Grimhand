@@ -18,11 +18,9 @@ namespace Grimhand.Battle.Model
         public int? StartHp { get; set; }
         public int Xp { get; set; }
         public List<CardTemplate> DeckTemplates { get; } = new();
+        /// <summary>敌人技能池；开战时按池内条目（默认每种 1 张）加入团队混池。</summary>
         public List<CardTemplate> SkillPoolCandidates { get; } = new();
-        public bool UseRandomSkillPool { get; set; }
-        public int RandomDeckSize { get; set; } = 8;
-        public int RandomSkillPickMin { get; set; } = 2;
-        public int RandomSkillPickMax { get; set; } = 4;
+        public bool UseSkillPool { get; set; }
         public List<string> Traits { get; } = new();
     }
 

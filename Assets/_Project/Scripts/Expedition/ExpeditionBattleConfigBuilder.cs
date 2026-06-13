@@ -38,10 +38,7 @@ namespace Grimhand.Expedition
                     BaseDefense = cc.BaseDefense,
                     Speed = cc.Speed,
                     StartHp = cc.StartHp,
-                    UseRandomSkillPool = cc.UseRandomSkillPool,
-                    RandomDeckSize = cc.RandomDeckSize,
-                    RandomSkillPickMin = cc.RandomSkillPickMin,
-                    RandomSkillPickMax = cc.RandomSkillPickMax
+                    UseSkillPool = cc.UseSkillPool,
                 };
 
                 copy.Traits.AddRange(cc.Traits);
@@ -80,10 +77,7 @@ namespace Grimhand.Expedition
                 BaseDefense = cc.BaseDefense,
                 Speed = cc.Speed,
                 StartHp = cc.StartHp,
-                UseRandomSkillPool = cc.UseRandomSkillPool,
-                RandomDeckSize = cc.RandomDeckSize,
-                RandomSkillPickMin = cc.RandomSkillPickMin,
-                RandomSkillPickMax = cc.RandomSkillPickMax
+                UseSkillPool = cc.UseSkillPool,
             };
 
             copy.Traits.AddRange(cc.Traits);

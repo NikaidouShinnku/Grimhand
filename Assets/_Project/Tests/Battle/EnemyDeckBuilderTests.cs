@@ -9,6 +9,25 @@ namespace Grimhand.Battle.Tests
     public sealed class EnemyDeckBuilderTests
     {
         [Test]
+        public void ApplySkillPoolEntries_AddsOneCopyPerPoolEntry()
+        {
+            var pool = new List<CardTemplate>
+            {
+                Template("a"),
+                Template("b"),
+                Template("a")
+            };
+            var deck = new List<CardTemplate>();
+
+            EnemyDeckBuilder.ApplySkillPoolEntries(deck, pool);
+
+            Assert.AreEqual(3, deck.Count);
+            Assert.AreEqual("a", deck[0].DefinitionId);
+            Assert.AreEqual("b", deck[1].DefinitionId);
+            Assert.AreEqual("a", deck[2].DefinitionId);
+        }
+
+        [Test]
         public void ShuffleFixedDeck_ChangesOrderButKeepsComposition()
         {
             var deck = new List<CardTemplate>

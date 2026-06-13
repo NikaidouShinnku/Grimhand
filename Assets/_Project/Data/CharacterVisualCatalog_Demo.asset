@@ -48,39 +48,6 @@ MonoBehaviour:
     IdleAnimationFrames: []
     IdleAnimationGifPath: The Grimhands Asset/characters/devil/devil_idle_anime.gif
     PreserveOriginalFacing: 0
-  - CharacterId: char_goblin_brute
-    IdlePortrait: {fileID: -7546124878013289674, guid: 4e9517047cbe912459dca45a57e6de36, type: 3}
-    AttackPortrait: {fileID: -7546124878013289674, guid: 4e9517047cbe912459dca45a57e6de36, type: 3}
-    DefensePortrait: {fileID: -7546124878013289674, guid: 4e9517047cbe912459dca45a57e6de36, type: 3}
-    HitPortrait: {fileID: -7546124878013289674, guid: 4e9517047cbe912459dca45a57e6de36, type: 3}
-    HitPortraitFacesRight: 1
-    DeathPortrait: {fileID: -7546124878013289674, guid: 4e9517047cbe912459dca45a57e6de36, type: 3}
-    CardProfilePortrait: {fileID: 0}
-    IdleAnimationFrames: []
-    IdleAnimationGifPath: 
-    PreserveOriginalFacing: 0
-  - CharacterId: char_goblin_shaman
-    IdlePortrait: {fileID: 3727514190393640177, guid: c21823f0fb8c8e642805cf4373333346, type: 3}
-    AttackPortrait: {fileID: 3727514190393640177, guid: c21823f0fb8c8e642805cf4373333346, type: 3}
-    DefensePortrait: {fileID: 3727514190393640177, guid: c21823f0fb8c8e642805cf4373333346, type: 3}
-    HitPortrait: {fileID: 3727514190393640177, guid: c21823f0fb8c8e642805cf4373333346, type: 3}
-    HitPortraitFacesRight: 1
-    DeathPortrait: {fileID: 3727514190393640177, guid: c21823f0fb8c8e642805cf4373333346, type: 3}
-    CardProfilePortrait: {fileID: 0}
-    IdleAnimationFrames: []
-    IdleAnimationGifPath: 
-    PreserveOriginalFacing: 0
-  - CharacterId: char_goblin_archer
-    IdlePortrait: {fileID: -9055158821392389110, guid: d288c1460a6d0d644b4a5de3cdd479a1, type: 3}
-    AttackPortrait: {fileID: -9055158821392389110, guid: d288c1460a6d0d644b4a5de3cdd479a1, type: 3}
-    DefensePortrait: {fileID: -9055158821392389110, guid: d288c1460a6d0d644b4a5de3cdd479a1, type: 3}
-    HitPortrait: {fileID: -9055158821392389110, guid: d288c1460a6d0d644b4a5de3cdd479a1, type: 3}
-    HitPortraitFacesRight: 1
-    DeathPortrait: {fileID: -9055158821392389110, guid: d288c1460a6d0d644b4a5de3cdd479a1, type: 3}
-    CardProfilePortrait: {fileID: 0}
-    IdleAnimationFrames: []
-    IdleAnimationGifPath: 
-    PreserveOriginalFacing: 0
   - CharacterId: char_goblin
     IdlePortrait: {fileID: -7546124878013289674, guid: 4e9517047cbe912459dca45a57e6de36, type: 3}
     AttackPortrait: {fileID: -7546124878013289674, guid: 4e9517047cbe912459dca45a57e6de36, type: 3}

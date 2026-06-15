@@ -918,6 +918,15 @@ namespace Grimhand.Presentation.Battle
             return sb.ToString();
         }
 
+        public static string FormatBloodRageDisplay(int stacks)
+        {
+            if (stacks <= 0)
+                return "";
+
+            var bonusPercent = stacks * MinionTraitCatalog.OgreBloodRageDamagePercentPerStack;
+            return $"血怒×{stacks}  下一张攻击+{bonusPercent}%";
+        }
+
         public static string BuildSelectionBadge(
             BattleState state,
             PlanningDraft draft,

@@ -194,7 +194,10 @@ namespace Grimhand.Presentation.Battle
 
             BeginPresentation(PresentationSnapshot.CaptureForTurnPresentation(
                 Engine.State, Engine.Draft, Engine));
+            Engine.PresentationCheckpointRecorder = (eventIndex, kind, state) =>
+                _presentationSnapshot?.RecordEventCheckpoint(eventIndex, kind, state);
             var ok = Engine.CommitPlayerPlan();
+            Engine.PresentationCheckpointRecorder = null;
             if (ok)
                 DrainEvents();
             else
@@ -210,7 +213,10 @@ namespace Grimhand.Presentation.Battle
 
             BeginPresentation(PresentationSnapshot.CaptureForTurnPresentation(
                 Engine.State, Engine.Draft, Engine));
+            Engine.PresentationCheckpointRecorder = (eventIndex, kind, state) =>
+                _presentationSnapshot?.RecordEventCheckpoint(eventIndex, kind, state);
             var ok = Engine.SkipPlayerTurn();
+            Engine.PresentationCheckpointRecorder = null;
             if (ok)
                 DrainEvents();
             else
@@ -689,6 +695,9 @@ namespace Grimhand.Presentation.Battle
             }
 
             var batch = new List<BattleEvent>(Engine.Events);
+            for (var i = 0; i < batch.Count; i++)
+                batch[i].EventIndex = i;
+
             foreach (var e in batch)
                 AppendEventLog(e);
 

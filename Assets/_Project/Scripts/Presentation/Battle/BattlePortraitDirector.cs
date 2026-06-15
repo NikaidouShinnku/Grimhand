@@ -135,6 +135,7 @@ namespace Grimhand.Presentation.Battle
                             break;
                         case BattleEventKind.BlockGained:
                             ApplySnapshotAfterBlockGain(e.CombatantId, e.Amount);
+                            ApplyEventDisplayCheckpoint(e);
                             break;
                         case BattleEventKind.HealApplied:
                             yield return PlayHealPresentation(e);
@@ -170,6 +171,7 @@ namespace Grimhand.Presentation.Battle
                             if (card != null && card.ActorId == e.CombatantId)
                             {
                                 yield return EndCardPlay(card);
+                                ApplyEventDisplayCheckpoint(e);
                                 card = null;
                             }
 
@@ -208,6 +210,15 @@ namespace Grimhand.Presentation.Battle
                 return false;
 
             return IsCombatantPresentationActive(combatantId);
+        }
+
+        void ApplyEventDisplayCheckpoint(BattleEvent e)
+        {
+            if (e == null || e.EventIndex < 0)
+                return;
+
+            _session.PresentationSnapshot?.ApplyEventCheckpoint(e.EventIndex);
+            _screen?.Refresh();
         }
 
         void ApplySnapshotAfterBlockGain(string combatantId, int amount)
@@ -274,12 +285,9 @@ namespace Grimhand.Presentation.Battle
                 yield return actor.HoldPose(NeutralCardHoldDuration);
 
             if (card.ActorAtCenter)
-            {
-                if (actor.IsAwayFromHome)
-                    yield return actor.ReturnHome();
-                else
-                    actor.RestoreHomePosition();
-            }
+                yield return actor.ReturnHome();
+
+            _screen?.SyncCombatantSlotLayout(card.ActorId);
         }
 
         IEnumerator HandleDamage(BattleEvent e, CardPlayContext card)
@@ -316,8 +324,9 @@ namespace Grimhand.Presentation.Battle
             if (statusFx != null)
                 yield return target.PlayOverlayEffect(statusFx);
 
-            ApplySnapshotAfterDamage(e.CombatantId, e.Amount);
             yield return target.PlayHitReaction(e.Amount, useHitPose: false);
+            ApplySnapshotAfterDamage(e.CombatantId, e.Amount);
+            ApplyEventDisplayCheckpoint(e);
         }
 
         IEnumerator HandleStatusApplied(BattleEvent e)
@@ -329,10 +338,10 @@ namespace Grimhand.Presentation.Battle
                 yield break;
 
             var statusFx = BattleActionEffectResolver.ResolveStatus(_effects, e.TargetId);
-            if (statusFx == null)
-                yield break;
+            if (statusFx != null)
+                yield return target.PlayOverlayEffect(statusFx);
 
-            yield return target.PlayOverlayEffect(statusFx);
+            ApplyEventDisplayCheckpoint(e);
         }
 
         IEnumerator PlayHealEffect(CombatantPortraitView target, bool isLifesteal = false)
@@ -352,12 +361,13 @@ namespace Grimhand.Presentation.Battle
 
         IEnumerator PlayHealPresentation(BattleEvent e)
         {
-            ApplySnapshotAfterHeal(e.CombatantId, e.Amount);
             if (!_portraits.TryGetValue(e.CombatantId, out var healed))
                 yield break;
 
             yield return PlayHealEffect(healed, e.IsLifesteal);
+            ApplySnapshotAfterHeal(e.CombatantId, e.Amount);
             healed.ShowHealNumber(e.Amount);
+            ApplyEventDisplayCheckpoint(e);
         }
 
         IEnumerator PlayBlockingEffect(CombatantPortraitView target)
@@ -448,6 +458,9 @@ namespace Grimhand.Presentation.Battle
             var hpDamage = e.Amount;
             var respondDefense = e.HadRespondDefense || e.RespondMitigatedAmount > 0;
 
+            if (hpDamage <= 0 && IsDodgeEvent(e))
+                target.ShowDodgeNumber();
+
             if ((blocked || respondDefense) && !retainCardPose && IsPlayerTeamActor(e.TargetId))
             {
                 yield return RunParallel(new List<IEnumerator>
@@ -473,22 +486,15 @@ namespace Grimhand.Presentation.Battle
                     retainPoseAfter: retainCardPose);
                 ApplySnapshotAfterDamage(e.TargetId, hpDamage);
             }
-            else if (blocked || respondDefense)
-            {
-                if (retainCardPose)
-                    yield return target.PlayDamageFlashOnly();
-                else
-                    yield return target.PlayBlockedReaction(blocked ? e.BlockedAmount : 0);
-            }
-            else if (IsDodgeEvent(e))
-            {
-                target.ShowDodgeNumber();
-                _screen?.Refresh();
-            }
             else
             {
-                _screen?.Refresh();
+                yield return target.PlayHitReaction(
+                    0,
+                    useHitPose: !blocked && !retainCardPose,
+                    retainPoseAfter: retainCardPose);
             }
+
+            ApplyEventDisplayCheckpoint(e);
         }
 
         IEnumerator HandleDamageWaveGap(BattleEvent e)
@@ -500,6 +506,7 @@ namespace Grimhand.Presentation.Battle
                     break;
                 case BattleEventKind.BlockGained:
                     ApplySnapshotAfterBlockGain(e.CombatantId, e.Amount);
+                    ApplyEventDisplayCheckpoint(e);
                     break;
                 case BattleEventKind.HealApplied:
                     yield return PlayHealPresentation(e);
@@ -602,11 +609,11 @@ namespace Grimhand.Presentation.Battle
                 yield return target.PlayDeathSequence();
 
             ApplySnapshotAfterDeath(e.CombatantId);
+            ApplyEventDisplayCheckpoint(e);
         }
 
         IEnumerator HandleRevive(BattleEvent e)
         {
-            ApplySnapshotAfterHeal(e.CombatantId, e.Amount);
             if (_portraits.TryGetValue(e.CombatantId, out var target))
             {
                 var unit = _session.Engine?.State?.GetCombatant(e.CombatantId);
@@ -614,10 +621,11 @@ namespace Grimhand.Presentation.Battle
                     target.SetIdentity(e.CombatantId, unit.CharacterDefinitionId, true, unit.Team);
 
                 yield return PlayHealEffect(target);
+                ApplySnapshotAfterHeal(e.CombatantId, e.Amount);
                 target.ShowHealNumber(e.Amount);
             }
 
-            _screen?.Refresh();
+            ApplyEventDisplayCheckpoint(e);
         }
 
         static bool IsDodgeEvent(BattleEvent e) =>

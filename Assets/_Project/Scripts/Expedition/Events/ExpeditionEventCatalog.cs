@@ -47,7 +47,7 @@ namespace Grimhand.Expedition.Events
             {
                 Evt(ExpeditionEventIds.MysteriousTraveler, "神秘旅者",
                     "戴兜帽的旅者摊开手掌，展示发光的物品。\n「交易，还是离开？」",
-                    Choice("A", "用 30 金币购买", "随机卡牌奖励（蓝优先，否则白）",
+                    Choice("A", "用 30 金币购买", "随机卡牌奖励",
                         "你掏出金币换得一张卡牌，旅者满意地收下，转身离去。"),
                     Choice("B", "接受礼物", "随机遗物 + 牌组加入诅咒牌「混沌之触」",
                         "你伸手接过礼物的瞬间，一道阴影般的诅咒悄悄爬进了你的牌组。"),

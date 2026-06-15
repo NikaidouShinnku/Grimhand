@@ -65,5 +65,7 @@ namespace Grimhand.Battle.Events
         public CardType CardType { get; set; }
         public BattleOutcome Outcome { get; set; }
         public bool DeferPresentation { get; set; }
+        /// <summary>本回合演出批次内的事件序号，用于按动画进度还原展示属性。</summary>
+        public int EventIndex { get; set; } = -1;
     }
 }

@@ -63,6 +63,7 @@ namespace Grimhand.Presentation.Battle
         BattleUiIconCatalogSO _currentIcons;
         CharacterVisualCatalogSO _currentVisuals;
         BattleSession _session;
+        PresentationSnapshot _presentation;
 
         string _combatantId;
         bool _hovered;
@@ -71,6 +72,86 @@ namespace Grimhand.Presentation.Battle
         bool _displayAlive = true;
         bool _showExpBar;
         Vector3 _basePortraitScale = Vector3.one;
+        float _presentationYOffsetLocal;
+        string _hpBarLayoutCombatantId;
+        bool _enemyLayoutLocked;
+        float _unifiedHpBarWorldY;
+        Vector3 _footWorldOffsetFromPortraitFoot;
+
+        public float GetHpBarWorldY()
+        {
+            if (statsRow != null)
+                return statsRow.transform.position.y;
+
+            var footRoot = transform.Find("FootStatusRoot");
+            return footRoot != null ? footRoot.position.y : transform.position.y;
+        }
+
+        public void InvalidateEnemyHpBarLayout()
+        {
+            _enemyLayoutLocked = false;
+            _hpBarLayoutCombatantId = null;
+            _unifiedHpBarWorldY = 0f;
+            _footWorldOffsetFromPortraitFoot = Vector3.zero;
+        }
+
+        public void EnsureFixedEnemyHpBarLayout(float playerHpBarWorldY)
+        {
+            if (team != TeamSide.Enemy || string.IsNullOrEmpty(_combatantId))
+                return;
+
+            if (_enemyLayoutLocked && _hpBarLayoutCombatantId == _combatantId)
+            {
+                SyncEnemyLayoutAfterPresentation();
+                return;
+            }
+
+            ApplyStatusAnchorLayout();
+            ApplyPortraitMirror();
+            ApplyInteractionBounds(_currentVisuals?.GetPortrait(_currentUnit?.CharacterDefinitionId));
+            AlignStatusBelowPortrait();
+
+            var footRoot = transform.Find("FootStatusRoot") as RectTransform;
+            if (footRoot == null)
+                return;
+
+            var deltaWorld = playerHpBarWorldY - footRoot.position.y;
+            if (Mathf.Abs(deltaWorld) > 0.01f && portraitRoot != null)
+                portraitRoot.position += new Vector3(0f, deltaWorld, 0f);
+
+            _unifiedHpBarWorldY = playerHpBarWorldY;
+            _hpBarLayoutCombatantId = _combatantId;
+            _enemyLayoutLocked = true;
+
+            var footPos = footRoot.position;
+            footRoot.position = new Vector3(footPos.x, _unifiedHpBarWorldY, footPos.z);
+            _footWorldOffsetFromPortraitFoot = footRoot.position - GetPortraitFootWorldPosition();
+
+            _portraitView?.RecaptureHomePosition();
+        }
+
+        public void SyncEnemyLayoutAfterPresentation()
+        {
+            if (team != TeamSide.Enemy || !_enemyLayoutLocked)
+                return;
+
+            if (_portraitView != null && (_portraitView.IsAwayFromHome || _portraitView.IsAnimating))
+                ApplyFootFollowPortrait();
+            else
+            {
+                _portraitView?.RestoreHomePosition();
+                ApplyIdleEnemyFootLayout();
+            }
+        }
+
+        public float WorldDeltaYToLocal(float worldDeltaY)
+        {
+            var slotRt = transform as RectTransform;
+            if (slotRt == null)
+                return worldDeltaY;
+
+            return slotRt.InverseTransformVector(new Vector3(0f, worldDeltaY, 0f)).y;
+        }
 
         public void Configure(FormationSlot slot, TeamSide teamSide, string rowLabel, bool mirror = false)
         {
@@ -102,8 +183,12 @@ namespace Grimhand.Presentation.Battle
             if (_portraitView == null || _currentUnit == null)
                 return;
 
-            if (_portraitView.IsAnimating || _portraitView.IsAwayFromHome)
+            if (team == TeamSide.Player && (_portraitView.IsAnimating || _portraitView.IsAwayFromHome))
                 AlignStatusBelowPortrait();
+            else if (team == TeamSide.Enemy
+                     && _enemyLayoutLocked
+                     && (_portraitView.IsAnimating || _portraitView.IsAwayFromHome))
+                ApplyEnemyFootDuringAnimation();
         }
 
         void TryInferSlotFromName()
@@ -217,6 +302,85 @@ namespace Grimhand.Presentation.Battle
         }
 
         public CombatantPortraitView PortraitView => _portraitView;
+        public string CombatantId => _combatantId;
+
+        void ApplyIdleEnemyFootLayout()
+        {
+            if (team != TeamSide.Enemy || !_enemyLayoutLocked)
+                return;
+
+            if (_portraitView != null && !_portraitView.IsAwayFromHome && !_portraitView.IsAnimating)
+                _portraitView.RestoreHomePosition();
+
+            ApplyFootFollowPortrait();
+        }
+
+        void ApplyFootFollowPortrait()
+        {
+            var footRoot = transform.Find("FootStatusRoot") as RectTransform;
+            if (footRoot == null)
+                return;
+
+            var targetWorld = GetPortraitFootWorldPosition() + _footWorldOffsetFromPortraitFoot;
+
+            var slotRt = transform as RectTransform;
+            if (slotRt == null)
+            {
+                footRoot.position = targetWorld;
+                return;
+            }
+
+            var canvas = slotRt.GetComponentInParent<Canvas>();
+            var cam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+                ? canvas.worldCamera
+                : null;
+
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    slotRt, targetWorld, cam, out var localFoot))
+            {
+                footRoot.position = targetWorld;
+                return;
+            }
+
+            footRoot.anchorMin = new Vector2(0.5f, 0.5f);
+            footRoot.anchorMax = new Vector2(0.5f, 0.5f);
+            footRoot.pivot = new Vector2(0.5f, 0f);
+            footRoot.anchoredPosition = localFoot;
+            footRoot.localScale = Vector3.one;
+        }
+
+        void ApplyFootStatusLayout()
+        {
+            if (team == TeamSide.Enemy && _enemyLayoutLocked)
+            {
+                if (_portraitView != null && (_portraitView.IsAnimating || _portraitView.IsAwayFromHome))
+                    ApplyFootFollowPortrait();
+                else
+                    ApplyIdleEnemyFootLayout();
+                return;
+            }
+
+            AlignStatusBelowPortrait();
+        }
+
+        Vector3 GetPortraitFootWorldPosition()
+        {
+            var hitRect = _portraitHit != null ? _portraitHit : portraitRoot;
+            if (hitRect == null)
+                return Vector3.zero;
+
+            var corners = new Vector3[4];
+            hitRect.GetWorldCorners(corners);
+            return new Vector3(
+                (corners[0].x + corners[2].x) * 0.5f,
+                corners[0].y,
+                corners[0].z);
+        }
+
+        void ApplyEnemyFootDuringAnimation()
+        {
+            ApplyFootFollowPortrait();
+        }
 
         void EnsureDetailPopup()
         {
@@ -348,6 +512,13 @@ namespace Grimhand.Presentation.Battle
 
         public void ApplyPortraitScaleFromRuntime()
         {
+            if (_enemyLayoutLocked)
+            {
+                ApplyPortraitMirror();
+                SyncEnemyLayoutAfterPresentation();
+                return;
+            }
+
             ApplyStatusAnchorLayout();
             ApplyPortraitMirror();
             _portraitView?.RecaptureHomeIfIdle();
@@ -367,7 +538,7 @@ namespace Grimhand.Presentation.Battle
                 portraitRoot.pivot = new Vector2(0.5f, 0f);
                 portraitRoot.offsetMin = Vector2.zero;
                 portraitRoot.offsetMax = Vector2.zero;
-                portraitRoot.anchoredPosition = new Vector2(0f, ResolvePortraitExtraDownPx());
+                portraitRoot.anchoredPosition = new Vector2(0f, ResolvePortraitExtraDownPx() + _presentationYOffsetLocal);
             }
 
             var footRoot = transform.Find("FootStatusRoot") as RectTransform;
@@ -404,6 +575,17 @@ namespace Grimhand.Presentation.Battle
                     rt.anchoredPosition = new Vector2(0f, 0f);
                     rt.sizeDelta = new Vector2(148f, 32f);
                 }
+            }
+
+            if (bodyText != null)
+            {
+                var rt = bodyText.rectTransform;
+                rt.SetParent(footRoot, false);
+                rt.anchorMin = new Vector2(0f, 0f);
+                rt.anchorMax = new Vector2(1f, 0f);
+                rt.pivot = new Vector2(0.5f, 0f);
+                rt.anchoredPosition = new Vector2(0f, 58f);
+                rt.sizeDelta = new Vector2(0f, 36f);
             }
         }
 
@@ -477,10 +659,14 @@ namespace Grimhand.Presentation.Battle
             BattleSession session = null)
         {
             var unit = FindCombatant(state);
+            if (unit?.Id != _hpBarLayoutCombatantId)
+                InvalidateEnemyHpBarLayout();
+
             _currentUnit = unit;
             _currentIcons = uiIcons;
             _currentVisuals = visuals;
             _session = session;
+            _presentation = presentation;
             _combatantId = unit?.Id;
             _targetMode = targetMode;
 
@@ -492,10 +678,14 @@ namespace Grimhand.Presentation.Battle
 
             var preservePortraitLayout = _portraitView != null
                 && (_portraitView.IsAwayFromHome || _portraitView.IsAnimating);
-            if (!preservePortraitLayout)
+            if (!preservePortraitLayout && !_enemyLayoutLocked)
             {
                 ApplyStatusAnchorLayout();
                 ApplyPortraitMirror();
+            }
+            else if (!preservePortraitLayout && team == TeamSide.Enemy && _enemyLayoutLocked)
+            {
+                _portraitView?.RestoreHomePosition();
             }
 
             var displayAlive = unit != null
@@ -567,12 +757,29 @@ namespace Grimhand.Presentation.Battle
                     ? visuals?.GetPortrait(unit.CharacterDefinitionId)
                     : sprite ?? portraitImage?.sprite);
 
-            AlignStatusBelowPortrait();
+            ApplyFootStatusLayout();
 
             if (bodyText != null)
             {
-                bodyText.text = "";
-                bodyText.gameObject.SetActive(false);
+                var traitFootnote = unit != null && team == TeamSide.Enemy
+                    ? CombatantDisplayHelper.GetTraitFootnote(unit, presentation)
+                    : "";
+
+                if (!string.IsNullOrEmpty(traitFootnote))
+                {
+                    bodyText.text = traitFootnote;
+                    bodyText.fontSize = Mathf.Max(bodyText.fontSize, 14);
+                    bodyText.color = new Color(1f, 0.48f, 0.38f);
+                    bodyText.alignment = TextAnchor.MiddleCenter;
+                    bodyText.horizontalOverflow = HorizontalWrapMode.Wrap;
+                    EnsureOutline(bodyText, new Color(0f, 0f, 0f, 0.9f));
+                    bodyText.gameObject.SetActive(true);
+                }
+                else
+                {
+                    bodyText.text = "";
+                    bodyText.gameObject.SetActive(false);
+                }
             }
 
             if (nameText != null)
@@ -602,17 +809,17 @@ namespace Grimhand.Presentation.Battle
 
             if (!allowHoverDetail)
             {
-                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp, expeditionMember, runRelics);
+                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp, expeditionMember, runRelics, presentation);
                 _detailPopup?.SetVisible(false);
             }
             else if (!_hovered)
             {
-                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp, expeditionMember, runRelics);
+                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp, expeditionMember, runRelics, presentation);
                 _detailPopup?.SetVisible(false);
             }
             else if (!_targetMode || !_isValidTarget)
             {
-                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp, expeditionMember, runRelics);
+                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp, expeditionMember, runRelics, presentation);
                 _detailPopup?.SetVisible(unit != null);
             }
             else
@@ -665,6 +872,8 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             localFoot.y -= FootStatusDropPx;
+            if (team == TeamSide.Player)
+                localFoot.y += _presentationYOffsetLocal;
 
             footRoot.anchorMin = new Vector2(0.5f, 0.5f);
             footRoot.anchorMax = new Vector2(0.5f, 0.5f);
@@ -737,7 +946,14 @@ namespace Grimhand.Presentation.Battle
             else if (!_targetMode || !_isValidTarget)
             {
                 ResolveExpeditionDetailContext(out var member, out var relics);
-                _detailPopup?.Refresh(_currentUnit, _currentIcons, _showExpBar, _currentUnit.Xp, member, relics);
+                _detailPopup?.Refresh(
+                    _currentUnit,
+                    _currentIcons,
+                    _showExpBar,
+                    _currentUnit.Xp,
+                    member,
+                    relics,
+                    _presentation);
                 _detailPopup?.SetVisible(true);
             }
         }

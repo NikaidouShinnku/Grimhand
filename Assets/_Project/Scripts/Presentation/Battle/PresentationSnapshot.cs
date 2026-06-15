@@ -1,17 +1,30 @@
 using System.Collections.Generic;
 using Grimhand.Battle;
+using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Planning;
 using Grimhand.Battle.Rules;
 
 namespace Grimhand.Presentation.Battle
 {
-    /// <summary>战斗演出期间的 HP / 存活展示快照，与已结算完毕的逻辑状态解耦。</summary>
+    public struct CombatantDisplayStats
+    {
+        public int Attack;
+        public int Defense;
+        public int Speed;
+        public int BloodRageStacks;
+        public string StatusSummary;
+        public string TraitFootnote;
+    }
+
+    /// <summary>战斗演出期间的 HP / 存活 / 属性展示快照，与已结算完毕的逻辑状态解耦。</summary>
     public sealed class PresentationSnapshot
     {
         readonly Dictionary<string, int> _hp = new();
         readonly Dictionary<string, int> _maxHp = new();
         readonly Dictionary<string, int> _block = new();
+        readonly Dictionary<string, CombatantDisplayStats> _displayStats = new();
+        readonly Dictionary<int, Dictionary<string, CombatantDisplayStats>> _eventCheckpoints = new();
         readonly HashSet<string> _dead = new();
         readonly List<int> _playerHandInstanceIds = new();
         readonly List<EnemyIntentSlot> _turnEnemyIntents = new();
@@ -34,6 +47,7 @@ namespace Grimhand.Presentation.Battle
                 snap._hp[c.Id] = c.Hp;
                 snap._maxHp[c.Id] = c.MaxHp;
                 snap._block[c.Id] = c.Block;
+                snap._displayStats[c.Id] = BuildDisplayStats(c, state);
                 if (!c.IsAlive)
                     snap._dead.Add(c.Id);
             }
@@ -115,6 +129,60 @@ namespace Grimhand.Presentation.Battle
 
         public int GetBlock(string combatantId) =>
             _block.TryGetValue(combatantId, out var block) ? block : 0;
+
+        public bool TryGetDisplayStats(string combatantId, out CombatantDisplayStats stats) =>
+            _displayStats.TryGetValue(combatantId, out stats);
+
+        public void RecordEventCheckpoint(int eventIndex, BattleEventKind kind, BattleState state)
+        {
+            if (state == null || eventIndex < 0)
+                return;
+
+            if (!BattlePresentationCheckpointKinds.ShouldRecord(kind))
+                return;
+
+            _eventCheckpoints[eventIndex] = CaptureAllDisplayStats(state);
+        }
+
+        public void ApplyEventCheckpoint(int eventIndex)
+        {
+            if (eventIndex < 0 || !_eventCheckpoints.TryGetValue(eventIndex, out var stats))
+                return;
+
+            foreach (var pair in stats)
+                _displayStats[pair.Key] = pair.Value;
+        }
+
+        public void SyncCombatantFromLive(BattleState state, string combatantId)
+        {
+            if (state == null || string.IsNullOrEmpty(combatantId))
+                return;
+
+            var combatant = state.GetCombatant(combatantId);
+            if (combatant == null)
+                return;
+
+            _displayStats[combatantId] = BuildDisplayStats(combatant, state);
+        }
+
+        static Dictionary<string, CombatantDisplayStats> CaptureAllDisplayStats(BattleState state)
+        {
+            var dict = new Dictionary<string, CombatantDisplayStats>();
+            foreach (var combatant in state.Combatants)
+                dict[combatant.Id] = BuildDisplayStats(combatant, state);
+            return dict;
+        }
+
+        static CombatantDisplayStats BuildDisplayStats(CombatantState combatant, BattleState state = null) =>
+            new CombatantDisplayStats
+            {
+                Attack = combatant.Attack,
+                Defense = combatant.Defense,
+                Speed = StatusRules.GetEffectiveSpeed(state, combatant),
+                BloodRageStacks = combatant.BloodRageStacks,
+                StatusSummary = BattleUiFormatters.FormatStatusListDisplay(combatant),
+                TraitFootnote = MinionTraitDisplayFormatter.FormatFootnote(combatant, state)
+            };
 
         public void ApplyBlockGain(string combatantId, int amount)
         {

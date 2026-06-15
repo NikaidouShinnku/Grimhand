@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Grimhand.Battle.AI;
 using Grimhand.Battle.Consumables;
@@ -17,6 +18,9 @@ namespace Grimhand.Battle
         readonly BattleRng _rng;
         readonly List<BattleEvent> _events = new();
         PlanningDraft _draft;
+
+        /// <summary>演出录制：每产生一条影响 UI 展示的战斗事件后回调 (eventIndex, kind, state)。</summary>
+        public Action<int, BattleEventKind, BattleState> PresentationCheckpointRecorder { get; set; }
 
         public BattleEngine(BattleConfig config)
         {
@@ -227,6 +231,8 @@ namespace Grimhand.Battle
             if (actor == null || card == null || !actor.IsAlive)
                 return;
 
+            var eventStart = _events.Count;
+
             _events.Add(new BattleEvent(BattleEventKind.CardResolvedStarted, card.DisplayName)
             {
                 CombatantId = actor.Id,
@@ -257,6 +263,7 @@ namespace Grimhand.Battle
                 CardInstanceId = card.InstanceId
             });
 
+            RecordPresentationCheckpoints(eventStart);
             EvaluateOutcome();
         }
 
@@ -290,6 +297,8 @@ namespace Grimhand.Battle
             var card = _state.GetCard(step.CardInstanceId);
             if (actor == null || card == null || !actor.IsAlive)
                 return;
+
+            var eventStart = _events.Count;
 
             _events.Add(new BattleEvent(BattleEventKind.PortraitPoseChanged, actor.DisplayName)
             {
@@ -334,7 +343,23 @@ namespace Grimhand.Battle
                 RespondEffectExecutor.ResolvePendingParriesForEnemyCard(
                     _state, card.InstanceId, _events, _rng);
 
+            RecordPresentationCheckpoints(eventStart);
             EvaluateOutcome();
+        }
+
+        void RecordPresentationCheckpoints(int eventStart)
+        {
+            if (PresentationCheckpointRecorder == null)
+                return;
+
+            for (var i = eventStart; i < _events.Count; i++)
+            {
+                var e = _events[i];
+                if (!BattlePresentationCheckpointKinds.ShouldRecord(e.Kind))
+                    continue;
+
+                PresentationCheckpointRecorder.Invoke(i, e.Kind, _state);
+            }
         }
 
         void TrySelfDestructAfterCard(CombatantState actor, CardInstanceState card)

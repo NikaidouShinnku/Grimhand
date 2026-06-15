@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
-using Grimhand.Battle.Rules;
 using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
@@ -162,7 +161,8 @@ namespace Grimhand.Presentation.Battle
             bool showExpBar,
             int xp = 0,
             PartyMemberSnapshot expeditionMember = null,
-            IReadOnlyList<string> runRelics = null)
+            IReadOnlyList<string> runRelics = null,
+            PresentationSnapshot presentation = null)
         {
             if (_bodyText == null)
                 return;
@@ -173,11 +173,13 @@ namespace Grimhand.Presentation.Battle
                 return;
             }
 
-            var status = BattleUiFormatters.FormatStatusListDisplay(unit);
-            var speed = StatusRules.GetEffectiveSpeed(unit);
+            var status = CombatantDisplayHelper.GetStatusSummary(unit, presentation);
+            var speed = CombatantDisplayHelper.GetSpeed(unit, presentation);
             var showExp = showExpBar && unit.Team == TeamSide.Player;
-            var attackDisplay = unit.Attack;
-            if (expeditionMember != null && expeditionMember.PersonalAttackBonus > 0)
+            var attackDisplay = CombatantDisplayHelper.GetAttack(unit, presentation);
+            if (presentation == null
+                && expeditionMember != null
+                && expeditionMember.PersonalAttackBonus > 0)
             {
                 var baseStats = CharacterProgression.GetStatsForCharacter(
                     unit.CharacterDefinitionId,
@@ -185,12 +187,17 @@ namespace Grimhand.Presentation.Battle
                 attackDisplay = baseStats.BaseAttack + expeditionMember.PersonalAttackBonus;
             }
 
+            var defenseDisplay = CombatantDisplayHelper.GetDefense(unit, presentation);
+            var traitFootnote = CombatantDisplayHelper.GetTraitFootnote(unit, presentation);
+
             var lines = CharacterProgression.FormatLevelLabel(unit.Level);
             if (showExp)
                 lines += "\n";
-            lines += $"\n攻击 {attackDisplay}    防御 {unit.Defense}    速度 {speed}";
+            lines += $"\n攻击 {attackDisplay}    防御 {defenseDisplay}    速度 {speed}";
             if (!string.IsNullOrEmpty(status))
                 lines += $"\n状态 {status}";
+            if (!string.IsNullOrEmpty(traitFootnote))
+                lines += $"\n{traitFootnote}";
 
             if (expeditionMember != null && expeditionMember.BonusCards.Count > 0)
             {
@@ -223,6 +230,8 @@ namespace Grimhand.Presentation.Battle
             }
 
             var lineCount = 2 + (string.IsNullOrEmpty(status) ? 0 : 1);
+            if (!string.IsNullOrEmpty(traitFootnote))
+                lineCount += traitFootnote.Split('\n').Length;
             if (showExp)
                 lineCount++;
             if (expeditionMember != null)

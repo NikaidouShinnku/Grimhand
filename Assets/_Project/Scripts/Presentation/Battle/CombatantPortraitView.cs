@@ -133,7 +133,6 @@ namespace Grimhand.Presentation.Battle
             _awayFromHome = true;
             StopIdleLoop();
             CaptureHomeIfNeeded();
-            RestoreHomePosition();
 
             // 仅 X 轴移到战场中央，Y 保持与站位时相同水平线。
             var target = new Vector3(centerWorld.x, _homeWorldPosition.y, _homeWorldPosition.z);
@@ -186,17 +185,39 @@ namespace Grimhand.Presentation.Battle
 
             if (!_homeCaptured)
             {
-                _awayFromHome = false;
-                _isAnimating = false;
-                yield break;
+                CaptureHomeIfNeeded();
+                if (!_homeCaptured)
+                {
+                    _awayFromHome = false;
+                    _isAnimating = false;
+                    yield break;
+                }
             }
 
-            yield return TweenWorldPosition(portraitRoot, _homeWorldPosition, MoveDuration);
+            _isAnimating = true;
+            var dist = Vector3.Distance(portraitRoot.position, _homeWorldPosition);
+            if (dist > 0.01f)
+                yield return TweenWorldPosition(portraitRoot, _homeWorldPosition, MoveDuration);
+
             RestoreHomePosition();
             _awayFromHome = false;
             _isAnimating = false;
             if (!_isDead)
                 ApplyIdleStill();
+        }
+
+        public bool IsAtHomePosition() =>
+            portraitRoot != null
+            && _homeCaptured
+            && Vector3.Distance(portraitRoot.position, _homeWorldPosition) <= 0.01f;
+
+        public void RecaptureHomePosition()
+        {
+            if (portraitRoot == null)
+                return;
+
+            _homeWorldPosition = portraitRoot.position;
+            _homeCaptured = true;
         }
 
         public void RestoreHomePosition()
@@ -210,6 +231,9 @@ namespace Grimhand.Presentation.Battle
         public void ForceSettleHome()
         {
             if (!_awayFromHome || portraitRoot == null)
+                return;
+
+            if (Vector3.Distance(portraitRoot.position, _homeWorldPosition) > 0.01f)
                 return;
 
             RestoreHomePosition();

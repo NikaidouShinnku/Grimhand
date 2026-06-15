@@ -691,6 +691,10 @@ namespace Grimhand.Presentation.Battle
                 ApplyPlanningButtonIcons();
             RefreshPlanningChromeVisibility();
             _activeCardBanner?.Relayout();
+
+            InvalidateAllEnemyHpBarLayouts();
+            if (_session?.Engine?.State != null && ShouldShowBattlePlanningChrome())
+                RefreshBattlefield(_session.Engine.State, _session.Engine.Draft);
         }
 
         void RefreshPlanningChromeVisibility()
@@ -923,6 +927,58 @@ namespace Grimhand.Presentation.Battle
             RefreshSlotRow(enemySlots, state, targetMode, validTargets, _session.PresentationSnapshot, showExpBar: false);
             RefreshSlotRow(playerSlots, state, targetMode, validTargets, _session.PresentationSnapshot,
                 showExpBar: _session.IsExpeditionMode);
+            EnsureEnemyHpBarAlignment();
+        }
+
+        void EnsureEnemyHpBarAlignment()
+        {
+            if (playerSlots == null || enemySlots == null)
+                return;
+
+            float? referenceY = null;
+            if (playerSlots.Length > 1 && playerSlots[1] != null
+                && !string.IsNullOrEmpty(playerSlots[1].CombatantId))
+            {
+                referenceY = playerSlots[1].GetHpBarWorldY();
+            }
+            else
+            {
+                foreach (var slot in playerSlots)
+                {
+                    if (slot == null || string.IsNullOrEmpty(slot.CombatantId))
+                        continue;
+
+                    referenceY = slot.GetHpBarWorldY();
+                    break;
+                }
+            }
+
+            if (!referenceY.HasValue)
+                return;
+
+            foreach (var slot in enemySlots)
+                slot?.EnsureFixedEnemyHpBarLayout(referenceY.Value);
+        }
+
+        public void SyncCombatantSlotLayout(string combatantId)
+        {
+            if (string.IsNullOrEmpty(combatantId))
+                return;
+
+            foreach (var slot in enemySlots)
+            {
+                if (slot != null && slot.CombatantId == combatantId)
+                    slot.SyncEnemyLayoutAfterPresentation();
+            }
+        }
+
+        public void InvalidateAllEnemyHpBarLayouts()
+        {
+            if (enemySlots == null)
+                return;
+
+            foreach (var slot in enemySlots)
+                slot?.InvalidateEnemyHpBarLayout();
         }
 
         void RefreshSlotRow(

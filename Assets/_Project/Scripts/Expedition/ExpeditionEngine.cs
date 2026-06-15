@@ -37,6 +37,7 @@ namespace Grimhand.Expedition
             _run.LastEventMessage = "";
             _run.Party.Clear();
             _run.Relics.Clear();
+            _run.RelicGrowthTiers.Clear();
             _run.UsedEventIds.Clear();
             _run.EventFlags.Clear();
             _run.ConsumableSlots.Clear();
@@ -54,9 +55,12 @@ namespace Grimhand.Expedition
             _run.PendingRoutes.Clear();
             _run.PendingRewardPickup = null;
             _run.PendingEvent = null;
+            _run.PendingEventAftermath = null;
+            _run.EventResolutionFixedRoll100 = null;
             _run.PendingShrine = null;
             _run.EventInteraction = null;
             _run.PendingEventBattleKey = "";
+            _run.PendingEventBattleBonusXp = 0;
             _run.PendingEventBattleVictoryReward = null;
             _run.PendingDeferredReward = null;
             _run.Shop.Clear();
@@ -110,7 +114,8 @@ namespace Grimhand.Expedition
                 _config.PlayerCardCatalog,
                 _config,
                 _run.TalentRun,
-                isBossBattle: true);
+                isBossBattle: true,
+                _run.RelicGrowthTiers);
 
             _run.CurrentBattleConfig.EnergyCap += _run.Modifiers.EnergyCapBonus;
             _run.CurrentBattleConfig.TurnStartEnergyRegen = System.Math.Max(
@@ -126,6 +131,7 @@ namespace Grimhand.Expedition
             _run.LastEventMessage = "";
             _run.Party.Clear();
             _run.Relics.Clear();
+            _run.RelicGrowthTiers.Clear();
             _run.UsedEventIds.Clear();
             _run.EventFlags.Clear();
             _run.ConsumableSlots.Clear();
@@ -143,9 +149,12 @@ namespace Grimhand.Expedition
             _run.PendingRoutes.Clear();
             _run.PendingRewardPickup = null;
             _run.PendingEvent = null;
+            _run.PendingEventAftermath = null;
+            _run.EventResolutionFixedRoll100 = null;
             _run.PendingShrine = null;
             _run.EventInteraction = null;
             _run.PendingEventBattleKey = "";
+            _run.PendingEventBattleBonusXp = 0;
             _run.PendingEventBattleVictoryReward = null;
             _run.PendingDeferredReward = null;
             _run.Shop.Clear();
@@ -291,11 +300,17 @@ namespace Grimhand.Expedition
 
             _run.LastXpReward = RollCombatXp();
             ExpeditionBattleConfigBuilder.GrantXpToParty(_run.Party, _run.LastXpReward);
+            if (_run.PendingEventBattleBonusXp > 0)
+            {
+                ExpeditionBattleConfigBuilder.GrantXpToParty(_run.Party, _run.PendingEventBattleBonusXp);
+                _run.LastXpReward += _run.PendingEventBattleBonusXp;
+            }
 
             if (!string.IsNullOrEmpty(_run.PendingEventBattleKey))
             {
                 var eventReward = _run.PendingEventBattleVictoryReward;
                 _run.PendingEventBattleKey = "";
+                _run.PendingEventBattleBonusXp = 0;
                 _run.PendingEventBattleVictoryReward = null;
 
                 if (eventReward != null && eventReward.HasAnyReward)
@@ -509,10 +524,12 @@ namespace Grimhand.Expedition
                     ExpeditionShopRoller.OpenShop(_run.Shop, _config, _run, _rng);
                     return true;
                 case ExpeditionNodeType.Boss:
+                    RecordLastBattleContext(route.LayerNumber, false, true);
                     _run.Phase = ExpeditionPhase.InBattle;
                     _run.CurrentBattleConfig = BuildBossBattle(applyPartyHp: true);
                     return true;
                 default:
+                    RecordLastBattleContext(route.LayerNumber, route.IsElite, false);
                     _run.Phase = ExpeditionPhase.InBattle;
                     _run.CurrentBattleConfig = BuildBattleFromEncounter(
                         route.EncounterIndex,
@@ -529,7 +546,75 @@ namespace Grimhand.Expedition
             if (_run.Phase != ExpeditionPhase.EventChoice || _run.PendingEvent == null)
                 return false;
 
+            if (!ExpeditionEventCatalog.TryGet(_run.PendingEvent.EventId, out var definition))
+                return false;
+
+            if (choiceIndex < 0 || choiceIndex >= definition.Choices.Count)
+                return false;
+
+            var choice = definition.Choices[choiceIndex];
             var eventId = _run.PendingEvent.EventId;
+            var aftermathText = choice.AfterChoiceText;
+            int? fixedRoll = null;
+
+            if (ExpeditionEventAftermathText.NeedsStochasticRoll(eventId, choiceIndex))
+            {
+                fixedRoll = _rng.NextIndex(100);
+                aftermathText = ExpeditionEventAftermathText.Resolve(eventId, choiceIndex, fixedRoll.Value);
+            }
+
+            if (!string.IsNullOrEmpty(aftermathText))
+            {
+                _run.PendingEventAftermath = new ExpeditionPendingEventAftermath
+                {
+                    EventId = eventId,
+                    ChoiceIndex = choiceIndex,
+                    SourceLayer = _run.PendingEvent.SourceLayer,
+                    AfterChoiceText = aftermathText,
+                    FixedRoll100 = fixedRoll
+                };
+                _run.PendingEvent = null;
+                _run.Phase = ExpeditionPhase.EventAftermath;
+                return true;
+            }
+
+            return ApplyResolvedEventChoice(eventId, choiceIndex, _run.PendingEvent.SourceLayer);
+        }
+
+        public bool TryConfirmEventAftermath()
+        {
+            if (_run.Phase != ExpeditionPhase.EventAftermath || _run.PendingEventAftermath == null)
+                return false;
+
+            var pending = _run.PendingEventAftermath;
+            _run.PendingEventAftermath = null;
+            _run.EventResolutionFixedRoll100 = null;
+            return ApplyResolvedEventChoice(
+                pending.EventId,
+                pending.ChoiceIndex,
+                pending.SourceLayer,
+                pending.FixedRoll100);
+        }
+
+        bool ApplyResolvedEventChoice(
+            string eventId,
+            int choiceIndex,
+            int sourceLayer,
+            int? fixedRoll100 = null)
+        {
+            _run.EventResolutionFixedRoll100 = fixedRoll100;
+            try
+            {
+                return ApplyResolvedEventChoiceCore(eventId, choiceIndex);
+            }
+            finally
+            {
+                _run.EventResolutionFixedRoll100 = null;
+            }
+        }
+
+        bool ApplyResolvedEventChoiceCore(string eventId, int choiceIndex)
+        {
             var outcome = ExpeditionEventResolver.ResolveChoice(
                 _run, _config, eventId, choiceIndex, _rng);
             _run.LastEventMessage = outcome.Message;
@@ -730,6 +815,7 @@ namespace Grimhand.Expedition
                 return false;
 
             _run.Relics.Add(relicId);
+            RelicGrowthRules.OnRelicAcquired(_run.RelicGrowthTiers, relicId, ResolveRelicAcquisitionFloor());
 
             if (RelicDatabase.TryGet(relicId, out var relic))
                 RecordRunAcquisition($"获得遗物：{relic.DisplayName}");
@@ -739,6 +825,27 @@ namespace Grimhand.Expedition
 
             return true;
         }
+
+        int ResolveRelicAcquisitionFloor()
+        {
+            if (_run.PendingEventAftermath?.SourceLayer > 0)
+                return _run.PendingEventAftermath.SourceLayer;
+
+            if (_run.Phase == ExpeditionPhase.RewardPickup && _run.Map != null)
+                return System.Math.Max(1, _run.Map.NodesCompleted);
+
+            return System.Math.Max(1, (_run.Map?.NodesCompleted ?? 0) + 1);
+        }
+
+        void RecordLastBattleContext(int floor, bool isElite, bool isBoss)
+        {
+            _run.LastBattleFloor = System.Math.Max(1, floor);
+            _run.LastBattleWasElite = isElite;
+            _run.LastBattleWasBoss = isBoss;
+        }
+
+        int RollCombatXp() =>
+            CombatXpRules.Roll(_rng, _run.LastBattleFloor, _run.LastBattleWasElite, _run.LastBattleWasBoss);
 
         public int CurrentBattleNumber => _run.Map?.NodesCompleted + 1 ?? _run.BattlesWon + 1;
 
@@ -778,6 +885,8 @@ namespace Grimhand.Expedition
                 return;
 
             _run.Map.NodesCompleted++;
+
+            RelicGrowthRules.SyncFloorGrowth(_run.RelicGrowthTiers, _run.Relics, _run.Map.NodesCompleted);
 
             if (_run.Map.NodesCompleted >= _run.Map.ChapterLayerCount)
             {
@@ -957,6 +1066,7 @@ namespace Grimhand.Expedition
 
             if (outcome.StartsCombat)
             {
+                RecordLastBattleContext(CurrentBattleNumber, isElite: false, isBoss: false);
                 _run.Phase = ExpeditionPhase.InBattle;
                 _run.CurrentBattleConfig = BuildBattleFromEncounter(outcome.CombatEncounterIndex, applyPartyHp: true);
                 return true;
@@ -998,6 +1108,11 @@ namespace Grimhand.Expedition
                 template = MirrorPhantomEncounterBuilder.BuildMirrorBattle(standard, _run.Party);
             else if (_run.PendingEventBattleKey == AdventurerRevengeEncounterBuilder.BattleKey)
                 template = AdventurerRevengeEncounterBuilder.BuildRevengeBattle(standard);
+            else if (_run.PendingEventBattleKey == AncientFurnaceEncounterBuilder.BattleKey)
+            {
+                var map = MonsterTemplateRegistry.BuildTemplateMap(_config);
+                template = AncientFurnaceEncounterBuilder.BuildGolemBattle(standard, map);
+            }
             else
             {
                 var encounterId = string.IsNullOrEmpty(monsterEncounterId)
@@ -1027,7 +1142,8 @@ namespace Grimhand.Expedition
                 _config.PlayerCardCatalog,
                 _config,
                 _run.TalentRun,
-                isBossBattle: false);
+                isBossBattle: false,
+                _run.RelicGrowthTiers);
 
             if (_run.Modifiers.DivinePunishmentActive)
             {
@@ -1105,7 +1221,8 @@ namespace Grimhand.Expedition
                 _config.PlayerCardCatalog,
                 _config,
                 _run.TalentRun,
-                isBossBattle: true);
+                isBossBattle: true,
+                _run.RelicGrowthTiers);
 
             config.EnergyCap += _run.Modifiers.EnergyCapBonus;
             config.TurnStartEnergyRegen = System.Math.Max(config.TurnStartEnergyRegen, 4);
@@ -1137,8 +1254,6 @@ namespace Grimhand.Expedition
 
             return Floor10BossEncounterBuilder.SkeletonKingDisplayName;
         }
-
-        int RollCombatXp() => _config.XpPerVictory > 0 ? _config.XpPerVictory : 16;
 
         public bool CompleteEventInteractionStep(string selectedCharacterId = null, string selectedCardKey = null)
         {

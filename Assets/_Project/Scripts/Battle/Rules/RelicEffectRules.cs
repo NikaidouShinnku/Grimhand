@@ -316,7 +316,8 @@ namespace Grimhand.Battle.Rules
                 return false;
 
             state.MiracleLeafRevivesRemaining--;
-            var restore = Math.Max(1, (int)Math.Round(target.MaxHp * 0.2f));
+            var restore = Math.Max(1, (int)Math.Round(
+                target.MaxHp * (state.Config?.RunModifiers?.MiracleLeafReviveHpPercent ?? 20) / 100f));
             target.Hp = restore;
             target.InvulnerableTurnsRemaining = 1;
             hpDamage = 0;

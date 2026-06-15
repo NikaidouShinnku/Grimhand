@@ -18,7 +18,7 @@ MonoBehaviour:
   Slot: 3
   Level: 1
   MaxHp: 35
-  BaseAttack: 11
+  BaseAttack: 10
   BaseDefense: 2
   Speed: 8
   Deck: []

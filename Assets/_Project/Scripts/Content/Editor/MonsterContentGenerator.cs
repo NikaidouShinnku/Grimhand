@@ -53,11 +53,11 @@ namespace Grimhand.Content.Editor
                     Pool(cards.EliteBoneWall, 2, cards.EliteBoneCrush, 2, cards.EliteBoneSpear, 2,
                         cards.EliteShatterRush, 1, cards.EliteRaiseBones, 1)),
                 Wraith = SaveMonster("Character_Wraith", "char_wraith", "幽灵",
-                    FormationSlot.Back, 18, 7, 1, 7,
+                    FormationSlot.Back, 20, 7, 1, 7,
                     new[] { MinionTraitCatalog.WraithLowHpSpeed },
                     Pool(cards.WraithArrow, 2, cards.WraithPhase, 1, cards.WraithSoulStrike, 2, cards.WraithHex, 1)),
                 WraithElite = SaveMonster("Character_Wraith_Elite", "char_wraith_elite", "幽灵精英",
-                    FormationSlot.Back, 35, 11, 2, 8,
+                    FormationSlot.Back, 35, 10, 2, 8,
                     new[] { MinionTraitCatalog.WraithEliteLowHpEthereal },
                     Pool(cards.WraithSoulStrike, 2, cards.WraithPhase, 1, cards.WraithAdvancedHex, 2,
                         cards.WraithSoulStorm, 1, cards.WraithSoulBind, 1)),
@@ -72,7 +72,7 @@ namespace Grimhand.Content.Editor
                     Pool(cards.BatClaw, 2, cards.BatDive, 1, cards.BatAmbush, 2, cards.BatShadowDodge, 1,
                         cards.BatPoisonWing, 2, cards.BatNightSlash, 1)),
                 SkeletonKing = SaveBoss("Character_Skeleton_King", "char_skeleton_king", "骷髅王",
-                    FormationSlot.Front, 400, 30, 10, 6,
+                    FormationSlot.Front, 350, 30, 10, 6,
                     new[]
                     {
                         CharacterTraitCatalog.BossFirstHitBlock
@@ -90,7 +90,7 @@ namespace Grimhand.Content.Editor
                     CharacterTraitCatalog.SkullSelfDestructHand,
                     BuildFixedDeck((cards.SkullExplode, 1))),
                 GhostQueen = SaveBoss("Character_Ghost_Queen", GhostQueenBossEncounterBuilder.CharacterId, "幽灵女王",
-                    FormationSlot.Front, 360, 25, 8, 7,
+                    FormationSlot.Front, 320, 25, 8, 7,
                     new[] { CharacterTraitCatalog.GhostQueenEnrage },
                     BuildFixedDeck(
                         (cards.QueenClaw, 4),

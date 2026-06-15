@@ -32,6 +32,7 @@ namespace Grimhand.Presentation.Battle
 
             var phase = _session.Expedition.Run.Phase;
             var show = phase is ExpeditionPhase.EventChoice
+                or ExpeditionPhase.EventAftermath
                 or ExpeditionPhase.ShrineChoice;
 
             SetVisible(show);
@@ -45,6 +46,9 @@ namespace Grimhand.Presentation.Battle
             {
                 case ExpeditionPhase.EventChoice:
                     RefreshEvent();
+                    break;
+                case ExpeditionPhase.EventAftermath:
+                    RefreshEventAftermath();
                     break;
                 case ExpeditionPhase.ShrineChoice:
                     RefreshShrine();
@@ -74,6 +78,22 @@ namespace Grimhand.Presentation.Battle
                     : $"{choice.Label}\n{choice.Description}";
                 AddChoiceButton(label, () => _session.ResolveEventChoice(index));
             }
+        }
+
+        void RefreshEventAftermath()
+        {
+            var pending = _session.Expedition.Run.PendingEventAftermath;
+            if (pending == null || !ExpeditionEventCatalog.TryGet(pending.EventId, out var evt))
+            {
+                _titleText.text = "事件结果";
+                _bodyText.text = "……";
+                AddChoiceButton("确定", () => _session.ConfirmEventAftermath());
+                return;
+            }
+
+            _titleText.text = evt.DisplayName;
+            _bodyText.text = pending.AfterChoiceText;
+            AddChoiceButton("确定", () => _session.ConfirmEventAftermath());
         }
 
         void RefreshShrine()

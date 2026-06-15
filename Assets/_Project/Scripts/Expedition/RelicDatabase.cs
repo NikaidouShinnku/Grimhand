@@ -14,7 +14,9 @@ namespace Grimhand.Expedition
         public static bool TryGet(string relicId, out RelicDefinition definition) =>
             ById.TryGetValue(relicId, out definition);
 
-        public static RunModifierSnapshot BuildModifiers(IReadOnlyList<string> relicIds)
+        public static RunModifierSnapshot BuildModifiers(
+            IReadOnlyList<string> relicIds,
+            IReadOnlyDictionary<string, int> growthTiers = null)
         {
             var mods = new RunModifierSnapshot();
             if (relicIds == null || relicIds.Count == 0)
@@ -29,6 +31,7 @@ namespace Grimhand.Expedition
                 mods.TeamDefenseBonus += relic.DefBonus;
                 mods.TeamHpBonus += relic.HpBonus;
                 ApplySpecialFlag(mods, relic);
+                RelicGrowthRules.ApplyGrowthBonuses(id, RelicGrowthRules.GetGrowthTiers(growthTiers, id), mods);
             }
 
             return mods;
@@ -172,8 +175,8 @@ namespace Grimhand.Expedition
                     "全队ATK+2。攻击类卡牌有20%概率附加5层灼烧（5回合，每层回合结束1伤害，无视DEF）。",
                     "burn_proc_20pct", atk: 2),
                 Def(RelicIds.IronArmor, "铁壁战甲", RelicRarity.Common, "通用",
-                    "全队DEF+1。每场战斗开始时前排角色获得10点护甲。",
-                    "front_armor_10", def: 1),
+                    "全队DEF+2。每场战斗开始时前排角色获得10点护甲。",
+                    "front_armor_10", def: 2),
                 Def(RelicIds.WarriorHelmet, "角斗士之盔", RelicRarity.Common, "通用",
                     "全队HP+8。角色被攻击后，该角色下一次攻击伤害+4。",
                     "revenge_atk_4", hp: 8),

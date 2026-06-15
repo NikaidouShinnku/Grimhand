@@ -381,6 +381,31 @@ namespace Grimhand.Presentation.Battle
             if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
                 AddLog(Expedition.Run.LastEventMessage);
 
+            if (Expedition.Run.Phase == ExpeditionPhase.EventAftermath)
+            {
+                NotifyChanged();
+                return true;
+            }
+
+            if (Expedition.Run.Phase == ExpeditionPhase.InBattle)
+                StartExpeditionBattle();
+            else if (Expedition.Run.Phase == ExpeditionPhase.RewardPickup)
+                AddLog("拾取奖励 — 点击领取或放弃");
+            else if (Expedition.Run.Phase == ExpeditionPhase.RouteSelect)
+                AddLog("请选择前进路线");
+
+            NotifyChanged();
+            return true;
+        }
+
+        public bool ConfirmEventAftermath()
+        {
+            if (Expedition?.TryConfirmEventAftermath() != true)
+                return false;
+
+            if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
+                AddLog(Expedition.Run.LastEventMessage);
+
             if (Expedition.Run.Phase == ExpeditionPhase.InBattle)
                 StartExpeditionBattle();
             else if (Expedition.Run.Phase == ExpeditionPhase.RewardPickup)

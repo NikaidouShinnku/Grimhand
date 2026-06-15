@@ -6,6 +6,7 @@ namespace Grimhand.Expedition.Model
         RewardPickup,
         RouteSelect,
         EventChoice,
+        EventAftermath,
         EventInteraction,
         ShrineChoice,
         ShopVisit,

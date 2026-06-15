@@ -13,9 +13,16 @@ namespace Grimhand.Expedition
         public int Gold { get; set; }
         public int LastGoldReward { get; set; }
         public int LastXpReward { get; set; }
+        public bool LastBattleWasElite { get; set; }
+        public bool LastBattleWasBoss { get; set; }
+        public int LastBattleFloor { get; set; } = 1;
+        public ExpeditionPendingEventAftermath PendingEventAftermath { get; set; }
+        /// <summary>事件确认结算时使用的预掷结果（0–99）。</summary>
+        public int? EventResolutionFixedRoll100 { get; set; }
         public string LastEventMessage { get; set; } = "";
         public List<PartyMemberSnapshot> Party { get; } = new();
         public List<string> Relics { get; } = new();
+        public Dictionary<string, int> RelicGrowthTiers { get; } = new();
         public HashSet<string> UsedEventIds { get; } = new();
         public HashSet<string> EventFlags { get; } = new();
         public List<string> ConsumableSlots { get; } = new();
@@ -31,6 +38,7 @@ namespace Grimhand.Expedition
         public ExpeditionPendingEvent PendingEvent { get; set; }
         public Expedition.Events.ExpeditionEventInteractionState EventInteraction { get; set; }
         public string PendingEventBattleKey { get; set; } = "";
+        public int PendingEventBattleBonusXp { get; set; }
         public ExpeditionRewardPickup PendingEventBattleVictoryReward { get; set; }
         public ExpeditionRewardPickup PendingDeferredReward { get; set; }
         public ExpeditionPendingShrine PendingShrine { get; set; }

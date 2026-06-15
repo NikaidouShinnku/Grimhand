@@ -16,7 +16,7 @@ namespace Grimhand.Expedition
             BattleRng rng)
         {
             var gold = ExpeditionEconomy.RollVictoryGold(config, rng);
-            gold = ApplyGoldRelicBonus(gold, run.Relics);
+            gold = ApplyGoldRelicBonus(gold, run.Relics, run.RelicGrowthTiers);
 
             var rewards = new ExpeditionRewardPickup
             {
@@ -45,7 +45,7 @@ namespace Grimhand.Expedition
             var min = config.TreasureGoldMin > 0 ? config.TreasureGoldMin : 20;
             var max = config.TreasureGoldMax >= min ? config.TreasureGoldMax : min;
             var gold = min == max ? min : rng.NextInt(min, max + 1);
-            gold = ApplyGoldRelicBonus(gold, run.Relics);
+            gold = ApplyGoldRelicBonus(gold, run.Relics, run.RelicGrowthTiers);
 
             var reward = new ExpeditionRewardPickup
             {
@@ -123,9 +123,12 @@ namespace Grimhand.Expedition
             return rng.NextIndex(100) < percent;
         }
 
-        static int ApplyGoldRelicBonus(int baseGold, IReadOnlyList<string> relicIds)
+        static int ApplyGoldRelicBonus(
+            int baseGold,
+            IReadOnlyList<string> relicIds,
+            IReadOnlyDictionary<string, int> growthTiers = null)
         {
-            var mods = RelicDatabase.BuildModifiers(relicIds);
+            var mods = RelicDatabase.BuildModifiers(relicIds, growthTiers);
             if (mods.GoldBonusPercent <= 0f)
                 return baseGold;
 

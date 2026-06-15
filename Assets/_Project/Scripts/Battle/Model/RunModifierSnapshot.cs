@@ -56,6 +56,9 @@ namespace Grimhand.Battle.Model
         public bool BackRowAttackAnyTarget { get; set; }
         public bool JadeDaggerFirstKillBonus { get; set; }
 
+        /// <summary>奇迹之叶：触发时恢复的最大 HP 百分比（默认 20）。</summary>
+        public int MiracleLeafReviveHpPercent { get; set; } = 20;
+
         /// <summary>灵魂裂隙：每场战斗开始随机 1 名队员失去 HP。</summary>
         public int SoulRiftBattleStartRandomHpLoss { get; set; }
 

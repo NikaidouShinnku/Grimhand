@@ -63,6 +63,16 @@ namespace Grimhand.Expedition.Model
         public int SourceLayer { get; set; }
     }
 
+    public sealed class ExpeditionPendingEventAftermath
+    {
+        public string EventId { get; set; } = "";
+        public int ChoiceIndex { get; set; }
+        public int SourceLayer { get; set; }
+        public string AfterChoiceText { get; set; } = "";
+        /// <summary>概率事件：选选项时掷一次，确认时用同一结果结算。</summary>
+        public int? FixedRoll100 { get; set; }
+    }
+
     public sealed class ExpeditionPendingShrine
     {
         public string ShrineId { get; set; } = "";

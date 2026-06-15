@@ -112,11 +112,12 @@ namespace Grimhand.Expedition
             IReadOnlyList<CardTemplate> playerCardCatalog = null,
             ExpeditionConfig expeditionConfig = null,
             ExpeditionTalentRunState talentRunState = null,
-            bool isBossBattle = false)
+            bool isBossBattle = false,
+            IReadOnlyDictionary<string, int> relicGrowthTiers = null)
         {
             var config = CloneTemplate(encounterTemplate);
             config.Seed = battleSeed;
-            config.RunModifiers = RelicDatabase.BuildModifiers(relicIds);
+            config.RunModifiers = RelicDatabase.BuildModifiers(relicIds, relicGrowthTiers);
             TalentDatabase.MergeIntoBattleConfig(config, party, talentRunState, isBossBattle);
             if (expeditionModifiers != null)
                 config.RunModifiers.SoulRiftBattleStartRandomHpLoss =

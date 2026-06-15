@@ -211,16 +211,17 @@ namespace Grimhand.Presentation.Battle
             nameRt.offsetMax = Vector2.zero;
             var nameText = nameGo.GetComponent<Text>();
             StyleText(nameText, 16, TextAnchor.MiddleCenter);
-            nameText.text = displayName;
+            nameText.text = FormatCharacterNameWithLevel(displayName, level);
 
             var xpLine = _session.IsExpeditionMode
                 ? CharacterProgression.FormatXpLine(level, xp)
                 : "";
+            var tooltipTitle = FormatCharacterNameWithLevel(displayName, level);
             var tooltipBody =
                 (string.IsNullOrEmpty(xpLine) ? "" : $"{xpLine}\n") +
                 $"生命 {hp}/{maxHp}\n攻击 {attack}  防御 {defense}  速度 {speed}";
 
-            _tooltip?.BindHover(card.gameObject, displayName, tooltipBody, showTitle: false);
+            _tooltip?.BindHover(card.gameObject, tooltipTitle, tooltipBody, showTitle: false);
         }
 
         void CreateCharacterStatGrid(RectTransform card, int hp, int maxHp, int attack, int defense, int speed)
@@ -370,7 +371,9 @@ namespace Grimhand.Presentation.Battle
                     continue;
 
                 totalCount += templates.Count;
-                var sectionLabel = string.IsNullOrEmpty(member.DisplayName) ? "牌组" : member.DisplayName;
+                var sectionLabel = string.IsNullOrEmpty(member.DisplayName)
+                    ? "牌组"
+                    : FormatCharacterNameWithLevel(member.DisplayName, member.Level);
                 AddTemplateGroup(sectionLabel, templates);
             }
 
@@ -886,6 +889,12 @@ namespace Grimhand.Presentation.Battle
 
             for (var i = parent.childCount - 1; i >= keepFirst; i--)
                 Destroy(parent.GetChild(i).gameObject);
+        }
+
+        static string FormatCharacterNameWithLevel(string displayName, int level)
+        {
+            var lv = CharacterProgression.ClampLevel(level);
+            return string.IsNullOrEmpty(displayName) ? $"Lv{lv}" : $"{displayName}Lv{lv}";
         }
 
         static void StyleText(Text text, int size, TextAnchor anchor)

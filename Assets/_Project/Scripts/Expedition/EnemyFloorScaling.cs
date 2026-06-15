@@ -6,9 +6,9 @@ namespace Grimhand.Expedition
     /// <summary>敌人按远征层数缩放（v2 策划表）。</summary>
     public static class EnemyFloorScaling
     {
-        public const float HpGrowthPerFloor = 0.15f;
-        public const float AtkGrowthPerFloor = 0.10f;
-        public const float DefGrowthPerFloor = 0.05f;
+        public const float HpGrowthPerFloor = 0.05f;
+        public const float AtkGrowthPerFloor = 0.03f;
+        public const float DefGrowthPerFloor = 0.02f;
 
         public static void Apply(CombatantConfig combatant, int floor, BattleRng rng)
         {

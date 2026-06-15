@@ -48,7 +48,7 @@ namespace Grimhand.Expedition
                 Team = TeamSide.Enemy,
                 Slot = FormationSlot.Front,
                 CharacterDefinitionId = "char_skeleton_king",
-                MaxHp = 400,
+                MaxHp = 350,
                 BaseAttack = 30,
                 BaseDefense = 10,
                 Speed = 6

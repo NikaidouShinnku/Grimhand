@@ -7,16 +7,14 @@ alwaysApply: false
 # 远征系统（经验 / 遗物 / 怪物池）
 
 ## 经验
-- 公式：`CharacterProgression.XpRequiredForLevel` — 升到 Lv.N 需 `(N-2)×3+8` XP
-- 运行时：`PartyMemberSnapshot.Level` + `Xp`；战后 `ExpeditionEngine.OnBattleFinished` → `GrantXpToParty`
-- 属性：`CharacterProgression.GetStatsForCharacter(charId, level)` 写入下一场 `CombatantConfig`
-- UI：远征模式下悬停详情框内「经验 x/y」右侧进度条；背包 `BattleInventoryPanelView`
+- 局内升级：`CharacterProgression.XpRequiredForLevel` — 升到 Lv.N 需 `(N-2)×3+8` XP
+- 战斗奖励：`CombatXpRules.Roll` — 按区域/精英/Boss 对照怪物组合表（洞穴 8–10 / 精英 14–20 / Boss25 等）
+- 运行时：`ExpeditionEngine.OnBattleFinished` → `GrantXpToParty`
 
 ## 遗物
-- 定义：`Expedition/RelicDatabase.cs`（12 个，对齐策划表）
-- 运行时：`ExpeditionRunState.Relics`（string id 列表）；`StartRun` 清空
-- 战斗：`RelicDatabase.BuildModifiers` → `BattleConfig.RunModifiers` → `RelicBattleRules` / `DamageRules`
-- 发放：`ExpeditionEngine.TryAddRelic(relicId)`（精英/商店/事件层接入）
+- 定义：`Expedition/RelicDatabase.cs`
+- 每 20 层成长：`RelicGrowthRules` + `ExpeditionRunState.RelicGrowthTiers`；获得时按当前层数结算，跨层时 `SyncFloorGrowth`
+- 战斗：`RelicDatabase.BuildModifiers(relicIds, growthTiers)` → `RunModifierSnapshot`
 
 ## 怪物技能池
 - SO：`CharacterDefinitionSO.SkillPool`（2–4 张候选）

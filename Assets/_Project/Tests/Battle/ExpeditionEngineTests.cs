@@ -249,8 +249,8 @@ namespace Grimhand.Battle.Tests
             SelectFirstCombatRoute(engine);
             CompleteVictory(engine, 25);
 
-            Assert.AreEqual(16, engine.Run.LastXpReward);
-            Assert.AreEqual(16, engine.Run.Party[0].Xp);
+            Assert.That(engine.Run.LastXpReward, Is.InRange(8, 10));
+            Assert.That(engine.Run.Party[0].Xp, Is.InRange(8, 10));
         }
 
         [Test]

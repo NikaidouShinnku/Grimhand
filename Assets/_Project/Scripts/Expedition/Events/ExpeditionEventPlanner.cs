@@ -39,7 +39,7 @@ namespace Grimhand.Expedition
                 ExpeditionEventIds.WanderingSmith => PlanWanderingSmith(run, choiceIndex),
                 ExpeditionEventIds.TiredCamp => PlanTiredCamp(run, choiceIndex, rng),
                 ExpeditionEventIds.JadeWorkshop => PlanJadeWorkshop(run, choiceIndex),
-                ExpeditionEventIds.AncientFurnace => PlanAncientFurnace(run, choiceIndex),
+                ExpeditionEventIds.AncientFurnace => PlanAncientFurnace(run, choiceIndex, rng),
                 ExpeditionEventIds.AbyssWhisper => PlanAbyssWhisper(run, choiceIndex, rng, config),
                 _ => new ExpeditionEventOutcome { Message = "事件结束。" }
             };
@@ -116,7 +116,11 @@ namespace Grimhand.Expedition
         {
             return choice switch
             {
-                0 => TeamHpThen(run, -10, "祈祷生效：远征期间全队 ATK+1。", () => run.Modifiers.TeamAttackBonus += 1),
+                0 => TeamHpThen(run, -10, "祈祷生效：远征期间全队 ATK+1。", () =>
+                {
+                    run.Modifiers.TeamAttackBonus += 1;
+                    ExpeditionBattleConfigBuilder.GrantXpToParty(run.Party, 5);
+                }),
                 1 => WithPickup(
                     ExpeditionRewardPickupFactory.Gold(50, "亵渎圣堂"),
                     "亵渎圣堂获得 50 金币，但神罚将至。",
@@ -177,7 +181,7 @@ namespace Grimhand.Expedition
                 return Msg("你带走了 2 瓶泉水。");
             }
 
-            var roll = rng.NextIndex(100);
+            var roll = Roll100(run, rng);
             if (roll < 60)
             {
                 var outcome = new ExpeditionEventOutcome { Message = "泉水治愈了队伍。" };
@@ -214,7 +218,7 @@ namespace Grimhand.Expedition
                     return Fail("金币不足。");
 
                 run.Gold -= 20;
-                if (rng.NextIndex(100) < 50)
+                if (Roll100(run, rng) < 50)
                 {
                     return WithPickup(
                         ExpeditionRewardPickupFactory.Gold(50, "小赌获胜"),
@@ -226,7 +230,7 @@ namespace Grimhand.Expedition
 
             var all = run.Gold;
             run.Gold = 0;
-            var big = rng.NextIndex(100);
+            var big = Roll100(run, rng);
             if (big < 40)
             {
                 return WithPickup(
@@ -263,6 +267,7 @@ namespace Grimhand.Expedition
             BattleRng rng)
         {
             run.PendingEventBattleVictoryReward = null;
+            run.PendingEventBattleBonusXp = 5;
             if (config != null &&
                 ExpeditionCardPool.TryRollCardReward(config, run, CardRarity.SuperRare, rng, out var card, out var owner))
             {
@@ -337,8 +342,11 @@ namespace Grimhand.Expedition
                     StartsCombat = true,
                     EventBattleKey = AdventurerRevengeEncounterBuilder.BattleKey
                 }.Also(() =>
+                {
+                    run.PendingEventBattleBonusXp = 8;
                     run.PendingEventBattleVictoryReward =
-                        ExpeditionRewardPickupFactory.Gold(30, "复仇战利品")),
+                        ExpeditionRewardPickupFactory.Gold(30, "复仇战利品");
+                }),
                 _ => TeamHpThen(run, -5, "你在混乱中逃离。")
             };
         }
@@ -460,8 +468,11 @@ namespace Grimhand.Expedition
             };
         }
 
-        static ExpeditionEventOutcome PlanAncientFurnace(ExpeditionRunState run, int choice)
+        static ExpeditionEventOutcome PlanAncientFurnace(ExpeditionRunState run, int choice, BattleRng rng)
         {
+            if (choice == 2)
+                return PlanAncientFurnaceExplore(run, rng);
+
             if (!run.Relics.Contains(RelicIds.BurningBoots))
                 return Fail("熔炉对你的装备没有反应。");
 
@@ -471,6 +482,31 @@ namespace Grimhand.Expedition
                     EvolveRelicSilent(run, RelicIds.BurningBoots, RelicIds.CrimsonBurningBoots)),
                 _ => Leave("你保留了原样的靴子。")
             };
+        }
+
+        static ExpeditionEventOutcome PlanAncientFurnaceExplore(ExpeditionRunState run, BattleRng rng)
+        {
+            var roll = Roll100(run, rng);
+            if (roll < 40)
+            {
+                run.PendingEventBattleBonusXp = 10;
+                return new ExpeditionEventOutcome
+                {
+                    Message = "石傀儡从熔渣中苏醒！",
+                    StartsCombat = true,
+                    EventBattleKey = AncientFurnaceEncounterBuilder.BattleKey
+                };
+            }
+
+            if (roll < 70)
+            {
+                var relicId = ExpeditionRewardPickupFactory.RollRelicId(run, rng);
+                return WithPickup(
+                    ExpeditionRewardPickupFactory.Relic(relicId, "古老熔炉"),
+                    "你在炉灰中翻找出一件遗物。");
+            }
+
+            return Leave("你仔细搜索了一番，但什么也没找到。");
         }
 
         static ExpeditionEventOutcome PlanAbyssWhisper(
@@ -581,6 +617,14 @@ namespace Grimhand.Expedition
             return deferred;
         }
 
+        static int Roll100(ExpeditionRunState run, BattleRng rng)
+        {
+            if (run?.EventResolutionFixedRoll100 is int fixedRoll)
+                return fixedRoll;
+
+            return rng.NextIndex(100);
+        }
+
         static ExpeditionEventOutcome Leave(string message) => new() { Message = message };
 
         static ExpeditionEventOutcome Fail(string message) => new() { Message = message };
@@ -629,6 +673,7 @@ namespace Grimhand.Expedition
             run.Relics.Remove(from);
             if (!run.Relics.Contains(to))
                 run.Relics.Add(to);
+            RelicGrowthRules.TransferGrowthTiers(run.RelicGrowthTiers, from, to);
         }
 
         static void AddConsumables(ExpeditionRunState run, string id, int count)

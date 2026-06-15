@@ -49,7 +49,7 @@ namespace Grimhand.Expedition
                 Team = TeamSide.Enemy,
                 Slot = FormationSlot.Front,
                 CharacterDefinitionId = CharacterId,
-                MaxHp = 360,
+                MaxHp = 320,
                 BaseAttack = 25,
                 BaseDefense = 8,
                 Speed = 7

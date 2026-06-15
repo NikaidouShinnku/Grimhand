@@ -17,7 +17,7 @@ MonoBehaviour:
   Team: 1
   Slot: 1
   Level: 1
-  MaxHp: 400
+  MaxHp: 350
   BaseAttack: 30
   BaseDefense: 10
   Speed: 6

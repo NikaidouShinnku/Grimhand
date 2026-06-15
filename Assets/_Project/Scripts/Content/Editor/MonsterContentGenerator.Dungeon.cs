@@ -46,7 +46,7 @@ namespace Grimhand.Content.Editor
                     Pool(cards.SpiderFang, 2, cards.SpiderSilk, 2, cards.SpiderTrap, 1,
                         cards.SpiderSpray, 1, cards.SpiderWrap, 1)),
                 StoneGolem = SaveMonster("Character_Stone_Golem", "char_stone_golem", "石傀儡",
-                    FormationSlot.Front, 85, 10, 9, 2,
+                    FormationSlot.Front, 80, 10, 9, 2,
                     new[] { MinionTraitCatalog.StoneGolemArmorRetain },
                     Pool(cards.GolemFist, 2, cards.GolemWall, 2, cards.GolemQuake, 2,
                         cards.GolemUnmovable, 1, cards.GolemQuakeSlam, 1, cards.GolemCrackFist, 1))

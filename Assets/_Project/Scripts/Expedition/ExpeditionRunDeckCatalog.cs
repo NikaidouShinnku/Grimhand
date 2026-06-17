@@ -33,13 +33,6 @@ namespace Grimhand.Expedition
                 || member == null || string.IsNullOrEmpty(member.CharacterDefinitionId))
                 return entries;
 
-            if (member.CampDeckCardIds != null && member.CampDeckCardIds.Count > 0)
-            {
-                AppendCampDeckEntries(config, member, entries);
-                AppendBonusEntries(member, entries);
-                return entries;
-            }
-
             var removedLeft = new Dictionary<string, int>();
             foreach (var pair in member.RemovedCardCounts)
                 removedLeft[pair.Key] = pair.Value;
@@ -92,54 +85,66 @@ namespace Grimhand.Expedition
             return entries;
         }
 
-        static void AppendCampDeckEntries(
+        public static CardTemplate TryResolveCampCollectionCard(
             ExpeditionConfig config,
+            ExpeditionRunState run,
             PartyMemberSnapshot member,
-            List<DeckEntry> entries)
+            int collectionIndex)
         {
-            for (var i = 0; i < member.CampDeckCardIds.Count; i++)
-            {
-                var cardId = member.CampDeckCardIds[i];
-                if (string.IsNullOrEmpty(cardId))
-                    continue;
+            var cardId = GetCampCollectionCardId(run, member, collectionIndex);
+            if (string.IsNullOrEmpty(cardId))
+                return null;
 
-                var template = ResolveCardTemplate(config, cardId, member.CharacterDefinitionId);
-                if (template == null)
-                    continue;
-
-                var copy = ExpeditionBattleConfigBuilder.CloneTemplate(template);
-                ApplyCardPowerBonus(copy, member);
-                entries.Add(new DeckEntry
-                {
-                    Key = ExpeditionDeckCardKey.Build(member.CharacterDefinitionId, cardId, i),
-                    Template = copy,
-                    IsBonus = false
-                });
-            }
+            return ResolveCampCollectionCard(config, cardId, member?.CharacterDefinitionId ?? "");
         }
 
-        static void AppendBonusEntries(PartyMemberSnapshot member, List<DeckEntry> entries)
+        public static string GetCampCollectionCardId(
+            ExpeditionRunState run,
+            PartyMemberSnapshot member,
+            int collectionIndex)
         {
-            for (var i = 0; i < member.BonusCards.Count; i++)
-            {
-                var bonus = member.BonusCards[i];
-                if (bonus == null || string.IsNullOrEmpty(bonus.DefinitionId))
-                    continue;
+            var ids = ExpeditionRunDeckRules.GetCampCollectionCardIds(run, member);
+            if (ids == null || collectionIndex < 0 || collectionIndex >= ids.Count)
+                return null;
 
-                var copy = ExpeditionBattleConfigBuilder.CloneTemplate(bonus);
-                ApplyCardPowerBonus(copy, member);
-                entries.Add(new DeckEntry
+            return ids[collectionIndex];
+        }
+
+        public static CardTemplate ResolveCampCollectionCard(
+            ExpeditionConfig config,
+            string cardId,
+            string ownerId)
+        {
+            if (string.IsNullOrEmpty(cardId))
+                return null;
+
+            var template = ResolveCardTemplate(config, cardId, ownerId);
+            if (template == null)
+            {
+                template = new CardTemplate
                 {
-                    Key = ExpeditionDeckCardKey.Build(member.CharacterDefinitionId, bonus.DefinitionId, entries.Count),
-                    Template = copy,
-                    IsBonus = true,
-                    BonusIndex = i
-                });
+                    DefinitionId = cardId,
+                    DisplayName = cardId,
+                    OwnerCharacterId = ownerId ?? ""
+                };
             }
+            else
+            {
+                template = ExpeditionBattleConfigBuilder.CloneTemplate(template);
+            }
+
+            ExpeditionBattleConfigBuilder.HydrateTemplateFromCatalog(template, config?.PlayerCardCatalog);
+            if (string.IsNullOrEmpty(template.OwnerCharacterId) && !string.IsNullOrEmpty(ownerId))
+                template.OwnerCharacterId = ownerId;
+
+            return template;
         }
 
         static CardTemplate ResolveCardTemplate(ExpeditionConfig config, string cardId, string ownerId)
         {
+            if (config == null || string.IsNullOrEmpty(cardId))
+                return null;
+
             foreach (var template in config.PlayerCardCatalog)
             {
                 if (template?.DefinitionId != cardId)
@@ -151,17 +156,55 @@ namespace Grimhand.Expedition
                 return copy;
             }
 
-            var lookup = BuildBaseDeckLookup(config.CombatEncounters[0]);
-            if (!lookup.TryGetValue(ownerId, out var deck))
-                return null;
+            if (TryFindInEncounterDecks(config.CombatEncounters, cardId, ownerId, out var fromCombat))
+                return fromCombat;
 
-            foreach (var template in deck)
-            {
-                if (template?.DefinitionId == cardId)
-                    return template;
-            }
+            if (TryFindInEncounterDecks(config.BossEncounters, cardId, ownerId, out var fromBoss))
+                return fromBoss;
 
             return null;
+        }
+
+        static bool TryFindInEncounterDecks(
+            IReadOnlyList<BattleConfig> encounters,
+            string cardId,
+            string ownerId,
+            out CardTemplate result)
+        {
+            result = null;
+            if (encounters == null)
+                return false;
+
+            foreach (var encounter in encounters)
+            {
+                var lookup = BuildBaseDeckLookup(encounter);
+                if (!string.IsNullOrEmpty(ownerId)
+                    && lookup.TryGetValue(ownerId, out var ownerDeck))
+                {
+                    foreach (var template in ownerDeck)
+                    {
+                        if (template?.DefinitionId != cardId)
+                            continue;
+
+                        result = ExpeditionBattleConfigBuilder.CloneTemplate(template);
+                        return true;
+                    }
+                }
+
+                foreach (var deck in lookup.Values)
+                {
+                    foreach (var template in deck)
+                    {
+                        if (template?.DefinitionId != cardId)
+                            continue;
+
+                        result = ExpeditionBattleConfigBuilder.CloneTemplate(template);
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         static Dictionary<string, List<CardTemplate>> BuildBaseDeckLookup(BattleConfig encounter)

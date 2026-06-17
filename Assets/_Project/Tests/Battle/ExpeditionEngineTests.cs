@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using Grimhand.Battle;
 using Grimhand.Battle.Model;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
@@ -381,6 +383,371 @@ namespace Grimhand.Battle.Tests
         static BattleState BuildVictoryState()
         {
             return new BattleState { Outcome = BattleOutcome.PlayerVictory };
+        }
+
+        [Test]
+        public void CampDeckCardIds_DoNotReplaceBattleDeck()
+        {
+            var config = BuildConfigWithKnightDeck(4);
+            var roster = new CampRosterState();
+            var member = new CampMemberLoadout
+            {
+                CharacterDefinitionId = "char_knight",
+                DisplayName = "骑士"
+            };
+            for (var i = 0; i < CampRosterState.DeckSize; i++)
+                member.DeckCardIds.Add($"camp_card_{i}");
+            roster.Members.Add(member);
+
+            var engine = new ExpeditionEngine(config);
+            engine.StartRun(roster);
+            var snap = engine.Run.Party[0];
+
+            Assert.AreEqual(4, ExpeditionRunDeckCatalog.CollectMemberDeckEntries(config, snap).Count);
+            Assert.AreEqual(CampRosterState.DeckSize, snap.CampDeckCardIds.Count);
+        }
+
+        [Test]
+        public void GrantCardReward_WhenDeckFull_SetsPendingOffer()
+        {
+            var config = BuildConfigWithKnightDeck(10);
+            var engine = new ExpeditionEngine(config);
+            engine.StartRun();
+            var member = engine.Run.Party[0];
+
+            Assert.AreEqual(10, ExpeditionRunDeckRules.CountMemberDeck(config, member));
+            engine.Run.Phase = ExpeditionPhase.RewardPickup;
+            engine.Run.PendingRewardPickup = new ExpeditionRewardPickup
+            {
+                CardDefinitionId = "extra_card",
+                CardOwnerCharacterId = "char_knight",
+                CardDisplayName = "额外卡"
+            };
+
+            Assert.IsTrue(engine.TryClaimRewardCard());
+            Assert.NotNull(engine.Run.PendingCardOffer);
+            Assert.AreEqual(10, ExpeditionRunDeckRules.CountMemberDeck(config, member));
+        }
+
+        [Test]
+        public void CardAltar_ExtractsCollectionCardIntoDeck()
+        {
+            var config = BuildConfigWithKnightDeck(2);
+            var roster = new CampRosterState();
+            var loadout = new CampMemberLoadout
+            {
+                CharacterDefinitionId = "char_knight",
+                DisplayName = "骑士"
+            };
+            loadout.DeckCardIds.Add("altar_card_a");
+            loadout.DeckCardIds.Add("altar_card_b");
+            roster.Members.Add(loadout);
+
+            var engine = new ExpeditionEngine(config);
+            engine.StartRun(roster);
+
+            engine.Run.PendingRoutes.Clear();
+            engine.Run.PendingRoutes.Add(new ExpeditionRouteOption
+            {
+                NodeType = ExpeditionNodeType.Shrine,
+                LayerNumber = 1,
+                MapOptionIndex = 0
+            });
+            Assert.IsTrue(engine.TrySelectRoute(0));
+            Assert.AreEqual(ExpeditionPhase.ShrineChoice, engine.Run.Phase);
+
+            engine.SetCardAltarMemberDraft("char_knight", 0, "");
+            Assert.IsTrue(engine.TryConfirmCardAltar());
+            Assert.AreEqual(ExpeditionPhase.RouteSelect, engine.Run.Phase);
+            Assert.AreEqual(3, ExpeditionRunDeckRules.CountMemberDeck(config, engine.Run.Party[0]));
+            Assert.IsTrue(engine.Run.Party[0].ExtractedCampCardIndices.Contains(0));
+            Assert.IsTrue(CampCollectionProgress.IsExtracted(engine.Run, "char_knight", 0));
+        }
+
+        [Test]
+        public void CardAltar_ConfirmAppliesAllMemberDrafts()
+        {
+            var config = BuildConfigWithThreePlayerDecks(2);
+            var roster = BuildThreeMemberCampRoster();
+            var engine = new ExpeditionEngine(config);
+            engine.StartRun(roster);
+
+            engine.Run.PendingRoutes.Clear();
+            engine.Run.PendingRoutes.Add(new ExpeditionRouteOption
+            {
+                NodeType = ExpeditionNodeType.Shrine,
+                LayerNumber = 1,
+                MapOptionIndex = 0
+            });
+            Assert.IsTrue(engine.TrySelectRoute(0));
+
+            engine.SetCardAltarMemberDraft("char_knight", 0, "");
+            engine.SetCardAltarMemberDraft("char_mage", 0, "");
+            engine.SetCardAltarMemberDraft("char_ranger", 0, "");
+            Assert.IsTrue(engine.TryConfirmCardAltar());
+
+            foreach (var memberId in new[] { "char_knight", "char_mage", "char_ranger" })
+            {
+                Assert.IsTrue(CampCollectionProgress.IsExtracted(engine.Run, memberId, 0), memberId);
+                Assert.AreEqual(
+                    CampRosterState.DeckSize - 1,
+                    ExpeditionRunDeckRules.GetAvailableCollectionIndices(
+                        engine.Run,
+                        FindMember(engine.Run.Party, memberId)).Count);
+            }
+        }
+
+        [Test]
+        public void CardAltar_AfterBattle_BonusCardsPersist()
+        {
+            var config = BuildConfigWithKnightDeck(2);
+            var roster = new CampRosterState();
+            var loadout = new CampMemberLoadout
+            {
+                CharacterDefinitionId = "char_knight",
+                DisplayName = "骑士"
+            };
+            loadout.DeckCardIds.Add("altar_card_a");
+            loadout.DeckCardIds.Add("altar_card_b");
+            roster.Members.Add(loadout);
+
+            var engine = new ExpeditionEngine(config);
+            engine.StartRun(roster);
+
+            engine.Run.PendingRoutes.Clear();
+            engine.Run.PendingRoutes.Add(new ExpeditionRouteOption
+            {
+                NodeType = ExpeditionNodeType.Shrine,
+                LayerNumber = 1,
+                MapOptionIndex = 0
+            });
+            engine.TrySelectRoute(0);
+            engine.SetCardAltarMemberDraft("char_knight", 0, "");
+            engine.TryConfirmCardAltar();
+            Assert.AreEqual(3, ExpeditionRunDeckRules.CountMemberDeck(config, engine.Run.Party[0]));
+
+            var state = new BattleState
+            {
+                Outcome = BattleOutcome.PlayerVictory,
+                Combatants =
+                {
+                    new CombatantState
+                    {
+                        Team = TeamSide.Player,
+                        CharacterDefinitionId = "char_knight",
+                        DisplayName = "骑士",
+                        Hp = 30,
+                        MaxHp = 40
+                    }
+                }
+            };
+            engine.OnBattleFinished(state);
+
+            Assert.AreEqual(3, ExpeditionRunDeckRules.CountMemberDeck(config, engine.Run.Party[0]));
+            Assert.IsTrue(CampCollectionProgress.IsExtracted(engine.Run, "char_knight", 0));
+        }
+
+        [Test]
+        public void OnBattleFinished_PreservesBonusCardsWhenReusingPartyList()
+        {
+            var config = BuildConfigWithKnightDeck(2);
+            var engine = new ExpeditionEngine(config);
+            engine.StartRun();
+
+            engine.Run.Party[0].BonusCards.Add(new CardTemplate
+            {
+                DefinitionId = "altar_card_a",
+                DisplayName = "祭坛卡",
+                OwnerCharacterId = "char_knight"
+            });
+            Assert.AreEqual(3, ExpeditionRunDeckRules.CountMemberDeck(config, engine.Run.Party[0]));
+
+            var state = new BattleState
+            {
+                Outcome = BattleOutcome.PlayerVictory,
+                Combatants =
+                {
+                    new CombatantState
+                    {
+                        Team = TeamSide.Player,
+                        CharacterDefinitionId = "char_knight",
+                        DisplayName = "骑士",
+                        Hp = 28,
+                        MaxHp = 40
+                    }
+                }
+            };
+
+            engine.OnBattleFinished(state);
+
+            Assert.AreEqual(1, engine.Run.Party[0].BonusCards.Count);
+            Assert.AreEqual("altar_card_a", engine.Run.Party[0].BonusCards[0].DefinitionId);
+            Assert.AreEqual(3, ExpeditionRunDeckRules.CountMemberDeck(config, engine.Run.Party[0]));
+        }
+
+        [Test]
+        public void ConsumableOffer_DoesNotClearExtractedCampCollection()
+        {
+            var engine = new ExpeditionEngine(BuildConfig());
+            engine.StartRun();
+            CampCollectionProgress.MarkExtracted(engine.Run, "char_knight", 3);
+
+            engine.Run.Phase = ExpeditionPhase.RewardPickup;
+            engine.Run.PendingRewardPickup = new ExpeditionRewardPickup
+            {
+                ConsumableId = "potion_heal"
+            };
+            engine.Run.PendingConsumableOfferId = "potion_heal";
+
+            Assert.IsTrue(engine.TryAbandonConsumableOffer());
+            Assert.IsTrue(CampCollectionProgress.IsExtracted(engine.Run, "char_knight", 3));
+        }
+
+        static CampRosterState BuildThreeMemberCampRoster()
+        {
+            var roster = new CampRosterState();
+            foreach (var pair in new[]
+                     {
+                         ("char_knight", "骑士", "altar_knight"),
+                         ("char_mage", "法师", "altar_mage"),
+                         ("char_ranger", "游侠", "altar_ranger")
+                     })
+            {
+                var loadout = new CampMemberLoadout
+                {
+                    CharacterDefinitionId = pair.Item1,
+                    DisplayName = pair.Item2
+                };
+                loadout.DeckCardIds.Add(pair.Item3);
+                for (var i = 1; i < CampRosterState.DeckSize; i++)
+                    loadout.DeckCardIds.Add($"{pair.Item1}_camp_{i}");
+                roster.Members.Add(loadout);
+            }
+
+            return roster;
+        }
+
+        static PartyMemberSnapshot FindMember(IReadOnlyList<PartyMemberSnapshot> party, string memberId)
+        {
+            foreach (var member in party)
+            {
+                if (member?.CharacterDefinitionId == memberId)
+                    return member;
+            }
+
+            Assert.Fail($"Missing party member {memberId}");
+            return null;
+        }
+
+        static ExpeditionConfig BuildConfigWithThreePlayerDecks(int cardCount)
+        {
+            var config = BuildConfigWithKnightDeck(cardCount);
+            var encounter = config.CombatEncounters[0];
+
+            foreach (var pair in new[]
+                     {
+                         ("char_mage", "法师"),
+                         ("char_ranger", "游侠")
+                     })
+            {
+                var cc = new CombatantConfig
+                {
+                    Team = TeamSide.Player,
+                    CharacterDefinitionId = pair.Item1,
+                    DisplayName = pair.Item2,
+                    MaxHp = 35
+                };
+                for (var i = 0; i < cardCount; i++)
+                {
+                    cc.DeckTemplates.Add(new CardTemplate
+                    {
+                        DefinitionId = $"{pair.Item1}_base_{i}",
+                        DisplayName = $"{pair.Item2}基础{i}",
+                        OwnerCharacterId = pair.Item1
+                    });
+                }
+
+                encounter.Combatants.Add(cc);
+
+                config.PlayerCardCatalog.Add(new CardTemplate
+                {
+                    DefinitionId = pair.Item1 == "char_mage" ? "altar_mage" : "altar_ranger",
+                    DisplayName = pair.Item1 == "char_mage" ? "祭坛法师卡" : "祭坛游侠卡",
+                    OwnerCharacterId = pair.Item1
+                });
+            }
+
+            return config;
+        }
+
+        [Test]
+        public void TryRollCardReward_OnlyPicksCardsOwnedByRewardRecipient()
+        {
+            var config = BuildConfig();
+            config.PlayerCardCatalog.Add(new CardTemplate
+            {
+                DefinitionId = "knight_only",
+                DisplayName = "骑士专属",
+                OwnerCharacterId = "char_knight",
+                CardType = CardType.Attack
+            });
+            config.PlayerCardCatalog.Add(new CardTemplate
+            {
+                DefinitionId = "ranger_only",
+                DisplayName = "游侠专属",
+                OwnerCharacterId = "char_ranger",
+                CardType = CardType.Attack
+            });
+            CardRarityTable.Register("knight_only", CardRarity.Rare);
+            CardRarityTable.Register("ranger_only", CardRarity.Rare);
+
+            var run = new ExpeditionRunState();
+            run.Party.Add(new PartyMemberSnapshot
+            {
+                CharacterDefinitionId = "char_knight",
+                DisplayName = "骑士"
+            });
+
+            var rng = new Grimhand.Core.BattleRng(42);
+            for (var i = 0; i < 20; i++)
+            {
+                Assert.IsTrue(ExpeditionCardPool.TryRollCardReward(
+                    config, run, CardRarity.Rare, rng, out var picked, out var owner));
+                Assert.AreEqual("char_knight", owner.CharacterDefinitionId);
+                Assert.AreEqual("char_knight", picked.OwnerCharacterId);
+                Assert.AreEqual("knight_only", picked.DefinitionId);
+            }
+        }
+
+        static ExpeditionConfig BuildConfigWithKnightDeck(int cardCount)
+        {
+            var config = BuildConfig();
+            var knight = FindPlayer(config.CombatEncounters[0], "char_knight");
+            knight.DeckTemplates.Clear();
+            for (var i = 0; i < cardCount; i++)
+            {
+                knight.DeckTemplates.Add(new CardTemplate
+                {
+                    DefinitionId = $"base_{i}",
+                    DisplayName = $"基础{i}",
+                    OwnerCharacterId = "char_knight"
+                });
+            }
+
+            config.PlayerCardCatalog.Add(new CardTemplate
+            {
+                DefinitionId = "altar_card_a",
+                DisplayName = "祭坛卡A",
+                OwnerCharacterId = "char_knight"
+            });
+            config.PlayerCardCatalog.Add(new CardTemplate
+            {
+                DefinitionId = "extra_card",
+                DisplayName = "额外卡",
+                OwnerCharacterId = "char_knight"
+            });
+
+            return config;
         }
 
         static ExpeditionConfig BuildConfig()

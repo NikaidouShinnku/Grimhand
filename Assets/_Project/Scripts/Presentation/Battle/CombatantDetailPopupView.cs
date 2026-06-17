@@ -162,7 +162,8 @@ namespace Grimhand.Presentation.Battle
             int xp = 0,
             PartyMemberSnapshot expeditionMember = null,
             IReadOnlyList<string> runRelics = null,
-            PresentationSnapshot presentation = null)
+            PresentationSnapshot presentation = null,
+            ExpeditionConfig expeditionConfig = null)
         {
             if (_bodyText == null)
                 return;
@@ -199,13 +200,6 @@ namespace Grimhand.Presentation.Battle
             if (!string.IsNullOrEmpty(traitFootnote))
                 lines += $"\n{traitFootnote}";
 
-            if (expeditionMember != null && expeditionMember.BonusCards.Count > 0)
-            {
-                lines += "\n额外卡牌";
-                foreach (var card in expeditionMember.BonusCards)
-                    lines += $"\n· {card.DisplayName}";
-            }
-
             if (runRelics != null && runRelics.Count > 0 && unit.Team == TeamSide.Player)
             {
                 lines += "\n遗物";
@@ -234,8 +228,6 @@ namespace Grimhand.Presentation.Battle
                 lineCount += traitFootnote.Split('\n').Length;
             if (showExp)
                 lineCount++;
-            if (expeditionMember != null)
-                lineCount += expeditionMember.BonusCards.Count > 0 ? 1 + expeditionMember.BonusCards.Count : 0;
             if (runRelics != null && runRelics.Count > 0 && unit.Team == TeamSide.Player)
                 lineCount += 1 + runRelics.Count;
             _panel.sizeDelta = new Vector2(280f, 28f + lineCount * 20f);

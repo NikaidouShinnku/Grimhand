@@ -166,11 +166,20 @@ namespace Grimhand.Presentation.Battle
 
         void BuildCharacterCardFromPartyMember(PartyMemberSnapshot member)
         {
+            var run = _session.Expedition.Run;
+            var hpBonus = ExpeditionPartyStatsRules.GetPartyMaxHpBonus(
+                run.Party,
+                run.Relics,
+                run.RelicGrowthTiers);
             var stats = CharacterProgression.GetStatsForCharacter(member.CharacterDefinitionId, member.Level);
-            var attack = stats.BaseAttack + (_session.Expedition.Run.Modifiers?.TeamAttackBonus ?? 0);
-            var defense = stats.BaseDefense + (_session.Expedition.Run.Modifiers?.TeamDefenseBonus ?? 0);
-            BuildCharacterCard(member.DisplayName, member.CharacterDefinitionId, member.Level, member.Xp, member.Hp,
-                member.MaxHp, attack, defense, stats.Speed);
+            var maxHp = ExpeditionPartyStatsRules.GetEffectiveMaxHp(member, hpBonus);
+            var hp = System.Math.Min(member.Hp, maxHp);
+            var attack = stats.BaseAttack
+                + (run.Modifiers?.TeamAttackBonus ?? 0)
+                + member.PersonalAttackBonus;
+            var defense = stats.BaseDefense + (run.Modifiers?.TeamDefenseBonus ?? 0);
+            BuildCharacterCard(member.DisplayName, member.CharacterDefinitionId, member.Level, member.Xp, hp,
+                maxHp, attack, defense, stats.Speed);
         }
 
         void BuildCharacterCard(
@@ -416,6 +425,7 @@ namespace Grimhand.Presentation.Battle
                     template.DisplayName,
                     definition);
                 var visual = CardVisualResolver.Resolve(preview, _cardCatalog, _characterVisuals, _definitions);
+                var statsLine = BattleUiFormatters.BuildCardStatsLinePreview(preview, _definitions);
                 view.BindWithCard(
                     preview,
                     visual,
@@ -423,7 +433,7 @@ namespace Grimhand.Presentation.Battle
                     polluted: false,
                     interactable: false,
                     orderBadge: "",
-                    statsLine: "",
+                    statsLine,
                     uiIcons: _icons,
                     characterVisuals: _characterVisuals,
                     onClick: null,

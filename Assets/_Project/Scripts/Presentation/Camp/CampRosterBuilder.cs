@@ -106,5 +106,13 @@ namespace Grimhand.Presentation.Camp
 
             return list;
         }
+
+        public static bool IsCardOwnedByCharacter(CardDefinitionSO card, string characterDefinitionId)
+        {
+            if (card == null || string.IsNullOrEmpty(characterDefinitionId))
+                return false;
+
+            return card.OwnerCharacterId == characterDefinitionId;
+        }
     }
 }

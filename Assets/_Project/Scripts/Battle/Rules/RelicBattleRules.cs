@@ -74,16 +74,19 @@ namespace Grimhand.Battle.Rules
 
         public static void ApplyTeamHpBonus(BattleState state, RunModifierSnapshot mods)
         {
-            if (mods == null || mods.TeamHpBonus <= 0 || state == null)
+            if (state == null)
                 return;
 
-            foreach (var combatant in state.Combatants)
+            if (mods != null && mods.TeamHpBonus > 0)
             {
-                if (combatant.Team != TeamSide.Player || !combatant.IsAlive)
-                    continue;
+                foreach (var combatant in state.Combatants)
+                {
+                    if (combatant.Team != TeamSide.Player || !combatant.IsAlive)
+                        continue;
 
-                combatant.MaxHp += mods.TeamHpBonus;
-                combatant.Hp += mods.TeamHpBonus;
+                    combatant.MaxHp += mods.TeamHpBonus;
+                    combatant.Hp += mods.TeamHpBonus;
+                }
             }
 
             TalentBattleRules.ApplyTeamHpBonus(state, mods);

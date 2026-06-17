@@ -806,20 +806,21 @@ namespace Grimhand.Presentation.Battle
 
             var xp = unit?.Xp ?? 0;
             ResolveExpeditionDetailContextFromSession(session, unit, out var expeditionMember, out var runRelics);
+            var expeditionConfig = session?.IsExpeditionMode == true ? session.Expedition?.Config : null;
 
             if (!allowHoverDetail)
             {
-                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp, expeditionMember, runRelics, presentation);
+                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp, expeditionMember, runRelics, presentation, expeditionConfig);
                 _detailPopup?.SetVisible(false);
             }
             else if (!_hovered)
             {
-                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp, expeditionMember, runRelics, presentation);
+                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp, expeditionMember, runRelics, presentation, expeditionConfig);
                 _detailPopup?.SetVisible(false);
             }
             else if (!_targetMode || !_isValidTarget)
             {
-                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp, expeditionMember, runRelics, presentation);
+                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp, expeditionMember, runRelics, presentation, expeditionConfig);
                 _detailPopup?.SetVisible(unit != null);
             }
             else

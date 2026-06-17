@@ -103,30 +103,37 @@ namespace Grimhand.Expedition
             if (first.Template.CardType != second.Template.CardType)
                 return false;
 
-            if (first.MemberId != second.MemberId)
+            if (first.Key == second.Key)
                 return false;
 
-            owner = FindMember(run, first.MemberId);
-            if (owner == null)
+            if (run?.Party == null || run.Party.Count == 0)
                 return false;
 
             TryRemoveExactEntry(run, first);
             TryRemoveExactEntry(run, second);
 
-            var current = CardRarityTable.GetOrDefault(first.Template.DefinitionId);
+            var rarityA = CardRarityTable.GetOrDefault(first.Template.DefinitionId);
+            var rarityB = CardRarityTable.GetOrDefault(second.Template.DefinitionId);
+            var current = rarityA >= rarityB ? rarityA : rarityB;
             var next = CardRarityRules.UpgradeRarity(current);
-            if (!ExpeditionCardPool.TryRollCardReward(config, run, next, rng, out result, out _))
+
+            owner = run.Party[rng.NextIndex(run.Party.Count)];
+            if (!ExpeditionCardPool.TryRollCardRewardForMember(config, owner, next, rng, out result))
             {
                 result = ExpeditionBattleConfigBuilder.CloneTemplate(first.Template);
-            }
-            else
-            {
-                result = ExpeditionBattleConfigBuilder.CloneTemplate(result);
+                result.OwnerCharacterId = owner.CharacterDefinitionId;
             }
 
+            ExpeditionBattleConfigBuilder.HydrateTemplateFromCatalog(result, config?.PlayerCardCatalog);
             result.OwnerCharacterId = owner.CharacterDefinitionId;
-            owner.BonusCards.Add(result);
-            return true;
+
+            var grant = ExpeditionRunDeckRules.TryOfferCard(
+                config,
+                run,
+                owner,
+                result,
+                ExpeditionCardOfferContext.Event);
+            return grant != CardGrantResult.Failed;
         }
 
         static PartyMemberSnapshot FindMember(ExpeditionRunState run, string memberId)

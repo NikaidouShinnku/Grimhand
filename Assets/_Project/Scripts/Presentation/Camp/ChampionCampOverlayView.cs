@@ -42,6 +42,7 @@ namespace Grimhand.Presentation.Camp
         Text _hintText;
         Button _closeButton;
         Button _confirmButton;
+        InventoryTooltipView _tooltip;
 
         int _activeMemberIndex;
         int _selectedDeckSlot = -1;
@@ -302,17 +303,47 @@ namespace Grimhand.Presentation.Camp
             _hintText.rectTransform.offsetMin = new Vector2(20f, 10f);
             _hintText.rectTransform.offsetMax = new Vector2(-20f, 42f);
             _hintText.color = new Color(0.75f, 0.78f, 0.85f, 1f);
+
+            _tooltip = _overlayRoot.gameObject.AddComponent<InventoryTooltipView>();
+            _tooltip.Initialize(_overlayRoot);
         }
 
         void SaveAndClose()
         {
+            SanitizeRosterCardOwnership();
             _onRosterChanged?.Invoke(_roster);
             Hide();
             _onClose?.Invoke();
         }
 
+        void SanitizeRosterCardOwnership()
+        {
+            if (_roster == null)
+                return;
+
+            foreach (var member in _roster.Members)
+            {
+                if (member == null)
+                    continue;
+
+                for (var i = 0; i < member.DeckCardIds.Count; i++)
+                {
+                    var id = member.DeckCardIds[i];
+                    if (string.IsNullOrEmpty(id))
+                        continue;
+
+                    if (!_definitions.TryGetValue(id, out var definition)
+                        || !CampRosterBuilder.IsCardOwnedByCharacter(definition, member.CharacterDefinitionId))
+                    {
+                        member.DeckCardIds[i] = "";
+                    }
+                }
+            }
+        }
+
         void Rebuild()
         {
+            _tooltip?.Hide();
             ClearDynamic();
             if (_roster == null)
                 return;
@@ -541,11 +572,13 @@ namespace Grimhand.Presentation.Camp
                         definition?.DisplayName ?? cardId,
                         definition);
                     var visual = CardVisualResolver.Resolve(preview, _cardCatalog, _characterVisuals, _definitions);
-                    view.BindWithCard(preview, visual, false, false, false, "", "",
+                    var statsLine = BattleUiFormatters.BuildCardStatsLinePreview(preview, _definitions);
+                    view.BindWithCard(preview, visual, false, false, false, "", statsLine,
                         _uiIcons, _characterVisuals, null, null, null);
                     var cg = view.GetComponent<CanvasGroup>();
                     if (cg != null)
                         cg.blocksRaycasts = false;
+                    BindCardTooltip(slotGo, preview);
                 }
                 else
                 {
@@ -566,6 +599,9 @@ namespace Grimhand.Presentation.Camp
                 if (card == null || string.IsNullOrEmpty(card.CardId))
                     continue;
 
+                if (!CampRosterBuilder.IsCardOwnedByCharacter(card, member.CharacterDefinitionId))
+                    continue;
+
                 var holder = CampUiRuntime.CreateRect(card.CardId, _poolGrid);
                 var holderRt = holder.GetComponent<RectTransform>();
                 holderRt.sizeDelta = new Vector2(168f * CardScale + 8f, 236f * CardScale + 8f);
@@ -577,16 +613,18 @@ namespace Grimhand.Presentation.Camp
                 CardView.ApplyHandPresentationScaleCentered(view, CardScale);
                 var preview = CardVisualResolver.CreatePreviewInstance(
                     card.CardId,
-                    card.OwnerCharacterId,
+                    member.CharacterDefinitionId,
                     card.DisplayName,
                     card);
                 var visual = CardVisualResolver.Resolve(preview, _cardCatalog, _characterVisuals, _definitions);
+                var statsLine = BattleUiFormatters.BuildCardStatsLinePreview(preview, _definitions);
                 var capturedId = card.CardId;
-                view.BindWithCard(preview, visual, false, false, true, "", "",
+                view.BindWithCard(preview, visual, false, false, true, "", statsLine,
                     _uiIcons, _characterVisuals,
                     _ => AssignCardToSelectedSlot(capturedId),
                     null,
                     null);
+                BindCardTooltip(holder, preview);
 
                 _dynamicObjects.Add(holder);
             }
@@ -596,12 +634,31 @@ namespace Grimhand.Presentation.Camp
             UpdateHint();
         }
 
+        void BindCardTooltip(GameObject target, CardInstanceState card)
+        {
+            if (_tooltip == null || target == null || card == null)
+                return;
+
+            var descCard = CardVisualResolver.ResolveForDescription(card, _definitions);
+            var stats = BattleUiFormatters.BuildCardStatsLinePreview(descCard, _definitions);
+            var keywords = BattleUiFormatters.BuildCardKeywordTooltip(null, descCard, _definitions)
+                .Replace("<b>", "").Replace("</b>", "");
+            var body = string.IsNullOrWhiteSpace(keywords) ? stats : $"{stats}\n\n{keywords}";
+            _tooltip.BindHover(target, card.DisplayName, body, showTitle: false);
+        }
+
         void AssignCardToSelectedSlot(string cardId)
         {
             if (_selectedDeckSlot < 0 || _selectedDeckSlot >= CampRosterState.DeckSize)
                 return;
 
-            _roster.Members[_activeMemberIndex].DeckCardIds[_selectedDeckSlot] = cardId;
+            var member = _roster.Members[_activeMemberIndex];
+            _definitions.TryGetValue(cardId, out var definition);
+            if (definition != null
+                && !CampRosterBuilder.IsCardOwnedByCharacter(definition, member.CharacterDefinitionId))
+                return;
+
+            member.DeckCardIds[_selectedDeckSlot] = cardId;
             if (_selectedDeckSlot < CampRosterState.DeckSize - 1)
                 _selectedDeckSlot++;
             Rebuild();
@@ -628,7 +685,7 @@ namespace Grimhand.Presentation.Camp
             var ready = _roster.IsReadyForExpedition;
             _hintText.text = ready
                 ? "编队已就绪。保存后可通过传送门开始远征。"
-                : $"正在编辑：{member.DisplayName} — 选中槽位 {_selectedDeckSlot + 1}，点击右侧卡牌填入；再次点击已填槽位可清空。";
+                : $"正在编辑：{member.DisplayName} — 选中槽位 {_selectedDeckSlot + 1}，点击右侧「{member.DisplayName}专属」卡牌填入；再次点击已填槽位可清空。";
         }
 
         void ClearDynamic()

@@ -10,6 +10,111 @@ namespace Grimhand.Battle.Tests
     public class ExpeditionBattleConfigBuilderTests
     {
         [Test]
+        public void CaptureParty_PreservesBonusCardsAndExtractedIndices()
+        {
+            var previous = new List<PartyMemberSnapshot>
+            {
+                new()
+                {
+                    CharacterDefinitionId = "char_knight",
+                    DisplayName = "骑士"
+                }
+            };
+            previous[0].BonusCards.Add(new CardTemplate
+            {
+                DefinitionId = "altar_card",
+                DisplayName = "祭坛卡",
+                OwnerCharacterId = "char_knight"
+            });
+            previous[0].ExtractedCampCardIndices.Add(2);
+
+            var state = new BattleState
+            {
+                Outcome = BattleOutcome.PlayerVictory,
+                Combatants =
+                {
+                    new CombatantState
+                    {
+                        Team = TeamSide.Player,
+                        CharacterDefinitionId = "char_knight",
+                        DisplayName = "骑士",
+                        Hp = 20,
+                        MaxHp = 40
+                    }
+                }
+            };
+
+            var party = ExpeditionBattleConfigBuilder.CaptureParty(state, previous);
+            Assert.AreEqual(1, party.Count);
+            Assert.AreEqual(1, party[0].BonusCards.Count);
+            Assert.AreEqual("altar_card", party[0].BonusCards[0].DefinitionId);
+            Assert.IsTrue(party[0].ExtractedCampCardIndices.Contains(2));
+        }
+
+        [Test]
+        public void CaptureParty_WithEmptyBattleState_PreservesPreviousParty()
+        {
+            var previous = new List<PartyMemberSnapshot>
+            {
+                new()
+                {
+                    CharacterDefinitionId = "char_knight",
+                    DisplayName = "骑士",
+                    Hp = 25,
+                    MaxHp = 40
+                }
+            };
+            previous[0].BonusCards.Add(new CardTemplate { DefinitionId = "bonus_card" });
+
+            var party = ExpeditionBattleConfigBuilder.CaptureParty(new BattleState(), previous);
+            Assert.AreEqual(1, party.Count);
+            Assert.AreEqual(1, party[0].BonusCards.Count);
+            Assert.AreEqual(25, party[0].Hp);
+        }
+
+        [Test]
+        public void CaptureParty_BeforeClearingSourceList_PreservesBonusCards()
+        {
+            var party = new List<PartyMemberSnapshot>
+            {
+                new()
+                {
+                    CharacterDefinitionId = "char_knight",
+                    DisplayName = "骑士"
+                }
+            };
+            party[0].BonusCards.Add(new CardTemplate
+            {
+                DefinitionId = "altar_card",
+                DisplayName = "祭坛卡",
+                OwnerCharacterId = "char_knight"
+            });
+
+            var state = new BattleState
+            {
+                Outcome = BattleOutcome.PlayerVictory,
+                Combatants =
+                {
+                    new CombatantState
+                    {
+                        Team = TeamSide.Player,
+                        CharacterDefinitionId = "char_knight",
+                        DisplayName = "骑士",
+                        Hp = 20,
+                        MaxHp = 40
+                    }
+                }
+            };
+
+            var captured = ExpeditionBattleConfigBuilder.CaptureParty(state, party);
+            party.Clear();
+            party.AddRange(captured);
+
+            Assert.AreEqual(1, party[0].BonusCards.Count);
+            Assert.AreEqual("altar_card", party[0].BonusCards[0].DefinitionId);
+        }
+
+        [Test]
         public void BuildEncounter_HighFloorScalesEnemiesOnlyNotPlayers()
         {
             var template = new BattleConfig();
@@ -60,6 +165,52 @@ namespace Grimhand.Battle.Tests
             Assert.AreEqual(player1.BaseDefense, player12.BaseDefense);
             Assert.Greater(enemy12.MaxHp, enemy1.MaxHp);
             Assert.Greater(enemy12.BaseAttack, enemy1.BaseAttack);
+        }
+
+        [Test]
+        public void GrantXpToParty_PreservesKnightTalentMaxHpBonusOnLevelUp()
+        {
+            var party = new List<PartyMemberSnapshot>
+            {
+                new()
+                {
+                    CharacterDefinitionId = TalentCatalog.KnightId,
+                    Level = 1,
+                    Xp = 0,
+                    Hp = 60,
+                    MaxHp = 60,
+                    SelectedTalentSlot2Id = "talent_knight_s2_lv6"
+                }
+            };
+
+            ExpeditionBattleConfigBuilder.GrantXpToParty(party, 8);
+
+            Assert.AreEqual(2, party[0].Level);
+            Assert.AreEqual(66, party[0].MaxHp);
+            Assert.AreEqual(66, party[0].Hp);
+        }
+
+        [Test]
+        public void ApplyPartyProgress_DoesNotResetMemberEffectiveMaxHp()
+        {
+            var member = new PartyMemberSnapshot
+            {
+                CharacterDefinitionId = TalentCatalog.KnightId,
+                Level = 1,
+                Hp = 60,
+                MaxHp = 60,
+                SelectedTalentSlot2Id = "talent_knight_s2_lv6"
+            };
+            var cc = new CombatantConfig
+            {
+                Team = TeamSide.Player,
+                CharacterDefinitionId = TalentCatalog.KnightId
+            };
+
+            ExpeditionBattleConfigBuilder.ApplyPartyProgress(cc, member);
+
+            Assert.AreEqual(60, member.MaxHp);
+            Assert.AreEqual(50, cc.MaxHp);
         }
 
         static CombatantConfig FindCombatant(BattleConfig config, TeamSide team)

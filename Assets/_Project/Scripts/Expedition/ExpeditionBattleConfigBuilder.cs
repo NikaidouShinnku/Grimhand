@@ -292,7 +292,6 @@ namespace Grimhand.Expedition
             cc.BaseAttack = stats.BaseAttack + (expeditionModifiers?.TeamAttackBonus ?? 0) + member.PersonalAttackBonus;
             cc.BaseDefense = stats.BaseDefense + (expeditionModifiers?.TeamDefenseBonus ?? 0);
             cc.Speed = stats.Speed;
-            member.MaxHp = stats.MaxHp;
         }
 
         public static List<PartyMemberSnapshot> CaptureParty(
@@ -300,6 +299,10 @@ namespace Grimhand.Expedition
             IReadOnlyList<PartyMemberSnapshot> existingParty = null)
         {
             var party = new List<PartyMemberSnapshot>();
+            var capturedIds = new HashSet<string>();
+            if (state?.Combatants == null)
+                return party;
+
             foreach (var c in state.Combatants)
             {
                 if (c.Team != TeamSide.Player)
@@ -319,29 +322,70 @@ namespace Grimhand.Expedition
                     SelectedTalentSlot2Id = existing?.SelectedTalentSlot2Id ?? ""
                 };
 
-                if (existing != null)
-                {
-                    foreach (var kv in existing.RemovedCardCounts)
-                        snap.RemovedCardCounts[kv.Key] = kv.Value;
-
-                    foreach (var kv in existing.CardPowerBonusPercent)
-                        snap.CardPowerBonusPercent[kv.Key] = kv.Value;
-
-                    foreach (var bonus in existing.BonusCards)
-                    {
-                        if (bonus == null)
-                            continue;
-
-                        snap.BonusCards.Add(CloneTemplate(bonus));
-                    }
-
-                    snap.CampDeckCardIds.AddRange(existing.CampDeckCardIds);
-                }
-
+                CopyExpeditionDeckProgress(snap, existing);
                 party.Add(snap);
+                capturedIds.Add(c.CharacterDefinitionId);
+            }
+
+            if (existingParty != null)
+            {
+                foreach (var existing in existingParty)
+                {
+                    if (existing == null || string.IsNullOrEmpty(existing.CharacterDefinitionId))
+                        continue;
+
+                    if (capturedIds.Contains(existing.CharacterDefinitionId))
+                        continue;
+
+                    party.Add(CloneExpeditionMember(existing));
+                }
             }
 
             return party;
+        }
+
+        static void CopyExpeditionDeckProgress(PartyMemberSnapshot snap, PartyMemberSnapshot existing)
+        {
+            if (snap == null || existing == null)
+                return;
+
+            foreach (var kv in existing.RemovedCardCounts)
+                snap.RemovedCardCounts[kv.Key] = kv.Value;
+
+            foreach (var kv in existing.CardPowerBonusPercent)
+                snap.CardPowerBonusPercent[kv.Key] = kv.Value;
+
+            foreach (var bonus in existing.BonusCards)
+            {
+                if (bonus == null)
+                    continue;
+
+                snap.BonusCards.Add(CloneTemplate(bonus));
+            }
+
+            snap.CampDeckCardIds.AddRange(existing.CampDeckCardIds);
+
+            foreach (var index in existing.ExtractedCampCardIndices)
+                snap.ExtractedCampCardIndices.Add(index);
+        }
+
+        static PartyMemberSnapshot CloneExpeditionMember(PartyMemberSnapshot existing)
+        {
+            var snap = new PartyMemberSnapshot
+            {
+                CharacterDefinitionId = existing.CharacterDefinitionId,
+                DisplayName = existing.DisplayName,
+                Level = existing.Level,
+                Xp = existing.Xp,
+                Hp = existing.Hp,
+                MaxHp = existing.MaxHp,
+                PersonalAttackBonus = existing.PersonalAttackBonus,
+                SelectedTalentSlot1Id = existing.SelectedTalentSlot1Id,
+                SelectedTalentSlot2Id = existing.SelectedTalentSlot2Id
+            };
+
+            CopyExpeditionDeckProgress(snap, existing);
+            return snap;
         }
 
         static PartyMemberSnapshot FindExistingMember(
@@ -360,14 +404,20 @@ namespace Grimhand.Expedition
             return null;
         }
 
-        public static void GrantXpToParty(List<PartyMemberSnapshot> party, int amount)
+        public static void GrantXpToParty(
+            List<PartyMemberSnapshot> party,
+            int amount,
+            IReadOnlyList<string> relicIds = null,
+            Dictionary<string, int> relicGrowthTiers = null)
         {
             if (party == null || amount <= 0)
                 return;
 
+            var hpBonus = ExpeditionPartyStatsRules.GetPartyMaxHpBonus(party, relicIds, relicGrowthTiers);
+
             foreach (var member in party)
             {
-                var before = CharacterProgression.GetStatsForCharacter(member.CharacterDefinitionId, member.Level);
+                var beforeEffective = ExpeditionPartyStatsRules.GetEffectiveMaxHp(member, hpBonus);
                 var result = CharacterProgression.AddXp(member.Level, member.Xp, amount);
                 member.Level = result.Level;
                 member.Xp = result.Xp;
@@ -375,9 +425,9 @@ namespace Grimhand.Expedition
                 if (result.LevelsGained <= 0)
                     continue;
 
-                var after = CharacterProgression.GetStatsForCharacter(member.CharacterDefinitionId, member.Level);
-                var hpGain = after.MaxHp - before.MaxHp;
-                member.MaxHp = after.MaxHp;
+                var afterEffective = ExpeditionPartyStatsRules.GetEffectiveMaxHp(member, hpBonus);
+                var hpGain = afterEffective - beforeEffective;
+                member.MaxHp = afterEffective;
                 if (hpGain > 0)
                     member.Hp = System.Math.Min(member.MaxHp, member.Hp + hpGain);
             }

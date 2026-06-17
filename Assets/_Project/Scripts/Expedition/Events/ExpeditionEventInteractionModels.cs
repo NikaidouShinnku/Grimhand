@@ -10,8 +10,7 @@ namespace Grimhand.Expedition.Events
         PickMemberForBuff,
         PickCardRemove,
         PickCardUpgrade,
-        PickCardFusionFirst,
-        PickCardFusionSecond,
+        PickTwoCardsForFusion,
         ShowMessage
     }
 
@@ -37,6 +36,13 @@ namespace Grimhand.Expedition.Events
         public string FusionFirstCardKey { get; set; } = "";
         public CardType FusionCardType { get; set; }
         public ExpeditionEventOutcome DeferredOutcome { get; set; }
+
+        /// <summary>选牌步骤确认后暂存，在随后的 ShowMessage 结束时执行。</summary>
+        public ExpeditionEventStepKind PendingApplyKind { get; set; }
+        public bool HasPendingCardAction { get; set; }
+        public string PendingPrimaryCardKey { get; set; } = "";
+        public string PendingSecondaryCardKey { get; set; } = "";
+        public int PendingUpgradeBonus { get; set; }
     }
 
     /// <summary>卡牌在选牌 UI 中的唯一键：memberId|definitionId|index</summary>

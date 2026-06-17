@@ -43,9 +43,11 @@ namespace Grimhand.Presentation.Battle
         int _displayedStepIndex = -1;
         string _selectedCharacterId = "";
         string _selectedCardKey = "";
+        readonly HashSet<string> _selectedCardKeys = new();
         bool _stepBusy;
         readonly List<GameObject> _dynamicObjects = new();
         readonly Dictionary<string, CardView> _cardViews = new();
+        readonly Dictionary<string, CardType> _cardTypesByKey = new();
         readonly Dictionary<string, Text> _portraitHpTexts = new();
         readonly Dictionary<string, Text> _portraitFloaters = new();
 
@@ -97,6 +99,7 @@ namespace Grimhand.Presentation.Battle
                 _displayedStepIndex = interaction.StepIndex;
                 _selectedCharacterId = "";
                 _selectedCardKey = "";
+                _selectedCardKeys.Clear();
                 RebuildForCurrentStep(interaction);
             }
             else
@@ -111,6 +114,7 @@ namespace Grimhand.Presentation.Battle
             _portraitHpTexts.Clear();
             _portraitFloaters.Clear();
             _cardViews.Clear();
+            _cardTypesByKey.Clear();
 
             var step = interaction.Steps[interaction.StepIndex];
             switch (step.Kind)
@@ -152,12 +156,8 @@ namespace Grimhand.Presentation.Battle
                     _promptText.text = "选择一张卡牌强化";
                     BuildCardGrid(interaction, step);
                     break;
-                case ExpeditionEventStepKind.PickCardFusionFirst:
-                    _promptText.text = "选择第一张要融合的卡牌";
-                    BuildCardGrid(interaction, step);
-                    break;
-                case ExpeditionEventStepKind.PickCardFusionSecond:
-                    _promptText.text = "选择第二张同类型卡牌进行融合";
+                case ExpeditionEventStepKind.PickTwoCardsForFusion:
+                    _promptText.text = "选择两张同类型卡牌进行融合（可跨角色）";
                     BuildCardGrid(interaction, step);
                     break;
                 case ExpeditionEventStepKind.ShowMessage:
@@ -334,17 +334,6 @@ namespace Grimhand.Presentation.Battle
                 if (entry?.Template == null)
                     continue;
 
-                if (step.Kind == ExpeditionEventStepKind.PickCardFusionSecond)
-                {
-                    var requiredType = interaction.FusionCardType;
-                    if (entry.Template.CardType != requiredType)
-                        continue;
-
-                    if (!string.IsNullOrEmpty(interaction.FusionFirstCardKey)
-                        && entry.Key == interaction.FusionFirstCardKey)
-                        continue;
-                }
-
                 _definitions.TryGetValue(entry.Template.DefinitionId, out var definition);
                 var holder = new GameObject("CardHolder", typeof(RectTransform), typeof(LayoutElement));
                 holder.transform.SetParent(_cardGrid, false);
@@ -361,10 +350,13 @@ namespace Grimhand.Presentation.Battle
                     definition);
                 var visual = CardVisualResolver.Resolve(preview, _cardCatalog, _characterVisuals, _definitions);
                 var key = entry.Key;
+                var selected = step.Kind == ExpeditionEventStepKind.PickTwoCardsForFusion
+                    ? _selectedCardKeys.Contains(key)
+                    : key == _selectedCardKey;
                 view.BindWithCard(
                     preview,
                     visual,
-                    selected: key == _selectedCardKey,
+                    selected: selected,
                     polluted: false,
                     interactable: true,
                     orderBadge: "",
@@ -376,6 +368,7 @@ namespace Grimhand.Presentation.Battle
                     onHoverExit: null);
 
                 _cardViews[key] = view;
+                _cardTypesByKey[key] = entry.Template.CardType;
                 _dynamicObjects.Add(holder);
             }
 
@@ -387,11 +380,32 @@ namespace Grimhand.Presentation.Battle
             if (_stepBusy || string.IsNullOrEmpty(key))
                 return;
 
-            _selectedCardKey = _selectedCardKey == key ? "" : key;
-            foreach (var pair in _cardViews)
-                pair.Value.SetSelected(pair.Key == _selectedCardKey);
+            var interaction = _session.Expedition.Run.EventInteraction;
+            if (interaction == null)
+                return;
 
-            UpdateConfirmButton(_session.Expedition.Run.EventInteraction);
+            var step = interaction.Steps[interaction.StepIndex];
+            if (step.Kind == ExpeditionEventStepKind.PickTwoCardsForFusion)
+            {
+                if (_selectedCardKeys.Contains(key))
+                    _selectedCardKeys.Remove(key);
+                else if (_selectedCardKeys.Count < 2)
+                    _selectedCardKeys.Add(key);
+            }
+            else
+            {
+                _selectedCardKey = _selectedCardKey == key ? "" : key;
+            }
+
+            foreach (var pair in _cardViews)
+            {
+                var selected = step.Kind == ExpeditionEventStepKind.PickTwoCardsForFusion
+                    ? _selectedCardKeys.Contains(pair.Key)
+                    : pair.Key == _selectedCardKey;
+                pair.Value.SetSelected(selected);
+            }
+
+            UpdateConfirmButton(interaction);
         }
 
         void UpdateConfirmButton(ExpeditionEventInteractionState interaction)
@@ -402,8 +416,7 @@ namespace Grimhand.Presentation.Battle
             var step = interaction.Steps[interaction.StepIndex];
             var needsCard = step.Kind is ExpeditionEventStepKind.PickCardRemove
                 or ExpeditionEventStepKind.PickCardUpgrade
-                or ExpeditionEventStepKind.PickCardFusionFirst
-                or ExpeditionEventStepKind.PickCardFusionSecond;
+                or ExpeditionEventStepKind.PickTwoCardsForFusion;
 
             if (!needsCard)
             {
@@ -412,8 +425,44 @@ namespace Grimhand.Presentation.Battle
             }
 
             _confirmButton.gameObject.SetActive(true);
-            _confirmLabel.text = "确认";
+            _confirmLabel.text = step.Kind == ExpeditionEventStepKind.PickTwoCardsForFusion
+                ? "确认融合"
+                : "确认";
+
+            if (step.Kind == ExpeditionEventStepKind.PickTwoCardsForFusion)
+            {
+                _confirmButton.interactable = !_stepBusy
+                                              && _selectedCardKeys.Count == 2
+                                              && TryGetSelectedFusionType(out _);
+                return;
+            }
+
             _confirmButton.interactable = !string.IsNullOrEmpty(_selectedCardKey) && !_stepBusy;
+        }
+
+        bool TryGetSelectedFusionType(out CardType cardType)
+        {
+            cardType = default;
+            if (_selectedCardKeys.Count != 2)
+                return false;
+
+            CardType? firstType = null;
+            foreach (var key in _selectedCardKeys)
+            {
+                if (!_cardTypesByKey.TryGetValue(key, out var type))
+                    continue;
+
+                if (firstType == null)
+                    firstType = type;
+                else if (firstType.Value != type)
+                    return false;
+            }
+
+            if (firstType == null)
+                return false;
+
+            cardType = firstType.Value;
+            return true;
         }
 
         IEnumerator PlayTeamHpLossSequence(ExpeditionEventInteractionStep step)
@@ -558,19 +607,41 @@ namespace Grimhand.Presentation.Battle
 
         void OnConfirmClicked()
         {
-            if (_stepBusy || string.IsNullOrEmpty(_selectedCardKey))
+            if (_stepBusy)
+                return;
+
+            var interaction = _session.Expedition.Run.EventInteraction;
+            if (interaction == null)
+                return;
+
+            var step = interaction.Steps[interaction.StepIndex];
+            if (step.Kind == ExpeditionEventStepKind.PickTwoCardsForFusion)
+            {
+                if (_selectedCardKeys.Count != 2 || !TryGetSelectedFusionType(out _))
+                    return;
+
+                var keys = new List<string>(_selectedCardKeys);
+                _stepBusy = true;
+                CompleteStep(null, keys[0], keys[1]);
+                return;
+            }
+
+            if (string.IsNullOrEmpty(_selectedCardKey))
                 return;
 
             _stepBusy = true;
             CompleteStep(null, _selectedCardKey);
         }
 
-        void CompleteStep(string selectedCharacterId, string selectedCardKey)
+        void CompleteStep(string selectedCharacterId, string selectedCardKey, string selectedSecondCardKey = null)
         {
             if (_session == null)
                 return;
 
-            var ok = _session.CompleteEventInteractionStep(selectedCharacterId, selectedCardKey);
+            var ok = _session.CompleteEventInteractionStep(
+                selectedCharacterId,
+                selectedCardKey,
+                selectedSecondCardKey);
             if (!ok)
             {
                 _stepBusy = false;
@@ -587,6 +658,7 @@ namespace Grimhand.Presentation.Battle
             _displayedStepIndex = -1;
             _selectedCharacterId = "";
             _selectedCardKey = "";
+            _selectedCardKeys.Clear();
         }
 
         void ClearContent()
@@ -602,6 +674,7 @@ namespace Grimhand.Presentation.Battle
 
             _dynamicObjects.Clear();
             _cardViews.Clear();
+            _cardTypesByKey.Clear();
             _portraitHpTexts.Clear();
             _portraitFloaters.Clear();
             ClearChildren(_characterRow);

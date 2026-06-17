@@ -56,6 +56,14 @@ namespace Grimhand.Expedition
             return result;
         }
 
+        public static bool IsCardOwnedByCharacter(CardTemplate template, string characterId)
+        {
+            if (template == null || string.IsNullOrEmpty(characterId))
+                return false;
+
+            return template.OwnerCharacterId == characterId;
+        }
+
         public static bool TryRollCardReward(
             ExpeditionConfig config,
             ExpeditionRunState run,
@@ -79,9 +87,66 @@ namespace Grimhand.Expedition
             if (pool.Count == 0)
                 return false;
 
-            owner = run.Party[rng.NextIndex(run.Party.Count)];
-            picked = pool[rng.NextIndex(pool.Count)];
+            var eligible = new List<(PartyMemberSnapshot member, List<CardTemplate> cards)>();
+            foreach (var member in run.Party)
+            {
+                if (member == null || string.IsNullOrEmpty(member.CharacterDefinitionId))
+                    continue;
+
+                var owned = FilterPoolForCharacter(pool, member.CharacterDefinitionId);
+                if (owned.Count > 0)
+                    eligible.Add((member, owned));
+            }
+
+            if (eligible.Count == 0)
+                return false;
+
+            var choice = eligible[rng.NextIndex(eligible.Count)];
+            owner = choice.member;
+            var source = choice.cards[rng.NextIndex(choice.cards.Count)];
+            picked = ExpeditionBattleConfigBuilder.CloneTemplate(source);
+            picked.OwnerCharacterId = owner.CharacterDefinitionId;
             return true;
+        }
+
+        public static bool TryRollCardRewardForMember(
+            ExpeditionConfig config,
+            PartyMemberSnapshot member,
+            CardRarity rarity,
+            BattleRng rng,
+            out CardTemplate picked)
+        {
+            picked = null;
+            if (config == null || member == null || string.IsNullOrEmpty(member.CharacterDefinitionId) || rng == null)
+                return false;
+
+            var pool = new List<CardTemplate>();
+            foreach (var template in CollectPlayerCardTemplates(config))
+            {
+                if (CardRarityTable.GetOrDefault(template.DefinitionId) == rarity)
+                    pool.Add(template);
+            }
+
+            var owned = FilterPoolForCharacter(pool, member.CharacterDefinitionId);
+            if (owned.Count == 0)
+                return false;
+
+            var source = owned[rng.NextIndex(owned.Count)];
+            picked = ExpeditionBattleConfigBuilder.CloneTemplate(source);
+            picked.OwnerCharacterId = member.CharacterDefinitionId;
+            return true;
+        }
+
+        static List<CardTemplate> FilterPoolForCharacter(IReadOnlyList<CardTemplate> pool, string characterId)
+        {
+            var owned = new List<CardTemplate>();
+            foreach (var template in pool)
+            {
+                if (IsCardOwnedByCharacter(template, characterId))
+                    owned.Add(template);
+            }
+
+            return owned;
         }
 
         public static bool IsPlayerCharacterId(string characterId)

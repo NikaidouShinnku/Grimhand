@@ -186,9 +186,26 @@ namespace Grimhand.Expedition
             foreach (var m in run.Party)
                 owned.AddRange(m.BonusCards);
 
+            var partyIds = new HashSet<string>();
+            foreach (var m in run.Party)
+            {
+                if (!string.IsNullOrEmpty(m?.CharacterDefinitionId))
+                    partyIds.Add(m.CharacterDefinitionId);
+            }
+
+            var eligibleTemplates = new List<CardTemplate>();
+            foreach (var template in templates)
+            {
+                if (partyIds.Contains(template.OwnerCharacterId))
+                    eligibleTemplates.Add(template);
+            }
+
+            if (eligibleTemplates.Count == 0)
+                return;
+
             for (var attempt = 0; attempt < 12; attempt++)
             {
-                var candidate = templates[rng.NextIndex(templates.Count)];
+                var candidate = eligibleTemplates[rng.NextIndex(eligibleTemplates.Count)];
                 if (IsDuplicateOwned(candidate, owned))
                     continue;
 
@@ -196,11 +213,9 @@ namespace Grimhand.Expedition
                 break;
             }
 
-            picked ??= templates[rng.NextIndex(templates.Count)];
+            picked ??= eligibleTemplates[rng.NextIndex(eligibleTemplates.Count)];
             rewards.CardDefinitionId = picked.DefinitionId;
-            rewards.CardOwnerCharacterId = string.IsNullOrEmpty(picked.OwnerCharacterId)
-                ? member.CharacterDefinitionId
-                : picked.OwnerCharacterId;
+            rewards.CardOwnerCharacterId = picked.OwnerCharacterId;
             rewards.CardDisplayName = picked.DisplayName;
         }
 

@@ -43,6 +43,10 @@ namespace Grimhand.Expedition
             _run.ConsumableSlots.Clear();
             ConsumableInventory.EnsureInitialized(_run.ConsumableSlots);
             _run.PendingConsumableOfferId = "";
+            _run.PendingCardOffer = null;
+            _run.CardAltar = null;
+            _run.RunStartCampDecks.Clear();
+            _run.ExtractedCampCollectionIndices.Clear();
             _run.Modifiers.TeamAttackBonus = 0;
             _run.Modifiers.TeamDefenseBonus = 0;
             _run.Modifiers.EnergyCapBonus = 0;
@@ -77,6 +81,7 @@ namespace Grimhand.Expedition
 
             _run.TalentRun.Reset();
             TalentDatabase.ApplyRunStartEffects(_run, _config);
+            ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
             LoadRoutesForNextLayer();
         }
 
@@ -137,6 +142,10 @@ namespace Grimhand.Expedition
             _run.ConsumableSlots.Clear();
             ConsumableInventory.EnsureInitialized(_run.ConsumableSlots);
             _run.PendingConsumableOfferId = "";
+            _run.PendingCardOffer = null;
+            _run.CardAltar = null;
+            _run.RunStartCampDecks.Clear();
+            _run.ExtractedCampCollectionIndices.Clear();
             _run.Modifiers.TeamAttackBonus = 0;
             _run.Modifiers.TeamDefenseBonus = 0;
             _run.Modifiers.EnergyCapBonus = 0;
@@ -257,6 +266,9 @@ namespace Grimhand.Expedition
                         break;
 
                     ExpeditionBattleConfigBuilder.HydrateTemplateFromCatalog(chosen, _config.PlayerCardCatalog);
+                    if (!ExpeditionRunDeckRules.CanAddWithoutReplace(_config, member))
+                        break;
+
                     member.BonusCards.Add(chosen);
                     RecordRunAcquisition($"测试卡牌：{chosen.DisplayName}（{member.DisplayName}）");
                 }
@@ -271,9 +283,14 @@ namespace Grimhand.Expedition
             if (_run.MiracleLeafUsesRemaining >= 0)
                 _run.MiracleLeafUsesRemaining = state.MiracleLeafRevivesRemaining;
 
-            var previousParty = _run.Party;
+            // CaptureParty 必须在 Clear 之前调用：previousParty 若与 _run.Party 为同一列表，
+            // 先 Clear 会导致 existingParty 为空，BonusCards / 收藏进度等远征卡组数据全部丢失。
+            var capturedParty = ExpeditionBattleConfigBuilder.CaptureParty(state, _run.Party);
             _run.Party.Clear();
-            _run.Party.AddRange(ExpeditionBattleConfigBuilder.CaptureParty(state, previousParty));
+            _run.Party.AddRange(capturedParty);
+            CampCollectionProgress.SyncRunFromParty(_run);
+            foreach (var member in _run.Party)
+                CampCollectionProgress.SyncMemberFromRun(_run, member);
             TalentDatabase.SyncRunStateFromBattle(state, _run.TalentRun);
 
             if (_run.MiracleLeafUsesRemaining >= 0)
@@ -299,10 +316,18 @@ namespace Grimhand.Expedition
                 return;
 
             _run.LastXpReward = RollCombatXp();
-            ExpeditionBattleConfigBuilder.GrantXpToParty(_run.Party, _run.LastXpReward);
+            ExpeditionBattleConfigBuilder.GrantXpToParty(
+                _run.Party,
+                _run.LastXpReward,
+                _run.Relics,
+                _run.RelicGrowthTiers);
             if (_run.PendingEventBattleBonusXp > 0)
             {
-                ExpeditionBattleConfigBuilder.GrantXpToParty(_run.Party, _run.PendingEventBattleBonusXp);
+                ExpeditionBattleConfigBuilder.GrantXpToParty(
+                    _run.Party,
+                    _run.PendingEventBattleBonusXp,
+                    _run.Relics,
+                    _run.RelicGrowthTiers);
                 _run.LastXpReward += _run.PendingEventBattleBonusXp;
             }
 
@@ -394,15 +419,51 @@ namespace Grimhand.Expedition
                 rewards.CardClaimed || rewards.CardSkipped)
                 return false;
 
-            if (!TryGrantCardReward(rewards.CardOwnerCharacterId, rewards.CardDefinitionId, rewards.CardDisplayName))
+            if (_run.PendingCardOffer != null)
+                return false;
+
+            var template = BuildCardTemplateForGrant(
+                rewards.CardOwnerCharacterId,
+                rewards.CardDefinitionId,
+                rewards.CardDisplayName);
+            if (template == null)
             {
                 rewards.CardSkipped = true;
                 TryAdvanceFromRewardPickup();
                 return false;
             }
 
-            rewards.CardClaimed = true;
-            TryAdvanceFromRewardPickup();
+            if (!TryFindPartyMember(rewards.CardOwnerCharacterId, out var member) && _run.Party.Count > 0)
+                member = _run.Party[0];
+
+            if (member == null)
+            {
+                rewards.CardSkipped = true;
+                TryAdvanceFromRewardPickup();
+                return false;
+            }
+
+            var result = ExpeditionRunDeckRules.TryOfferCard(
+                _config,
+                _run,
+                member,
+                template,
+                ExpeditionCardOfferContext.RewardPickup,
+                RecordRunAcquisition);
+
+            if (result == CardGrantResult.Failed)
+            {
+                rewards.CardSkipped = true;
+                TryAdvanceFromRewardPickup();
+                return false;
+            }
+
+            if (result == CardGrantResult.Added)
+            {
+                rewards.CardClaimed = true;
+                TryAdvanceFromRewardPickup();
+            }
+
             return true;
         }
 
@@ -412,6 +473,9 @@ namespace Grimhand.Expedition
             if (_run.Phase != ExpeditionPhase.RewardPickup || rewards == null || !rewards.HasCard ||
                 rewards.CardClaimed || rewards.CardSkipped)
                 return false;
+
+            if (_run.PendingCardOffer?.Context == ExpeditionCardOfferContext.RewardPickup)
+                _run.PendingCardOffer = null;
 
             rewards.CardSkipped = true;
             TryAdvanceFromRewardPickup();
@@ -512,12 +576,10 @@ namespace Grimhand.Expedition
                     _run.Phase = ExpeditionPhase.EventChoice;
                     return true;
                 case ExpeditionNodeType.Shrine:
-                    _run.PendingShrine = new ExpeditionPendingShrine
-                    {
-                        ShrineId = route.ShrineId,
-                        SourceLayer = route.LayerNumber
-                    };
+                    _run.CardAltar = new ExpeditionCardAltarState { SourceLayer = route.LayerNumber };
+                    _run.PendingShrine = null;
                     _run.Phase = ExpeditionPhase.ShrineChoice;
+                    _run.LastEventMessage = "祭坛 — 从收藏中召唤卡牌";
                     return true;
                 case ExpeditionNodeType.Shop:
                     _run.Phase = ExpeditionPhase.ShopVisit;
@@ -639,25 +701,245 @@ namespace Grimhand.Expedition
 
         public bool TryResolveShrineChoice(int choiceIndex)
         {
-            if (_run.Phase != ExpeditionPhase.ShrineChoice || _run.PendingShrine == null)
+            return TrySkipCardAltar();
+        }
+
+        public void SetCardAltarMemberDraft(string memberId, int collectionIndex, string replaceDeckCardKey)
+        {
+            if (_run.CardAltar == null || string.IsNullOrEmpty(memberId))
+                return;
+
+            var draft = _run.CardAltar.GetOrCreateDraft(memberId);
+            draft.CollectionCardIndex = collectionIndex;
+
+            if (TryFindPartyMember(memberId, out var member)
+                && ExpeditionRunDeckRules.NeedsReplace(_config, member))
+            {
+                draft.ReplaceDeckCardKey = replaceDeckCardKey ?? "";
+            }
+            else
+            {
+                draft.ReplaceDeckCardKey = "";
+            }
+        }
+
+        public bool TrySkipCardAltar()
+        {
+            if (_run.Phase != ExpeditionPhase.ShrineChoice || _run.CardAltar == null)
                 return false;
 
-            var outcome = ExpeditionEventResolver.ResolveShrineChoice(
-                _run, _run.PendingShrine.ShrineId, choiceIndex, _rng);
-            _run.LastEventMessage = outcome.Message;
-            _run.PendingShrine = null;
-
-            if (outcome.AdvanceNode)
-                CompleteCurrentNode();
+            _run.CardAltar = null;
+            _run.LastEventMessage = "你离开了祭坛。";
+            CompleteCurrentNode();
 
             if (_run.Phase == ExpeditionPhase.RunComplete)
                 return true;
 
-            if (TryEnterRewardPickupPhase(outcome.PendingRewardPickup))
+            LoadRoutesForNextLayer();
+            _run.Phase = ExpeditionPhase.RouteSelect;
+            return true;
+        }
+
+        public bool TryConfirmCardAltar()
+        {
+            if (_run.Phase != ExpeditionPhase.ShrineChoice || _run.CardAltar == null)
+                return false;
+
+            var pending = new List<(PartyMemberSnapshot member, ExpeditionCardAltarMemberDraft draft)>();
+            foreach (var member in _run.Party)
+            {
+                if (member == null || string.IsNullOrEmpty(member.CharacterDefinitionId))
+                    continue;
+
+                if (!_run.CardAltar.Drafts.TryGetValue(member.CharacterDefinitionId, out var draft) || !draft.HasSelection)
+                    continue;
+
+                if (CampCollectionProgress.IsExtracted(_run, member.CharacterDefinitionId, draft.CollectionCardIndex))
+                {
+                    draft.CollectionCardIndex = -1;
+                    draft.ReplaceDeckCardKey = "";
+                    continue;
+                }
+
+                if (!TryValidateCardAltarExtraction(member, draft, out var error))
+                {
+                    _run.LastEventMessage = error;
+                    return false;
+                }
+
+                pending.Add((member, draft));
+            }
+
+            foreach (var (member, draft) in pending)
+                ApplyCardAltarExtraction(member, draft);
+
+            _run.CardAltar = null;
+            _run.LastEventMessage = "已完成祭坛召唤。";
+            CompleteCurrentNode();
+
+            if (_run.Phase == ExpeditionPhase.RunComplete)
                 return true;
 
             LoadRoutesForNextLayer();
             _run.Phase = ExpeditionPhase.RouteSelect;
+            return true;
+        }
+
+        bool TryValidateCardAltarExtraction(
+            PartyMemberSnapshot member,
+            ExpeditionCardAltarMemberDraft draft,
+            out string error)
+        {
+            error = "";
+            if (CampCollectionProgress.IsExtracted(_run, member.CharacterDefinitionId, draft.CollectionCardIndex))
+            {
+                error = $"{member.DisplayName} 的该收藏牌已被取出。";
+                return false;
+            }
+
+            var template = ExpeditionRunDeckCatalog.TryResolveCampCollectionCard(
+                _config,
+                _run,
+                member,
+                draft.CollectionCardIndex);
+            if (template == null)
+            {
+                error = "无法解析收藏卡牌。";
+                return false;
+            }
+
+            if (ExpeditionRunDeckRules.NeedsReplace(_config, member))
+            {
+                if (string.IsNullOrEmpty(draft.ReplaceDeckCardKey))
+                {
+                    error = $"{member.DisplayName} 卡组已满，请先选择要替换的卡牌。";
+                    return false;
+                }
+
+                if (!ExpeditionRunDeckRules.TryFindMemberDeckEntryByKey(
+                        _config,
+                        member,
+                        draft.ReplaceDeckCardKey,
+                        out _))
+                {
+                    error = $"{member.DisplayName} 替换目标无效，请重新选择。";
+                    return false;
+                }
+            }
+            else if (!string.IsNullOrEmpty(draft.ReplaceDeckCardKey))
+            {
+                draft.ReplaceDeckCardKey = "";
+            }
+
+            return true;
+        }
+
+        void ApplyCardAltarExtraction(PartyMemberSnapshot member, ExpeditionCardAltarMemberDraft draft)
+        {
+            var template = ExpeditionRunDeckCatalog.TryResolveCampCollectionCard(
+                _config,
+                _run,
+                member,
+                draft.CollectionCardIndex);
+            if (template == null)
+                return;
+
+            template = ExpeditionBattleConfigBuilder.CloneTemplate(template);
+            ExpeditionBattleConfigBuilder.HydrateTemplateFromCatalog(template, _config.PlayerCardCatalog);
+            if (string.IsNullOrEmpty(template.OwnerCharacterId))
+                template.OwnerCharacterId = member.CharacterDefinitionId;
+
+            if (ExpeditionRunDeckRules.NeedsReplace(_config, member))
+            {
+                ExpeditionRunDeckRules.TryFindMemberDeckEntryByKey(
+                    _config,
+                    member,
+                    draft.ReplaceDeckCardKey,
+                    out var removeEntry);
+                ExpeditionRunDeckRules.TryReplaceAndAdd(_run, member, removeEntry, template);
+            }
+            else
+            {
+                member.BonusCards.Add(template);
+            }
+
+            CampCollectionProgress.MarkExtracted(_run, member.CharacterDefinitionId, draft.CollectionCardIndex);
+            member.ExtractedCampCardIndices.Add(draft.CollectionCardIndex);
+            RecordRunAcquisition($"祭坛召唤：{template.DisplayName}（{member.DisplayName}）");
+        }
+
+        bool TryApplyCardAltarExtraction(
+            PartyMemberSnapshot member,
+            ExpeditionCardAltarMemberDraft draft,
+            out string error)
+        {
+            if (!TryValidateCardAltarExtraction(member, draft, out error))
+                return false;
+
+            ApplyCardAltarExtraction(member, draft);
+            return true;
+        }
+
+        public bool TryReplaceDeckCardForPendingOffer(string deckCardKey)
+        {
+            var offer = _run.PendingCardOffer;
+            if (offer?.Template == null)
+                return false;
+
+            if (!TryFindPartyMember(offer.OwnerCharacterId, out var member) && _run.Party.Count > 0)
+                member = _run.Party[0];
+
+            if (member == null)
+                return false;
+
+            if (ExpeditionRunDeckRules.CanAddWithoutReplace(_config, member))
+            {
+                member.BonusCards.Add(ExpeditionBattleConfigBuilder.CloneTemplate(offer.Template));
+            }
+            else
+            {
+                if (!ExpeditionRunDeckRules.TryFindMemberDeckEntryByKey(_config, member, deckCardKey, out var entry)
+                    || !ExpeditionRunDeckRules.TryReplaceAndAdd(_run, member, entry, offer.Template))
+                {
+                    return false;
+                }
+            }
+
+            var cardName = offer.Template.DisplayName;
+            var context = offer.Context;
+            _run.PendingCardOffer = null;
+            RecordRunAcquisition($"获得卡牌：{cardName}（{member.DisplayName}）");
+
+            if (context == ExpeditionCardOfferContext.RewardPickup && _run.PendingRewardPickup != null)
+            {
+                _run.PendingRewardPickup.CardClaimed = true;
+                TryAdvanceFromRewardPickup();
+            }
+
+            _run.LastEventMessage = $"已将 {cardName} 加入 {member.DisplayName} 的卡组。";
+            return true;
+        }
+
+        public bool TryAbandonPendingCardOffer()
+        {
+            if (_run.PendingCardOffer == null)
+                return false;
+
+            var context = _run.PendingCardOffer.Context;
+            _run.PendingCardOffer = null;
+
+            if (context == ExpeditionCardOfferContext.RewardPickup && _run.PendingRewardPickup != null)
+            {
+                _run.PendingRewardPickup.CardSkipped = true;
+                TryAdvanceFromRewardPickup();
+            }
+
+            _run.LastEventMessage = context switch
+            {
+                ExpeditionCardOfferContext.Shop => "已放弃购买的卡牌。",
+                ExpeditionCardOfferContext.Event => "已放弃获得的卡牌。",
+                _ => "已放弃新卡牌。"
+            };
             return true;
         }
 
@@ -715,14 +997,45 @@ namespace Grimhand.Expedition
             switch (offer.Kind)
             {
                 case ShopOfferKind.Card:
-                    if (!TryGrantCardReward(offer.CardOwnerCharacterId, offer.CardDefinitionId, offer.CardDisplayName))
+                {
+                    var template = BuildCardTemplateForGrant(
+                        offer.CardOwnerCharacterId,
+                        offer.CardDefinitionId,
+                        offer.CardDisplayName);
+                    if (template == null)
                     {
                         message = "无法加入该卡牌。";
                         return false;
                     }
 
-                    message = $"购买卡牌：{offer.CardDisplayName}（-{offer.Price} 金币）";
+                    if (!TryFindPartyMember(offer.CardOwnerCharacterId, out var member) && _run.Party.Count > 0)
+                        member = _run.Party[0];
+
+                    if (member == null)
+                    {
+                        message = "无法加入该卡牌。";
+                        return false;
+                    }
+
+                    var result = ExpeditionRunDeckRules.TryOfferCard(
+                        _config,
+                        _run,
+                        member,
+                        template,
+                        ExpeditionCardOfferContext.Shop,
+                        RecordRunAcquisition);
+
+                    if (result == CardGrantResult.Failed)
+                    {
+                        message = "无法加入该卡牌。";
+                        return false;
+                    }
+
+                    message = result == CardGrantResult.PendingReplace
+                        ? $"购买卡牌：{offer.CardDisplayName}（卡组已满，请选择要替换的卡牌）"
+                        : $"购买卡牌：{offer.CardDisplayName}（-{offer.Price} 金币）";
                     return true;
+                }
 
                 case ShopOfferKind.Consumable:
                     if (!ConsumableInventory.TryAdd(_run.ConsumableSlots, offer.ConsumableId, out var inventoryFull))
@@ -793,6 +1106,7 @@ namespace Grimhand.Expedition
         {
             var offerId = _run.PendingConsumableOfferId;
             _run.PendingConsumableOfferId = "";
+            _run.PendingCardOffer = null;
 
             var rewards = _run.PendingRewardPickup;
             if (rewards == null || !rewards.HasConsumable || rewards.ConsumableId != offerId)
@@ -823,6 +1137,7 @@ namespace Grimhand.Expedition
             if (relicId == RelicIds.LeafOfMiracle && _run.MiracleLeafUsesRemaining < 0)
                 _run.MiracleLeafUsesRemaining = 2;
 
+            ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
             return true;
         }
 
@@ -965,6 +1280,9 @@ namespace Grimhand.Expedition
             if (!string.IsNullOrEmpty(_run.PendingConsumableOfferId))
                 return;
 
+            if (_run.PendingCardOffer != null)
+                return;
+
             var kind = rewards?.Kind ?? RewardPickupKind.EventOrShrine;
             _run.PendingRewardPickup = null;
 
@@ -979,10 +1297,10 @@ namespace Grimhand.Expedition
             _run.Phase = ExpeditionPhase.RouteSelect;
         }
 
-        bool TryGrantCardReward(string ownerCharacterId, string definitionId, string displayName)
+        CardTemplate BuildCardTemplateForGrant(string ownerCharacterId, string definitionId, string displayName)
         {
             if (string.IsNullOrEmpty(definitionId))
-                return false;
+                return null;
 
             var template = FindCardTemplate(definitionId);
             if (template == null)
@@ -1004,23 +1322,7 @@ namespace Grimhand.Expedition
             if (string.IsNullOrEmpty(template.OwnerCharacterId) && !string.IsNullOrEmpty(ownerCharacterId))
                 template.OwnerCharacterId = ownerCharacterId;
 
-            PartyMemberSnapshot targetMember = null;
-            foreach (var member in _run.Party)
-            {
-                if (member.CharacterDefinitionId == template.OwnerCharacterId)
-                {
-                    targetMember = member;
-                    break;
-                }
-            }
-
-            targetMember ??= _run.Party.Count > 0 ? _run.Party[0] : null;
-            if (targetMember == null)
-                return false;
-
-            targetMember.BonusCards.Add(template);
-            RecordRunAcquisition($"获得卡牌：{template.DisplayName}（{targetMember.DisplayName}）");
-            return true;
+            return template;
         }
 
         void RecordRunAcquisition(string line)
@@ -1255,7 +1557,10 @@ namespace Grimhand.Expedition
             return Floor10BossEncounterBuilder.SkeletonKingDisplayName;
         }
 
-        public bool CompleteEventInteractionStep(string selectedCharacterId = null, string selectedCardKey = null)
+        public bool CompleteEventInteractionStep(
+            string selectedCharacterId = null,
+            string selectedCardKey = null,
+            string selectedSecondCardKey = null)
         {
             if (_run.Phase != ExpeditionPhase.EventInteraction || _run.EventInteraction == null)
                 return false;
@@ -1289,41 +1594,41 @@ namespace Grimhand.Expedition
                     buffMember.PersonalAttackBonus += step.PersonalAttackBonus > 0 ? step.PersonalAttackBonus : 2;
                     break;
                 case ExpeditionEventStepKind.PickCardRemove:
-                    if (!TryResolveDeckEntry(selectedCardKey, out var removeEntry))
+                    if (!TryResolveDeckEntry(selectedCardKey, out _))
                         return false;
-                    if (!ExpeditionRunDeckMutations.TryRemoveCard(_run, _config, removeEntry))
-                        return false;
+                    QueuePendingCardAction(interaction, step.Kind, selectedCardKey, "", step.PersonalAttackBonus);
                     break;
                 case ExpeditionEventStepKind.PickCardUpgrade:
-                    if (!TryResolveDeckEntry(selectedCardKey, out var upgradeEntry))
+                    if (!TryResolveDeckEntry(selectedCardKey, out _))
                         return false;
-                    if (!TryFindPartyMember(upgradeEntry.MemberId, out var upgradeMember))
-                        return false;
-                    if (!ExpeditionRunDeckMutations.TryUpgradeCard(
-                            upgradeMember,
-                            upgradeEntry.Template.DefinitionId,
-                            step.PersonalAttackBonus > 0 ? step.PersonalAttackBonus : 20))
-                        return false;
+                    QueuePendingCardAction(interaction, step.Kind, selectedCardKey, "", step.PersonalAttackBonus);
                     break;
-                case ExpeditionEventStepKind.PickCardFusionFirst:
-                    if (!TryResolveDeckEntry(selectedCardKey, out var firstEntry))
+                case ExpeditionEventStepKind.PickTwoCardsForFusion:
+                    if (!TryResolveDeckEntry(selectedCardKey, out var firstEntry)
+                        || !TryResolveDeckEntry(selectedSecondCardKey, out var secondEntry))
+                    {
                         return false;
-                    interaction.FusionFirstCardKey = selectedCardKey;
-                    interaction.FusionCardType = firstEntry.Template.CardType;
-                    interaction.SelectedCardKey = selectedCardKey;
-                    break;
-                case ExpeditionEventStepKind.PickCardFusionSecond:
-                    if (!TryResolveDeckEntry(selectedCardKey, out var secondEntry))
+                    }
+
+                    if (firstEntry.Template.CardType != secondEntry.Template.CardType)
                         return false;
-                    if (!TryResolveDeckEntry(interaction.FusionFirstCardKey, out var firstFusionEntry))
+
+                    if (firstEntry.Key == secondEntry.Key)
                         return false;
-                    if (secondEntry.Template.CardType != firstFusionEntry.Template.CardType)
-                        return false;
-                    if (!ExpeditionRunDeckMutations.TryFuseCards(
-                            _config, _run, firstFusionEntry, secondEntry, _rng, out _, out _))
-                        return false;
+
+                    QueuePendingCardAction(
+                        interaction,
+                        step.Kind,
+                        selectedCardKey,
+                        selectedSecondCardKey,
+                        step.PersonalAttackBonus);
                     break;
                 case ExpeditionEventStepKind.ShowMessage:
+                    if (!ApplyPendingCardAction(interaction))
+                        return false;
+
+                    if (!string.IsNullOrEmpty(step.Message))
+                        _run.LastEventMessage = step.Message;
                     break;
                 default:
                     return false;
@@ -1333,6 +1638,79 @@ namespace Grimhand.Expedition
             if (interaction.StepIndex >= interaction.Steps.Count)
                 FinishEventInteractionSequence();
 
+            return true;
+        }
+
+        static void QueuePendingCardAction(
+            ExpeditionEventInteractionState interaction,
+            ExpeditionEventStepKind kind,
+            string primaryKey,
+            string secondaryKey,
+            int upgradeBonus)
+        {
+            interaction.PendingApplyKind = kind;
+            interaction.HasPendingCardAction = true;
+            interaction.PendingPrimaryCardKey = primaryKey ?? "";
+            interaction.PendingSecondaryCardKey = secondaryKey ?? "";
+            interaction.PendingUpgradeBonus = upgradeBonus;
+        }
+
+        bool ApplyPendingCardAction(ExpeditionEventInteractionState interaction)
+        {
+            if (interaction == null || !interaction.HasPendingCardAction)
+                return true;
+
+            switch (interaction.PendingApplyKind)
+            {
+                case ExpeditionEventStepKind.PickCardRemove:
+                    if (!TryResolveDeckEntry(interaction.PendingPrimaryCardKey, out var removeEntry))
+                        return false;
+                    if (!ExpeditionRunDeckMutations.TryRemoveCard(_run, _config, removeEntry))
+                        return false;
+                    break;
+                case ExpeditionEventStepKind.PickCardUpgrade:
+                    if (!TryResolveDeckEntry(interaction.PendingPrimaryCardKey, out var upgradeEntry))
+                        return false;
+                    if (!TryFindPartyMember(upgradeEntry.MemberId, out var upgradeMember))
+                        return false;
+                    if (!ExpeditionRunDeckMutations.TryUpgradeCard(
+                            upgradeMember,
+                            upgradeEntry.Template.DefinitionId,
+                            interaction.PendingUpgradeBonus > 0 ? interaction.PendingUpgradeBonus : 20))
+                    {
+                        return false;
+                    }
+                    break;
+                case ExpeditionEventStepKind.PickTwoCardsForFusion:
+                    if (!TryResolveDeckEntry(interaction.PendingPrimaryCardKey, out var firstFusionEntry)
+                        || !TryResolveDeckEntry(interaction.PendingSecondaryCardKey, out var secondFusionEntry))
+                    {
+                        return false;
+                    }
+
+                    if (!ExpeditionRunDeckMutations.TryFuseCards(
+                            _config,
+                            _run,
+                            firstFusionEntry,
+                            secondFusionEntry,
+                            _rng,
+                            out var fused,
+                            out var owner))
+                    {
+                        return false;
+                    }
+
+                    if (fused != null && owner != null)
+                        RecordRunAcquisition($"事件融合：{fused.DisplayName}（{owner.DisplayName}）");
+                    break;
+                default:
+                    return false;
+            }
+
+            interaction.HasPendingCardAction = false;
+            interaction.PendingPrimaryCardKey = "";
+            interaction.PendingSecondaryCardKey = "";
+            interaction.PendingUpgradeBonus = 0;
             return true;
         }
 

@@ -321,6 +321,76 @@ namespace Grimhand.Presentation.Battle
             return true;
         }
 
+        public void SetCardAltarDraft(string memberId, int collectionIndex, string replaceDeckCardKey)
+        {
+            Expedition?.SetCardAltarMemberDraft(memberId, collectionIndex, replaceDeckCardKey);
+            NotifyChanged();
+        }
+
+        public bool SkipCardAltar()
+        {
+            if (Expedition?.TrySkipCardAltar() != true)
+                return false;
+
+            if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
+                AddLog(Expedition.Run.LastEventMessage);
+
+            if (Expedition.Run.Phase == ExpeditionPhase.RouteSelect)
+                AddLog("请选择前进路线");
+
+            NotifyChanged();
+            return true;
+        }
+
+        public bool ConfirmCardAltar()
+        {
+            if (Expedition?.TryConfirmCardAltar() != true)
+                return false;
+
+            if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
+                AddLog(Expedition.Run.LastEventMessage);
+
+            if (Expedition.Run.Phase == ExpeditionPhase.RouteSelect)
+                AddLog("请选择前进路线");
+
+            NotifyChanged();
+            return true;
+        }
+
+        public bool ReplaceDeckCardForOffer(string deckCardKey)
+        {
+            if (Expedition?.TryReplaceDeckCardForPendingOffer(deckCardKey) != true)
+                return false;
+
+            if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
+                AddLog(Expedition.Run.LastEventMessage);
+
+            if (Expedition.Run.Phase == ExpeditionPhase.RouteSelect)
+                AddLog("请选择前进路线");
+            else if (Expedition.Run.Phase == ExpeditionPhase.RewardPickup)
+                AddLog("拾取奖励 — 点击领取或放弃");
+
+            NotifyChanged();
+            return true;
+        }
+
+        public bool AbandonCardOffer()
+        {
+            if (Expedition?.TryAbandonPendingCardOffer() != true)
+                return false;
+
+            if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
+                AddLog(Expedition.Run.LastEventMessage);
+
+            if (Expedition.Run.Phase == ExpeditionPhase.RouteSelect)
+                AddLog("请选择前进路线");
+            else if (Expedition.Run.Phase == ExpeditionPhase.RewardPickup)
+                AddLog("拾取奖励 — 点击领取或放弃");
+
+            NotifyChanged();
+            return true;
+        }
+
         public void CancelTargetSelection()
         {
             if (Engine == null)
@@ -349,7 +419,7 @@ namespace Grimhand.Presentation.Battle
             else if (Expedition.Run.Phase == ExpeditionPhase.EventChoice)
                 AddLog("遭遇特殊事件");
             else if (Expedition.Run.Phase == ExpeditionPhase.ShrineChoice)
-                AddLog("发现祭坛");
+                AddLog("发现祭坛 — 召唤卡牌");
             else if (Expedition.Run.Phase == ExpeditionPhase.ShopVisit)
                 AddLog("遇到流浪商人");
 
@@ -360,9 +430,12 @@ namespace Grimhand.Presentation.Battle
             return true;
         }
 
-        public bool CompleteEventInteractionStep(string selectedCharacterId = null, string selectedCardKey = null)
+        public bool CompleteEventInteractionStep(
+            string selectedCharacterId = null,
+            string selectedCardKey = null,
+            string selectedSecondCardKey = null)
         {
-            if (Expedition?.CompleteEventInteractionStep(selectedCharacterId, selectedCardKey) != true)
+            if (Expedition?.CompleteEventInteractionStep(selectedCharacterId, selectedCardKey, selectedSecondCardKey) != true)
                 return false;
 
             if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
@@ -448,6 +521,9 @@ namespace Grimhand.Presentation.Battle
             if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
                 AddLog(Expedition.Run.LastEventMessage);
 
+            if (!string.IsNullOrEmpty(Expedition.Run.PendingCardOffer?.Template?.DisplayName))
+                AddLog("卡组已满 — 请选择要替换的卡牌");
+
             NotifyChanged();
             return true;
         }
@@ -524,7 +600,11 @@ namespace Grimhand.Presentation.Battle
             if (Expedition?.TryClaimRewardCard() != true)
                 return false;
 
-            AddLog($"卡牌加入卡组：{cardName}");
+            if (!string.IsNullOrEmpty(Expedition.Run.PendingCardOffer?.Template?.DisplayName))
+                AddLog($"卡牌 {cardName} — 卡组已满，请选择要替换的卡牌");
+            else
+                AddLog($"卡牌加入卡组：{cardName}");
+
             NotifyChanged();
             return true;
         }

@@ -56,6 +56,8 @@ namespace Grimhand.Presentation.Battle
         BattleActiveCardBanner _activeCardBanner;
         BattleInventoryPanelView _inventoryPanel;
         ConsumableReplaceOverlayView _consumableReplaceOverlay;
+        CardDeckReplaceOverlayView _cardDeckReplaceOverlay;
+        ExpeditionCardAltarOverlayView _cardAltarOverlay;
         ConsumableVisualCatalogSO _consumableCatalog;
         BattleTurnDetailPanelView _turnDetailPanel;
         ExpeditionMapPanelView _mapPanel;
@@ -433,6 +435,32 @@ namespace Grimhand.Presentation.Battle
             {
                 _consumableReplaceOverlay = gameObject.AddComponent<ConsumableReplaceOverlayView>();
                 _consumableReplaceOverlay.Initialize(_session, transform, _consumableCatalog);
+            }
+
+            if (_cardDeckReplaceOverlay == null)
+            {
+                _cardDeckReplaceOverlay = gameObject.AddComponent<CardDeckReplaceOverlayView>();
+                _cardDeckReplaceOverlay.Initialize(
+                    _session,
+                    transform,
+                    handPanel?.CardPrefab,
+                    _catalog,
+                    _characterVisuals,
+                    _uiIcons,
+                    _definitions);
+            }
+
+            if (_cardAltarOverlay == null)
+            {
+                _cardAltarOverlay = gameObject.AddComponent<ExpeditionCardAltarOverlayView>();
+                _cardAltarOverlay.Initialize(
+                    _session,
+                    transform,
+                    handPanel?.CardPrefab,
+                    _catalog,
+                    _characterVisuals,
+                    _uiIcons,
+                    _definitions);
             }
 
             ApplyLateHudLayout();
@@ -847,6 +875,9 @@ namespace Grimhand.Presentation.Battle
                 RefreshExpeditionOverlays();
                 _shopOverlay?.Refresh();
             }
+
+            _cardDeckReplaceOverlay?.Refresh();
+            _cardAltarOverlay?.Refresh();
 
             RefreshPlanningChromeVisibility();
         }

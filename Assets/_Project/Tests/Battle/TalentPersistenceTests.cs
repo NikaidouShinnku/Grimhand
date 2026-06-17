@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
+using Grimhand.Battle.Rules;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 using NUnit.Framework;
@@ -86,6 +87,43 @@ namespace Grimhand.Tests.Battle
 
             Assert.IsTrue(config.Talents.Has("talent_mage_s1_lv5"));
             Assert.IsTrue(config.Talents.MageReviveAvailable);
+        }
+
+        [Test]
+        public void ApplyTeamHpBonus_KnightSlot2TalentWorksWithoutRelicTeamHpBonus()
+        {
+            var state = new BattleState
+            {
+                Config = new BattleConfig
+                {
+                    Talents = new TalentBattleContext(),
+                    RunModifiers = new RunModifierSnapshot()
+                }
+            };
+            state.Config.Talents.ActiveTalentIds.Add("talent_knight_s2_lv6");
+            state.Combatants.Add(new CombatantState
+            {
+                Id = "knight",
+                Team = TeamSide.Player,
+                CharacterDefinitionId = TalentCatalog.KnightId,
+                Hp = 50,
+                MaxHp = 50
+            });
+            state.Combatants.Add(new CombatantState
+            {
+                Id = "mage",
+                Team = TeamSide.Player,
+                CharacterDefinitionId = TalentCatalog.MageId,
+                Hp = 40,
+                MaxHp = 40
+            });
+
+            RelicBattleRules.ApplyTeamHpBonus(state, state.Config.RunModifiers);
+
+            Assert.AreEqual(60, state.Combatants[0].MaxHp);
+            Assert.AreEqual(60, state.Combatants[0].Hp);
+            Assert.AreEqual(50, state.Combatants[1].MaxHp);
+            Assert.AreEqual(50, state.Combatants[1].Hp);
         }
     }
 }

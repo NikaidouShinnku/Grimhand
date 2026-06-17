@@ -32,8 +32,7 @@ namespace Grimhand.Presentation.Battle
 
             var phase = _session.Expedition.Run.Phase;
             var show = phase is ExpeditionPhase.EventChoice
-                or ExpeditionPhase.EventAftermath
-                or ExpeditionPhase.ShrineChoice;
+                or ExpeditionPhase.EventAftermath;
 
             SetVisible(show);
             if (!show)
@@ -49,9 +48,6 @@ namespace Grimhand.Presentation.Battle
                     break;
                 case ExpeditionPhase.EventAftermath:
                     RefreshEventAftermath();
-                    break;
-                case ExpeditionPhase.ShrineChoice:
-                    RefreshShrine();
                     break;
             }
         }
@@ -94,31 +90,6 @@ namespace Grimhand.Presentation.Battle
             _titleText.text = evt.DisplayName;
             _bodyText.text = pending.AfterChoiceText;
             AddChoiceButton("确定", () => _session.ConfirmEventAftermath());
-        }
-
-        void RefreshShrine()
-        {
-            var pending = _session.Expedition.Run.PendingShrine;
-            if (pending == null || !ExpeditionShrineCatalog.TryGet(pending.ShrineId, out var shrine))
-            {
-                _titleText.text = "祭坛";
-                _bodyText.text = "献祭换取奖励，或安全离开。";
-                AddChoiceButton("离开", () => _session.ResolveShrineChoice(0));
-                return;
-            }
-
-            _titleText.text = shrine.DisplayName;
-            _bodyText.text = shrine.SceneText;
-
-            for (var i = 0; i < shrine.Choices.Count; i++)
-            {
-                var index = i;
-                var choice = shrine.Choices[i];
-                var label = string.IsNullOrEmpty(choice.Label)
-                    ? choice.Description
-                    : $"{choice.Label}) {choice.Description}";
-                AddChoiceButton(label, () => _session.ResolveShrineChoice(index));
-            }
         }
 
         void AddChoiceButton(string label, System.Action onClick)

@@ -92,6 +92,16 @@ namespace Grimhand.Presentation.Battle
             if (!show)
                 return;
 
+            var offer = _session.Expedition.Run.PendingCardOffer;
+            var cardReplaceActive = offer?.Template != null
+                                    && offer.Context != ExpeditionCardOfferContext.Altar;
+            if (_root != null)
+            {
+                var dim = _root.GetComponent<Image>();
+                if (dim != null)
+                    dim.raycastTarget = !cardReplaceActive;
+            }
+
             var rewards = _session.Expedition.Run.PendingRewardPickup;
             var isChest = phase == ExpeditionPhase.RewardPickup && rewards?.Kind == RewardPickupKind.Chest;
 

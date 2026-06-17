@@ -37,8 +37,11 @@ namespace Grimhand.Expedition
                 foreach (var cardId in loadout.DeckCardIds)
                     member.CampDeckCardIds.Add(cardId ?? "");
 
+                run.RunStartCampDecks[member.CharacterDefinitionId] = new List<string>(member.CampDeckCardIds);
                 run.Party.Add(member);
             }
+
+            ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(run.Party, run.Relics, run.RelicGrowthTiers);
         }
     }
 }

@@ -55,7 +55,7 @@ namespace Grimhand.Expedition
             {
                 0 when run.Gold >= 30 => PlanBuyRandomCard(run, config, rng, 30, "神秘旅者"),
                 0 => Fail("金币不足，无法购买（需要 30 金币）。"),
-                1 => PlanTravelerGift(run, rng),
+                1 => PlanTravelerGift(run, config, rng),
                 _ => Leave("你拒绝交易，悄然离开。")
             };
         }
@@ -80,7 +80,7 @@ namespace Grimhand.Expedition
             return Msg("购得一张卡牌。");
         }
 
-        static ExpeditionEventOutcome PlanTravelerGift(ExpeditionRunState run, BattleRng rng)
+        static ExpeditionEventOutcome PlanTravelerGift(ExpeditionRunState run, ExpeditionConfig config, BattleRng rng)
         {
             const string message = "旅者留下遗物，诅咒牌混入牌堆。";
             var relicId = ExpeditionRewardPickupFactory.RollRelicId(run, rng);
@@ -88,18 +88,25 @@ namespace Grimhand.Expedition
             if (!string.IsNullOrEmpty(relicId))
                 pickup = ExpeditionRewardPickupFactory.Relic(relicId, "神秘旅者");
 
-            if (run.Party.Count > 0)
+            if (run.Party.Count > 0 && config != null)
             {
                 var idx = rng.NextIndex(run.Party.Count);
-                run.Party[idx].BonusCards.Add(new CardTemplate
+                var member = run.Party[idx];
+                var curse = new CardTemplate
                 {
                     DefinitionId = "curse_chaos_touch",
                     DisplayName = "混沌之触",
                     Cost = 1,
                     CardType = CardType.Status,
-                    OwnerCharacterId = run.Party[idx].CharacterDefinitionId,
+                    OwnerCharacterId = member.CharacterDefinitionId,
                     Keywords = { "curse" }
-                });
+                };
+                ExpeditionRunDeckRules.TryOfferCard(
+                    config,
+                    run,
+                    member,
+                    curse,
+                    ExpeditionCardOfferContext.Event);
             }
 
             var outcome = new ExpeditionEventOutcome { Message = message };
@@ -394,10 +401,15 @@ namespace Grimhand.Expedition
         static ExpeditionEventOutcome PlanSoulRiftSeal(ExpeditionRunState run, BattleRng rng)
         {
             var relicId = ExpeditionRewardPickupFactory.RollRelicId(run, rng);
-            var outcome = new ExpeditionEventOutcome { Message = "裂隙被封印，留下一件遗物。" };
+            var outcome = new ExpeditionEventOutcome();
             outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
             {
                 Kind = ExpeditionEventStepKind.PickCardRemove
+            });
+            outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
+            {
+                Kind = ExpeditionEventStepKind.ShowMessage,
+                Message = "裂隙被封印，留下一件遗物。"
             });
             outcome.DeferredOutcome = WithPickup(
                 ExpeditionRewardPickupFactory.Relic(relicId, "灵魂裂隙"),
@@ -419,25 +431,31 @@ namespace Grimhand.Expedition
         static ExpeditionEventOutcome PlanSmithUpgrade(ExpeditionRunState run)
         {
             run.Gold -= 15;
-            var outcome = new ExpeditionEventOutcome { Message = "铁匠强化了一张卡牌（效果 +20%）。" };
+            var outcome = new ExpeditionEventOutcome();
             outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
             {
                 Kind = ExpeditionEventStepKind.PickCardUpgrade,
                 PersonalAttackBonus = 20
+            });
+            outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
+            {
+                Kind = ExpeditionEventStepKind.ShowMessage,
+                Message = "铁匠接过金币，用锤子在你选中的卡牌上敲打出新的纹路，使其威力增强。"
             });
             return outcome;
         }
 
         static ExpeditionEventOutcome PlanSmithFusion(ExpeditionRunState run)
         {
-            var outcome = new ExpeditionEventOutcome { Message = "卡牌融合完成。" };
+            var outcome = new ExpeditionEventOutcome();
             outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
             {
-                Kind = ExpeditionEventStepKind.PickCardFusionFirst
+                Kind = ExpeditionEventStepKind.PickTwoCardsForFusion
             });
             outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
             {
-                Kind = ExpeditionEventStepKind.PickCardFusionSecond
+                Kind = ExpeditionEventStepKind.ShowMessage,
+                Message = "铁匠将两张卡牌投入炉火，熔炼出一张品质更高的新卡牌。"
             });
             return outcome;
         }
@@ -555,10 +573,15 @@ namespace Grimhand.Expedition
 
         static ExpeditionEventOutcome PlanAbyssSacrifice(ExpeditionRunState run)
         {
-            var outcome = new ExpeditionEventOutcome { Message = "记忆献祭完成：全队 ATK+1。" };
+            var outcome = new ExpeditionEventOutcome();
             outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
             {
                 Kind = ExpeditionEventStepKind.PickCardRemove
+            });
+            outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
+            {
+                Kind = ExpeditionEventStepKind.ShowMessage,
+                Message = "记忆献祭完成：全队 ATK+1。"
             });
             outcome.DeferredOutcome = Msg("记忆献祭完成：全队 ATK+1。", () => run.Modifiers.TeamAttackBonus += 1);
             return outcome;

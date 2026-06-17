@@ -28,6 +28,12 @@ namespace Grimhand.Expedition
         public List<string> ConsumableSlots { get; } = new();
         public List<string> RunAcquisitionLog { get; } = new();
         public string PendingConsumableOfferId { get; set; } = "";
+        public ExpeditionPendingCardOffer PendingCardOffer { get; set; }
+        public ExpeditionCardAltarState CardAltar { get; set; }
+        /// <summary>开局时军营收藏的卡牌 ID（memberId → 10 张）；祭坛只读此快照，避免战后 party 快照丢字段。</summary>
+        public Dictionary<string, List<string>> RunStartCampDecks { get; } = new();
+        /// <summary>本局各角色已从收藏取走的槽位（memberId → indices）。</summary>
+        public Dictionary<string, HashSet<int>> ExtractedCampCollectionIndices { get; } = new();
         public ExpeditionRunModifiers Modifiers { get; } = new();
         public ExpeditionMapState Map { get; set; }
         public int MiracleLeafUsesRemaining { get; set; } = -1;

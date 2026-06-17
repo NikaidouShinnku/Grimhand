@@ -78,8 +78,8 @@ namespace Grimhand.Presentation
             var config = new ExpeditionConfig
             {
                 RunSeed = Random.Range(1, int.MaxValue),
-                ChapterLayerCount = 20,
-                TargetBattleCount = 19,
+                ChapterLayerCount = ExpeditionRegionRules.FullLayerCount,
+                TargetBattleCount = ExpeditionRegionRules.FullLayerCount - 1,
                 RoutesPerVictory = 3
             };
 

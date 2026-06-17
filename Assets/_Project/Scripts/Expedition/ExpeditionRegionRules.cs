@@ -18,24 +18,15 @@ namespace Grimhand.Expedition
             if (config == null)
                 return;
 
+            config.ChapterLayerCount = FullLayerCount;
+            config.TargetBattleCount = FullLayerCount - 1;
+
             if (mapStartLayer >= AbyssStartLayer)
-            {
                 config.MapStartLayer = AbyssStartLayer;
-                config.ChapterLayerCount = FullLayerCount;
-                config.TargetBattleCount = FullLayerCount - 1;
-            }
             else if (mapStartLayer >= DungeonStartLayer)
-            {
                 config.MapStartLayer = DungeonStartLayer;
-                config.ChapterLayerCount = DungeonLayerCount;
-                config.TargetBattleCount = DungeonLayerCount - 1;
-            }
             else
-            {
                 config.MapStartLayer = 1;
-                config.ChapterLayerCount = CaveLayerCount;
-                config.TargetBattleCount = CaveLayerCount - 1;
-            }
         }
     }
 }

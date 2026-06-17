@@ -136,22 +136,16 @@ namespace Grimhand.Editor
 
         public static void AssignDemoCardRarities()
         {
-            SetCardRarity("Card_k_strike", CardRarity.Common);
-            SetCardRarity("Card_k_slash", CardRarity.Rare);
-            SetCardRarity("Card_k_parry", CardRarity.Epic);
-            SetCardRarity("Card_m_bolt", CardRarity.Common);
-            SetCardRarity("Card_m_poison", CardRarity.Rare);
-            SetCardRarity("Card_r_snipe", CardRarity.Epic);
-            SetCardRarity("Card_r_pierce", CardRarity.Rare);
-            SetCardRarity("Card_r_far_shot", CardRarity.Common);
-            SetCardRarity("Card_r_slow", CardRarity.SuperRare);
-            SetCardRarity("Card_g_bite", CardRarity.Common);
-            SetCardRarity("Card_g_scratch", CardRarity.Common);
-            SetCardRarity("Card_g_lunge", CardRarity.Rare);
-            SetCardRarity("Card_g_hex", CardRarity.Rare);
-            SetCardRarity("Card_g_wither", CardRarity.Common);
-            SetCardRarity("Card_g_aim", CardRarity.Common);
-            SetCardRarity("Card_g_arrow", CardRarity.Rare);
+            SetCardRarity("Card_w_basic_slash", CardRarity.Common);
+            SetCardRarity("Card_w_power_cleave", CardRarity.Rare);
+            SetCardRarity("Card_w_iron_parry", CardRarity.Epic);
+            SetCardRarity("Card_w_shield_block", CardRarity.Common);
+            SetCardRarity("Card_w_fatal_strike", CardRarity.Rare);
+            SetCardRarity("Card_p_sand_ray", CardRarity.Common);
+            SetCardRarity("Card_p_bless", CardRarity.Rare);
+            SetCardRarity("Card_p_solar_wrath", CardRarity.Epic);
+            SetCardRarity("Card_d_shadow_claw", CardRarity.Common);
+            SetCardRarity("Card_d_blood_flame", CardRarity.Rare);
         }
 
         static void SetCardRarity(string assetName, CardRarity rarity)

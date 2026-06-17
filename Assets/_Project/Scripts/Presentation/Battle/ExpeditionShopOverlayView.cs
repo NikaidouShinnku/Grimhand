@@ -14,9 +14,9 @@ namespace Grimhand.Presentation.Battle
     [DisallowMultipleComponent]
     public sealed class ExpeditionShopOverlayView : MonoBehaviour
     {
-        const float CardScale = 0.78f;
+        const float CardScale = 0.98f;
         const float CellWidth = 460f;
-        const float CellHeight = 360f;
+        const float CellHeight = 430f;
         const float CellGapX = 32f;
         const float CellGapY = 28f;
 
@@ -111,7 +111,7 @@ namespace Grimhand.Presentation.Battle
 
             var cellWidth = (gridWidth - (columns - 1) * CellGapX) / columns;
             var cellHeight = (gridHeight - (rows - 1) * CellGapY) / rows;
-            var cardScale = Mathf.Clamp(cellHeight / 480f * CardScale, 0.58f, 1.05f);
+            var cardScale = Mathf.Clamp(cellHeight / 480f * CardScale, 0.72f, 1.12f);
             var startX = -((columns - 1) * (cellWidth + CellGapX)) * 0.5f;
             var startY = ((rows - 1) * (cellHeight + CellGapY)) * 0.5f;
 
@@ -197,10 +197,8 @@ namespace Grimhand.Presentation.Battle
                         offer.CardOwnerCharacterId,
                         offer.CardDisplayName,
                         definition);
-                    var stats = BattleUiFormatters.BuildCardStatsLinePreview(preview);
                     var keywords = BattleUiFormatters.BuildCardKeywordTooltip(null, preview, _definitions);
-                    var body = string.IsNullOrWhiteSpace(keywords) ? stats : $"{stats}\n\n{keywords}";
-                    _tooltip.BindHover(slotGo, offer.CardDisplayName, body, showTitle: false);
+                    _tooltip.BindHover(slotGo, offer.CardDisplayName, keywords, showTitle: false);
                     break;
                 }
                 case ShopOfferKind.Relic:
@@ -224,14 +222,16 @@ namespace Grimhand.Presentation.Battle
             }
 
             _definitions.TryGetValue(offer.CardDefinitionId, out var definition);
-            var cardView = Instantiate(_cardPrefab, parent);
-            CardView.ApplyHandPresentationScaleCentered(cardView, cardScale);
-
             var preview = CardVisualResolver.CreatePreviewInstance(
                 offer.CardDefinitionId,
                 offer.CardOwnerCharacterId,
                 offer.CardDisplayName,
                 definition);
+            var stats = BattleUiFormatters.BuildCardStatsLinePreview(preview, _definitions);
+
+            var cardView = Instantiate(_cardPrefab, parent);
+            CardView.ApplyHandPresentationScaleCentered(cardView, cardScale);
+
             var visual = CardVisualResolver.Resolve(preview, _cardCatalog, _characterVisuals, _definitions);
 
             cardView.BindWithCard(
@@ -241,7 +241,7 @@ namespace Grimhand.Presentation.Battle
                 polluted: false,
                 interactable: false,
                 orderBadge: "",
-                statsLine: "",
+                statsLine: stats,
                 uiIcons: _icons,
                 characterVisuals: _characterVisuals,
                 onClick: null,

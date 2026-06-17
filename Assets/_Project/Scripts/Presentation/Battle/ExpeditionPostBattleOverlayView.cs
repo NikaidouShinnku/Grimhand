@@ -451,7 +451,18 @@ namespace Grimhand.Presentation.Battle
                     spacing,
                     consumable,
                     rewards.ConsumableId,
+                    rewards.ConsumableCount,
                     () => _session.ClaimRewardConsumable());
+            }
+
+            if (rewards.HasStatBonus && !rewards.StatClaimed && !rewards.StatSkipped)
+            {
+                AddClaimStatReward(
+                    parent,
+                    ref x,
+                    spacing,
+                    rewards,
+                    () => _session.ClaimRewardStat());
             }
         }
 
@@ -468,8 +479,96 @@ namespace Grimhand.Presentation.Battle
                 return true;
             if (rewards.HasConsumable && !rewards.ConsumableClaimed && !rewards.ConsumableSkipped)
                 return true;
+            if (rewards.HasStatBonus && !rewards.StatClaimed && !rewards.StatSkipped)
+                return true;
 
             return false;
+        }
+
+        void AddClaimStatReward(
+            Transform parent,
+            ref float x,
+            float spacing,
+            ExpeditionRewardPickup rewards,
+            Action onClaim)
+        {
+            var container = CreateRewardContainer(parent, new Vector2(x, 0f), useChestPanel: true);
+            var btnGo = new GameObject("StatReward", typeof(RectTransform), typeof(Image), typeof(Button));
+            btnGo.transform.SetParent(container, false);
+            var btnRt = btnGo.GetComponent<RectTransform>();
+            btnRt.anchorMin = new Vector2(0.5f, 0.5f);
+            btnRt.anchorMax = new Vector2(0.5f, 0.5f);
+            btnRt.pivot = new Vector2(0.5f, 0.5f);
+            btnRt.anchoredPosition = Vector2.zero;
+            btnRt.sizeDelta = new Vector2(180f, 240f);
+            btnGo.GetComponent<Image>().color = new Color(0.14f, 0.16f, 0.22f, 0.98f);
+
+            var portraitGo = new GameObject("Portrait", typeof(RectTransform), typeof(Image));
+            portraitGo.transform.SetParent(btnGo.transform, false);
+            var portraitRt = portraitGo.GetComponent<RectTransform>();
+            portraitRt.anchorMin = new Vector2(0.5f, 1f);
+            portraitRt.anchorMax = new Vector2(0.5f, 1f);
+            portraitRt.pivot = new Vector2(0.5f, 1f);
+            portraitRt.anchoredPosition = new Vector2(0f, -12f);
+            portraitRt.sizeDelta = new Vector2(128f, 128f);
+            var portrait = portraitGo.GetComponent<Image>();
+            var characterId = rewards.StatCharacterId;
+            if (string.IsNullOrEmpty(characterId) && _session.Expedition.Run.Party.Count > 0)
+                characterId = _session.Expedition.Run.Party[0].CharacterDefinitionId;
+            portrait.sprite = _characterVisuals?.GetPortraitReference(characterId)
+                ?? _characterVisuals?.GetPortrait(characterId);
+            portrait.preserveAspect = true;
+            portrait.color = portrait.sprite != null ? Color.white : new Color(0.35f, 0.38f, 0.45f, 1f);
+
+            var labelGo = new GameObject("Label", typeof(RectTransform), typeof(Text));
+            labelGo.transform.SetParent(btnGo.transform, false);
+            var labelRt = labelGo.GetComponent<RectTransform>();
+            labelRt.anchorMin = new Vector2(0.06f, 0f);
+            labelRt.anchorMax = new Vector2(0.94f, 0.42f);
+            labelRt.offsetMin = Vector2.zero;
+            labelRt.offsetMax = Vector2.zero;
+            var label = labelGo.GetComponent<Text>();
+            StyleText(label, 18, TextAnchor.MiddleCenter);
+            label.text = BuildStatRewardLabel(rewards);
+
+            var btn = btnGo.GetComponent<Button>();
+            btn.targetGraphic = btnGo.GetComponent<Image>();
+            btn.onClick.AddListener(() => onClaim?.Invoke());
+            BindRewardTooltip(btnGo, BuildStatRewardTitle(rewards), label.text);
+            _rewardButtons.Add(btn);
+            x += spacing;
+        }
+
+        static string BuildStatRewardTitle(ExpeditionRewardPickup rewards)
+        {
+            if (!string.IsNullOrEmpty(rewards.StatCharacterName))
+                return rewards.StatCharacterName;
+
+            if (rewards.PersonalAttackBonus != 0)
+                return "属性强化";
+
+            return "队伍增益";
+        }
+
+        static string BuildStatRewardLabel(ExpeditionRewardPickup rewards)
+        {
+            var lines = new List<string>();
+            if (rewards.PersonalAttackBonus != 0)
+                lines.Add($"攻击 +{rewards.PersonalAttackBonus}");
+            if (rewards.TeamAttackBonus != 0)
+                lines.Add($"全队攻击 +{rewards.TeamAttackBonus}");
+            if (rewards.TeamDefenseBonus != 0)
+                lines.Add($"全队防御 +{rewards.TeamDefenseBonus}");
+            if (rewards.EnergyCapBonus != 0)
+                lines.Add($"能量上限 +{rewards.EnergyCapBonus}");
+            if (rewards.GrantXp > 0)
+                lines.Add($"经验 +{rewards.GrantXp}");
+            if (rewards.EnableSoulRiftBattleStartRandomHpLoss)
+                lines.Add("战前随机失血");
+            if (rewards.EnableDivinePunishment)
+                lines.Add("神罚激活");
+
+            return lines.Count > 0 ? string.Join("\n", lines) : "属性奖励";
         }
 
         void AddClaimConsumableReward(
@@ -478,9 +577,11 @@ namespace Grimhand.Presentation.Battle
             float spacing,
             ConsumableDefinition consumable,
             string consumableId,
+            int count,
             Action onClaim)
         {
-            var label = consumable?.DisplayName ?? consumableId ?? "消耗品";
+            var baseName = consumable?.DisplayName ?? consumableId ?? "消耗品";
+            var label = count > 1 ? $"{baseName} ×{count}" : baseName;
             var icon = _consumableCatalog?.GetIcon(consumableId);
             AddClaimReward(parent, ref x, spacing, label, icon, onClaim, consumable?.Description);
         }

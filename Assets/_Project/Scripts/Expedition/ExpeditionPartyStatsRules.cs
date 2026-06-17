@@ -35,6 +35,19 @@ namespace Grimhand.Expedition
             return stats.MaxHp + partyMaxHpBonus;
         }
 
+        public static void GetDisplayHp(
+            PartyMemberSnapshot member,
+            IReadOnlyList<PartyMemberSnapshot> party,
+            IReadOnlyList<string> relicIds,
+            Dictionary<string, int> relicGrowthTiers,
+            out int hp,
+            out int maxHp)
+        {
+            var bonus = GetPartyMaxHpBonus(party, relicIds, relicGrowthTiers);
+            maxHp = GetEffectiveMaxHp(member, bonus);
+            hp = member == null ? 0 : System.Math.Min(member.Hp, maxHp);
+        }
+
         public static void SyncPartyEffectiveMaxHp(
             IReadOnlyList<PartyMemberSnapshot> party,
             IReadOnlyList<string> relicIds,

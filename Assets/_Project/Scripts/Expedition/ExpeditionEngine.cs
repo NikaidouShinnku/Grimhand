@@ -292,6 +292,7 @@ namespace Grimhand.Expedition
             foreach (var member in _run.Party)
                 CampCollectionProgress.SyncMemberFromRun(_run, member);
             TalentDatabase.SyncRunStateFromBattle(state, _run.TalentRun);
+            ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
 
             if (_run.MiracleLeafUsesRemaining >= 0)
                 _run.MiracleLeafUsesRemaining = state.MiracleLeafRevivesRemaining;
@@ -321,22 +322,24 @@ namespace Grimhand.Expedition
                 _run.LastXpReward,
                 _run.Relics,
                 _run.RelicGrowthTiers);
-            if (_run.PendingEventBattleBonusXp > 0)
-            {
-                ExpeditionBattleConfigBuilder.GrantXpToParty(
-                    _run.Party,
-                    _run.PendingEventBattleBonusXp,
-                    _run.Relics,
-                    _run.RelicGrowthTiers);
-                _run.LastXpReward += _run.PendingEventBattleBonusXp;
-            }
 
             if (!string.IsNullOrEmpty(_run.PendingEventBattleKey))
             {
                 var eventReward = _run.PendingEventBattleVictoryReward;
+                var bonusXp = _run.PendingEventBattleBonusXp;
                 _run.PendingEventBattleKey = "";
                 _run.PendingEventBattleBonusXp = 0;
                 _run.PendingEventBattleVictoryReward = null;
+
+                if (bonusXp > 0)
+                {
+                    eventReward ??= new ExpeditionRewardPickup
+                    {
+                        HeaderText = "事件战利品",
+                        Kind = RewardPickupKind.EventOrShrine
+                    };
+                    eventReward.GrantXp += bonusXp;
+                }
 
                 if (eventReward != null && eventReward.HasAnyReward)
                 {
@@ -365,6 +368,8 @@ namespace Grimhand.Expedition
 
             rewards.GoldClaimed = true;
             _run.Gold += rewards.Gold;
+            if (rewards.EnableDivinePunishment)
+                _run.Modifiers.DivinePunishmentActive = true;
             TryAdvanceFromRewardPickup();
             return true;
         }
@@ -387,6 +392,22 @@ namespace Grimhand.Expedition
             if (_run.Phase != ExpeditionPhase.RewardPickup || rewards == null || !rewards.HasRelic ||
                 rewards.RelicClaimed || rewards.RelicSkipped)
                 return false;
+
+            if (rewards.HasRelicEvolution)
+            {
+                if (!_run.Relics.Contains(rewards.RelicEvolveFromId))
+                {
+                    rewards.RelicSkipped = true;
+                    TryAdvanceFromRewardPickup();
+                    return false;
+                }
+
+                _run.Relics.Remove(rewards.RelicEvolveFromId);
+                RelicGrowthRules.TransferGrowthTiers(
+                    _run.RelicGrowthTiers,
+                    rewards.RelicEvolveFromId,
+                    rewards.RelicEvolveToId);
+            }
 
             if (!TryAddRelic(rewards.RelicId))
             {
@@ -489,16 +510,35 @@ namespace Grimhand.Expedition
                 rewards.ConsumableClaimed || rewards.ConsumableSkipped)
                 return false;
 
-            if (ConsumableInventory.TryAdd(_run.ConsumableSlots, rewards.ConsumableId, out var inventoryFull))
+            var count = System.Math.Max(1, rewards.ConsumableCount);
+            if (count == 1)
+            {
+                if (ConsumableInventory.TryAdd(_run.ConsumableSlots, rewards.ConsumableId, out var inventoryFull))
+                {
+                    rewards.ConsumableClaimed = true;
+                    TryAdvanceFromRewardPickup();
+                    return true;
+                }
+
+                if (inventoryFull)
+                {
+                    _run.PendingConsumableOfferId = rewards.ConsumableId;
+                    return true;
+                }
+            }
+            else if (ConsumableInventory.TryAddMany(
+                         _run.ConsumableSlots,
+                         rewards.ConsumableId,
+                         count,
+                         out var pendingOfferId))
             {
                 rewards.ConsumableClaimed = true;
                 TryAdvanceFromRewardPickup();
                 return true;
             }
-
-            if (inventoryFull)
+            else if (!string.IsNullOrEmpty(pendingOfferId))
             {
-                _run.PendingConsumableOfferId = rewards.ConsumableId;
+                _run.PendingConsumableOfferId = pendingOfferId;
                 return true;
             }
 
@@ -519,6 +559,65 @@ namespace Grimhand.Expedition
             return true;
         }
 
+        public bool TryClaimRewardStat()
+        {
+            var rewards = _run.PendingRewardPickup;
+            if (_run.Phase != ExpeditionPhase.RewardPickup || rewards == null || !rewards.HasStatBonus ||
+                rewards.StatClaimed || rewards.StatSkipped)
+                return false;
+
+            ApplyStatReward(rewards);
+            rewards.StatClaimed = true;
+            TryAdvanceFromRewardPickup();
+            return true;
+        }
+
+        public bool TrySkipRewardStat()
+        {
+            var rewards = _run.PendingRewardPickup;
+            if (_run.Phase != ExpeditionPhase.RewardPickup || rewards == null || !rewards.HasStatBonus ||
+                rewards.StatClaimed || rewards.StatSkipped)
+                return false;
+
+            rewards.StatSkipped = true;
+            TryAdvanceFromRewardPickup();
+            return true;
+        }
+
+        void ApplyStatReward(ExpeditionRewardPickup rewards)
+        {
+            if (rewards == null)
+                return;
+
+            if (rewards.TeamAttackBonus != 0)
+                _run.Modifiers.TeamAttackBonus += rewards.TeamAttackBonus;
+            if (rewards.TeamDefenseBonus != 0)
+                _run.Modifiers.TeamDefenseBonus += rewards.TeamDefenseBonus;
+            if (rewards.EnergyCapBonus != 0)
+                _run.Modifiers.EnergyCapBonus += rewards.EnergyCapBonus;
+            if (rewards.EnableSoulRiftBattleStartRandomHpLoss)
+                _run.Modifiers.SoulRiftBattleStartRandomHpLoss = System.Math.Max(
+                    _run.Modifiers.SoulRiftBattleStartRandomHpLoss,
+                    5);
+            if (rewards.EnableDivinePunishment)
+                _run.Modifiers.DivinePunishmentActive = true;
+
+            if (rewards.PersonalAttackBonus != 0)
+            {
+                var characterId = rewards.StatCharacterId;
+                if (string.IsNullOrEmpty(characterId) && _run.Party.Count > 0)
+                    characterId = _run.Party[0].CharacterDefinitionId;
+
+                if (TryFindPartyMember(characterId, out var member))
+                    member.PersonalAttackBonus += rewards.PersonalAttackBonus;
+            }
+
+            if (rewards.GrantXp > 0)
+                ExpeditionBattleConfigBuilder.GrantXpToParty(_run.Party, rewards.GrantXp);
+
+            ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
+        }
+
         public bool TryClaimVictoryGold() => TryClaimRewardGold();
 
         public bool TrySkipVictoryOptionalRewards() => TrySkipAllRemainingRewards();
@@ -537,6 +636,8 @@ namespace Grimhand.Expedition
                 TrySkipRewardCard();
             if (rewards.HasConsumable && !rewards.ConsumableClaimed && !rewards.ConsumableSkipped)
                 TrySkipRewardConsumable();
+            if (rewards.HasStatBonus && !rewards.StatClaimed && !rewards.StatSkipped)
+                TrySkipRewardStat();
 
             return _run.Phase == ExpeditionPhase.RouteSelect || _run.Phase == ExpeditionPhase.RunComplete;
         }
@@ -570,7 +671,7 @@ namespace Grimhand.Expedition
                 case ExpeditionNodeType.Event:
                     _run.PendingEvent = new ExpeditionPendingEvent
                     {
-                        EventId = route.EventId,
+                        EventId = ExpeditionEventRoller.ResolveEventForVisit(_run, route.EventId, _rng),
                         SourceLayer = route.LayerNumber
                     };
                     _run.Phase = ExpeditionPhase.EventChoice;
@@ -688,7 +789,8 @@ namespace Grimhand.Expedition
                 {
                     EventId = eventId,
                     ChoiceIndex = choiceIndex,
-                    DeferredOutcome = outcome.DeferredOutcome
+                    DeferredOutcome = outcome.DeferredOutcome,
+                    DeferredRunAction = outcome.DeferredRunAction
                 };
                 interaction.Steps.AddRange(outcome.InteractionSteps);
                 _run.EventInteraction = interaction;
@@ -1574,11 +1676,13 @@ namespace Grimhand.Expedition
             {
                 case ExpeditionEventStepKind.ShowTeamHpLoss:
                     ApplyEventStepTeamHpLoss(step);
+                    ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
                     break;
                 case ExpeditionEventStepKind.PickMemberHpLoss:
                     if (!TryFindPartyMember(selectedCharacterId, out var lossMember))
                         return false;
                     ApplyEventStepMemberHpLoss(lossMember, step);
+                    ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
                     interaction.SelectedCharacterId = selectedCharacterId;
                     break;
                 case ExpeditionEventStepKind.PickMemberForBuff:
@@ -1589,9 +1693,10 @@ namespace Grimhand.Expedition
                         selectedCharacterId = interaction.SelectedCharacterId;
                     }
 
-                    if (!TryFindPartyMember(selectedCharacterId, out var buffMember))
+                    if (!TryFindPartyMember(selectedCharacterId, out _))
                         return false;
-                    buffMember.PersonalAttackBonus += step.PersonalAttackBonus > 0 ? step.PersonalAttackBonus : 2;
+
+                    interaction.SelectedCharacterId = selectedCharacterId;
                     break;
                 case ExpeditionEventStepKind.PickCardRemove:
                     if (!TryResolveDeckEntry(selectedCardKey, out _))
@@ -1701,7 +1806,10 @@ namespace Grimhand.Expedition
                     }
 
                     if (fused != null && owner != null)
-                        RecordRunAcquisition($"事件融合：{fused.DisplayName}（{owner.DisplayName}）");
+                    {
+                        _run.PendingDeferredReward =
+                            ExpeditionRewardPickupFactory.Card(fused, owner, "流浪铁匠");
+                    }
                     break;
                 default:
                     return false;
@@ -1728,17 +1836,30 @@ namespace Grimhand.Expedition
         }
 
         static void ApplyEventStepMemberHpLoss(PartyMemberSnapshot member, ExpeditionEventInteractionStep step) =>
-            ApplyEventStepMemberHpChange(member, step);
+            ApplyEventStepMemberHpChange(member, step, null, null, null);
 
-        static void ApplyEventStepMemberHpChange(PartyMemberSnapshot member, ExpeditionEventInteractionStep step)
+        void ApplyEventStepMemberHpChange(PartyMemberSnapshot member, ExpeditionEventInteractionStep step)
+        {
+            ApplyEventStepMemberHpChange(member, step, _run.Party, _run.Relics, _run.RelicGrowthTiers);
+        }
+
+        static void ApplyEventStepMemberHpChange(
+            PartyMemberSnapshot member,
+            ExpeditionEventInteractionStep step,
+            IReadOnlyList<PartyMemberSnapshot> party,
+            IReadOnlyList<string> relicIds,
+            Dictionary<string, int> relicGrowthTiers)
         {
             if (member == null)
                 return;
 
+            var hpBonus = ExpeditionPartyStatsRules.GetPartyMaxHpBonus(party, relicIds, relicGrowthTiers);
+            var maxHp = ExpeditionPartyStatsRules.GetEffectiveMaxHp(member, hpBonus);
+
             if (step.FlatHpDelta != 0)
             {
                 if (step.FlatHpDelta > 0)
-                    member.Hp = System.Math.Min(member.MaxHp, member.Hp + step.FlatHpDelta);
+                    member.Hp = System.Math.Min(maxHp, member.Hp + step.FlatHpDelta);
                 else
                     member.Hp = System.Math.Max(1, member.Hp - System.Math.Abs(step.FlatHpDelta));
                 return;
@@ -1749,8 +1870,8 @@ namespace Grimhand.Expedition
 
             if (step.PercentHpDelta > 0)
             {
-                var heal = System.Math.Max(1, member.MaxHp * step.PercentHpDelta / 100);
-                member.Hp = System.Math.Min(member.MaxHp, member.Hp + heal);
+                var heal = System.Math.Max(1, maxHp * step.PercentHpDelta / 100);
+                member.Hp = System.Math.Min(maxHp, member.Hp + heal);
                 return;
             }
 
@@ -1802,9 +1923,30 @@ namespace Grimhand.Expedition
             if (_run.Phase != ExpeditionPhase.EventInteraction)
                 return;
 
+            interaction?.DeferredRunAction?.Invoke(_run);
+
             if (interaction?.DeferredOutcome != null)
             {
-                ApplyEventOutcome(interaction.DeferredOutcome);
+                var deferred = interaction.DeferredOutcome;
+                deferred.DeferredRunAction?.Invoke(_run);
+
+                if (_run.PendingDeferredReward != null)
+                {
+                    if (deferred.PendingRewardPickup == null)
+                        deferred.PendingRewardPickup = _run.PendingDeferredReward;
+                    _run.PendingDeferredReward = null;
+                }
+
+                if (deferred.PendingRewardPickup != null
+                    && deferred.PendingRewardPickup.ResolveStatCharacterFromInteraction
+                    && !string.IsNullOrEmpty(interaction.SelectedCharacterId)
+                    && TryFindPartyMember(interaction.SelectedCharacterId, out var statMember))
+                {
+                    deferred.PendingRewardPickup.StatCharacterId = statMember.CharacterDefinitionId;
+                    deferred.PendingRewardPickup.StatCharacterName = statMember.DisplayName;
+                }
+
+                ApplyEventOutcome(deferred);
                 return;
             }
 

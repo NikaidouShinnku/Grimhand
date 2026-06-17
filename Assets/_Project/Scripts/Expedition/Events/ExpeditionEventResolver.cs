@@ -17,6 +17,7 @@ namespace Grimhand.Expedition.Events
         public string EventBattleKey { get; set; } = "";
         public List<ExpeditionEventInteractionStep> InteractionSteps { get; } = new();
         public ExpeditionEventOutcome DeferredOutcome { get; set; }
+        public System.Action<ExpeditionRunState> DeferredRunAction { get; set; }
     }
 
     public static class ExpeditionEventResolver
@@ -34,8 +35,22 @@ namespace Grimhand.Expedition.Events
             if (choiceIndex < 0 || choiceIndex >= definition.Choices.Count)
                 return new ExpeditionEventOutcome { Message = "无效选择。" };
 
-            run.UsedEventIds.Add(eventId);
-            return ExpeditionEventPlanner.Resolve(run, config, eventId, choiceIndex, rng);
+            var outcome = ExpeditionEventPlanner.Resolve(run, config, eventId, choiceIndex, rng);
+
+            if (eventId == ExpeditionEventIds.SoulRift)
+            {
+                if (choiceIndex is 0 or 1)
+                {
+                    run.UsedEventIds.Add(eventId);
+                    run.EventFlags.Add(ExpeditionEventRoller.SoulRiftResolvedFlag);
+                }
+            }
+            else
+            {
+                run.UsedEventIds.Add(eventId);
+            }
+
+            return outcome;
         }
 
         public static ExpeditionEventOutcome ResolveShrineChoice(

@@ -111,13 +111,29 @@ namespace Grimhand.Battle.Tests
             Assert.AreEqual(10, basePreview);
         }
 
-        static CombatantState AddEnemy(BattleState state, FormationSlot slot, int block = 0)
+        [Test]
+        public void PreviewHpDamage_EnemyAttackingPlayer_IsNonZero()
+        {
+            var state = BuildState();
+            var goblin = AddEnemy(state, FormationSlot.Front, attack: 4);
+            var player = AddPlayer(state, FormationSlot.Middle, attack: 0);
+            var card = AttackCard(value: 7);
+
+            var preview = CardPreviewRules.PreviewHpDamageAgainstTarget(
+                state, goblin, card, card.Actions[0], player);
+
+            Assert.Greater(preview, 0);
+        }
+
+        static CombatantState AddEnemy(BattleState state, FormationSlot slot, int block = 0, int attack = 0)
         {
             var enemy = new CombatantState
             {
                 Id = $"enemy_{slot}",
                 Team = TeamSide.Enemy,
                 Slot = slot,
+                Attack = attack,
+                BaseAttack = attack,
                 Hp = 20,
                 MaxHp = 20,
                 Block = block

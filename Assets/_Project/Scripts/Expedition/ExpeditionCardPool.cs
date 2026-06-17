@@ -28,6 +28,9 @@ namespace Grimhand.Expedition
                 if (template == null || string.IsNullOrEmpty(template.DefinitionId))
                     continue;
 
+                if (!PlayerCardCatalogRules.IsAllowedPlayerCardId(template.DefinitionId))
+                    continue;
+
                 if (seen.Add(template.DefinitionId))
                     result.Add(ExpeditionBattleConfigBuilder.CloneTemplate(template));
             }

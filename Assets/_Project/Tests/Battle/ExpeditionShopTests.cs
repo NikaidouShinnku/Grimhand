@@ -94,14 +94,14 @@ namespace Grimhand.Battle.Tests
                 MaxHp = 40
             };
             player.DeckTemplates.Add(CardTemplate.Create(
-                "Card_k_strike",
-                "打击",
+                "w_basic_slash",
+                "基础斩击",
                 "char_knight",
                 1,
                 CardType.Attack));
             player.DeckTemplates.Add(CardTemplate.Create(
-                "Card_k_slash",
-                "斩击",
+                "w_power_cleave",
+                "强力顺劈",
                 "char_knight",
                 2,
                 CardType.Attack));

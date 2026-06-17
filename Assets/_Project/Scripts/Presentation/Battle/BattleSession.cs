@@ -644,6 +644,50 @@ namespace Grimhand.Presentation.Battle
             return true;
         }
 
+        public bool ClaimRewardStat()
+        {
+            var rewards = Expedition?.Run.PendingRewardPickup;
+            if (Expedition?.TryClaimRewardStat() != true)
+                return false;
+
+            AddLog(BuildStatRewardLog(rewards));
+            NotifyChanged();
+            return true;
+        }
+
+        public bool SkipRewardStat()
+        {
+            if (Expedition?.TrySkipRewardStat() != true)
+                return false;
+
+            AddLog("放弃属性奖励");
+            NotifyChanged();
+            return true;
+        }
+
+        static string BuildStatRewardLog(ExpeditionRewardPickup rewards)
+        {
+            if (rewards == null)
+                return "获得属性奖励";
+
+            if (rewards.PersonalAttackBonus != 0 && !string.IsNullOrEmpty(rewards.StatCharacterName))
+                return $"{rewards.StatCharacterName} 攻击 +{rewards.PersonalAttackBonus}";
+
+            if (rewards.TeamAttackBonus != 0)
+                return $"全队攻击 +{rewards.TeamAttackBonus}";
+
+            if (rewards.TeamDefenseBonus != 0)
+                return $"全队防御 +{rewards.TeamDefenseBonus}";
+
+            if (rewards.EnergyCapBonus != 0)
+                return $"能量上限 +{rewards.EnergyCapBonus}";
+
+            if (rewards.GrantXp > 0)
+                return $"全队经验 +{rewards.GrantXp}";
+
+            return "获得属性奖励";
+        }
+
         public bool ClaimVictoryGold() => ClaimRewardGold();
 
         public bool ClaimVictoryRelic() => ClaimRewardRelic();
@@ -707,7 +751,8 @@ namespace Grimhand.Presentation.Battle
                 config = new ExpeditionConfig
                 {
                     RunSeed = UnityEngine.Random.Range(1, int.MaxValue),
-                    TargetBattleCount = 19,
+                    ChapterLayerCount = ExpeditionRegionRules.FullLayerCount,
+                    TargetBattleCount = ExpeditionRegionRules.FullLayerCount - 1,
                     RoutesPerVictory = 3,
                     GoldMinPerVictory = 15,
                     GoldMaxPerVictory = 25

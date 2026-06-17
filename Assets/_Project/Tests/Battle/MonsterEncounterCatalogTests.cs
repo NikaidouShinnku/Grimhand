@@ -67,12 +67,12 @@ namespace Grimhand.Tests.Battle
         }
 
         [Test]
-        public void ApplyMapStartLayer_DungeonUsesFortyLayers()
+        public void ApplyMapStartLayer_DungeonUsesSixtyLayersWithDemoStart()
         {
             var config = new Grimhand.Expedition.Model.ExpeditionConfig();
             ExpeditionRegionRules.ApplyMapStartLayer(config, 21);
-            Assert.AreEqual(40, config.ChapterLayerCount);
-            Assert.AreEqual(39, config.TargetBattleCount);
+            Assert.AreEqual(60, config.ChapterLayerCount);
+            Assert.AreEqual(59, config.TargetBattleCount);
             Assert.AreEqual(21, config.MapStartLayer);
         }
     }

@@ -285,7 +285,7 @@ namespace Grimhand.Expedition.Map
                     option.Description = "开箱获得卡牌、金币或消耗品。";
                     break;
                 case ExpeditionNodeType.Event:
-                    option.EventId = PickEventId(run, rng);
+                    option.EventId = ExpeditionEventRoller.PickEventId(run, rng);
                     option.DisplayName = Pick(ExpeditionNodeNames.MysteryPath, layer, index);
                     option.Description = ExpeditionRouteCopy.MysteryPathDescription;
                     break;
@@ -316,48 +316,6 @@ namespace Grimhand.Expedition.Map
                 PathSpriteIndex = 0,
                 EncounterIndex = 0
             };
-
-        static string PickEventId(ExpeditionRunState run, BattleRng rng)
-        {
-            var pool = new List<string>();
-            foreach (var evt in ExpeditionEventCatalog.All)
-            {
-                if (run.UsedEventIds.Contains(evt.Id))
-                    continue;
-
-                if (!string.IsNullOrEmpty(evt.PrerequisiteFlag) &&
-                    !run.EventFlags.Contains(evt.PrerequisiteFlag))
-                    continue;
-
-                if (!string.IsNullOrEmpty(evt.RequiredRelicId) &&
-                    !run.Relics.Contains(evt.RequiredRelicId))
-                    continue;
-
-                if (evt.RequiresDemonInParty && !PartyHasCharacter(run, "char_ranger"))
-                    continue;
-
-                if (evt.MinGold > 0 && run.Gold < evt.MinGold)
-                    continue;
-
-                pool.Add(evt.Id);
-            }
-
-            if (pool.Count == 0)
-                return ExpeditionEventIds.MysteriousTraveler;
-
-            return pool[rng.NextIndex(pool.Count)];
-        }
-
-        static bool PartyHasCharacter(ExpeditionRunState run, string charId)
-        {
-            foreach (var member in run.Party)
-            {
-                if (member.CharacterDefinitionId == charId)
-                    return true;
-            }
-
-            return false;
-        }
 
         static string PickShrineId(BattleRng rng)
         {

@@ -58,7 +58,9 @@ namespace Grimhand.Presentation.Battle
             }
 
             var offer = _session.Expedition.Run.PendingCardOffer;
-            if (offer?.Template == null || offer.Context == ExpeditionCardOfferContext.Altar)
+            if (offer?.Template == null
+                || offer.Context == ExpeditionCardOfferContext.Altar
+                || _session.Expedition.Run.Phase == ExpeditionPhase.EventInteraction)
             {
                 SetVisible(false);
                 return;

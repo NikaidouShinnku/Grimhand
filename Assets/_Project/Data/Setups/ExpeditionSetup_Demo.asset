@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: ExpeditionSetup_Demo
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.ExpeditionSetupSO
   RunSeed: 0
-  ChapterLayerCount: 20
-  TargetBattleCount: 19
+  ChapterLayerCount: 60
+  TargetBattleCount: 59
   RoutesPerVictory: 3
   GoldMinPerVictory: 15
   GoldMaxPerVictory: 25

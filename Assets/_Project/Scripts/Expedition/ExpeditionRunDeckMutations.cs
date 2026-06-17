@@ -126,14 +126,7 @@ namespace Grimhand.Expedition
 
             ExpeditionBattleConfigBuilder.HydrateTemplateFromCatalog(result, config?.PlayerCardCatalog);
             result.OwnerCharacterId = owner.CharacterDefinitionId;
-
-            var grant = ExpeditionRunDeckRules.TryOfferCard(
-                config,
-                run,
-                owner,
-                result,
-                ExpeditionCardOfferContext.Event);
-            return grant != CardGrantResult.Failed;
+            return true;
         }
 
         static PartyMemberSnapshot FindMember(ExpeditionRunState run, string memberId)

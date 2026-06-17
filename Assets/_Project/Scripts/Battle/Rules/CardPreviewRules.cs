@@ -85,16 +85,18 @@ namespace Grimhand.Battle.Rules
             if (action.Type != EffectActionType.DealDamage)
                 return false;
 
-            if (action.Target == EffectTarget.AllEnemies)
-                return target.Team == TeamSide.Enemy;
-
             if (action.Target == EffectTarget.Self)
                 return false;
+
+            var victimTeam = ResolveVictimTeam(owner);
+
+            if (action.Target == EffectTarget.AllEnemies)
+                return target.Team == victimTeam;
 
             var pickSide = CardRules.GetRequiredTargetPick(card);
             if (pickSide == TargetPickSide.Enemy)
             {
-                if (target.Team != TeamSide.Enemy)
+                if (target.Team != victimTeam)
                     return false;
 
                 return state == null || owner == null
@@ -102,13 +104,16 @@ namespace Grimhand.Battle.Rules
             }
 
             if (pickSide == TargetPickSide.Ally)
-                return target.Team == TeamSide.Player;
+                return owner != null && target.Team == owner.Team;
 
             if (action.Target == EffectTarget.DefaultEnemy)
-                return target.Team == TeamSide.Enemy;
+                return target.Team == victimTeam;
 
             return false;
         }
+
+        static TeamSide ResolveVictimTeam(CombatantState owner) =>
+            owner?.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
 
         public static bool CardUsesSingleTargetEnemyPreview(CardInstanceState card)
         {

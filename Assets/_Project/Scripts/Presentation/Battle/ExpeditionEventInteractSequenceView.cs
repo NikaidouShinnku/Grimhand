@@ -45,6 +45,7 @@ namespace Grimhand.Presentation.Battle
         string _selectedCardKey = "";
         readonly HashSet<string> _selectedCardKeys = new();
         bool _stepBusy;
+        bool _awaitingContinue;
         readonly List<GameObject> _dynamicObjects = new();
         readonly Dictionary<string, CardView> _cardViews = new();
         readonly Dictionary<string, CardType> _cardTypesByKey = new();
@@ -91,7 +92,7 @@ namespace Grimhand.Presentation.Battle
 
             _root.SetAsLastSibling();
 
-            if (_stepBusy)
+            if (_stepBusy && !_awaitingContinue)
                 return;
 
             if (interaction.StepIndex != _displayedStepIndex)
@@ -139,7 +140,7 @@ namespace Grimhand.Presentation.Battle
                             ? $"特训完成：{FindMember(interaction.SelectedCharacterId)?.DisplayName} 攻击 +{step.PersonalAttackBonus}"
                             : $"特训完成：{FindMember(interaction.SelectedCharacterId)?.DisplayName} 攻击 +2";
                         BuildCharacterRow(selectable: false);
-                        StartCoroutine(AutoApplyMemberBuff(interaction.SelectedCharacterId));
+                        StartCoroutine(PlayMemberBuffAcknowledgeSequence(interaction.SelectedCharacterId));
                         break;
                     }
 
@@ -162,7 +163,9 @@ namespace Grimhand.Presentation.Battle
                     break;
                 case ExpeditionEventStepKind.ShowMessage:
                     _promptText.text = string.IsNullOrEmpty(step.Message) ? "……" : step.Message;
-                    StartCoroutine(AutoAdvanceAfterDelay());
+                    _characterRow.gameObject.SetActive(false);
+                    _cardScrollArea.gameObject.SetActive(false);
+                    _awaitingContinue = true;
                     break;
             }
 
@@ -254,7 +257,8 @@ namespace Grimhand.Presentation.Battle
             hpRt.offsetMax = Vector2.zero;
             var hpText = hpGo.GetComponent<Text>();
             StyleText(hpText, 16, TextAnchor.MiddleCenter);
-            hpText.text = $"生命 {member.Hp}/{member.MaxHp}";
+            GetMemberDisplayHp(member, out var displayHp, out var displayMaxHp);
+            hpText.text = $"生命 {displayHp}/{displayMaxHp}";
             _portraitHpTexts[member.CharacterDefinitionId] = hpText;
 
             var floaterGo = new GameObject("DamageFloater", typeof(RectTransform), typeof(Text), typeof(Outline));
@@ -414,6 +418,14 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             var step = interaction.Steps[interaction.StepIndex];
+            if (_awaitingContinue || step.Kind == ExpeditionEventStepKind.ShowMessage)
+            {
+                _confirmButton.gameObject.SetActive(true);
+                _confirmLabel.text = "继续";
+                _confirmButton.interactable = !_stepBusy;
+                return;
+            }
+
             var needsCard = step.Kind is ExpeditionEventStepKind.PickCardRemove
                 or ExpeditionEventStepKind.PickCardUpgrade
                 or ExpeditionEventStepKind.PickTwoCardsForFusion;
@@ -468,6 +480,8 @@ namespace Grimhand.Presentation.Battle
         IEnumerator PlayTeamHpLossSequence(ExpeditionEventInteractionStep step)
         {
             _stepBusy = true;
+            _awaitingContinue = false;
+            UpdateConfirmButton(_session.Expedition.Run.EventInteraction);
             yield return new WaitForSeconds(0.35f);
 
             if (!string.IsNullOrEmpty(step.TargetCharacterId))
@@ -489,11 +503,14 @@ namespace Grimhand.Presentation.Battle
             }
 
             yield return new WaitForSeconds(HpLossAnimSeconds);
-            CompleteStep(null, null);
+            RevealContinueButton();
         }
 
         IEnumerator PlayMemberHpLossSequence(ExpeditionEventInteractionStep step, string characterId)
         {
+            _stepBusy = true;
+            _awaitingContinue = false;
+            UpdateConfirmButton(_session.Expedition.Run.EventInteraction);
             yield return new WaitForSeconds(0.15f);
 
             var member = FindMember(characterId);
@@ -504,17 +521,27 @@ namespace Grimhand.Presentation.Battle
             }
 
             yield return new WaitForSeconds(HpLossAnimSeconds);
-            CompleteStep(characterId, null);
+            RevealContinueButton();
         }
 
-        IEnumerator AutoAdvanceAfterDelay()
+        IEnumerator PlayMemberBuffAcknowledgeSequence(string characterId)
         {
             _stepBusy = true;
-            _characterRow.gameObject.SetActive(false);
-            _cardScrollArea.gameObject.SetActive(false);
-            _confirmButton.gameObject.SetActive(false);
-            yield return new WaitForSeconds(MessageAutoAdvanceSeconds);
-            CompleteStep(null, null);
+            _awaitingContinue = false;
+            if (!string.IsNullOrEmpty(characterId))
+                _selectedCharacterId = characterId;
+            UpdateConfirmButton(_session.Expedition.Run.EventInteraction);
+            yield return new WaitForSeconds(0.8f);
+            RevealContinueButton();
+        }
+
+        void RevealContinueButton()
+        {
+            _stepBusy = false;
+            _awaitingContinue = true;
+            var interaction = _session.Expedition.Run.EventInteraction;
+            if (interaction != null)
+                UpdateConfirmButton(interaction);
         }
 
         void ShowPortraitHpChange(string characterId, int delta, ExpeditionEventInteractionStep step)
@@ -539,19 +566,25 @@ namespace Grimhand.Presentation.Battle
                 var member = FindMember(characterId);
                 if (member != null)
                 {
+                    GetMemberDisplayHp(member, out var currentHp, out var maxHp);
                     var previewHp = isHeal
-                        ? Mathf.Min(member.MaxHp, member.Hp + delta)
-                        : Mathf.Max(1, member.Hp - delta);
-                    hpText.text = $"生命 {previewHp}/{member.MaxHp}";
+                        ? Mathf.Min(maxHp, currentHp + delta)
+                        : Mathf.Max(1, currentHp - delta);
+                    hpText.text = $"生命 {previewHp}/{maxHp}";
                 }
             }
         }
 
-        IEnumerator AutoApplyMemberBuff(string characterId)
+        void GetMemberDisplayHp(PartyMemberSnapshot member, out int hp, out int maxHp)
         {
-            _stepBusy = true;
-            yield return new WaitForSeconds(0.8f);
-            CompleteStep(characterId, null);
+            var run = _session.Expedition.Run;
+            ExpeditionPartyStatsRules.GetDisplayHp(
+                member,
+                run.Party,
+                run.Relics,
+                run.RelicGrowthTiers,
+                out hp,
+                out maxHp);
         }
 
         IEnumerator AnimateFloater(Text floater)
@@ -577,17 +610,19 @@ namespace Grimhand.Presentation.Battle
             floater.color = startColor;
         }
 
-        static int CalcHpChange(PartyMemberSnapshot member, ExpeditionEventInteractionStep step)
+        int CalcHpChange(PartyMemberSnapshot member, ExpeditionEventInteractionStep step)
         {
             if (member == null)
                 return 0;
+
+            GetMemberDisplayHp(member, out var currentHp, out var maxHp);
 
             if (step.FlatHpDelta != 0)
                 return Mathf.Max(1, Mathf.Abs(step.FlatHpDelta));
 
             if (step.PercentHpDelta != 0)
             {
-                var basis = step.PercentHpDelta > 0 ? member.MaxHp : member.Hp;
+                var basis = step.PercentHpDelta > 0 ? maxHp : currentHp;
                 return Mathf.Max(1, basis * Mathf.Abs(step.PercentHpDelta) / 100);
             }
 
@@ -615,6 +650,17 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             var step = interaction.Steps[interaction.StepIndex];
+            if (_awaitingContinue || step.Kind == ExpeditionEventStepKind.ShowMessage)
+            {
+                var characterId = !string.IsNullOrEmpty(_selectedCharacterId)
+                    ? _selectedCharacterId
+                    : interaction.SelectedCharacterId;
+                _awaitingContinue = false;
+                _stepBusy = true;
+                CompleteStep(string.IsNullOrEmpty(characterId) ? null : characterId, null);
+                return;
+            }
+
             if (step.Kind == ExpeditionEventStepKind.PickTwoCardsForFusion)
             {
                 if (_selectedCardKeys.Count != 2 || !TryGetSelectedFusionType(out _))
@@ -638,23 +684,29 @@ namespace Grimhand.Presentation.Battle
             if (_session == null)
                 return;
 
+            _stepBusy = false;
+            _awaitingContinue = false;
+
             var ok = _session.CompleteEventInteractionStep(
                 selectedCharacterId,
                 selectedCardKey,
                 selectedSecondCardKey);
             if (!ok)
-            {
-                _stepBusy = false;
                 return;
-            }
 
-            ResetTransientState();
+            StopAllCoroutines();
+            _displayedStepIndex = -1;
+            _selectedCharacterId = "";
+            _selectedCardKey = "";
+            _selectedCardKeys.Clear();
+            Refresh();
         }
 
         void ResetTransientState()
         {
             StopAllCoroutines();
             _stepBusy = false;
+            _awaitingContinue = false;
             _displayedStepIndex = -1;
             _selectedCharacterId = "";
             _selectedCardKey = "";
@@ -665,6 +717,7 @@ namespace Grimhand.Presentation.Battle
         {
             StopAllCoroutines();
             _stepBusy = false;
+            _awaitingContinue = false;
 
             foreach (var go in _dynamicObjects)
             {

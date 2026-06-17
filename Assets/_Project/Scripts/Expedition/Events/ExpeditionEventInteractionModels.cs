@@ -36,6 +36,7 @@ namespace Grimhand.Expedition.Events
         public string FusionFirstCardKey { get; set; } = "";
         public CardType FusionCardType { get; set; }
         public ExpeditionEventOutcome DeferredOutcome { get; set; }
+        public System.Action<ExpeditionRunState> DeferredRunAction { get; set; }
 
         /// <summary>选牌步骤确认后暂存，在随后的 ShowMessage 结束时执行。</summary>
         public ExpeditionEventStepKind PendingApplyKind { get; set; }

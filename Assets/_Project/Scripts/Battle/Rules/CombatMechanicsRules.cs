@@ -35,6 +35,9 @@ namespace Grimhand.Battle.Rules
                 combatant.SkipRemainingPlaysThisTurn = false;
 
             state.DefenderRespondArms.Clear();
+            state.SuppressedEnemyCardInstanceIds.Clear();
+            state.EnergySpentByCardInstanceId.Clear();
+            state.PlayerRespondStatusUsedThisTurn = false;
         }
 
         public static CombatantState FindTauntHolder(BattleState state, TeamSide defenderTeam)
@@ -106,11 +109,19 @@ namespace Grimhand.Battle.Rules
                 return 0;
 
             RelicBattleRules.RefreshDerivedStats(state, combatant, state?.Config?.RunModifiers);
-            var defense = combatant.Defense;
-            if (ignoreDefPercent <= 0)
-                return Math.Max(0, defense);
+            return combatant.IncomingDamageReductionPercent;
+        }
 
-            return Math.Max(0, (int)Math.Round(defense * (100 - ignoreDefPercent) / 100f));
+        public static int ComputeHpDamageAfterDefense(int afterBlock, int effectiveDefense)
+        {
+            if (afterBlock <= 0)
+                return 0;
+
+            if (effectiveDefense <= 0)
+                return afterBlock;
+
+            return Math.Max(1, (int)Math.Round(
+                afterBlock * (100 - Math.Min(100, effectiveDefense)) / 100f));
         }
 
         public static int ComputeConditionalDamageBonus(
@@ -134,6 +145,13 @@ namespace Grimhand.Battle.Rules
             if (action.BonusIfTargetHitThisTurnPercent > 0 && target.HitThisTurn)
             {
                 power += Math.Max(1, (int)Math.Round(basePower * action.BonusIfTargetHitThisTurnPercent / 100f));
+            }
+
+            if (action.BonusIfTargetHasStatusFlat > 0
+                && !string.IsNullOrEmpty(action.BonusIfTargetHasStatusId)
+                && StatusRules.HasStatus(target, action.BonusIfTargetHasStatusId))
+            {
+                power += action.BonusIfTargetHasStatusFlat;
             }
 
             return power;
@@ -183,14 +201,6 @@ namespace Grimhand.Battle.Rules
                 power = MinionTraitRules.ApplyMinionOutgoingAttackBonus(state, owner, target, CardType.Attack, power);
 
             return power;
-        }
-
-        public static int ComputeHpDamageAfterDefense(int afterBlock, int effectiveDefense)
-        {
-            if (afterBlock <= 0)
-                return 0;
-
-            return Math.Max(1, afterBlock - effectiveDefense);
         }
 
         public static bool TryPreventDeathWithReviveBlessing(

@@ -1,0 +1,145 @@
+using System.Collections.Generic;
+using Grimhand.Battle.Effects;
+using Grimhand.Battle.Events;
+using Grimhand.Battle.Model;
+using Grimhand.Battle.Status;
+using Grimhand.Core;
+
+namespace Grimhand.Battle.Rules
+{
+    /// <summary>Excel 描述无法用通用 Action 表达的卡牌（X 费、随机多效果等）。</summary>
+    public static class SpecialCardRules
+    {
+        public const int SolarGodWrathDamage = 13;
+        public const int SolarGodWrathStatPenalty = 3;
+        public const int SolarGodWrathSlowStacks = 2;
+        public const int SolarGodWrathBurnStacks = 5;
+        public const int SolarBlessingBlockPerRepeat = 3;
+
+        public static bool IsSpecialCard(CardInstanceState card) =>
+            card != null && (card.DefinitionId == CardPowerRules.SolarGodWrathCardId
+                             || card.DefinitionId == CardPowerRules.SolarBlessingCardId);
+
+        public static bool TryResolve(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState card,
+            List<BattleEvent> events,
+            BattleRng rng)
+        {
+            if (state == null || actor == null || card == null || rng == null)
+                return false;
+
+            return card.DefinitionId switch
+            {
+                CardPowerRules.SolarGodWrathCardId => ResolveSolarGodWrath(state, actor, card, events, rng),
+                CardPowerRules.SolarBlessingCardId => ResolveSolarBlessing(state, actor, card, events, rng),
+                _ => false
+            };
+        }
+
+        static int GetEnergySpent(BattleState state, CardInstanceState card)
+        {
+            if (state.EnergySpentByCardInstanceId.TryGetValue(card.InstanceId, out var spent) && spent > 0)
+                return spent;
+
+            return System.Math.Max(0, card.Cost);
+        }
+
+        static bool ResolveSolarGodWrath(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState card,
+            List<BattleEvent> events,
+            BattleRng rng)
+        {
+            var repeats = GetEnergySpent(state, card);
+            if (repeats <= 0)
+            {
+                events.Add(new BattleEvent(BattleEventKind.StatusApplied, $"{card.DisplayName} 无能量可消耗")
+                {
+                    CombatantId = actor.Id,
+                    CardInstanceId = card.InstanceId
+                });
+                return true;
+            }
+
+            for (var i = 0; i < repeats; i++)
+            {
+                var target = PickRandomAliveEnemy(state, rng);
+                if (target == null)
+                    break;
+
+                switch (rng.NextInt(0, 4))
+                {
+                    case 0:
+                        DamageRules.ApplyDamage(
+                            state, actor, target, SolarGodWrathDamage, card.CardType, events,
+                            rng: rng, sourceCardInstanceId: card.InstanceId);
+                        break;
+                    case 1:
+                        target.Attack = System.Math.Max(0, target.Attack - SolarGodWrathStatPenalty);
+                        target.Defense = System.Math.Max(0, target.Defense - SolarGodWrathStatPenalty);
+                        events.Add(new BattleEvent(BattleEventKind.StatusApplied,
+                            $"{target.DisplayName} ATK/DEF -{SolarGodWrathStatPenalty}")
+                        {
+                            CombatantId = target.Id,
+                            CardInstanceId = card.InstanceId,
+                            Amount = SolarGodWrathStatPenalty
+                        });
+                        break;
+                    case 2:
+                        StatusRules.ApplyStatus(
+                            state, target, StatusCatalog.Slow, SolarGodWrathSlowStacks, 2, events);
+                        break;
+                    default:
+                        StatusRules.ApplyStatus(
+                            state, target, StatusCatalog.Burn, SolarGodWrathBurnStacks, 2, events);
+                        break;
+                }
+            }
+
+            return true;
+        }
+
+        static bool ResolveSolarBlessing(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState card,
+            List<BattleEvent> events,
+            BattleRng rng)
+        {
+            var repeats = GetEnergySpent(state, card);
+            if (repeats <= 0)
+                return true;
+
+            for (var i = 0; i < repeats; i++)
+            {
+                foreach (var ally in state.GetTeam(TeamSide.Player))
+                {
+                    if (!ally.IsAlive)
+                        continue;
+
+                    DamageRules.ApplyBlock(ally, SolarBlessingBlockPerRepeat, events, state, rng);
+                }
+            }
+
+            return true;
+        }
+
+        static CombatantState PickRandomAliveEnemy(BattleState state, BattleRng rng)
+        {
+            var pool = new List<CombatantState>();
+            foreach (var enemy in state.GetTeam(TeamSide.Enemy))
+            {
+                if (enemy.IsAlive)
+                    pool.Add(enemy);
+            }
+
+            if (pool.Count == 0)
+                return null;
+
+            return pool[rng.NextIndex(pool.Count)];
+        }
+    }
+}

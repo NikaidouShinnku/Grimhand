@@ -17,12 +17,11 @@ MonoBehaviour:
   OwnerCharacterId: char_jellyfish_caster
   Cost: 4
   CardType: 2
-  Rarity: 2
+  Rarity: 3
   Keywords:
   - exhaust
-  - summon
   Actions:
-  - Type: 14
+  - Type: 3
     Target: 1
     Value: 0
     StatusId: 
@@ -41,6 +40,8 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0
@@ -55,7 +56,7 @@ MonoBehaviour:
     RepeatPerEnemyAttackCardThisTurn: 0
     FallbackBlockDefenseScalePercent: 100
     FallbackBlockValue: 0
-    SummonCharacterId: char_abyss_creature
+    SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
   CardArt: {fileID: 0}

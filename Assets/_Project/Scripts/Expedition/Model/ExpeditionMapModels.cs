@@ -84,6 +84,10 @@ namespace Grimhand.Expedition.Model
         public int TeamAttackBonus { get; set; }
         public int TeamDefenseBonus { get; set; }
         public int EnergyCapBonus { get; set; }
+        public int HandLimitBonus { get; set; }
+        public int DrawPerTurnBonus { get; set; }
+        public int AltarHpPlus5Purchases { get; set; }
+        public int AltarHpPlus10Purchases { get; set; }
         public bool NextCombatEnemyAttackBonus { get; set; }
         public int ForeseenLayerCount { get; set; }
         public bool SkipNextRouteSelect { get; set; }

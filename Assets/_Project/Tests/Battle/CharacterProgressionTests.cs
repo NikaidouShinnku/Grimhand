@@ -29,7 +29,8 @@ namespace Grimhand.Battle.Tests
             var lv1 = CharacterProgression.GetStatsForCharacter("char_knight", 1);
             var lv5 = CharacterProgression.GetStatsForCharacter("char_knight", 5);
             Assert.Greater(lv5.MaxHp, lv1.MaxHp);
-            Assert.Greater(lv5.BaseAttack, lv1.BaseAttack);
+            Assert.AreEqual(50, lv1.MaxHp);
+            Assert.AreEqual(74, lv5.MaxHp);
             Assert.AreEqual(7, lv1.Speed);
             Assert.AreEqual(5, CharacterProgression.GetStatsForCharacter("char_mage", 1).Speed);
             Assert.AreEqual(6, CharacterProgression.GetStatsForCharacter("char_ranger", 1).Speed);

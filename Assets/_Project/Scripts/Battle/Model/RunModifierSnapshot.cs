@@ -52,6 +52,8 @@ namespace Grimhand.Battle.Model
         public int BattleStartSpeedBonusTurns { get; set; }
         public int BattleStartSpeedBonus { get; set; }
         public int EndTurnEnemyFireDamage { get; set; }
+        /// <summary>每回合开始时对全体敌人造成伤害（赤红烈焰靴）。</summary>
+        public int TurnStartEnemyDamage { get; set; }
         public int RevengeAttackFlatBonus { get; set; }
         public bool BackRowAttackAnyTarget { get; set; }
         public bool JadeDaggerFirstKillBonus { get; set; }
@@ -61,6 +63,21 @@ namespace Grimhand.Battle.Model
 
         /// <summary>灵魂裂隙：每场战斗开始随机 1 名队员失去 HP。</summary>
         public int SoulRiftBattleStartRandomHpLoss { get; set; }
+
+        /// <summary>便携篝火：战斗胜利后全队回复 HP 百分比。</summary>
+        public float PostBattleTeamHealPercent { get; set; }
+
+        /// <summary>烈火长剑：前排对灼烧目标伤害倍率。</summary>
+        public float FrontRowBurnTargetDamageMultiplier { get; set; } = 1f;
+
+        /// <summary>水晶剑：前排攻击无视护甲时的伤害百分比（如 75）。</summary>
+        public int FrontRowIgnoreArmorDamagePercent { get; set; }
+
+        /// <summary>魔焰颅骨：战斗开始需二选一。</summary>
+        public bool RequiresFelskullChoice { get; set; }
+
+        /// <summary>魔焰颅骨 B 选项：全队攻击牌 +N% 伤害。</summary>
+        public int FelskullOutgoingDamagePercentBonus { get; set; }
 
         public bool FirstPlayerAttackPending { get; set; } = true;
 

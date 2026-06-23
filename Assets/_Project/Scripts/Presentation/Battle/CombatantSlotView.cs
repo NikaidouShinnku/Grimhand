@@ -789,7 +789,7 @@ namespace Grimhand.Presentation.Battle
             }
 
             if (nameText != null)
-                nameText.text = unit == null ? "" : unit.DisplayName;
+                nameText.text = unit == null ? "" : BattleUiFormatters.FormatCombatantDisambiguatedName(state, unit);
 
             if (statsRow == null)
                 statsRow = GetComponentInChildren<UnitStatsRowView>(true);

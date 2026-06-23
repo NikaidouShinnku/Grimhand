@@ -16,10 +16,38 @@ namespace Grimhand.Battle.Model
         public int Hp { get; set; }
         /// <summary>远征战间 Hp=0，本场以 1 HP 复活进战。</summary>
         public bool EnteredFromExpeditionDeath { get; set; }
+        /// <summary>v0.8 已废弃，恒为 0。</summary>
         public int BaseAttack { get; set; }
+        /// <summary>v0.8 已废弃，恒为 0。</summary>
         public int BaseDefense { get; set; }
+        /// <summary>v0.8 已废弃，恒为 0。</summary>
         public int Attack { get; set; }
+        /// <summary>v0.8 已废弃，恒为 0。</summary>
         public int Defense { get; set; }
+
+        /// <summary>v0.8：出站伤害固定加值（增伤等）。</summary>
+        public int OutgoingDamageFlatBonus { get; set; }
+        /// <summary>v0.8：出站伤害百分比加值。</summary>
+        public int OutgoingDamagePercentBonus { get; set; }
+        /// <summary>v0.8：出站伤害固定减值（虚弱等）。</summary>
+        public int OutgoingDamageReductionFlat { get; set; }
+        /// <summary>v0.8：入站伤害固定加值（易伤等）。</summary>
+        public int IncomingDamageFlatBonus { get; set; }
+        /// <summary>v0.8：入站伤害百分比加值（易伤等）。</summary>
+        public int IncomingDamagePercentBonus { get; set; }
+        /// <summary>v0.8：入站伤害百分比减伤。</summary>
+        public int IncomingDamageReductionPercent { get; set; }
+        /// <summary>v0.8：获得护甲固定加值。</summary>
+        public int BlockGainFlatBonus { get; set; }
+        /// <summary>v0.8：获得护甲百分比加值。</summary>
+        public int BlockGainPercentBonus { get; set; }
+        /// <summary>v0.8：获得护甲百分比降低。</summary>
+        public int BlockGainReductionPercent { get; set; }
+
+        /// <summary>本场战斗持久出站增伤（骷髅特性等）。</summary>
+        public int PersistentOutgoingDamageFlatBonus { get; set; }
+        /// <summary>本场战斗持久护甲获取加成。</summary>
+        public int PersistentBlockGainFlatBonus { get; set; }
         public int Speed { get; set; }
         public int Block { get; set; }
 

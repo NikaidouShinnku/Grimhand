@@ -554,11 +554,11 @@ namespace Grimhand.Presentation.Battle
         {
             var lines = new List<string>();
             if (rewards.PersonalAttackBonus != 0)
-                lines.Add($"攻击 +{rewards.PersonalAttackBonus}");
+                lines.Add($"增伤 +{rewards.PersonalAttackBonus}");
             if (rewards.TeamAttackBonus != 0)
-                lines.Add($"全队攻击 +{rewards.TeamAttackBonus}");
+                lines.Add($"全队增伤 +{rewards.TeamAttackBonus}");
             if (rewards.TeamDefenseBonus != 0)
-                lines.Add($"全队防御 +{rewards.TeamDefenseBonus}");
+                lines.Add($"全队护甲获取 +{rewards.TeamDefenseBonus}");
             if (rewards.EnergyCapBonus != 0)
                 lines.Add($"能量上限 +{rewards.EnergyCapBonus}");
             if (rewards.GrantXp > 0)

@@ -29,6 +29,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 7da5258df9d8080409e9c2eeb3a70074, type: 2}
   - {fileID: 11400000, guid: 1ec598852dd696c4a857e38aa42b9d76, type: 2}
   - {fileID: 11400000, guid: 9588d250e31761d4ab14ef3b2d1b8193, type: 2}
+  - {fileID: 11400000, guid: 9588d250e31761d4ab14ef3b2d1b8193, type: 2}
   - {fileID: 11400000, guid: ae492b61df9d34e4ea8c004651830afe, type: 2}
+  - {fileID: 11400000, guid: 60a4ae5d6dd9492e95298dfbaa3c4857, type: 2}
   Traits:
   - minion_spider_poison_vuln

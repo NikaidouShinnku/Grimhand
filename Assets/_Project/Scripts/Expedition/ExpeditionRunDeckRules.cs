@@ -98,6 +98,7 @@ namespace Grimhand.Expedition
             if (!ExpeditionRunDeckMutations.TryRemoveExactEntry(run, removeEntry))
                 return false;
 
+            ExpeditionDeckInstanceRules.PrepareNewDeckCard(member, addTemplate);
             member.BonusCards.Add(ExpeditionBattleConfigBuilder.CloneTemplate(addTemplate));
             return true;
         }
@@ -120,6 +121,7 @@ namespace Grimhand.Expedition
 
             if (CanAddWithoutReplace(config, member))
             {
+                ExpeditionDeckInstanceRules.PrepareNewDeckCard(member, clone);
                 member.BonusCards.Add(clone);
                 recordAcquisition?.Invoke($"获得卡牌：{clone.DisplayName}（{member.DisplayName}）");
                 return CardGrantResult.Added;
@@ -145,6 +147,10 @@ namespace Grimhand.Expedition
 
             var clone = ExpeditionBattleConfigBuilder.CloneTemplate(template);
             ExpeditionBattleConfigBuilder.HydrateTemplateFromCatalog(clone, config?.PlayerCardCatalog);
+            if (!string.IsNullOrEmpty(clone.OwnerCharacterId))
+                ExpeditionDeckInstanceRules.PrepareNewDeckCard(
+                    new PartyMemberSnapshot { CharacterDefinitionId = clone.OwnerCharacterId },
+                    clone);
             run.RunWideBonusCards.Add(clone);
             recordAcquisition?.Invoke($"诅咒牌入池：{clone.DisplayName}");
             return true;

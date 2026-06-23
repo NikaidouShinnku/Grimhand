@@ -5,9 +5,10 @@ using Grimhand.Battle.Demo;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Consumables;
 using Grimhand.Battle.Model;
-using Grimhand.Content;
+using Grimhand.Battle.Rules;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
+using Grimhand.Content;
 using UnityEngine;
 
 namespace Grimhand.Presentation.Battle
@@ -327,9 +328,9 @@ namespace Grimhand.Presentation.Battle
             NotifyChanged();
         }
 
-        public bool SkipCardAltar()
+        public bool ConfirmCardAltar()
         {
-            if (Expedition?.TrySkipCardAltar() != true)
+            if (Expedition?.TryConfirmCardAltar() != true)
                 return false;
 
             if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
@@ -342,9 +343,9 @@ namespace Grimhand.Presentation.Battle
             return true;
         }
 
-        public bool ConfirmCardAltar()
+        public bool LeaveAltar()
         {
-            if (Expedition?.TryConfirmCardAltar() != true)
+            if (Expedition?.TryLeaveAltar() != true)
                 return false;
 
             if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
@@ -352,6 +353,54 @@ namespace Grimhand.Presentation.Battle
 
             if (Expedition.Run.Phase == ExpeditionPhase.RouteSelect)
                 AddLog("请选择前进路线");
+
+            NotifyChanged();
+            return true;
+        }
+
+        public bool UpgradeAltarMemberHp(string memberId)
+        {
+            if (Expedition?.TryUpgradeAltarMemberHp(memberId) != true)
+                return false;
+
+            if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
+                AddLog(Expedition.Run.LastEventMessage);
+
+            NotifyChanged();
+            return true;
+        }
+
+        public bool UpgradeAltarEnergyCap()
+        {
+            if (Expedition?.TryUpgradeAltarEnergyCap() != true)
+                return false;
+
+            if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
+                AddLog(Expedition.Run.LastEventMessage);
+
+            NotifyChanged();
+            return true;
+        }
+
+        public bool UpgradeAltarHandLimit()
+        {
+            if (Expedition?.TryUpgradeAltarHandLimit() != true)
+                return false;
+
+            if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
+                AddLog(Expedition.Run.LastEventMessage);
+
+            NotifyChanged();
+            return true;
+        }
+
+        public bool UpgradeAltarCard(string memberId, string deckInstanceId, string displayName)
+        {
+            if (Expedition?.TryUpgradeAltarCard(memberId, deckInstanceId, displayName) != true)
+                return false;
+
+            if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
+                AddLog(Expedition.Run.LastEventMessage);
 
             NotifyChanged();
             return true;
@@ -671,10 +720,10 @@ namespace Grimhand.Presentation.Battle
                 return "获得属性奖励";
 
             if (rewards.PersonalAttackBonus != 0 && !string.IsNullOrEmpty(rewards.StatCharacterName))
-                return $"{rewards.StatCharacterName} 攻击 +{rewards.PersonalAttackBonus}";
+                return $"{rewards.StatCharacterName} 增伤 +{rewards.PersonalAttackBonus}";
 
             if (rewards.TeamAttackBonus != 0)
-                return $"全队攻击 +{rewards.TeamAttackBonus}";
+                return $"全队增伤 +{rewards.TeamAttackBonus}";
 
             if (rewards.TeamDefenseBonus != 0)
                 return $"全队防御 +{rewards.TeamDefenseBonus}";
@@ -726,9 +775,25 @@ namespace Grimhand.Presentation.Battle
 
         public bool CanInteractWithBattle() =>
             Engine != null &&
+            !Engine.State.AwaitingFelskullChoice &&
             Engine.State.Phase == TurnPhase.Planning &&
             !PresentationLocked &&
             (Expedition == null || Expedition.Run.Phase == ExpeditionPhase.InBattle);
+
+        public void ApplyFelskullChoice(int choiceIndex)
+        {
+            if (Engine == null || !Engine.State.AwaitingFelskullChoice)
+                return;
+
+            var events = new List<BattleEvent>();
+            RelicEffectRules.ApplyFelskullChoice(Engine.State, choiceIndex, events);
+            foreach (var evt in events)
+                _log.Add(evt.Message);
+
+            Engine.ResumeAfterFelskullChoice();
+            DrainEvents();
+            NotifyChanged();
+        }
 
         public bool ExpeditionBlocksInput =>
             Expedition != null && Expedition.Run.Phase is not ExpeditionPhase.InBattle;
@@ -787,7 +852,7 @@ namespace Grimhand.Presentation.Battle
                     if (Expedition.Run.PendingRewardPickup?.Kind == RewardPickupKind.BattleVictory)
                     {
                         AddLog($"第 {Expedition.Run.BattlesWon} 场胜利 — 待领取奖励");
-                        AddLog($"全队获得 {Expedition.Run.LastXpReward} 经验");
+                        AddLog($"经验池 +{Expedition.Run.LastXpReward}（当前 {Expedition.Run.SharedXpPool}）");
                     }
 
                     AddLog("点击领取或放弃每项奖励");

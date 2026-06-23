@@ -18,12 +18,11 @@ MonoBehaviour:
   Cost: 1
   CardType: 2
   Rarity: 0
-  Keywords:
-  - slow
+  Keywords: []
   Actions:
-  - Type: 12
-    Target: 12
-    Value: 2
+  - Type: 3
+    Target: 1
+    Value: 0
     StatusId: 
     Stacks: 1
     Duration: -1
@@ -40,6 +39,8 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0

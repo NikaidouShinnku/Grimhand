@@ -27,7 +27,7 @@ MonoBehaviour:
     StatusId: 
     Stacks: 1
     Duration: -1
-    ScaleWithAttack: 1
+    ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100
     DefenseScalePercent: 100

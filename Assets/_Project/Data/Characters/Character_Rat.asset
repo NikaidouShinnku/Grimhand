@@ -29,6 +29,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 50b4a210aecefdb4ba8384a1c1d651e5, type: 2}
   - {fileID: 11400000, guid: b56e823f139319146a8452b4dc5dc0e8, type: 2}
   - {fileID: 11400000, guid: 295005ede75f4ba4faf40b4ca17c575b, type: 2}
+  - {fileID: 11400000, guid: b50e2c085c994da69118b9e616c90848, type: 2}
   - {fileID: 11400000, guid: 693ec289491243643b47b58e6cc7422d, type: 2}
+  - {fileID: 11400000, guid: fa2c5fc4d07241948c4a68f2b2942dc3, type: 2}
   Traits:
   - minion_rat_pack_attack

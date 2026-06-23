@@ -22,14 +22,14 @@ MonoBehaviour:
   Actions:
   - Type: 1
     Target: 2
-    Value: 0
+    Value: 8
     StatusId: 
     Stacks: 1
     Duration: -1
     ScaleWithAttack: 0
-    ScaleWithDefense: 1
+    ScaleWithDefense: 0
     AttackScalePercent: 100
-    DefenseScalePercent: 120
+    DefenseScalePercent: 100
     Condition: 0
     Reach: 0
     SplashBehindTarget: 0
@@ -39,6 +39,8 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0

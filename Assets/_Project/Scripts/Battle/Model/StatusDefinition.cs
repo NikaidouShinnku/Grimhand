@@ -22,5 +22,22 @@ namespace Grimhand.Battle.Model
         public int AttackPercentBonusPerStack { get; set; }
         /// <summary>每层使防御 +N%（乘算，在 RefreshDerivedStats 后应用）。</summary>
         public int DefensePercentBonusPerStack { get; set; }
+
+        /// <summary>v0.8：每层使出站伤害 +N（增伤 damage_up）。</summary>
+        public int OutgoingDamageFlatPerStack { get; set; }
+        /// <summary>v0.8：每层使出站伤害 +N%（百分比增伤）。</summary>
+        public int OutgoingDamagePercentPerStack { get; set; }
+        /// <summary>v0.8：每层使出站伤害 -N（虚弱 weaken）。</summary>
+        public int OutgoingDamageReductionFlatPerStack { get; set; }
+        /// <summary>v0.8：每层使获得护甲 +N（armor_up）。</summary>
+        public int BlockGainFlatPerStack { get; set; }
+        /// <summary>v0.8：每层使获得护甲 +N%。</summary>
+        public int BlockGainPercentPerStack { get; set; }
+        /// <summary>v0.8：每层使获得护甲 -N%（护甲获取降低）。</summary>
+        public int BlockGainReductionPercentPerStack { get; set; }
+        /// <summary>v0.8：每层使受到的伤害 +N（易伤 vulnerable）。</summary>
+        public int IncomingDamageFlatPerStack { get; set; }
+        /// <summary>v0.8：每层使受到的伤害 -N%（减伤 damage_reduction）。</summary>
+        public int IncomingDamageReductionPercentPerStack { get; set; }
     }
 }

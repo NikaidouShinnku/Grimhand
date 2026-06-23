@@ -57,7 +57,7 @@ namespace Grimhand.Presentation.Battle
         BattleInventoryPanelView _inventoryPanel;
         ConsumableReplaceOverlayView _consumableReplaceOverlay;
         CardDeckReplaceOverlayView _cardDeckReplaceOverlay;
-        ExpeditionCardAltarOverlayView _cardAltarOverlay;
+        ExpeditionAltarOverlayView _altarOverlay;
         ConsumableVisualCatalogSO _consumableCatalog;
         BattleTurnDetailPanelView _turnDetailPanel;
         ExpeditionMapPanelView _mapPanel;
@@ -66,6 +66,7 @@ namespace Grimhand.Presentation.Battle
         BattleBackgroundView _backgroundView;
         ExpeditionPostBattleOverlayView _postBattleOverlay;
         ExpeditionShopOverlayView _shopOverlay;
+        FelskullBattleChoiceView _felskullChoice;
         Button _inventoryButton;
         Button _turnLogButton;
         Button _mapButton;
@@ -450,10 +451,10 @@ namespace Grimhand.Presentation.Battle
                     _definitions);
             }
 
-            if (_cardAltarOverlay == null)
+            if (_altarOverlay == null)
             {
-                _cardAltarOverlay = gameObject.AddComponent<ExpeditionCardAltarOverlayView>();
-                _cardAltarOverlay.Initialize(
+                _altarOverlay = gameObject.AddComponent<ExpeditionAltarOverlayView>();
+                _altarOverlay.Initialize(
                     _session,
                     transform,
                     handPanel?.CardPrefab,
@@ -860,6 +861,7 @@ namespace Grimhand.Presentation.Battle
                 RefreshTargetPrompt(state, draft);
                 RefreshTargetCancelBackdrop(draft);
                 RefreshActions(state, expeditionBlocks);
+                RefreshFelskullChoice(state);
             }
 
             RefreshHand(_session.Engine?.State);
@@ -877,7 +879,7 @@ namespace Grimhand.Presentation.Battle
             }
 
             _cardDeckReplaceOverlay?.Refresh();
-            _cardAltarOverlay?.Refresh();
+            _altarOverlay?.Refresh();
 
             RefreshPlanningChromeVisibility();
         }
@@ -1433,7 +1435,8 @@ namespace Grimhand.Presentation.Battle
             }
 
             var descCard = CardVisualResolver.ResolveForDescription(card, _definitions);
-            var stats = BattleUiFormatters.BuildCardStatsLine(_session?.Engine?.State, _session?.Engine?.Draft, descCard);
+            var stats = BattleUiFormatters.BuildCardStatsLine(
+                _session?.Engine?.State, _session?.Engine?.Draft, descCard, definitions: _definitions);
             var keywords = BattleUiFormatters.BuildCardKeywordTooltip(_session?.Engine?.State, descCard, _definitions);
             var body = string.IsNullOrWhiteSpace(keywords) ? stats : $"{stats}\n\n{keywords}";
             if (string.IsNullOrWhiteSpace(body))
@@ -1569,6 +1572,27 @@ namespace Grimhand.Presentation.Battle
         {
             if (keywordTooltipPanel != null)
                 keywordTooltipPanel.SetActive(false);
+        }
+
+        void RefreshFelskullChoice(BattleState state)
+        {
+            if (_felskullChoice == null)
+            {
+                _felskullChoice = gameObject.AddComponent<FelskullBattleChoiceView>();
+                _felskullChoice.EnsureBuilt(transform);
+            }
+
+            if (state != null && state.AwaitingFelskullChoice)
+            {
+                _felskullChoice.Show(choice =>
+                {
+                    _session?.ApplyFelskullChoice(choice);
+                    Refresh();
+                });
+                return;
+            }
+
+            _felskullChoice.Hide();
         }
 
         public System.Collections.Generic.IEnumerable<CombatantPortraitView> AllPortraitViews()

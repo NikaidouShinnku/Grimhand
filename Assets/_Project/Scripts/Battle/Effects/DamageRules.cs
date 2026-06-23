@@ -42,24 +42,27 @@ namespace Grimhand.Battle.Effects
                 power,
                 isSacrificeDamage,
                 cardCost,
-                applyPositionMultiplier: true);
+                applyPositionMultiplier: false);
+
+            RelicEffectRules.AdjustRelicOutgoingDamage(
+                state, actor, recipient, cardType, ref outgoingPower, ref ignoreDefPercent);
 
             RelicBattleRules.MarkFirstAttackConsumed(state, actor, cardType);
 
-            var incoming = PositionRules.GetIncomingDamageMultiplier(PositionRules.GetEffectiveSlot(state, recipient));
-            var raw = (int)Math.Round(outgoingPower * incoming);
+            var raw = outgoingPower;
 
             if (raw > 0)
                 BossTraitRules.TryApplyFirstHitBlock(state, recipient, events);
 
-            var blocked = Math.Min(recipient.Block, raw);
+            var effectiveBlock = CombatModifierRules.ComputeEffectiveBlock(recipient, ignoreDefPercent);
+            var blocked = Math.Min(effectiveBlock, raw);
             recipient.Block -= blocked;
             if (raw > 0)
                 MinionTraitRules.OnIncomingDamageHit(state, actor, recipient, events);
             var afterBlock = raw - blocked;
 
-            var effectiveDef = CombatMechanicsRules.GetEffectiveDefense(state, recipient, ignoreDefPercent);
-            var hpDamage = CombatMechanicsRules.ComputeHpDamageAfterDefense(afterBlock, effectiveDef);
+            var hpDamage = CombatModifierRules.ApplyIncomingDamageModifiers(
+                recipient, afterBlock, ignoreDefPercent);
 
             if (redirectedByGuard)
                 hpDamage = CombatMechanicsRules.ApplyGuardReduction(hpDamage);
@@ -182,6 +185,13 @@ namespace Grimhand.Battle.Effects
                 });
                 return;
             }
+
+            if (state != null)
+                RelicBattleRules.RefreshDerivedStats(state, actor, state.Config?.RunModifiers);
+
+            amount = CombatModifierRules.ApplyBlockGainModifiers(actor, amount);
+            if (amount <= 0)
+                return;
 
             actor.Block += amount;
             events.Add(new BattleEvent(BattleEventKind.BlockGained, actor.DisplayName)

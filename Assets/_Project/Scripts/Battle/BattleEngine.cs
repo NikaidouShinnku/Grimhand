@@ -8,6 +8,7 @@ using Grimhand.Battle.Model;
 using Grimhand.Battle.Planning;
 using Grimhand.Battle.Reactions;
 using Grimhand.Battle.Rules;
+using Grimhand.Battle.Status;
 using Grimhand.Core;
 
 namespace Grimhand.Battle
@@ -59,6 +60,20 @@ namespace Grimhand.Battle
 
         public void StartBattle()
         {
+            if (_state.AwaitingFelskullChoice)
+                return;
+
+            SetPhase(TurnPhase.Draw);
+            ProcessDrawPhase();
+            BeginPlanning();
+        }
+
+        public void ResumeAfterFelskullChoice()
+        {
+            if (!_state.AwaitingFelskullChoice)
+                return;
+
+            _state.AwaitingFelskullChoice = false;
             SetPhase(TurnPhase.Draw);
             ProcessDrawPhase();
             BeginPlanning();
@@ -184,6 +199,8 @@ namespace Grimhand.Battle
             CombatMechanicsRules.ClearResolveTurnFlags(_state);
             _state.RespondMitigationByEnemyCard.Clear();
             _state.PendingParryStrikes.Clear();
+            _state.SuppressedEnemyCardInstanceIds.Clear();
+            _state.PlayerRespondStatusUsedThisTurn = false;
 
             var baseline = SpeedResolver.BuildResolutionOrder(
                 _state, _state.PlayerPlan, _state.EnemyPlan, _rng);
@@ -244,16 +261,25 @@ namespace Grimhand.Battle
                 RespondEffectExecutor.Execute(
                     _state, actor, card, entry.RespondContext.Value, _events, _rng);
 
-            EffectActionExecutor.ExecuteUnconditionalActions(_state, actor, card, _events, _rng);
+            if (entry.ApplyConditionalEffects
+                || (!card.Keywords.Contains("respond_status") && !card.Keywords.Contains("respond_defense")))
+                EffectActionExecutor.ExecuteUnconditionalActions(_state, actor, card, _events, _rng);
             ConsumableRules.RecordLastPlayerAttackCard(_state, actor, card);
             RelicBattleRules.TryApplyStatusCardTeamBlock(_state, actor, card, _events);
             RelicEffectRules.OnCardResolved(_state, actor, card, _events, _rng);
             PassiveCardMechanicsRules.OnEndlessBladeResolved(_state, card, _events);
+            if (card.DefinitionId == PassiveCardMechanicsRules.SpiderFatalBindCardId)
+                PassiveCardMechanicsRules.OnSpiderFatalBindResolved(_state, actor, card, _events, _rng);
 
             TrySelfDestructAfterCard(actor, card);
 
             if (card.Keywords.Contains("exhaust") || card.IsBonusHandCard)
+            {
+                if (card.DefinitionId != PassiveCardMechanicsRules.SandSpearReforgeCardId)
+                    PassiveCardMechanicsRules.TryTriggerSandSpearReforgeOnExhaust(
+                        _state, actor, card, _events, _rng);
                 DeckRules.ExhaustCard(_state, actor.Team, card, _events);
+            }
             else
                 DeckRules.MovePlayedCardToDiscard(_state, actor.Team, card, _events);
 
@@ -298,6 +324,25 @@ namespace Grimhand.Battle
             if (actor == null || card == null || !actor.IsAlive)
                 return;
 
+            if (actor.Team == TeamSide.Enemy
+                && _state.SuppressedEnemyCardInstanceIds.Contains(card.InstanceId))
+            {
+                _events.Add(new BattleEvent(BattleEventKind.ReactionTriggered,
+                    $"{card.DisplayName} 被应对状态压制")
+                {
+                    CombatantId = actor.Id,
+                    CardInstanceId = card.InstanceId
+                });
+                DeckRules.MovePlayedCardToDiscard(_state, actor.Team, card, _events);
+                _events.Add(new BattleEvent(BattleEventKind.CardResolvedEnded, card.DisplayName)
+                {
+                    CombatantId = actor.Id,
+                    CardInstanceId = card.InstanceId
+                });
+                EvaluateOutcome();
+                return;
+            }
+
             var eventStart = _events.Count;
 
             _events.Add(new BattleEvent(BattleEventKind.PortraitPoseChanged, actor.DisplayName)
@@ -313,11 +358,16 @@ namespace Grimhand.Battle
                 CardType = card.CardType
             });
 
-            EffectActionExecutor.ExecuteAll(_state, actor, card, _events, _rng);
+            if (SpecialCardRules.IsSpecialCard(card))
+                SpecialCardRules.TryResolve(_state, actor, card, _events, _rng);
+            else
+                EffectActionExecutor.ExecuteAll(_state, actor, card, _events, _rng);
             ConsumableRules.RecordLastPlayerAttackCard(_state, actor, card);
             RelicBattleRules.TryApplyStatusCardTeamBlock(_state, actor, card, _events);
             RelicEffectRules.OnCardResolved(_state, actor, card, _events, _rng);
             PassiveCardMechanicsRules.OnEndlessBladeResolved(_state, card, _events);
+            if (card.DefinitionId == PassiveCardMechanicsRules.SpiderFatalBindCardId)
+                PassiveCardMechanicsRules.OnSpiderFatalBindResolved(_state, actor, card, _events, _rng);
 
             if (actor.Team == TeamSide.Enemy)
                 DefenderRespondArmRules.TryArmFromEnemyCardResolve(_state, actor, card);
@@ -325,7 +375,12 @@ namespace Grimhand.Battle
             TrySelfDestructAfterCard(actor, card);
 
             if (card.Keywords.Contains("exhaust") || card.IsBonusHandCard)
+            {
+                if (card.DefinitionId != PassiveCardMechanicsRules.SandSpearReforgeCardId)
+                    PassiveCardMechanicsRules.TryTriggerSandSpearReforgeOnExhaust(
+                        _state, actor, card, _events, _rng);
                 DeckRules.ExhaustCard(_state, actor.Team, card, _events);
+            }
             else
                 DeckRules.MovePlayedCardToDiscard(_state, actor.Team, card, _events);
 
@@ -581,6 +636,7 @@ namespace Grimhand.Battle
 
             RelicBattleRules.RefreshAllDerivedStats(_state);
             TalentBattleRules.OnBattleInitialized(_state);
+            ApplyExpeditionPersistentStatuses(config);
             RelicBattleRules.ApplyTeamHpBonus(_state, config.RunModifiers);
 
             foreach (var combatant in _state.Combatants)
@@ -598,6 +654,33 @@ namespace Grimhand.Battle
             DeckRules.ShuffleDrawPile(_state, TeamSide.Player, _rng, _events);
             DeckRules.ShuffleDrawPile(_state, TeamSide.Enemy, _rng, _events);
             EvaluateOutcome();
+
+            if (config.RunModifiers?.RequiresFelskullChoice == true)
+                _state.AwaitingFelskullChoice = true;
+        }
+
+        void ApplyExpeditionPersistentStatuses(BattleConfig config)
+        {
+            if (config?.Combatants == null)
+                return;
+
+            foreach (var cc in config.Combatants)
+            {
+                if (cc.Team != TeamSide.Player || cc.SandSpearReforgeDamage <= 0)
+                    continue;
+
+                var combatant = _state.GetCombatant(cc.Id);
+                if (combatant == null || !combatant.IsAlive)
+                    continue;
+
+                StatusRules.ApplyStatus(
+                    _state,
+                    combatant,
+                    StatusCatalog.SandSpearReforge,
+                    cc.SandSpearReforgeDamage,
+                    -1,
+                    _events);
+            }
         }
 
         static void PrepareCombatantDeck(CombatantConfig cc, BattleRng deckRng)

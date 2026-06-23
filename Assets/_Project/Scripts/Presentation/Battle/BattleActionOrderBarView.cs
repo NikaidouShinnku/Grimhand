@@ -225,7 +225,9 @@ namespace Grimhand.Presentation.Battle
             CenterCardInEntry(slot.Card.transform as RectTransform);
 
             var visual = CardVisualResolver.Resolve(card, _catalog, _characterVisuals, _definitions);
-            var displayName = entry.IsHidden ? "?" : card.DisplayName;
+            var displayName = !string.IsNullOrEmpty(entry.DisplayName)
+                ? entry.DisplayName
+                : (entry.IsHidden ? "?" : card.DisplayName);
 
             slot.Card.BindWithCard(
                 card,

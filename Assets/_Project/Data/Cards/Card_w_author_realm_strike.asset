@@ -17,9 +17,9 @@ MonoBehaviour:
   OwnerCharacterId: char_knight
   Cost: 0
   CardType: 0
-  Rarity: 4
   Keywords:
-  - aoe
+  - exhaust
+  Rarity: 4
   Actions:
   - Type: 0
     Target: 12

@@ -3,7 +3,7 @@ using Grimhand.Expedition.Model;
 
 namespace Grimhand.Expedition
 {
-    /// <summary>天赋池静态配置：战士 / 法老 / 恶魔，各两槽位。</summary>
+    /// <summary>天赋池静态配置：战士 / 法老 / 恶魔，各两槽位（对照 Grimhand实际内容总览表.xlsx）。</summary>
     public static class TalentCatalog
     {
         public const string KnightId = "char_knight";
@@ -61,68 +61,68 @@ namespace Grimhand.Expedition
         static IEnumerable<TalentDefinition> BuildKnight()
         {
             yield return Def(KnightId, 1, 1, "talent_knight_s1_lv1", "前排护甲",
-                "如果处于前排，回合开始时获得 +2 护甲。");
+                "如果处于前排，回合开始时获得+2护甲");
             yield return Def(KnightId, 1, 3, "talent_knight_s1_lv3", "突击姿态",
-                "当不处于前排时，减少 25% DEF，增加 33% ATK。");
+                "当不处于前排时，受到33%额外伤害，攻击牌增加33%伤害");
             yield return Def(KnightId, 1, 5, "talent_knight_s1_lv5", "余护甲回血",
-                "回合结束时如果护甲量大于 0，则回复 2 HP。");
+                "回合结束时如果护甲量大于0，则回复2HP");
             yield return Def(KnightId, 1, 7, "talent_knight_s1_lv7", "背水一战",
-                "当 HP 低于 10% 时，获得 50% 额外 ATK。");
+                "当HP低于10%时，攻击牌增加50%伤害");
             yield return Def(KnightId, 1, 10, "talent_knight_s1_lv10", "绝地格挡",
-                "每场战斗第一次即将受到致死攻击时，获得 DEF×1.0+10 点护甲。");
+                "每场战斗第一次即将受到致死攻击时，获得50点护甲");
 
             yield return Def(KnightId, 2, 2, "talent_knight_s2_lv2", "应对减伤",
-                "应对攻击成功触发后，下一次受到伤害 -20%。");
+                "成功触发应对后，下一次受到伤害减少20%");
             yield return Def(KnightId, 2, 3, "talent_knight_s2_lv3", "应对强击",
-                "应对攻击成功触发后，下一次攻击伤害 +20%。");
+                "成功触发应对后，下一张攻击牌增加20%伤害");
             yield return Def(KnightId, 2, 6, "talent_knight_s2_lv6", "战阵鼓舞",
-                "战士场上存活时，全队最大 HP +10。");
+                "战士场上存活时，全队最大HP+10");
             yield return Def(KnightId, 2, 8, "talent_knight_s2_lv8", "连击",
-                "如果一回合中战士连续使用三张攻击牌，使其在当回合获得 33% 额外 ATK。");
+                "如果一回合中连续使用三张攻击牌，当回合的所有攻击牌增加33%伤害");
             yield return Def(KnightId, 2, 10, "talent_knight_s2_lv10", "铁壁转化",
-                "不再获得护甲；每当获取护甲时，变为下一张伤害牌增加护甲量的伤害。");
+                "不再获得护甲，每当获取护甲时变为下一张攻击牌增加护甲量的伤害");
         }
 
         static IEnumerable<TalentDefinition> BuildMage()
         {
             yield return Def(MageId, 1, 1, "talent_mage_s1_lv1", "镜像护甲",
-                "使用护甲类卡牌时，如果目标不是自己，自己也获得 25% 的护甲。");
+                "使用护甲类卡牌时，如果目标不是自己，自己也获得25%的护甲");
             yield return Def(MageId, 1, 5, "talent_mage_s1_lv5", "法老复苏",
-                "每场远征中，法老获得一次复活机会并回复 30% HP。");
+                "每场远征中，法老获得一次复活机会并回复30%HP");
             yield return Def(MageId, 1, 8, "talent_mage_s1_lv8", "溢出护甲",
-                "治疗超出目标 HP 上限时，溢出转化为等量护甲。");
+                "治疗超出目标HP上限时，溢出转化为等量护甲");
             yield return Def(MageId, 1, 10, "talent_mage_s1_lv10", "临终庇护",
-                "法老死亡时，全队获得 DEF×0.8+10 护甲。");
+                "法老死亡时，全队获得25护甲");
 
             yield return Def(MageId, 2, 2, "talent_mage_s2_lv2", "先声状态",
-                "每场战斗第一张状态牌消耗能量 -1。");
+                "每场战斗第一张状态牌消耗能量-1");
             yield return Def(MageId, 2, 4, "talent_mage_s2_lv4", "剧毒",
-                "施加的中毒层数 +2。");
+                "施加的中毒层数+2");
             yield return Def(MageId, 2, 6, "talent_mage_s2_lv6", "初击减速",
-                "每场战斗中，受到法老伤害的第一个敌人获得 1 层减速。");
+                "每场战斗中，受到法老伤害的第一个敌人获得1层减速");
             yield return Def(MageId, 2, 10, "talent_mage_s2_lv10", "毒爆",
-                "所有中毒层数的累计伤害都会在一回合内爆发。");
+                "所有中毒层数的累计伤害都会在一回合内爆发");
         }
 
         static IEnumerable<TalentDefinition> BuildRanger()
         {
             yield return Def(RangerId, 1, 1, "talent_ranger_s1_lv1", "温和献祭",
-                "献祭类卡牌减少 10% 的血量消耗。");
+                "献祭类卡牌减少10%的血量消耗");
             yield return Def(RangerId, 1, 5, "talent_ranger_s1_lv5", "血怒献祭",
-                "献祭类卡牌获得 30% 增伤，但同时增加 50% 血量消耗。");
+                "献祭类卡牌增加30%伤害，但同时增加50%血量消耗");
             yield return Def(RangerId, 1, 7, "talent_ranger_s1_lv7", "低血狂怒",
-                "当 HP 低于 30% 时，获得 20% 额外 ATK。");
+                "当HP低于30%时，攻击牌增加25%伤害");
             yield return Def(RangerId, 1, 10, "talent_ranger_s1_lv10", "血债累击",
-                "献祭总血量每达到 50 点增加 1 ATK，最多可增加 20 ATK（整场远征累计）。");
+                "献祭总血量每达到50点所有攻击牌增加1点伤害，最多可增加10点（整场远征累计）");
 
             yield return Def(RangerId, 2, 2, "talent_ranger_s2_lv2", "嗜血护甲",
-                "吸血效果超出 HP 上限时，溢出转化为等量护甲。");
+                "吸血效果超出HP上限时，溢出转化为等量护甲");
             yield return Def(RangerId, 2, 4, "talent_ranger_s2_lv4", "血祭节流",
-                "每次献祭后，下一张牌能量消耗 -1（最低 0）。");
+                "每次献祭后，下一张牌能量消耗-1（最低0）");
             yield return Def(RangerId, 2, 6, "talent_ranger_s2_lv6", "无尽血刃",
-                "远征开始时，将一张「无尽血刃」置入玩家牌组。");
+                "远征开始时，将一张「无尽血刃」置入该角色牌组");
             yield return Def(RangerId, 2, 8, "talent_ranger_s2_lv8", "孤猎",
-                "非 Boss 战中，如敌人只有一人，则获得 30% 额外 ATK。");
+                "非Boss战中，若只有一个敌人，则攻击牌增加30%伤害");
         }
 
         static TalentDefinition Def(

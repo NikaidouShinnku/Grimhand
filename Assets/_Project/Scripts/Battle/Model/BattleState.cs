@@ -78,14 +78,26 @@ namespace Grimhand.Battle.Model
         /// <summary>下回合玩家能量回复惩罚（摄魂等）。</summary>
         public int PendingPlayerEnergyRegenPenaltyNextTurn { get; set; }
 
-        /// <summary>无尽血刃等：单张牌实例在本场战斗中的 outgoing 伤害倍率（100=1×）。</summary>
+        /// <summary>本回合被应对状态压制的敌方牌（如剑柄猛击），结算时跳过效果。</summary>
+        public HashSet<int> SuppressedEnemyCardInstanceIds { get; } = new();
+
+        /// <summary>X 费牌打出时实际消耗的能量（太阳神之怒等）。</summary>
+        public Dictionary<int, int> EnergySpentByCardInstanceId { get; } = new();
+
+        /// <summary>key = 牌 instanceId；该牌下次造成伤害时的倍率（%），无尽血刃等。</summary>
         public Dictionary<int, int> CardInstanceDamageMultiplierPercent { get; } = new();
 
+        /// <summary>法师天赋：本局首张状态牌 -1 费（待消耗）。</summary>
         public bool TalentMageFirstStatusDiscountPending { get; set; }
+
+        public bool PlayerRespondStatusUsedThisTurn { get; set; }
         public bool TalentMageFirstHitSlowPending { get; set; }
         public bool TalentMageReviveAvailable { get; set; }
         public int TalentRangerBloodDebtAttackBonus { get; set; }
         public int TalentSacrificeHpAccumulatedBattle { get; set; }
+
+        /// <summary>魔焰颅骨：战斗开始前等待玩家选择。</summary>
+        public bool AwaitingFelskullChoice { get; set; }
 
         public CombatantState GetCombatant(string id)
         {

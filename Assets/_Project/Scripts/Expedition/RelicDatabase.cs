@@ -71,10 +71,11 @@ namespace Grimhand.Expedition
                     break;
                 case "demon_only":
                     mods.SacrificeHpCostReductionPercent += 15f;
-                    mods.SacrificeStackAttackBonus += 1;
+                    mods.SacrificeStackAttackBonus += 2;
                     break;
                 case "front_armor_10":
                     mods.BattleStartFrontBlock += 10;
+                    mods.TeamDefenseBonus += 3;
                     break;
                 case "extra_draw_1":
                     mods.ExtraDrawOnBattleStart += 1;
@@ -89,6 +90,7 @@ namespace Grimhand.Expedition
                     mods.HighCostCardDamageBonusPercent += 15f;
                     break;
                 case "first_hit_minus_30pct":
+                    mods.TeamDefenseBonus += 3;
                     mods.FirstHitDamageReductionPercent += 30f;
                     break;
                 case "heal_2_per_turn":
@@ -125,7 +127,7 @@ namespace Grimhand.Expedition
                     {
                         mods.BattleStartSpeedBonusTurns = System.Math.Max(mods.BattleStartSpeedBonusTurns, 2);
                         mods.BattleStartSpeedBonus += 2;
-                        mods.EndTurnEnemyFireDamage += 3;
+                        mods.TurnStartEnemyDamage += 3;
                     }
 
                     break;
@@ -139,6 +141,19 @@ namespace Grimhand.Expedition
                     mods.RevengeAttackFlatBonus += 4;
                     break;
                 case "revive_2_per_run":
+                    break;
+                case "post_battle_heal_5pct":
+                    mods.PostBattleTeamHealPercent += 5f;
+                    break;
+                case "front_burn_target_15x":
+                    mods.FrontRowBurnTargetDamageMultiplier = System.Math.Max(
+                        mods.FrontRowBurnTargetDamageMultiplier, 1.5f);
+                    break;
+                case "front_ignore_armor_75pct":
+                    mods.FrontRowIgnoreArmorDamagePercent = 75;
+                    break;
+                case "felskull_choice":
+                    mods.RequiresFelskullChoice = true;
                     break;
             }
         }
@@ -154,44 +169,44 @@ namespace Grimhand.Expedition
                     "战士拥有护甲期间受到的伤害减少20%。战士每回合首次被攻击时自动获得8点护甲。",
                     "warrior_only", requiredCharacterId: "char_knight"),
                 Def(RelicIds.BloodAlter, "血祭坛", RelicRarity.Rare, "恶魔专属",
-                    "恶魔使用献祭类卡牌时，献祭的HP消耗减少15%。每次献祭后本场战斗ATK+1（可叠加，战斗结束重置）。",
+                    "恶魔使用献祭类卡牌时，献祭的HP消耗减少15%。每次献祭后本场战斗攻击牌+2伤害（可叠加，战斗结束重置）。",
                     "demon_only", requiredCharacterId: "char_ranger"),
                 Def(RelicIds.JadeStone, "翡翠原石", RelicRarity.Common, "翡翠系列",
-                    "每回合开始时随机1名队友获得2点护甲。",
+                    "每回合开始时，随机一名队友获得2点护甲。",
                     "evolvable"),
                 Def(RelicIds.JadeRing, "翡翠戒指", RelicRarity.Rare, "翡翠进化·防御",
-                    "每回合开始时全队获得3点护甲。被攻击时15%概率完全闪避。",
+                    "每回合开始时，全队获得3点护甲。被攻击时15%概率完全闪避（不受任何伤害）。",
                     "evolved_from_jade_stone", evolutionOnly: true),
                 Def(RelicIds.JadeDagger, "翡翠短刀", RelicRarity.Rare, "翡翠进化·攻击",
-                    "全队ATK+2。每场战斗首次击杀敌人时，击杀者额外抽1张牌并回复2点能量。",
+                    "全队攻击牌+2伤害。每场战斗首次击杀敌人时，抽1张牌并回复2点能量。",
                     "evolved_from_jade_stone", atk: 2, evolutionOnly: true),
                 Def(RelicIds.BurningBoots, "燃烬之靴", RelicRarity.Common, "烈焰系列",
-                    "每场战斗第一回合全队SPD临时+2（仅影响第一回合结算顺序）。",
+                    "每场战斗第一回合，全队SPD临时+2（仅影响第一回合结算顺序）。",
                     "evolvable"),
                 Def(RelicIds.CrimsonBurningBoots, "赤红烈焰靴", RelicRarity.Rare, "烈焰进化",
-                    "每场战斗前2回合全队SPD临时+2。每回合结束时对所有敌人造成3点伤害（无视DEF）。",
+                    "每场战斗前2回合全队SPD临时+2。每回合开始时对所有敌人造成3点伤害。",
                     "evolved_from_burning_boots", evolutionOnly: true),
                 Def(RelicIds.FlameSword, "烈焰之剑", RelicRarity.Common, "通用",
-                    "全队ATK+2。攻击类卡牌有20%概率附加5层灼烧（5回合，每层回合结束1伤害，无视DEF）。",
-                    "burn_proc_20pct", atk: 2),
+                    "全队攻击牌+3伤害。攻击类卡牌有20%概率附加5层灼烧效果（5回合）",
+                    "burn_proc_20pct", atk: 3),
                 Def(RelicIds.IronArmor, "铁壁战甲", RelicRarity.Common, "通用",
-                    "全队DEF+2。每场战斗开始时前排角色获得10点护甲。",
-                    "front_armor_10", def: 2),
+                    "每场战斗开始时，前排角色获得10点护甲。全队防御牌额外+3护甲。",
+                    "front_armor_10"),
                 Def(RelicIds.WarriorHelmet, "角斗士之盔", RelicRarity.Common, "通用",
                     "全队HP+8。角色被攻击后，该角色下一次攻击伤害+4。",
                     "revenge_atk_4", hp: 8),
                 Def(RelicIds.CatStatue, "猫灵雕像", RelicRarity.Common, "通用",
-                    "每场战斗开始时额外抽1张牌（首回合手牌变为6张）。不会抽到污染的卡牌。",
+                    "每场战斗开始时额外抽1张牌（首回合手牌变为6张）。不会再抽取污染的卡牌。",
                     "extra_draw_1"),
                 Def(RelicIds.ElfBow, "精灵之弓", RelicRarity.Common, "通用",
-                    "后排角色的攻击类卡牌可指定攻击敌方任意位置目标（无视敌方位置优先级）。",
+                    "后排角色的攻击类卡牌可以指定攻击敌方任意位置的目标（无视敌方位置优先级）。",
                     "back_target_any"),
                 Def(RelicIds.DragonRing, "龙纹指环", RelicRarity.Rare, "通用",
-                    "全队ATK+3。任何角色打出费用>=3的卡牌时，该卡伤害额外+15%。",
+                    "全队攻击牌+3伤害。任何角色打出费用≥3的卡牌时，该卡牌伤害额外+15%。",
                     "cost3_plus_15pct", atk: 3),
                 Def(RelicIds.PaladinShield, "圣骑之盾", RelicRarity.Rare, "通用",
-                    "全队DEF+3。每回合第一个受到伤害的角色，受伤减少30%。",
-                    "first_hit_minus_30pct", def: 3),
+                    "全队防御牌+3护甲。每回合第一个受到伤害的角色，受伤减少30%",
+                    "first_hit_minus_30pct"),
                 Def(RelicIds.SilverMoonPendant, "银月项链", RelicRarity.Rare, "通用",
                     "每回合结束时回复全队2HP。所有增益/减益状态持续时间+1回合（含中毒、灼烧等）。",
                     "heal_2_per_turn"),
@@ -199,8 +214,20 @@ namespace Grimhand.Expedition
                     "每回合中，每个角色打出的第一张攻击牌伤害+5，第一张防御牌获得5护甲。若同一角色本回合既出了攻击又出了防御，该角色在回合结束时回复5HP。",
                     "first_atk_5_first_def_5_both_heal_5"),
                 Def(RelicIds.LeafOfMiracle, "奇迹之叶", RelicRarity.Epic, "通用",
-                    "每次远征限2次：队友HP降至0时不死亡，恢复20%HP并获得无敌1回合。",
-                    "revive_2_per_run")
+                    "每次远征限2次：当任何队友HP首次降至0时，该队友不进入死亡状态，而是恢复至20%HP并获得无敌1回合。",
+                    "revive_2_per_run"),
+                Def(RelicIds.BurningLongsword, "烈火长剑", RelicRarity.Common, "通用",
+                    "使我方前排角色对拥有灼烧状态的敌人造成1.5倍的伤害",
+                    "front_burn_target_15x"),
+                Def(RelicIds.CrystalLongsword, "水晶剑", RelicRarity.Common, "通用",
+                    "使我方前排角色的攻击无视对方护甲，但仅造成75%的伤害",
+                    "front_ignore_armor_75pct"),
+                Def(RelicIds.Bonfire, "便携篝火", RelicRarity.Common, "通用",
+                    "每场战斗胜利后，所有我方角色恢复5%HP",
+                    "post_battle_heal_5pct"),
+                Def(RelicIds.Felskull, "魔焰颅骨", RelicRarity.Common, "通用",
+                    "每场战斗开始时，你必须选择其一：A.所有我方角色失去5%HP，本场战斗获得1额外能量上限；B.在本场战斗中失去1点能量上限，所有我方角色的攻击牌增加10%伤害",
+                    "felskull_choice")
             };
 
             var map = new Dictionary<string, RelicDefinition>();

@@ -59,6 +59,8 @@ namespace Grimhand.Expedition
 
             if (entry.IsBonus && entry.BonusIndex >= 0 && entry.BonusIndex < member.BonusCards.Count)
             {
+                var removed = member.BonusCards[entry.BonusIndex];
+                ExpeditionDeckInstanceRules.ClearUpgradeForInstance(member, removed?.DeckInstanceId);
                 member.BonusCards.RemoveAt(entry.BonusIndex);
                 return true;
             }
@@ -70,6 +72,8 @@ namespace Grimhand.Expedition
             if (string.IsNullOrEmpty(id))
                 return false;
 
+            ExpeditionDeckInstanceRules.ClearUpgradeForInstance(member, entry.Template?.DeckInstanceId);
+
             if (!member.RemovedCardCounts.ContainsKey(id))
                 member.RemovedCardCounts[id] = 0;
 
@@ -77,17 +81,47 @@ namespace Grimhand.Expedition
             return true;
         }
 
-        public static bool TryUpgradeCard(PartyMemberSnapshot member, string definitionId, int bonusPercent)
+        public static bool TryUpgradeCard(PartyMemberSnapshot member, DeckCardEntry entry, int levels = 1)
         {
-            if (member == null || string.IsNullOrEmpty(definitionId))
+            if (entry?.Template == null)
                 return false;
 
-            if (!member.CardPowerBonusPercent.ContainsKey(definitionId))
-                member.CardPowerBonusPercent[definitionId] = 0;
+            var instanceId = entry.Template.DeckInstanceId;
+            if (string.IsNullOrEmpty(instanceId))
+                instanceId = entry.Key;
 
-            member.CardPowerBonusPercent[definitionId] += bonusPercent;
-            return true;
+            return CardUpgradeRules.TryUpgradeLevel(
+                member,
+                instanceId,
+                entry.Template.DisplayName,
+                levels);
         }
+
+        public static bool TryUpgradeCard(
+            PartyMemberSnapshot member,
+            ExpeditionRunDeckCatalog.DeckEntry entry,
+            int levels = 1)
+        {
+            if (entry?.Template == null)
+                return false;
+
+            var instanceId = entry.Template.DeckInstanceId;
+            if (string.IsNullOrEmpty(instanceId))
+                instanceId = entry.Key;
+
+            return CardUpgradeRules.TryUpgradeLevel(
+                member,
+                instanceId,
+                entry.Template.DisplayName,
+                levels);
+        }
+
+        public static bool TryUpgradeCard(
+            PartyMemberSnapshot member,
+            string deckInstanceId,
+            string displayName,
+            int levels = 1) =>
+            CardUpgradeRules.TryUpgradeLevel(member, deckInstanceId, displayName, levels);
 
         public static bool TryFuseCards(
             ExpeditionConfig config,
@@ -132,6 +166,7 @@ namespace Grimhand.Expedition
 
             ExpeditionBattleConfigBuilder.HydrateTemplateFromCatalog(result, config?.PlayerCardCatalog);
             result.OwnerCharacterId = owner.CharacterDefinitionId;
+            ExpeditionDeckInstanceRules.PrepareNewDeckCard(owner, result);
             return true;
         }
 

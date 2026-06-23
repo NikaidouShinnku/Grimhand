@@ -37,7 +37,7 @@ namespace Grimhand.Battle.Rules
                 basePower,
                 isSacrifice,
                 cost,
-                applyPositionMultiplier: true);
+                applyPositionMultiplier: false);
         }
 
         /// <summary>对指定目标预览最终 HP 伤害（含站位 incoming、护甲、DEF；不修改战斗状态）。</summary>
@@ -312,16 +312,15 @@ namespace Grimhand.Battle.Rules
                 primaryPower,
                 isSacrificeSelfDamage,
                 card.Cost,
-                applyPositionMultiplier: true);
+                applyPositionMultiplier: false);
 
-            var incoming = PositionRules.GetIncomingDamageMultiplier(
-                PositionRules.GetEffectiveSlot(state, recipient));
-            var raw = (int)System.Math.Round(outgoing * incoming);
-            var blocked = System.Math.Min(recipient.Block, raw);
-            var afterBlock = raw - blocked;
+            var effectiveBlock = CombatModifierRules.ComputeEffectiveBlock(recipient, action.IgnoreDefPercent);
+            var blocked = System.Math.Min(effectiveBlock, outgoing);
+            var afterBlock = outgoing - blocked;
 
-            var effectiveDef = CombatMechanicsRules.GetEffectiveDefense(state, recipient, action.IgnoreDefPercent);
-            var hpDamage = CombatMechanicsRules.ComputeHpDamageAfterDefense(afterBlock, effectiveDef);
+            RelicBattleRules.RefreshDerivedStats(state, recipient, state?.Config?.RunModifiers);
+            var hpDamage = CombatModifierRules.ApplyIncomingDamageModifiers(
+                recipient, afterBlock, action.IgnoreDefPercent);
 
             if (redirectedByGuard)
                 hpDamage = CombatMechanicsRules.ApplyGuardReduction(hpDamage);

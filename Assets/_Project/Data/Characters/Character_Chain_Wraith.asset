@@ -32,5 +32,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 2a9300ab352cfe34f8e23583728e9644, type: 2}
   - {fileID: 11400000, guid: 3a704fdb5cfb5a34687b3009f3ce2762, type: 2}
   - {fileID: 11400000, guid: 0630d9516bc9c8f47b561ca492633c59, type: 2}
+  - {fileID: 11400000, guid: 8268e374575c46ad8d48f1f8ea6d3dac, type: 2}
   Traits:
   - minion_chain_wraith_debuff_share

@@ -25,51 +25,7 @@ namespace Grimhand.Battle.Rules
             CombatantState combatant,
             RunModifierSnapshot mods)
         {
-            CombatantRules.RefreshDerivedStats(combatant);
-            if (combatant == null || !combatant.IsAlive)
-                return;
-
-            if (mods != null && combatant.Team == TeamSide.Player)
-            {
-                if (mods.TeamAttackBonus != 0)
-                    combatant.Attack += mods.TeamAttackBonus;
-
-                if (mods.TeamDefenseBonus != 0)
-                    combatant.Defense += mods.TeamDefenseBonus;
-
-                if (combatant.SacrificeAttackStacks > 0)
-                    combatant.Attack += combatant.SacrificeAttackStacks;
-
-                var effective = state != null
-                    ? PositionRules.GetEffectiveSlot(state, combatant)
-                    : combatant.Slot;
-
-                if (mods.FrontDefenseBonus != 0 && effective == FormationSlot.Front)
-                    combatant.Defense += mods.FrontDefenseBonus;
-            }
-
-            ApplyTurnStatBonusPercents(combatant);
-            TalentBattleRules.ApplyDerivedStatModifiers(state, combatant, mods);
-        }
-
-        static void ApplyTurnStatBonusPercents(CombatantState combatant)
-        {
-            if (combatant == null)
-                return;
-
-            if (combatant.TurnAttackBonusPercent > 0)
-            {
-                var bonus = (int)System.Math.Round(
-                    combatant.Attack * combatant.TurnAttackBonusPercent / 100f);
-                combatant.Attack += bonus;
-            }
-
-            if (combatant.TurnDefenseBonusPercent > 0)
-            {
-                var bonus = (int)System.Math.Round(
-                    combatant.Defense * combatant.TurnDefenseBonusPercent / 100f);
-                combatant.Defense += bonus;
-            }
+            CombatModifierRules.RefreshCombatantModifiers(state, combatant, mods);
         }
 
         public static void ApplyTeamHpBonus(BattleState state, RunModifierSnapshot mods)
@@ -169,9 +125,6 @@ namespace Grimhand.Battle.Rules
                 actor.PendingRevengeAttackBonus = 0;
             }
 
-            if (cardType == CardType.Attack && actor.SacrificeAttackStacks > 0)
-                bonus += actor.SacrificeAttackStacks;
-
             return bonus;
         }
 
@@ -210,12 +163,7 @@ namespace Grimhand.Battle.Rules
             if (power < 1)
                 power = 1;
 
-            if (applyPositionMultiplier && state != null && actor != null)
-            {
-                var outgoing = PositionRules.GetDamageMultiplier(
-                    PositionRules.GetEffectiveSlot(state, actor));
-                power = System.Math.Max(power > 0 ? 1 : 0, (int)System.Math.Round(power * outgoing));
-            }
+            power = CombatModifierRules.ApplyOutgoingDamageModifiers(actor, cardType, power);
 
             return power;
         }

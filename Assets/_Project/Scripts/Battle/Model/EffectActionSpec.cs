@@ -42,6 +42,11 @@ namespace Grimhand.Battle.Model
         /// <summary>目标本回合已被攻击时，额外增加基础威力的此百分比。</summary>
         public int BonusIfTargetHitThisTurnPercent { get; set; }
 
+        /// <summary>目标拥有此状态时，额外加上 BonusIfTargetHasStatusFlat（如怨链投掷对减速目标 +6）。</summary>
+        public string BonusIfTargetHasStatusId { get; set; } = "";
+
+        public int BonusIfTargetHasStatusFlat { get; set; }
+
         /// <summary>造成伤害后，按实际伤害回复生命的百分比。</summary>
         public int LifestealPercent { get; set; }
 
@@ -119,6 +124,8 @@ namespace Grimhand.Battle.Model
                 BonusIfTargetHpBelowPercent = source.BonusIfTargetHpBelowPercent,
                 BonusIfTargetHpBelowFlat = source.BonusIfTargetHpBelowFlat,
                 BonusIfTargetHitThisTurnPercent = source.BonusIfTargetHitThisTurnPercent,
+                BonusIfTargetHasStatusId = source.BonusIfTargetHasStatusId,
+                BonusIfTargetHasStatusFlat = source.BonusIfTargetHasStatusFlat,
                 LifestealPercent = source.LifestealPercent,
                 HealMaxHpPercent = source.HealMaxHpPercent,
                 OnKillHealAmount = source.OnKillHealAmount,

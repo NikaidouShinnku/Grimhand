@@ -23,17 +23,17 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
-        public void DevilTouch_TooltipExplainsReachAndFormula()
+        public void DevilTouch_TooltipShowsOnlyCatalogKeywords()
         {
             var card = Preview("d_devil_touch", CardType.Attack,
+                Kw("sacrifice"),
                 Atk(2, 50, lifestealPercent: 100));
 
             var tooltip = CardKeywordTooltipBuilder.BuildRichTooltip(card, owner: null);
 
-            StringAssert.Contains("【前/中】", tooltip);
-            StringAssert.Contains("可以选择前排和中排的一名敌人", tooltip);
-            StringAssert.Contains("伤害计算公式", tooltip);
-            StringAssert.Contains("吸血", tooltip);
+            StringAssert.Contains("献祭", tooltip);
+            StringAssert.DoesNotContain("吸血", tooltip);
+            StringAssert.DoesNotContain("伤害", tooltip);
         }
 
         [Test]
@@ -48,14 +48,14 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
-        public void SolarJudgment_TooltipExplainsFullReach()
+        public void SolarJudgment_TooltipEmptyWithoutKeywords()
         {
             var card = Preview("p_solar_judgment", CardType.Attack,
                 Atk(10, 200, reach: TargetReach.Any));
 
             var tooltip = CardKeywordTooltipBuilder.BuildRichTooltip(card, owner: null);
 
-            StringAssert.Contains("可以选择前排、中排或后排的一名敌人", tooltip);
+            Assert.IsTrue(string.IsNullOrEmpty(tooltip));
         }
 
         [Test]
@@ -112,32 +112,26 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
-        public void BladeStorm_RepeatedDamageShowsOnceOnFaceAndTooltip()
+        public void BladeStorm_TooltipShowsAoeKeywordOnly()
         {
             var hit = Atk(3, 100, target: EffectTarget.RandomEnemy);
-            var card = Preview("w_blade_storm", CardType.Attack, hit, hit, hit, hit, hit);
+            var card = Preview("w_blade_storm", CardType.Attack, Kw("aoe"), hit, hit, hit, hit, hit);
 
-            var text = BattleUiFormatters.BuildCardStatsLinePreview(card);
             var tooltip = CardKeywordTooltipBuilder.BuildRichTooltip(card, owner: null);
 
-            StringAssert.Contains("随机敌人", text);
-            StringAssert.Contains("重复 5 次", text);
-            Assert.AreEqual(1, CountOccurrences(text, "随机敌人"));
-            Assert.AreEqual(1, CountOccurrences(tooltip, "伤害计算公式"));
+            StringAssert.Contains("AOE", tooltip);
+            StringAssert.DoesNotContain("伤害计算公式", tooltip);
         }
 
         [Test]
-        public void PierceShot_DoesNotShowInternalKeywordsOrDuplicateSplash()
+        public void PierceShot_TooltipOmitsUndocumentedKeywords()
         {
-            var card = Preview("r_pierce", CardType.Attack, Kw("pierce", "melee"),
+            var card = Preview("r_pierce", CardType.Attack,
                 Atk(11, 100, splashBehind: true, splashPercent: 80));
 
-            var text = BattleUiFormatters.BuildCardStatsLinePreview(card);
             var tooltip = CardKeywordTooltipBuilder.BuildRichTooltip(card, owner: null);
 
-            StringAssert.DoesNotContain("pierce", tooltip);
-            StringAssert.DoesNotContain("melee", tooltip);
-            Assert.AreEqual(1, CountOccurrences(text, "贯通后方 80% 伤害"));
+            Assert.IsTrue(string.IsNullOrEmpty(tooltip));
         }
 
         static int CountOccurrences(string text, string value)
@@ -155,9 +149,9 @@ namespace Grimhand.Battle.Tests
 
         static CardInstanceState Preview(string id, CardType type, params object[] parts)
         {
-            var def = new CardDefinitionSO
+            var card = new CardInstanceState
             {
-                CardId = id,
+                DefinitionId = id,
                 DisplayName = id,
                 OwnerCharacterId = "char_ranger",
                 Cost = 1,
@@ -169,15 +163,15 @@ namespace Grimhand.Battle.Tests
                 switch (part)
                 {
                     case string[] keywords:
-                        def.Keywords.AddRange(keywords);
+                        card.Keywords.AddRange(keywords);
                         break;
                     case EffectActionDefinition action:
-                        def.Actions.Add(action);
+                        card.Actions.Add(action.ToSpec());
                         break;
                 }
             }
 
-            return CardVisualResolver.CreatePreviewInstance(id, def.OwnerCharacterId, def.DisplayName, def);
+            return card;
         }
 
         static string[] Kw(params string[] ids) => ids;

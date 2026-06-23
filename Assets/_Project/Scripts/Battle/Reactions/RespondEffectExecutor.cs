@@ -43,6 +43,12 @@ namespace Grimhand.Battle.Reactions
                     CardInstanceId = card.InstanceId
                 });
                 TalentBattleRules.OnRespondSuccess(state, actor);
+
+                if (card.Keywords.Contains("respond_status"))
+                {
+                    state.PlayerRespondStatusUsedThisTurn = true;
+                    state.SuppressedEnemyCardInstanceIds.Add(context.EnemyCardInstanceId);
+                }
             }
         }
 
@@ -81,7 +87,36 @@ namespace Grimhand.Battle.Reactions
                         RespondCardType = card.CardType
                     });
                     break;
+
+                case EffectActionType.DealDamage:
+                case EffectActionType.ApplyStatus:
+                    var target = ResolveRespondTarget(state, actor, card, context, action);
+                    if (target == null)
+                        break;
+
+                    EffectActionExecutor.ExecuteOne(
+                        state, actor, card, action, events, rng, card.InstanceId, targetOverride: target);
+                    break;
             }
+        }
+
+        static CombatantState ResolveRespondTarget(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState card,
+            RespondTriggerContext context,
+            EffectActionSpec action)
+        {
+            if (card.Keywords.Contains("respond_status") || card.Keywords.Contains("respond_defense"))
+            {
+                if (state.ResolutionTargets.TryGetValue(card.InstanceId, out var monitoredId))
+                    return state.GetCombatant(monitoredId);
+            }
+
+            if (action.Target == EffectTarget.LastActionActor)
+                return state.GetCombatant(context.EnemyCombatantId);
+
+            return TargetRules.ResolveTarget(state, actor, action.Target, card.InstanceId, rng: null, action);
         }
 
         public static void RegisterMitigation(

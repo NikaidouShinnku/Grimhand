@@ -7,6 +7,8 @@ namespace Grimhand.Battle.Model
         public string DefinitionId { get; set; } = "";
         public string DisplayName { get; set; } = "";
         public string OwnerCharacterId { get; set; } = "";
+        /// <summary>远征卡组内该张牌的稳定实例 id；新入组卡牌默认未升级。</summary>
+        public string DeckInstanceId { get; set; } = "";
         public int Cost { get; set; }
         public CardType CardType { get; set; }
         public List<string> Keywords { get; } = new();

@@ -17,15 +17,14 @@ MonoBehaviour:
   OwnerCharacterId: char_skeleton_king
   Cost: 3
   CardType: 2
-  Rarity: 2
+  Rarity: 4
   Keywords:
   - exhaust
-  - summon
   Actions:
   - Type: 3
     Target: 1
     Value: 0
-    StatusId: bone_workshop
+    StatusId: 
     Stacks: 1
     Duration: -1
     ScaleWithAttack: 0
@@ -41,6 +40,8 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0

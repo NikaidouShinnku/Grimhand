@@ -17,20 +17,20 @@ MonoBehaviour:
   OwnerCharacterId: char_phantom_captain
   Cost: 3
   CardType: 0
-  Rarity: 1
+  Rarity: 2
   Keywords:
   - exhaust
   - aoe
   Actions:
   - Type: 0
     Target: 12
-    Value: 8
+    Value: 45
     StatusId: 
     Stacks: 1
     Duration: -1
-    ScaleWithAttack: 1
+    ScaleWithAttack: 0
     ScaleWithDefense: 0
-    AttackScalePercent: 120
+    AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
     Reach: 0
@@ -41,6 +41,8 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0

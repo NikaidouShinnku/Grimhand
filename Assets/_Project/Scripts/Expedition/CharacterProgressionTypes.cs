@@ -2,17 +2,13 @@ namespace Grimhand.Expedition
 {
     public readonly struct CharacterStats
     {
-        public CharacterStats(int maxHp, int baseAttack, int baseDefense, int speed)
+        public CharacterStats(int maxHp, int speed)
         {
             MaxHp = maxHp;
-            BaseAttack = baseAttack;
-            BaseDefense = baseDefense;
             Speed = speed;
         }
 
         public int MaxHp { get; }
-        public int BaseAttack { get; }
-        public int BaseDefense { get; }
         public int Speed { get; }
     }
 

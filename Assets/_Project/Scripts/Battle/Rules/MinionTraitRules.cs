@@ -79,6 +79,9 @@ namespace Grimhand.Battle.Rules
             if (state == null || combatant == null)
                 return;
 
+            if (StatusRules.HasStatus(combatant, StatusCatalog.RatSwarmCall))
+                SummonRules.SpawnRatSwarmClone(state, combatant, events);
+
             if (combatant.CharacterDefinitionId != MinionTraitCatalog.RatCharacterId)
                 return;
 
@@ -213,9 +216,9 @@ namespace Grimhand.Battle.Rules
 
             if (HasTrait(actor, MinionTraitCatalog.SkeletonCardDef))
             {
-                actor.BaseDefense += 1;
+                actor.PersistentBlockGainFlatBonus += 1;
                 RelicBattleRules.RefreshDerivedStats(state, actor, state.Config?.RunModifiers);
-                events.Add(new BattleEvent(BattleEventKind.StatusApplied, $"{actor.DisplayName} +1 防御")
+                events.Add(new BattleEvent(BattleEventKind.StatusApplied, $"{actor.DisplayName} +1 护甲获取")
                 {
                     CombatantId = actor.Id
                 });
@@ -223,10 +226,10 @@ namespace Grimhand.Battle.Rules
 
             if (HasTrait(actor, MinionTraitCatalog.SkeletonEliteCardStats))
             {
-                actor.BaseDefense += 1;
-                actor.BaseAttack += 1;
+                actor.PersistentBlockGainFlatBonus += 1;
+                actor.PersistentOutgoingDamageFlatBonus += 1;
                 RelicBattleRules.RefreshDerivedStats(state, actor, state.Config?.RunModifiers);
-                events.Add(new BattleEvent(BattleEventKind.StatusApplied, $"{actor.DisplayName} +1 攻击 +1 防御")
+                events.Add(new BattleEvent(BattleEventKind.StatusApplied, $"{actor.DisplayName} +1 增伤 +1 护甲获取")
                 {
                     CombatantId = actor.Id
                 });

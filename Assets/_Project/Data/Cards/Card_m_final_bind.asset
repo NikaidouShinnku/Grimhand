@@ -13,13 +13,12 @@ MonoBehaviour:
   m_Name: Card_m_final_bind
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: m_final_bind
-  DisplayName: "\u7EC8\u7109\u7F1A\u9B42"
+  DisplayName: "\u7EC8\u7109\u9B42\u7F1A"
   OwnerCharacterId: char_chain_wraith
   Cost: 3
   CardType: 2
-  Rarity: 2
-  Keywords:
-  - poison
+  Rarity: 3
+  Keywords: []
   Actions:
   - Type: 3
     Target: 0
@@ -40,6 +39,8 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0

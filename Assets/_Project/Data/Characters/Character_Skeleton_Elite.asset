@@ -31,5 +31,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 2edfc3fc17e638f4aaa0a15ecc989d92, type: 2}
   - {fileID: 11400000, guid: 1339812e7792ffc44a036ae447f0a850, type: 2}
   - {fileID: 11400000, guid: fe980a7db1d15254b80409509bbbd299, type: 2}
+  - {fileID: 11400000, guid: fe980a7db1d15254b80409509bbbd299, type: 2}
   Traits:
   - minion_skeleton_elite_card_stats

@@ -21,5 +21,9 @@ namespace Grimhand.Expedition.Model
         public const string SilverMoonPendant = "silver_moon_pendant";
         public const string TaichiRing = "taichi_ring";
         public const string LeafOfMiracle = "leaf_of_miracle";
+        public const string BurningLongsword = "burning_longsword";
+        public const string CrystalLongsword = "crystal_longsword";
+        public const string Bonfire = "bonfire";
+        public const string Felskull = "felskull";
     }
 }

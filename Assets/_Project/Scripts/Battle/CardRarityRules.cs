@@ -8,9 +8,9 @@ namespace Grimhand.Battle
             current switch
             {
                 CardRarity.Common => CardRarity.Rare,
-                CardRarity.Rare => CardRarity.Epic,
-                CardRarity.Epic => CardRarity.SuperRare,
-                CardRarity.SuperRare => CardRarity.Legendary,
+                CardRarity.Rare => CardRarity.SuperRare,
+                CardRarity.SuperRare => CardRarity.Epic,
+                CardRarity.Epic => CardRarity.Legendary,
                 _ => CardRarity.Legendary
             };
     }

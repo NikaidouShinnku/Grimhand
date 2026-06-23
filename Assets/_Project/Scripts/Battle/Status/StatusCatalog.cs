@@ -23,10 +23,18 @@ namespace Grimhand.Battle.Status
         public const string Ethereal = "ethereal";
         public const string GhostQueenWrath = "ghost_queen_wrath";
         public const string FinalBloodRitual = "final_blood_ritual";
+        public const string SandSpearReforge = "sand_spear_reforge";
+        public const string RatSwarmCall = "rat_swarm_call";
         public const string GodDescends = "god_descends";
         public const string AttackUpPercent = "attack_up_pct";
         public const string DefenseUpPercent = "defense_up_pct";
         public const string DefenseDownPercent = "defense_down_pct";
+        public const string DamageUp = "damage_up";
+        public const string Weaken = "weaken";
+        public const string ArmorUp = "armor_up";
+        public const string ArmorDown = "armor_down";
+        public const string Vulnerable = "vulnerable";
+        public const string DamageReduction = "damage_reduction";
 
         static readonly Dictionary<string, StatusDefinition> Definitions = Build();
 
@@ -67,26 +75,26 @@ namespace Grimhand.Battle.Status
             map[AttackUp] = new StatusDefinition
             {
                 Id = AttackUp,
-                DisplayName = "攻击提升",
+                DisplayName = "增伤",
                 DurationKind = StatusDurationKind.Turns,
                 DefaultDuration = 1,
-                AttackModifierPerStack = 1
+                OutgoingDamageFlatPerStack = 1
             };
             map[AttackDown] = new StatusDefinition
             {
                 Id = AttackDown,
-                DisplayName = "攻击降低",
+                DisplayName = "虚弱",
                 DurationKind = StatusDurationKind.Turns,
                 DefaultDuration = 2,
-                AttackModifierPerStack = -1
+                OutgoingDamageReductionFlatPerStack = 1
             };
             map[DefenseUp] = new StatusDefinition
             {
                 Id = DefenseUp,
-                DisplayName = "防御提升",
+                DisplayName = "护甲获取提升",
                 DurationKind = StatusDurationKind.Turns,
                 DefaultDuration = 1,
-                DefenseModifierPerStack = 1
+                BlockGainFlatPerStack = 1
             };
             map[Taunt] = new StatusDefinition
             {
@@ -164,6 +172,18 @@ namespace Grimhand.Battle.Status
                 DisplayName = "最终鲜血仪式",
                 DurationKind = StatusDurationKind.Permanent
             };
+            map[SandSpearReforge] = new StatusDefinition
+            {
+                Id = SandSpearReforge,
+                DisplayName = "沙矛重塑",
+                DurationKind = StatusDurationKind.Permanent
+            };
+            map[RatSwarmCall] = new StatusDefinition
+            {
+                Id = RatSwarmCall,
+                DisplayName = "鼠群呼唤",
+                DurationKind = StatusDurationKind.Permanent
+            };
             map[GodDescends] = new StatusDefinition
             {
                 Id = GodDescends,
@@ -189,10 +209,58 @@ namespace Grimhand.Battle.Status
             map[DefenseDownPercent] = new StatusDefinition
             {
                 Id = DefenseDownPercent,
-                DisplayName = "防御降低",
+                DisplayName = "护甲获取降低",
                 DurationKind = StatusDurationKind.Turns,
                 DefaultDuration = 2,
-                DefensePercentBonusPerStack = -1
+                BlockGainReductionPercentPerStack = 1
+            };
+            map[DamageUp] = new StatusDefinition
+            {
+                Id = DamageUp,
+                DisplayName = "增伤",
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 1,
+                OutgoingDamageFlatPerStack = 1
+            };
+            map[Weaken] = new StatusDefinition
+            {
+                Id = Weaken,
+                DisplayName = "虚弱",
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 2,
+                OutgoingDamageReductionFlatPerStack = 1
+            };
+            map[ArmorUp] = new StatusDefinition
+            {
+                Id = ArmorUp,
+                DisplayName = "护甲获取提升",
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 1,
+                BlockGainFlatPerStack = 1
+            };
+            map[ArmorDown] = new StatusDefinition
+            {
+                Id = ArmorDown,
+                DisplayName = "护甲获取降低",
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 2,
+                BlockGainReductionPercentPerStack = 1
+            };
+            map[Vulnerable] = new StatusDefinition
+            {
+                Id = Vulnerable,
+                DisplayName = "易伤",
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 2,
+                IncomingDamageFlatPerStack = 1
+            };
+            map[DamageReduction] = new StatusDefinition
+            {
+                Id = DamageReduction,
+                DisplayName = "减伤",
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 1,
+                IncomingDamageReductionPercentPerStack = 1
             };
             return map;
         }

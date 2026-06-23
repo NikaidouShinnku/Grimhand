@@ -33,6 +33,8 @@ namespace Grimhand.Expedition
                 || member == null || string.IsNullOrEmpty(member.CharacterDefinitionId))
                 return entries;
 
+            ExpeditionDeckInstanceRules.EnsureBaseDeckInstances(config, member);
+
             var removedLeft = new Dictionary<string, int>();
             foreach (var pair in member.RemovedCardCounts)
                 removedLeft[pair.Key] = pair.Value;
@@ -40,8 +42,9 @@ namespace Grimhand.Expedition
             var baseDecks = BuildBaseDeckLookup(config.CombatEncounters[0]);
             if (baseDecks.TryGetValue(member.CharacterDefinitionId, out var baseDeck))
             {
-                foreach (var template in baseDeck)
+                for (var slot = 0; slot < baseDeck.Count; slot++)
                 {
+                    var template = baseDeck[slot];
                     if (template == null || string.IsNullOrEmpty(template.DefinitionId))
                         continue;
 
@@ -51,14 +54,19 @@ namespace Grimhand.Expedition
                         continue;
                     }
 
+                    var instanceId = ExpeditionDeckInstanceRules.ResolveBaseDeckInstanceId(member, slot);
+                    if (string.IsNullOrEmpty(instanceId))
+                        continue;
+
                     var copy = ExpeditionBattleConfigBuilder.CloneTemplate(template);
-                    ApplyCardPowerBonus(copy, member);
+                    copy.DeckInstanceId = instanceId;
                     if (string.IsNullOrEmpty(copy.OwnerCharacterId))
                         copy.OwnerCharacterId = member.CharacterDefinitionId;
 
+                    ApplyCardUpgrades(copy, member);
                     entries.Add(new DeckEntry
                     {
-                        Key = ExpeditionDeckCardKey.Build(member.CharacterDefinitionId, template.DefinitionId, entries.Count),
+                        Key = instanceId,
                         Template = copy,
                         IsBonus = false
                     });
@@ -71,11 +79,12 @@ namespace Grimhand.Expedition
                 if (bonus == null || string.IsNullOrEmpty(bonus.DefinitionId))
                     continue;
 
+                ExpeditionDeckInstanceRules.PrepareNewDeckCard(member, bonus);
                 var copy = ExpeditionBattleConfigBuilder.CloneTemplate(bonus);
-                ApplyCardPowerBonus(copy, member);
+                ApplyCardUpgrades(copy, member);
                 entries.Add(new DeckEntry
                 {
-                    Key = ExpeditionDeckCardKey.Build(member.CharacterDefinitionId, bonus.DefinitionId, entries.Count),
+                    Key = copy.DeckInstanceId,
                     Template = copy,
                     IsBonus = true,
                     BonusIndex = i
@@ -225,32 +234,8 @@ namespace Grimhand.Expedition
             return lookup;
         }
 
-        public static void ApplyCardPowerBonus(CardTemplate template, PartyMemberSnapshot member)
-        {
-            if (template == null || member == null)
-                return;
-
-            if (!member.CardPowerBonusPercent.TryGetValue(template.DefinitionId, out var bonus) || bonus <= 0)
-                return;
-
-            foreach (var action in template.Actions)
-            {
-                if (action.ScaleWithAttack || action.Type == EffectActionType.DealDamage)
-                {
-                    var basePct = action.AttackScalePercent > 0 ? action.AttackScalePercent : 100;
-                    action.AttackScalePercent = basePct + bonus;
-                }
-
-                if (action.ScaleWithDefense || action.Type == EffectActionType.GainBlock)
-                {
-                    var basePct = action.DefenseScalePercent > 0 ? action.DefenseScalePercent : 100;
-                    action.DefenseScalePercent = basePct + bonus;
-                }
-
-                if (action.Value > 0 && !action.ScaleWithAttack && !action.ScaleWithDefense)
-                    action.Value = action.Value * (100 + bonus) / 100;
-            }
-        }
+        public static void ApplyCardUpgrades(CardTemplate template, PartyMemberSnapshot member) =>
+            CardUpgradeRules.ApplyToTemplate(template, member);
 
         public static List<CardTemplate> CollectSortedDeck(ExpeditionConfig config, IReadOnlyList<PartyMemberSnapshot> party)
         {

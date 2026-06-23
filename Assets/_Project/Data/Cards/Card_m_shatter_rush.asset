@@ -16,20 +16,19 @@ MonoBehaviour:
   DisplayName: "\u788E\u9AA8\u7A81\u88AD"
   OwnerCharacterId: char_skeleton_elite
   Cost: 2
-  CardType: 0
+  CardType: 1
   Rarity: 1
-  Keywords:
-  - melee
+  Keywords: []
   Actions:
   - Type: 0
     Target: 0
-    Value: 10
+    Value: 17
     StatusId: 
     Stacks: 1
     Duration: -1
-    ScaleWithAttack: 1
+    ScaleWithAttack: 0
     ScaleWithDefense: 0
-    AttackScalePercent: 80
+    AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
     Reach: 1
@@ -40,13 +39,15 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0
     HitCount: 1
-    AlternateAttackScalePercent: 180
-    AlternateValue: 10
-    UseAlternateIfTargetHasDebuff: 1
+    AlternateAttackScalePercent: 0
+    AlternateValue: 0
+    UseAlternateIfTargetHasDebuff: 0
     AlternateAttackScaleIfActorUsedAttack: 0
     AlternateValueIfActorUsedAttack: 0
     DamageMultiplierPercentIfRespondArmed: 100

@@ -4,8 +4,8 @@ namespace Grimhand.Battle.Model
     {
         Common = 0,
         Rare = 1,
-        Epic = 2,
-        SuperRare = 3,
+        SuperRare = 2, // 蓝框
+        Epic = 3,        // 紫框（比蓝更稀有）
         Legendary = 4
     }
 }

@@ -17,16 +17,16 @@ MonoBehaviour:
   OwnerCharacterId: char_mage
   Cost: 2
   CardType: 0
-  Rarity: 1
+  Rarity: 2
   Keywords: []
   Actions:
   - Type: 0
     Target: 0
-    Value: 6
+    Value: 13
     StatusId: 
     Stacks: 1
     Duration: -1
-    ScaleWithAttack: 1
+    ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100
     DefenseScalePercent: 100
@@ -39,7 +39,9 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
-    LifestealPercent: 50
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
+    LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0
     HitCount: 1

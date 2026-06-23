@@ -34,6 +34,7 @@ namespace Grimhand.Expedition
             _run.Gold = 0;
             _run.LastGoldReward = 0;
             _run.LastXpReward = 0;
+            _run.SharedXpPool = 0;
             _run.LastEventMessage = "";
             _run.Party.Clear();
             _run.Relics.Clear();
@@ -82,6 +83,8 @@ namespace Grimhand.Expedition
             else
                 InitPartyFromTemplate(campMeta);
 
+            ExpeditionDeckInstanceRules.EnsurePartyBaseDeckInstances(_config, _run.Party);
+
             _run.TalentRun.Reset();
             TalentDatabase.ApplyRunStartEffects(_run, _config);
             ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
@@ -97,6 +100,7 @@ namespace Grimhand.Expedition
 
             ResetRunState(skipMap: true);
             InitPartyAtLevel(partyLevel, CampMetaState.CreateDefaultDemo());
+            ExpeditionDeckInstanceRules.EnsurePartyBaseDeckInstances(_config, _run.Party);
             RollStartingRelics(relicCount);
             RollStartingBonusCards(bonusCardsPerMember);
 
@@ -137,6 +141,7 @@ namespace Grimhand.Expedition
             _run.Gold = 0;
             _run.LastGoldReward = 0;
             _run.LastXpReward = 0;
+            _run.SharedXpPool = 0;
             _run.LastEventMessage = "";
             _run.Party.Clear();
             _run.Relics.Clear();
@@ -279,6 +284,7 @@ namespace Grimhand.Expedition
                     if (!ExpeditionRunDeckRules.CanAddWithoutReplace(_config, member))
                         break;
 
+                    ExpeditionDeckInstanceRules.PrepareNewDeckCard(member, chosen);
                     member.BonusCards.Add(chosen);
                     RecordRunAcquisition($"测试卡牌：{chosen.DisplayName}（{member.DisplayName}）");
                 }
@@ -304,6 +310,9 @@ namespace Grimhand.Expedition
             TalentDatabase.SyncRunStateFromBattle(state, _run.TalentRun);
             ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
 
+            if (state.Outcome == BattleOutcome.PlayerVictory)
+                ApplyPostBattleRelicHeals(_run);
+
             if (_run.MiracleLeafUsesRemaining >= 0)
                 _run.MiracleLeafUsesRemaining = state.MiracleLeafRevivesRemaining;
 
@@ -327,11 +336,7 @@ namespace Grimhand.Expedition
                 return;
 
             _run.LastXpReward = RollCombatXp();
-            ExpeditionBattleConfigBuilder.GrantXpToParty(
-                _run.Party,
-                _run.LastXpReward,
-                _run.Relics,
-                _run.RelicGrowthTiers);
+            ExpeditionBattleConfigBuilder.GrantXpToPool(_run, _run.LastXpReward);
 
             if (!string.IsNullOrEmpty(_run.PendingEventBattleKey))
             {
@@ -623,7 +628,7 @@ namespace Grimhand.Expedition
             }
 
             if (rewards.GrantXp > 0)
-                ExpeditionBattleConfigBuilder.GrantXpToParty(_run.Party, rewards.GrantXp);
+                ExpeditionBattleConfigBuilder.GrantXpToPool(_run, rewards.GrantXp);
 
             ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
         }
@@ -690,7 +695,7 @@ namespace Grimhand.Expedition
                     _run.CardAltar = new ExpeditionCardAltarState { SourceLayer = route.LayerNumber };
                     _run.PendingShrine = null;
                     _run.Phase = ExpeditionPhase.ShrineChoice;
-                    _run.LastEventMessage = "祭坛 — 从收藏中召唤卡牌";
+                    _run.LastEventMessage = "祭坛 — 选择服务";
                     return true;
                 case ExpeditionNodeType.Shop:
                     _run.Phase = ExpeditionPhase.ShopVisit;
@@ -813,7 +818,7 @@ namespace Grimhand.Expedition
 
         public bool TryResolveShrineChoice(int choiceIndex)
         {
-            return TrySkipCardAltar();
+            return TryLeaveAltar();
         }
 
         public void SetCardAltarMemberDraft(string memberId, int collectionIndex, string replaceDeckCardKey)
@@ -835,13 +840,90 @@ namespace Grimhand.Expedition
             }
         }
 
-        public bool TrySkipCardAltar()
+        public bool TryLeaveAltar()
         {
             if (_run.Phase != ExpeditionPhase.ShrineChoice || _run.CardAltar == null)
                 return false;
 
+            return FinishAltarVisit("你离开了祭坛。");
+        }
+
+        public bool TryUpgradeAltarMemberHp(string memberId)
+        {
+            if (_run.Phase != ExpeditionPhase.ShrineChoice || _run.CardAltar == null)
+                return false;
+
+            var member = FindPartyMember(memberId);
+            if (member == null)
+                return false;
+
+            if (!ExpeditionAltarUpgradeRules.TryUpgradeMemberHp(_run, member))
+                return false;
+
+            _run.LastEventMessage = $"{member.DisplayName} 最大 HP +{ExpeditionAltarUpgradeRules.HpPlus5Amount}";
+            return true;
+        }
+
+        public bool TryUpgradeAltarEnergyCap()
+        {
+            if (_run.Phase != ExpeditionPhase.ShrineChoice || _run.CardAltar == null)
+                return false;
+
+            if (!ExpeditionAltarUpgradeRules.TryUpgradeEnergyCap(_run))
+                return false;
+
+            _run.LastEventMessage = "能量上限 +1";
+            return true;
+        }
+
+        public bool TryUpgradeAltarHandLimit()
+        {
+            if (_run.Phase != ExpeditionPhase.ShrineChoice || _run.CardAltar == null)
+                return false;
+
+            if (!ExpeditionAltarUpgradeRules.TryUpgradeHandLimit(_run))
+                return false;
+
+            _run.LastEventMessage = "手牌上限 +1";
+            return true;
+        }
+
+        public bool TryUpgradeAltarCard(string memberId, string deckInstanceId, string displayName)
+        {
+            if (_run.Phase != ExpeditionPhase.ShrineChoice || _run.CardAltar == null)
+                return false;
+
+            var member = FindPartyMember(memberId);
+            if (member == null)
+                return false;
+
+            if (!ExpeditionAltarUpgradeRules.TryUpgradeMemberCard(_run, member, deckInstanceId, displayName))
+                return false;
+
+            _run.LastEventMessage = $"{displayName} 已强化";
+            return true;
+        }
+
+        public int GetAltarBaseEnergyCap()
+        {
+            if (_config.CombatEncounters.Count > 0 && _config.CombatEncounters[0] != null)
+                return _config.CombatEncounters[0].EnergyCap;
+
+            return 8;
+        }
+
+        public int GetAltarBaseHandLimit()
+        {
+            if (_config.CombatEncounters.Count > 0 && _config.CombatEncounters[0] != null)
+                return _config.CombatEncounters[0].HandLimit;
+
+            return 8;
+        }
+
+        bool FinishAltarVisit(string message)
+        {
             _run.CardAltar = null;
-            _run.LastEventMessage = "你离开了祭坛。";
+            _run.LastEventMessage = message;
             CompleteCurrentNode();
 
             if (_run.Phase == ExpeditionPhase.RunComplete)
@@ -850,6 +932,20 @@ namespace Grimhand.Expedition
             LoadRoutesForNextLayer();
             _run.Phase = ExpeditionPhase.RouteSelect;
             return true;
+        }
+
+        PartyMemberSnapshot FindPartyMember(string memberId)
+        {
+            if (string.IsNullOrEmpty(memberId))
+                return null;
+
+            foreach (var member in _run.Party)
+            {
+                if (member != null && member.CharacterDefinitionId == memberId)
+                    return member;
+            }
+
+            return null;
         }
 
         public bool TryConfirmCardAltar()
@@ -885,16 +981,7 @@ namespace Grimhand.Expedition
             foreach (var (member, draft) in pending)
                 ApplyCardAltarExtraction(member, draft);
 
-            _run.CardAltar = null;
-            _run.LastEventMessage = "已完成祭坛召唤。";
-            CompleteCurrentNode();
-
-            if (_run.Phase == ExpeditionPhase.RunComplete)
-                return true;
-
-            LoadRoutesForNextLayer();
-            _run.Phase = ExpeditionPhase.RouteSelect;
-            return true;
+            return FinishAltarVisit("已完成祭坛召唤。");
         }
 
         bool TryValidateCardAltarExtraction(
@@ -973,6 +1060,7 @@ namespace Grimhand.Expedition
             }
             else
             {
+                ExpeditionDeckInstanceRules.PrepareNewDeckCard(member, template);
                 member.BonusCards.Add(template);
             }
 
@@ -1007,7 +1095,9 @@ namespace Grimhand.Expedition
 
             if (ExpeditionRunDeckRules.CanAddWithoutReplace(_config, member))
             {
-                member.BonusCards.Add(ExpeditionBattleConfigBuilder.CloneTemplate(offer.Template));
+                var clone = ExpeditionBattleConfigBuilder.CloneTemplate(offer.Template);
+                ExpeditionDeckInstanceRules.PrepareNewDeckCard(member, clone);
+                member.BonusCards.Add(clone);
             }
             else
             {
@@ -1531,6 +1621,11 @@ namespace Grimhand.Expedition
                 var map = MonsterTemplateRegistry.BuildTemplateMap(_config);
                 template = AncientFurnaceEncounterBuilder.BuildGolemBattle(standard, map);
             }
+            else if (_run.PendingEventBattleKey == FelFlameAltarEncounterBuilder.BattleKey)
+            {
+                var map = MonsterTemplateRegistry.BuildTemplateMap(_config);
+                template = FelFlameAltarEncounterBuilder.BuildEliteBattle(standard, floor, _rng, map);
+            }
             else
             {
                 var encounterId = string.IsNullOrEmpty(monsterEncounterId)
@@ -1571,14 +1666,14 @@ namespace Grimhand.Expedition
                     if (cc.Team != TeamSide.Enemy)
                         continue;
 
-                    cc.BaseAttack = System.Math.Max(1,
-                        (int)System.Math.Round(cc.BaseAttack * 1.2f, System.MidpointRounding.AwayFromZero));
+                    cc.BaseDefense = 20;
                 }
 
                 _run.Modifiers.DivinePunishmentActive = false;
             }
 
             config.EnergyCap += _run.Modifiers.EnergyCapBonus;
+            config.HandLimit += _run.Modifiers.HandLimitBonus;
             config.TurnStartEnergyRegen = System.Math.Max(config.TurnStartEnergyRegen, 4);
             return config;
         }
@@ -1645,6 +1740,7 @@ namespace Grimhand.Expedition
                 _run.RunWideBonusCards);
 
             config.EnergyCap += _run.Modifiers.EnergyCapBonus;
+            config.HandLimit += _run.Modifiers.HandLimitBonus;
             config.TurnStartEnergyRegen = System.Math.Max(config.TurnStartEnergyRegen, 4);
             return config;
         }
@@ -1796,8 +1892,8 @@ namespace Grimhand.Expedition
                         return false;
                     if (!ExpeditionRunDeckMutations.TryUpgradeCard(
                             upgradeMember,
-                            upgradeEntry.Template.DefinitionId,
-                            interaction.PendingUpgradeBonus > 0 ? interaction.PendingUpgradeBonus : 20))
+                            upgradeEntry,
+                            interaction.PendingUpgradeBonus > 0 ? interaction.PendingUpgradeBonus : 1))
                     {
                         return false;
                     }
@@ -1849,6 +1945,27 @@ namespace Grimhand.Expedition
 
             foreach (var member in _run.Party)
                 ApplyEventStepMemberHpChange(member, step);
+        }
+
+        static void ApplyPostBattleRelicHeals(ExpeditionRunState run)
+        {
+            if (run?.Party == null || run.Party.Count == 0)
+                return;
+
+            var mods = RelicDatabase.BuildModifiers(run.Relics, run.RelicGrowthTiers);
+            if (mods.PostBattleTeamHealPercent <= 0f)
+                return;
+
+            foreach (var member in run.Party)
+            {
+                if (member == null || member.Hp <= 0)
+                    continue;
+
+                var heal = System.Math.Max(
+                    1,
+                    (int)System.Math.Round(member.MaxHp * mods.PostBattleTeamHealPercent / 100f));
+                member.Hp = System.Math.Min(member.MaxHp, member.Hp + heal);
+            }
         }
 
         static void ApplyEventStepMemberHpLoss(PartyMemberSnapshot member, ExpeditionEventInteractionStep step) =>
@@ -1933,19 +2050,11 @@ namespace Grimhand.Expedition
 
         void ApplyPendingTravelerGift()
         {
-            var relicId = _run.PendingTravelerGiftRelicId;
             var curseOwnerId = _run.PendingTravelerGiftCurseOwnerId;
-            if (string.IsNullOrEmpty(relicId) && string.IsNullOrEmpty(curseOwnerId))
-                return;
-
-            _run.PendingTravelerGiftRelicId = "";
-            _run.PendingTravelerGiftCurseOwnerId = "";
-
-            if (!string.IsNullOrEmpty(relicId))
-                TryAddRelic(relicId);
-
             if (string.IsNullOrEmpty(curseOwnerId))
                 return;
+
+            _run.PendingTravelerGiftCurseOwnerId = "";
 
             var curseTemplate = FindCardTemplate("curse_chaos_touch");
             if (curseTemplate == null)

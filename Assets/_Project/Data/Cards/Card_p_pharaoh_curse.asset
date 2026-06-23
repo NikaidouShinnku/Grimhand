@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_p_pharaoh_curse
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: p_pharaoh_curse
-  DisplayName: "法老诅咒"
+  DisplayName: "\u6CD5\u8001\u8BC5\u5492"
   OwnerCharacterId: char_mage
   Cost: 1
   CardType: 2
@@ -39,9 +39,25 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0
+    HitCount: 1
+    AlternateAttackScalePercent: 0
+    AlternateValue: 0
+    UseAlternateIfTargetHasDebuff: 0
+    AlternateAttackScaleIfActorUsedAttack: 0
+    AlternateValueIfActorUsedAttack: 0
+    DamageMultiplierPercentIfRespondArmed: 100
+    SelfDamageFlat: 0
+    RepeatPerEnemyAttackCardThisTurn: 0
+    FallbackBlockDefenseScalePercent: 100
+    FallbackBlockValue: 0
+    SummonCharacterId: 
+    GrantInvulnerableOnRespondArm: 0
+    LifestealUnblockedOnly: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

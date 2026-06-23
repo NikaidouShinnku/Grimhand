@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
 
@@ -46,9 +47,12 @@ namespace Grimhand.Expedition.Events
         public int PendingUpgradeBonus { get; set; }
     }
 
-    /// <summary>卡牌在选牌 UI 中的唯一键：memberId|definitionId|index</summary>
+    /// <summary>卡牌在选牌 UI 中的唯一键：deckInstanceId（memberId|guid）。</summary>
     public static class ExpeditionDeckCardKey
     {
+        public static string GenerateInstanceId(string memberId) =>
+            $"{memberId}|{Guid.NewGuid():N}";
+
         public static string Build(string memberId, string definitionId, int index) =>
             $"{memberId}|{definitionId}|{index}";
 

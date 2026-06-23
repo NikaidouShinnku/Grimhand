@@ -12,7 +12,10 @@ namespace Grimhand.Battle.Reactions
 
             return condition switch
             {
-                ReactionConditionType.LastActionAttackOnSelf => false,
+                ReactionConditionType.LastActionAttackOnSelf =>
+                    state != null
+                    && state.LastAction.ActionKind == ActionKind.Attack
+                    && state.LastAction.TargetId == actorId,
                 _ => false
             };
         }
@@ -30,6 +33,10 @@ namespace Grimhand.Battle.Reactions
             {
                 ReactionConditionType.LastActionAttackOnSelf =>
                     RespondTriggerMatcher.WouldEnemyStepAttackCombatant(state, enemyStep, respondOwnerId),
+                ReactionConditionType.LastActionDefenseOnTarget =>
+                    RespondTriggerMatcher.EnemyStepIsDefense(state, enemyStep),
+                ReactionConditionType.LastActionStatusOnTarget =>
+                    RespondTriggerMatcher.EnemyStepIsStatus(state, enemyStep),
                 _ => false
             };
         }

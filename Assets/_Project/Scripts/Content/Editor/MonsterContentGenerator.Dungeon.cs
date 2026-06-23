@@ -29,12 +29,12 @@ namespace Grimhand.Content.Editor
                     FormationSlot.Middle, 55, 9, 3, 6,
                     new[] { MinionTraitCatalog.RatPackAttackOnAllyDeath },
                     Pool(cards.RatPunch, 2, cards.RatTrash, 2, cards.RatAmbush, 1,
-                        cards.RatMorale, 1, cards.RatBurrow, 1)),
+                        cards.RatMorale, 1, cards.RatBurrow, 1, cards.RatSwarmCall, 1)),
                 ChainWraith = SaveMonster("Character_Chain_Wraith", "char_chain_wraith", "锁链怨灵",
                     FormationSlot.Middle, 65, 11, 5, 5,
                     new[] { MinionTraitCatalog.ChainWraithDebuffShare },
                     Pool(cards.ChainWhip, 2, cards.ChainGrudge, 2, cards.ChainThrow, 1,
-                        cards.ChainGuard, 2, cards.GrudgeGuard, 1, cards.FinalBind, 1)),
+                        cards.ChainGuard, 2, cards.GrudgeGuard, 1, cards.FinalBind, 1, cards.ChainRecharge, 1)),
                 Gargoyle = SaveMonster("Character_Gargoyle", "char_gargoyle", "石像鬼",
                     FormationSlot.Front, 70, 8, 7, 4,
                     new[] { MinionTraitCatalog.GargoyleFirstCardStance },
@@ -44,7 +44,7 @@ namespace Grimhand.Content.Editor
                     FormationSlot.Back, 60, 9, 4, 7,
                     new[] { MinionTraitCatalog.SpiderLadyPoisonVulnerability },
                     Pool(cards.SpiderFang, 2, cards.SpiderSilk, 2, cards.SpiderTrap, 1,
-                        cards.SpiderSpray, 1, cards.SpiderWrap, 1)),
+                        cards.SpiderSpray, 1, cards.SpiderWrap, 1, cards.SpiderFatalBind, 1)),
                 StoneGolem = SaveMonster("Character_Stone_Golem", "char_stone_golem", "石傀儡",
                     FormationSlot.Front, 80, 10, 9, 2,
                     new[] { MinionTraitCatalog.StoneGolemArmorRetain },
@@ -73,12 +73,14 @@ namespace Grimhand.Content.Editor
             public CardDefinitionSO RatAmbush;
             public CardDefinitionSO RatMorale;
             public CardDefinitionSO RatBurrow;
+            public CardDefinitionSO RatSwarmCall;
             public CardDefinitionSO ChainWhip;
             public CardDefinitionSO ChainGrudge;
             public CardDefinitionSO ChainThrow;
             public CardDefinitionSO ChainGuard;
             public CardDefinitionSO GrudgeGuard;
             public CardDefinitionSO FinalBind;
+            public CardDefinitionSO ChainRecharge;
             public CardDefinitionSO GargoyleClaw;
             public CardDefinitionSO GargoylePetrify;
             public CardDefinitionSO GargoyleSunder;
@@ -90,6 +92,7 @@ namespace Grimhand.Content.Editor
             public CardDefinitionSO SpiderTrap;
             public CardDefinitionSO SpiderSpray;
             public CardDefinitionSO SpiderWrap;
+            public CardDefinitionSO SpiderFatalBind;
             public CardDefinitionSO GolemFist;
             public CardDefinitionSO GolemWall;
             public CardDefinitionSO GolemQuake;
@@ -116,6 +119,10 @@ namespace Grimhand.Content.Editor
                     CardRarity.Rare,
                     Action(EffectActionType.GainBlockFromLastDamagePercent, EffectTarget.Self, 70,
                         condition: ReactionConditionType.LastActionAttackOnSelf)),
+                RatSwarmCall = SaveCard("m_rat_swarm_call", "呼唤鼠群", "char_rat", 3, CardType.Status, Kw("exhaust"),
+                    CardRarity.Epic,
+                    Action(EffectActionType.ApplyStatus, EffectTarget.Self, 0,
+                        statusId: StatusCatalog.RatSwarmCall, stacks: 1, duration: -1)),
                 ChainWhip = SaveCard("m_chain_whip", "锁链鞭打", "char_chain_wraith", 1, CardType.Attack, Kw("melee"),
                     Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 7, scaleAttack: true)),
                 ChainGrudge = SaveCard("m_chain_grudge", "怨气缠绕", "char_chain_wraith", 1, CardType.Status, Kw("slow"),
@@ -134,11 +141,21 @@ namespace Grimhand.Content.Editor
                     CardRarity.Rare,
                     Action(EffectActionType.GainBlockFromLastDamagePercent, EffectTarget.Self, 90,
                         condition: ReactionConditionType.LastActionAttackOnSelf)),
-                FinalBind = SaveCard("m_final_bind", "终焉缚魂", "char_chain_wraith", 3, CardType.Status, Kw("poison"),
+                FinalBind = SaveCard("m_final_bind", "终焉魂缚", "char_chain_wraith", 3, CardType.Status, Kw("poison"),
                     CardRarity.Epic,
                     Action(EffectActionType.ApplyStatus, EffectTarget.DefaultEnemy, 0,
                         statusId: StatusCatalog.Poison, stacks: 15, duration: -1,
                         reach: TargetReach.FrontAndMiddle)),
+                ChainRecharge = SaveCard("m_chain_recharge", "回气", "char_chain_wraith", 3, CardType.Status, Kw("exhaust"),
+                    CardRarity.SuperRare,
+                    new EffectActionDefinition
+                    {
+                        Type = EffectActionType.Heal,
+                        Target = EffectTarget.Self,
+                        HealMaxHpPercent = 40
+                    },
+                    Action(EffectActionType.ApplyStatus, EffectTarget.Self, 0,
+                        statusId: StatusCatalog.Poison, stacks: 5, duration: 2)),
                 GargoyleClaw = SaveCard("m_gargoyle_claw", "利爪斩击", "char_gargoyle", 1, CardType.Attack, Kw("melee"),
                     Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 10, scaleAttack: true)),
                 GargoylePetrify = SaveCard("m_gargoyle_petrify", "石化形态", "char_gargoyle", 2, CardType.Defense, Kw("guard"),
@@ -187,6 +204,10 @@ namespace Grimhand.Content.Editor
                     CardRarity.Rare,
                     Action(EffectActionType.GainBlockFromLastDamagePercent, EffectTarget.Self, 50,
                         condition: ReactionConditionType.LastActionAttackOnSelf)),
+                SpiderFatalBind = SaveCard("m_spider_fatal_bind", "致命缠杀", "char_spider_lady", 4, CardType.Attack,
+                    Kw("exhaust"), CardRarity.Epic,
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 30, scaleAttack: true,
+                        reach: TargetReach.MiddleAndBack)),
                 GolemFist = SaveCard("m_golem_fist", "石拳", "char_stone_golem", 2, CardType.Attack, Kw("melee"),
                     CardRarity.Rare,
                     Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 6, scaleAttack: true)),

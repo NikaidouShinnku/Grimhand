@@ -13,18 +13,19 @@ MonoBehaviour:
   m_Name: Card_d_final_blood_ritual
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: d_final_blood_ritual
-  DisplayName: "最终鲜血仪式"
+  DisplayName: "\u6700\u7EC8\u9C9C\u8840\u4EEA\u5F0F"
   OwnerCharacterId: char_ranger
   Cost: 3
   CardType: 2
   Rarity: 4
   Keywords:
   - exhaust
+  - sacrifice
   Actions:
-  - Type: 3
+  - Type: 2
     Target: 1
-    Value: 0
-    StatusId: final_blood_ritual
+    Value: 5
+    StatusId: 
     Stacks: 1
     Duration: -1
     ScaleWithAttack: 0
@@ -40,9 +41,25 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0
+    HitCount: 1
+    AlternateAttackScalePercent: 0
+    AlternateValue: 0
+    UseAlternateIfTargetHasDebuff: 0
+    AlternateAttackScaleIfActorUsedAttack: 0
+    AlternateValueIfActorUsedAttack: 0
+    DamageMultiplierPercentIfRespondArmed: 100
+    SelfDamageFlat: 0
+    RepeatPerEnemyAttackCardThisTurn: 0
+    FallbackBlockDefenseScalePercent: 100
+    FallbackBlockValue: 0
+    SummonCharacterId: 
+    GrantInvulnerableOnRespondArm: 0
+    LifestealUnblockedOnly: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

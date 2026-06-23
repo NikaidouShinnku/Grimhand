@@ -57,7 +57,10 @@ namespace Grimhand.Battle.Model
     public enum ReactionConditionType
     {
         None,
-        LastActionAttackOnSelf
+        LastActionAttackOnSelf,
+        /// <summary>玩家监视的目标敌人打出防御牌（应对防御/应对状态）。</summary>
+        LastActionDefenseOnTarget,
+        LastActionStatusOnTarget
     }
 
     /// <summary>

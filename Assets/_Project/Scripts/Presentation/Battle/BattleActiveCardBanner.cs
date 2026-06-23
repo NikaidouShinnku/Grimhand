@@ -88,7 +88,7 @@ namespace Grimhand.Presentation.Battle
             }
 
             var visual = CardVisualResolver.Resolve(card, _catalog, _characterVisuals, _definitions);
-            var stats = BattleUiFormatters.BuildCardStatsLine(state, null, card);
+            var stats = BattleUiFormatters.BuildCardStatsLine(state, null, card, definitions: _definitions);
 
             _cardView.BindWithCard(
                 card,

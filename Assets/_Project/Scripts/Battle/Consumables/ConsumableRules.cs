@@ -322,6 +322,8 @@ namespace Grimhand.Battle.Consumables
                     BonusIfTargetHpBelowPercent = action.BonusIfTargetHpBelowPercent,
                     BonusIfTargetHpBelowFlat = action.BonusIfTargetHpBelowFlat,
                     BonusIfTargetHitThisTurnPercent = action.BonusIfTargetHitThisTurnPercent,
+                    BonusIfTargetHasStatusId = action.BonusIfTargetHasStatusId,
+                    BonusIfTargetHasStatusFlat = action.BonusIfTargetHasStatusFlat,
                     LifestealPercent = action.LifestealPercent,
                     HealMaxHpPercent = action.HealMaxHpPercent,
                     OnKillHealAmount = action.OnKillHealAmount

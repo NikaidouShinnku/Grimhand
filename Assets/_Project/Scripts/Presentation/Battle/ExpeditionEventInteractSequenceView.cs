@@ -137,16 +137,16 @@ namespace Grimhand.Presentation.Battle
                         !string.IsNullOrEmpty(interaction.SelectedCharacterId))
                     {
                         _promptText.text = step.PersonalAttackBonus > 0
-                            ? $"特训完成：{FindMember(interaction.SelectedCharacterId)?.DisplayName} 攻击 +{step.PersonalAttackBonus}"
-                            : $"特训完成：{FindMember(interaction.SelectedCharacterId)?.DisplayName} 攻击 +2";
+                            ? $"特训完成：{FindMember(interaction.SelectedCharacterId)?.DisplayName} 增伤 +{step.PersonalAttackBonus}"
+                            : $"特训完成：{FindMember(interaction.SelectedCharacterId)?.DisplayName} 增伤 +2";
                         BuildCharacterRow(selectable: false);
                         StartCoroutine(PlayMemberBuffAcknowledgeSequence(interaction.SelectedCharacterId));
                         break;
                     }
 
                     _promptText.text = step.PersonalAttackBonus > 0
-                        ? $"选择一名队员获得攻击 +{step.PersonalAttackBonus}"
-                        : "选择一名队员获得攻击 +2";
+                        ? $"选择一名队员获得增伤 +{step.PersonalAttackBonus}"
+                        : "选择一名队员获得增伤 +2";
                     BuildCharacterRow(selectable: true, onPick: PickMemberForBuff);
                     break;
                 case ExpeditionEventStepKind.PickCardRemove:
@@ -330,6 +330,7 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             var cards = ExpeditionRunDeckMutations.ListSelectableCards(_session.Expedition.Config, _session.Expedition.Run);
+            var isUpgradeStep = step.Kind == ExpeditionEventStepKind.PickCardUpgrade;
             var cardWidth = 168f * CardScale;
             var cardHeight = 236f * CardScale;
 
@@ -337,6 +338,20 @@ namespace Grimhand.Presentation.Battle
             {
                 if (entry?.Template == null)
                     continue;
+
+                if (isUpgradeStep)
+                {
+                    var owner = _session.Expedition.Run.Party.Find(m =>
+                        m?.CharacterDefinitionId == entry.Template.OwnerCharacterId);
+                    if (owner == null
+                        || !CardUpgradeRules.CanUpgrade(
+                            owner,
+                            entry.Template.DefinitionId,
+                            entry.Template.DisplayName))
+                    {
+                        continue;
+                    }
+                }
 
                 _definitions.TryGetValue(entry.Template.DefinitionId, out var definition);
                 var holder = new GameObject("CardHolder", typeof(RectTransform), typeof(LayoutElement));
@@ -347,16 +362,22 @@ namespace Grimhand.Presentation.Battle
 
                 var view = Instantiate(_cardPrefab, holder.transform);
                 CardView.ApplyHandPresentationScaleCentered(view, CardScale);
-                var preview = CardVisualResolver.CreatePreviewInstance(
-                    entry.Template.DefinitionId,
-                    entry.Template.OwnerCharacterId,
-                    entry.Template.DisplayName,
-                    definition);
+                var preview = CardVisualResolver.CreatePreviewInstanceFromTemplate(entry.Template, definition);
                 var visual = CardVisualResolver.Resolve(preview, _cardCatalog, _characterVisuals, _definitions);
                 var key = entry.Key;
                 var selected = step.Kind == ExpeditionEventStepKind.PickTwoCardsForFusion
                     ? _selectedCardKeys.Contains(key)
                     : key == _selectedCardKey;
+                var ownerMember = _session.Expedition.Run.Party.Find(m =>
+                    m?.CharacterDefinitionId == entry.Template.OwnerCharacterId);
+                var upgradeLevel = ownerMember != null
+                    ? CardUpgradeRules.GetLevel(ownerMember, entry.Template.DeckInstanceId)
+                    : 0;
+                var upgradeSlots = CardUpgradeRules.FormatUpgradeSlots(entry.Template.DisplayName, upgradeLevel);
+                var statsLine = BattleUiFormatters.BuildCardStatsLinePreview(preview, _definitions);
+                if (!string.IsNullOrEmpty(upgradeSlots))
+                    statsLine = string.IsNullOrEmpty(statsLine) ? upgradeSlots : $"{statsLine}  {upgradeSlots}";
+
                 view.BindWithCard(
                     preview,
                     visual,
@@ -364,7 +385,7 @@ namespace Grimhand.Presentation.Battle
                     polluted: false,
                     interactable: true,
                     orderBadge: "",
-                    statsLine: BattleUiFormatters.BuildCardStatsLinePreview(preview, _definitions),
+                    statsLine: statsLine,
                     uiIcons: _icons,
                     characterVisuals: _characterVisuals,
                     onClick: _ => SelectCard(key),

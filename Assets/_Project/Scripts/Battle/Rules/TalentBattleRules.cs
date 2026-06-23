@@ -82,6 +82,15 @@ namespace Grimhand.Battle.Rules
             CombatantState combatant,
             RunModifierSnapshot mods)
         {
+            ApplyCombatModifiers(state, combatant, mods);
+        }
+
+        /// <summary>v0.8：天赋/特性出站与护甲修饰符（不再改 ATK/DEF）。</summary>
+        public static void ApplyCombatModifiers(
+            BattleState state,
+            CombatantState combatant,
+            RunModifierSnapshot mods)
+        {
             if (state == null || combatant == null || !combatant.IsAlive || combatant.Team != TeamSide.Player)
                 return;
 
@@ -91,20 +100,20 @@ namespace Grimhand.Battle.Rules
             {
                 if (HasTalent(state, "talent_knight_s1_lv3") && effective != FormationSlot.Front)
                 {
-                    combatant.Attack = (int)Math.Round(combatant.Attack * 1.33f);
-                    combatant.Defense = Math.Max(0, (int)Math.Round(combatant.Defense * 0.75f));
+                    combatant.OutgoingDamagePercentBonus += 33;
+                    combatant.IncomingDamagePercentBonus += 33;
                 }
 
                 if (HasTalent(state, "talent_knight_s1_lv7")
                     && combatant.Hp * 100 / Math.Max(1, combatant.MaxHp) < 10)
                 {
-                    combatant.Attack = (int)Math.Round(combatant.Attack * 1.5f);
+                    combatant.OutgoingDamagePercentBonus += 50;
                 }
 
                 if (HasTalent(state, "talent_knight_s2_lv8")
                     && combatant.TalentAttackCardsThisTurn >= 3)
                 {
-                    combatant.Attack = (int)Math.Round(combatant.Attack * 1.33f);
+                    combatant.OutgoingDamagePercentBonus += 33;
                 }
             }
 
@@ -113,18 +122,21 @@ namespace Grimhand.Battle.Rules
                 if (HasTalent(state, "talent_ranger_s1_lv7")
                     && combatant.Hp * 100 / Math.Max(1, combatant.MaxHp) < 30)
                 {
-                    combatant.Attack = (int)Math.Round(combatant.Attack * 1.2f);
+                    combatant.OutgoingDamagePercentBonus += 25;
                 }
 
                 if (HasTalent(state, "talent_ranger_s2_lv8")
                     && state.Config?.Talents?.NonBossSoloEnemyBattle == true)
                 {
-                    combatant.Attack = (int)Math.Round(combatant.Attack * 1.3f);
+                    combatant.OutgoingDamagePercentBonus += 30;
                 }
 
                 if (state.TalentRangerBloodDebtAttackBonus > 0)
-                    combatant.Attack += state.TalentRangerBloodDebtAttackBonus;
+                    combatant.OutgoingDamageFlatBonus += state.TalentRangerBloodDebtAttackBonus;
             }
+
+            if (combatant.SacrificeAttackStacks > 0)
+                combatant.OutgoingDamageFlatBonus += combatant.SacrificeAttackStacks;
         }
 
         public static void ApplyTeamHpBonus(BattleState state, RunModifierSnapshot mods)
@@ -244,7 +256,7 @@ namespace Grimhand.Battle.Rules
             if (combatant.CharacterDefinitionId != MageId || !HasTalent(state, "talent_mage_s1_lv10"))
                 return;
 
-            var block = Math.Max(1, (int)Math.Round(combatant.Defense * 0.8f) + 10);
+            var block = 25;
             foreach (var ally in CollectAlivePlayerTeam(state))
                 DamageRules.ApplyBlock(ally, block, events, state);
 
@@ -335,7 +347,9 @@ namespace Grimhand.Battle.Rules
             if (state == null || owner == null || card == null)
                 return card?.Cost ?? 0;
 
-            var cost = card.Cost;
+            var cost = CardPowerRules.UsesRemainingEnergyCost(card)
+                ? CardPowerRules.GetRemainingEnergyPlayCost(state, card)
+                : card.Cost;
 
             if (owner.TalentNextSacrificeEnergyDiscount
                 && HasTalent(state, "talent_ranger_s2_lv4"))
@@ -431,7 +445,7 @@ namespace Grimhand.Battle.Rules
                 return;
 
             target.TalentLastStandBlockUsed = true;
-            var blockGain = Math.Max(1, target.Defense + 10);
+            var blockGain = 50;
             DamageRules.ApplyBlock(target, blockGain, events, state);
             var absorbed = Math.Min(hpDamage, blockGain);
             hpDamage -= absorbed;

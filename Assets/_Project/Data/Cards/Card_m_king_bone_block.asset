@@ -19,7 +19,7 @@ MonoBehaviour:
   CardType: 1
   Rarity: 0
   Keywords:
-  - guard
+  - parry
   Actions:
   - Type: 9
     Target: 1
@@ -40,6 +40,8 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0

@@ -197,6 +197,10 @@ namespace Grimhand.Presentation.Battle
             if (c == null)
                 return combatantId;
 
+            var disambiguated = BattleUiFormatters.FormatCombatantDisambiguatedName(state, c);
+            if (disambiguated != c.DisplayName)
+                return disambiguated;
+
             var slot = PositionRules.GetEffectiveSlot(state, c);
             return $"{c.DisplayName}（{BattleUiFormatters.SlotLabel(slot)}）";
         }

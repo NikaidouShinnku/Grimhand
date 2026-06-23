@@ -2,22 +2,50 @@ using System;
 
 namespace Grimhand.Expedition
 {
-    /// <summary>局内等级 / 经验（v2 策划表）。</summary>
+    /// <summary>局内等级 / 经验（v0.8 Excel 角色表）。</summary>
     public static class CharacterProgression
     {
         public const int MinLevel = 1;
         public const int MaxLevel = 20;
 
+        static readonly int[] WarriorHp =
+        {
+            50, 56, 62, 68, 74, 80, 86, 92, 98, 104,
+            110, 116, 122, 128, 134, 140, 146, 152, 158, 164
+        };
+
+        static readonly int[] PharaohHp =
+        {
+            40, 44, 49, 54, 58, 62, 67, 72, 76, 80,
+            85, 90, 94, 98, 103, 108, 112, 116, 121, 126
+        };
+
+        static readonly int[] DemonHp =
+        {
+            30, 34, 37, 40, 44, 48, 51, 54, 58, 62,
+            65, 68, 72, 76, 79, 82, 86, 90, 93, 96
+        };
+
+        static readonly int[] XpToLevel =
+        {
+            0, 0, 8, 11, 14, 17, 20, 23, 26, 29,
+            32, 35, 38, 41, 44, 47, 50, 53, 56, 59, 62
+        };
+
+        public const int WarriorSpeed = 7;
+        public const int PharaohSpeed = 5;
+        public const int DemonSpeed = 6;
+
         public static int ClampLevel(int level) =>
             level < MinLevel ? MinLevel : level > MaxLevel ? MaxLevel : level;
 
-        /// <summary>从 Lv.(N-1) 升到 Lv.N 所需 XP（N≥2）：(N-2)×3+8</summary>
         public static int XpRequiredForLevel(int level)
         {
+            level = ClampLevel(level);
             if (level <= MinLevel)
                 return 0;
 
-            return (level - 2) * 3 + 8;
+            return XpToLevel[level];
         }
 
         public static int XpToNextLevel(int level) =>
@@ -52,12 +80,13 @@ namespace Grimhand.Expedition
         public static CharacterStats GetStatsForCharacter(string characterDefinitionId, int level)
         {
             level = ClampLevel(level);
+            var index = level - 1;
             return characterDefinitionId switch
             {
-                "char_knight" or "char_warrior" => StatsWarrior(level),
-                "char_mage" or "char_pharaoh" => StatsPharaoh(level),
-                "char_ranger" or "char_demon" => StatsDemon(level),
-                _ => StatsWarrior(level)
+                "char_knight" or "char_warrior" => new CharacterStats(WarriorHp[index], WarriorSpeed),
+                "char_mage" or "char_pharaoh" => new CharacterStats(PharaohHp[index], PharaohSpeed),
+                "char_ranger" or "char_demon" => new CharacterStats(DemonHp[index], DemonSpeed),
+                _ => new CharacterStats(WarriorHp[index], WarriorSpeed)
             };
         }
 
@@ -82,38 +111,5 @@ namespace Grimhand.Expedition
 
             return Math.Clamp(xp / (float)toNext, 0f, 1f);
         }
-
-        static CharacterStats StatsWarrior(int level)
-        {
-            var i = level - 1;
-            return new CharacterStats(
-                50 + i * 6,
-                RoundStat(8f + i * 1.5f),
-                RoundStat(6f + i * 1.2f),
-                7);
-        }
-
-        static CharacterStats StatsPharaoh(int level)
-        {
-            var i = level - 1;
-            return new CharacterStats(
-                40 + i * 5,
-                6 + i * 2,
-                RoundStat(4f + i * 0.8f),
-                5);
-        }
-
-        static CharacterStats StatsDemon(int level)
-        {
-            var i = level - 1;
-            return new CharacterStats(
-                30 + i * 4,
-                RoundStat(9f + i * 2.5f),
-                RoundStat(2f + i * 0.3f),
-                6);
-        }
-
-        static int RoundStat(float value) =>
-            (int)Math.Round(value, MidpointRounding.AwayFromZero);
     }
 }

@@ -24,6 +24,7 @@ namespace Grimhand.Expedition
 
                 var clone = ExpeditionBattleConfigBuilder.CloneTemplate(blade);
                 clone.OwnerCharacterId = TalentCatalog.RangerId;
+                ExpeditionDeckInstanceRules.PrepareNewDeckCard(member, clone);
                 member.BonusCards.Add(clone);
                 run.TalentRun.EndlessBladeInjected = true;
                 break;
@@ -72,7 +73,9 @@ namespace Grimhand.Expedition
             {
                 config.Talents.MageReviveAvailable = HasTalent(config.Talents, "talent_mage_s1_lv5")
                     && !talentRun.MageReviveUsed;
-                config.Talents.RangerBloodDebtAttackBonus = ComputeBloodDebtAttackBonus(talentRun);
+                config.Talents.RangerBloodDebtAttackBonus = HasTalent(config.Talents, "talent_ranger_s1_lv10")
+                    ? ComputeBloodDebtAttackBonus(talentRun)
+                    : 0;
             }
 
             config.Talents.NonBossSoloEnemyBattle = !isBossBattle && CountAliveEnemies(config) == 1;
@@ -127,7 +130,7 @@ namespace Grimhand.Expedition
                 return 0;
 
             var stacks = talentRun.RangerSacrificeHpTotal / 50;
-            return System.Math.Min(20, stacks);
+            return System.Math.Min(10, stacks);
         }
 
         static int CountAliveEnemies(BattleConfig config)

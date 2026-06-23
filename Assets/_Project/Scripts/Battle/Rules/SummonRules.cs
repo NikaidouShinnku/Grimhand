@@ -137,6 +137,43 @@ namespace Grimhand.Battle.Rules
             return null;
         }
 
+        public static void SpawnRatSwarmClone(
+            BattleState state,
+            CombatantState dead,
+            List<BattleEvent> events)
+        {
+            if (state == null || dead == null || dead.CharacterDefinitionId != MinionTraitCatalog.RatCharacterId)
+                return;
+
+            var maxHp = System.Math.Max(1, dead.MaxHp / 2);
+            var id = $"summon_{MinionTraitCatalog.RatCharacterId}_{state.NextSummonInstanceId++}";
+            var combatant = new CombatantState
+            {
+                Id = id,
+                DisplayName = dead.DisplayName,
+                Team = dead.Team,
+                Slot = dead.Slot,
+                CharacterDefinitionId = MinionTraitCatalog.RatCharacterId,
+                Level = dead.Level,
+                Xp = dead.Xp,
+                MaxHp = maxHp,
+                BaseAttack = dead.BaseAttack,
+                BaseDefense = dead.BaseDefense,
+                Speed = dead.Speed,
+                Hp = maxHp
+            };
+
+            combatant.Traits.AddRange(dead.Traits);
+            state.Combatants.Add(combatant);
+            RelicBattleRules.RefreshDerivedStats(state, combatant, state.Config?.RunModifiers);
+
+            events.Add(new BattleEvent(BattleEventKind.CombatantSpawned, $"{combatant.DisplayName}（鼠群呼唤）")
+            {
+                CombatantId = combatant.Id,
+                TargetId = dead.Slot.ToString()
+            });
+        }
+
         public static void MergeSummonedSkillPoolIntoTeamDeck(
             BattleState state,
             CombatantConfig template,
@@ -240,6 +277,8 @@ namespace Grimhand.Battle.Rules
                     BonusIfTargetHpBelowPercent = action.BonusIfTargetHpBelowPercent,
                     BonusIfTargetHpBelowFlat = action.BonusIfTargetHpBelowFlat,
                     BonusIfTargetHitThisTurnPercent = action.BonusIfTargetHitThisTurnPercent,
+                    BonusIfTargetHasStatusId = action.BonusIfTargetHasStatusId,
+                    BonusIfTargetHasStatusFlat = action.BonusIfTargetHasStatusFlat,
                     LifestealPercent = action.LifestealPercent,
                     HealMaxHpPercent = action.HealMaxHpPercent,
                     OnKillHealAmount = action.OnKillHealAmount

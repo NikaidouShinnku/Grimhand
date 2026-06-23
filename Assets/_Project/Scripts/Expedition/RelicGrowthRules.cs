@@ -88,7 +88,7 @@ namespace Grimhand.Expedition
                     mods.TeamAttackBonus += 2 * tiers;
                     break;
                 case RelicIds.CrimsonBurningBoots:
-                    mods.EndTurnEnemyFireDamage += 3 * tiers;
+                    mods.TurnStartEnemyDamage += 3 * tiers;
                     break;
                 case RelicIds.FlameSword:
                     mods.TeamAttackBonus += 2 * tiers;

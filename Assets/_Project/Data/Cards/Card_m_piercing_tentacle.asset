@@ -17,22 +17,21 @@ MonoBehaviour:
   OwnerCharacterId: char_abyss_creature
   Cost: 2
   CardType: 0
-  Rarity: 1
-  Keywords:
-  - melee
+  Rarity: 2
+  Keywords: []
   Actions:
   - Type: 0
     Target: 0
-    Value: 10
+    Value: 28
     StatusId: 
     Stacks: 1
     Duration: -1
-    ScaleWithAttack: 1
+    ScaleWithAttack: 0
     ScaleWithDefense: 0
-    AttackScalePercent: 150
+    AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 0
+    Reach: 1
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100
@@ -40,6 +39,46 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
+    LifestealPercent: 0
+    HealMaxHpPercent: 0
+    OnKillHealAmount: 0
+    HitCount: 1
+    AlternateAttackScalePercent: 0
+    AlternateValue: 0
+    UseAlternateIfTargetHasDebuff: 0
+    AlternateAttackScaleIfActorUsedAttack: 0
+    AlternateValueIfActorUsedAttack: 0
+    DamageMultiplierPercentIfRespondArmed: 100
+    SelfDamageFlat: 0
+    RepeatPerEnemyAttackCardThisTurn: 0
+    FallbackBlockDefenseScalePercent: 100
+    FallbackBlockValue: 0
+    SummonCharacterId: 
+    GrantInvulnerableOnRespondArm: 0
+    LifestealUnblockedOnly: 0
+  - Type: 3
+    Target: 0
+    Value: 0
+    StatusId: poison
+    Stacks: 1
+    Duration: 2
+    ScaleWithAttack: 0
+    ScaleWithDefense: 0
+    AttackScalePercent: 100
+    DefenseScalePercent: 100
+    Condition: 0
+    Reach: 1
+    SplashBehindTarget: 0
+    SplashPowerPercent: 100
+    BackRowPowerPercent: 100
+    IgnoreDefPercent: 0
+    BonusIfTargetHpBelowPercent: 0
+    BonusIfTargetHpBelowFlat: 0
+    BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0

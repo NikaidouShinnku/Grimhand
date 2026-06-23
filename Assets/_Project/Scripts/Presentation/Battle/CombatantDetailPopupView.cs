@@ -177,24 +177,18 @@ namespace Grimhand.Presentation.Battle
             var status = CombatantDisplayHelper.GetStatusSummary(unit, presentation);
             var speed = CombatantDisplayHelper.GetSpeed(unit, presentation);
             var showExp = showExpBar && unit.Team == TeamSide.Player;
-            var attackDisplay = CombatantDisplayHelper.GetAttack(unit, presentation);
-            if (presentation == null
-                && expeditionMember != null
-                && expeditionMember.PersonalAttackBonus > 0)
-            {
-                var baseStats = CharacterProgression.GetStatsForCharacter(
-                    unit.CharacterDefinitionId,
-                    CharacterProgression.ClampLevel(unit.Level));
-                attackDisplay = baseStats.BaseAttack + expeditionMember.PersonalAttackBonus;
-            }
-
-            var defenseDisplay = CombatantDisplayHelper.GetDefense(unit, presentation);
             var traitFootnote = CombatantDisplayHelper.GetTraitFootnote(unit, presentation);
 
             var lines = CharacterProgression.FormatLevelLabel(unit.Level);
             if (showExp)
                 lines += "\n";
-            lines += $"\n攻击 {attackDisplay}    防御 {defenseDisplay}    速度 {speed}";
+            lines += $"\n生命 {unit.Hp}/{unit.MaxHp}    速度 {speed}";
+            if (presentation == null
+                && expeditionMember != null
+                && expeditionMember.PersonalAttackBonus > 0)
+            {
+                lines += $"\n增伤 +{expeditionMember.PersonalAttackBonus}";
+            }
             if (!string.IsNullOrEmpty(status))
                 lines += $"\n状态 {status}";
             if (!string.IsNullOrEmpty(traitFootnote))

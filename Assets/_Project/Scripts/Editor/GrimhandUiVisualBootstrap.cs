@@ -49,6 +49,7 @@ namespace Grimhand.Editor
             catalog.SpeedIcon = LoadFirstSprite(IconRoot + "SPD.png");
             catalog.EnergyIcon = LoadFirstSprite(IconRoot + "ERG.png");
             catalog.GoldIcon = LoadFirstSprite(IconRoot + "coin.png");
+            catalog.XpIcon = LoadFirstSprite(IconRoot + "XP.png");
             catalog.InventoryIcon = LoadFirstSprite(IconRoot + "inventory.png");
             catalog.ConfirmPlayIcon = LoadFirstSprite(IconRoot + "check.png");
             catalog.SkipIcon = LoadFirstSprite(IconRoot + "pass.png");
@@ -138,7 +139,7 @@ namespace Grimhand.Editor
         {
             SetCardRarity("Card_w_basic_slash", CardRarity.Common);
             SetCardRarity("Card_w_power_cleave", CardRarity.Rare);
-            SetCardRarity("Card_w_iron_parry", CardRarity.Epic);
+            SetCardRarity("Card_w_iron_parry", CardRarity.SuperRare);
             SetCardRarity("Card_w_shield_block", CardRarity.Common);
             SetCardRarity("Card_w_fatal_strike", CardRarity.Rare);
             SetCardRarity("Card_p_sand_ray", CardRarity.Common);

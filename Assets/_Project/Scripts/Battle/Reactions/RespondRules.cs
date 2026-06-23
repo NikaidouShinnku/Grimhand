@@ -15,6 +15,9 @@ namespace Grimhand.Battle.Reactions
             if (card.Keywords.Contains("parry"))
                 return true;
 
+            if (card.Keywords.Contains("respond_defense") || card.Keywords.Contains("respond_status"))
+                return true;
+
             foreach (var action in card.Actions)
             {
                 if (action.Condition != ReactionConditionType.None)

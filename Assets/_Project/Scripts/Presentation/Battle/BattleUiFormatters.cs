@@ -49,10 +49,63 @@ namespace Grimhand.Presentation.Battle
             return ownerId;
         }
 
+        /// <summary>
+        /// 同名存活单位在场时追加 1/2/3 后缀（按阵位、再按 Id），便于区分重复敌人的意图。
+        /// </summary>
+        public static string FormatCombatantDisambiguatedName(BattleState state, CombatantState unit)
+        {
+            if (unit == null)
+                return "?";
+            if (state == null)
+                return unit.DisplayName;
+
+            var peers = new List<CombatantState>();
+            foreach (var c in state.GetTeam(unit.Team))
+            {
+                if (!c.IsAlive)
+                    continue;
+                if (c.DisplayName == unit.DisplayName)
+                    peers.Add(c);
+            }
+
+            if (peers.Count <= 1)
+                return unit.DisplayName;
+
+            peers.Sort((a, b) =>
+            {
+                var sa = (int)PositionRules.GetEffectiveSlot(state, a);
+                var sb = (int)PositionRules.GetEffectiveSlot(state, b);
+                var cmp = sa.CompareTo(sb);
+                return cmp != 0 ? cmp : string.CompareOrdinal(a.Id, b.Id);
+            });
+
+            for (var i = 0; i < peers.Count; i++)
+            {
+                if (peers[i].Id == unit.Id)
+                    return $"{unit.DisplayName}{i + 1}";
+            }
+
+            return unit.DisplayName;
+        }
+
+        static string FormatEnemyActionOrderLabel(BattleState state, CombatantState owner, CardInstanceState card, bool hidden)
+        {
+            if (hidden)
+            {
+                var ownerName = owner != null ? FormatCombatantDisambiguatedName(state, owner) : "?";
+                return $"? ({ownerName})";
+            }
+
+            if (owner == null || card == null)
+                return card?.DisplayName ?? "?";
+
+            return $"{FormatCombatantDisambiguatedName(state, owner)} · {card.DisplayName}";
+        }
+
         public static string FormatUnitLine(CombatantState unit)
         {
             var status = FormatStatusList(unit);
-            var core = $"{unit.DisplayName}\nHP {unit.Hp}/{unit.MaxHp}  攻{unit.Attack}  速{StatusRules.GetEffectiveSpeed(unit)}";
+            var core = $"{unit.DisplayName}\nHP {unit.Hp}/{unit.MaxHp}  速{StatusRules.GetEffectiveSpeed(unit)}";
             return string.IsNullOrEmpty(status) ? core : core + "\n" + status;
         }
 
@@ -88,7 +141,8 @@ namespace Grimhand.Presentation.Battle
             PlanningDraft draft,
             CardInstanceState card,
             bool preferFormulas = false,
-            CombatantState damagePreviewTarget = null)
+            CombatantState damagePreviewTarget = null,
+            IReadOnlyDictionary<string, CardDefinitionSO> definitions = null)
         {
             if (card == null)
                 return "";
@@ -97,6 +151,9 @@ namespace Grimhand.Presentation.Battle
             var owner = ownerId != null ? state.GetCombatant(ownerId) : null;
             if (TryBuildCurseCardStatsLine(card, out var curseLine))
                 return curseLine;
+
+            if (TryBuildExcelDescriptionLine(state, draft, card, definitions, out var excelLine))
+                return excelLine;
 
             var pickSide = CardRules.GetRequiredTargetPick(card);
             var previewTarget = ResolveDamagePreviewTarget(state, draft, card, owner, damagePreviewTarget);
@@ -191,11 +248,12 @@ namespace Grimhand.Presentation.Battle
             BattleState state,
             PlanningDraft draft,
             CardInstanceState card,
-            CombatantState damagePreviewTarget = null) =>
-            BuildCardStatsLine(state, draft, card, preferFormulas: false, damagePreviewTarget);
+            CombatantState damagePreviewTarget = null,
+            IReadOnlyDictionary<string, CardDefinitionSO> definitions = null) =>
+            BuildCardStatsLine(state, draft, card, preferFormulas: false, damagePreviewTarget, definitions);
 
         public static string BuildCardStatsLinePreview(CardInstanceState card) =>
-            BuildCardStatsLine(state: null, draft: null, card, preferFormulas: true);
+            BuildCardStatsLine(state: null, draft: null, card, preferFormulas: false);
 
         public static string BuildCardStatsLinePreview(
             CardInstanceState card,
@@ -204,7 +262,8 @@ namespace Grimhand.Presentation.Battle
                 state: null,
                 draft: null,
                 CardVisualResolver.ResolveForDescription(card, definitions),
-                preferFormulas: true);
+                preferFormulas: false,
+                definitions: definitions);
 
         public static string BuildCardKeywordTooltip(
             BattleState state,
@@ -584,11 +643,16 @@ namespace Grimhand.Presentation.Battle
             switch (action.StatusId)
             {
                 case StatusCatalog.AttackUp:
-                    return PrefixTarget(usesPick ? "" : target, $"攻击 +{action.Stacks}（本回合）");
+                case StatusCatalog.DamageUp:
+                    return PrefixTarget(usesPick ? "" : target, $"攻击伤害 +{action.Stacks}（本回合）");
                 case StatusCatalog.DefenseUp:
-                    return PrefixTarget(usesPick ? "" : target, $"防御 +{action.Stacks}（本回合）");
+                case StatusCatalog.ArmorUp:
+                    return PrefixTarget(usesPick ? "" : target, $"护甲获取 +{action.Stacks}（本回合）");
                 case StatusCatalog.AttackDown:
-                    return PrefixTarget(usesPick ? "" : target, $"攻击 -{action.Stacks}（{FormatDuration(action)}）");
+                case StatusCatalog.Weaken:
+                    return PrefixTarget(usesPick ? "" : target, $"攻击伤害 -{action.Stacks}（{FormatDuration(action)}）");
+                case StatusCatalog.Vulnerable:
+                    return PrefixTarget(usesPick ? "" : target, $"易伤 +{action.Stacks}（{FormatDuration(action)}）");
                 case StatusCatalog.Taunt:
                     return "所有敌人下一行动强制攻击自身";
                 case StatusCatalog.Guard:
@@ -602,7 +666,7 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.FinalBloodRitual:
                     return "本场战斗中，每当触发【献祭】，抽 1 张牌并回复 5 点生命";
                 case StatusCatalog.GodDescends:
-                    return "本场战斗中，获得护甲时对全体敌人造成 ATK×1.2+5 伤害";
+                    return "本场战斗中，获得护甲时对全体敌人造成 8 伤害";
                 case StatusCatalog.NecroticPoison:
                     return PrefixTarget(usesPick ? "" : target, $"附加中毒 {action.Stacks} 层{FormatDurationSuffix(action)}");
                 case StatusCatalog.Slow:
@@ -719,7 +783,9 @@ namespace Grimhand.Presentation.Battle
 
             foreach (var action in actions)
             {
-                if (action.Type != EffectActionType.ApplyStatus || action.StatusId != StatusCatalog.AttackUp)
+                if (action.Type != EffectActionType.ApplyStatus)
+                    continue;
+                if (action.StatusId != StatusCatalog.AttackUp && action.StatusId != StatusCatalog.DamageUp)
                     continue;
 
                 switch (action.Target)
@@ -736,7 +802,7 @@ namespace Grimhand.Presentation.Battle
             if (front.Stacks != middle.Stacks || front.Stacks != back.Stacks)
                 return false;
 
-            line = $"全队攻击 +{front.Stacks}（本回合）";
+            line = $"全队攻击伤害 +{front.Stacks}（本回合）";
             remaining = new List<EffectActionSpec>();
             foreach (var action in actions)
             {
@@ -971,9 +1037,9 @@ namespace Grimhand.Presentation.Battle
 
                 var global = i + 1;
                 var owner = state.GetCombatant(step.CombatantId);
-                var ownerName = owner?.DisplayName;
-                if (string.IsNullOrEmpty(ownerName))
-                    ownerName = ShortOwner(card.OwnerCharacterId);
+                var ownerName = owner != null
+                    ? FormatCombatantDisambiguatedName(state, owner)
+                    : ShortOwner(card.OwnerCharacterId);
 
                 if (owner != null && owner.Team == TeamSide.Enemy)
                 {
@@ -1024,9 +1090,9 @@ namespace Grimhand.Presentation.Battle
 
                 var global = i + 1;
                 var owner = state.GetCombatant(step.CombatantId);
-                var ownerName = owner?.DisplayName;
-                if (string.IsNullOrEmpty(ownerName))
-                    ownerName = ShortOwner(card.OwnerCharacterId);
+                var ownerName = owner != null
+                    ? FormatCombatantDisambiguatedName(state, owner)
+                    : ShortOwner(card.OwnerCharacterId);
 
                 if (owner != null && owner.Team == TeamSide.Enemy)
                 {
@@ -1079,7 +1145,9 @@ namespace Grimhand.Presentation.Battle
                     OrderIndex = i + 1,
                     Card = card,
                     IsHidden = hidden,
-                    DisplayName = hidden ? "?" : card.DisplayName
+                    DisplayName = owner != null && owner.Team == TeamSide.Enemy
+                        ? FormatEnemyActionOrderLabel(state, owner, card, hidden)
+                        : (hidden ? "?" : card.DisplayName)
                 });
             }
 
@@ -1112,7 +1180,9 @@ namespace Grimhand.Presentation.Battle
                     OrderIndex = i + 1,
                     Card = card,
                     IsHidden = hidden,
-                    DisplayName = hidden ? "?" : card.DisplayName
+                    DisplayName = owner != null && owner.Team == TeamSide.Enemy
+                        ? FormatEnemyActionOrderLabel(state, owner, card, hidden)
+                        : (hidden ? "?" : card.DisplayName)
                 });
             }
 
@@ -1132,12 +1202,21 @@ namespace Grimhand.Presentation.Battle
                 if (card == null)
                     continue;
 
+                var owner = !string.IsNullOrEmpty(intent.OwnerCombatantId)
+                    ? state.GetCombatant(intent.OwnerCombatantId)
+                    : null;
+                if (owner == null)
+                {
+                    var ownerId = PositionRules.GetOwnerCombatantId(state, card);
+                    owner = ownerId != null ? state.GetCombatant(ownerId) : null;
+                }
+
                 entries.Add(new ActionOrderVisualEntry
                 {
                     OrderIndex = order++,
                     Card = card,
                     IsHidden = intent.IsHidden,
-                    DisplayName = intent.IsHidden ? "?" : card.DisplayName
+                    DisplayName = FormatEnemyActionOrderLabel(state, owner, card, intent.IsHidden)
                 });
             }
 
@@ -1200,9 +1279,10 @@ namespace Grimhand.Presentation.Battle
                 return "";
 
             var damageNote = FormatPrimaryDamagePreview(state, owner, card, assigned);
+            var targetName = FormatCombatantDisambiguatedName(state, assigned);
             return string.IsNullOrEmpty(damageNote)
-                ? $" → {assigned.DisplayName}"
-                : $" → {assigned.DisplayName} ({damageNote})";
+                ? $" → {targetName}"
+                : $" → {targetName} ({damageNote})";
         }
 
         static string FormatPrimaryDamagePreview(
@@ -1299,7 +1379,7 @@ namespace Grimhand.Presentation.Battle
             CardInstanceState card,
             bool isHidden)
         {
-            var actorName = owner != null ? owner.DisplayName : "敌";
+            var actorName = owner != null ? FormatCombatantDisambiguatedName(state, owner) : "敌";
             if (isHidden || card == null)
                 return $"{actorName} ？";
 
@@ -1323,7 +1403,7 @@ namespace Grimhand.Presentation.Battle
             if (target.Id == owner.Id)
                 return " → 自身";
 
-            return $" → {target.DisplayName}";
+            return $" → {FormatCombatantDisambiguatedName(state, target)}";
         }
 
         static bool IsEnemyIntentHidden(
@@ -1416,6 +1496,44 @@ namespace Grimhand.Presentation.Battle
                 case ExpeditionNodeType.Boss: return "Boss";
                 default: return type.ToString();
             }
+        }
+
+        static bool TryBuildExcelDescriptionLine(
+            BattleState state,
+            PlanningDraft draft,
+            CardInstanceState card,
+            IReadOnlyDictionary<string, CardDefinitionSO> definitions,
+            out string line)
+        {
+            line = "";
+            if (card == null || string.IsNullOrEmpty(card.DisplayName))
+                return false;
+
+            if (definitions != null
+                && definitions.TryGetValue(card.DefinitionId, out var def)
+                && def != null
+                && !CardVisualResolver.MatchesDefinitionBaseline(card, def))
+                return false;
+
+            if (!CardDescriptionCatalog.TryGetByDisplayName(card.DisplayName, out var excelText)
+                || string.IsNullOrWhiteSpace(excelText))
+                return false;
+
+            var lines = new List<string> { excelText.Trim() };
+
+            var assignedId = draft?.GetAssignedTarget(card.InstanceId);
+            if (!string.IsNullOrEmpty(assignedId) && state != null)
+            {
+                var assigned = state.GetCombatant(assignedId);
+                if (assigned != null)
+                    lines.Add($"→ {assigned.DisplayName}");
+            }
+
+            if (card.DefinitionId == PassiveCardMechanicsRules.EndlessBladeCardId)
+                lines.Add("使用后此牌伤害在本场战斗中翻倍");
+
+            line = string.Join("\n", lines);
+            return true;
         }
 
         static bool TryBuildCurseCardStatsLine(CardInstanceState card, out string line)

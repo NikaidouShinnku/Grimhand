@@ -13,6 +13,8 @@ namespace Grimhand.Expedition
         public int Gold { get; set; }
         public int LastGoldReward { get; set; }
         public int LastXpReward { get; set; }
+        /// <summary>v0.8：全队共享经验池，祭坛节点手动分配。</summary>
+        public int SharedXpPool { get; set; }
         public bool LastBattleWasElite { get; set; }
         public bool LastBattleWasBoss { get; set; }
         public int LastBattleFloor { get; set; } = 1;

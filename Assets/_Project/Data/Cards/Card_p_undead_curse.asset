@@ -18,18 +18,17 @@ MonoBehaviour:
   Cost: 3
   CardType: 0
   Rarity: 2
-  Keywords:
-  - poison
+  Keywords: []
   Actions:
   - Type: 0
     Target: 0
-    Value: 7
+    Value: 15
     StatusId: 
     Stacks: 1
     Duration: -1
-    ScaleWithAttack: 1
+    ScaleWithAttack: 0
     ScaleWithDefense: 0
-    AttackScalePercent: 120
+    AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
     Reach: 0
@@ -40,6 +39,8 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0
@@ -68,7 +69,7 @@ MonoBehaviour:
     AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 1
+    Reach: 0
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100
@@ -76,6 +77,8 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: m_phase
   DisplayName: "\u9690\u8EAB"
-  OwnerCharacterId: char_wraith
+  OwnerCharacterId: char_wraith_elite
   Cost: 1
   CardType: 1
   Rarity: 0
@@ -40,6 +40,8 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0
@@ -55,7 +57,7 @@ MonoBehaviour:
     FallbackBlockDefenseScalePercent: 100
     FallbackBlockValue: 0
     SummonCharacterId: 
-    GrantInvulnerableOnRespondArm: 1
+    GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}

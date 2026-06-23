@@ -17,18 +17,18 @@ MonoBehaviour:
   OwnerCharacterId: char_knight
   Cost: 3
   CardType: 0
-  Rarity: 1
+  Rarity: 2
   Keywords: []
   Actions:
   - Type: 0
     Target: 0
-    Value: 8
+    Value: 22
     StatusId: 
     Stacks: 1
     Duration: -1
-    ScaleWithAttack: 1
+    ScaleWithAttack: 0
     ScaleWithDefense: 0
-    AttackScalePercent: 180
+    AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
     Reach: 1
@@ -38,7 +38,9 @@ MonoBehaviour:
     IgnoreDefPercent: 0
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
-    BonusIfTargetHitThisTurnPercent: 50
+    BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0

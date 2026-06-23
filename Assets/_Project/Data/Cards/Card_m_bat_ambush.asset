@@ -17,17 +17,17 @@ MonoBehaviour:
   OwnerCharacterId: char_bat
   Cost: 2
   CardType: 0
-  Rarity: 1
+  Rarity: 2
   Keywords:
-  - parry
+  - respond_status
   Actions:
   - Type: 0
     Target: 0
-    Value: 10
+    Value: 20
     StatusId: 
     Stacks: 1
     Duration: -1
-    ScaleWithAttack: 1
+    ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100
     DefenseScalePercent: 100
@@ -40,6 +40,8 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0
@@ -49,7 +51,7 @@ MonoBehaviour:
     UseAlternateIfTargetHasDebuff: 0
     AlternateAttackScaleIfActorUsedAttack: 0
     AlternateValueIfActorUsedAttack: 0
-    DamageMultiplierPercentIfRespondArmed: 300
+    DamageMultiplierPercentIfRespondArmed: 100
     SelfDamageFlat: 0
     RepeatPerEnemyAttackCardThisTurn: 0
     FallbackBlockDefenseScalePercent: 100

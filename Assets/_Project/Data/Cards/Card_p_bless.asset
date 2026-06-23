@@ -18,15 +18,16 @@ MonoBehaviour:
   Cost: 1
   CardType: 2
   Rarity: 0
-  Keywords: []
+  Keywords:
+  - exhaust
   Actions:
   - Type: 2
     Target: 2
-    Value: 2
+    Value: 10
     StatusId: 
     Stacks: 1
     Duration: -1
-    ScaleWithAttack: 1
+    ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100
     DefenseScalePercent: 100
@@ -39,6 +40,8 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0

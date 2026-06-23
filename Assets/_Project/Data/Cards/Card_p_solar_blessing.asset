@@ -13,79 +13,15 @@ MonoBehaviour:
   m_Name: Card_p_solar_blessing
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: p_solar_blessing
-  DisplayName: "太阳神的庇佑"
+  DisplayName: "\u592A\u9633\u795E\u7684\u5E87\u4F51"
   OwnerCharacterId: char_mage
-  Cost: 4
+  Cost: 0
   CardType: 1
-  Rarity: 2
-  Keywords: []
+  Rarity: 3
+  Keywords:
+  - x_cost
   Actions:
-  - Type: 1
-    Target: 9
-    Value: 0
-    StatusId: 
-    Stacks: 1
-    Duration: -1
-    ScaleWithAttack: 0
-    ScaleWithDefense: 1
-    AttackScalePercent: 100
-    DefenseScalePercent: 50
-    Condition: 0
-    Reach: 0
-    SplashBehindTarget: 0
-    SplashPowerPercent: 100
-    BackRowPowerPercent: 100
-    IgnoreDefPercent: 0
-    BonusIfTargetHpBelowPercent: 0
-    BonusIfTargetHpBelowFlat: 0
-    BonusIfTargetHitThisTurnPercent: 0
-    LifestealPercent: 0
-    HealMaxHpPercent: 0
-    OnKillHealAmount: 0
-  - Type: 1
-    Target: 10
-    Value: 0
-    StatusId: 
-    Stacks: 1
-    Duration: -1
-    ScaleWithAttack: 0
-    ScaleWithDefense: 1
-    AttackScalePercent: 100
-    DefenseScalePercent: 50
-    Condition: 0
-    Reach: 0
-    SplashBehindTarget: 0
-    SplashPowerPercent: 100
-    BackRowPowerPercent: 100
-    IgnoreDefPercent: 0
-    BonusIfTargetHpBelowPercent: 0
-    BonusIfTargetHpBelowFlat: 0
-    BonusIfTargetHitThisTurnPercent: 0
-    LifestealPercent: 0
-    HealMaxHpPercent: 0
-    OnKillHealAmount: 0
-  - Type: 1
-    Target: 11
-    Value: 0
-    StatusId: 
-    Stacks: 1
-    Duration: -1
-    ScaleWithAttack: 0
-    ScaleWithDefense: 1
-    AttackScalePercent: 100
-    DefenseScalePercent: 50
-    Condition: 0
-    Reach: 0
-    SplashBehindTarget: 0
-    SplashPowerPercent: 100
-    BackRowPowerPercent: 100
-    IgnoreDefPercent: 0
-    BonusIfTargetHpBelowPercent: 0
-    BonusIfTargetHpBelowFlat: 0
-    BonusIfTargetHitThisTurnPercent: 0
-    LifestealPercent: 0
-    HealMaxHpPercent: 0
-    OnKillHealAmount: 0
+
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

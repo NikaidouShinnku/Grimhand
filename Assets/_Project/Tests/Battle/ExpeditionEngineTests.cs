@@ -789,5 +789,21 @@ namespace Grimhand.Battle.Tests
 
             return null;
         }
+
+        [Test]
+        public void CardUpgradeLevels_AreTrackedPerDeckInstance()
+        {
+            var member = new PartyMemberSnapshot { CharacterDefinitionId = "char_knight" };
+            var first = "char_knight|first";
+            var second = "char_knight|second";
+
+            Assert.IsTrue(CardUpgradeRules.TryUpgradeLevel(member, first, "基础斩击", 1));
+            Assert.AreEqual(1, CardUpgradeRules.GetLevel(member, first));
+            Assert.AreEqual(0, CardUpgradeRules.GetLevel(member, second));
+
+            Assert.IsTrue(CardUpgradeRules.TryUpgradeLevel(member, second, "基础斩击", 1));
+            Assert.AreEqual(1, CardUpgradeRules.GetLevel(member, first));
+            Assert.AreEqual(1, CardUpgradeRules.GetLevel(member, second));
+        }
     }
 }

@@ -311,6 +311,8 @@ namespace Grimhand.Battle.Planning
 
             _selectedQueue.Add(instanceId);
             _state.EnergyCurrent -= cost;
+            if (CardPowerRules.UsesRemainingEnergyCost(card))
+                _state.EnergySpentByCardInstanceId[instanceId] = cost;
             ConsumeTalentDiscountIfApplied(owner, card, cost);
             EmitEnergyEvent(BattleEventKind.CardSelectedForPlay, card.DisplayName, instanceId);
         }

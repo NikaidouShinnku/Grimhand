@@ -161,14 +161,15 @@ namespace Grimhand.Battle.Tests
             var enemy12 = FindCombatant(floor12, TeamSide.Enemy);
 
             Assert.AreEqual(player1.MaxHp, player12.MaxHp);
-            Assert.AreEqual(player1.BaseAttack, player12.BaseAttack);
-            Assert.AreEqual(player1.BaseDefense, player12.BaseDefense);
+            Assert.AreEqual(0, player1.BaseAttack);
+            Assert.AreEqual(0, player12.BaseAttack);
             Assert.Greater(enemy12.MaxHp, enemy1.MaxHp);
-            Assert.Greater(enemy12.BaseAttack, enemy1.BaseAttack);
+            Assert.AreEqual(0, enemy1.BaseAttack);
+            Assert.AreEqual(0, enemy12.BaseAttack);
         }
 
         [Test]
-        public void GrantXpToParty_PreservesKnightTalentMaxHpBonusOnLevelUp()
+        public void GrantXpToMember_PreservesKnightTalentMaxHpBonusOnLevelUp()
         {
             var party = new List<PartyMemberSnapshot>
             {
@@ -183,7 +184,7 @@ namespace Grimhand.Battle.Tests
                 }
             };
 
-            ExpeditionBattleConfigBuilder.GrantXpToParty(party, 8);
+            ExpeditionBattleConfigBuilder.GrantXpToMember(party[0], 8);
 
             Assert.AreEqual(2, party[0].Level);
             Assert.AreEqual(66, party[0].MaxHp);

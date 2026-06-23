@@ -13,18 +13,19 @@ MonoBehaviour:
   m_Name: Card_w_god_descends
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: w_god_descends
-  DisplayName: "天神下凡"
+  DisplayName: "\u5929\u795E\u4E0B\u51E1"
   OwnerCharacterId: char_knight
   Cost: 5
   CardType: 2
   Rarity: 4
   Keywords:
+  - aoe
   - exhaust
   Actions:
-  - Type: 3
-    Target: 1
-    Value: 0
-    StatusId: god_descends
+  - Type: 0
+    Target: 12
+    Value: 8
+    StatusId: 
     Stacks: 1
     Duration: -1
     ScaleWithAttack: 0
@@ -32,7 +33,7 @@ MonoBehaviour:
     AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 1
+    Reach: 0
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100
@@ -40,9 +41,25 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0
+    HitCount: 1
+    AlternateAttackScalePercent: 0
+    AlternateValue: 0
+    UseAlternateIfTargetHasDebuff: 0
+    AlternateAttackScaleIfActorUsedAttack: 0
+    AlternateValueIfActorUsedAttack: 0
+    DamageMultiplierPercentIfRespondArmed: 100
+    SelfDamageFlat: 0
+    RepeatPerEnemyAttackCardThisTurn: 0
+    FallbackBlockDefenseScalePercent: 100
+    FallbackBlockValue: 0
+    SummonCharacterId: 
+    GrantInvulnerableOnRespondArm: 0
+    LifestealUnblockedOnly: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

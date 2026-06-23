@@ -12,10 +12,16 @@ namespace Grimhand.Battle.Rules
     public static class PassiveCardMechanicsRules
     {
         public const string EndlessBladeCardId = "d_endless_blade";
+        public const string SandSpearReforgeCardId = "p_sand_spear_reforge";
+        public const string SpiderFatalBindCardId = "m_spider_fatal_bind";
+        public const string GargoyleSunderCardId = "m_gargoyle_sunder";
+        public const string FinalBindCardId = "m_final_bind";
         public const int GodDescendsFlatDamage = 5;
         public const int GodDescendsAttackScalePercent = 120;
         public const int FinalBloodRitualDraw = 1;
         public const int FinalBloodRitualHeal = 5;
+        public const int SandSpearReforgeBaseDamage = 4;
+        public const int FinalBindBonusPoisonStacks = 30;
 
         public static int GetEndlessBladeDamageMultiplierPercent(BattleState state, int cardInstanceId)
         {
@@ -106,6 +112,123 @@ namespace Grimhand.Battle.Rules
                     logSuffix: "（天神下凡）",
                     isAoEWave: true);
             }
+        }
+
+        public static void TryTriggerSandSpearReforgeOnExhaust(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState exhaustedCard,
+            List<BattleEvent> events,
+            BattleRng rng)
+        {
+            if (state == null || actor == null || exhaustedCard == null || rng == null)
+                return;
+
+            if (actor.Team != TeamSide.Player)
+                return;
+
+            foreach (var ally in state.Combatants)
+            {
+                if (!ally.IsAlive || ally.Team != TeamSide.Player)
+                    continue;
+
+                if (!StatusRules.HasStatus(ally, StatusCatalog.SandSpearReforge))
+                    continue;
+
+                var power = StatusRules.GetStatusStacks(ally, StatusCatalog.SandSpearReforge);
+                if (power <= 0)
+                    power = SandSpearReforgeBaseDamage;
+
+                var target = PickRandomAliveEnemy(state, rng);
+                if (target == null)
+                    return;
+
+                DamageRules.ApplyDamage(
+                    state, ally, target, power, CardType.Attack, events,
+                    rng: rng, logSuffix: "（沙矛重塑）");
+                return;
+            }
+        }
+
+        public static void OnSandSpearReforgePlayed(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState card,
+            List<BattleEvent> events)
+        {
+            if (state == null || actor == null)
+                return;
+
+            StatusRules.ApplyStatus(
+                state, actor, StatusCatalog.SandSpearReforge, SandSpearReforgeBaseDamage, -1, events);
+        }
+
+        public static void OnSpiderFatalBindResolved(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState card,
+            List<BattleEvent> events,
+            BattleRng rng)
+        {
+            if (state == null || actor == null || card == null || !actor.IsAlive)
+                return;
+
+            if (card.DefinitionId != SpiderFatalBindCardId)
+                return;
+
+            var selfDamage = Math.Max(1, actor.Hp / 2);
+            DamageRules.ApplyDamage(
+                state, actor, actor, selfDamage, CardType.Attack, events,
+                canTriggerParry: false, isSacrificeDamage: true, rng: rng,
+                sourceCardInstanceId: card.InstanceId);
+        }
+
+        public static void PrepareGargoyleSunderTarget(
+            BattleState state,
+            CombatantState target,
+            CardInstanceState card,
+            List<BattleEvent> events)
+        {
+            if (state == null || target == null || card == null)
+                return;
+
+            if (card.DefinitionId != GargoyleSunderCardId || target.Block <= 0)
+                return;
+
+            events.Add(new BattleEvent(BattleEventKind.BlockGained, $"{target.DisplayName} 护甲被移除")
+            {
+                CombatantId = target.Id,
+                Amount = target.Block
+            });
+            target.Block = 0;
+        }
+
+        public static int ResolveFinalBindPoisonStacks(BattleState state, CombatantState target, int defaultStacks)
+        {
+            if (state == null || target == null)
+                return defaultStacks;
+
+            var hasPoison = StatusRules.GetStatusStacks(target, StatusCatalog.Poison) > 0;
+            var hasSlow = StatusRules.GetStatusStacks(target, StatusCatalog.Slow) > 0;
+            return hasPoison && hasSlow ? FinalBindBonusPoisonStacks : defaultStacks;
+        }
+
+        static CombatantState PickRandomAliveEnemy(BattleState state, BattleRng rng)
+        {
+            if (state == null || rng == null)
+                return null;
+
+            var pool = new List<CombatantState>();
+            foreach (var enemy in state.GetTeam(TeamSide.Enemy))
+            {
+                if (enemy.IsAlive)
+                    pool.Add(enemy);
+            }
+
+            if (pool.Count == 0)
+                return null;
+
+            return pool[rng.NextIndex(pool.Count)];
         }
     }
 }

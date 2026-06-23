@@ -14,7 +14,11 @@ namespace Grimhand.Expedition.Model
         public int PersonalAttackBonus { get; set; }
         /// <summary>从基础牌组移除的卡牌计数（definitionId → 张数）。</summary>
         public Dictionary<string, int> RemovedCardCounts { get; } = new();
-        /// <summary>卡牌效果强化百分比累加（definitionId → +N%）。</summary>
+        /// <summary>卡牌升级等级（deckInstanceId → 已升级次数）。</summary>
+        public Dictionary<string, int> CardUpgradeLevels { get; } = new();
+        /// <summary>与初始套牌 config 槽位一一对应的实例 id（删牌时不回收，保证升级绑定稳定）。</summary>
+        public List<string> BaseDeckInstanceIds { get; } = new();
+        /// <summary>旧版百分比强化（迁移用，不再写入）。</summary>
         public Dictionary<string, int> CardPowerBonusPercent { get; } = new();
         public List<CardTemplate> BonusCards { get; } = new();
         /// <summary>军营收藏牌（仅祭坛节点读取）；战斗牌组仍用初始套牌 + 奖励牌。</summary>
@@ -23,5 +27,10 @@ namespace Grimhand.Expedition.Model
         public HashSet<int> ExtractedCampCardIndices { get; } = new();
         public string SelectedTalentSlot1Id { get; set; } = "";
         public string SelectedTalentSlot2Id { get; set; } = "";
+        /// <summary>祭坛 SPD+1 已购买次数（每角色最多 2 次）。</summary>
+        public int AltarSpeedUpgrades { get; set; }
+        public int PersonalSpeedBonus { get; set; }
+        /// <summary>沙矛重塑：每次消耗牌对随机敌人造成的伤害（0=未激活）。</summary>
+        public int SandSpearReforgeDamage { get; set; }
     }
 }

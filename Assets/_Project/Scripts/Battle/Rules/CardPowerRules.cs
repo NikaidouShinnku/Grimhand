@@ -5,6 +5,42 @@ namespace Grimhand.Battle.Rules
 {
     public static class CardPowerRules
     {
+        public const string SolarGodWrathCardId = "p_solar_god_wrath";
+        public const string SolarBlessingCardId = "p_solar_blessing";
+
+        static readonly string[] RemainingEnergyCostIds =
+        {
+            SolarGodWrathCardId,
+            SolarBlessingCardId
+        };
+
+        public static bool UsesRemainingEnergyCost(CardInstanceState card)
+        {
+            if (card == null)
+                return false;
+
+            if (card.Keywords.Contains("x_cost"))
+                return true;
+
+            foreach (var id in RemainingEnergyCostIds)
+            {
+                if (card.DefinitionId == id)
+                    return true;
+            }
+
+            return false;
+        }
+
+        public static int GetRemainingEnergyPlayCost(BattleState state, CardInstanceState card)
+        {
+            if (state == null || card == null)
+                return card?.Cost ?? 0;
+
+            return UsesRemainingEnergyCost(card)
+                ? Math.Max(0, state.EnergyCurrent)
+                : card.Cost;
+        }
+
         public static int ComputeActionValue(EffectActionSpec action, CombatantState owner)
         {
             if (action == null)

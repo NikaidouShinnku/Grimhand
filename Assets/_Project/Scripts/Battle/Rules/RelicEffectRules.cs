@@ -72,6 +72,38 @@ namespace Grimhand.Battle.Rules
                     DamageRules.ApplyBlock(ally, mods.TurnStartTeamBlock, events, state);
             }
 
+            if (mods.TurnStartEnemyDamage > 0)
+            {
+                foreach (var enemy in state.GetTeam(TeamSide.Enemy))
+                {
+                    if (!enemy.IsAlive)
+                        continue;
+
+                    var before = enemy.Hp;
+                    enemy.Hp = Math.Max(0, enemy.Hp - mods.TurnStartEnemyDamage);
+                    var dealt = before - enemy.Hp;
+                    if (dealt <= 0)
+                        continue;
+
+                    events.Add(new BattleEvent(BattleEventKind.DamageApplied,
+                        $"赤红烈焰靴 -> {enemy.DisplayName}")
+                    {
+                        TargetId = enemy.Id,
+                        Amount = dealt,
+                        IsAoEWave = true
+                    });
+
+                    if (!enemy.IsAlive)
+                    {
+                        events.Add(new BattleEvent(BattleEventKind.CharacterDied, enemy.DisplayName)
+                        {
+                            CombatantId = enemy.Id
+                        });
+                        CombatantDeathRules.OnCharacterDied(state, enemy, events);
+                    }
+                }
+            }
+
             TalentBattleRules.ProcessTurnStart(state, events);
         }
 
@@ -330,6 +362,77 @@ namespace Grimhand.Battle.Rules
             });
 
             return true;
+        }
+
+        public static void AdjustRelicOutgoingDamage(
+            BattleState state,
+            CombatantState actor,
+            CombatantState target,
+            CardType cardType,
+            ref int outgoingPower,
+            ref int ignoreDefPercent)
+        {
+            if (state == null || actor == null || target == null || cardType != CardType.Attack)
+                return;
+
+            if (actor.Team != TeamSide.Player || outgoingPower <= 0)
+                return;
+
+            var mods = state.Config?.RunModifiers;
+            if (mods == null)
+                return;
+
+            if (PositionRules.GetEffectiveSlot(state, actor) != FormationSlot.Front)
+                return;
+
+            if (mods.FrontRowIgnoreArmorDamagePercent > 0)
+            {
+                ignoreDefPercent = Math.Max(ignoreDefPercent, 100);
+                outgoingPower = Math.Max(1, (int)Math.Round(
+                    outgoingPower * mods.FrontRowIgnoreArmorDamagePercent / 100f));
+            }
+
+            if (mods.FrontRowBurnTargetDamageMultiplier > 1f
+                && StatusRules.HasStatus(target, StatusCatalog.Burn))
+            {
+                outgoingPower = Math.Max(1, (int)Math.Round(
+                    outgoingPower * mods.FrontRowBurnTargetDamageMultiplier));
+            }
+        }
+
+        public static void ApplyFelskullChoice(BattleState state, int choiceIndex, List<BattleEvent> events)
+        {
+            if (state == null || !state.AwaitingFelskullChoice)
+                return;
+
+            var mods = state.Config?.RunModifiers;
+            if (mods == null)
+                return;
+
+            if (choiceIndex == 0)
+            {
+                mods.ExtraEnergyCap += 1;
+                state.EnergyMax += 1;
+                foreach (var ally in CollectAlivePlayerTeam(state))
+                {
+                    var loss = Math.Max(1, (int)Math.Round(ally.MaxHp * 0.05f));
+                    ally.Hp = Math.Max(1, ally.Hp - loss);
+                    events?.Add(new BattleEvent(BattleEventKind.DamageApplied, $"{ally.DisplayName} 血祭换能")
+                    {
+                        TargetId = ally.Id,
+                        Amount = loss
+                    });
+                }
+            }
+            else
+            {
+                mods.ExtraEnergyCap = Math.Max(0, mods.ExtraEnergyCap - 1);
+                state.EnergyMax = Math.Max(1, state.EnergyMax - 1);
+                mods.FelskullOutgoingDamagePercentBonus += 10;
+                RelicBattleRules.RefreshAllDerivedStats(state);
+            }
+
+            mods.RequiresFelskullChoice = false;
         }
 
         public static bool ShouldExpandBackRowReach(

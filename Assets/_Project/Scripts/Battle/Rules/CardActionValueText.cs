@@ -5,16 +5,7 @@ namespace Grimhand.Battle.Rules
     /// <summary>牌面/预览用数值与公式文本（纯文本，无富文本标签）。</summary>
     public static class CardActionValueText
     {
-        public static bool HasScaledComponent(EffectActionSpec action)
-        {
-            if (action == null)
-                return false;
-
-            if (action.ScaleWithAttack)
-                return true;
-
-            return action.ScaleWithDefense;
-        }
+        public static bool HasScaledComponent(EffectActionSpec action) => false;
 
         public static string FormatPlain(EffectActionSpec action, bool useDefense)
         {
@@ -56,7 +47,7 @@ namespace Grimhand.Battle.Rules
             if (action.BackRowPowerPercent > 0 && action.BackRowPowerPercent < 100)
                 parts.Add($"，打后排仅 {action.BackRowPowerPercent}% 威力");
             if (action.IgnoreDefPercent > 0)
-                parts.Add(action.IgnoreDefPercent >= 100 ? "，无视目标防御" : $"，无视目标 {action.IgnoreDefPercent}% 防御");
+                parts.Add(action.IgnoreDefPercent >= 100 ? "，无视目标护甲" : $"，无视目标 {action.IgnoreDefPercent}% 护甲");
             if (action.BonusIfTargetHpBelowPercent > 0 && action.BonusIfTargetHpBelowFlat > 0)
                 parts.Add($"，目标 HP 低于 {action.BonusIfTargetHpBelowPercent}% 时额外 +{action.BonusIfTargetHpBelowFlat}");
             if (action.BonusIfTargetHitThisTurnPercent > 0)

@@ -113,14 +113,14 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
-        public void AttackDown_ReducesEffectiveAttack()
+        public void AttackDown_ReducesOutgoingDamage()
         {
             var state = BuildState();
             var demon = AddUnit(state, "demon", TeamSide.Player, FormationSlot.Back, atk: 9);
             StatusRules.ApplyStatus(state, demon, StatusCatalog.AttackDown, 3, 2, new List<BattleEvent>());
 
             CombatantRules.RefreshDerivedStats(demon);
-            Assert.AreEqual(6, demon.Attack);
+            Assert.AreEqual(3, demon.OutgoingDamageReductionFlat);
         }
 
         [Test]
@@ -137,23 +137,25 @@ namespace Grimhand.Battle.Tests
             EffectActionExecutor.ExecuteAll(state, warrior, card, events);
 
             Assert.IsTrue(StatusRules.HasStatus(warrior, StatusCatalog.AttackUp));
-            CombatantRules.RefreshDerivedStats(warrior);
-            Assert.AreEqual(11, warrior.Attack);
+            CombatModifierRules.RefreshCombatantModifiers(state, warrior, null);
+            Assert.AreEqual(3, warrior.OutgoingDamageFlatBonus);
         }
 
         [Test]
-        public void Damage_SubtractsTargetDefense()
+        public void Damage_AppliesIncomingReductionPercent()
         {
-            Assert.AreEqual(4, CombatMechanicsRules.ComputeHpDamageAfterDefense(10, 6));
-            Assert.AreEqual(1, CombatMechanicsRules.ComputeHpDamageAfterDefense(3, 6));
+            Assert.AreEqual(4, CombatMechanicsRules.ComputeHpDamageAfterDefense(10, 60));
+            Assert.AreEqual(1, CombatMechanicsRules.ComputeHpDamageAfterDefense(3, 60));
         }
 
         [Test]
-        public void Charge_IgnoresHalfDefense()
+        public void Charge_IgnoresHalfDamageReduction()
         {
             var state = BuildState();
             var target = AddUnit(state, "enemy", TeamSide.Enemy, FormationSlot.Front, def: 6);
+            StatusRules.ApplyStatus(state, target, StatusCatalog.DamageReduction, 6, 1, new List<BattleEvent>());
 
+            Assert.AreEqual(6, CombatMechanicsRules.GetEffectiveDefense(state, target, 0));
             Assert.AreEqual(3, CombatMechanicsRules.GetEffectiveDefense(state, target, 50));
         }
 

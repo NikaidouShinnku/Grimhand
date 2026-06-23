@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
+using Grimhand.Battle.Status;
 using Grimhand.Battle.Rules;
 using Grimhand.Expedition.Model;
 
@@ -250,6 +251,7 @@ namespace Grimhand.Expedition
 
                 var template = CloneTemplate(bonus);
                 HydrateTemplateFromCatalog(template, cardCatalog);
+                ExpeditionRunDeckCatalog.ApplyCardUpgrades(template, member);
                 cc.DeckTemplates.Add(template);
             }
         }
@@ -269,6 +271,7 @@ namespace Grimhand.Expedition
 
                 var template = CloneTemplate(bonus);
                 HydrateTemplateFromCatalog(template, cardCatalog);
+                ExpeditionRunDeckCatalog.ApplyCardUpgrades(template, member);
                 cc.DeckTemplates.Add(template);
             }
         }
@@ -318,6 +321,8 @@ namespace Grimhand.Expedition
                         BonusIfTargetHpBelowPercent = action.BonusIfTargetHpBelowPercent,
                         BonusIfTargetHpBelowFlat = action.BonusIfTargetHpBelowFlat,
                         BonusIfTargetHitThisTurnPercent = action.BonusIfTargetHitThisTurnPercent,
+                        BonusIfTargetHasStatusId = action.BonusIfTargetHasStatusId,
+                        BonusIfTargetHasStatusFlat = action.BonusIfTargetHasStatusFlat,
                         LifestealPercent = action.LifestealPercent,
                         HealMaxHpPercent = action.HealMaxHpPercent,
                         OnKillHealAmount = action.OnKillHealAmount
@@ -340,9 +345,10 @@ namespace Grimhand.Expedition
 
             var stats = CharacterProgression.GetStatsForCharacter(member.CharacterDefinitionId, cc.Level);
             cc.MaxHp = stats.MaxHp;
-            cc.BaseAttack = stats.BaseAttack + (expeditionModifiers?.TeamAttackBonus ?? 0) + member.PersonalAttackBonus;
-            cc.BaseDefense = stats.BaseDefense + (expeditionModifiers?.TeamDefenseBonus ?? 0);
-            cc.Speed = stats.Speed;
+            cc.BaseAttack = member.PersonalAttackBonus;
+            cc.BaseDefense = 0;
+            cc.Speed = stats.Speed + member.PersonalSpeedBonus;
+            cc.SandSpearReforgeDamage = member.SandSpearReforgeDamage;
         }
 
         public static List<PartyMemberSnapshot> CaptureParty(
@@ -370,7 +376,10 @@ namespace Grimhand.Expedition
                     MaxHp = c.MaxHp,
                     PersonalAttackBonus = existing?.PersonalAttackBonus ?? 0,
                     SelectedTalentSlot1Id = existing?.SelectedTalentSlot1Id ?? "",
-                    SelectedTalentSlot2Id = existing?.SelectedTalentSlot2Id ?? ""
+                    SelectedTalentSlot2Id = existing?.SelectedTalentSlot2Id ?? "",
+                    SandSpearReforgeDamage = System.Math.Max(
+                        existing?.SandSpearReforgeDamage ?? 0,
+                        StatusRules.GetStatusStacks(c, StatusCatalog.SandSpearReforge))
                 };
 
                 CopyExpeditionDeckProgress(snap, existing);
@@ -403,6 +412,11 @@ namespace Grimhand.Expedition
             foreach (var kv in existing.RemovedCardCounts)
                 snap.RemovedCardCounts[kv.Key] = kv.Value;
 
+            foreach (var kv in existing.CardUpgradeLevels)
+                snap.CardUpgradeLevels[kv.Key] = kv.Value;
+
+            snap.BaseDeckInstanceIds.AddRange(existing.BaseDeckInstanceIds);
+
             foreach (var kv in existing.CardPowerBonusPercent)
                 snap.CardPowerBonusPercent[kv.Key] = kv.Value;
 
@@ -432,7 +446,8 @@ namespace Grimhand.Expedition
                 MaxHp = existing.MaxHp,
                 PersonalAttackBonus = existing.PersonalAttackBonus,
                 SelectedTalentSlot1Id = existing.SelectedTalentSlot1Id,
-                SelectedTalentSlot2Id = existing.SelectedTalentSlot2Id
+                SelectedTalentSlot2Id = existing.SelectedTalentSlot2Id,
+                SandSpearReforgeDamage = existing.SandSpearReforgeDamage
             };
 
             CopyExpeditionDeckProgress(snap, existing);
@@ -461,27 +476,43 @@ namespace Grimhand.Expedition
             IReadOnlyList<string> relicIds = null,
             Dictionary<string, int> relicGrowthTiers = null)
         {
-            if (party == null || amount <= 0)
+            // v0.8：自动升级已移除，由调用方写入 SharedXpPool。
+            GrantXpToPool(null, amount);
+        }
+
+        public static void GrantXpToPool(ExpeditionRunState run, int amount)
+        {
+            if (amount <= 0)
                 return;
 
-            var hpBonus = ExpeditionPartyStatsRules.GetPartyMaxHpBonus(party, relicIds, relicGrowthTiers);
+            if (run != null)
+                run.SharedXpPool += amount;
+        }
 
-            foreach (var member in party)
-            {
-                var beforeEffective = ExpeditionPartyStatsRules.GetEffectiveMaxHp(member, hpBonus);
-                var result = CharacterProgression.AddXp(member.Level, member.Xp, amount);
-                member.Level = result.Level;
-                member.Xp = result.Xp;
+        public static void GrantXpToMember(
+            PartyMemberSnapshot member,
+            int amount,
+            IReadOnlyList<string> relicIds = null,
+            Dictionary<string, int> relicGrowthTiers = null)
+        {
+            if (member == null || amount <= 0)
+                return;
 
-                if (result.LevelsGained <= 0)
-                    continue;
+            var hpBonus = ExpeditionPartyStatsRules.GetPartyMaxHpBonus(
+                new List<PartyMemberSnapshot> { member }, relicIds, relicGrowthTiers);
+            var beforeEffective = ExpeditionPartyStatsRules.GetEffectiveMaxHp(member, hpBonus);
+            var result = CharacterProgression.AddXp(member.Level, member.Xp, amount);
+            member.Level = result.Level;
+            member.Xp = result.Xp;
 
-                var afterEffective = ExpeditionPartyStatsRules.GetEffectiveMaxHp(member, hpBonus);
-                var hpGain = afterEffective - beforeEffective;
-                member.MaxHp = afterEffective;
-                if (hpGain > 0)
-                    member.Hp = System.Math.Min(member.MaxHp, member.Hp + hpGain);
-            }
+            if (result.LevelsGained <= 0)
+                return;
+
+            var afterEffective = ExpeditionPartyStatsRules.GetEffectiveMaxHp(member, hpBonus);
+            var hpGain = afterEffective - beforeEffective;
+            member.MaxHp = afterEffective;
+            if (hpGain > 0)
+                member.Hp = System.Math.Min(member.MaxHp, member.Hp + hpGain);
         }
 
         static RunModifierSnapshot CloneModifiers(RunModifierSnapshot source)
@@ -537,11 +568,17 @@ namespace Grimhand.Expedition
                 BattleStartSpeedBonusTurns = source.BattleStartSpeedBonusTurns,
                 BattleStartSpeedBonus = source.BattleStartSpeedBonus,
                 EndTurnEnemyFireDamage = source.EndTurnEnemyFireDamage,
+                TurnStartEnemyDamage = source.TurnStartEnemyDamage,
                 RevengeAttackFlatBonus = source.RevengeAttackFlatBonus,
                 BackRowAttackAnyTarget = source.BackRowAttackAnyTarget,
                 JadeDaggerFirstKillBonus = source.JadeDaggerFirstKillBonus,
                 MiracleLeafReviveHpPercent = source.MiracleLeafReviveHpPercent,
                 SoulRiftBattleStartRandomHpLoss = source.SoulRiftBattleStartRandomHpLoss,
+                PostBattleTeamHealPercent = source.PostBattleTeamHealPercent,
+                FrontRowBurnTargetDamageMultiplier = source.FrontRowBurnTargetDamageMultiplier,
+                FrontRowIgnoreArmorDamagePercent = source.FrontRowIgnoreArmorDamagePercent,
+                RequiresFelskullChoice = source.RequiresFelskullChoice,
+                FelskullOutgoingDamagePercentBonus = source.FelskullOutgoingDamagePercentBonus,
                 FirstPlayerAttackPending = source.FirstPlayerAttackPending
             };
         }
@@ -553,6 +590,7 @@ namespace Grimhand.Expedition
                 DefinitionId = source.DefinitionId,
                 DisplayName = source.DisplayName,
                 OwnerCharacterId = source.OwnerCharacterId,
+                DeckInstanceId = source.DeckInstanceId,
                 Cost = source.Cost,
                 CardType = source.CardType
             };

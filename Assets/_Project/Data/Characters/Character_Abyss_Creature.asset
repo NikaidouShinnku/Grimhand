@@ -25,7 +25,7 @@ MonoBehaviour:
   SkillPool:
   - {fileID: 11400000, guid: 8b1d01751c2d2f249b46d46952d1f9a6, type: 2}
   - {fileID: 11400000, guid: 8b1d01751c2d2f249b46d46952d1f9a6, type: 2}
-  - {fileID: 11400000, guid: 59ddedb3a4109a44991cb02d6ae7d2f2, type: 2}
+  - {fileID: 11400000, guid: d2e253742e114adcbd2ceea1d3bcae95, type: 2}
   - {fileID: 11400000, guid: ed89ebb67724d8b44b3844c6076e375f, type: 2}
   - {fileID: 11400000, guid: e709ee99868b850418b79032ecfe7a03, type: 2}
   - {fileID: 11400000, guid: e709ee99868b850418b79032ecfe7a03, type: 2}

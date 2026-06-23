@@ -17,15 +17,15 @@ MonoBehaviour:
   OwnerCharacterId: char_ranger
   Cost: 1
   CardType: 2
-  Rarity: 0
+  Rarity: 1
   Keywords: []
   Actions:
   - Type: 3
     Target: 1
     Value: 0
-    StatusId: vamp_aura
-    Stacks: 30
-    Duration: 1
+    StatusId: 
+    Stacks: 1
+    Duration: -1
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100
@@ -39,6 +39,8 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0

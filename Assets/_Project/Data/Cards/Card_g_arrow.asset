@@ -18,28 +18,29 @@ MonoBehaviour:
   Cost: 2
   CardType: 0
   Rarity: 0
-  Keywords:
-  - far_shot
+  Keywords: []
   Actions:
   - Type: 0
     Target: 0
-    Value: 8
+    Value: 15
     StatusId: 
     Stacks: 1
     Duration: -1
-    ScaleWithAttack: 1
+    ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 0
+    Reach: 1
     SplashBehindTarget: 0
     SplashPowerPercent: 100
-    BackRowPowerPercent: 130
+    BackRowPowerPercent: 100
     IgnoreDefPercent: 0
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0

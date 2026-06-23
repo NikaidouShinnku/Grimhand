@@ -38,8 +38,8 @@ namespace Grimhand.Expedition
                         CharacterDefinitionId = member.CharacterDefinitionId,
                         Level = member.Level,
                         MaxHp = stats.MaxHp,
-                        BaseAttack = stats.BaseAttack,
-                        BaseDefense = stats.BaseDefense,
+                        BaseAttack = 0,
+                        BaseDefense = 0,
                         Speed = stats.Speed,
                         StartHp = stats.MaxHp
                     };

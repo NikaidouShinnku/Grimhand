@@ -27,7 +27,7 @@ namespace Grimhand.Expedition
             return eventId switch
             {
                 ExpeditionEventIds.MysteriousTraveler => PlanMysteriousTraveler(run, config, choiceIndex, rng),
-                ExpeditionEventIds.AncientTemple => PlanAncientTemple(run, choiceIndex),
+                ExpeditionEventIds.AncientTemple => PlanAncientTemple(run, choiceIndex, config),
                 ExpeditionEventIds.InjuredAdventurer => PlanInjuredAdventurer(run, config, choiceIndex, rng),
                 ExpeditionEventIds.MagicSpring => PlanMagicSpring(run, choiceIndex, rng),
                 ExpeditionEventIds.GamblerDice => PlanGamblerDice(run, choiceIndex, rng),
@@ -41,6 +41,7 @@ namespace Grimhand.Expedition
                 ExpeditionEventIds.JadeWorkshop => PlanJadeWorkshop(run, choiceIndex),
                 ExpeditionEventIds.AncientFurnace => PlanAncientFurnace(run, choiceIndex, rng),
                 ExpeditionEventIds.AbyssWhisper => PlanAbyssWhisper(run, choiceIndex, rng, config),
+                ExpeditionEventIds.FelFlameAltar => PlanFelFlameAltar(run, choiceIndex, rng, config),
                 _ => new ExpeditionEventOutcome { Message = "事件结束。" }
             };
         }
@@ -89,30 +90,65 @@ namespace Grimhand.Expedition
             if (run?.Party != null && run.Party.Count > 0)
                 curseOwnerId = run.Party[rng.NextIndex(run.Party.Count)].CharacterDefinitionId;
 
+            ExpeditionRewardPickup pickup = null;
+            if (!string.IsNullOrEmpty(relicId))
+                pickup = ExpeditionRewardPickupFactory.Relic(relicId, "神秘旅者的礼物");
+
             return MessageThenReward(
-                "一张诅咒牌被塞入了牌组……",
-                null,
+                pickup != null
+                    ? "旅者赠予一件遗物，请点击领取；同时一张诅咒牌被塞入了牌组……"
+                    : "一张诅咒牌被塞入了牌组……",
+                pickup,
                 state =>
                 {
-                    state.PendingTravelerGiftRelicId = relicId ?? "";
                     state.PendingTravelerGiftCurseOwnerId = curseOwnerId;
                 });
         }
 
-        static ExpeditionEventOutcome PlanAncientTemple(ExpeditionRunState run, int choice)
+        static ExpeditionEventOutcome PlanAncientTemple(ExpeditionRunState run, int choice, ExpeditionConfig config)
         {
             return choice switch
             {
-                0 => TeamHpThen(
-                    run,
-                    -10,
-                    "祈祷生效：远征期间全队 ATK+1。",
-                    ExpeditionRewardPickupFactory.TeamStats("古神殿", teamAttack: 1, grantXp: 5)),
+                0 => PlanAncientTemplePray(run, config),
                 1 => MessageThenReward(
                     "亵渎圣堂获得 50 金币，但神罚将至。",
                     ExpeditionRewardPickupFactory.Gold(50, "亵渎圣堂", enableDivinePunishment: true)),
                 _ => Leave("你静默离开神殿。")
             };
+        }
+
+        static ExpeditionEventOutcome PlanAncientTemplePray(ExpeditionRunState run, ExpeditionConfig config)
+        {
+            const string message = "祈祷生效：攻击牌升级并全队获得经验，请点击领取。";
+
+            return TeamHpThen(
+                run,
+                -10,
+                message,
+                ExpeditionRewardPickupFactory.TeamStats("古神殿", grantXp: 5),
+                deferredAction: state =>
+                {
+                    var upgraded = 0;
+                    foreach (var member in state.Party)
+                    {
+                        if (member == null)
+                            continue;
+
+                        foreach (var entry in ExpeditionRunDeckCatalog.CollectMemberDeckEntries(config, member))
+                        {
+                            if (entry?.Template == null || entry.Template.CardType != CardType.Attack)
+                                continue;
+
+                            if (ExpeditionRunDeckMutations.TryUpgradeCard(member, entry))
+                            {
+                                upgraded++;
+                            }
+                        }
+                    }
+
+                    if (upgraded > 0)
+                        state.LastEventMessage = $"祈祷生效：{upgraded} 张攻击牌各升 1 级，全队获得 +5 经验。";
+                });
         }
 
         static ExpeditionEventOutcome PlanInjuredAdventurer(
@@ -126,13 +162,8 @@ namespace Grimhand.Expedition
                 0 => TeamHpThen(
                     run,
                     -15,
-                    "冒险者感激地留下一件遗物。",
-                    deferredAction: state =>
-                    {
-                        var relicId = ExpeditionRewardPickupFactory.RollRelicId(state, rng);
-                        if (!string.IsNullOrEmpty(relicId))
-                            state.PendingDeferredReward = ExpeditionRewardPickupFactory.Relic(relicId, "冒险者的谢礼");
-                    }),
+                    "冒险者感激地留下一件遗物，请点击领取。",
+                    PickInjuredAdventurerRelic(run, rng)),
                 1 => PlanInjuredLoot(run, config, rng),
                 _ => Leave("你选择无视，继续赶路。")
             };
@@ -178,20 +209,20 @@ namespace Grimhand.Expedition
 
             if (roll < 85)
             {
-                var outcome = new ExpeditionEventOutcome { Message = "一名队员永久 ATK+2。" };
-                outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
+                var outcome = new ExpeditionEventOutcome { Message = "泉水迸发出奇异的力量，你选中的卡牌各升 1 级。" };
+                for (var i = 0; i < 3; i++)
                 {
-                    Kind = ExpeditionEventStepKind.PickMemberForBuff,
-                    PersonalAttackBonus = 2
-                });
+                    outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
+                    {
+                        Kind = ExpeditionEventStepKind.PickCardUpgrade
+                    });
+                }
+
                 outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
                 {
                     Kind = ExpeditionEventStepKind.ShowMessage,
-                    Message = "一名队员永久 ATK+2。"
+                    Message = "三张卡牌在泉水中闪烁，各自提升了一级。"
                 });
-                outcome.DeferredOutcome = BuildDeferredRewardOutcome(
-                    "一名队员永久 ATK+2。",
-                    ExpeditionRewardPickupFactory.MemberPersonalAttack("魔法泉", 2));
                 return outcome;
             }
 
@@ -304,26 +335,24 @@ namespace Grimhand.Expedition
             var member = run.Party[idx];
             var message = $"{member.DisplayName} 失去 10 HP，获得一张蓝色卡牌。请点击领取。";
 
+            ExpeditionRewardPickup pickup = null;
+            if (config != null &&
+                ExpeditionCardPool.TryRollCardReward(config, run, CardRarity.SuperRare, rng, out var card, out var owner))
+            {
+                var cardOwner = card.OwnerCharacterId == member.CharacterDefinitionId
+                                || string.IsNullOrEmpty(card.OwnerCharacterId)
+                    ? member
+                    : owner;
+                pickup = ExpeditionRewardPickupFactory.Card(card, cardOwner, "古书奖励");
+            }
+
             return SingleMemberHpThen(
                 run,
                 member.CharacterDefinitionId,
                 0,
                 -10,
                 message,
-                deferredAction: state =>
-                {
-                    if (config == null ||
-                        !ExpeditionCardPool.TryRollCardReward(config, state, CardRarity.SuperRare, rng, out var card, out var owner))
-                        return;
-
-                    var cardOwner = card.OwnerCharacterId == member.CharacterDefinitionId
-                                    || string.IsNullOrEmpty(card.OwnerCharacterId)
-                        ? member
-                        : owner;
-
-                    state.PendingDeferredReward =
-                        ExpeditionRewardPickupFactory.Card(card, cardOwner, "古书奖励");
-                });
+                pickup);
         }
 
         static ExpeditionEventOutcome PlanAdventurerRevenge(ExpeditionRunState run, int choice)
@@ -362,16 +391,16 @@ namespace Grimhand.Expedition
                 0 => TeamHpThen(
                     run,
                     -10,
-                    "全队 DEF+1。",
-                    ExpeditionRewardPickupFactory.TeamStats("训练木桩", teamDefense: 1)),
-                1 => PlanTrainingDummySolo(run),
+                    "全队轮番对人偶展开特训，护甲技巧有所提升。",
+                    ExpeditionRewardPickupFactory.TeamStats("训练人偶", teamDefense: 1, grantXp: 5)),
+                1 => PlanTrainingDummyCardUpgrade(run),
                 _ => TeamHealThen(run, 10, "短暂休息后继续前行。")
             };
         }
 
-        static ExpeditionEventOutcome PlanTrainingDummySolo(ExpeditionRunState run)
+        static ExpeditionEventOutcome PlanTrainingDummyCardUpgrade(ExpeditionRunState run)
         {
-            const string message = "特训成功：该角色 ATK+2。";
+            const string message = "特训成功：选中的卡牌升 1 级。";
             var outcome = new ExpeditionEventOutcome { Message = message };
             outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
             {
@@ -380,8 +409,7 @@ namespace Grimhand.Expedition
             });
             outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
             {
-                Kind = ExpeditionEventStepKind.PickMemberForBuff,
-                PersonalAttackBonus = 2
+                Kind = ExpeditionEventStepKind.PickCardUpgrade
             });
             outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
             {
@@ -390,7 +418,7 @@ namespace Grimhand.Expedition
             });
             outcome.DeferredOutcome = BuildDeferredRewardOutcome(
                 message,
-                ExpeditionRewardPickupFactory.MemberPersonalAttack("训练木桩", 2));
+                ExpeditionRewardPickupFactory.TeamStats("训练人偶", grantXp: 10));
             return outcome;
         }
 
@@ -446,8 +474,7 @@ namespace Grimhand.Expedition
             var outcome = new ExpeditionEventOutcome();
             outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
             {
-                Kind = ExpeditionEventStepKind.PickCardUpgrade,
-                PersonalAttackBonus = 20
+                Kind = ExpeditionEventStepKind.PickCardUpgrade
             });
             outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
             {
@@ -563,7 +590,7 @@ namespace Grimhand.Expedition
             return choice switch
             {
                 0 => PlanAbyssListen(run, rng, config),
-                1 => PlanAbyssSacrifice(run),
+                1 => PlanAbyssSacrifice(run, config),
                 _ => Leave("你捂耳离开。")
             };
         }
@@ -586,27 +613,26 @@ namespace Grimhand.Expedition
             if (ranger == null)
                 return Fail("队伍中没有恶魔。");
 
+            ExpeditionRewardPickup pickup = null;
+            if (config != null &&
+                ExpeditionCardPool.TryRollCardReward(config, run, CardRarity.SuperRare, rng, out var card, out _))
+            {
+                card.OwnerCharacterId = "char_ranger";
+                pickup = ExpeditionRewardPickupFactory.Card(card, ranger, "深渊低语");
+            }
+
             return SingleMemberHpThen(
                 run,
                 "char_ranger",
                 -20,
                 0,
-                "恶魔听懂了低语，获得一张专属卡牌。",
-                deferredAction: state =>
-                {
-                    if (config == null ||
-                        !ExpeditionCardPool.TryRollCardReward(config, state, CardRarity.Epic, rng, out var card, out _))
-                        return;
-
-                    card.OwnerCharacterId = "char_ranger";
-                    state.PendingDeferredReward =
-                        ExpeditionRewardPickupFactory.Card(card, ranger, "深渊低语");
-                });
+                "恶魔听懂了低语，获得一张专属卡牌，请点击领取。",
+                pickup);
         }
 
-        static ExpeditionEventOutcome PlanAbyssSacrifice(ExpeditionRunState run)
+        static ExpeditionEventOutcome PlanAbyssSacrifice(ExpeditionRunState run, ExpeditionConfig config)
         {
-            const string message = "记忆献祭完成：全队 ATK+1。";
+            const string message = "记忆献祭完成：全队攻击牌各升 1 级。";
             var outcome = new ExpeditionEventOutcome();
             outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
             {
@@ -617,10 +643,44 @@ namespace Grimhand.Expedition
                 Kind = ExpeditionEventStepKind.ShowMessage,
                 Message = message
             });
-            outcome.DeferredOutcome = BuildDeferredRewardOutcome(
-                message,
-                ExpeditionRewardPickupFactory.TeamStats("深渊低语", teamAttack: 1));
+            outcome.DeferredOutcome = BuildDeferredRewardOutcome(message, deferredAction: state =>
+            {
+                foreach (var member in state.Party)
+                {
+                    if (member == null)
+                        continue;
+
+                    foreach (var entry in ExpeditionRunDeckCatalog.CollectMemberDeckEntries(config, member))
+                    {
+                        if (entry?.Template?.CardType != CardType.Attack)
+                            continue;
+
+                        ExpeditionRunDeckMutations.TryUpgradeCard(member, entry);
+                    }
+                }
+            });
             return outcome;
+        }
+
+        static ExpeditionEventOutcome PlanFelFlameAltar(
+            ExpeditionRunState run,
+            int choice,
+            BattleRng rng,
+            ExpeditionConfig config)
+        {
+            return choice switch
+            {
+                0 => MessageThenReward(
+                    "你在仪式中感到力量被抽走，两眼昏暗。当你再次睁眼，一颗诡异的颅骨出现在你手中。",
+                    ExpeditionRewardPickupFactory.Relic(RelicIds.Felskull, "魔焰祭坛")),
+                1 => new ExpeditionEventOutcome
+                {
+                    Message = "你上前查看仪式祭坛，突然几个影子从黑暗中蹦出……",
+                    StartsCombat = true,
+                    EventBattleKey = FelFlameAltarEncounterBuilder.BattleKey
+                },
+                _ => Leave("你悄悄的离开，仪式的呼唤逐渐消失在黑暗中。")
+            };
         }
 
         static ExpeditionEventOutcome TeamHpThen(
@@ -645,12 +705,21 @@ namespace Grimhand.Expedition
             return outcome;
         }
 
+        static ExpeditionRewardPickup PickInjuredAdventurerRelic(ExpeditionRunState run, BattleRng rng)
+        {
+            var relicId = ExpeditionRewardPickupFactory.RollRelicId(run, rng);
+            return string.IsNullOrEmpty(relicId)
+                ? null
+                : ExpeditionRewardPickupFactory.Relic(relicId, "冒险者的谢礼");
+        }
+
         static ExpeditionEventOutcome SingleMemberHpThen(
             ExpeditionRunState run,
             string characterId,
             int percent,
             int flat,
             string message,
+            ExpeditionRewardPickup pickup = null,
             Action<ExpeditionRunState> deferredAction = null)
         {
             var outcome = new ExpeditionEventOutcome { Message = message };
@@ -666,7 +735,7 @@ namespace Grimhand.Expedition
                 Kind = ExpeditionEventStepKind.ShowMessage,
                 Message = message
             });
-            outcome.DeferredOutcome = BuildDeferredRewardOutcome(message, null, deferredAction, run);
+            outcome.DeferredOutcome = BuildDeferredRewardOutcome(message, pickup, deferredAction, run);
             return outcome;
         }
 

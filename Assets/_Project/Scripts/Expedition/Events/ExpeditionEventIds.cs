@@ -17,6 +17,7 @@ namespace Grimhand.Expedition.Events
         public const string JadeWorkshop = "evt_jade_workshop";
         public const string AncientFurnace = "evt_ancient_furnace";
         public const string AbyssWhisper = "evt_abyss_whisper";
+        public const string FelFlameAltar = "evt_fel_flame_altar";
     }
 
     public static class ExpeditionShrineIds

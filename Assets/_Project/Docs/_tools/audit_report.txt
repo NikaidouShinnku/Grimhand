@@ -1,0 +1,7 @@
+=== RARITY MISMATCHES: 1 ===
+('举盾', '绿', 1, 0, 'Card_m_bone_shield.asset')
+
+=== MECHANIC ISSUES: 3 ===
+终焉魂缚: missing slow action
+终焉魂缚: missing slow action
+太阳神之怒: missing slow action

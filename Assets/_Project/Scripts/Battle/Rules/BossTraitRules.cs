@@ -117,12 +117,11 @@ namespace Grimhand.Battle.Rules
 
         static void ApplyTurnDefenseGrowth(CombatantState combatant, List<BattleEvent> events)
         {
-            combatant.BaseDefense += 1;
+            combatant.PersistentBlockGainFlatBonus += 1;
             CombatantRules.RefreshDerivedStats(combatant);
-            events.Add(new BattleEvent(BattleEventKind.StatusApplied, $"{combatant.DisplayName} 防御 +1")
+            events.Add(new BattleEvent(BattleEventKind.StatusApplied, $"{combatant.DisplayName} 护甲获取 +1")
             {
-                CombatantId = combatant.Id,
-                Amount = combatant.Defense
+                CombatantId = combatant.Id
             });
         }
     }

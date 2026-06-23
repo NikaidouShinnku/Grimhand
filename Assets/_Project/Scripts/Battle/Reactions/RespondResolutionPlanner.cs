@@ -40,7 +40,7 @@ namespace Grimhand.Battle.Reactions
                 var card = state.GetCard(step.CardInstanceId);
 
                 if (actor?.Team == TeamSide.Enemy
-                    && RespondTriggerMatcher.EnemyStepHasAttack(state, step))
+                    && RespondTriggerMatcher.EnemyStepTriggersPlayerRespond(state, step))
                 {
                     var matching = CollectMatchingResponds(state, respondEntries, consumed, step);
                     if (matching.Count > 0)

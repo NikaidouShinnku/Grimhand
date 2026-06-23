@@ -17,10 +17,11 @@ NS = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
 COLOR_TO_RARITY = {
     "白": 0,  # Common
     "绿": 1,  # Rare
-    "蓝": 3,  # SuperRare
-    "紫": 2,  # Epic
+    "蓝": 2,  # SuperRare（蓝框）
+    "紫": 3,  # Epic（紫框，比蓝更稀有）
     "橙": 4,  # Legendary
     "金": 4,
+    "橙/金": 4,
 }
 
 

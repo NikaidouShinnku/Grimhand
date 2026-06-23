@@ -23,7 +23,7 @@ namespace Grimhand.Presentation.Battle
 
         StatChip _hp;
         StatChip _arm;
-        StatChip _atk;
+        StatChip _bonus;
         StatChip _spd;
         bool _built;
 
@@ -42,7 +42,7 @@ namespace Grimhand.Presentation.Battle
             {
                 SetChipVisible(_hp, false);
                 SetChipVisible(_arm, false);
-                SetChipVisible(_atk, false);
+                SetChipVisible(_bonus, false);
                 SetChipVisible(_spd, false);
                 gameObject.SetActive(false);
                 return;
@@ -65,18 +65,11 @@ namespace Grimhand.Presentation.Battle
             if (showArmor)
                 SetChip(_arm, icons?.ArmorIcon, block.ToString());
 
-            var showAttackChip = !hpOnly || showIronWallPending;
-            SetChipVisible(_atk, showAttackChip);
+            SetChipVisible(_bonus, showIronWallPending);
+            if (showIronWallPending)
+                SetChip(_bonus, icons?.AttackIcon, $"+{ironWallPending}");
+
             SetChipVisible(_spd, !hpOnly);
-
-            if (showAttackChip)
-            {
-                var attackText = showIronWallPending
-                    ? $"+{ironWallPending}"
-                    : unit.Attack.ToString();
-                SetChip(_atk, icons?.AttackIcon, attackText);
-            }
-
             if (!hpOnly)
                 SetChip(_spd, icons?.SpeedIcon, Grimhand.Battle.Rules.StatusRules.GetEffectiveSpeed(unit).ToString());
         }
@@ -101,7 +94,7 @@ namespace Grimhand.Presentation.Battle
 
             _hp = CreateChip("HP", HpChipWidth);
             _arm = CreateChip("ARM", ArmChipWidth);
-            _atk = CreateChip("ATK", StatChipWidth);
+            _bonus = CreateChip("DMG", StatChipWidth);
             _spd = CreateChip("SPD", StatChipWidth);
         }
 

@@ -17,7 +17,7 @@ MonoBehaviour:
   OwnerCharacterId: char_ranger
   Cost: 4
   CardType: 0
-  Rarity: 2
+  Rarity: 3
   Keywords:
   - sacrifice
   Actions:
@@ -40,6 +40,8 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0
@@ -59,13 +61,13 @@ MonoBehaviour:
     LifestealUnblockedOnly: 0
   - Type: 0
     Target: 0
-    Value: 15
+    Value: 45
     StatusId: 
     Stacks: 1
     Duration: -1
-    ScaleWithAttack: 1
+    ScaleWithAttack: 0
     ScaleWithDefense: 0
-    AttackScalePercent: 200
+    AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
     Reach: 0
@@ -76,9 +78,49 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
-    OnKillHealAmount: 30
+    OnKillHealAmount: 0
+    HitCount: 1
+    AlternateAttackScalePercent: 0
+    AlternateValue: 0
+    UseAlternateIfTargetHasDebuff: 0
+    AlternateAttackScaleIfActorUsedAttack: 0
+    AlternateValueIfActorUsedAttack: 0
+    DamageMultiplierPercentIfRespondArmed: 100
+    SelfDamageFlat: 0
+    RepeatPerEnemyAttackCardThisTurn: 0
+    FallbackBlockDefenseScalePercent: 100
+    FallbackBlockValue: 0
+    SummonCharacterId: 
+    GrantInvulnerableOnRespondArm: 0
+    LifestealUnblockedOnly: 0
+  - Type: 2
+    Target: 1
+    Value: 30
+    StatusId: 
+    Stacks: 1
+    Duration: -1
+    ScaleWithAttack: 0
+    ScaleWithDefense: 0
+    AttackScalePercent: 100
+    DefenseScalePercent: 100
+    Condition: 0
+    Reach: 1
+    SplashBehindTarget: 0
+    SplashPowerPercent: 100
+    BackRowPowerPercent: 100
+    IgnoreDefPercent: 0
+    BonusIfTargetHpBelowPercent: 0
+    BonusIfTargetHpBelowFlat: 0
+    BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
+    LifestealPercent: 0
+    HealMaxHpPercent: 0
+    OnKillHealAmount: 0
     HitCount: 1
     AlternateAttackScalePercent: 0
     AlternateValue: 0

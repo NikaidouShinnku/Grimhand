@@ -62,7 +62,7 @@ namespace Grimhand.Battle.Rules
 
             foreach (var ally in CollectAlivePlayerTeam(state))
             {
-                if (ally.Block <= 0)
+                if (ally.CharacterDefinitionId != KnightId || ally.Block <= 0)
                     continue;
 
                 DamageRules.ApplyHeal(state, ally, 2, events, ally);
@@ -138,7 +138,8 @@ namespace Grimhand.Battle.Rules
             foreach (var ally in CollectAlivePlayerTeam(state))
             {
                 ally.MaxHp += 10;
-                ally.Hp += 10;
+                if (!ally.EnteredFromExpeditionDeath)
+                    ally.Hp += 10;
             }
         }
 
@@ -282,13 +283,6 @@ namespace Grimhand.Battle.Rules
                 actor.TalentAttackCardsThisTurn++;
                 RelicBattleRules.RefreshDerivedStats(state, actor, state.Config?.RunModifiers);
             }
-
-            if (card.Keywords.Contains("sacrifice")
-                && actor.CharacterDefinitionId == RangerId
-                && HasTalent(state, "talent_ranger_s2_lv4"))
-            {
-                actor.TalentNextSacrificeEnergyDiscount = true;
-            }
         }
 
         public static void OnSacrificeHpSpent(BattleState state, CombatantState actor, int hpSpent)
@@ -366,9 +360,13 @@ namespace Grimhand.Battle.Rules
             CombatantState beneficiary,
             int blockAmount,
             List<BattleEvent> events,
-            BattleRng rng)
+            BattleRng rng,
+            CardInstanceState card)
         {
             if (state == null || actor == null || blockAmount <= 0)
+                return;
+
+            if (card == null || card.CardType != CardType.Defense)
                 return;
 
             if (actor.CharacterDefinitionId != MageId || !HasTalent(state, "talent_mage_s1_lv1"))
@@ -396,7 +394,9 @@ namespace Grimhand.Battle.Rules
             if (def?.Id != StatusCatalog.Poison || !HasTalent(state, "talent_mage_s2_lv10"))
                 return;
 
-            damage = status.Stacks * status.Stacks * def.TurnStartDamagePerStack;
+            // 毒爆：本回合爆发全部层数的累计伤害（层数×单次伤害），随后清空层数
+            damage = status.Stacks * def.TurnStartDamagePerStack;
+            status.Stacks = 0;
         }
 
         public static void OnMageDamageDealt(
@@ -431,17 +431,12 @@ namespace Grimhand.Battle.Rules
                 return;
 
             target.TalentLastStandBlockUsed = true;
-            var block = Math.Max(1, target.Defense + 10);
-            var absorbed = Math.Min(hpDamage, block);
+            var blockGain = Math.Max(1, target.Defense + 10);
+            DamageRules.ApplyBlock(target, blockGain, events, state);
+            var absorbed = Math.Min(hpDamage, blockGain);
             hpDamage -= absorbed;
             if (absorbed > 0)
-            {
-                events.Add(new BattleEvent(BattleEventKind.BlockGained, $"{target.DisplayName} 绝地格挡")
-                {
-                    CombatantId = target.Id,
-                    Amount = absorbed
-                });
-            }
+                target.Block -= absorbed;
         }
 
         static bool IsKnightAlive(BattleState state)

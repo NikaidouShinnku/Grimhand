@@ -57,6 +57,8 @@ namespace Grimhand.Presentation.Battle
                     return FormatDamage(e, state);
                 case BattleEventKind.BlockGained:
                     return $"护甲 +{e.Amount} · {CombatantName(state, e.CombatantId)}";
+                case BattleEventKind.IronWallConverted:
+                    return $"下一张攻击 +{e.Amount} · {CombatantName(state, e.CombatantId)}（铁壁转化）";
                 case BattleEventKind.HealApplied:
                     return $"治疗 +{e.Amount} · {CombatantName(state, e.CombatantId)}";
                 case BattleEventKind.CharacterRevived:

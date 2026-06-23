@@ -65,7 +65,7 @@ namespace Grimhand.Expedition
                 var effectiveMax = GetEffectiveMaxHp(member, hpBonus);
                 var hpGain = effectiveMax - member.MaxHp;
                 member.MaxHp = effectiveMax;
-                if (hpGain > 0)
+                if (hpGain > 0 && member.Hp > 0)
                     member.Hp = System.Math.Min(member.MaxHp, member.Hp + hpGain);
                 else if (member.Hp > member.MaxHp)
                     member.Hp = member.MaxHp;

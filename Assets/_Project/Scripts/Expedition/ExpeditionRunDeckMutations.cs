@@ -63,6 +63,9 @@ namespace Grimhand.Expedition
                 return true;
             }
 
+            if (entry.IsBonus)
+                return false;
+
             var id = entry.Template?.DefinitionId;
             if (string.IsNullOrEmpty(id))
                 return false;
@@ -109,8 +112,11 @@ namespace Grimhand.Expedition
             if (run?.Party == null || run.Party.Count == 0)
                 return false;
 
-            TryRemoveExactEntry(run, first);
-            TryRemoveExactEntry(run, second);
+            foreach (var entry in OrderForRemoval(first, second))
+            {
+                if (!TryRemoveExactEntry(run, entry))
+                    return false;
+            }
 
             var rarityA = CardRarityTable.GetOrDefault(first.Template.DefinitionId);
             var rarityB = CardRarityTable.GetOrDefault(second.Template.DefinitionId);
@@ -121,12 +127,57 @@ namespace Grimhand.Expedition
             if (!ExpeditionCardPool.TryRollCardRewardForMember(config, owner, next, rng, out result))
             {
                 result = ExpeditionBattleConfigBuilder.CloneTemplate(first.Template);
-                result.OwnerCharacterId = owner.CharacterDefinitionId;
+                owner = ResolveFusionFallbackOwner(run, first, second, result, rng);
             }
 
             ExpeditionBattleConfigBuilder.HydrateTemplateFromCatalog(result, config?.PlayerCardCatalog);
             result.OwnerCharacterId = owner.CharacterDefinitionId;
             return true;
+        }
+
+        static List<DeckCardEntry> OrderForRemoval(DeckCardEntry first, DeckCardEntry second)
+        {
+            if (first.MemberId == second.MemberId && first.IsBonus && second.IsBonus)
+            {
+                if (first.BonusIndex >= second.BonusIndex)
+                    return new List<DeckCardEntry> { first, second };
+
+                return new List<DeckCardEntry> { second, first };
+            }
+
+            return new List<DeckCardEntry> { first, second };
+        }
+
+        static PartyMemberSnapshot ResolveFusionFallbackOwner(
+            ExpeditionRunState run,
+            DeckCardEntry first,
+            DeckCardEntry second,
+            CardTemplate result,
+            BattleRng rng)
+        {
+            var preferred = new[]
+            {
+                FindMember(run, first.MemberId),
+                FindMember(run, second.MemberId)
+            };
+
+            foreach (var member in preferred)
+            {
+                if (member != null && ExpeditionCardPool.IsCardOwnedByCharacter(result, member.CharacterDefinitionId))
+                    return member;
+            }
+
+            var eligible = new List<PartyMemberSnapshot>();
+            foreach (var member in run.Party)
+            {
+                if (member != null && ExpeditionCardPool.IsCardOwnedByCharacter(result, member.CharacterDefinitionId))
+                    eligible.Add(member);
+            }
+
+            if (eligible.Count > 0)
+                return eligible[rng.NextIndex(eligible.Count)];
+
+            return preferred[0] ?? preferred[1] ?? run.Party[rng.NextIndex(run.Party.Count)];
         }
 
         static PartyMemberSnapshot FindMember(ExpeditionRunState run, string memberId)

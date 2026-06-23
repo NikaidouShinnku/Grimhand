@@ -694,11 +694,17 @@ namespace Grimhand.Presentation.Battle
             int? hpOverride = null;
             int? maxHpOverride = null;
             int? blockOverride = null;
+            var ironWallPending = 0;
             if (presentation != null && unit != null)
             {
                 hpOverride = presentation.GetHp(unit.Id);
                 maxHpOverride = presentation.GetMaxHp(unit.Id);
                 blockOverride = presentation.GetBlock(unit.Id);
+                ironWallPending = presentation.GetIronWallPendingAttackBonus(unit.Id);
+            }
+            else if (unit != null)
+            {
+                ironWallPending = unit.TalentIronWallPendingDamageBonus;
             }
 
             _isValidTarget = false;
@@ -791,7 +797,7 @@ namespace Grimhand.Presentation.Battle
             {
                 statsRow.gameObject.SetActive(unit != null);
                 if (unit != null)
-                    statsRow.Refresh(unit, uiIcons, hpOnly: true, hpOverride, maxHpOverride, blockOverride);
+                    statsRow.Refresh(unit, uiIcons, hpOnly: true, hpOverride, maxHpOverride, blockOverride, ironWallPending);
             }
             _portraitView?.SetDamageFloaterBelow(statsRow != null ? statsRow.transform as RectTransform : null);
 

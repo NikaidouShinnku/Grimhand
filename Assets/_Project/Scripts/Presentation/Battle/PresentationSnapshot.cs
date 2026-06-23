@@ -23,6 +23,7 @@ namespace Grimhand.Presentation.Battle
         readonly Dictionary<string, int> _hp = new();
         readonly Dictionary<string, int> _maxHp = new();
         readonly Dictionary<string, int> _block = new();
+        readonly Dictionary<string, int> _ironWallPendingAttackBonus = new();
         readonly Dictionary<string, CombatantDisplayStats> _displayStats = new();
         readonly Dictionary<int, Dictionary<string, CombatantDisplayStats>> _eventCheckpoints = new();
         readonly HashSet<string> _dead = new();
@@ -47,6 +48,7 @@ namespace Grimhand.Presentation.Battle
                 snap._hp[c.Id] = c.Hp;
                 snap._maxHp[c.Id] = c.MaxHp;
                 snap._block[c.Id] = c.Block;
+                snap._ironWallPendingAttackBonus[c.Id] = c.TalentIronWallPendingDamageBonus;
                 snap._displayStats[c.Id] = BuildDisplayStats(c, state);
                 if (!c.IsAlive)
                     snap._dead.Add(c.Id);
@@ -130,6 +132,9 @@ namespace Grimhand.Presentation.Battle
         public int GetBlock(string combatantId) =>
             _block.TryGetValue(combatantId, out var block) ? block : 0;
 
+        public int GetIronWallPendingAttackBonus(string combatantId) =>
+            _ironWallPendingAttackBonus.TryGetValue(combatantId, out var bonus) ? bonus : 0;
+
         public bool TryGetDisplayStats(string combatantId, out CombatantDisplayStats stats) =>
             _displayStats.TryGetValue(combatantId, out stats);
 
@@ -183,6 +188,26 @@ namespace Grimhand.Presentation.Battle
                 StatusSummary = BattleUiFormatters.FormatStatusListDisplay(combatant),
                 TraitFootnote = MinionTraitDisplayFormatter.FormatFootnote(combatant, state)
             };
+
+        public void ApplyIronWallConversion(string combatantId, int amount)
+        {
+            if (string.IsNullOrEmpty(combatantId) || amount <= 0)
+                return;
+
+            _ironWallPendingAttackBonus[combatantId] = GetIronWallPendingAttackBonus(combatantId) + amount;
+        }
+
+        public void SyncIronWallPendingFromLive(BattleState state, string combatantId)
+        {
+            if (state == null || string.IsNullOrEmpty(combatantId))
+                return;
+
+            var combatant = state.GetCombatant(combatantId);
+            if (combatant == null)
+                return;
+
+            _ironWallPendingAttackBonus[combatantId] = combatant.TalentIronWallPendingDamageBonus;
+        }
 
         public void ApplyBlockGain(string combatantId, int amount)
         {

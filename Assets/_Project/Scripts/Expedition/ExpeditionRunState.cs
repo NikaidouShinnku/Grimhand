@@ -50,5 +50,9 @@ namespace Grimhand.Expedition
         public ExpeditionPendingShrine PendingShrine { get; set; }
         public ExpeditionShopState Shop { get; } = new();
         public ExpeditionTalentRunState TalentRun { get; } = new();
+        /// <summary>远征级额外牌池（诅咒等），不计入角色 10 张上限，不可放弃。</summary>
+        public List<CardTemplate> RunWideBonusCards { get; } = new();
+        public string PendingTravelerGiftRelicId { get; set; } = "";
+        public string PendingTravelerGiftCurseOwnerId { get; set; } = "";
     }
 }

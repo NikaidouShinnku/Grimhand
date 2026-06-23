@@ -175,7 +175,7 @@ namespace Grimhand.Battle.Effects
                 && TalentBattleRules.HasTalent(state, "talent_knight_s2_lv10"))
             {
                 actor.TalentIronWallPendingDamageBonus += amount;
-                events.Add(new BattleEvent(BattleEventKind.BlockGained, $"{actor.DisplayName} 铁壁转化")
+                events.Add(new BattleEvent(BattleEventKind.IronWallConverted, $"{actor.DisplayName} 铁壁转化")
                 {
                     CombatantId = actor.Id,
                     Amount = amount

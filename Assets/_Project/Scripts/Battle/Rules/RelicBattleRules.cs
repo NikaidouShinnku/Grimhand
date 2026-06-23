@@ -85,7 +85,8 @@ namespace Grimhand.Battle.Rules
                         continue;
 
                     combatant.MaxHp += mods.TeamHpBonus;
-                    combatant.Hp += mods.TeamHpBonus;
+                    if (!combatant.EnteredFromExpeditionDeath)
+                        combatant.Hp += mods.TeamHpBonus;
                 }
             }
 

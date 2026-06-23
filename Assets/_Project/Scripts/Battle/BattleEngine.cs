@@ -549,7 +549,8 @@ namespace Grimhand.Battle
                     MaxHp = cc.MaxHp,
                     BaseAttack = cc.BaseAttack,
                     BaseDefense = cc.BaseDefense,
-                    Speed = cc.Speed
+                    Speed = cc.Speed,
+                    EnteredFromExpeditionDeath = cc.EnteredFromExpeditionDeath
                 };
                 var startHp = cc.StartHp ?? cc.MaxHp;
                 combatant.Hp = System.Math.Max(0, System.Math.Min(startHp, cc.MaxHp));

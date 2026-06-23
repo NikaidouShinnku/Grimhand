@@ -32,10 +32,13 @@ namespace Grimhand.Expedition
             return selectedId == talent.Id ? TalentCardState.Selected : TalentCardState.Unlocked;
         }
 
-        /// <summary>点击天赋卡：未解锁忽略；已选中则取消；否则替换该槽位选择。</summary>
+        /// <summary>点击天赋卡：未解锁 / 角色不匹配忽略；已选中则取消；否则替换该槽位选择。</summary>
         public static bool TryToggleSelection(TalentDefinition talent, CharacterMetaProgress progress)
         {
             if (talent == null || progress == null || !IsUnlocked(talent, progress))
+                return false;
+
+            if (talent.CharacterId != progress.CharacterDefinitionId)
                 return false;
 
             var selectedId = progress.GetSelectedTalentId(talent.Slot);
@@ -48,6 +51,33 @@ namespace Grimhand.Expedition
             progress.SetSelectedTalentId(talent.Slot, talent.Id);
             return true;
         }
+
+        /// <summary>等级变化或脏数据时卸下不再合法的天赋。</summary>
+        public static void PruneInvalidSelections(CharacterMetaProgress progress)
+        {
+            if (progress == null)
+                return;
+
+            for (var slot = 1; slot <= 2; slot++)
+            {
+                var talentId = progress.GetSelectedTalentId(slot);
+                if (string.IsNullOrEmpty(talentId))
+                    continue;
+
+                var talent = TalentCatalog.Get(talentId);
+                if (talent == null
+                    || talent.CharacterId != progress.CharacterDefinitionId
+                    || !IsUnlocked(talent, progress))
+                {
+                    progress.SetSelectedTalentId(slot, "");
+                }
+            }
+        }
+
+        public static bool BelongsToCharacter(TalentDefinition talent, string characterId) =>
+            talent != null
+            && !string.IsNullOrEmpty(characterId)
+            && talent.CharacterId == characterId;
 
         public static string BuildActiveEffectsSummary(CharacterMetaProgress progress)
         {

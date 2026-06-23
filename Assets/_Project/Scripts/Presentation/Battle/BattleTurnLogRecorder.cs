@@ -76,6 +76,7 @@ namespace Grimhand.Presentation.Battle
             {
                 BattleEventKind.DamageApplied => true,
                 BattleEventKind.BlockGained => true,
+                BattleEventKind.IronWallConverted => true,
                 BattleEventKind.HealApplied => true,
                 BattleEventKind.CharacterRevived => true,
                 BattleEventKind.CharacterDied => true,
@@ -165,6 +166,8 @@ namespace Grimhand.Presentation.Battle
                 }
                 case BattleEventKind.BlockGained:
                     return $"{CombatantLabel(state, e.CombatantId)} 获得 {e.Amount} 护甲";
+                case BattleEventKind.IronWallConverted:
+                    return $"{CombatantLabel(state, e.CombatantId)} 铁壁转化：下一张攻击 +{e.Amount}";
                 case BattleEventKind.HealApplied:
                     return $"{CombatantLabel(state, e.CombatantId)} 恢复 {e.Amount} 生命";
                 case BattleEventKind.CharacterRevived:

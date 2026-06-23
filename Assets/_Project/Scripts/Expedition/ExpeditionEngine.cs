@@ -68,6 +68,9 @@ namespace Grimhand.Expedition
             _run.PendingEventBattleVictoryReward = null;
             _run.PendingDeferredReward = null;
             _run.Shop.Clear();
+            _run.RunWideBonusCards.Clear();
+            _run.PendingTravelerGiftRelicId = "";
+            _run.PendingTravelerGiftCurseOwnerId = "";
             _run.CurrentBattleConfig = null;
 
             _run.Map = ExpeditionMapGenerator.Generate(_config, _run, _rng);
@@ -77,7 +80,7 @@ namespace Grimhand.Expedition
             if (campRoster != null && campRoster.Members.Count > 0)
                 CampRunPartyApplier.Apply(campRoster, _run, campMeta);
             else
-                InitPartyFromTemplate();
+                InitPartyFromTemplate(campMeta);
 
             _run.TalentRun.Reset();
             TalentDatabase.ApplyRunStartEffects(_run, _config);
@@ -93,7 +96,7 @@ namespace Grimhand.Expedition
             const int bonusCardsPerMember = 3;
 
             ResetRunState(skipMap: true);
-            InitPartyAtLevel(partyLevel);
+            InitPartyAtLevel(partyLevel, CampMetaState.CreateDefaultDemo());
             RollStartingRelics(relicCount);
             RollStartingBonusCards(bonusCardsPerMember);
 
@@ -120,7 +123,8 @@ namespace Grimhand.Expedition
                 _config,
                 _run.TalentRun,
                 isBossBattle: true,
-                _run.RelicGrowthTiers);
+                _run.RelicGrowthTiers,
+                _run.RunWideBonusCards);
 
             _run.CurrentBattleConfig.EnergyCap += _run.Modifiers.EnergyCapBonus;
             _run.CurrentBattleConfig.TurnStartEnergyRegen = System.Math.Max(
@@ -167,17 +171,21 @@ namespace Grimhand.Expedition
             _run.PendingEventBattleVictoryReward = null;
             _run.PendingDeferredReward = null;
             _run.Shop.Clear();
+            _run.RunWideBonusCards.Clear();
+            _run.PendingTravelerGiftRelicId = "";
+            _run.PendingTravelerGiftCurseOwnerId = "";
             _run.CurrentBattleConfig = null;
             _run.TalentRun.Reset();
             _run.RunAcquisitionLog.Clear();
             _run.Map = skipMap ? null : ExpeditionMapGenerator.Generate(_config, _run, _rng);
         }
 
-        void InitPartyAtLevel(int level)
+        void InitPartyAtLevel(int level, CampMetaState campMeta = null)
         {
             if (_config.CombatEncounters.Count == 0)
                 return;
 
+            campMeta ??= CampMetaState.CreateDefaultDemo();
             foreach (var cc in _config.CombatEncounters[0].Combatants)
             {
                 if (cc.Team != TeamSide.Player)
@@ -185,7 +193,7 @@ namespace Grimhand.Expedition
 
                 var clamped = CharacterProgression.ClampLevel(level);
                 var stats = CharacterProgression.GetStatsForCharacter(cc.CharacterDefinitionId, clamped);
-                _run.Party.Add(new PartyMemberSnapshot
+                var member = new PartyMemberSnapshot
                 {
                     CharacterDefinitionId = cc.CharacterDefinitionId,
                     DisplayName = cc.DisplayName,
@@ -193,7 +201,9 @@ namespace Grimhand.Expedition
                     Xp = 0,
                     Hp = stats.MaxHp,
                     MaxHp = stats.MaxHp
-                });
+                };
+                CampRunPartyApplier.ApplyTalentsFromMeta(member, campMeta);
+                _run.Party.Add(member);
             }
         }
 
@@ -958,7 +968,8 @@ namespace Grimhand.Expedition
                     member,
                     draft.ReplaceDeckCardKey,
                     out var removeEntry);
-                ExpeditionRunDeckRules.TryReplaceAndAdd(_run, member, removeEntry, template);
+                if (!ExpeditionRunDeckRules.TryReplaceAndAdd(_run, member, removeEntry, template))
+                    return;
             }
             else
             {
@@ -1266,18 +1277,19 @@ namespace Grimhand.Expedition
 
         public int CurrentBattleNumber => _run.Map?.NodesCompleted + 1 ?? _run.BattlesWon + 1;
 
-        void InitPartyFromTemplate()
+        void InitPartyFromTemplate(CampMetaState campMeta = null)
         {
             if (_config.CombatEncounters.Count == 0)
                 return;
 
+            campMeta ??= CampMetaState.CreateDefaultDemo();
             foreach (var cc in _config.CombatEncounters[0].Combatants)
             {
                 if (cc.Team != TeamSide.Player)
                     continue;
 
                 var stats = CharacterProgression.GetStatsForCharacter(cc.CharacterDefinitionId, cc.Level);
-                _run.Party.Add(new PartyMemberSnapshot
+                var member = new PartyMemberSnapshot
                 {
                     CharacterDefinitionId = cc.CharacterDefinitionId,
                     DisplayName = cc.DisplayName,
@@ -1285,7 +1297,9 @@ namespace Grimhand.Expedition
                     Xp = cc.Xp,
                     Hp = stats.MaxHp,
                     MaxHp = stats.MaxHp
-                });
+                };
+                CampRunPartyApplier.ApplyTalentsFromMeta(member, campMeta);
+                _run.Party.Add(member);
             }
         }
 
@@ -1547,7 +1561,8 @@ namespace Grimhand.Expedition
                 _config,
                 _run.TalentRun,
                 isBossBattle: false,
-                _run.RelicGrowthTiers);
+                _run.RelicGrowthTiers,
+                _run.RunWideBonusCards);
 
             if (_run.Modifiers.DivinePunishmentActive)
             {
@@ -1626,7 +1641,8 @@ namespace Grimhand.Expedition
                 _config,
                 _run.TalentRun,
                 isBossBattle: true,
-                _run.RelicGrowthTiers);
+                _run.RelicGrowthTiers,
+                _run.RunWideBonusCards);
 
             config.EnergyCap += _run.Modifiers.EnergyCapBonus;
             config.TurnStartEnergyRegen = System.Math.Max(config.TurnStartEnergyRegen, 4);
@@ -1915,6 +1931,31 @@ namespace Grimhand.Expedition
             return false;
         }
 
+        void ApplyPendingTravelerGift()
+        {
+            var relicId = _run.PendingTravelerGiftRelicId;
+            var curseOwnerId = _run.PendingTravelerGiftCurseOwnerId;
+            if (string.IsNullOrEmpty(relicId) && string.IsNullOrEmpty(curseOwnerId))
+                return;
+
+            _run.PendingTravelerGiftRelicId = "";
+            _run.PendingTravelerGiftCurseOwnerId = "";
+
+            if (!string.IsNullOrEmpty(relicId))
+                TryAddRelic(relicId);
+
+            if (string.IsNullOrEmpty(curseOwnerId))
+                return;
+
+            var curseTemplate = FindCardTemplate("curse_chaos_touch");
+            if (curseTemplate == null)
+                return;
+
+            var clone = ExpeditionBattleConfigBuilder.CloneTemplate(curseTemplate);
+            clone.OwnerCharacterId = curseOwnerId;
+            ExpeditionRunDeckRules.TryAddRunWideBonusCard(_config, _run, clone, RecordRunAcquisition);
+        }
+
         void FinishEventInteractionSequence()
         {
             var interaction = _run.EventInteraction;
@@ -1924,6 +1965,8 @@ namespace Grimhand.Expedition
                 return;
 
             interaction?.DeferredRunAction?.Invoke(_run);
+
+            ApplyPendingTravelerGift();
 
             if (interaction?.DeferredOutcome != null)
             {

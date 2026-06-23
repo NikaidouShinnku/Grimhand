@@ -85,21 +85,18 @@ namespace Grimhand.Expedition
         static ExpeditionEventOutcome PlanTravelerGift(ExpeditionRunState run, ExpeditionConfig config, BattleRng rng)
         {
             var relicId = ExpeditionRewardPickupFactory.RollRelicId(run, rng);
-            ExpeditionRewardPickup pickup = null;
-            if (!string.IsNullOrEmpty(relicId))
-                pickup = ExpeditionRewardPickupFactory.Relic(relicId, "神秘旅者");
+            var curseOwnerId = "";
+            if (run?.Party != null && run.Party.Count > 0)
+                curseOwnerId = run.Party[rng.NextIndex(run.Party.Count)].CharacterDefinitionId;
 
-            if (run?.Party != null && run.Party.Count > 0 && config != null)
-            {
-                var idx = rng.NextIndex(run.Party.Count);
-                var member = run.Party[idx];
-                pickup ??= new ExpeditionRewardPickup { HeaderText = "神秘旅者", Kind = RewardPickupKind.EventOrShrine };
-                pickup.CardDefinitionId = "curse_chaos_touch";
-                pickup.CardOwnerCharacterId = member.CharacterDefinitionId;
-                pickup.CardDisplayName = "混沌之触";
-            }
-
-            return MessageThenReward("一张诅咒牌被塞入了牌组……", pickup);
+            return MessageThenReward(
+                "一张诅咒牌被塞入了牌组……",
+                null,
+                state =>
+                {
+                    state.PendingTravelerGiftRelicId = relicId ?? "";
+                    state.PendingTravelerGiftCurseOwnerId = curseOwnerId;
+                });
         }
 
         static ExpeditionEventOutcome PlanAncientTemple(ExpeditionRunState run, int choice)

@@ -33,7 +33,8 @@ namespace Grimhand.Presentation.Battle
             bool hpOnly = true,
             int? hpOverride = null,
             int? maxHpOverride = null,
-            int? blockOverride = null)
+            int? blockOverride = null,
+            int pendingIronWallAttackBonus = 0)
         {
             EnsureBuilt();
 
@@ -55,19 +56,29 @@ namespace Grimhand.Presentation.Battle
             SetChip(_hp, icons?.HpIcon, $"{hp}/{maxHp}");
 
             var block = blockOverride ?? unit.Block;
-            var showArmor = block >= 1;
+            var ironWallPending = pendingIronWallAttackBonus > 0
+                ? pendingIronWallAttackBonus
+                : unit.TalentIronWallPendingDamageBonus;
+            var showIronWallPending = ironWallPending > 0;
+            var showArmor = !showIronWallPending && block >= 1;
             SetChipVisible(_arm, showArmor);
             if (showArmor)
                 SetChip(_arm, icons?.ArmorIcon, block.ToString());
 
-            SetChipVisible(_atk, !hpOnly);
+            var showAttackChip = !hpOnly || showIronWallPending;
+            SetChipVisible(_atk, showAttackChip);
             SetChipVisible(_spd, !hpOnly);
 
-            if (!hpOnly)
+            if (showAttackChip)
             {
-                SetChip(_atk, icons?.AttackIcon, unit.Attack.ToString());
-                SetChip(_spd, icons?.SpeedIcon, Grimhand.Battle.Rules.StatusRules.GetEffectiveSpeed(unit).ToString());
+                var attackText = showIronWallPending
+                    ? $"+{ironWallPending}"
+                    : unit.Attack.ToString();
+                SetChip(_atk, icons?.AttackIcon, attackText);
             }
+
+            if (!hpOnly)
+                SetChip(_spd, icons?.SpeedIcon, Grimhand.Battle.Rules.StatusRules.GetEffectiveSpeed(unit).ToString());
         }
 
         void EnsureBuilt()

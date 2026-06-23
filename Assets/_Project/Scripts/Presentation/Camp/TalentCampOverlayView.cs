@@ -62,6 +62,8 @@ namespace Grimhand.Presentation.Camp
         public void Show(CampMetaState meta)
         {
             _meta = meta ?? CampMetaState.CreateDefaultDemo();
+            foreach (var characterId in TalentCatalog.PlayableCharacterIds)
+                TalentRules.PruneInvalidSelections(_meta.GetOrCreate(characterId));
             _ownedCharacters = CollectOwnedCharacters();
             EnsureBuilt();
             HideTooltip();

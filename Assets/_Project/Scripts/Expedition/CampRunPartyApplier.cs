@@ -31,6 +31,9 @@ namespace Grimhand.Expedition
                     var progress = meta.GetOrCreate(loadout.CharacterDefinitionId);
                     member.SelectedTalentSlot1Id = progress.SelectedSlot1TalentId ?? "";
                     member.SelectedTalentSlot2Id = progress.SelectedSlot2TalentId ?? "";
+                    TalentRules.PruneInvalidSelections(progress);
+                    member.SelectedTalentSlot1Id = progress.SelectedSlot1TalentId ?? "";
+                    member.SelectedTalentSlot2Id = progress.SelectedSlot2TalentId ?? "";
                 }
 
                 member.CampDeckCardIds.Clear();
@@ -42,6 +45,24 @@ namespace Grimhand.Expedition
             }
 
             ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(run.Party, run.Relics, run.RelicGrowthTiers);
+        }
+
+        public static void ApplyTalentsFromMeta(PartyMemberSnapshot member, CampMetaState meta)
+        {
+            if (member == null)
+                return;
+
+            member.SelectedTalentSlot1Id = "";
+            member.SelectedTalentSlot2Id = "";
+            if (meta == null || string.IsNullOrEmpty(member.CharacterDefinitionId))
+                return;
+
+            var progress = meta.GetOrCreate(member.CharacterDefinitionId);
+            member.SelectedTalentSlot1Id = progress.SelectedSlot1TalentId ?? "";
+            member.SelectedTalentSlot2Id = progress.SelectedSlot2TalentId ?? "";
+            TalentRules.PruneInvalidSelections(progress);
+            member.SelectedTalentSlot1Id = progress.SelectedSlot1TalentId ?? "";
+            member.SelectedTalentSlot2Id = progress.SelectedSlot2TalentId ?? "";
         }
     }
 }

@@ -18,17 +18,30 @@ namespace Grimhand.Expedition
                 if (member == null || !HasMemberTalent(member, "talent_ranger_s2_lv6"))
                     continue;
 
-                member.BonusCards.Add(new CardTemplate
-                {
-                    DefinitionId = PassiveCardMechanicsRules.EndlessBladeCardId,
-                    OwnerCharacterId = TalentCatalog.RangerId,
-                    DisplayName = "无尽血刃",
-                    CardType = CardType.Attack,
-                    Cost = 1
-                });
+                var blade = TryFindCatalogCard(config, PassiveCardMechanicsRules.EndlessBladeCardId);
+                if (blade == null)
+                    break;
+
+                var clone = ExpeditionBattleConfigBuilder.CloneTemplate(blade);
+                clone.OwnerCharacterId = TalentCatalog.RangerId;
+                member.BonusCards.Add(clone);
                 run.TalentRun.EndlessBladeInjected = true;
                 break;
             }
+        }
+
+        static CardTemplate TryFindCatalogCard(ExpeditionConfig config, string definitionId)
+        {
+            if (config?.PlayerCardCatalog == null || string.IsNullOrEmpty(definitionId))
+                return null;
+
+            foreach (var template in config.PlayerCardCatalog)
+            {
+                if (template?.DefinitionId == definitionId)
+                    return template;
+            }
+
+            return null;
         }
 
         public static void MergeIntoBattleConfig(
@@ -50,8 +63,8 @@ namespace Grimhand.Expedition
                     if (member == null)
                         continue;
 
-                    CollectTalentId(config.Talents, member.SelectedTalentSlot1Id);
-                    CollectTalentId(config.Talents, member.SelectedTalentSlot2Id);
+                    CollectTalentId(config.Talents, member.SelectedTalentSlot1Id, member.CharacterDefinitionId);
+                    CollectTalentId(config.Talents, member.SelectedTalentSlot2Id, member.CharacterDefinitionId);
                 }
             }
 
@@ -81,13 +94,16 @@ namespace Grimhand.Expedition
             }
         }
 
-        static void CollectTalentId(TalentBattleContext ctx, string talentId)
+        static void CollectTalentId(TalentBattleContext ctx, string talentId, string ownerCharacterId)
         {
             if (ctx == null || string.IsNullOrEmpty(talentId))
                 return;
 
-            if (TalentCatalog.Get(talentId) != null)
-                ctx.ActiveTalentIds.Add(talentId);
+            var talent = TalentCatalog.Get(talentId);
+            if (talent == null || !TalentRules.BelongsToCharacter(talent, ownerCharacterId))
+                return;
+
+            ctx.ActiveTalentIds.Add(talentId);
         }
 
         static void ApplyModifierFlags(RunModifierSnapshot mods, TalentBattleContext ctx)

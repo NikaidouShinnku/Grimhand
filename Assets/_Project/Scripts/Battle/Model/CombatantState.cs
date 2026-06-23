@@ -14,6 +14,8 @@ namespace Grimhand.Battle.Model
         public int Xp { get; set; }
         public int MaxHp { get; set; }
         public int Hp { get; set; }
+        /// <summary>远征战间 Hp=0，本场以 1 HP 复活进战。</summary>
+        public bool EnteredFromExpeditionDeath { get; set; }
         public int BaseAttack { get; set; }
         public int BaseDefense { get; set; }
         public int Attack { get; set; }

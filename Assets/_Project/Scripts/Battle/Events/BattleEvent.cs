@@ -18,6 +18,8 @@ namespace Grimhand.Battle.Events
         CardResolvedEnded,
         DamageApplied,
         BlockGained,
+        /// <summary>战士铁壁转化：本应获得的护甲转为下一张攻击牌额外伤害，不增加 Block。</summary>
+        IronWallConverted,
         HealApplied,
         CharacterRevived,
         CharacterDied,

@@ -49,6 +49,7 @@ namespace Grimhand.Expedition
                     BaseDefense = cc.BaseDefense,
                     Speed = cc.Speed,
                     StartHp = cc.StartHp,
+                    EnteredFromExpeditionDeath = cc.EnteredFromExpeditionDeath,
                     UseSkillPool = cc.UseSkillPool,
                 };
 
@@ -88,6 +89,7 @@ namespace Grimhand.Expedition
                 BaseDefense = cc.BaseDefense,
                 Speed = cc.Speed,
                 StartHp = cc.StartHp,
+                EnteredFromExpeditionDeath = cc.EnteredFromExpeditionDeath,
                 UseSkillPool = cc.UseSkillPool,
             };
 
@@ -113,7 +115,8 @@ namespace Grimhand.Expedition
             ExpeditionConfig expeditionConfig = null,
             ExpeditionTalentRunState talentRunState = null,
             bool isBossBattle = false,
-            IReadOnlyDictionary<string, int> relicGrowthTiers = null)
+            IReadOnlyDictionary<string, int> relicGrowthTiers = null,
+            IReadOnlyList<CardTemplate> runWideBonusCards = null)
         {
             var config = CloneTemplate(encounterTemplate);
             config.Seed = battleSeed;
@@ -126,13 +129,27 @@ namespace Grimhand.Expedition
 
             FormationSlotRules.AssignUniqueSlotsPerTeam(config.Combatants);
 
-            ApplyPlayerPartyProgress(config, party, applyPartyHp, expeditionModifiers, expeditionConfig, playerCardCatalog);
+            ApplyPlayerPartyProgress(
+                config,
+                party,
+                applyPartyHp,
+                expeditionModifiers,
+                expeditionConfig,
+                playerCardCatalog,
+                runWideBonusCards);
 
             if (!encounterTemplate.SkipFloorScaling)
                 ApplyEnemyFloorScaling(config, floor, battleSeed);
 
             // 层数缩放只应作用于敌人；再次刷新玩家数值以防模板被误改。
-            ApplyPlayerPartyProgress(config, party, applyPartyHp, expeditionModifiers, expeditionConfig, playerCardCatalog);
+            ApplyPlayerPartyProgress(
+                config,
+                party,
+                applyPartyHp,
+                expeditionModifiers,
+                expeditionConfig,
+                playerCardCatalog,
+                runWideBonusCards);
 
             return config;
         }
@@ -143,7 +160,8 @@ namespace Grimhand.Expedition
             bool applyPartyHp,
             ExpeditionRunModifiers expeditionModifiers,
             ExpeditionConfig expeditionConfig,
-            IReadOnlyList<CardTemplate> playerCardCatalog)
+            IReadOnlyList<CardTemplate> playerCardCatalog,
+            IReadOnlyList<CardTemplate> runWideBonusCards = null)
         {
             if (!applyPartyHp || party == null || party.Count == 0)
                 return;
@@ -159,7 +177,12 @@ namespace Grimhand.Expedition
                         continue;
 
                     ApplyPartyProgress(cc, member, expeditionModifiers);
-                    ApplyMemberDeckFromSnapshot(cc, member, expeditionConfig, playerCardCatalog);
+                    ApplyMemberDeckFromSnapshot(
+                        cc,
+                        member,
+                        expeditionConfig,
+                        playerCardCatalog,
+                        runWideBonusCards);
                     break;
                 }
             }
@@ -184,7 +207,8 @@ namespace Grimhand.Expedition
             CombatantConfig cc,
             PartyMemberSnapshot member,
             ExpeditionConfig expeditionConfig,
-            IReadOnlyList<CardTemplate> cardCatalog)
+            IReadOnlyList<CardTemplate> cardCatalog,
+            IReadOnlyList<CardTemplate> runWideBonusCards = null)
         {
             if (member == null || expeditionConfig == null)
             {
@@ -199,6 +223,32 @@ namespace Grimhand.Expedition
                     continue;
 
                 var template = CloneTemplate(entry.Template);
+                HydrateTemplateFromCatalog(template, cardCatalog);
+                cc.DeckTemplates.Add(template);
+            }
+
+            AppendRunWideBonusCards(cc, member, runWideBonusCards, cardCatalog);
+        }
+
+        static void AppendRunWideBonusCards(
+            CombatantConfig cc,
+            PartyMemberSnapshot member,
+            IReadOnlyList<CardTemplate> runWideBonusCards,
+            IReadOnlyList<CardTemplate> cardCatalog)
+        {
+            if (runWideBonusCards == null || member == null)
+                return;
+
+            foreach (var bonus in runWideBonusCards)
+            {
+                if (bonus == null || string.IsNullOrEmpty(bonus.DefinitionId))
+                    continue;
+
+                if (!string.IsNullOrEmpty(bonus.OwnerCharacterId)
+                    && bonus.OwnerCharacterId != member.CharacterDefinitionId)
+                    continue;
+
+                var template = CloneTemplate(bonus);
                 HydrateTemplateFromCatalog(template, cardCatalog);
                 cc.DeckTemplates.Add(template);
             }
@@ -285,6 +335,7 @@ namespace Grimhand.Expedition
         {
             cc.Level = CharacterProgression.ClampLevel(member.Level);
             cc.Xp = member.Xp;
+            cc.EnteredFromExpeditionDeath = member.Hp <= 0;
             cc.StartHp = member.Hp <= 0 ? 1 : member.Hp;
 
             var stats = CharacterProgression.GetStatsForCharacter(member.CharacterDefinitionId, cc.Level);
@@ -441,6 +492,8 @@ namespace Grimhand.Expedition
             return new RunModifierSnapshot
             {
                 TeamAttackBonus = source.TeamAttackBonus,
+                TeamDefenseBonus = source.TeamDefenseBonus,
+                TeamHpBonus = source.TeamHpBonus,
                 FrontDefenseBonus = source.FrontDefenseBonus,
                 BackRowExtraDrawPerTurn = source.BackRowExtraDrawPerTurn,
                 BattleStartTeamHeal = source.BattleStartTeamHeal,
@@ -449,17 +502,47 @@ namespace Grimhand.Expedition
                 SkipPollutedCardsOnDraw = source.SkipPollutedCardsOnDraw,
                 GoldBonusPercent = source.GoldBonusPercent,
                 SacrificeDamageBonusPercent = source.SacrificeDamageBonusPercent,
+                SacrificeHpCostReduction = source.SacrificeHpCostReduction,
+                SacrificeStackAttackBonus = source.SacrificeStackAttackBonus,
                 HealBonusPercent = source.HealBonusPercent,
+                PharaohBlockGivenBonusPercent = source.PharaohBlockGivenBonusPercent,
+                SacrificeHpCostReductionPercent = source.SacrificeHpCostReductionPercent,
+                SacrificeHpCostIncreasePercent = source.SacrificeHpCostIncreasePercent,
                 HealGrantsBlock = source.HealGrantsBlock,
+                StatusCardTeamBlock = source.StatusCardTeamBlock,
                 WarriorBlockChanceOnHit = source.WarriorBlockChanceOnHit,
                 WarriorBlockAmountOnHit = source.WarriorBlockAmountOnHit,
+                WarriorFirstHitBlockAmount = source.WarriorFirstHitBlockAmount,
+                WarriorTauntDamageReductionPercent = source.WarriorTauntDamageReductionPercent,
+                WarriorBlockDamageReductionPercent = source.WarriorBlockDamageReductionPercent,
                 FirstAttackDamageBonusPercent = source.FirstAttackDamageBonusPercent,
+                FirstAttackFlatBonus = source.FirstAttackFlatBonus,
+                FirstDefenseFlatBonus = source.FirstDefenseFlatBonus,
+                AttackAndDefenseSameTurnHeal = source.AttackAndDefenseSameTurnHeal,
+                HighCostCardDamageBonusPercent = source.HighCostCardDamageBonusPercent,
+                FirstHitDamageReductionPercent = source.FirstHitDamageReductionPercent,
+                EndTurnTeamHeal = source.EndTurnTeamHeal,
+                StatusDurationBonusTurns = source.StatusDurationBonusTurns,
+                AttackBurnProcChance = source.AttackBurnProcChance,
+                AttackBurnStacks = source.AttackBurnStacks,
+                AttackBurnDurationTurns = source.AttackBurnDurationTurns,
                 ExtraEnergyCap = source.ExtraEnergyCap,
                 RandomDiscardEachTurn = source.RandomDiscardEachTurn,
                 DeathCardsSkipPolluteTurns = source.DeathCardsSkipPolluteTurns,
                 DeathCardsSkipPolluteDuration = source.DeathCardsSkipPolluteDuration,
                 ScryDrawPileCount = source.ScryDrawPileCount,
-                FirstPlayerAttackPending = true
+                TurnStartRandomAllyBlock = source.TurnStartRandomAllyBlock,
+                TurnStartTeamBlock = source.TurnStartTeamBlock,
+                DodgeChanceOnHit = source.DodgeChanceOnHit,
+                BattleStartSpeedBonusTurns = source.BattleStartSpeedBonusTurns,
+                BattleStartSpeedBonus = source.BattleStartSpeedBonus,
+                EndTurnEnemyFireDamage = source.EndTurnEnemyFireDamage,
+                RevengeAttackFlatBonus = source.RevengeAttackFlatBonus,
+                BackRowAttackAnyTarget = source.BackRowAttackAnyTarget,
+                JadeDaggerFirstKillBonus = source.JadeDaggerFirstKillBonus,
+                MiracleLeafReviveHpPercent = source.MiracleLeafReviveHpPercent,
+                SoulRiftBattleStartRandomHpLoss = source.SoulRiftBattleStartRandomHpLoss,
+                FirstPlayerAttackPending = source.FirstPlayerAttackPending
             };
         }
 

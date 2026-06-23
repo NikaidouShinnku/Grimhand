@@ -133,5 +133,21 @@ namespace Grimhand.Expedition
             };
             return CardGrantResult.PendingReplace;
         }
+
+        public static bool TryAddRunWideBonusCard(
+            ExpeditionConfig config,
+            ExpeditionRunState run,
+            CardTemplate template,
+            Action<string> recordAcquisition = null)
+        {
+            if (run == null || template == null)
+                return false;
+
+            var clone = ExpeditionBattleConfigBuilder.CloneTemplate(template);
+            ExpeditionBattleConfigBuilder.HydrateTemplateFromCatalog(clone, config?.PlayerCardCatalog);
+            run.RunWideBonusCards.Add(clone);
+            recordAcquisition?.Invoke($"诅咒牌入池：{clone.DisplayName}");
+            return true;
+        }
     }
 }

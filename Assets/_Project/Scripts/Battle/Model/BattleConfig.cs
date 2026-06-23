@@ -16,6 +16,8 @@ namespace Grimhand.Battle.Model
         public int Speed { get; set; }
         /// <summary>不为 null 时作为开战 HP（远征跨场继承）；仍受 MaxHp 上限约束。</summary>
         public int? StartHp { get; set; }
+        /// <summary>远征战间 Hp=0，本场以 1 HP 复活进战（鼓舞等不应再叠当前 HP）。</summary>
+        public bool EnteredFromExpeditionDeath { get; set; }
         public int Xp { get; set; }
         public List<CardTemplate> DeckTemplates { get; } = new();
         /// <summary>敌人技能池；开战时按池内条目（默认每种 1 张）加入团队混池。</summary>

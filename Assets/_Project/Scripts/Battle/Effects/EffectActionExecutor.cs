@@ -111,7 +111,7 @@ namespace Grimhand.Battle.Effects
                         state.Config?.RunModifiers, actor, totalBlock);
                     DamageRules.ApplyBlock(beneficiary, totalBlock, events, state, rng);
                     TalentBattleRules.AfterDefenseBlockApplied(
-                        state, actor, beneficiary, totalBlock, events, rng);
+                        state, actor, beneficiary, totalBlock, events, rng, card);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Defense, beneficiary.Id, false, 0);
                     break;
                 }

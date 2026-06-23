@@ -137,6 +137,10 @@ namespace Grimhand.Presentation.Battle
                             ApplySnapshotAfterBlockGain(e.CombatantId, e.Amount);
                             ApplyEventDisplayCheckpoint(e);
                             break;
+                        case BattleEventKind.IronWallConverted:
+                            ApplySnapshotAfterIronWallConversion(e.CombatantId, e.Amount);
+                            ApplyEventDisplayCheckpoint(e);
+                            break;
                         case BattleEventKind.HealApplied:
                             yield return PlayHealPresentation(e);
                             break;
@@ -224,6 +228,12 @@ namespace Grimhand.Presentation.Battle
         void ApplySnapshotAfterBlockGain(string combatantId, int amount)
         {
             _session.PresentationSnapshot?.ApplyBlockGain(combatantId, amount);
+            _screen?.Refresh();
+        }
+
+        void ApplySnapshotAfterIronWallConversion(string combatantId, int amount)
+        {
+            _session.PresentationSnapshot?.ApplyIronWallConversion(combatantId, amount);
             _screen?.Refresh();
         }
 
@@ -485,6 +495,8 @@ namespace Grimhand.Presentation.Battle
                     useHitPose: !blocked && !retainCardPose,
                     retainPoseAfter: retainCardPose);
                 ApplySnapshotAfterDamage(e.TargetId, hpDamage);
+                _session.PresentationSnapshot?.SyncIronWallPendingFromLive(_session.Engine?.State, e.CombatantId);
+                _screen?.Refresh();
             }
             else
             {
@@ -506,6 +518,10 @@ namespace Grimhand.Presentation.Battle
                     break;
                 case BattleEventKind.BlockGained:
                     ApplySnapshotAfterBlockGain(e.CombatantId, e.Amount);
+                    ApplyEventDisplayCheckpoint(e);
+                    break;
+                case BattleEventKind.IronWallConverted:
+                    ApplySnapshotAfterIronWallConversion(e.CombatantId, e.Amount);
                     ApplyEventDisplayCheckpoint(e);
                     break;
                 case BattleEventKind.HealApplied:
@@ -558,6 +574,7 @@ namespace Grimhand.Presentation.Battle
         {
             if (kind is BattleEventKind.CharacterDied
                 or BattleEventKind.BlockGained
+                or BattleEventKind.IronWallConverted
                 or BattleEventKind.HealApplied
                 or BattleEventKind.StatusApplied
                 or BattleEventKind.DeckPolluted

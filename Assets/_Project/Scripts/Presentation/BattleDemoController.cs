@@ -1049,6 +1049,9 @@ namespace Grimhand.Presentation
                     case BattleEventKind.BlockGained:
                         line = $"护甲 +{e.Amount}: {e.CombatantId}";
                         break;
+                    case BattleEventKind.IronWallConverted:
+                        line = $"铁壁转化 攻击+{e.Amount}: {e.CombatantId}";
+                        break;
                     case BattleEventKind.HealApplied:
                         line = $"治疗 +{e.Amount}: {e.CombatantId}";
                         break;

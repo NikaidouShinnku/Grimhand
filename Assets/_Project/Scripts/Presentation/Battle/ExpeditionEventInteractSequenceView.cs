@@ -339,14 +339,21 @@ namespace Grimhand.Presentation.Battle
                 if (entry?.Template == null)
                     continue;
 
+                if (isUpgradeStep
+                    && !string.IsNullOrEmpty(interaction.SelectedCharacterId)
+                    && entry.MemberId != interaction.SelectedCharacterId)
+                {
+                    continue;
+                }
+
                 if (isUpgradeStep)
                 {
                     var owner = _session.Expedition.Run.Party.Find(m =>
-                        m?.CharacterDefinitionId == entry.Template.OwnerCharacterId);
+                        m?.CharacterDefinitionId == entry.MemberId);
                     if (owner == null
                         || !CardUpgradeRules.CanUpgrade(
                             owner,
-                            entry.Template.DefinitionId,
+                            entry.Template.DeckInstanceId,
                             entry.Template.DisplayName))
                     {
                         continue;
@@ -643,7 +650,7 @@ namespace Grimhand.Presentation.Battle
 
             if (step.PercentHpDelta != 0)
             {
-                var basis = step.PercentHpDelta > 0 ? maxHp : currentHp;
+                var basis = step.PercentHpDelta > 0 || step.PercentFromMaxHp ? maxHp : currentHp;
                 return Mathf.Max(1, basis * Mathf.Abs(step.PercentHpDelta) / 100);
             }
 

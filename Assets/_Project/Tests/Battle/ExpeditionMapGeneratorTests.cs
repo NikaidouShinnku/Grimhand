@@ -63,5 +63,32 @@ namespace Grimhand.Battle.Tests
                 Assert.IsTrue(hasCombat, $"Layer {row.LayerNumber} has {row.Options.Count} options but no combat route.");
             }
         }
+
+        [Test]
+        public void Generate_LayerOptionsHaveUniqueNodeTypes()
+        {
+            var config = new ExpeditionConfig { ChapterLayerCount = 20, RunSeed = 1 };
+            config.CombatEncounters.Add(new BattleConfig());
+
+            for (var seed = 0; seed < 200; seed++)
+            {
+                var run = new ExpeditionRunState();
+                var map = ExpeditionMapGenerator.Generate(config, run, new Core.BattleRng(seed));
+
+                foreach (var row in map.Layers)
+                {
+                    if (row.IsBoss || row.Options.Count <= 1)
+                        continue;
+
+                    var seen = new System.Collections.Generic.HashSet<ExpeditionNodeType>();
+                    foreach (var option in row.Options)
+                    {
+                        Assert.IsTrue(
+                            seen.Add(option.NodeType),
+                            $"Seed {seed}: layer {row.LayerNumber} has duplicate node type {option.NodeType}.");
+                    }
+                }
+            }
+        }
     }
 }

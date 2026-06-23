@@ -97,7 +97,39 @@ namespace Grimhand.Expedition
                 return;
 
             var level = GetLevel(member, template.DeckInstanceId);
+            template.UpgradeLevel = level;
             ApplyToTemplate(template, level);
+            ApplyFlatDamageBonus(template, member);
+        }
+
+        public static string FormatDisplayName(string displayName, int upgradeLevel) =>
+            upgradeLevel > 0 && !string.IsNullOrEmpty(displayName)
+                ? $"{displayName}+{upgradeLevel}"
+                : displayName ?? "";
+
+        public static void ApplyFlatDamageBonus(CardTemplate template, PartyMemberSnapshot member)
+        {
+            if (template == null || member == null || string.IsNullOrEmpty(template.DeckInstanceId))
+                return;
+
+            if (!member.CardFlatDamageBonuses.TryGetValue(template.DeckInstanceId, out var bonus) || bonus <= 0)
+                return;
+
+            foreach (var action in template.Actions)
+            {
+                if (action.Type == EffectActionType.DealDamage)
+                    action.Value += bonus;
+            }
+        }
+
+        public static bool AddFlatDamageToAttackCard(PartyMemberSnapshot member, string deckInstanceId, int amount = 1)
+        {
+            if (member == null || string.IsNullOrEmpty(deckInstanceId) || amount <= 0)
+                return false;
+
+            member.CardFlatDamageBonuses.TryGetValue(deckInstanceId, out var current);
+            member.CardFlatDamageBonuses[deckInstanceId] = current + amount;
+            return true;
         }
 
         public static string FormatUpgradeSlots(string displayName, int currentLevel)

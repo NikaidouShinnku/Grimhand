@@ -19,6 +19,8 @@ namespace Grimhand.Expedition.Events
     {
         public ExpeditionEventStepKind Kind { get; set; }
         public int PercentHpDelta { get; set; }
+        /// <summary>扣血时按最大 HP 百分比计算（如古老神殿「-10% 最大HP」）。</summary>
+        public bool PercentFromMaxHp { get; set; }
         public int FlatHpDelta { get; set; }
         public int PersonalAttackBonus { get; set; }
         public string Message { get; set; } = "";

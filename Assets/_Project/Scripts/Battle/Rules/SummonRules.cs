@@ -207,6 +207,7 @@ namespace Grimhand.Battle.Rules
                 Cost = template.Cost,
                 CardType = template.CardType,
                 DisplayName = template.DisplayName,
+                UpgradeLevel = template.UpgradeLevel,
                 IsUsable = true
             };
 
@@ -246,6 +247,7 @@ namespace Grimhand.Battle.Rules
                 Cost = template.Cost,
                 CardType = template.CardType,
                 DisplayName = template.DisplayName,
+                UpgradeLevel = template.UpgradeLevel,
                 IsUsable = true,
                 IsBonusHandCard = true
             };

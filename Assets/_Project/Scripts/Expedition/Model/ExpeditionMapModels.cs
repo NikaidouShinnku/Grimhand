@@ -93,7 +93,7 @@ namespace Grimhand.Expedition.Model
         public bool SkipNextRouteSelect { get; set; }
         public bool LootedInjuredAdventurer { get; set; }
         public bool DivinePunishmentActive { get; set; }
-        /// <summary>灵魂裂隙：每场战斗开始随机 1 名队员失去 HP。</summary>
+        /// <summary>灵魂裂隙：每场战斗开始随机 1 名队员失去 MaxHp 的该百分比（至少 1）。</summary>
         public int SoulRiftBattleStartRandomHpLoss { get; set; }
     }
 

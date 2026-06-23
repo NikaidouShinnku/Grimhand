@@ -16,6 +16,8 @@ namespace Grimhand.Battle.Model
         /// <summary>回合开始注入的手牌，不占抽牌上限；回合末移除。</summary>
         public bool IsBonusHandCard { get; set; }
         public string DisplayName { get; set; } = "";
+        /// <summary>祭坛/事件升级次数，用于卡名显示 +N。</summary>
+        public int UpgradeLevel { get; set; }
         public List<string> Keywords { get; } = new();
         public List<EffectActionSpec> Actions { get; } = new();
     }

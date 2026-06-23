@@ -2008,8 +2008,16 @@ namespace Grimhand.Expedition
                 return;
             }
 
-            var loss = System.Math.Max(1, member.Hp * System.Math.Abs(step.PercentHpDelta) / 100);
-            member.Hp = System.Math.Max(1, member.Hp - loss);
+            if (step.PercentFromMaxHp)
+            {
+                var maxHpLoss = System.Math.Max(1, maxHp * System.Math.Abs(step.PercentHpDelta) / 100);
+                member.MaxHpPenalty += maxHpLoss;
+                member.Hp = System.Math.Max(1, member.Hp - maxHpLoss);
+                return;
+            }
+
+            var currentHpLoss = System.Math.Max(1, member.Hp * System.Math.Abs(step.PercentHpDelta) / 100);
+            member.Hp = System.Math.Max(1, member.Hp - currentHpLoss);
         }
 
         bool TryFindPartyMember(string characterId, out PartyMemberSnapshot member)

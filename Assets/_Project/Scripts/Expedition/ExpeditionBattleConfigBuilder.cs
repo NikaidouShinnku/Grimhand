@@ -420,6 +420,9 @@ namespace Grimhand.Expedition
             foreach (var kv in existing.CardPowerBonusPercent)
                 snap.CardPowerBonusPercent[kv.Key] = kv.Value;
 
+            foreach (var kv in existing.CardFlatDamageBonuses)
+                snap.CardFlatDamageBonuses[kv.Key] = kv.Value;
+
             foreach (var bonus in existing.BonusCards)
             {
                 if (bonus == null)
@@ -444,6 +447,7 @@ namespace Grimhand.Expedition
                 Xp = existing.Xp,
                 Hp = existing.Hp,
                 MaxHp = existing.MaxHp,
+                MaxHpPenalty = existing.MaxHpPenalty,
                 PersonalAttackBonus = existing.PersonalAttackBonus,
                 SelectedTalentSlot1Id = existing.SelectedTalentSlot1Id,
                 SelectedTalentSlot2Id = existing.SelectedTalentSlot2Id,
@@ -591,6 +595,7 @@ namespace Grimhand.Expedition
                 DisplayName = source.DisplayName,
                 OwnerCharacterId = source.OwnerCharacterId,
                 DeckInstanceId = source.DeckInstanceId,
+                UpgradeLevel = source.UpgradeLevel,
                 Cost = source.Cost,
                 CardType = source.CardType
             };

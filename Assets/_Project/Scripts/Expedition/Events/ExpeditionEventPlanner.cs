@@ -119,7 +119,7 @@ namespace Grimhand.Expedition
 
         static ExpeditionEventOutcome PlanAncientTemplePray(ExpeditionRunState run, ExpeditionConfig config)
         {
-            const string message = "祈祷生效：攻击牌升级并全队获得经验，请点击领取。";
+            const string message = "祈祷生效：状态牌升级并全队获得经验，请点击领取。";
 
             return TeamHpThen(
                 run,
@@ -136,19 +136,18 @@ namespace Grimhand.Expedition
 
                         foreach (var entry in ExpeditionRunDeckCatalog.CollectMemberDeckEntries(config, member))
                         {
-                            if (entry?.Template == null || entry.Template.CardType != CardType.Attack)
+                            if (entry?.Template?.CardType != CardType.Status)
                                 continue;
 
-                            if (ExpeditionRunDeckMutations.TryUpgradeCard(member, entry))
-                            {
+                            if (ExpeditionRunDeckMutations.TryUpgradeCard(member, entry, 1))
                                 upgraded++;
-                            }
                         }
                     }
 
                     if (upgraded > 0)
-                        state.LastEventMessage = $"祈祷生效：{upgraded} 张攻击牌各升 1 级，全队获得 +5 经验。";
-                });
+                        state.LastEventMessage = $"祈祷生效：{upgraded} 张状态牌各升 1 级，全队获得 +5 经验。";
+                },
+                percentFromMaxHp: true);
         }
 
         static ExpeditionEventOutcome PlanInjuredAdventurer(
@@ -209,7 +208,11 @@ namespace Grimhand.Expedition
 
             if (roll < 85)
             {
-                var outcome = new ExpeditionEventOutcome { Message = "泉水迸发出奇异的力量，你选中的卡牌各升 1 级。" };
+                var outcome = new ExpeditionEventOutcome { Message = "泉水迸发出奇异的力量，一名角色感到自己变得更强。" };
+                outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
+                {
+                    Kind = ExpeditionEventStepKind.PickMemberForBuff
+                });
                 for (var i = 0; i < 3; i++)
                 {
                     outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
@@ -345,6 +348,11 @@ namespace Grimhand.Expedition
                     : owner;
                 pickup = ExpeditionRewardPickupFactory.Card(card, cardOwner, "古书奖励");
             }
+
+            if (pickup != null)
+                pickup.GrantXp = 5;
+            else
+                pickup = ExpeditionRewardPickupFactory.TeamStats("古书奖励", grantXp: 5);
 
             return SingleMemberHpThen(
                 run,
@@ -590,7 +598,7 @@ namespace Grimhand.Expedition
             return choice switch
             {
                 0 => PlanAbyssListen(run, rng, config),
-                1 => PlanAbyssSacrifice(run, config),
+                1 => PlanAbyssSacrifice(run, config, rng),
                 _ => Leave("你捂耳离开。")
             };
         }
@@ -614,11 +622,24 @@ namespace Grimhand.Expedition
                 return Fail("队伍中没有恶魔。");
 
             ExpeditionRewardPickup pickup = null;
-            if (config != null &&
-                ExpeditionCardPool.TryRollCardReward(config, run, CardRarity.SuperRare, rng, out var card, out _))
+            if (config != null)
             {
-                card.OwnerCharacterId = "char_ranger";
-                pickup = ExpeditionRewardPickupFactory.Card(card, ranger, "深渊低语");
+                CardTemplate demonLord = null;
+                foreach (var template in config.PlayerCardCatalog)
+                {
+                    if (template?.DefinitionId != "d_demon_lord")
+                        continue;
+
+                    demonLord = ExpeditionBattleConfigBuilder.CloneTemplate(template);
+                    break;
+                }
+
+                if (demonLord != null)
+                {
+                    demonLord.OwnerCharacterId = "char_ranger";
+                    ExpeditionBattleConfigBuilder.HydrateTemplateFromCatalog(demonLord, config.PlayerCardCatalog);
+                    pickup = ExpeditionRewardPickupFactory.Card(demonLord, ranger, "深渊低语");
+                }
             }
 
             return SingleMemberHpThen(
@@ -626,13 +647,16 @@ namespace Grimhand.Expedition
                 "char_ranger",
                 -20,
                 0,
-                "恶魔听懂了低语，获得一张专属卡牌，请点击领取。",
+                "恶魔听懂了低语，获得「魔王降临」，请点击领取。",
                 pickup);
         }
 
-        static ExpeditionEventOutcome PlanAbyssSacrifice(ExpeditionRunState run, ExpeditionConfig config)
+        static ExpeditionEventOutcome PlanAbyssSacrifice(
+            ExpeditionRunState run,
+            ExpeditionConfig config,
+            BattleRng rng)
         {
-            const string message = "记忆献祭完成：全队攻击牌各升 1 级。";
+            const string message = "记忆献祭完成：恶魔的一张卡牌升 2 级。";
             var outcome = new ExpeditionEventOutcome();
             outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
             {
@@ -645,19 +669,39 @@ namespace Grimhand.Expedition
             });
             outcome.DeferredOutcome = BuildDeferredRewardOutcome(message, deferredAction: state =>
             {
+                PartyMemberSnapshot ranger = null;
                 foreach (var member in state.Party)
                 {
-                    if (member == null)
-                        continue;
-
-                    foreach (var entry in ExpeditionRunDeckCatalog.CollectMemberDeckEntries(config, member))
+                    if (member?.CharacterDefinitionId == "char_ranger")
                     {
-                        if (entry?.Template?.CardType != CardType.Attack)
-                            continue;
-
-                        ExpeditionRunDeckMutations.TryUpgradeCard(member, entry);
+                        ranger = member;
+                        break;
                     }
                 }
+
+                if (ranger == null)
+                    return;
+
+                var candidates = new List<ExpeditionRunDeckCatalog.DeckEntry>();
+                foreach (var entry in ExpeditionRunDeckCatalog.CollectMemberDeckEntries(config, ranger))
+                {
+                    if (entry?.Template == null)
+                        continue;
+
+                    if (CardUpgradeRules.CanUpgrade(
+                            ranger,
+                            entry.Template.DeckInstanceId,
+                            entry.Template.DisplayName))
+                    {
+                        candidates.Add(entry);
+                    }
+                }
+
+                if (candidates.Count == 0)
+                    return;
+
+                var pick = candidates[rng.NextIndex(candidates.Count)];
+                ExpeditionRunDeckMutations.TryUpgradeCard(ranger, pick, 2);
             });
             return outcome;
         }
@@ -688,13 +732,15 @@ namespace Grimhand.Expedition
             int percent,
             string message,
             ExpeditionRewardPickup statPickup = null,
-            Action<ExpeditionRunState> deferredAction = null)
+            Action<ExpeditionRunState> deferredAction = null,
+            bool percentFromMaxHp = false)
         {
             var outcome = new ExpeditionEventOutcome { Message = message };
             outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
             {
                 Kind = ExpeditionEventStepKind.ShowTeamHpLoss,
-                PercentHpDelta = percent
+                PercentHpDelta = percent,
+                PercentFromMaxHp = percentFromMaxHp
             });
             outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
             {

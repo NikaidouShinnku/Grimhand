@@ -736,7 +736,9 @@ namespace Grimhand.Battle
                 if (alivePlayers.Count > 0)
                 {
                     var target = alivePlayers[_rng.NextIndex(alivePlayers.Count)];
-                    var loss = mods.SoulRiftBattleStartRandomHpLoss;
+                    var loss = System.Math.Max(
+                        1,
+                        (int)System.Math.Round(target.MaxHp * mods.SoulRiftBattleStartRandomHpLoss / 100f));
                     target.Hp = System.Math.Max(1, target.Hp - loss);
                     _events.Add(new BattleEvent(BattleEventKind.DamageApplied,
                         $"灵魂裂隙：{target.DisplayName} 失去 {loss} 生命")
@@ -760,6 +762,7 @@ namespace Grimhand.Battle
                 Cost = template.Cost,
                 CardType = template.CardType,
                 DisplayName = template.DisplayName,
+                UpgradeLevel = template.UpgradeLevel,
                 IsUsable = true
             };
             foreach (var action in template.Actions)

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using Grimhand.Battle.Model;
 using Grimhand.Content;
+using Grimhand.Expedition;
 using Grimhand.Presentation;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -143,7 +144,8 @@ namespace Grimhand.Presentation.Battle
 
             if (nameText != null)
             {
-                nameText.text = polluted ? "[污] " + card.DisplayName : card.DisplayName;
+                var name = CardUpgradeRules.FormatDisplayName(card.DisplayName, card.UpgradeLevel);
+                nameText.text = polluted ? "[污] " + name : name;
                 nameText.color = Color.white;
                 nameText.fontStyle = FontStyle.Bold;
                 nameText.fontSize = NameFontSize;

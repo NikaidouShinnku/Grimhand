@@ -47,6 +47,7 @@ namespace Grimhand.Expedition.Map
                 var types = RollNodeTypes(layer, optionCount, state, rng);
                 ApplyGuarantees(layer, layerCount, types, state, rng);
                 EnsureCombatOptionIfNeeded(types, rng);
+                EnsureUniqueNodeTypes(types, layer, state, rng);
 
                 for (var i = 0; i < types.Count; i++)
                     row.Options.Add(CreateOption(types[i], layer, i, config, run, rng));
@@ -66,6 +67,7 @@ namespace Grimhand.Expedition.Map
                     types.Add(option.NodeType);
 
                 EnsureCombatOptionIfNeeded(types, rng);
+                EnsureUniqueNodeTypes(types, row.LayerNumber, state, rng);
                 for (var i = 0; i < types.Count; i++)
                 {
                     if (row.Options[i].NodeType == types[i])
@@ -120,9 +122,84 @@ namespace Grimhand.Expedition.Map
             }
 
             while (result.Count < count)
-                result.Add(ExpeditionNodeType.Combat);
+            {
+                if (!TryPickUniqueNodeType(result, layer, state, rng, out var filler))
+                    break;
+
+                result.Add(filler);
+            }
 
             return result;
+        }
+
+        static bool TryPickUniqueNodeType(
+            List<ExpeditionNodeType> existing,
+            int layer,
+            GenState state,
+            BattleRng rng,
+            out ExpeditionNodeType type)
+        {
+            var pool = BuildPool(layer, state);
+            for (var attempt = 0; attempt < pool.Count; attempt++)
+            {
+                var pick = pool[rng.NextIndex(pool.Count)];
+                if (existing.Contains(pick))
+                    continue;
+
+                type = pick;
+                return true;
+            }
+
+            foreach (ExpeditionNodeType candidate in System.Enum.GetValues(typeof(ExpeditionNodeType)))
+            {
+                if (candidate == ExpeditionNodeType.Boss)
+                    continue;
+                if (candidate == ExpeditionNodeType.Elite && layer < 4)
+                    continue;
+                if (existing.Contains(candidate))
+                    continue;
+
+                type = candidate;
+                return true;
+            }
+
+            type = ExpeditionNodeType.Combat;
+            return !existing.Contains(type);
+        }
+
+        static void EnsureUniqueNodeTypes(
+            List<ExpeditionNodeType> types,
+            int layer,
+            GenState state,
+            BattleRng rng)
+        {
+            if (types == null || types.Count <= 1)
+                return;
+
+            for (var i = 0; i < types.Count; i++)
+            {
+                for (var j = i + 1; j < types.Count; j++)
+                {
+                    if (types[i] != types[j])
+                        continue;
+
+                    if (!TryPickUniqueNodeType(types, layer, state, rng, out var replacement))
+                        replacement = ExpeditionNodeType.Event;
+
+                    types[j] = replacement;
+                }
+            }
+        }
+
+        static bool RowContainsType(ExpeditionMapLayer row, ExpeditionNodeType type)
+        {
+            foreach (var option in row.Options)
+            {
+                if (option.NodeType == type)
+                    return true;
+            }
+
+            return false;
         }
 
         static List<ExpeditionNodeType> BuildPool(int layer, GenState state)
@@ -188,19 +265,48 @@ namespace Grimhand.Expedition.Map
 
                 if (!state.MerchantPlaced && layer is >= 3 and <= 10)
                 {
-                    row.Options[0].NodeType = ExpeditionNodeType.Shop;
-                    FillOptionMeta(row.Options[0], layer, 0, null, null, rng);
+                    if (!RowContainsType(row, ExpeditionNodeType.Shop))
+                    {
+                        var idx = rng.NextIndex(row.Options.Count);
+                        row.Options[idx].NodeType = ExpeditionNodeType.Shop;
+                        FillOptionMeta(row.Options[idx], layer, idx, null, null, rng);
+                    }
+
                     state.MerchantPlaced = true;
                 }
 
                 if (!state.ElitePlaced && layer >= 4 && layer <= map.ChapterLayerCount - 2)
                 {
-                    var idx = System.Math.Min(1, row.Options.Count - 1);
-                    row.Options[idx].NodeType = ExpeditionNodeType.Elite;
-                    row.Options[idx].IsElite = true;
-                    AssignMonsterEncounter(row.Options[idx], layer, rng);
-                    FillOptionMeta(row.Options[idx], layer, idx, null, null, rng);
+                    if (!RowContainsType(row, ExpeditionNodeType.Elite))
+                    {
+                        var idx = rng.NextIndex(row.Options.Count);
+                        row.Options[idx].NodeType = ExpeditionNodeType.Elite;
+                        row.Options[idx].IsElite = true;
+                        AssignMonsterEncounter(row.Options[idx], layer, rng);
+                        FillOptionMeta(row.Options[idx], layer, idx, null, null, rng);
+                    }
+
                     state.ElitePlaced = true;
+                }
+
+                if (row.Options.Count >= 2)
+                {
+                    var types = new List<ExpeditionNodeType>();
+                    foreach (var option in row.Options)
+                        types.Add(option.NodeType);
+
+                    EnsureUniqueNodeTypes(types, layer, state, rng);
+                    for (var i = 0; i < types.Count; i++)
+                    {
+                        if (row.Options[i].NodeType == types[i])
+                            continue;
+
+                        row.Options[i].NodeType = types[i];
+                        row.Options[i].IsElite = types[i] == ExpeditionNodeType.Elite;
+                        if (types[i] is ExpeditionNodeType.Combat or ExpeditionNodeType.Elite)
+                            AssignMonsterEncounter(row.Options[i], layer, rng);
+                        FillOptionMeta(row.Options[i], layer, i, null, null, rng);
+                    }
                 }
             }
         }

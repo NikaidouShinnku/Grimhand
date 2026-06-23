@@ -11,6 +11,8 @@ namespace Grimhand.Expedition.Model
         public int Xp { get; set; }
         public int Hp { get; set; }
         public int MaxHp { get; set; }
+        /// <summary>远征期间永久扣除的最大生命（事件等），从有效 MaxHp 中减去。</summary>
+        public int MaxHpPenalty { get; set; }
         public int PersonalAttackBonus { get; set; }
         /// <summary>从基础牌组移除的卡牌计数（definitionId → 张数）。</summary>
         public Dictionary<string, int> RemovedCardCounts { get; } = new();
@@ -20,6 +22,8 @@ namespace Grimhand.Expedition.Model
         public List<string> BaseDeckInstanceIds { get; } = new();
         /// <summary>旧版百分比强化（迁移用，不再写入）。</summary>
         public Dictionary<string, int> CardPowerBonusPercent { get; } = new();
+        /// <summary>单张攻击牌永久平铺增伤（deckInstanceId → 额外伤害）。</summary>
+        public Dictionary<string, int> CardFlatDamageBonuses { get; } = new();
         public List<CardTemplate> BonusCards { get; } = new();
         /// <summary>军营收藏牌（仅祭坛节点读取）；战斗牌组仍用初始套牌 + 奖励牌。</summary>
         public List<string> CampDeckCardIds { get; } = new();

@@ -9,6 +9,8 @@ namespace Grimhand.Battle.Model
         public string OwnerCharacterId { get; set; } = "";
         /// <summary>远征卡组内该张牌的稳定实例 id；新入组卡牌默认未升级。</summary>
         public string DeckInstanceId { get; set; } = "";
+        /// <summary>已应用到此模板实例的升级次数。</summary>
+        public int UpgradeLevel { get; set; }
         public int Cost { get; set; }
         public CardType CardType { get; set; }
         public List<string> Keywords { get; } = new();

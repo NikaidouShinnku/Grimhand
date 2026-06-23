@@ -124,6 +124,7 @@ namespace Grimhand.Presentation.Battle
                 definition);
             card.Cost = template.Cost;
             card.CardType = template.CardType;
+            card.UpgradeLevel = template.UpgradeLevel;
             card.Actions.Clear();
             foreach (var action in template.Actions)
                 card.Actions.Add(EffectActionSpec.Clone(action));

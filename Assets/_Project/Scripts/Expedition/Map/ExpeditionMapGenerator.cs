@@ -84,6 +84,17 @@ namespace Grimhand.Expedition.Map
             return map;
         }
 
+        public static void ForceBossLayer(ExpeditionMapState map, int layerNumber)
+        {
+            var layer = map?.GetLayer(layerNumber);
+            if (layer == null)
+                return;
+
+            layer.IsBoss = true;
+            layer.Options.Clear();
+            layer.Options.Add(CreateBossOption());
+        }
+
         static int RollOptionCount(int layer, BattleRng rng)
         {
             if (layer == 1)

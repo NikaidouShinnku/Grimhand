@@ -8,6 +8,8 @@ namespace Grimhand.Content
         public Sprite WarriorDamage;
         public Sprite PharaohDamage;
         public Sprite DevilDamage;
+        public Sprite SkeletonKingDamage;
+        public Sprite GhostQueenDamage;
         public Sprite Blocking;
         public Sprite Healing;
         public Sprite Poisoning;

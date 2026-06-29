@@ -1624,15 +1624,16 @@ namespace Grimhand.Presentation.Battle
                 view?.StopIdleLoop();
         }
 
-        public Vector3 GetDuelCenterWorldPosition()
+        public Vector3 GetDuelCenterWorldPosition(string actorCombatantId = null)
         {
-            var playerFeet = GetTeamFeetReference(playerSlots);
-            var enemyFeet = GetTeamFeetReference(enemySlots);
+            var playerFeet = GetTeamFeetReference(playerSlots, preferFrontLine: true);
+            var enemyFeet = GetTeamFeetReference(enemySlots, preferFrontLine: true);
+            var blend = ResolveDuelCenterBlend(actorCombatantId);
 
             if (playerFeet.HasValue && enemyFeet.HasValue)
             {
                 return new Vector3(
-                    (playerFeet.Value.x + enemyFeet.Value.x) * 0.5f,
+                    Mathf.Lerp(playerFeet.Value.x, enemyFeet.Value.x, blend),
                     (playerFeet.Value.y + enemyFeet.Value.y) * 0.5f,
                     (playerFeet.Value.z + enemyFeet.Value.z) * 0.5f);
             }
@@ -1640,29 +1641,50 @@ namespace Grimhand.Presentation.Battle
             var playerStage = transform.Find("PlayerStage");
             var enemyStage = transform.Find("EnemyStage");
             if (playerStage != null && enemyStage != null)
-                return (playerStage.position + enemyStage.position) * 0.5f;
+            {
+                return new Vector3(
+                    Mathf.Lerp(playerStage.position.x, enemyStage.position.x, blend),
+                    (playerStage.position.y + enemyStage.position.y) * 0.5f,
+                    (playerStage.position.z + enemyStage.position.z) * 0.5f);
+            }
 
             return transform.position;
         }
 
-        static Vector3? GetTeamFeetReference(CombatantSlotView[] slots)
+        float ResolveDuelCenterBlend(string actorCombatantId)
+        {
+            if (string.IsNullOrEmpty(actorCombatantId))
+                return 0.5f;
+
+            var unit = _session?.Engine?.State?.GetCombatant(actorCombatantId);
+            if (unit == null)
+                return 0.5f;
+
+            if (unit.Team == TeamSide.Enemy && BossCharacterRules.IsBoss(unit.CharacterDefinitionId))
+                return 0.56f;
+
+            return 0.5f;
+        }
+
+        static Vector3? GetTeamFeetReference(CombatantSlotView[] slots, bool preferFrontLine = false)
         {
             if (slots == null || slots.Length == 0)
                 return null;
 
-            var idx = slots.Length > 1 ? 1 : 0;
+            var start = preferFrontLine ? 0 : (slots.Length > 1 ? 1 : 0);
             for (var i = 0; i < slots.Length; i++)
             {
-                var pick = slots[(idx + i) % slots.Length];
+                var pick = slots[(start + i) % slots.Length];
                 if (pick == null || string.IsNullOrEmpty(pick.PortraitView?.CombatantId))
                     continue;
 
                 return pick.GetFeetWorldPosition();
             }
 
-            return slots[idx]?.GetFeetWorldPosition();
+            return slots[start]?.GetFeetWorldPosition();
         }
 
-        static Vector3? GetTeamDuelReference(CombatantSlotView[] slots) => GetTeamFeetReference(slots);
+        static Vector3? GetTeamDuelReference(CombatantSlotView[] slots) =>
+            GetTeamFeetReference(slots);
     }
 }

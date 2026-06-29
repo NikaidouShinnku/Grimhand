@@ -21,6 +21,7 @@ namespace Grimhand.Presentation.Battle
         BattleScreenView _screen;
         CharacterVisualCatalogSO _visuals;
         BattleActionEffectCatalogSO _effects;
+        BattleUiIconCatalogSO _uiIcons;
 
         readonly Dictionary<string, CombatantPortraitView> _portraits = new();
         readonly Queue<List<BattleEvent>> _segmentQueue = new();
@@ -33,12 +34,14 @@ namespace Grimhand.Presentation.Battle
             BattleSession session,
             BattleScreenView screen,
             CharacterVisualCatalogSO visuals,
-            BattleActionEffectCatalogSO effects = null)
+            BattleActionEffectCatalogSO effects = null,
+            BattleUiIconCatalogSO uiIcons = null)
         {
             _session = session;
             _screen = screen;
             _visuals = visuals;
             _effects = effects;
+            _uiIcons = uiIcons;
             RebuildLookup();
             _session.EventsProduced += OnEventsProduced;
         }
@@ -134,8 +137,7 @@ namespace Grimhand.Presentation.Battle
                             yield return BeginCardPlay(card);
                             break;
                         case BattleEventKind.BlockGained:
-                            ApplySnapshotAfterBlockGain(e.CombatantId, e.Amount);
-                            ApplyEventDisplayCheckpoint(e);
+                            yield return PlayBlockGainPresentation(e);
                             break;
                         case BattleEventKind.IronWallConverted:
                             ApplySnapshotAfterIronWallConversion(e.CombatantId, e.Amount);
@@ -273,7 +275,7 @@ namespace Grimhand.Presentation.Battle
             if (actor.IsAwayFromHome)
                 yield return actor.ReturnHome();
 
-            var center = _screen.GetDuelCenterWorldPosition();
+            var center = _screen.GetDuelCenterWorldPosition(card.ActorId);
             var pose = ResolveCardPose(card.CardType);
             card.ActorAtCenter = true;
             yield return actor.MoveToCenter(center);
@@ -314,6 +316,7 @@ namespace Grimhand.Presentation.Battle
 
             if (enemyAttackingPlayer)
             {
+                yield return PlayDamageOverlayEffects(e);
                 yield return PlayDamageReactionOnly(e, card, target);
                 yield break;
             }
@@ -380,12 +383,34 @@ namespace Grimhand.Presentation.Battle
             ApplyEventDisplayCheckpoint(e);
         }
 
-        IEnumerator PlayBlockingEffect(CombatantPortraitView target)
+        IEnumerator PlayBlockGainPresentation(BattleEvent e)
         {
-            if (_effects?.Blocking == null)
+            if (e == null)
                 yield break;
 
-            yield return target.PlayOverlayEffect(_effects.Blocking);
+            if (e.Amount > 0
+                && IsCombatantPresentationActive(e.CombatantId)
+                && _portraits.TryGetValue(e.CombatantId, out var target))
+            {
+                yield return PlayBlockGainOverlay(target);
+            }
+
+            ApplySnapshotAfterBlockGain(e.CombatantId, e.Amount);
+            ApplyEventDisplayCheckpoint(e);
+        }
+
+        IEnumerator PlayBlockGainOverlay(CombatantPortraitView target)
+        {
+            var sprite = _uiIcons?.ArmorIcon ?? _effects?.Blocking;
+            if (sprite == null)
+                yield break;
+
+            yield return target.PlayOverlayEffect(sprite);
+        }
+
+        IEnumerator PlayBlockingEffect(CombatantPortraitView target)
+        {
+            yield return PlayBlockGainOverlay(target);
         }
 
         IEnumerator PlaySacrificeEffect(CombatantPortraitView target)
@@ -452,13 +477,13 @@ namespace Grimhand.Presentation.Battle
                 yield break;
             }
 
-            if (e.Amount > 0 && IsPlayerTeamActor(e.CombatantId))
-            {
-                var actorDefId = GetCharacterDefinitionId(e.CombatantId);
-                var damageFx = BattleActionEffectResolver.ResolvePlayerDamage(_effects, actorDefId);
-                if (damageFx != null)
-                    yield return target.PlayOverlayEffect(damageFx);
-            }
+            if (e.Amount <= 0)
+                yield break;
+
+            var actorDefId = GetCharacterDefinitionId(e.CombatantId);
+            var damageFx = BattleActionEffectResolver.ResolveDamageEffect(_effects, actorDefId);
+            if (damageFx != null)
+                yield return target.PlayOverlayEffect(damageFx);
         }
 
         IEnumerator PlayDamageReactionOnly(BattleEvent e, CardPlayContext card, CombatantPortraitView target)
@@ -517,8 +542,7 @@ namespace Grimhand.Presentation.Battle
                     yield return HandleDeath(e);
                     break;
                 case BattleEventKind.BlockGained:
-                    ApplySnapshotAfterBlockGain(e.CombatantId, e.Amount);
-                    ApplyEventDisplayCheckpoint(e);
+                    yield return PlayBlockGainPresentation(e);
                     break;
                 case BattleEventKind.IronWallConverted:
                     ApplySnapshotAfterIronWallConversion(e.CombatantId, e.Amount);
@@ -616,7 +640,7 @@ namespace Grimhand.Presentation.Battle
             if (!_portraits.TryGetValue(e.CombatantId, out var defender))
                 yield break;
 
-            var center = _screen.GetDuelCenterWorldPosition();
+            var center = _screen.GetDuelCenterWorldPosition(e.CombatantId);
             yield return defender.PlayParryCounterAttack(ParryCounterDuration, center);
         }
 

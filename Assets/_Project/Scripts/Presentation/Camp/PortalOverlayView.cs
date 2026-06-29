@@ -21,11 +21,13 @@ namespace Grimhand.Presentation.Camp
         RectTransform _overlayRoot;
         RectTransform _body;
         RectTransform _partyRow;
-        Text _statusText;
         Button _confirmButton;
         Button _caveStartButton;
         Button _dungeonStartButton;
         Button _abyssStartButton;
+        Button _caveBossButton;
+        Button _dungeonBossButton;
+        Button _abyssBossButton;
         int _selectedStartLayer = 1;
         bool _built;
 
@@ -124,8 +126,8 @@ namespace Grimhand.Presentation.Camp
             difficulty.rectTransform.offsetMax = new Vector2(-32f, 0f);
 
             var regionLabel = CampUiRuntime.CreateText(_body, "起始区域", 17, FontStyle.Bold, TextAnchor.MiddleLeft);
-            regionLabel.rectTransform.anchorMin = new Vector2(0f, 0.20f);
-            regionLabel.rectTransform.anchorMax = new Vector2(1f, 0.28f);
+            regionLabel.rectTransform.anchorMin = new Vector2(0f, 0.24f);
+            regionLabel.rectTransform.anchorMax = new Vector2(1f, 0.32f);
             regionLabel.rectTransform.offsetMin = new Vector2(32f, 0f);
             regionLabel.rectTransform.offsetMax = new Vector2(-32f, 0f);
 
@@ -135,7 +137,7 @@ namespace Grimhand.Presentation.Camp
             caveRt.anchorMin = new Vector2(0.5f, 0f);
             caveRt.anchorMax = new Vector2(0.5f, 0f);
             caveRt.pivot = new Vector2(0.5f, 0f);
-            caveRt.anchoredPosition = new Vector2(-150f, 72f);
+            caveRt.anchoredPosition = new Vector2(-150f, 116f);
 
             _dungeonStartButton = CampUiRuntime.CreateButton(_body, "地牢（21层）", new Color(0.28f, 0.24f, 0.38f, 1f),
                 new Vector2(132f, 40f));
@@ -143,7 +145,7 @@ namespace Grimhand.Presentation.Camp
             dungeonRt.anchorMin = new Vector2(0.5f, 0f);
             dungeonRt.anchorMax = new Vector2(0.5f, 0f);
             dungeonRt.pivot = new Vector2(0.5f, 0f);
-            dungeonRt.anchoredPosition = new Vector2(0f, 72f);
+            dungeonRt.anchoredPosition = new Vector2(0f, 116f);
 
             _abyssStartButton = CampUiRuntime.CreateButton(_body, "海渊（41层）", new Color(0.16f, 0.30f, 0.42f, 1f),
                 new Vector2(132f, 40f));
@@ -151,18 +153,44 @@ namespace Grimhand.Presentation.Camp
             abyssRt.anchorMin = new Vector2(0.5f, 0f);
             abyssRt.anchorMax = new Vector2(0.5f, 0f);
             abyssRt.pivot = new Vector2(0.5f, 0f);
-            abyssRt.anchoredPosition = new Vector2(150f, 72f);
+            abyssRt.anchoredPosition = new Vector2(150f, 116f);
+
+            var bossLabel = CampUiRuntime.CreateText(_body, "Boss 直通", 17, FontStyle.Bold, TextAnchor.MiddleLeft);
+            bossLabel.rectTransform.anchorMin = new Vector2(0f, 0.14f);
+            bossLabel.rectTransform.anchorMax = new Vector2(1f, 0.22f);
+            bossLabel.rectTransform.offsetMin = new Vector2(32f, 0f);
+            bossLabel.rectTransform.offsetMax = new Vector2(-32f, 0f);
+
+            _caveBossButton = CampUiRuntime.CreateButton(_body, "Boss·20层", new Color(0.42f, 0.24f, 0.20f, 1f),
+                new Vector2(132f, 40f));
+            var caveBossRt = _caveBossButton.GetComponent<RectTransform>();
+            caveBossRt.anchorMin = new Vector2(0.5f, 0f);
+            caveBossRt.anchorMax = new Vector2(0.5f, 0f);
+            caveBossRt.pivot = new Vector2(0.5f, 0f);
+            caveBossRt.anchoredPosition = new Vector2(-150f, 68f);
+
+            _dungeonBossButton = CampUiRuntime.CreateButton(_body, "Boss·40层", new Color(0.38f, 0.22f, 0.28f, 1f),
+                new Vector2(132f, 40f));
+            var dungeonBossRt = _dungeonBossButton.GetComponent<RectTransform>();
+            dungeonBossRt.anchorMin = new Vector2(0.5f, 0f);
+            dungeonBossRt.anchorMax = new Vector2(0.5f, 0f);
+            dungeonBossRt.pivot = new Vector2(0.5f, 0f);
+            dungeonBossRt.anchoredPosition = new Vector2(0f, 68f);
+
+            _abyssBossButton = CampUiRuntime.CreateButton(_body, "Boss·60层", new Color(0.18f, 0.28f, 0.44f, 1f),
+                new Vector2(132f, 40f));
+            var abyssBossRt = _abyssBossButton.GetComponent<RectTransform>();
+            abyssBossRt.anchorMin = new Vector2(0.5f, 0f);
+            abyssBossRt.anchorMax = new Vector2(0.5f, 0f);
+            abyssBossRt.pivot = new Vector2(0.5f, 0f);
+            abyssBossRt.anchoredPosition = new Vector2(150f, 68f);
 
             _caveStartButton.onClick.AddListener(() => SelectStartLayer(1));
-            _dungeonStartButton.onClick.AddListener(() => SelectStartLayer(21));
-            _abyssStartButton.onClick.AddListener(() => SelectStartLayer(41));
-
-            _statusText = CampUiRuntime.CreateText(_body, "", 16, FontStyle.Italic, TextAnchor.MiddleLeft);
-            _statusText.rectTransform.anchorMin = new Vector2(0f, 0.04f);
-            _statusText.rectTransform.anchorMax = new Vector2(1f, 0.12f);
-            _statusText.rectTransform.offsetMin = new Vector2(32f, 0f);
-            _statusText.rectTransform.offsetMax = new Vector2(-32f, 0f);
-            _statusText.color = new Color(0.95f, 0.72f, 0.55f, 1f);
+            _dungeonStartButton.onClick.AddListener(() => SelectStartLayer(ExpeditionRegionRules.DungeonStartLayer));
+            _abyssStartButton.onClick.AddListener(() => SelectStartLayer(ExpeditionRegionRules.AbyssStartLayer));
+            _caveBossButton.onClick.AddListener(() => SelectStartLayer(ExpeditionRegionRules.CaveBossLayer));
+            _dungeonBossButton.onClick.AddListener(() => SelectStartLayer(ExpeditionRegionRules.DungeonBossLayer));
+            _abyssBossButton.onClick.AddListener(() => SelectStartLayer(ExpeditionRegionRules.AbyssBossLayer));
 
             var closeBtn = CampUiRuntime.CreateButton(_body, "返回", new Color(0.28f, 0.3f, 0.36f, 1f),
                 new Vector2(120f, 44f));
@@ -253,30 +281,27 @@ namespace Grimhand.Presentation.Camp
             }
 
             var ready = _roster.IsReadyForExpedition;
-            _statusText.text = ready
-                ? "队伍就绪，可以出发。"
-                : "请先在军营补全 3 名角色与每人 10 张卡牌。";
-            _statusText.color = ready
-                ? new Color(0.7f, 0.95f, 0.72f, 1f)
-                : new Color(0.95f, 0.72f, 0.55f, 1f);
             _confirmButton.interactable = ready;
-            RefreshRegionButtons();
+            RefreshStartLayerButtons();
         }
 
         void SelectStartLayer(int layer)
         {
             _selectedStartLayer = layer;
-            RefreshRegionButtons();
+            RefreshStartLayerButtons();
         }
 
-        void RefreshRegionButtons()
+        void RefreshStartLayerButtons()
         {
-            if (_caveStartButton == null || _dungeonStartButton == null || _abyssStartButton == null)
+            if (_caveStartButton == null)
                 return;
 
             _caveStartButton.interactable = _selectedStartLayer != 1;
             _dungeonStartButton.interactable = _selectedStartLayer != ExpeditionRegionRules.DungeonStartLayer;
             _abyssStartButton.interactable = _selectedStartLayer != ExpeditionRegionRules.AbyssStartLayer;
+            _caveBossButton.interactable = _selectedStartLayer != ExpeditionRegionRules.CaveBossLayer;
+            _dungeonBossButton.interactable = _selectedStartLayer != ExpeditionRegionRules.DungeonBossLayer;
+            _abyssBossButton.interactable = _selectedStartLayer != ExpeditionRegionRules.AbyssBossLayer;
         }
     }
 }

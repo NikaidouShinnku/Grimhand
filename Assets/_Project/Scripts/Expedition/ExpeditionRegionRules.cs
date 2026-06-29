@@ -7,11 +7,17 @@ namespace Grimhand.Expedition
         public const int FullLayerCount = 60;
         public const int DungeonStartLayer = 21;
         public const int AbyssStartLayer = 41;
+        public const int CaveBossLayer = 20;
+        public const int DungeonBossLayer = 40;
+        public const int AbyssBossLayer = 60;
 
         public static bool IsAbyssLayer(int layerNumber) => layerNumber >= AbyssStartLayer;
 
         public static bool IsDungeonLayer(int layerNumber) =>
             layerNumber >= DungeonStartLayer && layerNumber < AbyssStartLayer;
+
+        public static bool IsBossTestStartLayer(int mapStartLayer) =>
+            mapStartLayer is CaveBossLayer or DungeonBossLayer or AbyssBossLayer;
 
         public static void ApplyMapStartLayer(Grimhand.Expedition.Model.ExpeditionConfig config, int mapStartLayer)
         {
@@ -21,12 +27,15 @@ namespace Grimhand.Expedition
             config.ChapterLayerCount = FullLayerCount;
             config.TargetBattleCount = FullLayerCount - 1;
 
-            if (mapStartLayer >= AbyssStartLayer)
-                config.MapStartLayer = AbyssStartLayer;
-            else if (mapStartLayer >= DungeonStartLayer)
-                config.MapStartLayer = DungeonStartLayer;
-            else
-                config.MapStartLayer = 1;
+            config.MapStartLayer = mapStartLayer switch
+            {
+                CaveBossLayer => CaveBossLayer,
+                DungeonBossLayer => DungeonBossLayer,
+                AbyssBossLayer => AbyssBossLayer,
+                >= AbyssStartLayer => AbyssStartLayer,
+                >= DungeonStartLayer => DungeonStartLayer,
+                _ => 1
+            };
         }
     }
 }

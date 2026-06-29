@@ -6,7 +6,7 @@ namespace Grimhand.Presentation.Battle
 {
     public static class BattleActionEffectResolver
     {
-        public static Sprite ResolvePlayerDamage(BattleActionEffectCatalogSO catalog, string characterDefinitionId)
+        public static Sprite ResolveDamageEffect(BattleActionEffectCatalogSO catalog, string characterDefinitionId)
         {
             if (catalog == null || string.IsNullOrEmpty(characterDefinitionId))
                 return null;
@@ -16,9 +16,14 @@ namespace Grimhand.Presentation.Battle
                 "char_knight" or "char_warrior" => catalog.WarriorDamage,
                 "char_mage" or "char_pharaoh" => catalog.PharaohDamage,
                 "char_ranger" or "char_demon" => catalog.DevilDamage,
+                BossCharacterRules.SkeletonKing => catalog.SkeletonKingDamage,
+                BossCharacterRules.GhostQueen => catalog.GhostQueenDamage,
                 _ => null
             };
         }
+
+        public static Sprite ResolvePlayerDamage(BattleActionEffectCatalogSO catalog, string characterDefinitionId) =>
+            ResolveDamageEffect(catalog, characterDefinitionId);
 
         public static Sprite ResolveStatus(BattleActionEffectCatalogSO catalog, string statusId)
         {

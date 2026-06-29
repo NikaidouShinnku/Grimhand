@@ -126,7 +126,7 @@ namespace Grimhand.Presentation.Battle
                 _definitions,
                 relicVisualCatalog,
                 consumableVisualCatalog);
-            _portraitDirector.Initialize(_session, screenView, characterVisualCatalog, actionEffectCatalog);
+            _portraitDirector.Initialize(_session, screenView, characterVisualCatalog, actionEffectCatalog, uiIconCatalog);
             screenView.SetPresentationBusyCheck(() => _portraitDirector.IsPlaying);
 
             if (startExpedition)

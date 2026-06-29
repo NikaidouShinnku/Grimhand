@@ -89,6 +89,18 @@ namespace Grimhand.Expedition
             TalentDatabase.ApplyRunStartEffects(_run, _config);
             ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
             LoadRoutesForNextLayer();
+            TryBeginBossTestJump();
+        }
+
+        void TryBeginBossTestJump()
+        {
+            if (!ExpeditionRegionRules.IsBossTestStartLayer(_config.MapStartLayer))
+                return;
+
+            ExpeditionMapGenerator.ForceBossLayer(_run.Map, _config.MapStartLayer);
+            RecordLastBattleContext(_config.MapStartLayer, isElite: false, isBoss: true);
+            _run.Phase = ExpeditionPhase.InBattle;
+            _run.CurrentBattleConfig = BuildBossBattle(applyPartyHp: true);
         }
 
         /// <summary>Boss 测试场景：Lv.7 队伍 + 3 遗物 + 每人 3 张奖励牌，直进幽灵女王战。</summary>
@@ -1681,9 +1693,9 @@ namespace Grimhand.Expedition
         BattleConfig BuildBossBattle(bool applyPartyHp)
         {
             BattleConfig template;
-            var chapterLayers = _run.Map?.ChapterLayerCount ?? ExpeditionRegionRules.CaveLayerCount;
-            var isAbyssBoss = chapterLayers >= ExpeditionRegionRules.FullLayerCount;
-            var isDungeonBoss = !isAbyssBoss && chapterLayers >= ExpeditionRegionRules.DungeonLayerCount;
+            var bossFloor = CurrentBattleNumber;
+            var isAbyssBoss = bossFloor >= ExpeditionRegionRules.AbyssBossLayer;
+            var isDungeonBoss = !isAbyssBoss && bossFloor >= ExpeditionRegionRules.DungeonBossLayer;
 
             if (isAbyssBoss)
             {

@@ -15,6 +15,8 @@ MonoBehaviour:
   WarriorDamage: {fileID: -2197445467391291454, guid: 257fa434c23478d499db50b4dc1dbb69, type: 3}
   PharaohDamage: {fileID: -3335633833346279624, guid: 767ca96a80bddfb4c924cdec28655cd2, type: 3}
   DevilDamage: {fileID: -4548166007503567599, guid: 816cd91626943be4e8f1921aab602abc, type: 3}
+  SkeletonKingDamage: {fileID: -2943888361462522882, guid: 6c57355f1da00ce499ee7d3489122227, type: 3}
+  GhostQueenDamage: {fileID: -636697795798760506, guid: d612b648774af714d87e508e14764e55, type: 3}
   Blocking: {fileID: 1434721886603217514, guid: f78728bd61b9df64f9805d30daed7ed0, type: 3}
   Healing: {fileID: -8793936362103082609, guid: 73fb002ad33f4ec4486106c10d896ce3, type: 3}
   Poisoning: {fileID: 2342332266118351040, guid: 8d473d75aa365124c9f9909406a0f2ee, type: 3}

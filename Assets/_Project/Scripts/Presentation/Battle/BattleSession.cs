@@ -107,7 +107,17 @@ namespace Grimhand.Presentation.Battle
             _log.Clear();
             _turnLog.Reset();
             _battleEndHandled = false;
-            AddLog($"远征开始 — 共 {Expedition.Run.Map?.ChapterLayerCount ?? Expedition.Run.TargetBattleCount} 层 · 请先选择路线");
+
+            if (Expedition.Run.Phase == ExpeditionPhase.InBattle)
+            {
+                AddLog($"Boss 测试 — 第 {Expedition.CurrentBattleNumber} 层");
+                StartExpeditionBattle();
+            }
+            else
+            {
+                AddLog($"远征开始 — 共 {Expedition.Run.Map?.ChapterLayerCount ?? Expedition.Run.TargetBattleCount} 层 · 请先选择路线");
+            }
+
             NotifyChanged();
         }
 

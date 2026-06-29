@@ -16,14 +16,14 @@ MonoBehaviour:
   DisplayName: "\u6C99\u77DB\u91CD\u5851"
   OwnerCharacterId: char_mage
   Cost: 3
-  CardType: 2
-  Rarity: 3
+  CardType: 0
   Keywords:
   - exhaust
+  Rarity: 3
   Actions:
   - Type: 3
     Target: 1
-    Value: 0
+    Value: 4
     StatusId: sand_spear_reforge
     Stacks: 4
     Duration: -1

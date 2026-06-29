@@ -105,9 +105,9 @@ namespace Grimhand.Battle.Rules
                 }
 
                 if (HasTalent(state, "talent_knight_s1_lv7")
-                    && combatant.Hp * 100 / Math.Max(1, combatant.MaxHp) < 10)
+                    && combatant.Hp < combatant.Block)
                 {
-                    combatant.OutgoingDamagePercentBonus += 50;
+                    combatant.OutgoingDamagePercentBonus += 20;
                 }
 
                 if (HasTalent(state, "talent_knight_s2_lv8")
@@ -136,7 +136,7 @@ namespace Grimhand.Battle.Rules
             }
 
             if (combatant.SacrificeAttackStacks > 0)
-                combatant.OutgoingDamageFlatBonus += combatant.SacrificeAttackStacks;
+                combatant.OutgoingDamagePercentBonus += combatant.SacrificeAttackStacks;
         }
 
         public static void ApplyTeamHpBonus(BattleState state, RunModifierSnapshot mods)

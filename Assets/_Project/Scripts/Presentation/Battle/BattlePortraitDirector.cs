@@ -388,7 +388,15 @@ namespace Grimhand.Presentation.Battle
             if (e == null)
                 yield break;
 
-            if (e.Amount > 0
+            if (IsBlockRemovalEvent(e))
+            {
+                _session.PresentationSnapshot?.ClearBlock(e.CombatantId);
+                _screen?.Refresh();
+                ApplyEventDisplayCheckpoint(e);
+                yield break;
+            }
+
+            if (ShouldPlayBlockGainOverlay(e)
                 && IsCombatantPresentationActive(e.CombatantId)
                 && _portraits.TryGetValue(e.CombatantId, out var target))
             {
@@ -399,6 +407,14 @@ namespace Grimhand.Presentation.Battle
             ApplyEventDisplayCheckpoint(e);
         }
 
+        static bool IsBlockRemovalEvent(BattleEvent e) =>
+            e != null
+            && !string.IsNullOrEmpty(e.Message)
+            && e.Message.Contains("护甲被移除");
+
+        static bool ShouldPlayBlockGainOverlay(BattleEvent e) =>
+            e is { Amount: > 0 } && !IsBlockRemovalEvent(e);
+
         IEnumerator PlayBlockGainOverlay(CombatantPortraitView target)
         {
             var sprite = _uiIcons?.ArmorIcon ?? _effects?.Blocking;
@@ -406,11 +422,6 @@ namespace Grimhand.Presentation.Battle
                 yield break;
 
             yield return target.PlayOverlayEffect(sprite);
-        }
-
-        IEnumerator PlayBlockingEffect(CombatantPortraitView target)
-        {
-            yield return PlayBlockGainOverlay(target);
         }
 
         IEnumerator PlaySacrificeEffect(CombatantPortraitView target)
@@ -492,19 +503,13 @@ namespace Grimhand.Presentation.Battle
             var blocked = e.BlockedAmount > 0;
             var hpDamage = e.Amount;
             var respondDefense = e.HadRespondDefense || e.RespondMitigatedAmount > 0;
+            var useDefensePose = respondDefense && !retainCardPose;
+            var useHitPose = !retainCardPose && !useDefensePose;
 
             if (hpDamage <= 0 && IsDodgeEvent(e))
                 target.ShowDodgeNumber();
 
-            if ((blocked || respondDefense) && !retainCardPose && IsPlayerTeamActor(e.TargetId))
-            {
-                yield return RunParallel(new List<IEnumerator>
-                {
-                    target.PlayInPlacePose(PortraitPoseKind.Defense, DefenseReactDuration),
-                    PlayBlockingEffect(target)
-                });
-            }
-            else if (blocked && !retainCardPose)
+            if (useDefensePose)
                 yield return target.PlayInPlacePose(PortraitPoseKind.Defense, DefenseReactDuration);
 
             if (blocked)
@@ -517,7 +522,7 @@ namespace Grimhand.Presentation.Battle
             {
                 yield return target.PlayHitReaction(
                     hpDamage,
-                    useHitPose: !blocked && !retainCardPose,
+                    useHitPose: useHitPose,
                     retainPoseAfter: retainCardPose);
                 ApplySnapshotAfterDamage(e.TargetId, hpDamage);
                 _session.PresentationSnapshot?.SyncIronWallPendingFromLive(_session.Engine?.State, e.CombatantId);
@@ -527,7 +532,7 @@ namespace Grimhand.Presentation.Battle
             {
                 yield return target.PlayHitReaction(
                     0,
-                    useHitPose: !blocked && !retainCardPose,
+                    useHitPose: useHitPose,
                     retainPoseAfter: retainCardPose);
             }
 

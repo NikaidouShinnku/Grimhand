@@ -17,9 +17,9 @@ MonoBehaviour:
   Team: 0
   Slot: 2
   Level: 1
-  MaxHp: 40
-  BaseAttack: 6
-  BaseDefense: 4
+  MaxHp: 60
+  BaseAttack: 0
+  BaseDefense: 0
   Speed: 5
   Deck:
   - {fileID: 11400000, guid: 40b6cb6a321a4d12ac8e17f725057c08, type: 2}
@@ -27,8 +27,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 40b6cb6a321a4d12ac8e17f725057c08, type: 2}
   - {fileID: 11400000, guid: cb1e2a8cacd84850ac1721066a4d6195, type: 2}
   - {fileID: 11400000, guid: cb1e2a8cacd84850ac1721066a4d6195, type: 2}
-  - {fileID: 11400000, guid: 5a110342e9a142cca41206e4dba9574d, type: 2}
-  - {fileID: 11400000, guid: 86be297d405d4e61a37ce34f9726033b, type: 2}
   - {fileID: 11400000, guid: 57d519ea1b75420382a734faa363429a, type: 2}
+  - {fileID: 11400000, guid: 5cf7b7b2ee9a4ff29b48c9fce165ce11, type: 2}
   SkillPool: []
   Traits: []

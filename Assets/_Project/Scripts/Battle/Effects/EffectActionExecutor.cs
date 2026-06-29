@@ -93,6 +93,7 @@ namespace Grimhand.Battle.Effects
             }
 
             var beneficiary = target ?? actor;
+            var sacrificeSelfDamageAppliedEarly = false;
 
             switch (action.Type)
             {
@@ -100,7 +101,8 @@ namespace Grimhand.Battle.Effects
                     if (action.Target == EffectTarget.AllEnemies)
                         ExecuteDamageToAllEnemies(state, actor, card, action, value, events, rng, sourceCardInstanceId);
                     else if (target != null
-                             && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
+                             && (action.Target == EffectTarget.Self
+                                 || TargetRules.IsTargetValidForAction(state, target, action.Reach, action)))
                         ExecuteDamage(
                             state, actor, card, action, target, value, events, rng, sourceCardInstanceId,
                             isSacrificeSelfDamage: action.Target == EffectTarget.Self
@@ -108,6 +110,15 @@ namespace Grimhand.Battle.Effects
                     break;
                 case EffectActionType.GainBlock:
                 {
+                    if (action.SelfDamageFlat > 0
+                        && card.Keywords.Contains("sacrifice")
+                        && actor.IsAlive)
+                    {
+                        ApplySacrificeFlatSelfDamage(
+                            state, actor, card, action, events, rng, sourceCardInstanceId);
+                        sacrificeSelfDamageAppliedEarly = true;
+                    }
+
                     var totalBlock = value + RelicBattleRules.GetOutgoingDefenseFlatBonus(
                         state.Config?.RunModifiers, actor);
                     totalBlock = RelicBattleRules.ApplyPharaohBlockBonus(
@@ -239,13 +250,30 @@ namespace Grimhand.Battle.Effects
                     break;
             }
 
-            if (action.SelfDamageFlat > 0 && actor.IsAlive)
+            if (action.SelfDamageFlat > 0 && actor.IsAlive && !sacrificeSelfDamageAppliedEarly)
             {
-                DamageRules.ApplyDamage(
-                    state, actor, actor, action.SelfDamageFlat, CardType.Status, events,
-                    canTriggerParry: false, isSacrificeDamage: true, rng: rng,
-                    sourceCardInstanceId: sourceCardInstanceId);
+                ApplySacrificeFlatSelfDamage(
+                    state, actor, card, action, events, rng, sourceCardInstanceId);
             }
+        }
+
+        static void ApplySacrificeFlatSelfDamage(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState card,
+            EffectActionSpec action,
+            List<BattleEvent> events,
+            BattleRng rng,
+            int sourceCardInstanceId)
+        {
+            var dmg = RelicEffectRules.AdjustSacrificeSelfDamage(
+                state, state.Config?.RunModifiers, actor, action.SelfDamageFlat);
+            DamageRules.ApplyDamage(
+                state, actor, actor, dmg, CardType.Status, events,
+                canTriggerParry: false, isSacrificeDamage: true, rng: rng,
+                sourceCardInstanceId: sourceCardInstanceId);
+            if (state.LastAction.DamageAmount > 0)
+                TalentBattleRules.OnSacrificeHpSpent(state, actor, state.LastAction.DamageAmount);
         }
 
         static void ApplyRandomPlayerPlayLock(
@@ -443,8 +471,16 @@ namespace Grimhand.Battle.Effects
 
                 for (var hit = 0; hit < hitCount; hit++)
                 {
+                    var hitTarget = damageTarget;
+                    if (action.Target == EffectTarget.RandomEnemy)
+                    {
+                        hitTarget = TargetRules.ResolveTarget(
+                            state, actor, EffectTarget.RandomEnemy, card.InstanceId, rng, action);
+                        if (hitTarget == null)
+                            continue;
+                    }
                     ApplySingleHit(
-                        state, actor, card, action, damageTarget, value, events, rng,
+                        state, actor, card, action, hitTarget, value, events, rng,
                         sourceCardInstanceId, isSacrificeSelfDamage);
                 }
             }
@@ -481,14 +517,17 @@ namespace Grimhand.Battle.Effects
                 ? PositionRules.SnapshotCombatantBehindId(state, target)
                 : null;
 
+            var targetHadBlock = target.Block > 0;
+
             DamageRules.ApplyDamage(
                 state,
                 actor,
                 target,
                 primaryPower,
-                card.CardType,
+                isSacrificeSelfDamage ? CardType.Status : card.CardType,
                 events,
                 isSacrificeDamage: isSacrificeSelfDamage,
+                canTriggerParry: !isSacrificeSelfDamage,
                 rng: rng,
                 cardCost: card.Cost,
                 ignoreDefPercent: action.IgnoreDefPercent,
@@ -508,6 +547,9 @@ namespace Grimhand.Battle.Effects
 
             if (action.OnKillHealAmount > 0 && state.LastAction.WasKill)
                 DamageRules.ApplyHeal(state, actor, action.OnKillHealAmount, events, actor);
+
+            PassiveCardMechanicsRules.AfterSingleHitResolved(
+                state, actor, card, target, targetHadBlock, events, rng);
 
             if (action.SplashBehindTarget && !string.IsNullOrEmpty(splashTargetId))
             {

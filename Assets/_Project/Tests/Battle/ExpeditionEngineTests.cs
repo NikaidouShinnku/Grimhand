@@ -386,7 +386,7 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
-        public void CampDeckCardIds_DoNotReplaceBattleDeck()
+        public void CampDeck_FromRoster_ReplacesDefaultBattleDeck()
         {
             var config = BuildConfigWithKnightDeck(4);
             var roster = new CampRosterState();
@@ -403,8 +403,10 @@ namespace Grimhand.Battle.Tests
             engine.StartRun(roster);
             var snap = engine.Run.Party[0];
 
-            Assert.AreEqual(4, ExpeditionRunDeckCatalog.CollectMemberDeckEntries(config, snap).Count);
-            Assert.AreEqual(CampRosterState.DeckSize, snap.CampDeckCardIds.Count);
+            Assert.IsTrue(snap.UsesCampDeckAsBattleBase);
+            Assert.AreEqual(CampRosterState.DeckSize, ExpeditionRunDeckRules.CountMemberDeck(config, snap));
+            foreach (var entry in ExpeditionRunDeckCatalog.CollectMemberDeckEntries(config, snap))
+                StringAssert.StartsWith("camp_card_", entry.Template.DefinitionId);
         }
 
         [Test]
@@ -433,18 +435,9 @@ namespace Grimhand.Battle.Tests
         public void CardAltar_ExtractsCollectionCardIntoDeck()
         {
             var config = BuildConfigWithKnightDeck(2);
-            var roster = new CampRosterState();
-            var loadout = new CampMemberLoadout
-            {
-                CharacterDefinitionId = "char_knight",
-                DisplayName = "骑士"
-            };
-            loadout.DeckCardIds.Add("altar_card_a");
-            loadout.DeckCardIds.Add("altar_card_b");
-            roster.Members.Add(loadout);
-
             var engine = new ExpeditionEngine(config);
-            engine.StartRun(roster);
+            engine.StartRun();
+            AttachCampCollection(engine.Run, "char_knight", "altar_card_a", "altar_card_b");
 
             engine.Run.PendingRoutes.Clear();
             engine.Run.PendingRoutes.Add(new ExpeditionRouteOption
@@ -468,9 +461,20 @@ namespace Grimhand.Battle.Tests
         public void CardAltar_ConfirmAppliesAllMemberDrafts()
         {
             var config = BuildConfigWithThreePlayerDecks(2);
-            var roster = BuildThreeMemberCampRoster();
             var engine = new ExpeditionEngine(config);
-            engine.StartRun(roster);
+            engine.StartRun();
+            AttachCampCollection(engine.Run, "char_knight", "altar_knight");
+            for (var i = 1; i < CampRosterState.DeckSize; i++)
+                engine.Run.Party[0].CampDeckCardIds.Add($"char_knight_camp_{i}");
+            engine.Run.RunStartCampDecks["char_knight"] = new List<string>(engine.Run.Party[0].CampDeckCardIds);
+            AttachCampCollection(engine.Run, "char_mage", "altar_mage");
+            for (var i = 1; i < CampRosterState.DeckSize; i++)
+                engine.Run.Party[1].CampDeckCardIds.Add($"char_mage_camp_{i}");
+            engine.Run.RunStartCampDecks["char_mage"] = new List<string>(engine.Run.Party[1].CampDeckCardIds);
+            AttachCampCollection(engine.Run, "char_ranger", "altar_ranger");
+            for (var i = 1; i < CampRosterState.DeckSize; i++)
+                engine.Run.Party[2].CampDeckCardIds.Add($"char_ranger_camp_{i}");
+            engine.Run.RunStartCampDecks["char_ranger"] = new List<string>(engine.Run.Party[2].CampDeckCardIds);
 
             engine.Run.PendingRoutes.Clear();
             engine.Run.PendingRoutes.Add(new ExpeditionRouteOption
@@ -501,18 +505,9 @@ namespace Grimhand.Battle.Tests
         public void CardAltar_AfterBattle_BonusCardsPersist()
         {
             var config = BuildConfigWithKnightDeck(2);
-            var roster = new CampRosterState();
-            var loadout = new CampMemberLoadout
-            {
-                CharacterDefinitionId = "char_knight",
-                DisplayName = "骑士"
-            };
-            loadout.DeckCardIds.Add("altar_card_a");
-            loadout.DeckCardIds.Add("altar_card_b");
-            roster.Members.Add(loadout);
-
             var engine = new ExpeditionEngine(config);
-            engine.StartRun(roster);
+            engine.StartRun();
+            AttachCampCollection(engine.Run, "char_knight", "altar_card_a", "altar_card_b");
 
             engine.Run.PendingRoutes.Clear();
             engine.Run.PendingRoutes.Add(new ExpeditionRouteOption
@@ -601,6 +596,15 @@ namespace Grimhand.Battle.Tests
 
             Assert.IsTrue(engine.TryAbandonConsumableOffer());
             Assert.IsTrue(CampCollectionProgress.IsExtracted(engine.Run, "char_knight", 3));
+        }
+
+        static void AttachCampCollection(ExpeditionRunState run, string memberId, params string[] cardIds)
+        {
+            var member = FindMember(run.Party, memberId);
+            member.CampDeckCardIds.Clear();
+            foreach (var id in cardIds)
+                member.CampDeckCardIds.Add(id);
+            run.RunStartCampDecks[memberId] = new List<string>(member.CampDeckCardIds);
         }
 
         static CampRosterState BuildThreeMemberCampRoster()
@@ -738,6 +742,12 @@ namespace Grimhand.Battle.Tests
             {
                 DefinitionId = "altar_card_a",
                 DisplayName = "祭坛卡A",
+                OwnerCharacterId = "char_knight"
+            });
+            config.PlayerCardCatalog.Add(new CardTemplate
+            {
+                DefinitionId = "altar_card_b",
+                DisplayName = "祭坛卡B",
                 OwnerCharacterId = "char_knight"
             });
             config.PlayerCardCatalog.Add(new CardTemplate

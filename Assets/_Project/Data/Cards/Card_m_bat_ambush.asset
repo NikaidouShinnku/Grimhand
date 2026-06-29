@@ -23,7 +23,7 @@ MonoBehaviour:
   Actions:
   - Type: 0
     Target: 0
-    Value: 20
+    Value: 11
     StatusId: 
     Stacks: 1
     Duration: -1
@@ -51,7 +51,7 @@ MonoBehaviour:
     UseAlternateIfTargetHasDebuff: 0
     AlternateAttackScaleIfActorUsedAttack: 0
     AlternateValueIfActorUsedAttack: 0
-    DamageMultiplierPercentIfRespondArmed: 100
+    DamageMultiplierPercentIfRespondArmed: 300
     SelfDamageFlat: 0
     RepeatPerEnemyAttackCardThisTurn: 0
     FallbackBlockDefenseScalePercent: 100

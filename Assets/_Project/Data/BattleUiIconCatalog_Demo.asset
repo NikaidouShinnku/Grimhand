@@ -53,3 +53,13 @@ MonoBehaviour:
   - {fileID: -972667787962235512, guid: f539451bdc1b977448783c9e8d58a5b5, type: 3}
   - {fileID: 121210507401309378, guid: 091d25c1df8dfd544ad5cc290631fa3b, type: 3}
   - {fileID: 6327604409582053871, guid: e3d7fe0cc4b6c234c95f43c45b5db30c, type: 3}
+  StatusDamageUp: {fileID: 5223858333334968582, guid: 1d6fa81197a618d4b8a101ab06a1ad00, type: 3}
+  StatusDamageDown: {fileID: 3141452528594392863, guid: 40a7124028e6d4b4592bb11400f26503, type: 3}
+  StatusDefenseUp: {fileID: 2076166238208770411, guid: 8d03a8fe89930cb4cbcbe84511c8254e, type: 3}
+  StatusDefenseDown: {fileID: 7911172285868780410, guid: a56aba8ac72c4c446827270c7f946f87, type: 3}
+  StatusArmorAcqUp: {fileID: 1286955577079147251, guid: 1ac50ede3fba8424f8af774151831d01, type: 3}
+  StatusArmorAcqDown: {fileID: -3481693397581990447, guid: 7aeff3b44755b08448ae8f313601e6f2, type: 3}
+  StatusSpdDown: {fileID: -6992879321153354573, guid: 93252a81f198b504e9d63fd03da4248f, type: 3}
+  StatusSpdUp: {fileID: 3183829849005898193, guid: ce559f412407acc4f80ffd2af95d67a6, type: 3}
+  StatusPoisoning: {fileID: 2342332266118351040, guid: 8d473d75aa365124c9f9909406a0f2ee, type: 3}
+  StatusBurning: {fileID: 4247683407508846134, guid: 619a1dac6cf5d8c42b90cef4cda03fe6, type: 3}

@@ -17,12 +17,12 @@ MonoBehaviour:
   OwnerCharacterId: char_abyss_creature
   Cost: 2
   CardType: 0
-  Rarity: 2
   Keywords: []
+  Rarity: 2
   Actions:
   - Type: 0
     Target: 11
-    Value: 7
+    Value: 4
     StatusId: 
     Stacks: 1
     Duration: -1
@@ -44,7 +44,7 @@ MonoBehaviour:
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0
-    HitCount: 1
+    HitCount: 5
     AlternateAttackScalePercent: 0
     AlternateValue: 0
     UseAlternateIfTargetHasDebuff: 0

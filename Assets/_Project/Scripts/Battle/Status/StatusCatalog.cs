@@ -35,6 +35,7 @@ namespace Grimhand.Battle.Status
         public const string ArmorDown = "armor_down";
         public const string Vulnerable = "vulnerable";
         public const string DamageReduction = "damage_reduction";
+        public const string FinalSummonPending = "final_summon_pending";
 
         static readonly Dictionary<string, StatusDefinition> Definitions = Build();
 
@@ -69,7 +70,7 @@ namespace Grimhand.Battle.Status
                 DisplayName = "灼烧",
                 DurationKind = StatusDurationKind.Turns,
                 DefaultDuration = 2,
-                TurnEndDamagePerStack = 1,
+                TurnEndDamagePerStack = 2,
                 TickIgnoresDefense = true
             };
             map[AttackUp] = new StatusDefinition
@@ -91,7 +92,7 @@ namespace Grimhand.Battle.Status
             map[DefenseUp] = new StatusDefinition
             {
                 Id = DefenseUp,
-                DisplayName = "护甲获取提升",
+                DisplayName = "强固",
                 DurationKind = StatusDurationKind.Turns,
                 DefaultDuration = 1,
                 BlockGainFlatPerStack = 1
@@ -193,7 +194,7 @@ namespace Grimhand.Battle.Status
             map[AttackUpPercent] = new StatusDefinition
             {
                 Id = AttackUpPercent,
-                DisplayName = "攻击提升",
+                DisplayName = "增伤",
                 DurationKind = StatusDurationKind.Turns,
                 DefaultDuration = 3,
                 AttackPercentBonusPerStack = 1
@@ -201,7 +202,7 @@ namespace Grimhand.Battle.Status
             map[DefenseUpPercent] = new StatusDefinition
             {
                 Id = DefenseUpPercent,
-                DisplayName = "防御提升",
+                DisplayName = "强固",
                 DurationKind = StatusDurationKind.Turns,
                 DefaultDuration = 2,
                 DefensePercentBonusPerStack = 1
@@ -209,7 +210,7 @@ namespace Grimhand.Battle.Status
             map[DefenseDownPercent] = new StatusDefinition
             {
                 Id = DefenseDownPercent,
-                DisplayName = "护甲获取降低",
+                DisplayName = "破损",
                 DurationKind = StatusDurationKind.Turns,
                 DefaultDuration = 2,
                 BlockGainReductionPercentPerStack = 1
@@ -233,7 +234,7 @@ namespace Grimhand.Battle.Status
             map[ArmorUp] = new StatusDefinition
             {
                 Id = ArmorUp,
-                DisplayName = "护甲获取提升",
+                DisplayName = "强固",
                 DurationKind = StatusDurationKind.Turns,
                 DefaultDuration = 1,
                 BlockGainFlatPerStack = 1
@@ -241,7 +242,7 @@ namespace Grimhand.Battle.Status
             map[ArmorDown] = new StatusDefinition
             {
                 Id = ArmorDown,
-                DisplayName = "护甲获取降低",
+                DisplayName = "破损",
                 DurationKind = StatusDurationKind.Turns,
                 DefaultDuration = 2,
                 BlockGainReductionPercentPerStack = 1
@@ -252,7 +253,7 @@ namespace Grimhand.Battle.Status
                 DisplayName = "易伤",
                 DurationKind = StatusDurationKind.Turns,
                 DefaultDuration = 2,
-                IncomingDamageFlatPerStack = 1
+                IncomingDamagePercentPerStack = 1
             };
             map[DamageReduction] = new StatusDefinition
             {
@@ -261,6 +262,13 @@ namespace Grimhand.Battle.Status
                 DurationKind = StatusDurationKind.Turns,
                 DefaultDuration = 1,
                 IncomingDamageReductionPercentPerStack = 1
+            };
+            map[FinalSummonPending] = new StatusDefinition
+            {
+                Id = FinalSummonPending,
+                DisplayName = "终焉召唤",
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 2
             };
             return map;
         }

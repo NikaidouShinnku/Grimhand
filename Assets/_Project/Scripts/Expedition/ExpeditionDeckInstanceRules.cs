@@ -24,15 +24,36 @@ namespace Grimhand.Expedition
                 || member == null || string.IsNullOrEmpty(member.CharacterDefinitionId))
                 return;
 
-            var baseDecks = BuildBaseDeckLookup(config.CombatEncounters[0]);
-            if (!baseDecks.TryGetValue(member.CharacterDefinitionId, out var baseDeck) || baseDeck == null)
+            var targetCount = ResolveBaseDeckSlotCount(config, member);
+            if (targetCount <= 0)
                 return;
 
-            while (member.BaseDeckInstanceIds.Count < baseDeck.Count)
+            while (member.BaseDeckInstanceIds.Count < targetCount)
             {
                 member.BaseDeckInstanceIds.Add(
                     ExpeditionDeckCardKey.GenerateInstanceId(member.CharacterDefinitionId));
             }
+        }
+
+        static int ResolveBaseDeckSlotCount(ExpeditionConfig config, PartyMemberSnapshot member)
+        {
+            if (member.UsesCampDeckAsBattleBase)
+            {
+                var filled = 0;
+                foreach (var cardId in member.CampDeckCardIds)
+                {
+                    if (!string.IsNullOrEmpty(cardId))
+                        filled++;
+                }
+
+                return System.Math.Max(filled, member.CampDeckCardIds.Count);
+            }
+
+            var baseDecks = BuildBaseDeckLookup(config.CombatEncounters[0]);
+            if (!baseDecks.TryGetValue(member.CharacterDefinitionId, out var baseDeck) || baseDeck == null)
+                return 0;
+
+            return baseDeck.Count;
         }
 
         public static string ResolveBaseDeckInstanceId(PartyMemberSnapshot member, int slotIndex)

@@ -17,9 +17,9 @@ MonoBehaviour:
   OwnerCharacterId: char_spider_lady
   Cost: 2
   CardType: 1
-  Rarity: 1
   Keywords:
   - parry
+  Rarity: 1
   Actions:
   - Type: 9
     Target: 1

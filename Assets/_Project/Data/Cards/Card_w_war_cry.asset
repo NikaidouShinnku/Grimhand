@@ -17,14 +17,15 @@ MonoBehaviour:
   OwnerCharacterId: char_knight
   Cost: 1
   CardType: 2
+  Keywords:
+  - quick_start
   Rarity: 0
-  Keywords: []
   Actions:
   - Type: 3
     Target: 9
     Value: 0
-    StatusId: attack_up
-    Stacks: 3
+    StatusId: attack_up_pct
+    Stacks: 10
     Duration: 1
     ScaleWithAttack: 0
     ScaleWithDefense: 0
@@ -61,8 +62,8 @@ MonoBehaviour:
   - Type: 3
     Target: 10
     Value: 0
-    StatusId: attack_up
-    Stacks: 3
+    StatusId: attack_up_pct
+    Stacks: 10
     Duration: 1
     ScaleWithAttack: 0
     ScaleWithDefense: 0
@@ -99,8 +100,8 @@ MonoBehaviour:
   - Type: 3
     Target: 11
     Value: 0
-    StatusId: attack_up
-    Stacks: 3
+    StatusId: attack_up_pct
+    Stacks: 10
     Duration: 1
     ScaleWithAttack: 0
     ScaleWithDefense: 0

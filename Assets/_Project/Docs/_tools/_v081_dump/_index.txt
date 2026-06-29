@@ -1,0 +1,9 @@
+角色	49x21	角色.txt
+卡牌	45x19	卡牌.txt
+遗物	62x7	遗物.txt
+消耗品	10x5	消耗品.txt
+Boss设计	25x11	Boss设计.txt
+小怪设计	184x8	小怪设计.txt
+怪物组合	63x8	怪物组合.txt
+事件	129x7	事件.txt
+icon设计	11x5	icon设计.txt

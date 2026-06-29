@@ -36,8 +36,8 @@ MonoBehaviour:
     SplashPowerPercent: 100
     BackRowPowerPercent: 100
     IgnoreDefPercent: 0
-    BonusIfTargetHpBelowPercent: 0
-    BonusIfTargetHpBelowFlat: 0
+    BonusIfTargetHpBelowPercent: 50
+    BonusIfTargetHpBelowFlat: 8
     BonusIfTargetHitThisTurnPercent: 0
     BonusIfTargetHasStatusId: 
     BonusIfTargetHasStatusFlat: 0

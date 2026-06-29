@@ -17,9 +17,9 @@ MonoBehaviour:
   OwnerCharacterId: char_mage
   Cost: 6
   CardType: 2
-  Rarity: 4
   Keywords:
   - exhaust
+  Rarity: 4
   Actions:
   - Type: 3
     Target: 1

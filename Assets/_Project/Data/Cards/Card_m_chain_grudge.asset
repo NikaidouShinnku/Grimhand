@@ -17,8 +17,8 @@ MonoBehaviour:
   OwnerCharacterId: char_chain_wraith
   Cost: 1
   CardType: 2
-  Rarity: 0
   Keywords: []
+  Rarity: 0
   Actions:
   - Type: 3
     Target: 1

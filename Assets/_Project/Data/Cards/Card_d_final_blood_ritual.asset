@@ -17,15 +17,14 @@ MonoBehaviour:
   OwnerCharacterId: char_ranger
   Cost: 3
   CardType: 2
-  Rarity: 4
   Keywords:
   - exhaust
-  - sacrifice
+  Rarity: 4
   Actions:
-  - Type: 2
+  - Type: 3
     Target: 1
-    Value: 5
-    StatusId: 
+    Value: 0
+    StatusId: final_blood_ritual
     Stacks: 1
     Duration: -1
     ScaleWithAttack: 0

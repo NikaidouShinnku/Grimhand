@@ -388,7 +388,8 @@ namespace Grimhand.Presentation.Battle
             var stats = BattleUiFormatters.BuildCardStatsLinePreview(descCard, _definitions);
             var keywords = BattleUiFormatters.BuildCardKeywordTooltip(null, descCard, _definitions);
             var body = string.IsNullOrWhiteSpace(keywords) ? stats : $"{stats}\n\n{keywords}";
-            var header = $"{card.DisplayName}  [{card.DefinitionId}]  费用 {card.Cost}";
+            var costLabel = (card.Keywords != null && card.Keywords.Contains("x_cost")) ? "X" : card.Cost.ToString();
+            var header = $"{card.DisplayName}  [{card.DefinitionId}]  费用 {costLabel}";
             _tooltip.BindHover(target, header, body.Replace("<b>", "").Replace("</b>", ""), showTitle: true);
         }
 

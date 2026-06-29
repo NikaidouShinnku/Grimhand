@@ -17,14 +17,14 @@ MonoBehaviour:
   OwnerCharacterId: char_mage
   Cost: 3
   CardType: 0
-  Rarity: 2
   Keywords: []
+  Rarity: 2
   Actions:
   - Type: 0
     Target: 0
     Value: 15
     StatusId: 
-    Stacks: 1
+    Stacks: 0
     Duration: -1
     ScaleWithAttack: 0
     ScaleWithDefense: 0

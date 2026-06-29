@@ -17,13 +17,13 @@ MonoBehaviour:
   OwnerCharacterId: char_skeleton_king
   Cost: 3
   CardType: 0
-  Rarity: 4
   Keywords:
   - aoe
+  Rarity: 4
   Actions:
   - Type: 0
     Target: 12
-    Value: 42
+    Value: 25
     StatusId: 
     Stacks: 1
     Duration: -1

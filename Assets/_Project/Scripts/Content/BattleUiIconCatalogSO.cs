@@ -37,5 +37,18 @@ namespace Grimhand.Content
         public Sprite[] DungeonPathVariants = System.Array.Empty<Sprite>();
         public Sprite AbyssBackground;
         public Sprite[] AbyssPathVariants = System.Array.Empty<Sprite>();
+
+        public Sprite StatusDamageUp;
+        public Sprite StatusDamageDown;
+        public Sprite StatusDefenseUp;
+        public Sprite StatusDefenseDown;
+        public Sprite StatusArmorAcqUp;
+        public Sprite StatusArmorAcqDown;
+        public Sprite StatusSpdDown;
+        public Sprite StatusSpdUp;
+        /// <summary>中毒状态图标（复用 effects/poisoning_effect.png，缩小尺寸）。</summary>
+        public Sprite StatusPoisoning;
+        /// <summary>灼烧状态图标（复用 effects/burning_effect.png，缩小尺寸）。</summary>
+        public Sprite StatusBurning;
     }
 }

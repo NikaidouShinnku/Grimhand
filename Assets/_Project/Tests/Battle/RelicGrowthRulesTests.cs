@@ -17,7 +17,8 @@ namespace Grimhand.Battle.Tests
             Assert.AreEqual(2, tiers[RelicIds.FlameSword]);
 
             var mods = RelicDatabase.BuildModifiers(new[] { RelicIds.FlameSword }, tiers);
-            Assert.AreEqual(6, mods.TeamAttackBonus);
+            Assert.AreEqual(0, mods.TeamAttackBonus);
+            Assert.AreEqual(9f, mods.TeamAttackBonusPercent);
             Assert.AreEqual(15, mods.AttackBurnStacks);
         }
 
@@ -34,8 +35,9 @@ namespace Grimhand.Battle.Tests
             Assert.AreEqual(1, tiers[RelicIds.IronArmor]);
 
             var mods = RelicDatabase.BuildModifiers(relics, tiers);
-            Assert.AreEqual(4, mods.TeamDefenseBonus);
-            Assert.AreEqual(20, mods.BattleStartFrontBlock);
+            Assert.AreEqual(0, mods.TeamDefenseBonus);
+            Assert.AreEqual(7f, mods.TeamBlockGainBonusPercent);
+            Assert.AreEqual(25, mods.BattleStartFrontBlock);
         }
     }
 }

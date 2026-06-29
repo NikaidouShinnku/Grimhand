@@ -432,6 +432,7 @@ namespace Grimhand.Expedition
             }
 
             snap.CampDeckCardIds.AddRange(existing.CampDeckCardIds);
+            snap.UsesCampDeckAsBattleBase = existing.UsesCampDeckAsBattleBase;
 
             foreach (var index in existing.ExtractedCampCardIndices)
                 snap.ExtractedCampCardIndices.Add(index);
@@ -539,6 +540,9 @@ namespace Grimhand.Expedition
                 SacrificeDamageBonusPercent = source.SacrificeDamageBonusPercent,
                 SacrificeHpCostReduction = source.SacrificeHpCostReduction,
                 SacrificeStackAttackBonus = source.SacrificeStackAttackBonus,
+                TeamAttackBonusPercent = source.TeamAttackBonusPercent,
+                TeamBlockGainBonusPercent = source.TeamBlockGainBonusPercent,
+                TurnStartEnemyBurnStacks = source.TurnStartEnemyBurnStacks,
                 HealBonusPercent = source.HealBonusPercent,
                 PharaohBlockGivenBonusPercent = source.PharaohBlockGivenBonusPercent,
                 SacrificeHpCostReductionPercent = source.SacrificeHpCostReductionPercent,
@@ -583,7 +587,8 @@ namespace Grimhand.Expedition
                 FrontRowIgnoreArmorDamagePercent = source.FrontRowIgnoreArmorDamagePercent,
                 RequiresFelskullChoice = source.RequiresFelskullChoice,
                 FelskullOutgoingDamagePercentBonus = source.FelskullOutgoingDamagePercentBonus,
-                FirstPlayerAttackPending = source.FirstPlayerAttackPending
+                FirstPlayerAttackPending = source.FirstPlayerAttackPending,
+                HolysunSpellbookBonusUpgradeLevels = source.HolysunSpellbookBonusUpgradeLevels
             };
         }
 

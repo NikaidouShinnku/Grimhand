@@ -115,12 +115,12 @@ namespace Grimhand.Expedition
                 return;
 
             if (ctx.Has("talent_ranger_s1_lv1"))
-                mods.SacrificeHpCostReductionPercent += 10f;
+                mods.SacrificeHpCostReductionPercent += 25f;
 
             if (ctx.Has("talent_ranger_s1_lv5"))
             {
                 mods.SacrificeDamageBonusPercent += 30f;
-                mods.SacrificeHpCostIncreasePercent += 50f;
+                mods.SacrificeHpCostIncreasePercent += 40f;
             }
         }
 

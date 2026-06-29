@@ -35,8 +35,10 @@ namespace Grimhand.Battle.Model
         public int BlockGainPercentPerStack { get; set; }
         /// <summary>v0.8：每层使获得护甲 -N%（护甲获取降低）。</summary>
         public int BlockGainReductionPercentPerStack { get; set; }
-        /// <summary>v0.8：每层使受到的伤害 +N（易伤 vulnerable）。</summary>
+        /// <summary>v0.8：每层使受到的伤害 +N（易伤 vulnerable，旧版固定值）。</summary>
         public int IncomingDamageFlatPerStack { get; set; }
+        /// <summary>v0.81：每层使受到的伤害 +N%（易伤 vulnerable，每层 1%）。</summary>
+        public int IncomingDamagePercentPerStack { get; set; }
         /// <summary>v0.8：每层使受到的伤害 -N%（减伤 damage_reduction）。</summary>
         public int IncomingDamageReductionPercentPerStack { get; set; }
     }

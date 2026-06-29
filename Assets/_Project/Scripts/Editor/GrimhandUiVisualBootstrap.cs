@@ -103,6 +103,19 @@ namespace Grimhand.Editor
             catalog.AbyssBackground = LoadFirstSprite(
                 "Assets/The Grimhands Asset/path and background/underwaterruin_background.png");
 
+            catalog.StatusDamageUp = LoadFirstSprite(IconRoot + "damage_up.png");
+            catalog.StatusDamageDown = LoadFirstSprite(IconRoot + "damage_down.png");
+            catalog.StatusDefenseUp = LoadFirstSprite(IconRoot + "defense_up.png");
+            catalog.StatusDefenseDown = LoadFirstSprite(IconRoot + "defense_down.png");
+            catalog.StatusArmorAcqUp = LoadFirstSprite(IconRoot + "armoracq_up.png");
+            catalog.StatusArmorAcqDown = LoadFirstSprite(IconRoot + "armoracq_down.png");
+            catalog.StatusSpdDown = LoadFirstSprite(IconRoot + "spd_down.png");
+            catalog.StatusSpdUp = LoadFirstSprite(IconRoot + "spd_up.png");
+            catalog.StatusPoisoning = LoadNamedSprite(
+                "Assets/The Grimhands Asset/effects/poisoning_effect.png", "poisoning_effect_0");
+            catalog.StatusBurning = LoadNamedSprite(
+                "Assets/The Grimhands Asset/effects/burning_effect.png", "burning_effect_1");
+
             EditorUtility.SetDirty(catalog);
         }
 

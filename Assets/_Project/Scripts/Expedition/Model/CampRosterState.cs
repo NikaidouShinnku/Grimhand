@@ -25,11 +25,18 @@ namespace Grimhand.Expedition.Model
                     if (member.DeckCardIds == null || member.DeckCardIds.Count != DeckSize)
                         return false;
 
+                    var hasAnyCard = false;
                     foreach (var id in member.DeckCardIds)
                     {
-                        if (string.IsNullOrEmpty(id))
-                            return false;
+                        if (!string.IsNullOrEmpty(id))
+                        {
+                            hasAnyCard = true;
+                            break;
+                        }
                     }
+
+                    if (!hasAnyCard)
+                        return false;
                 }
 
                 return true;

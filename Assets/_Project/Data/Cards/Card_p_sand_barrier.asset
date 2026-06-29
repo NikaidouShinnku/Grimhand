@@ -17,12 +17,12 @@ MonoBehaviour:
   OwnerCharacterId: char_mage
   Cost: 2
   CardType: 1
-  Rarity: 1
   Keywords: []
+  Rarity: 1
   Actions:
   - Type: 1
     Target: 9
-    Value: 6
+    Value: 8
     StatusId: 
     Stacks: 1
     Duration: -1
@@ -60,7 +60,7 @@ MonoBehaviour:
     LifestealUnblockedOnly: 0
   - Type: 1
     Target: 10
-    Value: 6
+    Value: 8
     StatusId: 
     Stacks: 1
     Duration: -1
@@ -98,7 +98,7 @@ MonoBehaviour:
     LifestealUnblockedOnly: 0
   - Type: 1
     Target: 11
-    Value: 6
+    Value: 8
     StatusId: 
     Stacks: 1
     Duration: -1

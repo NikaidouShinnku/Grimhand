@@ -17,9 +17,9 @@ MonoBehaviour:
   OwnerCharacterId: char_ranger
   Cost: 3
   CardType: 0
-  Rarity: 4
   Keywords:
   - sacrifice
+  Rarity: 4
   Actions:
   - Type: 0
     Target: 0

@@ -17,12 +17,12 @@ MonoBehaviour:
   OwnerCharacterId: char_jellyfish_caster
   Cost: 1
   CardType: 0
-  Rarity: 0
   Keywords: []
+  Rarity: 0
   Actions:
   - Type: 0
     Target: 0
-    Value: 21
+    Value: 12
     StatusId: 
     Stacks: 1
     Duration: -1

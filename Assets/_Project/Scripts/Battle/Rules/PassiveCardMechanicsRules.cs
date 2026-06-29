@@ -16,7 +16,11 @@ namespace Grimhand.Battle.Rules
         public const string SpiderFatalBindCardId = "m_spider_fatal_bind";
         public const string GargoyleSunderCardId = "m_gargoyle_sunder";
         public const string FinalBindCardId = "m_final_bind";
-        public const int GodDescendsFlatDamage = 5;
+        public const string MagicLightningCardId = "m_magic_lightning";
+        public const string GolemCrackFistCardId = "m_golem_crack_fist";
+        public const string FinalGuardCardId = "m_final_guard";
+        public const int GolemCrackFistBonusBlock = 8;
+        public const int GodDescendsFlatDamage = 8;
         public const int GodDescendsAttackScalePercent = 120;
         public const int FinalBloodRitualDraw = 1;
         public const int FinalBloodRitualHeal = 5;
@@ -54,6 +58,32 @@ namespace Grimhand.Battle.Rules
                 CardInstanceId = card.InstanceId,
                 Amount = state.CardInstanceDamageMultiplierPercent[card.InstanceId]
             });
+        }
+
+        public const int EndlessBladeSacrificeHpPercent = 25;
+
+        /// <summary>无尽血刃的 25% 最大生命值献祭代价，须在造成伤害前结算。</summary>
+        public static void ApplyEndlessBladeSacrifice(
+            BattleState state, CombatantState actor, CardInstanceState card,
+            List<BattleEvent> events, BattleRng rng)
+        {
+            if (state == null || actor == null || card == null || card.DefinitionId != EndlessBladeCardId)
+                return;
+            if (!actor.IsAlive || actor.MaxHp <= 0)
+                return;
+
+            var rawDamage = (int)Math.Round(actor.MaxHp * EndlessBladeSacrificeHpPercent / 100f);
+            if (rawDamage <= 0)
+                return;
+
+            var dmg = RelicEffectRules.AdjustSacrificeSelfDamage(
+                state, state.Config?.RunModifiers, actor, rawDamage);
+            DamageRules.ApplyDamage(
+                state, actor, actor, dmg, CardType.Status, events,
+                canTriggerParry: false, isSacrificeDamage: true, rng: rng,
+                sourceCardInstanceId: card.InstanceId);
+            if (state.LastAction.DamageAmount > 0)
+                TalentBattleRules.OnSacrificeHpSpent(state, actor, state.LastAction.DamageAmount);
         }
 
         public static void TryTriggerFinalBloodRitualOnSacrifice(
@@ -161,6 +191,73 @@ namespace Grimhand.Battle.Rules
 
             StatusRules.ApplyStatus(
                 state, actor, StatusCatalog.SandSpearReforge, SandSpearReforgeBaseDamage, -1, events);
+        }
+
+        public static void AfterSingleHitResolved(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState card,
+            CombatantState target,
+            bool targetHadBlockBeforeHit,
+            List<BattleEvent> events,
+            BattleRng rng)
+        {
+            if (state == null || actor == null || card == null || target == null)
+                return;
+
+            if (card.DefinitionId == MagicLightningCardId)
+            {
+                var poisonStacks = StatusRules.GetStatusStacks(target, StatusCatalog.Poison);
+                if (poisonStacks > 0)
+                {
+                    StatusRules.ApplyStatus(
+                        state, target, StatusCatalog.Burn, poisonStacks, 2, events);
+                }
+            }
+
+            if (card.DefinitionId == GolemCrackFistCardId && !targetHadBlockBeforeHit)
+            {
+                DamageRules.ApplyBlock(actor, GolemCrackFistBonusBlock, events, state, rng);
+            }
+        }
+
+        public static void OnFinalSummonPendingExpired(
+            BattleState state,
+            CombatantState caster,
+            List<BattleEvent> events)
+        {
+            if (state == null || caster == null || !caster.IsAlive)
+                return;
+
+            if (caster.CharacterDefinitionId != "char_jellyfish_caster")
+                return;
+
+            var bonusHp = Math.Max(1, caster.MaxHp / 2);
+            var slot = caster.Slot;
+
+            if (!state.Config.SummonTemplates.TryGetValue(
+                    MinionTraitCatalog.AbyssCreatureCharacterId, out var template))
+            {
+                SummonRules.SelfDestruct(state, caster, events);
+                return;
+            }
+
+            SummonRules.SelfDestruct(state, caster, events);
+            SummonRules.SpawnFromTemplate(state, template, slot, events, bonusHp);
+        }
+
+        public static void OnFinalGuardResponded(BattleState state, List<BattleEvent> events)
+        {
+            if (state == null || state.EnergyCurrent <= 0)
+                return;
+
+            state.EnergyCurrent = 0;
+            events.Add(new BattleEvent(BattleEventKind.EnergyChanged, "终焉守护：能量被清空")
+            {
+                Energy = 0,
+                EnergyMax = state.EnergyMax,
+                EnergyRemaining = 0
+            });
         }
 
         public static void OnSpiderFatalBindResolved(

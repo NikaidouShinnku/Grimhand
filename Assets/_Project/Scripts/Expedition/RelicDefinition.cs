@@ -18,6 +18,10 @@ namespace Grimhand.Expedition
         public int AtkBonus { get; set; }
         public int DefBonus { get; set; }
         public int HpBonus { get; set; }
+        /// <summary>v0.81：全队增伤百分比（如 5 = 5%）。</summary>
+        public float AtkPercentBonus { get; set; }
+        /// <summary>v0.81：全队强固百分比（护甲获取加成，如 5 = 5%）。</summary>
+        public float BlockGainPercentBonus { get; set; }
         public string RequiredCharacterId { get; set; } = "";
         public bool EvolutionOnly { get; set; }
     }

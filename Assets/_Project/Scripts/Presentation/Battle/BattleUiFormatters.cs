@@ -656,7 +656,7 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.Taunt:
                     return "所有敌人下一行动强制攻击自身";
                 case StatusCatalog.Guard:
-                    return "本回合队友伤害转移给自身，减伤 40%";
+                    return "本回合队友伤害转移给自身，减伤 50%";
                 case StatusCatalog.VampAura:
                     return $"直到本回合结束，攻击回复造成伤害 {action.Stacks}% 的生命";
                 case StatusCatalog.ReviveBlessing:

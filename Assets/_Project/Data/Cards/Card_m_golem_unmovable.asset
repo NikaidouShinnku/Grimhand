@@ -17,9 +17,9 @@ MonoBehaviour:
   OwnerCharacterId: char_stone_golem
   Cost: 3
   CardType: 1
-  Rarity: 2
   Keywords:
   - parry
+  Rarity: 2
   Actions:
   - Type: 9
     Target: 1

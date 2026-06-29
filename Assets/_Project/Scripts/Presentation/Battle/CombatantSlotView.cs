@@ -59,6 +59,7 @@ namespace Grimhand.Presentation.Battle
         Action<CombatantState> _hoverPreviewEnter;
         Action _hoverPreviewExit;
         CombatantPortraitView _portraitView;
+        CombatantFootStatusIconsView _footStatusIcons;
         CombatantState _currentUnit;
         BattleUiIconCatalogSO _currentIcons;
         CharacterVisualCatalogSO _currentVisuals;
@@ -587,6 +588,17 @@ namespace Grimhand.Presentation.Battle
                 rt.anchoredPosition = new Vector2(0f, 58f);
                 rt.sizeDelta = new Vector2(0f, 36f);
             }
+
+            EnsureFootStatusIcons(footRoot);
+        }
+
+        void EnsureFootStatusIcons(RectTransform footRoot)
+        {
+            if (_footStatusIcons == null)
+                _footStatusIcons = GetComponent<CombatantFootStatusIconsView>()
+                                   ?? gameObject.AddComponent<CombatantFootStatusIconsView>();
+
+            _footStatusIcons.EnsureBuilt(footRoot);
         }
 
         public Vector3 GetFeetWorldPosition()
@@ -799,6 +811,8 @@ namespace Grimhand.Presentation.Battle
                 if (unit != null)
                     statsRow.Refresh(unit, uiIcons, hpOnly: true, hpOverride, maxHpOverride, blockOverride, ironWallPending);
             }
+
+            _footStatusIcons?.Refresh(unit, uiIcons);
             _portraitView?.SetDamageFloaterBelow(statsRow != null ? statsRow.transform as RectTransform : null);
 
             _showExpBar = showExpBar;

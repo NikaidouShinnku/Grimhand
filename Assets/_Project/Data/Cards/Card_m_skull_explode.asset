@@ -17,12 +17,12 @@ MonoBehaviour:
   OwnerCharacterId: char_explosive_skull
   Cost: 0
   CardType: 0
-  Rarity: 0
   Keywords: []
+  Rarity: 0
   Actions:
   - Type: 0
     Target: 11
-    Value: 40
+    Value: 24
     StatusId: 
     Stacks: 1
     Duration: -1

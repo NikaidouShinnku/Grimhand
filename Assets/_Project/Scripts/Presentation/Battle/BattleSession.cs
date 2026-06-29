@@ -198,6 +198,24 @@ namespace Grimhand.Presentation.Battle
             return ok;
         }
 
+        /// <summary>快速启动：规划阶段立即结算一张 quick_start 卡。</summary>
+        public bool TryQuickStartCard(int instanceId)
+        {
+            if (Engine == null || !CanInteractWithBattle())
+                return false;
+
+            if (Engine.Draft.IsAwaitingConsumableTarget)
+                Engine.CancelConsumableTargeting();
+
+            var ok = Engine.TryResolveQuickStartCard(instanceId);
+            if (ok)
+                DrainEvents();
+            else
+                NotifyChanged();
+
+            return ok;
+        }
+
         public bool CommitPlan()
         {
             if (Engine == null || !CanInteractWithBattle())

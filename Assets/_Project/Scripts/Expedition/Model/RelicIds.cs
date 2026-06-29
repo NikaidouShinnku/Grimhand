@@ -25,5 +25,6 @@ namespace Grimhand.Expedition.Model
         public const string CrystalLongsword = "crystal_longsword";
         public const string Bonfire = "bonfire";
         public const string Felskull = "felskull";
+        public const string HolysunSpellbook = "holysun_spellbook";
     }
 }

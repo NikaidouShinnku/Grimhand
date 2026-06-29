@@ -44,6 +44,7 @@ namespace Grimhand.Battle.Rules
                 combatant.OutgoingDamagePercentBonus += def.OutgoingDamagePercentPerStack * stacks;
                 combatant.OutgoingDamageReductionFlat += def.OutgoingDamageReductionFlatPerStack * stacks;
                 combatant.IncomingDamageFlatBonus += def.IncomingDamageFlatPerStack * stacks;
+                combatant.IncomingDamagePercentBonus += def.IncomingDamagePercentPerStack * stacks;
                 combatant.IncomingDamageReductionPercent += def.IncomingDamageReductionPercentPerStack * stacks;
                 combatant.BlockGainFlatBonus += def.BlockGainFlatPerStack * stacks;
                 combatant.BlockGainPercentBonus += def.BlockGainPercentPerStack * stacks;
@@ -53,7 +54,7 @@ namespace Grimhand.Battle.Rules
                 combatant.OutgoingDamageFlatBonus += def.AttackModifierPerStack * stacks;
                 combatant.OutgoingDamagePercentBonus += def.AttackPercentBonusPerStack * stacks;
                 combatant.BlockGainFlatBonus += def.DefenseModifierPerStack * stacks;
-                combatant.IncomingDamageReductionPercent += def.DefensePercentBonusPerStack * stacks;
+                combatant.BlockGainPercentBonus += def.DefensePercentBonusPerStack * stacks;
             }
 
             combatant.OutgoingDamageFlatBonus += combatant.GargoyleStanceAttackBonus;
@@ -75,6 +76,11 @@ namespace Grimhand.Battle.Rules
             {
                 combatant.OutgoingDamageFlatBonus += mods.TeamAttackBonus;
                 combatant.BlockGainFlatBonus += mods.TeamDefenseBonus;
+
+                if (mods.TeamAttackBonusPercent > 0f)
+                    combatant.OutgoingDamagePercentBonus += (int)System.Math.Round(mods.TeamAttackBonusPercent);
+                if (mods.TeamBlockGainBonusPercent > 0f)
+                    combatant.BlockGainPercentBonus += (int)System.Math.Round(mods.TeamBlockGainBonusPercent);
 
                 if (mods.FelskullOutgoingDamagePercentBonus > 0)
                     combatant.OutgoingDamagePercentBonus += mods.FelskullOutgoingDamagePercentBonus;

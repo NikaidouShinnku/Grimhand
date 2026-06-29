@@ -1,0 +1,6 @@
+v0.8 验证报告 — 共 4 项问题
+============================================================
+数值不符 [唤骨] 期望 Value=6 实际=0 (Card_m_raise_bones.asset)
+数值不符 [崩裂拳] 期望 Value=8 实际=10 (Card_m_golem_crack_fist.asset)
+缺少 ApplyStatus 动作: 魔力之电
+数值不符 [鲜血铠甲] 期望 Value=12 实际=3 (Card_d_blood_armor.asset)

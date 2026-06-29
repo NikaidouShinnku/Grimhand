@@ -158,12 +158,109 @@ namespace Grimhand.Battle
             return CommitPlanInternal("Skip turn", BattleEventKind.TurnSkipped);
         }
 
+        /// <summary>快速启动：规划阶段立即结算一张 quick_start 卡（仅 PvE，无需等到回合结算）。</summary>
+        public bool TryResolveQuickStartCard(int instanceId)
+        {
+            if (_state.Phase != TurnPhase.Planning)
+                return false;
+
+            var card = _state.GetCard(instanceId);
+            if (card == null || !card.Keywords.Contains("quick_start"))
+                return false;
+            if (!card.IsUsable || !_state.PlayerHand.Contains(card))
+                return false;
+
+            var ownerId = PositionRules.GetOwnerCombatantId(_state, card);
+            var owner = ownerId != null ? _state.GetCombatant(ownerId) : null;
+            if (owner == null || owner.Team != TeamSide.Player || !owner.IsAlive || owner.IsCardsLocked)
+                return false;
+
+            var cost = TalentBattleRules.GetEffectivePlayCost(_state, owner, card);
+            if (!EnergyRules.CanAfford(_state.EnergyCurrent, cost))
+                return false;
+
+            _state.EnergyCurrent -= cost;
+            if (CardPowerRules.UsesRemainingEnergyCost(card))
+                _state.EnergySpentByCardInstanceId[card.InstanceId] = cost;
+
+            ResolveCardImmediately(owner, card);
+
+            foreach (var c in _state.Combatants)
+            {
+                if (c.Team == TeamSide.Player)
+                    CombatModifierRules.RefreshCombatantModifiers(_state, c, _state.Config?.RunModifiers);
+            }
+
+            _events.Add(new BattleEvent(BattleEventKind.EnergyChanged, card.DisplayName)
+            {
+                Energy = _state.EnergyCurrent,
+                EnergyMax = _state.EnergyMax,
+                EnergyRemaining = _state.EnergyCurrent
+            });
+            return true;
+        }
+
+        void ResolveCardImmediately(CombatantState actor, CardInstanceState card)
+        {
+            card = HolysunSpellbookRules.ApplyForResolution(_state.Config?.RunModifiers, actor, card);
+
+            _events.Add(new BattleEvent(BattleEventKind.PortraitPoseChanged, actor.DisplayName)
+            {
+                CombatantId = actor.Id,
+                CardType = card.CardType,
+                CardInstanceId = card.InstanceId
+            });
+            _events.Add(new BattleEvent(BattleEventKind.CardResolvedStarted, card.DisplayName)
+            {
+                CombatantId = actor.Id,
+                CardInstanceId = card.InstanceId,
+                CardType = card.CardType
+            });
+
+            PassiveCardMechanicsRules.ApplyEndlessBladeSacrifice(_state, actor, card, _events, _rng);
+
+            if (SpecialCardRules.IsSpecialCard(card))
+                SpecialCardRules.TryResolve(_state, actor, card, _events, _rng);
+            else
+                EffectActionExecutor.ExecuteAll(_state, actor, card, _events, _rng);
+            ConsumableRules.RecordLastPlayerAttackCard(_state, actor, card);
+            RelicBattleRules.TryApplyStatusCardTeamBlock(_state, actor, card, _events);
+            RelicEffectRules.OnCardResolved(_state, actor, card, _events, _rng);
+            PassiveCardMechanicsRules.OnEndlessBladeResolved(_state, card, _events);
+            if (card.DefinitionId == PassiveCardMechanicsRules.SpiderFatalBindCardId)
+                PassiveCardMechanicsRules.OnSpiderFatalBindResolved(_state, actor, card, _events, _rng);
+
+            TrySelfDestructAfterCard(actor, card);
+
+            if (card.Keywords.Contains("exhaust") || card.IsBonusHandCard)
+                DeckRules.ExhaustCard(_state, actor.Team, card, _events);
+            else
+                DeckRules.MovePlayedCardToDiscard(_state, actor.Team, card, _events);
+
+            _events.Add(new BattleEvent(BattleEventKind.CardResolvedEnded, card.DisplayName)
+            {
+                CombatantId = actor.Id,
+                CardInstanceId = card.InstanceId
+            });
+            _events.Add(new BattleEvent(BattleEventKind.PortraitIdleRestored, actor.DisplayName)
+            {
+                CombatantId = actor.Id
+            });
+        }
+
         bool CommitPlanInternal(string message, BattleEventKind kind)
         {
             var plan = Draft.CommitToPlan();
             _state.PlayerPlan.PlayQueue.Clear();
             _state.PlayerPlan.PlayQueue.AddRange(plan.PlayQueue);
             _state.PlayerPlan.EnergySpent = plan.EnergySpent;
+            _state.PlayerPlan.EnergySpentPerCard.Clear();
+            foreach (var pair in plan.EnergySpentPerCard)
+                _state.PlayerPlan.EnergySpentPerCard[pair.Key] = pair.Value;
+
+            _state.EnergySpentByCardInstanceId.Clear();
+            foreach (var pair in plan.EnergySpentPerCard)
+                _state.EnergySpentByCardInstanceId[pair.Key] = pair.Value;
 
             var enemyResolutionTargets = new Dictionary<int, string>();
             foreach (var cardId in _state.EnemyPlan.PlayQueue)
@@ -248,6 +345,8 @@ namespace Grimhand.Battle
             if (actor == null || card == null || !actor.IsAlive)
                 return;
 
+            card = HolysunSpellbookRules.ApplyForResolution(_state.Config?.RunModifiers, actor, card);
+
             var eventStart = _events.Count;
 
             _events.Add(new BattleEvent(BattleEventKind.CardResolvedStarted, card.DisplayName)
@@ -260,6 +359,8 @@ namespace Grimhand.Battle
             if (entry.ApplyConditionalEffects && entry.RespondContext.HasValue)
                 RespondEffectExecutor.Execute(
                     _state, actor, card, entry.RespondContext.Value, _events, _rng);
+
+            PassiveCardMechanicsRules.ApplyEndlessBladeSacrifice(_state, actor, card, _events, _rng);
 
             if (entry.ApplyConditionalEffects
                 || (!card.Keywords.Contains("respond_status") && !card.Keywords.Contains("respond_defense")))
@@ -343,6 +444,8 @@ namespace Grimhand.Battle
                 return;
             }
 
+            card = HolysunSpellbookRules.ApplyForResolution(_state.Config?.RunModifiers, actor, card);
+
             var eventStart = _events.Count;
 
             _events.Add(new BattleEvent(BattleEventKind.PortraitPoseChanged, actor.DisplayName)
@@ -357,6 +460,8 @@ namespace Grimhand.Battle
                 CardInstanceId = card.InstanceId,
                 CardType = card.CardType
             });
+
+            PassiveCardMechanicsRules.ApplyEndlessBladeSacrifice(_state, actor, card, _events, _rng);
 
             if (SpecialCardRules.IsSpecialCard(card))
                 SpecialCardRules.TryResolve(_state, actor, card, _events, _rng);
@@ -527,6 +632,9 @@ namespace Grimhand.Battle
             _state.EnemyIntents.AddRange(enemyTurn.Intents);
 
             TargetRules.PrerollEnemyAutoTargets(_state, _state.EnemyPlan, _rng);
+
+            _state.EnergySpentByCardInstanceId.Clear();
+            _state.PlayerPlan.EnergySpentPerCard.Clear();
 
             _events.Add(new BattleEvent(BattleEventKind.EnemyIntentPrepared,
                 $"Enemy intends {enemyTurn.Intents.Count} card(s)"));

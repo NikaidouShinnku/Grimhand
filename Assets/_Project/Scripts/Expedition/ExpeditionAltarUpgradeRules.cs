@@ -1,3 +1,4 @@
+using Grimhand.Core;
 using Grimhand.Expedition.Model;
 
 namespace Grimhand.Expedition

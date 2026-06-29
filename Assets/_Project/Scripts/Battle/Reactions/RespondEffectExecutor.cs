@@ -44,6 +44,9 @@ namespace Grimhand.Battle.Reactions
                 });
                 TalentBattleRules.OnRespondSuccess(state, actor);
 
+                if (card.DefinitionId == PassiveCardMechanicsRules.FinalGuardCardId)
+                    PassiveCardMechanicsRules.OnFinalGuardResponded(state, events);
+
                 if (card.Keywords.Contains("respond_status"))
                 {
                     state.PlayerRespondStatusUsedThisTurn = true;

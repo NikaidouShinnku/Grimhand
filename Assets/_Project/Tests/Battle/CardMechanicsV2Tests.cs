@@ -4,6 +4,7 @@ using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
 using Grimhand.Battle.Status;
+using Grimhand.Core;
 using NUnit.Framework;
 
 namespace Grimhand.Battle.Tests
@@ -301,6 +302,56 @@ namespace Grimhand.Battle.Tests
 
             Assert.AreEqual(0, state.GetCombatant("goblin").Hp);
             Assert.AreEqual(9, skeleton.Hp);
+        }
+
+        [Test]
+        public void BloodArmor_SacrificesHpBeforeGainingBlock()
+        {
+            var state = BuildState();
+            var demon = AddUnit(state, "demon", TeamSide.Player, FormationSlot.Middle, hp: 30, def: 0);
+            var card = new CardInstanceState
+            {
+                InstanceId = 88,
+                CardType = CardType.Defense
+            };
+            card.Keywords.Add("sacrifice");
+            card.Actions.Add(new EffectActionSpec
+            {
+                Type = EffectActionType.DealDamage,
+                Target = EffectTarget.Self,
+                Value = 3
+            });
+            card.Actions.Add(new EffectActionSpec
+            {
+                Type = EffectActionType.GainBlock,
+                Target = EffectTarget.Self,
+                Value = 12
+            });
+
+            EffectActionExecutor.ExecuteAll(state, demon, card, new List<BattleEvent>());
+
+            Assert.AreEqual(27, demon.Hp);
+            Assert.AreEqual(12, demon.Block);
+        }
+
+        [Test]
+        public void SolarBlessing_UsesEnergySpentFromPlayerPlan()
+        {
+            var state = BuildState();
+            var mage = AddUnit(state, "mage", TeamSide.Player, FormationSlot.Middle);
+            var warrior = AddUnit(state, "warrior", TeamSide.Player, FormationSlot.Front);
+            var card = new CardInstanceState
+            {
+                InstanceId = 102,
+                DefinitionId = CardPowerRules.SolarBlessingCardId,
+                CardType = CardType.Defense
+            };
+            state.PlayerPlan.EnergySpentPerCard[card.InstanceId] = 2;
+
+            SpecialCardRules.TryResolve(state, mage, card, new List<BattleEvent>(), new BattleRng(1));
+
+            Assert.AreEqual(12, mage.Block);
+            Assert.AreEqual(12, warrior.Block);
         }
 
         static CardInstanceState CardWith(params EffectActionSpec[] actions)

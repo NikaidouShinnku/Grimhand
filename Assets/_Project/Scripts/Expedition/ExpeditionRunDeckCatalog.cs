@@ -39,6 +39,13 @@ namespace Grimhand.Expedition
             foreach (var pair in member.RemovedCardCounts)
                 removedLeft[pair.Key] = pair.Value;
 
+            if (member.UsesCampDeckAsBattleBase)
+            {
+                AppendCampDeckEntries(config, member, entries, removedLeft);
+                AppendBonusDeckEntries(config, member, entries);
+                return entries;
+            }
+
             var baseDecks = BuildBaseDeckLookup(config.CombatEncounters[0]);
             if (baseDecks.TryGetValue(member.CharacterDefinitionId, out var baseDeck))
             {
@@ -73,6 +80,52 @@ namespace Grimhand.Expedition
                 }
             }
 
+            AppendBonusDeckEntries(config, member, entries);
+            return entries;
+        }
+
+        static void AppendCampDeckEntries(
+            ExpeditionConfig config,
+            PartyMemberSnapshot member,
+            List<DeckEntry> entries,
+            Dictionary<string, int> removedLeft)
+        {
+            for (var slot = 0; slot < member.CampDeckCardIds.Count; slot++)
+            {
+                var cardId = member.CampDeckCardIds[slot];
+                if (string.IsNullOrEmpty(cardId))
+                    continue;
+
+                if (removedLeft.TryGetValue(cardId, out var left) && left > 0)
+                {
+                    removedLeft[cardId] = left - 1;
+                    continue;
+                }
+
+                var instanceId = ExpeditionDeckInstanceRules.ResolveBaseDeckInstanceId(member, slot);
+                if (string.IsNullOrEmpty(instanceId))
+                    continue;
+
+                var template = ResolveCampCollectionCard(config, cardId, member.CharacterDefinitionId);
+                if (template == null)
+                    continue;
+
+                template.DeckInstanceId = instanceId;
+                ApplyCardUpgrades(template, member);
+                entries.Add(new DeckEntry
+                {
+                    Key = instanceId,
+                    Template = template,
+                    IsBonus = false
+                });
+            }
+        }
+
+        static void AppendBonusDeckEntries(
+            ExpeditionConfig config,
+            PartyMemberSnapshot member,
+            List<DeckEntry> entries)
+        {
             for (var i = 0; i < member.BonusCards.Count; i++)
             {
                 var bonus = member.BonusCards[i];
@@ -90,8 +143,6 @@ namespace Grimhand.Expedition
                     BonusIndex = i
                 });
             }
-
-            return entries;
         }
 
         public static CardTemplate TryResolveCampCollectionCard(

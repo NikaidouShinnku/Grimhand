@@ -38,7 +38,7 @@ MonoBehaviour:
     IgnoreDefPercent: 0
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
-    BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHitThisTurnPercent: 50
     BonusIfTargetHasStatusId: 
     BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0

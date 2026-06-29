@@ -30,6 +30,8 @@ namespace Grimhand.Expedition
                 mods.TeamAttackBonus += relic.AtkBonus;
                 mods.TeamDefenseBonus += relic.DefBonus;
                 mods.TeamHpBonus += relic.HpBonus;
+                mods.TeamAttackBonusPercent += relic.AtkPercentBonus;
+                mods.TeamBlockGainBonusPercent += relic.BlockGainPercentBonus;
                 ApplySpecialFlag(mods, relic);
                 RelicGrowthRules.ApplyGrowthBonuses(id, RelicGrowthRules.GetGrowthTiers(growthTiers, id), mods);
             }
@@ -66,16 +68,15 @@ namespace Grimhand.Expedition
                     mods.StatusCardTeamBlock += 3;
                     break;
                 case "warrior_only":
-                    mods.WarriorFirstHitBlockAmount += 8;
+                    mods.WarriorFirstHitBlockAmount += 12;
                     mods.WarriorBlockDamageReductionPercent += 20f;
                     break;
                 case "demon_only":
                     mods.SacrificeHpCostReductionPercent += 15f;
-                    mods.SacrificeStackAttackBonus += 2;
+                    mods.SacrificeStackAttackBonus += 5;
                     break;
-                case "front_armor_10":
-                    mods.BattleStartFrontBlock += 10;
-                    mods.TeamDefenseBonus += 3;
+                case "front_armor_15":
+                    mods.BattleStartFrontBlock += 15;
                     break;
                 case "extra_draw_1":
                     mods.ExtraDrawOnBattleStart += 1;
@@ -90,7 +91,6 @@ namespace Grimhand.Expedition
                     mods.HighCostCardDamageBonusPercent += 15f;
                     break;
                 case "first_hit_minus_30pct":
-                    mods.TeamDefenseBonus += 3;
                     mods.FirstHitDamageReductionPercent += 30f;
                     break;
                 case "heal_2_per_turn":
@@ -127,7 +127,7 @@ namespace Grimhand.Expedition
                     {
                         mods.BattleStartSpeedBonusTurns = System.Math.Max(mods.BattleStartSpeedBonusTurns, 2);
                         mods.BattleStartSpeedBonus += 2;
-                        mods.TurnStartEnemyDamage += 3;
+                        mods.TurnStartEnemyBurnStacks += 2;
                     }
 
                     break;
@@ -142,8 +142,11 @@ namespace Grimhand.Expedition
                     break;
                 case "revive_2_per_run":
                     break;
-                case "post_battle_heal_5pct":
-                    mods.PostBattleTeamHealPercent += 5f;
+                case "post_battle_heal_3pct":
+                    mods.PostBattleTeamHealPercent += 3f;
+                    break;
+                case "holysun_spellbook":
+                    mods.HolysunSpellbookBonusUpgradeLevels = 3;
                     break;
                 case "front_burn_target_15x":
                     mods.FrontRowBurnTargetDamageMultiplier = System.Math.Max(
@@ -166,32 +169,32 @@ namespace Grimhand.Expedition
                     "法老给予的护甲量+33%。法老每次施放状态类卡牌时，全队获得3点护甲。",
                     "pharaoh_only", requiredCharacterId: "char_mage"),
                 Def(RelicIds.KnightInCastle, "城堡骑士", RelicRarity.Rare, "战士专属",
-                    "战士拥有护甲期间受到的伤害减少20%。战士每回合首次被攻击时自动获得8点护甲。",
+                    "战士拥有护甲期间获得20%减伤。战士每回合首次被攻击时自动获得12点护甲。",
                     "warrior_only", requiredCharacterId: "char_knight"),
                 Def(RelicIds.BloodAlter, "血祭坛", RelicRarity.Rare, "恶魔专属",
-                    "恶魔使用献祭类卡牌时，献祭的HP消耗减少15%。每次献祭后本场战斗攻击牌+2伤害（可叠加，战斗结束重置）。",
+                    "恶魔使用献祭类卡牌时，献祭的HP消耗减少15%。每次献祭后获得增伤5%（永久）（可叠加）。",
                     "demon_only", requiredCharacterId: "char_ranger"),
-                Def(RelicIds.JadeStone, "翡翠原石", RelicRarity.Common, "翡翠系列",
+                Def(RelicIds.JadeStone, "翡翠原石", RelicRarity.Common, "翡翠系列·基础",
                     "每回合开始时，随机一名队友获得2点护甲。",
                     "evolvable"),
-                Def(RelicIds.JadeRing, "翡翠戒指", RelicRarity.Rare, "翡翠进化·防御",
+                Def(RelicIds.JadeRing, "翡翠戒指", RelicRarity.Rare, "翡翠系列·防御进化",
                     "每回合开始时，全队获得3点护甲。被攻击时15%概率完全闪避（不受任何伤害）。",
                     "evolved_from_jade_stone", evolutionOnly: true),
-                Def(RelicIds.JadeDagger, "翡翠短刀", RelicRarity.Rare, "翡翠进化·攻击",
-                    "全队攻击牌+2伤害。每场战斗首次击杀敌人时，抽1张牌并回复2点能量。",
-                    "evolved_from_jade_stone", atk: 2, evolutionOnly: true),
-                Def(RelicIds.BurningBoots, "燃烬之靴", RelicRarity.Common, "烈焰系列",
+                Def(RelicIds.JadeDagger, "翡翠短刀", RelicRarity.Rare, "翡翠系列·攻击进化",
+                    "全队获得5%增伤。每场战斗首次击杀敌人时，抽1张牌并回复2点能量。",
+                    "evolved_from_jade_stone", evolutionOnly: true, atkPercent: 5),
+                Def(RelicIds.BurningBoots, "燃烬之靴", RelicRarity.Common, "烈焰系列·基础",
                     "每场战斗第一回合，全队SPD临时+2（仅影响第一回合结算顺序）。",
                     "evolvable"),
-                Def(RelicIds.CrimsonBurningBoots, "赤红烈焰靴", RelicRarity.Rare, "烈焰进化",
-                    "每场战斗前2回合全队SPD临时+2。每回合开始时对所有敌人造成3点伤害。",
+                Def(RelicIds.CrimsonBurningBoots, "赤红烈焰靴", RelicRarity.Rare, "烈焰系列·进化",
+                    "每场战斗前2回合全队SPD临时+2。每回合开始时给予所有敌人2层灼烧（永久）。",
                     "evolved_from_burning_boots", evolutionOnly: true),
                 Def(RelicIds.FlameSword, "烈焰之剑", RelicRarity.Common, "通用",
-                    "全队攻击牌+3伤害。攻击类卡牌有20%概率附加5层灼烧效果（5回合）",
-                    "burn_proc_20pct", atk: 3),
+                    "全队获得5%增伤。攻击类卡牌有20%概率附加5层灼烧效果（5回合）",
+                    "burn_proc_20pct", atkPercent: 5),
                 Def(RelicIds.IronArmor, "铁壁战甲", RelicRarity.Common, "通用",
-                    "每场战斗开始时，前排角色获得10点护甲。全队防御牌额外+3护甲。",
-                    "front_armor_10"),
+                    "每场战斗开始时，前排角色获得15点护甲。全队获得5%强固",
+                    "front_armor_15", blockGainPercent: 5),
                 Def(RelicIds.WarriorHelmet, "角斗士之盔", RelicRarity.Common, "通用",
                     "全队HP+8。角色被攻击后，该角色下一次攻击伤害+4。",
                     "revenge_atk_4", hp: 8),
@@ -202,16 +205,16 @@ namespace Grimhand.Expedition
                     "后排角色的攻击类卡牌可以指定攻击敌方任意位置的目标（无视敌方位置优先级）。",
                     "back_target_any"),
                 Def(RelicIds.DragonRing, "龙纹指环", RelicRarity.Rare, "通用",
-                    "全队攻击牌+3伤害。任何角色打出费用≥3的卡牌时，该卡牌伤害额外+15%。",
-                    "cost3_plus_15pct", atk: 3),
+                    "全队获得10%增伤。任何角色打出费用≥3的卡牌时，该卡牌伤害额外+15%。",
+                    "cost3_plus_15pct", atkPercent: 10),
                 Def(RelicIds.PaladinShield, "圣骑之盾", RelicRarity.Rare, "通用",
-                    "全队防御牌+3护甲。每回合第一个受到伤害的角色，受伤减少30%",
-                    "first_hit_minus_30pct"),
+                    "全队获得10%强固。每回合第一个受到伤害的角色，受伤减少30%",
+                    "first_hit_minus_30pct", blockGainPercent: 10),
                 Def(RelicIds.SilverMoonPendant, "银月项链", RelicRarity.Rare, "通用",
                     "每回合结束时回复全队2HP。所有增益/减益状态持续时间+1回合（含中毒、灼烧等）。",
                     "heal_2_per_turn"),
                 Def(RelicIds.TaichiRing, "太极指环", RelicRarity.Rare, "通用",
-                    "每回合中，每个角色打出的第一张攻击牌伤害+5，第一张防御牌获得5护甲。若同一角色本回合既出了攻击又出了防御，该角色在回合结束时回复5HP。",
+                    "每回合中，每个角色打出的第一张攻击牌伤害+5，第一张防御牌额外获得5护甲。若同一角色本回合既出了攻击又出了防御，该角色在回合结束时回复5HP。",
                     "first_atk_5_first_def_5_both_heal_5"),
                 Def(RelicIds.LeafOfMiracle, "奇迹之叶", RelicRarity.Epic, "通用",
                     "每次远征限2次：当任何队友HP首次降至0时，该队友不进入死亡状态，而是恢复至20%HP并获得无敌1回合。",
@@ -223,8 +226,11 @@ namespace Grimhand.Expedition
                     "使我方前排角色的攻击无视对方护甲，但仅造成75%的伤害",
                     "front_ignore_armor_75pct"),
                 Def(RelicIds.Bonfire, "便携篝火", RelicRarity.Common, "通用",
-                    "每场战斗胜利后，所有我方角色恢复5%HP",
-                    "post_battle_heal_5pct"),
+                    "每场战斗胜利后，所有我方角色恢复3%HP",
+                    "post_battle_heal_3pct"),
+                Def(RelicIds.HolysunSpellbook, "圣阳之书", RelicRarity.Common, "法老专属",
+                    "当使用任何名字中含有“阳”或“日”的卡牌时，使该卡牌视为等级+3（可超出卡牌升级上限）",
+                    "holysun_spellbook", requiredCharacterId: "char_mage"),
                 Def(RelicIds.Felskull, "魔焰颅骨", RelicRarity.Common, "通用",
                     "每场战斗开始时，你必须选择其一：A.所有我方角色失去5%HP，本场战斗获得1额外能量上限；B.在本场战斗中失去1点能量上限，所有我方角色的攻击牌增加10%伤害",
                     "felskull_choice")
@@ -247,7 +253,9 @@ namespace Grimhand.Expedition
             int def = 0,
             int hp = 0,
             string requiredCharacterId = "",
-            bool evolutionOnly = false) =>
+            bool evolutionOnly = false,
+            float atkPercent = 0,
+            float blockGainPercent = 0) =>
             new()
             {
                 Id = id,
@@ -259,6 +267,8 @@ namespace Grimhand.Expedition
                 AtkBonus = atk,
                 DefBonus = def,
                 HpBonus = hp,
+                AtkPercentBonus = atkPercent,
+                BlockGainPercentBonus = blockGainPercent,
                 RequiredCharacterId = requiredCharacterId,
                 EvolutionOnly = evolutionOnly
             };

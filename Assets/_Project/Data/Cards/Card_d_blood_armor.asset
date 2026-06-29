@@ -17,9 +17,9 @@ MonoBehaviour:
   OwnerCharacterId: char_ranger
   Cost: 1
   CardType: 1
-  Rarity: 0
   Keywords:
   - sacrifice
+  Rarity: 0
   Actions:
   - Type: 0
     Target: 1
@@ -61,7 +61,7 @@ MonoBehaviour:
     LifestealUnblockedOnly: 0
   - Type: 1
     Target: 1
-    Value: 10
+    Value: 12
     StatusId: 
     Stacks: 1
     Duration: -1

@@ -63,11 +63,11 @@ namespace Grimhand.Expedition
             yield return Def(KnightId, 1, 1, "talent_knight_s1_lv1", "前排护甲",
                 "如果处于前排，回合开始时获得+2护甲");
             yield return Def(KnightId, 1, 3, "talent_knight_s1_lv3", "突击姿态",
-                "当不处于前排时，受到33%额外伤害，攻击牌增加33%伤害");
+                "当不处于前排时，获得33%易伤和33%增伤");
             yield return Def(KnightId, 1, 5, "talent_knight_s1_lv5", "余护甲回血",
                 "回合结束时如果护甲量大于0，则回复2HP");
             yield return Def(KnightId, 1, 7, "talent_knight_s1_lv7", "背水一战",
-                "当HP低于10%时，攻击牌增加50%伤害");
+                "当HP低于护甲时，获得20%增伤");
             yield return Def(KnightId, 1, 10, "talent_knight_s1_lv10", "绝地格挡",
                 "每场战斗第一次即将受到致死攻击时，获得50点护甲");
 
@@ -78,7 +78,7 @@ namespace Grimhand.Expedition
             yield return Def(KnightId, 2, 6, "talent_knight_s2_lv6", "战阵鼓舞",
                 "战士场上存活时，全队最大HP+10");
             yield return Def(KnightId, 2, 8, "talent_knight_s2_lv8", "连击",
-                "如果一回合中连续使用三张攻击牌，当回合的所有攻击牌增加33%伤害");
+                "如果一回合中连续使用三张攻击牌，当回合获得33%增伤");
             yield return Def(KnightId, 2, 10, "talent_knight_s2_lv10", "铁壁转化",
                 "不再获得护甲，每当获取护甲时变为下一张攻击牌增加护甲量的伤害");
         }
@@ -107,11 +107,11 @@ namespace Grimhand.Expedition
         static IEnumerable<TalentDefinition> BuildRanger()
         {
             yield return Def(RangerId, 1, 1, "talent_ranger_s1_lv1", "温和献祭",
-                "献祭类卡牌减少10%的血量消耗");
+                "献祭类卡牌减少25%的血量消耗");
             yield return Def(RangerId, 1, 5, "talent_ranger_s1_lv5", "血怒献祭",
-                "献祭类卡牌增加30%伤害，但同时增加50%血量消耗");
+                "献祭类卡牌增加30%伤害，但同时增加40%血量消耗");
             yield return Def(RangerId, 1, 7, "talent_ranger_s1_lv7", "低血狂怒",
-                "当HP低于30%时，攻击牌增加25%伤害");
+                "当HP低于30%时，获得25%增伤");
             yield return Def(RangerId, 1, 10, "talent_ranger_s1_lv10", "血债累击",
                 "献祭总血量每达到50点所有攻击牌增加1点伤害，最多可增加10点（整场远征累计）");
 
@@ -122,7 +122,7 @@ namespace Grimhand.Expedition
             yield return Def(RangerId, 2, 6, "talent_ranger_s2_lv6", "无尽血刃",
                 "远征开始时，将一张「无尽血刃」置入该角色牌组");
             yield return Def(RangerId, 2, 8, "talent_ranger_s2_lv8", "孤猎",
-                "非Boss战中，若只有一个敌人，则攻击牌增加30%伤害");
+                "非Boss战中，若只有一个敌人，则获得30%增伤");
         }
 
         static TalentDefinition Def(

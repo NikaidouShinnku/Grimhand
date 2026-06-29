@@ -17,15 +17,14 @@ MonoBehaviour:
   OwnerCharacterId: char_knight
   Cost: 5
   CardType: 2
-  Rarity: 4
   Keywords:
-  - aoe
   - exhaust
+  Rarity: 4
   Actions:
-  - Type: 0
-    Target: 12
-    Value: 8
-    StatusId: 
+  - Type: 3
+    Target: 1
+    Value: 0
+    StatusId: god_descends
     Stacks: 1
     Duration: -1
     ScaleWithAttack: 0

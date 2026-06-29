@@ -17,12 +17,12 @@ MonoBehaviour:
   OwnerCharacterId: char_bat
   Cost: 2
   CardType: 0
-  Rarity: 1
   Keywords: []
+  Rarity: 1
   Actions:
   - Type: 0
     Target: 0
-    Value: 16
+    Value: 10
     StatusId: 
     Stacks: 1
     Duration: -1

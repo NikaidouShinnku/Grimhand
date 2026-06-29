@@ -3,64 +3,58 @@ using Grimhand.Core;
 
 namespace Grimhand.Expedition
 {
-    /// <summary>敌人按远征层数缩放（v0.8：仅 HP 与卡牌固定数值，不再缩放 ATK/DEF）。</summary>
+    /// <summary>敌人按远征层数缩放（v0.8：伤害每3层+1，护甲每5层+1，HP每层+1.5）。</summary>
     public static class EnemyFloorScaling
     {
-        public const float HpGrowthPerFloor = 0.05f;
-        public const float CardValueGrowthPerFloor = 0.03f;
+        public const float HpBonusPerFloor = 1.5f;
+        public const int DamageBonusEveryFloors = 3;
+        public const int BlockBonusEveryFloors = 5;
 
         public static void Apply(CombatantConfig combatant, int floor, BattleRng rng)
         {
             if (combatant == null || combatant.Team != TeamSide.Enemy || floor <= 1)
                 return;
 
-            var tiers = floor - 1;
-            var hpMult = 1f + HpGrowthPerFloor * tiers;
-            var cardMult = 1f + CardValueGrowthPerFloor * tiers;
-            var variance = rng != null ? rng.NextInt(90, 111) / 100f : 1f;
+            var damageBonus = floor / DamageBonusEveryFloors;
+            var blockBonus = floor / BlockBonusEveryFloors;
+            var hpBonus = (int)System.Math.Round(HpBonusPerFloor * (floor - 1));
 
-            combatant.MaxHp = Scale(combatant.MaxHp, hpMult * variance);
+            combatant.MaxHp = System.Math.Max(1, combatant.MaxHp + hpBonus);
             combatant.BaseAttack = 0;
             combatant.BaseDefense = 0;
 
-            var scaledCardMult = cardMult * variance;
-            ScaleTemplates(combatant.DeckTemplates, scaledCardMult);
-            ScaleTemplates(combatant.SkillPoolCandidates, scaledCardMult);
+            AdditiveScaleTemplates(combatant.DeckTemplates, damageBonus, blockBonus);
+            AdditiveScaleTemplates(combatant.SkillPoolCandidates, damageBonus, blockBonus);
         }
 
-        static void ScaleTemplates(System.Collections.Generic.List<CardTemplate> templates, float multiplier)
+        static void AdditiveScaleTemplates(
+            System.Collections.Generic.List<CardTemplate> templates,
+            int damageBonus,
+            int blockBonus)
         {
             if (templates == null)
                 return;
 
             foreach (var template in templates)
-                ScaleTemplate(template, multiplier);
+                AdditiveScaleTemplate(template, damageBonus, blockBonus);
         }
 
-        static void ScaleTemplate(CardTemplate template, float multiplier)
+        static void AdditiveScaleTemplate(CardTemplate template, int damageBonus, int blockBonus)
         {
             if (template?.Actions == null)
                 return;
 
             foreach (var action in template.Actions)
             {
-                if (action.Type != EffectActionType.DealDamage && action.Type != EffectActionType.GainBlock)
-                    continue;
-
-                if (action.Value > 0)
-                    action.Value = Scale(action.Value, multiplier);
-
                 action.ScaleWithAttack = false;
                 action.ScaleWithDefense = false;
+
+                if (action.Type == EffectActionType.DealDamage && action.Value > 0 && damageBonus > 0)
+                    action.Value += damageBonus;
+
+                if (action.Type == EffectActionType.GainBlock && action.Value > 0 && blockBonus > 0)
+                    action.Value += blockBonus;
             }
-        }
-
-        static int Scale(int baseValue, float multiplier)
-        {
-            if (baseValue <= 0)
-                return baseValue;
-
-            return System.Math.Max(1, (int)System.Math.Round(baseValue * multiplier, System.MidpointRounding.AwayFromZero));
         }
     }
 }

@@ -51,9 +51,11 @@ namespace Grimhand.Presentation.Battle
         Coroutine _scaleRoutine;
         RectTransform _scaleRoot;
         Action<int> _onClick;
+        Action<int> _onQuickStart;
         Action<CardInstanceState, RectTransform> _onHoverEnter;
         Action _onHoverExit;
         string _statsBaseLine = "";
+        bool _isQuickStart;
 
         public int InstanceId => _instanceId;
         public CardInstanceState CurrentCard { get; private set; }
@@ -86,7 +88,8 @@ namespace Grimhand.Presentation.Battle
             Action<int> onClick,
             Action<CardInstanceState, RectTransform> onHoverEnter,
             Action onHoverExit,
-            int? displayCost = null)
+            int? displayCost = null,
+            Action<int> onQuickStart = null)
         {
             EnsureScaleRoot();
             EnsureCardVisuals();
@@ -100,9 +103,11 @@ namespace Grimhand.Presentation.Battle
             _selected = selected;
             _interactable = interactable;
             _onClick = onClick;
+            _onQuickStart = onQuickStart;
             _onHoverEnter = onHoverEnter;
             _onHoverExit = onHoverExit;
             _statsBaseLine = statsLine ?? "";
+            _isQuickStart = card != null && card.Keywords != null && card.Keywords.Contains("quick_start");
 
             if (frameImage != null)
             {
@@ -140,7 +145,14 @@ namespace Grimhand.Presentation.Battle
             }
 
             if (costText != null)
-                costText.text = (displayCost ?? card.Cost).ToString();
+            {
+                if (displayCost.HasValue)
+                    costText.text = displayCost.Value.ToString();
+                else if (card != null && card.Keywords != null && card.Keywords.Contains("x_cost"))
+                    costText.text = "X";
+                else
+                    costText.text = card.Cost.ToString();
+            }
 
             if (nameText != null)
             {
@@ -184,7 +196,11 @@ namespace Grimhand.Presentation.Battle
                 button.onClick.RemoveAllListeners();
                 button.onClick.AddListener(() =>
                 {
-                    if (interactable)
+                    if (!interactable)
+                        return;
+                    if (_isQuickStart && _onQuickStart != null)
+                        _onQuickStart?.Invoke(_instanceId);
+                    else
                         _onClick?.Invoke(_instanceId);
                 });
             }
@@ -606,7 +622,10 @@ namespace Grimhand.Presentation.Battle
             if (!IsInteractable())
                 return;
 
-            _onClick?.Invoke(_instanceId);
+            if (_isQuickStart && _onQuickStart != null)
+                _onQuickStart?.Invoke(_instanceId);
+            else
+                _onClick?.Invoke(_instanceId);
         }
 
         bool IsInteractable() => _interactable && (button == null || button.interactable);

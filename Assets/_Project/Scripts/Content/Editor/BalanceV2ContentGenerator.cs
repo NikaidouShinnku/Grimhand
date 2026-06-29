@@ -54,7 +54,7 @@ namespace Grimhand.Content.Editor
 
         struct DemonCards
         {
-            public CardDefinitionSO ShadowClaw, DevilTouch, BloodTail, BloodFlame, SoulRip, DarkSacrifice, DemonPact,
+            public CardDefinitionSO ShadowClaw, DevilTouch, BloodTail, BloodArmor, BloodFlame, SoulRip, DarkSacrifice, DemonPact,
                 VampAura, CurseChain, HellFire, DemonLord;
         }
 
@@ -158,6 +158,8 @@ namespace Grimhand.Content.Editor
                     null, CardRarity.Common, AtkDmg(4, 50, lifestealPercent: 100)),
                 BloodTail = SaveCard("d_blood_tail", "血尾贯穿", "char_ranger", 2, CardType.Attack,
                     null, CardRarity.Rare, AtkDmg(5, 100, splashBehind: true, splashPercent: 80)),
+                BloodArmor = SaveCard("d_blood_armor", "鲜血铠甲", "char_ranger", 1, CardType.Defense,
+                    Kw("sacrifice"), CardRarity.Common, SelfDmg(3), Block(12)),
                 BloodFlame = SaveCard("d_blood_flame", "血焰爆发", "char_ranger", 2, CardType.Attack,
                     Kw("sacrifice"), CardRarity.Rare,
                     SelfDmg(8),
@@ -192,28 +194,25 @@ namespace Grimhand.Content.Editor
 
         static CardDefinitionSO[] BuildInitialWarriorDeck(WarriorCards c) =>
             BuildDeckWithCounts(
-                (c.AuthorRealmStrike, 1),
                 (c.BasicSlash, 3),
                 (c.ShieldBlock, 2),
                 (c.DefensiveStance, 1),
-                (c.PowerCleave, 1),
-                (c.IronParry, 1));
+                (c.IronParry, 1),
+                (c.AuthorRealmStrike, 1));
 
         static CardDefinitionSO[] BuildInitialPharaohDeck(PharaohCards c) =>
             BuildDeckWithCounts(
                 (c.SandRay, 3),
                 (c.Bless, 2),
-                (c.SolarWrath, 1),
-                (c.Decree, 1),
-                (c.ScarabShield, 1));
+                (c.ScarabShield, 1),
+                (c.UndeadCurse, 1));
 
         static CardDefinitionSO[] BuildInitialDemonDeck(DemonCards c) =>
             BuildDeckWithCounts(
                 (c.ShadowClaw, 3),
-                (c.DevilTouch, 2),
-                (c.BloodTail, 1),
-                (c.DemonPact, 1),
-                (c.HellFire, 1));
+                (c.BloodArmor, 2),
+                (c.DevilTouch, 1),
+                (c.BloodTail, 1));
 
         static EffectActionDefinition AtkDmg(
             int fixedVal,

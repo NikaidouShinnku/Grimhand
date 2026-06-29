@@ -120,16 +120,25 @@ namespace Grimhand.Presentation.Camp
 
             var difficulty = CampUiRuntime.CreateText(_body, "难度：Demo（标准）", 18, FontStyle.Bold,
                 TextAnchor.MiddleLeft);
+            difficulty.raycastTarget = false;
             difficulty.rectTransform.anchorMin = new Vector2(0f, 0.28f);
             difficulty.rectTransform.anchorMax = new Vector2(1f, 0.36f);
             difficulty.rectTransform.offsetMin = new Vector2(32f, 0f);
             difficulty.rectTransform.offsetMax = new Vector2(-32f, 0f);
 
             var regionLabel = CampUiRuntime.CreateText(_body, "起始区域", 17, FontStyle.Bold, TextAnchor.MiddleLeft);
+            regionLabel.raycastTarget = false;
             regionLabel.rectTransform.anchorMin = new Vector2(0f, 0.24f);
             regionLabel.rectTransform.anchorMax = new Vector2(1f, 0.32f);
             regionLabel.rectTransform.offsetMin = new Vector2(32f, 0f);
             regionLabel.rectTransform.offsetMax = new Vector2(-32f, 0f);
+
+            var bossLabel = CampUiRuntime.CreateText(_body, "Boss 直通", 17, FontStyle.Bold, TextAnchor.MiddleLeft);
+            bossLabel.raycastTarget = false;
+            bossLabel.rectTransform.anchorMin = new Vector2(0f, 0.08f);
+            bossLabel.rectTransform.anchorMax = new Vector2(1f, 0.14f);
+            bossLabel.rectTransform.offsetMin = new Vector2(32f, 0f);
+            bossLabel.rectTransform.offsetMax = new Vector2(-32f, 0f);
 
             _caveStartButton = CampUiRuntime.CreateButton(_body, "洞穴（1层）", new Color(0.22f, 0.34f, 0.28f, 1f),
                 new Vector2(132f, 40f));
@@ -154,12 +163,6 @@ namespace Grimhand.Presentation.Camp
             abyssRt.anchorMax = new Vector2(0.5f, 0f);
             abyssRt.pivot = new Vector2(0.5f, 0f);
             abyssRt.anchoredPosition = new Vector2(150f, 116f);
-
-            var bossLabel = CampUiRuntime.CreateText(_body, "Boss 直通", 17, FontStyle.Bold, TextAnchor.MiddleLeft);
-            bossLabel.rectTransform.anchorMin = new Vector2(0f, 0.14f);
-            bossLabel.rectTransform.anchorMax = new Vector2(1f, 0.22f);
-            bossLabel.rectTransform.offsetMin = new Vector2(32f, 0f);
-            bossLabel.rectTransform.offsetMax = new Vector2(-32f, 0f);
 
             _caveBossButton = CampUiRuntime.CreateButton(_body, "Boss·20层", new Color(0.42f, 0.24f, 0.20f, 1f),
                 new Vector2(132f, 40f));
@@ -296,12 +299,28 @@ namespace Grimhand.Presentation.Camp
             if (_caveStartButton == null)
                 return;
 
-            _caveStartButton.interactable = _selectedStartLayer != 1;
-            _dungeonStartButton.interactable = _selectedStartLayer != ExpeditionRegionRules.DungeonStartLayer;
-            _abyssStartButton.interactable = _selectedStartLayer != ExpeditionRegionRules.AbyssStartLayer;
-            _caveBossButton.interactable = _selectedStartLayer != ExpeditionRegionRules.CaveBossLayer;
-            _dungeonBossButton.interactable = _selectedStartLayer != ExpeditionRegionRules.DungeonBossLayer;
-            _abyssBossButton.interactable = _selectedStartLayer != ExpeditionRegionRules.AbyssBossLayer;
+            SetLayerButtonSelected(_caveStartButton, new Color(0.22f, 0.34f, 0.28f, 1f),
+                _selectedStartLayer == 1);
+            SetLayerButtonSelected(_dungeonStartButton, new Color(0.28f, 0.24f, 0.38f, 1f),
+                _selectedStartLayer == ExpeditionRegionRules.DungeonStartLayer);
+            SetLayerButtonSelected(_abyssStartButton, new Color(0.16f, 0.30f, 0.42f, 1f),
+                _selectedStartLayer == ExpeditionRegionRules.AbyssStartLayer);
+            SetLayerButtonSelected(_caveBossButton, new Color(0.42f, 0.24f, 0.20f, 1f),
+                _selectedStartLayer == ExpeditionRegionRules.CaveBossLayer);
+            SetLayerButtonSelected(_dungeonBossButton, new Color(0.38f, 0.22f, 0.28f, 1f),
+                _selectedStartLayer == ExpeditionRegionRules.DungeonBossLayer);
+            SetLayerButtonSelected(_abyssBossButton, new Color(0.18f, 0.28f, 0.44f, 1f),
+                _selectedStartLayer == ExpeditionRegionRules.AbyssBossLayer);
+        }
+
+        static void SetLayerButtonSelected(Button button, Color baseColor, bool selected)
+        {
+            if (button == null)
+                return;
+
+            button.interactable = true;
+            if (button.targetGraphic is Image img)
+                img.color = selected ? Color.Lerp(baseColor, Color.white, 0.22f) : baseColor;
         }
     }
 }

@@ -104,6 +104,18 @@ namespace Grimhand.Battle.Rules
                 }
             }
 
+            if (mods.TurnStartEnemyBurnStacks > 0)
+            {
+                foreach (var enemy in state.GetTeam(TeamSide.Enemy))
+                {
+                    if (!enemy.IsAlive)
+                        continue;
+
+                    StatusRules.ApplyStatus(state, enemy, StatusCatalog.Burn,
+                        mods.TurnStartEnemyBurnStacks, 999, events);
+                }
+            }
+
             TalentBattleRules.ProcessTurnStart(state, events);
         }
 
@@ -218,7 +230,7 @@ namespace Grimhand.Battle.Rules
             actor.SacrificeAttackStacks += mods.SacrificeStackAttackBonus;
             RelicBattleRules.RefreshDerivedStats(state, actor, mods);
             events.Add(new BattleEvent(BattleEventKind.BlockGained,
-                $"{actor.DisplayName} 血祭坛 ATK+{mods.SacrificeStackAttackBonus}")
+                $"{actor.DisplayName} 血祭坛 增伤+{mods.SacrificeStackAttackBonus}%")
             {
                 CombatantId = actor.Id,
                 Amount = actor.SacrificeAttackStacks

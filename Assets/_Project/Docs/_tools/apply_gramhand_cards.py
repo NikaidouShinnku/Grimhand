@@ -338,15 +338,15 @@ def main():
     print("Writing initial decks...")
     write_character("Character_Knight", "char_knight", "战士", 1, [
         ("w_basic_slash", 3), ("w_shield_block", 2), ("w_defensive_stance", 1),
-        ("w_power_cleave", 1), ("w_iron_parry", 1),
+        ("w_iron_parry", 1), ("w_author_realm_strike", 1),
     ])
     write_character("Character_Mage", "char_mage", "法老", 2, [
-        ("p_sand_ray", 3), ("p_bless", 2), ("p_solar_wrath", 1),
-        ("p_decree", 1), ("p_scarab_shield", 1),
+        ("p_sand_ray", 3), ("p_bless", 2), ("p_scarab_shield", 1),
+        ("p_undead_curse", 1),
     ])
     write_character("Character_Ranger", "char_ranger", "恶魔", 3, [
-        ("d_shadow_claw", 3), ("d_devil_touch", 2), ("d_blood_tail", 1),
-        ("d_demon_pact", 1), ("d_hell_fire", 1),
+        ("d_shadow_claw", 3), ("d_blood_armor", 2), ("d_devil_touch", 1),
+        ("d_blood_tail", 1),
     ])
     print("Done.")
 

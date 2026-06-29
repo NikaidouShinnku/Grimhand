@@ -1310,6 +1310,12 @@ namespace Grimhand.Presentation.Battle
                     _session.ToggleCard(id);
                     Refresh();
                 },
+                id =>
+                {
+                    ClearDamagePreviewTarget(silent: true);
+                    _session.TryQuickStartCard(id);
+                    Refresh();
+                },
                 ShowKeywordTooltip,
                 HideKeywordTooltip,
                 damagePreviewTarget);

@@ -67,6 +67,16 @@ namespace Grimhand.Content.Editor
                 LoadSprite("Assets/The Grimhands Asset/path and background/underwaterruin_path3.png")
             };
             catalog.AbyssPathVariants = abyssPaths;
+            catalog.StatusDamageUp = LoadSprite("Assets/The Grimhands Asset/icon/damage_up.png");
+            catalog.StatusDamageDown = LoadSprite("Assets/The Grimhands Asset/icon/damage_down.png");
+            catalog.StatusDefenseUp = LoadSprite("Assets/The Grimhands Asset/icon/defense_up.png");
+            catalog.StatusDefenseDown = LoadSprite("Assets/The Grimhands Asset/icon/defense_down.png");
+            catalog.StatusArmorAcqUp = LoadSprite("Assets/The Grimhands Asset/icon/armoracq_up.png");
+            catalog.StatusArmorAcqDown = LoadSprite("Assets/The Grimhands Asset/icon/armoracq_down.png");
+            catalog.StatusSpdDown = LoadSprite("Assets/The Grimhands Asset/icon/spd_down.png");
+            catalog.StatusSpdUp = LoadSprite("Assets/The Grimhands Asset/icon/spd_up.png");
+            catalog.StatusPoisoning = LoadSprite("Assets/The Grimhands Asset/effects/poisoning_effect.png");
+            catalog.StatusBurning = LoadSprite("Assets/The Grimhands Asset/effects/burning_effect.png");
             EditorUtility.SetDirty(catalog);
             return true;
         }

@@ -210,6 +210,9 @@ namespace Grimhand.Battle.Rules
                     status.RemainingTurns--;
                     if (status.RemainingTurns <= 0)
                     {
+                        if (status.StatusId == StatusCatalog.FinalSummonPending)
+                            PassiveCardMechanicsRules.OnFinalSummonPendingExpired(state, combatant, events);
+
                         combatant.Statuses.RemoveAt(i);
                         events.Add(new BattleEvent(BattleEventKind.StatusExpired, def.DisplayName)
                         {

@@ -17,12 +17,12 @@ MonoBehaviour:
   OwnerCharacterId: char_chain_wraith
   Cost: 1
   CardType: 1
-  Rarity: 0
   Keywords: []
+  Rarity: 0
   Actions:
   - Type: 1
     Target: 1
-    Value: 5
+    Value: 3
     StatusId: 
     Stacks: 1
     Duration: -1

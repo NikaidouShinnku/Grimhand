@@ -39,6 +39,7 @@ namespace Grimhand.Presentation.Battle
             CharacterVisualCatalogSO characterVisuals,
             IReadOnlyDictionary<string, CardDefinitionSO> definitions,
             Action<int> onCardClick,
+            Action<int> onQuickStart,
             Action<CardInstanceState, RectTransform> onHoverEnter,
             Action onHoverExit,
             CombatantState damagePreviewTarget = null)
@@ -100,7 +101,7 @@ namespace Grimhand.Presentation.Battle
                     : null;
 
                 view.BindWithCard(card, visual, showSelected, polluted, interactable, badge, stats,
-                    uiIcons, characterVisuals, onCardClick, onHoverEnter, onHoverExit, playCost);
+                    uiIcons, characterVisuals, onCardClick, onHoverEnter, onHoverExit, playCost, onQuickStart);
             }
 
             if (scrollRect != null && contentRoot != null)

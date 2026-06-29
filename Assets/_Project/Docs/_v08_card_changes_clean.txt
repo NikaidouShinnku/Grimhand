@@ -1,0 +1,10 @@
+﻿python :   File "<string>", line 76
+At C:\Users\Kelthuzad\AppData\Local\Temp\ps-script-fd8216bc-65bf-4893-abfa-754e7b4d2f4d.ps1:92 char:32
++ $env:PYTHONIOENCODING='utf-8'; python -c "
++                                ~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (  File "<string>", line 76:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    print(f'+ {name}: {data[" desc\][:60]}')
+                            ^
+SyntaxError: unterminated string literal (detected at line 76)

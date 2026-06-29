@@ -76,7 +76,7 @@ namespace Grimhand.Expedition
                     mods.WarriorFirstHitBlockAmount += 8 * tiers;
                     break;
                 case RelicIds.BloodAlter:
-                    mods.SacrificeStackAttackBonus += tiers;
+                    mods.SacrificeHpCostReductionPercent += 5f * tiers;
                     break;
                 case RelicIds.JadeStone:
                     mods.TurnStartRandomAllyBlock += 2 * tiers;
@@ -85,17 +85,17 @@ namespace Grimhand.Expedition
                     mods.TurnStartTeamBlock += 3 * tiers;
                     break;
                 case RelicIds.JadeDagger:
-                    mods.TeamAttackBonus += 2 * tiers;
+                    mods.TeamAttackBonusPercent += 2f * tiers;
                     break;
                 case RelicIds.CrimsonBurningBoots:
-                    mods.TurnStartEnemyDamage += 3 * tiers;
+                    mods.TurnStartEnemyBurnStacks += 1 * tiers;
                     break;
                 case RelicIds.FlameSword:
-                    mods.TeamAttackBonus += 2 * tiers;
+                    mods.TeamAttackBonusPercent += 2f * tiers;
                     mods.AttackBurnStacks += 5 * tiers;
                     break;
                 case RelicIds.IronArmor:
-                    mods.TeamDefenseBonus += 2 * tiers;
+                    mods.TeamBlockGainBonusPercent += 2f * tiers;
                     mods.BattleStartFrontBlock += 10 * tiers;
                     break;
                 case RelicIds.WarriorHelmet:
@@ -106,7 +106,7 @@ namespace Grimhand.Expedition
                     mods.TeamAttackBonus += 3 * tiers;
                     break;
                 case RelicIds.PaladinShield:
-                    mods.TeamDefenseBonus += 3 * tiers;
+                    mods.FirstHitDamageReductionPercent += 5f * tiers;
                     break;
                 case RelicIds.SilverMoonPendant:
                     mods.EndTurnTeamHeal += 2 * tiers;
@@ -118,6 +118,9 @@ namespace Grimhand.Expedition
                     break;
                 case RelicIds.LeafOfMiracle:
                     mods.MiracleLeafReviveHpPercent += 10 * tiers;
+                    break;
+                case RelicIds.Bonfire:
+                    mods.PostBattleTeamHealPercent += 1f * tiers;
                     break;
             }
         }

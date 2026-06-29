@@ -11,10 +11,15 @@ namespace Grimhand.Battle.Rules
     public static class SpecialCardRules
     {
         public const int SolarGodWrathDamage = 13;
-        public const int SolarGodWrathStatPenalty = 3;
+        public const int SolarGodWrathArmorDownStacks = 20;
+        public const int SolarGodWrathArmorDownDuration = 2;
+        public const int SolarGodWrathVulnerableStacks = 20;
+        public const int SolarGodWrathVulnerableDuration = 2;
         public const int SolarGodWrathSlowStacks = 2;
+        public const int SolarGodWrathSlowDuration = 2;
         public const int SolarGodWrathBurnStacks = 5;
-        public const int SolarBlessingBlockPerRepeat = 3;
+        public const int SolarGodWrathBurnDuration = 2;
+        public const int SolarBlessingBlockPerRepeat = 6;
 
         public static bool IsSpecialCard(CardInstanceState card) =>
             card != null && (card.DefinitionId == CardPowerRules.SolarGodWrathCardId
@@ -41,6 +46,9 @@ namespace Grimhand.Battle.Rules
         static int GetEnergySpent(BattleState state, CardInstanceState card)
         {
             if (state.EnergySpentByCardInstanceId.TryGetValue(card.InstanceId, out var spent) && spent > 0)
+                return spent;
+
+            if (state.PlayerPlan.EnergySpentPerCard.TryGetValue(card.InstanceId, out spent) && spent > 0)
                 return spent;
 
             return System.Math.Max(0, card.Cost);
@@ -70,7 +78,7 @@ namespace Grimhand.Battle.Rules
                 if (target == null)
                     break;
 
-                switch (rng.NextInt(0, 4))
+                switch (rng.NextInt(0, 5))
                 {
                     case 0:
                         DamageRules.ApplyDamage(
@@ -78,23 +86,22 @@ namespace Grimhand.Battle.Rules
                             rng: rng, sourceCardInstanceId: card.InstanceId);
                         break;
                     case 1:
-                        target.Attack = System.Math.Max(0, target.Attack - SolarGodWrathStatPenalty);
-                        target.Defense = System.Math.Max(0, target.Defense - SolarGodWrathStatPenalty);
-                        events.Add(new BattleEvent(BattleEventKind.StatusApplied,
-                            $"{target.DisplayName} ATK/DEF -{SolarGodWrathStatPenalty}")
-                        {
-                            CombatantId = target.Id,
-                            CardInstanceId = card.InstanceId,
-                            Amount = SolarGodWrathStatPenalty
-                        });
+                        StatusRules.ApplyStatus(
+                            state, target, StatusCatalog.ArmorDown,
+                            SolarGodWrathArmorDownStacks, SolarGodWrathArmorDownDuration, events);
                         break;
                     case 2:
                         StatusRules.ApplyStatus(
-                            state, target, StatusCatalog.Slow, SolarGodWrathSlowStacks, 2, events);
+                            state, target, StatusCatalog.Vulnerable,
+                            SolarGodWrathVulnerableStacks, SolarGodWrathVulnerableDuration, events);
+                        break;
+                    case 3:
+                        StatusRules.ApplyStatus(
+                            state, target, StatusCatalog.Slow, SolarGodWrathSlowStacks, SolarGodWrathSlowDuration, events);
                         break;
                     default:
                         StatusRules.ApplyStatus(
-                            state, target, StatusCatalog.Burn, SolarGodWrathBurnStacks, 2, events);
+                            state, target, StatusCatalog.Burn, SolarGodWrathBurnStacks, SolarGodWrathBurnDuration, events);
                         break;
                 }
             }

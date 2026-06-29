@@ -48,38 +48,14 @@ namespace Grimhand.Presentation.Camp
                 DisplayName = character.DisplayName
             };
 
-            var picked = new HashSet<string>();
             foreach (var card in character.Deck)
             {
                 if (card == null || string.IsNullOrEmpty(card.CardId))
                     continue;
 
-                if (!picked.Add(card.CardId))
-                    continue;
-
                 loadout.DeckCardIds.Add(card.CardId);
                 if (loadout.DeckCardIds.Count >= CampRosterState.DeckSize)
                     break;
-            }
-
-            if (loadout.DeckCardIds.Count < CampRosterState.DeckSize && catalog != null)
-            {
-                foreach (var card in catalog)
-                {
-                    if (card == null || string.IsNullOrEmpty(card.CardId))
-                        continue;
-
-                    if (!string.IsNullOrEmpty(card.OwnerCharacterId)
-                        && card.OwnerCharacterId != character.CharacterId)
-                        continue;
-
-                    if (!picked.Add(card.CardId))
-                        continue;
-
-                    loadout.DeckCardIds.Add(card.CardId);
-                    if (loadout.DeckCardIds.Count >= CampRosterState.DeckSize)
-                        break;
-                }
             }
 
             while (loadout.DeckCardIds.Count < CampRosterState.DeckSize)

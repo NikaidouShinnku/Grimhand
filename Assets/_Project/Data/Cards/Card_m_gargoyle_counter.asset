@@ -17,9 +17,9 @@ MonoBehaviour:
   OwnerCharacterId: char_gargoyle
   Cost: 1
   CardType: 0
-  Rarity: 1
   Keywords:
   - parry
+  Rarity: 1
   Actions:
   - Type: 9
     Target: 1

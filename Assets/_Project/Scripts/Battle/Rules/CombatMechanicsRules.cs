@@ -12,7 +12,7 @@ namespace Grimhand.Battle.Rules
     /// </summary>
     public static class CombatMechanicsRules
     {
-        public const int GuardDamageReductionPercent = 40;
+        public const int GuardDamageReductionPercent = 50;
         public const int ReviveBlessingHpPercent = 25;
         public const int UnyieldingHealAmount = 20;
         public const int UnyieldingHpThresholdPercent = 25;
@@ -36,7 +36,6 @@ namespace Grimhand.Battle.Rules
 
             state.DefenderRespondArms.Clear();
             state.SuppressedEnemyCardInstanceIds.Clear();
-            state.EnergySpentByCardInstanceId.Clear();
             state.PlayerRespondStatusUsedThisTurn = false;
         }
 

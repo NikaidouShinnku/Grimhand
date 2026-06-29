@@ -156,7 +156,7 @@ namespace Grimhand.Presentation.Camp
         {
             if (_roster == null || !_roster.IsReadyForExpedition)
             {
-                campScreen?.ShowToast("请先在军营完成编队（3 人 × 10 牌）。");
+                campScreen?.ShowToast("请先在军营完成编队（3 人，每人至少 1 张牌）。");
                 ShowCamp();
                 return;
             }

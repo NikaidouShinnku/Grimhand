@@ -259,7 +259,13 @@ namespace Grimhand.Battle.Planning
 
             _selectedQueue.RemoveAt(index);
             _targetByCard.Remove(instanceId);
-            _state.EnergyCurrent += GetPlayCost(card);
+            if (_state.EnergySpentByCardInstanceId.TryGetValue(instanceId, out var spentCost))
+            {
+                _state.EnergyCurrent += spentCost;
+                _state.EnergySpentByCardInstanceId.Remove(instanceId);
+            }
+            else
+                _state.EnergyCurrent += GetPlayCost(card);
 
             EmitEnergyEvent(BattleEventKind.CardDeselectedFromPlay, card.DisplayName, instanceId);
             return true;
@@ -279,7 +285,14 @@ namespace Grimhand.Battle.Planning
                 if (card == null)
                     continue;
 
-                plan.EnergySpent += GetPlayCost(card);
+                var cost = GetPlayCost(card);
+                plan.EnergySpent += cost;
+                if (CardPowerRules.UsesRemainingEnergyCost(card)
+                    && _state.EnergySpentByCardInstanceId.TryGetValue(cardId, out var spent))
+                    plan.EnergySpentPerCard[cardId] = spent;
+                else if (CardPowerRules.UsesRemainingEnergyCost(card))
+                    plan.EnergySpentPerCard[cardId] = cost;
+
                 if (_targetByCard.TryGetValue(cardId, out var targetId))
                     plan.TargetByCardInstanceId[cardId] = targetId;
             }

@@ -17,14 +17,14 @@ MonoBehaviour:
   OwnerCharacterId: char_abyss_creature
   Cost: 2
   CardType: 0
-  Rarity: 2
   Keywords: []
+  Rarity: 2
   Actions:
   - Type: 0
     Target: 0
-    Value: 28
+    Value: 17
     StatusId: 
-    Stacks: 1
+    Stacks: 0
     Duration: -1
     ScaleWithAttack: 0
     ScaleWithDefense: 0

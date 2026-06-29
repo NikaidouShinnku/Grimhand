@@ -2,7 +2,7 @@ using Grimhand.Core;
 
 namespace Grimhand.Expedition
 {
-    /// <summary>战斗胜利经验（对照怪物组合表「战斗后经验奖励」）。</summary>
+    /// <summary>战斗胜利经验（对照 v0.8 怪物组合表「战斗后经验奖励」）。</summary>
     public static class CombatXpRules
     {
         public static int Roll(BattleRng rng, int floor, bool isElite, bool isBoss)
@@ -10,21 +10,21 @@ namespace Grimhand.Expedition
             if (isBoss)
             {
                 if (floor >= 60)
-                    return 55;
+                    return 80;
 
                 if (floor >= 40)
-                    return 40;
+                    return 60;
 
-                return 25;
+                return 40;
             }
 
             if (floor >= 41)
-                return RollRange(rng, isElite ? 28 : 18, isElite ? 36 : 24);
+                return RollRange(rng, isElite ? 36 : 24, isElite ? 46 : 30);
 
             if (floor >= 21)
-                return RollRange(rng, isElite ? 23 : 13, isElite ? 27 : 17);
+                return RollRange(rng, isElite ? 30 : 17, isElite ? 35 : 22);
 
-            return RollRange(rng, isElite ? 14 : 8, isElite ? 20 : 10);
+            return RollRange(rng, isElite ? 17 : 10, isElite ? 22 : 13);
         }
 
         static int RollRange(BattleRng rng, int min, int max)

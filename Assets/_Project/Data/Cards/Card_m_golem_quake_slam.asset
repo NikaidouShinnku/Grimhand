@@ -17,12 +17,12 @@ MonoBehaviour:
   OwnerCharacterId: char_stone_golem
   Cost: 3
   CardType: 0
-  Rarity: 2
   Keywords: []
+  Rarity: 2
   Actions:
   - Type: 0
     Target: 0
-    Value: 29
+    Value: 17
     StatusId: 
     Stacks: 1
     Duration: -1

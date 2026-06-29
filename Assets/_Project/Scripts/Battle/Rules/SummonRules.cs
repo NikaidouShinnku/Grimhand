@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Grimhand.Battle.Effects;
 using Grimhand.Battle.Events;
@@ -79,12 +80,14 @@ namespace Grimhand.Battle.Rules
             BattleState state,
             CombatantConfig template,
             FormationSlot slot,
-            List<BattleEvent> events)
+            List<BattleEvent> events,
+            int bonusMaxHp = 0)
         {
             if (state == null || template == null)
                 return;
 
             var id = $"summon_{template.CharacterDefinitionId}_{state.NextSummonInstanceId++}";
+            var maxHp = template.MaxHp + Math.Max(0, bonusMaxHp);
             var combatant = new CombatantState
             {
                 Id = id,
@@ -94,11 +97,11 @@ namespace Grimhand.Battle.Rules
                 CharacterDefinitionId = template.CharacterDefinitionId,
                 Level = template.Level,
                 Xp = template.Xp,
-                MaxHp = template.MaxHp,
+                MaxHp = maxHp,
                 BaseAttack = template.BaseAttack,
                 BaseDefense = template.BaseDefense,
                 Speed = template.Speed,
-                Hp = template.MaxHp
+                Hp = maxHp
             };
 
             combatant.Traits.AddRange(template.Traits);
@@ -111,7 +114,8 @@ namespace Grimhand.Battle.Rules
             events.Add(new BattleEvent(BattleEventKind.CombatantSpawned, combatant.DisplayName)
             {
                 CombatantId = combatant.Id,
-                TargetId = slot.ToString()
+                TargetId = slot.ToString(),
+                Amount = bonusMaxHp > 0 ? bonusMaxHp : 0
             });
         }
 

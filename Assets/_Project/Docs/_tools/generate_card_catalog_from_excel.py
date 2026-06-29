@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 JSON_PATH = ROOT / "Docs" / "_excel_authoritative.json"
-UPGRADE_CS = ROOT / "Scripts" / "Expedition" / "CardUpgradeCatalog.cs"
+UPGRADE_CS = ROOT / "Scripts" / "Core" / "CardUpgradeCatalog.cs"
 KEYWORD_CS = ROOT / "Scripts" / "Battle" / "Rules" / "KeywordCatalog.cs"
 
 SKIP_KEYWORD_LABELS = {
@@ -126,7 +126,7 @@ def emit_upgrade_cs(cards: list[dict]) -> None:
     lines = [
         "using System.Collections.Generic;",
         "",
-        "namespace Grimhand.Expedition",
+        "namespace Grimhand.Core",
         "{",
         "    /// <summary>卡牌升级配置（对照 Grimhand实际内容总览表.xlsx · 卡牌 sheet）。</summary>",
         "    public static class CardUpgradeCatalog",

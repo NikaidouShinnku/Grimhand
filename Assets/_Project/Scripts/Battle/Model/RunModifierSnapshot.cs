@@ -6,6 +6,12 @@ namespace Grimhand.Battle.Model
         public int TeamAttackBonus { get; set; }
         public int TeamDefenseBonus { get; set; }
         public int TeamHpBonus { get; set; }
+        /// <summary>v0.81：全队获得 X% 增伤（翡翠短刀/烈焰之剑/龙纹指环）。</summary>
+        public float TeamAttackBonusPercent { get; set; }
+        /// <summary>v0.81：全队获得 X% 强固（护甲获取加成，铁壁战甲/圣骑之盾）。</summary>
+        public float TeamBlockGainBonusPercent { get; set; }
+        /// <summary>v0.81：每回合开始时给予所有敌人 N 层灼烧（永久）（赤红烈焰靴）。</summary>
+        public int TurnStartEnemyBurnStacks { get; set; }
         public int FrontDefenseBonus { get; set; }
         public int BackRowExtraDrawPerTurn { get; set; }
         public int BattleStartTeamHeal { get; set; }
@@ -80,6 +86,9 @@ namespace Grimhand.Battle.Model
         public int FelskullOutgoingDamagePercentBonus { get; set; }
 
         public bool FirstPlayerAttackPending { get; set; } = true;
+
+        /// <summary>圣阳之书：含「阳/日」牌使用时额外视为 +N 级（可超出升级上限）。</summary>
+        public int HolysunSpellbookBonusUpgradeLevels { get; set; }
 
         public static RunModifierSnapshot Empty { get; } = new();
     }

@@ -17,13 +17,12 @@ MonoBehaviour:
   OwnerCharacterId: char_corrupted_crab
   Cost: 3
   CardType: 0
+  Keywords: []
   Rarity: 2
-  Keywords:
-  - respond_status
   Actions:
   - Type: 0
     Target: 0
-    Value: 15
+    Value: 9
     StatusId: 
     Stacks: 1
     Duration: -1

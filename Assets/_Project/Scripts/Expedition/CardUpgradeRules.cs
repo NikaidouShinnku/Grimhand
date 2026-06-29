@@ -1,5 +1,6 @@
 using System;
 using Grimhand.Battle.Model;
+using Grimhand.Core;
 using Grimhand.Expedition.Model;
 
 namespace Grimhand.Expedition

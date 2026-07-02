@@ -31,6 +31,8 @@ namespace Grimhand.Battle.Effects
                     return actor;
                 case EffectTarget.RandomEnemy:
                     return PickRandomEnemy(state, actor.Team, rng);
+                case EffectTarget.RandomAlly:
+                    return PickRandomAlly(state, actor.Team, rng);
                 case EffectTarget.DefaultEnemy:
                 case EffectTarget.ManualSelected:
                     if (TryGetSelectedTarget(state, cardInstanceId, out var picked)
@@ -87,6 +89,9 @@ namespace Grimhand.Battle.Effects
             if (target == null || !target.IsAlive)
                 return false;
 
+            if (action != null && UsesExplicitSlotTarget(action.Target))
+                return true;
+
             if (action == null || reach == TargetReach.Any)
                 return true;
 
@@ -100,6 +105,15 @@ namespace Grimhand.Battle.Effects
             var slot = PositionRules.GetEffectiveSlot(state, target);
             return TargetReachRules.IsSlotAllowed(reach, slot);
         }
+
+        public static bool UsesExplicitSlotTarget(EffectTarget targetKind) =>
+            targetKind is EffectTarget.AllyFrontSlot
+                or EffectTarget.AllyMiddleSlot
+                or EffectTarget.AllyBackSlot
+                or EffectTarget.EnemyFrontSlot
+                or EffectTarget.EnemyMiddleSlot
+                or EffectTarget.EnemyBackSlot
+                or EffectTarget.Self;
 
         static CombatantState PickRandomTargetForReach(
             BattleState state,
@@ -196,6 +210,12 @@ namespace Grimhand.Battle.Effects
         {
             var targetTeam = actorTeam == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
             var candidates = PositionRules.GetAliveSortedByPhysicalSlot(state, targetTeam);
+            return PickRandomCandidate(candidates, rng);
+        }
+
+        static CombatantState PickRandomAlly(BattleState state, TeamSide actorTeam, BattleRng rng)
+        {
+            var candidates = PositionRules.GetAliveSortedByPhysicalSlot(state, actorTeam);
             return PickRandomCandidate(candidates, rng);
         }
 

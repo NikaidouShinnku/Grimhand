@@ -21,7 +21,28 @@ namespace Grimhand.Battle.Rules
                 state.PendingPlayerEnergyRegenPenaltyNextTurn = 0;
             }
 
-            state.EnergyCurrent = System.Math.Min(state.EnergyCurrent + regen, state.EnergyMax);
+            Restore(state, regen);
+        }
+
+        /// <summary>获得临时能量：可超过上限，不改变 EnergyMax。</summary>
+        public static int GainTemporary(Model.BattleState state, int amount)
+        {
+            if (state == null || amount <= 0)
+                return 0;
+
+            state.EnergyCurrent += amount;
+            return amount;
+        }
+
+        /// <summary>回复能量：最多到 EnergyMax，不可超过。</summary>
+        public static int Restore(Model.BattleState state, int amount)
+        {
+            if (state == null || amount <= 0)
+                return 0;
+
+            var before = state.EnergyCurrent;
+            state.EnergyCurrent = System.Math.Min(state.EnergyCurrent + amount, state.EnergyMax);
+            return state.EnergyCurrent - before;
         }
 
         public static bool CanAfford(int energyCurrent, int cost) => energyCurrent >= cost;

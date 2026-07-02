@@ -974,13 +974,58 @@ namespace Grimhand.Presentation.Battle
             for (var i = 0; i < unit.Statuses.Count; i++)
             {
                 var s = unit.Statuses[i];
-                if (i > 0) sb.Append(' ');
+                if (s == null || s.Stacks <= 0)
+                    continue;
+
+                if (sb.Length > 0)
+                    sb.Append(' ');
+
                 var def = Grimhand.Battle.Status.StatusCatalog.Get(s.StatusId);
                 var name = def?.DisplayName ?? s.StatusId;
                 sb.Append(name).Append('×').Append(s.Stacks);
             }
 
             return sb.ToString();
+        }
+
+        public static string FormatStatusHoverDetail(CombatantState unit)
+        {
+            if (unit == null || unit.Statuses.Count == 0)
+                return "";
+
+            var sb = new System.Text.StringBuilder();
+            for (var i = 0; i < unit.Statuses.Count; i++)
+            {
+                var s = unit.Statuses[i];
+                if (s == null || s.Stacks <= 0)
+                    continue;
+
+                var def = StatusCatalog.Get(s.StatusId);
+                var name = def?.DisplayName ?? s.StatusId;
+                sb.Append('\n').Append('·').Append(' ')
+                    .Append(name)
+                    .Append('×')
+                    .Append(s.Stacks)
+                    .Append(' ')
+                    .Append(FormatStatusDuration(s, def));
+            }
+
+            return sb.ToString();
+        }
+
+        public static string FormatStatusDuration(StatusInstance status, StatusDefinition definition = null)
+        {
+            if (status == null)
+                return "";
+
+            definition ??= StatusCatalog.Get(status.StatusId);
+            if (definition?.DurationKind == StatusDurationKind.Permanent || status.RemainingTurns < 0)
+                return "永久";
+
+            if (status.RemainingTurns <= 0)
+                return "本回合";
+
+            return $"{status.RemainingTurns}回合";
         }
 
         public static string FormatBloodRageDisplay(int stacks)

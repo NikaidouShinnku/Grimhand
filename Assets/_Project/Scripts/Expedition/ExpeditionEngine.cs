@@ -78,10 +78,14 @@ namespace Grimhand.Expedition
             if (_config.MapStartLayer > 1 && _run.Map != null)
                 _run.Map.NodesCompleted = _config.MapStartLayer - 1;
 
-            if (campRoster != null && campRoster.Members.Count > 0)
+            if (campRoster != null && ExpeditionPartyRules.HasUsableCampRoster(campRoster))
                 CampRunPartyApplier.Apply(campRoster, _run, campMeta);
             else
                 InitPartyFromTemplate(campMeta);
+
+            ExpeditionPartyRules.EnforceMaxSize(_run.Party);
+            CampDeckOwnershipRules.SanitizeParty(_config, _run.Party);
+            CampDeckOwnershipRules.SyncRunStartCampDecks(_run);
 
             ExpeditionDeckInstanceRules.EnsurePartyBaseDeckInstances(_config, _run.Party);
 
@@ -208,6 +212,9 @@ namespace Grimhand.Expedition
                 if (cc.Team != TeamSide.Player)
                     continue;
 
+                if (_run.Party.Count >= CampRosterState.PartySize)
+                    break;
+
                 var clamped = CharacterProgression.ClampLevel(level);
                 var stats = CharacterProgression.GetStatsForCharacter(cc.CharacterDefinitionId, clamped);
                 var member = new PartyMemberSnapshot
@@ -316,6 +323,7 @@ namespace Grimhand.Expedition
             var capturedParty = ExpeditionBattleConfigBuilder.CaptureParty(state, _run.Party);
             _run.Party.Clear();
             _run.Party.AddRange(capturedParty);
+            ExpeditionPartyRules.EnforceMaxSize(_run.Party);
             CampCollectionProgress.SyncRunFromParty(_run);
             foreach (var member in _run.Party)
                 CampCollectionProgress.SyncMemberFromRun(_run, member);
@@ -1390,6 +1398,9 @@ namespace Grimhand.Expedition
                 if (cc.Team != TeamSide.Player)
                     continue;
 
+                if (_run.Party.Count >= CampRosterState.PartySize)
+                    break;
+
                 var stats = CharacterProgression.GetStatsForCharacter(cc.CharacterDefinitionId, cc.Level);
                 var member = new PartyMemberSnapshot
                 {
@@ -1403,6 +1414,8 @@ namespace Grimhand.Expedition
                 CampRunPartyApplier.ApplyTalentsFromMeta(member, campMeta);
                 _run.Party.Add(member);
             }
+
+            ExpeditionPartyRules.EnforceMaxSize(_run.Party);
         }
 
         void RecordRouteChoice(ExpeditionRouteOption route)

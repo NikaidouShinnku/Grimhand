@@ -48,7 +48,7 @@ namespace Grimhand.Battle.Model
         /// <summary>腐烂之触：造成 Value 伤害，目标每拥有1层负面状态额外 +Stacks 伤害。</summary>
         DealDamageBonusPerTargetDebuffStack,
         // ===== v0.9 毒蛇女王 / 巫妖女王 新增动作类型 =====
-        /// <summary>获得 Value 点能量。</summary>
+        /// <summary>获得 Value 点临时能量（可超过 EnergyMax，不改变上限）。</summary>
         GainEnergy,
         /// <summary>抽牌至手牌上限。</summary>
         DrawToHandLimit,
@@ -105,7 +105,9 @@ namespace Grimhand.Battle.Model
         /// <summary>随机一名敌方（自爆等）。</summary>
         RandomEnemy,
         /// <summary>随机 N 名敌方；人数由 EffectActionSpec.Value 指定（如骨王怒吼 Value=2）。</summary>
-        RandomEnemies
+        RandomEnemies,
+        /// <summary>随机一名存活友方（含自身）。</summary>
+        RandomAlly
     }
 
     public enum ReactionConditionType
@@ -114,7 +116,9 @@ namespace Grimhand.Battle.Model
         LastActionAttackOnSelf,
         /// <summary>玩家监视的目标敌人打出防御牌（应对防御/应对状态）。</summary>
         LastActionDefenseOnTarget,
-        LastActionStatusOnTarget
+        LastActionStatusOnTarget,
+        /// <summary>应对卡未成功触发时（本回合无匹配攻击）生效。</summary>
+        RespondArmFailed
     }
 
     /// <summary>

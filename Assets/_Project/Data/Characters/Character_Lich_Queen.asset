@@ -22,13 +22,12 @@ MonoBehaviour:
   BaseDefense: 0
   Speed: 7
   Deck:
+  - {fileID: 11400000, guid: 467e729a2e8b472e974ce46cc245b4f0, type: 2}
+  - {fileID: 11400000, guid: 467e729a2e8b472e974ce46cc245b4f0, type: 2}
+  - {fileID: 11400000, guid: 467e729a2e8b472e974ce46cc245b4f0, type: 2}
   - {fileID: 11400000, guid: ac1219cd58df4a84881579dbb8c87064, type: 2}
   - {fileID: 11400000, guid: ac1219cd58df4a84881579dbb8c87064, type: 2}
-  - {fileID: 11400000, guid: 87966bc5c5b44f58b20d738740d01e53, type: 2}
-  - {fileID: 11400000, guid: b2716ad59c6d4157b7ba8714e4f73536, type: 2}
-  - {fileID: 11400000, guid: 467e729a2e8b472e974ce46cc245b4f0, type: 2}
-  - {fileID: 11400000, guid: 467e729a2e8b472e974ce46cc245b4f0, type: 2}
-  - {fileID: 11400000, guid: 467e729a2e8b472e974ce46cc245b4f0, type: 2}
   - {fileID: 11400000, guid: b2314b0ec4444e6bb6467510222f796e, type: 2}
+  - {fileID: 11400000, guid: 88a580482ba34a3d93a92976ad5251a7, type: 2}
   SkillPool: []
   Traits: []

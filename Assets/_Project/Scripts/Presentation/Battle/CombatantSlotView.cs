@@ -551,7 +551,7 @@ namespace Grimhand.Presentation.Battle
             }
 
             footRoot.pivot = new Vector2(0.5f, 0f);
-            footRoot.sizeDelta = new Vector2(160f, 56f);
+            footRoot.sizeDelta = new Vector2(160f, 72f);
 
             if (nameText != null)
             {
@@ -812,7 +812,10 @@ namespace Grimhand.Presentation.Battle
                     statsRow.Refresh(unit, uiIcons, hpOnly: true, hpOverride, maxHpOverride, blockOverride, ironWallPending);
             }
 
-            _footStatusIcons?.Refresh(unit, uiIcons);
+            if (presentation != null && unit != null)
+                _footStatusIcons?.Refresh(presentation.GetFootStatuses(unit.Id), uiIcons);
+            else
+                _footStatusIcons?.Refresh(unit, uiIcons);
             _portraitView?.SetDamageFloaterBelow(statsRow != null ? statsRow.transform as RectTransform : null);
 
             _showExpBar = showExpBar;

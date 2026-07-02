@@ -69,6 +69,8 @@ namespace Grimhand.Expedition
                     copy.DeckInstanceId = instanceId;
                     if (string.IsNullOrEmpty(copy.OwnerCharacterId))
                         copy.OwnerCharacterId = member.CharacterDefinitionId;
+                    else if (copy.OwnerCharacterId != member.CharacterDefinitionId)
+                        continue;
 
                     ApplyCardUpgrades(copy, member);
                     entries.Add(new DeckEntry
@@ -94,6 +96,9 @@ namespace Grimhand.Expedition
             {
                 var cardId = member.CampDeckCardIds[slot];
                 if (string.IsNullOrEmpty(cardId))
+                    continue;
+
+                if (!CampDeckOwnershipRules.IsCardOwnedByCharacter(config, cardId, member.CharacterDefinitionId))
                     continue;
 
                 if (removedLeft.TryGetValue(cardId, out var left) && left > 0)
@@ -130,6 +135,9 @@ namespace Grimhand.Expedition
             {
                 var bonus = member.BonusCards[i];
                 if (bonus == null || string.IsNullOrEmpty(bonus.DefinitionId))
+                    continue;
+
+                if (!CampDeckOwnershipRules.IsTemplateOwnedByMember(bonus, member))
                     continue;
 
                 ExpeditionDeckInstanceRules.PrepareNewDeckCard(member, bonus);
@@ -194,6 +202,11 @@ namespace Grimhand.Expedition
             }
 
             ExpeditionBattleConfigBuilder.HydrateTemplateFromCatalog(template, config?.PlayerCardCatalog);
+            if (!string.IsNullOrEmpty(ownerId)
+                && !string.IsNullOrEmpty(template.OwnerCharacterId)
+                && template.OwnerCharacterId != ownerId)
+                return null;
+
             if (string.IsNullOrEmpty(template.OwnerCharacterId) && !string.IsNullOrEmpty(ownerId))
                 template.OwnerCharacterId = ownerId;
 

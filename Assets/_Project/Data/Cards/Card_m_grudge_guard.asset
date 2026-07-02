@@ -69,7 +69,7 @@ MonoBehaviour:
     ScaleWithDefense: 0
     AttackScalePercent: 100
     DefenseScalePercent: 100
-    Condition: 1
+    Condition: 4
     Reach: 1
     SplashBehindTarget: 0
     SplashPowerPercent: 100

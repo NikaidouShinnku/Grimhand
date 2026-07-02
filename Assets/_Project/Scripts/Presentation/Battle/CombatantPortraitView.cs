@@ -257,6 +257,12 @@ namespace Grimhand.Presentation.Battle
             _homeCaptured = true;
         }
 
+        public void ShowHpDamageNumber(int damage)
+        {
+            if (damage > 0)
+                ShowDamageNumber(damage);
+        }
+
         public IEnumerator PlayHitReaction(int damage, bool useHitPose, bool retainPoseAfter = false)
         {
             if (_isDead || portraitImage == null)

@@ -110,7 +110,8 @@ namespace Grimhand.Battle.Reactions
 
                 case EffectActionType.DealDamage:
                 case EffectActionType.ApplyStatus:
-                    var target = ResolveRespondTarget(state, actor, card, context, action);
+                case EffectActionType.LockSelfCards:
+                    var target = ResolveRespondTarget(state, actor, card, context, action, rng);
                     if (target == null)
                         break;
 
@@ -125,7 +126,8 @@ namespace Grimhand.Battle.Reactions
             CombatantState actor,
             CardInstanceState card,
             RespondTriggerContext context,
-            EffectActionSpec action)
+            EffectActionSpec action,
+            BattleRng rng)
         {
             if (card.Keywords.Contains("respond_status") || card.Keywords.Contains("respond_defense"))
             {
@@ -136,7 +138,7 @@ namespace Grimhand.Battle.Reactions
             if (action.Target == EffectTarget.LastActionActor)
                 return state.GetCombatant(context.EnemyCombatantId);
 
-            return TargetRules.ResolveTarget(state, actor, action.Target, card.InstanceId, rng: null, action);
+            return TargetRules.ResolveTarget(state, actor, action.Target, card.InstanceId, rng, action);
         }
 
         public static void RegisterMitigation(

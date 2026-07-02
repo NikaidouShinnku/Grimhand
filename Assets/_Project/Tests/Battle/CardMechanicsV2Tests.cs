@@ -125,6 +125,29 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
+        public void WarCry_GrantsTeamAttackUpToAllSlots()
+        {
+            var state = BuildState();
+            var front = AddUnit(state, "warrior", TeamSide.Player, FormationSlot.Front, atk: 8);
+            var middle = AddUnit(state, "mage", TeamSide.Player, FormationSlot.Middle, atk: 6);
+            var back = AddUnit(state, "demon", TeamSide.Player, FormationSlot.Back, atk: 9);
+            var card = CardWith(
+                StatusAction(StatusCatalog.AttackUpPercent, 10, 1, EffectTarget.AllyFrontSlot,
+                    reach: TargetReach.FrontAndMiddle),
+                StatusAction(StatusCatalog.AttackUpPercent, 10, 1, EffectTarget.AllyMiddleSlot,
+                    reach: TargetReach.FrontAndMiddle),
+                StatusAction(StatusCatalog.AttackUpPercent, 10, 1, EffectTarget.AllyBackSlot,
+                    reach: TargetReach.FrontAndMiddle));
+            var events = new List<BattleEvent>();
+
+            EffectActionExecutor.ExecuteAll(state, front, card, events);
+
+            Assert.IsTrue(StatusRules.HasStatus(front, StatusCatalog.AttackUpPercent));
+            Assert.IsTrue(StatusRules.HasStatus(middle, StatusCatalog.AttackUpPercent));
+            Assert.IsTrue(StatusRules.HasStatus(back, StatusCatalog.AttackUpPercent));
+        }
+
+        [Test]
         public void WarCry_GrantsTeamAttackUp()
         {
             var state = BuildState();
@@ -412,7 +435,8 @@ namespace Grimhand.Battle.Tests
             string statusId,
             int stacks,
             int duration,
-            EffectTarget target)
+            EffectTarget target,
+            TargetReach reach = TargetReach.Any)
         {
             return new EffectActionSpec
             {
@@ -420,8 +444,43 @@ namespace Grimhand.Battle.Tests
                 Target = target,
                 StatusId = statusId,
                 Stacks = stacks,
-                Duration = duration
+                Duration = duration,
+                Reach = reach
             };
+        }
+
+        [Test]
+        public void EtherealForm_LocksOwnerCardsForRestOfTurn()
+        {
+            var state = BuildState();
+            var lich = AddUnit(state, "lich", TeamSide.Player, FormationSlot.Back, hp: 48, speed: 7);
+            lich.CharacterDefinitionId = "char_lich_queen";
+
+            var ethereal = new CardInstanceState
+            {
+                InstanceId = 1,
+                DisplayName = "虚化形态",
+                OwnerCharacterId = "char_lich_queen",
+                Actions =
+                {
+                    StatusAction(StatusCatalog.Ethereal, 1, 1, EffectTarget.Self),
+                    new EffectActionSpec { Type = EffectActionType.LockSelfCards, Target = EffectTarget.Self, Value = 1 }
+                }
+            };
+
+            var claw = new CardInstanceState
+            {
+                InstanceId = 2,
+                DisplayName = "幽灵爪击",
+                OwnerCharacterId = "char_lich_queen",
+                Actions = { ActionAtk(8, 100, EffectTarget.DefaultEnemy) }
+            };
+
+            EffectActionExecutor.ExecuteAll(state, lich, ethereal, new List<BattleEvent>());
+
+            Assert.IsTrue(StatusRules.HasStatus(lich, StatusCatalog.Ethereal));
+            Assert.IsTrue(lich.IsCardsLocked);
+            Assert.IsTrue(CardLockRules.ShouldSkipPlayerCard(lich, claw));
         }
     }
 }

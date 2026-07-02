@@ -26,7 +26,7 @@ namespace Grimhand.Battle.Rules
                     events);
             }
 
-            actor.CardsLockedTurnsRemaining = CardLockTurns;
+            CardLockRules.ApplyLock(actor, CardLockTurns);
 
             events.Add(new BattleEvent(BattleEventKind.StatusApplied, "阿努比斯化身")
             {
@@ -35,12 +35,7 @@ namespace Grimhand.Battle.Rules
             });
         }
 
-        public static void ProcessTurnStart(CombatantState combatant)
-        {
-            if (combatant == null || combatant.CardsLockedTurnsRemaining <= 0)
-                return;
-
-            combatant.CardsLockedTurnsRemaining--;
-        }
+        public static void ProcessTurnStart(CombatantState combatant) =>
+            CardLockRules.ProcessTurnStart(combatant);
     }
 }

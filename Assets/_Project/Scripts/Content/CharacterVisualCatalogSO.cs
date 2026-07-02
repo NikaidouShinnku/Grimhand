@@ -122,6 +122,14 @@ namespace Grimhand.Content
             if (sprite != null && !IsValidAnimationFrame(sprite))
                 sprite = entry.IdlePortrait;
 
+            if (sprite != null && entry.IdlePortrait != null && pose != PortraitPoseKind.Idle)
+            {
+                var poseArea = sprite.rect.width * sprite.rect.height;
+                var idleArea = entry.IdlePortrait.rect.width * entry.IdlePortrait.rect.height;
+                if (idleArea > 0f && poseArea < idleArea * 0.45f)
+                    sprite = entry.IdlePortrait;
+            }
+
             if (sprite != null)
                 return sprite;
 

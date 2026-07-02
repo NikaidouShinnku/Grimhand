@@ -128,6 +128,11 @@ namespace Grimhand.Expedition
                     expeditionModifiers.SoulRiftBattleStartRandomHpLoss;
             config.MiracleLeafRevivesRemaining = miracleLeafUsesRemaining;
 
+            var playerCap = party != null && party.Count > 0
+                ? System.Math.Min(party.Count, CampRosterState.PartySize)
+                : CampRosterState.PartySize;
+            TrimPlayerCombatants(config, playerCap);
+
             FormationSlotRules.AssignUniqueSlotsPerTeam(config.Combatants);
 
             ApplyPlayerPartyProgress(
@@ -167,6 +172,10 @@ namespace Grimhand.Expedition
             if (!applyPartyHp || party == null || party.Count == 0)
                 return;
 
+            TrimPlayerCombatants(
+                config,
+                System.Math.Min(party.Count, CampRosterState.PartySize));
+
             // 按阵型槽位顺序将编队成员映射到玩家 combatant（支持军营换人后角色 ID 与模板不一致）。
             var players = new List<CombatantConfig>();
             foreach (var cc in config.Combatants)
@@ -197,6 +206,49 @@ namespace Grimhand.Expedition
                     playerCardCatalog,
                     runWideBonusCards,
                     addOwnerlessRunWideCards: i == 0);
+            }
+        }
+
+        public static void TrimPlayerCombatantsPublic(BattleConfig config, int maxPlayers) =>
+            TrimPlayerCombatants(config, maxPlayers);
+
+        static void TrimPlayerCombatants(BattleConfig config, int maxPlayers)
+        {
+            if (config?.Combatants == null || maxPlayers <= 0)
+            {
+                if (config?.Combatants == null)
+                    return;
+
+                for (var i = config.Combatants.Count - 1; i >= 0; i--)
+                {
+                    if (config.Combatants[i].Team == TeamSide.Player)
+                        config.Combatants.RemoveAt(i);
+                }
+
+                return;
+            }
+
+            var players = new List<(CombatantConfig cc, int listIndex)>();
+            for (var i = 0; i < config.Combatants.Count; i++)
+            {
+                var cc = config.Combatants[i];
+                if (cc != null && cc.Team == TeamSide.Player)
+                    players.Add((cc, i));
+            }
+
+            players.Sort((a, b) => a.cc.Slot.CompareTo(b.cc.Slot));
+
+            if (players.Count <= maxPlayers)
+                return;
+
+            var remove = new HashSet<CombatantConfig>();
+            for (var i = maxPlayers; i < players.Count; i++)
+                remove.Add(players[i].cc);
+
+            for (var i = config.Combatants.Count - 1; i >= 0; i--)
+            {
+                if (remove.Contains(config.Combatants[i]))
+                    config.Combatants.RemoveAt(i);
             }
         }
 

@@ -166,19 +166,26 @@ namespace Grimhand.Presentation.Battle
             if (!_session.IsExpeditionMode)
                 return;
 
-            foreach (var member in _session.Expedition.Run.Party)
-                BuildCharacterCardFromPartyMember(member);
+            var party = _session.Expedition.Run.Party;
+            var limit = System.Math.Min(party.Count, CampRosterState.PartySize);
+            for (var i = 0; i < limit; i++)
+                BuildCharacterCardFromPartyMember(party[i]);
         }
 
         void BuildCharacterCardsFromCombatants(IReadOnlyList<CombatantState> combatants)
         {
+            var shown = 0;
             foreach (var unit in combatants)
             {
                 if (unit.Team != TeamSide.Player)
                     continue;
 
+                if (shown >= CampRosterState.PartySize)
+                    break;
+
                 BuildCharacterCard(unit.DisplayName, unit.CharacterDefinitionId, unit.Level, unit.Xp, unit.Hp, unit.MaxHp,
                     StatusRules.GetEffectiveSpeed(unit));
+                shown++;
             }
         }
 

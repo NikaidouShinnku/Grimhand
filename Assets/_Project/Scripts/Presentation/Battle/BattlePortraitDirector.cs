@@ -354,6 +354,7 @@ namespace Grimhand.Presentation.Battle
             if (statusFx != null)
                 yield return target.PlayOverlayEffect(statusFx);
 
+            _session.PresentationSnapshot?.ApplyFootStatusApplied(e.CombatantId, e.TargetId, e.Amount);
             ApplyEventDisplayCheckpoint(e);
         }
 
@@ -525,15 +526,24 @@ namespace Grimhand.Presentation.Battle
 
             if (hpDamage > 0)
             {
-                yield return target.PlayHitReaction(
-                    hpDamage,
-                    useHitPose: useHitPose,
-                    retainPoseAfter: retainCardPose);
+                if (useDefensePose)
+                {
+                    target.ShowHpDamageNumber(hpDamage);
+                    yield return target.PlayDamageFlashOnly();
+                }
+                else
+                {
+                    yield return target.PlayHitReaction(
+                        hpDamage,
+                        useHitPose: useHitPose,
+                        retainPoseAfter: retainCardPose);
+                }
+
                 ApplySnapshotAfterDamage(e.TargetId, hpDamage);
                 _session.PresentationSnapshot?.SyncIronWallPendingFromLive(_session.Engine?.State, e.CombatantId);
                 _screen?.Refresh();
             }
-            else
+            else if (!useDefensePose)
             {
                 yield return target.PlayHitReaction(
                     0,

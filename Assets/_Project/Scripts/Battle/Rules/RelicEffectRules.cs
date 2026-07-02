@@ -286,7 +286,7 @@ namespace Grimhand.Battle.Rules
 
             state.JadeDaggerFirstKillConsumed = true;
             DeckRules.DrawCards(state, TeamSide.Player, rng, 1, events);
-            state.EnergyCurrent = Math.Min(state.EnergyMax, state.EnergyCurrent + 2);
+            EnergyRules.Restore(state, 2);
             events.Add(new BattleEvent(BattleEventKind.EnergyChanged, "翡翠短刀：首杀奖励")
             {
                 Energy = state.EnergyCurrent,

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
+using Grimhand.Expedition.Model;
 
 namespace Grimhand.Expedition
 {
@@ -83,6 +84,9 @@ namespace Grimhand.Expedition
                     baseline.Combatants.RemoveAt(i);
             }
 
+            ExpeditionBattleConfigBuilder.TrimPlayerCombatantsPublic(
+                baseline,
+                CampRosterState.PartySize);
             FormationSlotRules.AssignUniqueSlotsPerTeam(baseline.Combatants);
             return baseline;
         }

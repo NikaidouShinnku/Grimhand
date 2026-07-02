@@ -372,6 +372,9 @@ namespace Grimhand.Battle.Planning
             if (owner.IsCardsLocked)
                 return false;
 
+            if (CardLockRules.QueueBlocksOwnerCard(_state, _selectedQueue, owner, c))
+                return false;
+
             return true;
         }
 

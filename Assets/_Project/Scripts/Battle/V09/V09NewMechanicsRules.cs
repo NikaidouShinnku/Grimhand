@@ -102,8 +102,7 @@ namespace Grimhand.Battle.V09
             if (actor != null && actor.IsAlive)
             {
                 var lockTurns = System.Math.Max(1, duration);
-                if (actor.CardsLockedTurnsRemaining < lockTurns)
-                    actor.CardsLockedTurnsRemaining = lockTurns;
+                CardLockRules.ApplyLock(actor, lockTurns);
                 events.Add(new BattleEvent(BattleEventKind.StatusApplied, "缠绕施法者锁出牌")
                 {
                     CombatantId = actor.Id,

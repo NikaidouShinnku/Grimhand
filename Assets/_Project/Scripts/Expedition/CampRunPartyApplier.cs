@@ -11,10 +11,15 @@ namespace Grimhand.Expedition
                 return;
 
             run.Party.Clear();
-            foreach (var loadout in roster.Members)
+            var slotLimit = System.Math.Min(roster.Members.Count, CampRosterState.PartySize);
+            for (var slot = 0; slot < slotLimit; slot++)
             {
+                var loadout = roster.Members[slot];
                 if (loadout == null || string.IsNullOrEmpty(loadout.CharacterDefinitionId))
                     continue;
+
+                if (run.Party.Count >= CampRosterState.PartySize)
+                    break;
 
                 var stats = CharacterProgression.GetStatsForCharacter(loadout.CharacterDefinitionId, 1);
                 var member = new PartyMemberSnapshot
@@ -56,6 +61,7 @@ namespace Grimhand.Expedition
                 run.Party.Add(member);
             }
 
+            ExpeditionPartyRules.EnforceMaxSize(run.Party);
             ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(run.Party, run.Relics, run.RelicGrowthTiers);
         }
 

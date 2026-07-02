@@ -542,7 +542,7 @@ namespace Grimhand.Battle.Rules
                 var lich = FindAlivePlayerCharacter(state, LichQueenId);
                 if (lich != null)
                 {
-                    state.EnergyCurrent = Math.Min(state.EnergyMax, state.EnergyCurrent + 1);
+                    EnergyRules.Restore(state, 1);
                     events.Add(new BattleEvent(BattleEventKind.EnergyChanged, "零点共鸣 +1 能量")
                     {
                         CombatantId = lich.Id,

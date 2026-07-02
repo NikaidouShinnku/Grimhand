@@ -175,6 +175,9 @@ namespace Grimhand.Presentation.Battle
             }
 
             var status = CombatantDisplayHelper.GetStatusSummary(unit, presentation);
+            var statusDetail = presentation == null
+                ? BattleUiFormatters.FormatStatusHoverDetail(unit)
+                : "";
             var speed = CombatantDisplayHelper.GetSpeed(unit, presentation);
             var showExp = showExpBar && unit.Team == TeamSide.Player;
             var traitFootnote = CombatantDisplayHelper.GetTraitFootnote(unit, presentation);
@@ -189,7 +192,9 @@ namespace Grimhand.Presentation.Battle
             {
                 lines += $"\n增伤 +{expeditionMember.PersonalAttackBonus}";
             }
-            if (!string.IsNullOrEmpty(status))
+            if (!string.IsNullOrEmpty(statusDetail))
+                lines += statusDetail;
+            else if (!string.IsNullOrEmpty(status))
                 lines += $"\n状态 {status}";
             if (!string.IsNullOrEmpty(traitFootnote))
                 lines += $"\n{traitFootnote}";
@@ -217,7 +222,11 @@ namespace Grimhand.Presentation.Battle
                 }
             }
 
-            var lineCount = 2 + (string.IsNullOrEmpty(status) ? 0 : 1);
+            var lineCount = 2;
+            if (!string.IsNullOrEmpty(statusDetail))
+                lineCount += statusDetail.Split('\n').Length;
+            else if (!string.IsNullOrEmpty(status))
+                lineCount += 1;
             if (!string.IsNullOrEmpty(traitFootnote))
                 lineCount += traitFootnote.Split('\n').Length;
             if (showExp)

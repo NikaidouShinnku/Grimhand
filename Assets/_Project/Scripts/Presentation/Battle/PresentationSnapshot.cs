@@ -17,6 +17,12 @@ namespace Grimhand.Presentation.Battle
         public string TraitFootnote;
     }
 
+    public struct FootStatusEntry
+    {
+        public string StatusId;
+        public int Stacks;
+    }
+
     /// <summary>战斗演出期间的 HP / 存活 / 属性展示快照，与已结算完毕的逻辑状态解耦。</summary>
     public sealed class PresentationSnapshot
     {
@@ -25,6 +31,7 @@ namespace Grimhand.Presentation.Battle
         readonly Dictionary<string, int> _block = new();
         readonly Dictionary<string, int> _ironWallPendingAttackBonus = new();
         readonly Dictionary<string, CombatantDisplayStats> _displayStats = new();
+        readonly Dictionary<string, List<FootStatusEntry>> _footStatuses = new();
         readonly Dictionary<int, Dictionary<string, CombatantDisplayStats>> _eventCheckpoints = new();
         readonly HashSet<string> _dead = new();
         readonly List<int> _playerHandInstanceIds = new();
@@ -50,6 +57,7 @@ namespace Grimhand.Presentation.Battle
                 snap._block[c.Id] = c.Block;
                 snap._ironWallPendingAttackBonus[c.Id] = c.TalentIronWallPendingDamageBonus;
                 snap._displayStats[c.Id] = BuildDisplayStats(c, state);
+                snap._footStatuses[c.Id] = CaptureFootStatuses(c);
                 if (!c.IsAlive)
                     snap._dead.Add(c.Id);
             }
@@ -138,6 +146,72 @@ namespace Grimhand.Presentation.Battle
         public bool TryGetDisplayStats(string combatantId, out CombatantDisplayStats stats) =>
             _displayStats.TryGetValue(combatantId, out stats);
 
+        public IReadOnlyList<FootStatusEntry> GetFootStatuses(string combatantId)
+        {
+            if (_footStatuses.TryGetValue(combatantId, out var list))
+                return list;
+
+            return System.Array.Empty<FootStatusEntry>();
+        }
+
+        public void ApplyFootStatusApplied(string combatantId, string statusId, int totalStacks)
+        {
+            if (string.IsNullOrEmpty(combatantId) || string.IsNullOrEmpty(statusId) || totalStacks <= 0)
+                return;
+
+            if (!_footStatuses.TryGetValue(combatantId, out var list))
+            {
+                list = new List<FootStatusEntry>();
+                _footStatuses[combatantId] = list;
+            }
+
+            for (var i = 0; i < list.Count; i++)
+            {
+                if (list[i].StatusId != statusId)
+                    continue;
+
+                list[i] = new FootStatusEntry { StatusId = statusId, Stacks = totalStacks };
+                return;
+            }
+
+            list.Add(new FootStatusEntry { StatusId = statusId, Stacks = totalStacks });
+        }
+
+        public void ApplyFootStatusRemoved(string combatantId, string statusId, int removedStacks)
+        {
+            if (string.IsNullOrEmpty(combatantId) || string.IsNullOrEmpty(statusId) || removedStacks <= 0)
+                return;
+
+            if (!_footStatuses.TryGetValue(combatantId, out var list))
+                return;
+
+            for (var i = 0; i < list.Count; i++)
+            {
+                if (list[i].StatusId != statusId)
+                    continue;
+
+                var remaining = list[i].Stacks - removedStacks;
+                if (remaining <= 0)
+                    list.RemoveAt(i);
+                else
+                    list[i] = new FootStatusEntry { StatusId = statusId, Stacks = remaining };
+
+                return;
+            }
+        }
+
+        public void SyncFootStatusesFromLive(BattleState state, string combatantId)
+        {
+            if (state == null || string.IsNullOrEmpty(combatantId))
+                return;
+
+            var combatant = state.GetCombatant(combatantId);
+            if (combatant == null)
+                return;
+
+            _footStatuses[combatantId] = CaptureFootStatuses(combatant);
+        }
+
         public void RecordEventCheckpoint(int eventIndex, BattleEventKind kind, BattleState state)
         {
             if (state == null || eventIndex < 0)
@@ -188,6 +262,27 @@ namespace Grimhand.Presentation.Battle
                 StatusSummary = BattleUiFormatters.FormatStatusListDisplay(combatant),
                 TraitFootnote = MinionTraitDisplayFormatter.FormatFootnote(combatant, state)
             };
+
+        static List<FootStatusEntry> CaptureFootStatuses(CombatantState combatant)
+        {
+            var list = new List<FootStatusEntry>();
+            if (combatant?.Statuses == null)
+                return list;
+
+            foreach (var status in combatant.Statuses)
+            {
+                if (status == null || status.Stacks <= 0 || string.IsNullOrEmpty(status.StatusId))
+                    continue;
+
+                list.Add(new FootStatusEntry
+                {
+                    StatusId = status.StatusId,
+                    Stacks = status.Stacks
+                });
+            }
+
+            return list;
+        }
 
         public void ApplyIronWallConversion(string combatantId, int amount)
         {

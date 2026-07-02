@@ -101,6 +101,7 @@ namespace Grimhand.Editor
             AddCharacterVisuals(catalog, "char_snake_queen", "characters/snake queen", "snakequeen", hitPortraitFacesRight: false);
             AddCharacterVisuals(catalog, "char_lich_queen", "characters/lich queen", "lichqueen", hitPortraitFacesRight: false);
             FixLichQueenDeathPortrait(catalog);
+            FixLichQueenPosePortraits(catalog);
             AddIdleOnlyVisual(catalog, "char_goblin", "monsters/goblin_idle_1024.png");
             AddIdleOnlyVisual(catalog, "char_slime", "monsters/slime_idle_1024.png");
             AddIdleOnlyVisual(catalog, "char_skeleton", "monsters/skeleton_idle_1024.png");
@@ -148,6 +149,17 @@ namespace Grimhand.Editor
             var entry = catalog.Entries.Find(e => e.CharacterId == "char_lich_queen");
             if (entry != null && entry.DeathPortrait == null)
                 entry.DeathPortrait = LoadPortraitSprite("characters/lich queen/lichqueen_death_1024.png");
+        }
+
+        static void FixLichQueenPosePortraits(CharacterVisualCatalogSO catalog)
+        {
+            var entry = catalog.Entries.Find(e => e.CharacterId == "char_lich_queen");
+            if (entry == null)
+                return;
+
+            // 图集含多个子图；必须绑定 _0 主立绘，否则会显示碎片（绿块）。
+            entry.HitPortrait = LoadPortraitSprite("characters/lich queen/lichqueen_hit_1024.png");
+            entry.DefensePortrait = LoadPortraitSprite("characters/lich queen/lichqueen_defend_1024.png");
         }
 
         static void AddIdleOnlyVisual(CharacterVisualCatalogSO catalog, string characterId, string relativePath)

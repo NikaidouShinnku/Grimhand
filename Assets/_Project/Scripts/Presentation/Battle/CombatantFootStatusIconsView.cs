@@ -7,31 +7,39 @@ using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Battle
 {
-    /// <summary>立绘脚线下方：v0.8 状态图标 + 层数。</summary>
+    /// <summary>HP 心形行下方：状态图标 + 层数，超宽自动换行并居中。</summary>
     [DisallowMultipleComponent]
     public sealed class CombatantFootStatusIconsView : MonoBehaviour
     {
-        const float IconSize = 22f;
-        const float StackFontSize = 13f;
-        const float SlotWidth = 26f;
+        const float IconSize = 28f;
+        const float StackFontSize = 14f;
+        const float ItemSpacing = 4f;
+        const float RowSpacing = 3f;
+        const float MaxRowWidth = 144f;
 
-        static readonly string[] DisplayOrder =
+        static readonly string[] SortPriority =
         {
+            StatusCatalog.Poison,
+            StatusCatalog.NecroticPoison,
+            StatusCatalog.Burn,
+            StatusCatalog.Slow,
+            StatusCatalog.ArmorUp,
+            StatusCatalog.ArmorDown,
+            StatusCatalog.DefenseUp,
+            StatusCatalog.DefenseUpPercent,
+            StatusCatalog.DefenseDownPercent,
+            StatusCatalog.DamageReduction,
+            StatusCatalog.Vulnerable,
             StatusCatalog.AttackUpPercent,
             StatusCatalog.AttackUp,
             StatusCatalog.DamageUp,
             StatusCatalog.Weaken,
             StatusCatalog.AttackDown,
-            StatusCatalog.Vulnerable,
-            StatusCatalog.DamageReduction,
-            StatusCatalog.DefenseUpPercent,
-            StatusCatalog.DefenseUp,
-            StatusCatalog.ArmorUp,
-            StatusCatalog.DefenseDownPercent,
-            StatusCatalog.ArmorDown,
-            StatusCatalog.Slow,
-            StatusCatalog.Poison,
-            StatusCatalog.Burn
+            StatusCatalog.Taunt,
+            StatusCatalog.Guard,
+            StatusCatalog.Ethereal,
+            StatusCatalog.EtherealOnNextHit,
+            StatusCatalog.ReviveBlessing,
         };
 
         readonly List<StatusSlot> _slots = new();
@@ -46,25 +54,34 @@ namespace Grimhand.Presentation.Battle
 
         public void EnsureBuilt(RectTransform footRoot)
         {
-            if (_row != null || footRoot == null)
+            if (footRoot == null)
                 return;
 
-            var go = new GameObject("StatusIconsRow", typeof(RectTransform));
-            go.transform.SetParent(footRoot, false);
-            _row = go.GetComponent<RectTransform>();
+            if (_row == null)
+            {
+                var go = new GameObject("StatusIconsRow", typeof(RectTransform));
+                go.transform.SetParent(footRoot, false);
+                _row = go.GetComponent<RectTransform>();
+            }
+
             _row.anchorMin = new Vector2(0.5f, 0f);
             _row.anchorMax = new Vector2(0.5f, 0f);
-            _row.pivot = new Vector2(0.5f, 0f);
-            _row.anchoredPosition = new Vector2(0f, 50f);
-            _row.sizeDelta = new Vector2(220f, IconSize + 4f);
+            _row.pivot = new Vector2(0.5f, 1f);
+            _row.anchoredPosition = new Vector2(0f, -2f);
+            _row.sizeDelta = new Vector2(MaxRowWidth, IconSize + 4f);
         }
 
-        public void Refresh(CombatantState unit, BattleUiIconCatalogSO icons)
+        public void Refresh(CombatantState unit, BattleUiIconCatalogSO icons) =>
+            RefreshInternal(CollectVisible(unit), icons);
+
+        public void Refresh(IReadOnlyList<FootStatusEntry> entries, BattleUiIconCatalogSO icons) =>
+            RefreshInternal(CollectVisible(entries), icons);
+
+        void RefreshInternal(IReadOnlyList<VisibleStatus> visible, BattleUiIconCatalogSO icons)
         {
             if (_row == null)
                 return;
 
-            var visible = CollectVisible(unit);
             EnsureSlotCount(visible.Count);
 
             for (var i = 0; i < _slots.Count; i++)
@@ -78,12 +95,12 @@ namespace Grimhand.Presentation.Battle
 
                 var entry = visible[i];
                 slot.Root.SetActive(true);
-                slot.Icon.sprite = ResolveSprite(icons, entry.StatusId);
+                slot.Icon.sprite = StatusIconSpriteResolver.Resolve(icons, entry.StatusId);
                 slot.Icon.enabled = slot.Icon.sprite != null;
-                slot.Stacks.text = entry.Stacks > 1 ? entry.Stacks.ToString() : "";
+                slot.Stacks.text = $"×{entry.Stacks}";
             }
 
-            LayoutSlots(visible.Count);
+            LayoutSlots(visible);
             _row.gameObject.SetActive(visible.Count > 0);
         }
 
@@ -99,76 +116,65 @@ namespace Grimhand.Presentation.Battle
             if (unit?.Statuses == null)
                 return list;
 
-            var shownGroups = new HashSet<string>();
-
-            foreach (var statusId in DisplayOrder)
+            foreach (var status in unit.Statuses)
             {
-                var group = GroupFor(statusId);
-                if (group != null && shownGroups.Contains(group))
+                if (status == null || status.Stacks <= 0 || string.IsNullOrEmpty(status.StatusId))
                     continue;
 
-                foreach (var status in unit.Statuses)
+                list.Add(new VisibleStatus
                 {
-                    if (status == null || status.StatusId != statusId || status.Stacks <= 0)
-                        continue;
-
-                    list.Add(new VisibleStatus { StatusId = statusId, Stacks = status.Stacks });
-                    if (group != null)
-                        shownGroups.Add(group);
-                    break;
-                }
+                    StatusId = status.StatusId,
+                    Stacks = status.Stacks
+                });
             }
 
+            list.Sort(CompareVisible);
             return list;
         }
 
-        static string GroupFor(string statusId)
+        static List<VisibleStatus> CollectVisible(IReadOnlyList<FootStatusEntry> entries)
         {
-            return statusId switch
+            var list = new List<VisibleStatus>();
+            if (entries == null)
+                return list;
+
+            foreach (var entry in entries)
             {
-                StatusCatalog.AttackUpPercent => "dmg_up",
-                StatusCatalog.AttackUp => "dmg_up",
-                StatusCatalog.DamageUp => "dmg_up",
-                StatusCatalog.Weaken => "dmg_down",
-                StatusCatalog.AttackDown => "dmg_down",
-                StatusCatalog.Vulnerable => "def_down",
-                StatusCatalog.DamageReduction => "def_up",
-                StatusCatalog.DefenseUpPercent => "armor_up",
-                StatusCatalog.DefenseUp => "armor_up",
-                StatusCatalog.ArmorUp => "armor_up",
-                StatusCatalog.DefenseDownPercent => "armor_down",
-                StatusCatalog.ArmorDown => "armor_down",
-                StatusCatalog.Slow => "spd_down",
-                StatusCatalog.Poison => "poison",
-                StatusCatalog.Burn => "burn",
-                _ => statusId
-            };
+                if (entry.Stacks <= 0 || string.IsNullOrEmpty(entry.StatusId))
+                    continue;
+
+                list.Add(new VisibleStatus
+                {
+                    StatusId = entry.StatusId,
+                    Stacks = entry.Stacks
+                });
+            }
+
+            list.Sort(CompareVisible);
+            return list;
         }
 
-        static Sprite ResolveSprite(BattleUiIconCatalogSO icons, string statusId)
+        static int CompareVisible(VisibleStatus a, VisibleStatus b)
         {
-            if (icons == null)
-                return null;
+            var rankA = SortRank(a.StatusId);
+            var rankB = SortRank(b.StatusId);
+            if (rankA != rankB)
+                return rankA.CompareTo(rankB);
 
-            return statusId switch
+            var nameA = StatusCatalog.Get(a.StatusId)?.DisplayName ?? a.StatusId;
+            var nameB = StatusCatalog.Get(b.StatusId)?.DisplayName ?? b.StatusId;
+            return string.CompareOrdinal(nameA, nameB);
+        }
+
+        static int SortRank(string statusId)
+        {
+            for (var i = 0; i < SortPriority.Length; i++)
             {
-                StatusCatalog.AttackUpPercent => icons.StatusDamageUp,
-                StatusCatalog.AttackUp => icons.StatusDamageUp,
-                StatusCatalog.DamageUp => icons.StatusDamageUp,
-                StatusCatalog.Weaken => icons.StatusDamageDown,
-                StatusCatalog.AttackDown => icons.StatusDamageDown,
-                StatusCatalog.Vulnerable => icons.StatusDefenseDown,
-                StatusCatalog.DamageReduction => icons.StatusDefenseUp,
-                StatusCatalog.DefenseUpPercent => icons.StatusArmorAcqUp,
-                StatusCatalog.DefenseUp => icons.StatusArmorAcqUp,
-                StatusCatalog.ArmorUp => icons.StatusArmorAcqUp,
-                StatusCatalog.DefenseDownPercent => icons.StatusArmorAcqDown,
-                StatusCatalog.ArmorDown => icons.StatusArmorAcqDown,
-                StatusCatalog.Slow => icons.StatusSpdDown,
-                StatusCatalog.Poison => icons.StatusPoisoning,
-                StatusCatalog.Burn => icons.StatusBurning,
-                _ => null
-            };
+                if (SortPriority[i] == statusId)
+                    return i;
+            }
+
+            return SortPriority.Length + 1;
         }
 
         void EnsureSlotCount(int count)
@@ -178,14 +184,15 @@ namespace Grimhand.Presentation.Battle
                 var root = new GameObject($"StatusSlot{_slots.Count}", typeof(RectTransform));
                 root.transform.SetParent(_row, false);
                 var rt = root.GetComponent<RectTransform>();
-                rt.sizeDelta = new Vector2(SlotWidth, IconSize + 6f);
+                rt.sizeDelta = new Vector2(IconSize + 28f, IconSize);
 
                 var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
                 iconGo.transform.SetParent(root.transform, false);
                 var iconRt = iconGo.GetComponent<RectTransform>();
-                iconRt.anchorMin = new Vector2(0.5f, 0.5f);
-                iconRt.anchorMax = new Vector2(0.5f, 0.5f);
-                iconRt.pivot = new Vector2(0.5f, 0.5f);
+                iconRt.anchorMin = new Vector2(0f, 0.5f);
+                iconRt.anchorMax = new Vector2(0f, 0.5f);
+                iconRt.pivot = new Vector2(0f, 0.5f);
+                iconRt.anchoredPosition = Vector2.zero;
                 iconRt.sizeDelta = new Vector2(IconSize, IconSize);
                 var icon = iconGo.GetComponent<Image>();
                 icon.raycastTarget = false;
@@ -194,16 +201,16 @@ namespace Grimhand.Presentation.Battle
                 var textGo = new GameObject("Stacks", typeof(RectTransform), typeof(Text));
                 textGo.transform.SetParent(root.transform, false);
                 var textRt = textGo.GetComponent<RectTransform>();
-                textRt.anchorMin = new Vector2(1f, 0f);
-                textRt.anchorMax = new Vector2(1f, 0f);
-                textRt.pivot = new Vector2(0f, 0f);
-                textRt.anchoredPosition = new Vector2(-2f, 0f);
-                textRt.sizeDelta = new Vector2(16f, 14f);
+                textRt.anchorMin = new Vector2(0f, 0.5f);
+                textRt.anchorMax = new Vector2(0f, 0.5f);
+                textRt.pivot = new Vector2(0f, 0.5f);
+                textRt.anchoredPosition = new Vector2(IconSize + 2f, 0f);
+                textRt.sizeDelta = new Vector2(24f, IconSize);
                 var text = textGo.GetComponent<Text>();
                 text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
                 text.fontSize = (int)StackFontSize;
                 text.fontStyle = FontStyle.Bold;
-                text.alignment = TextAnchor.LowerRight;
+                text.alignment = TextAnchor.MiddleLeft;
                 text.color = Color.white;
                 text.raycastTarget = false;
                 var outline = textGo.AddComponent<Outline>();
@@ -214,26 +221,77 @@ namespace Grimhand.Presentation.Battle
             }
         }
 
-        void LayoutSlots(int count)
+        void LayoutSlots(IReadOnlyList<VisibleStatus> visible)
         {
-            if (_row == null || count <= 0)
+            if (_row == null || visible == null || visible.Count == 0)
                 return;
 
-            var totalWidth = count * SlotWidth;
-            var startX = -totalWidth * 0.5f + SlotWidth * 0.5f;
-            for (var i = 0; i < count; i++)
-            {
-                var rt = _slots[i].Root.transform as RectTransform;
-                if (rt == null)
-                    continue;
+            var rows = new List<List<int>>();
+            var currentRow = new List<int>();
+            var currentWidth = 0f;
 
-                rt.anchorMin = new Vector2(0.5f, 0.5f);
-                rt.anchorMax = new Vector2(0.5f, 0.5f);
-                rt.pivot = new Vector2(0.5f, 0.5f);
-                rt.anchoredPosition = new Vector2(startX + i * SlotWidth, 0f);
+            for (var i = 0; i < visible.Count; i++)
+            {
+                var itemWidth = MeasureItemWidth(visible[i].Stacks);
+                if (currentRow.Count > 0 && currentWidth + ItemSpacing + itemWidth > MaxRowWidth)
+                {
+                    rows.Add(currentRow);
+                    currentRow = new List<int>();
+                    currentWidth = 0f;
+                }
+
+                if (currentRow.Count > 0)
+                    currentWidth += ItemSpacing;
+
+                currentRow.Add(i);
+                currentWidth += itemWidth;
             }
 
-            _row.sizeDelta = new Vector2(totalWidth, IconSize + 6f);
+            if (currentRow.Count > 0)
+                rows.Add(currentRow);
+
+            var rowHeight = IconSize + RowSpacing;
+            var totalHeight = rows.Count * rowHeight - (rows.Count > 0 ? RowSpacing : 0f);
+            var topY = 0f;
+
+            for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
+            {
+                var row = rows[rowIndex];
+                var rowWidth = 0f;
+                for (var j = 0; j < row.Count; j++)
+                {
+                    if (j > 0)
+                        rowWidth += ItemSpacing;
+                    rowWidth += MeasureItemWidth(visible[row[j]].Stacks);
+                }
+
+                var x = -rowWidth * 0.5f;
+                var y = topY - rowIndex * rowHeight;
+
+                for (var j = 0; j < row.Count; j++)
+                {
+                    var slotIndex = row[j];
+                    var slotRt = _slots[slotIndex].Root.transform as RectTransform;
+                    if (slotRt == null)
+                        continue;
+
+                    var itemWidth = MeasureItemWidth(visible[slotIndex].Stacks);
+                    slotRt.anchorMin = new Vector2(0.5f, 1f);
+                    slotRt.anchorMax = new Vector2(0.5f, 1f);
+                    slotRt.pivot = new Vector2(0f, 1f);
+                    slotRt.sizeDelta = new Vector2(itemWidth, IconSize);
+                    slotRt.anchoredPosition = new Vector2(x, y);
+                    x += itemWidth + ItemSpacing;
+                }
+            }
+
+            _row.sizeDelta = new Vector2(MaxRowWidth, totalHeight);
+        }
+
+        static float MeasureItemWidth(int stacks)
+        {
+            var digits = stacks < 10 ? 1 : stacks < 100 ? 2 : 3;
+            return IconSize + 2f + 10f + digits * 8f;
         }
     }
 }

@@ -39,6 +39,22 @@ namespace Grimhand.Battle.Effects
             }
         }
 
+        public static void ExecuteFailedRespondActions(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState card,
+            List<BattleEvent> events,
+            BattleRng rng = null)
+        {
+            foreach (var action in card.Actions)
+            {
+                if (action.Condition != ReactionConditionType.RespondArmFailed)
+                    continue;
+
+                ExecuteOne(state, actor, card, action, events, rng, sourceCardInstanceId: card.InstanceId);
+            }
+        }
+
         static void ExecuteConditionalActions(
             BattleState state,
             CombatantState actor,
@@ -373,7 +389,7 @@ namespace Grimhand.Battle.Effects
                 {
                     if (action.Value > 0 && actor.IsAlive)
                     {
-                        state.EnergyCurrent = Math.Min(state.EnergyMax, state.EnergyCurrent + action.Value);
+                        EnergyRules.GainTemporary(state, action.Value);
                         events.Add(new BattleEvent(BattleEventKind.EnergyChanged, $"获得 {action.Value} 能量")
                         {
                             CombatantId = actor.Id,
@@ -524,7 +540,7 @@ namespace Grimhand.Battle.Effects
                 case EffectActionType.LockSelfCards:
                 {
                     if (actor != null && actor.IsAlive)
-                        actor.CardsLockedTurnsRemaining = Math.Max(actor.CardsLockedTurnsRemaining, Math.Max(1, action.Value));
+                        CardLockRules.ApplyLock(actor, action.Value);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
                 }

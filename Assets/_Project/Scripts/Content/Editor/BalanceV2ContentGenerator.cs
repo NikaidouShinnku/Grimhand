@@ -197,8 +197,7 @@ namespace Grimhand.Content.Editor
                 (c.BasicSlash, 3),
                 (c.ShieldBlock, 2),
                 (c.DefensiveStance, 1),
-                (c.IronParry, 1),
-                (c.AuthorRealmStrike, 1));
+                (c.IronParry, 1));
 
         static CardDefinitionSO[] BuildInitialPharaohDeck(PharaohCards c) =>
             BuildDeckWithCounts(
@@ -297,7 +296,11 @@ namespace Grimhand.Content.Editor
         }
 
         static bool IsAllyPickTarget(EffectTarget target) =>
-            target is EffectTarget.FrontAlly or EffectTarget.BackAlly;
+            target is EffectTarget.FrontAlly
+                or EffectTarget.BackAlly
+                or EffectTarget.AllyFrontSlot
+                or EffectTarget.AllyMiddleSlot
+                or EffectTarget.AllyBackSlot;
 
         static EffectActionDefinition ApplyStat(
             string statusId,

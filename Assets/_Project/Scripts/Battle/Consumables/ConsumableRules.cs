@@ -159,7 +159,7 @@ namespace Grimhand.Battle.Consumables
                     break;
                 }
                 case ConsumableEffectKind.EnergyThisTurn:
-                    state.EnergyCurrent = System.Math.Min(state.EnergyMax, state.EnergyCurrent + definition.Value);
+                    EnergyRules.Restore(state, definition.Value);
                     events.Add(new BattleEvent(BattleEventKind.EnergyChanged, "古卷残页：能量 +2")
                     {
                         Energy = state.EnergyCurrent,

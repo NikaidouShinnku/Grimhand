@@ -347,6 +347,13 @@ namespace Grimhand.Battle
             if (actor == null || card == null || !actor.IsAlive)
                 return;
 
+            if (CardLockRules.ShouldSkipPlayerCard(actor, card))
+            {
+                CardLockRules.SkipLockedPlayerCard(_state, actor, card, _events);
+                EvaluateOutcome();
+                return;
+            }
+
             card = HolysunSpellbookRules.ApplyForResolution(_state.Config?.RunModifiers, actor, card);
 
             var eventStart = _events.Count;
@@ -367,6 +374,9 @@ namespace Grimhand.Battle
             if (entry.ApplyConditionalEffects
                 || (!card.Keywords.Contains("respond_status") && !card.Keywords.Contains("respond_defense")))
                 EffectActionExecutor.ExecuteUnconditionalActions(_state, actor, card, _events, _rng);
+
+            if (!entry.ApplyConditionalEffects && RespondRules.IsRespondCard(card))
+                EffectActionExecutor.ExecuteFailedRespondActions(_state, actor, card, _events, _rng);
             ConsumableRules.RecordLastPlayerAttackCard(_state, actor, card);
             RelicBattleRules.TryApplyStatusCardTeamBlock(_state, actor, card, _events);
             RelicEffectRules.OnCardResolved(_state, actor, card, _events, _rng);
@@ -426,6 +436,13 @@ namespace Grimhand.Battle
             var card = _state.GetCard(step.CardInstanceId);
             if (actor == null || card == null || !actor.IsAlive)
                 return;
+
+            if (CardLockRules.ShouldSkipPlayerCard(actor, card))
+            {
+                CardLockRules.SkipLockedPlayerCard(_state, actor, card, _events);
+                EvaluateOutcome();
+                return;
+            }
 
             if (actor.Team == TeamSide.Enemy
                 && _state.SuppressedEnemyCardInstanceIds.Contains(card.InstanceId))

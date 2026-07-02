@@ -451,7 +451,7 @@ namespace Grimhand.Content
             ["l_soul_elegy"] = "【AOE】造成8伤害，本场远征每进入过一次虚化额外+3",
             ["l_summon_card_spirit"] = "抽2张牌（TODO：使抽到的牌-2费）",
             ["l_summon_chaos_spirit"] = "【消耗】【快速启动】抽牌至手牌上限，并将手牌费用随机重排",
-            ["l_wall_of_sighs"] = "【应对攻击】获得80%减伤，使一名我方角色获得虚化（1回合）",
+            ["l_wall_of_sighs"] = "【应对攻击】获得80%减伤，使随机一名我方角色获得虚化（1回合）",
             ["l_despair_soul"] = "【前/中】造成10伤害。本场战斗中，巫妖女王获得虚化时将本卡从弃牌堆置入手牌",
             ["l_realm_descent"] = "【消耗】【快速启动】本回合手牌费用变为0",
             ["l_super_psionic_cannon"] = "【前/中/后】造成100伤害",

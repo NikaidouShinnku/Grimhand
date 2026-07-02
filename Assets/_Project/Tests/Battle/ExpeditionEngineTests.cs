@@ -410,6 +410,35 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
+        public void StartRun_StripsForeignCharacterCardsFromCampDeck()
+        {
+            var config = BuildConfigWithKnightDeck(2);
+            config.PlayerCardCatalog.Add(new CardTemplate
+            {
+                DefinitionId = "l_ghost_claw",
+                DisplayName = "幽灵爪击",
+                OwnerCharacterId = "char_lich_queen"
+            });
+
+            var roster = new CampRosterState();
+            var member = new CampMemberLoadout
+            {
+                CharacterDefinitionId = "char_ranger",
+                DisplayName = "恶魔"
+            };
+            member.DeckCardIds.Add("l_ghost_claw");
+            for (var i = 1; i < CampRosterState.DeckSize; i++)
+                member.DeckCardIds.Add($"camp_card_{i}");
+            roster.Members.Add(member);
+
+            var engine = new ExpeditionEngine(config);
+            engine.StartRun(roster);
+
+            foreach (var entry in ExpeditionRunDeckCatalog.CollectMemberDeckEntries(config, engine.Run.Party[0]))
+                Assert.AreNotEqual("l_ghost_claw", entry.Template.DefinitionId);
+        }
+
+        [Test]
         public void GrantCardReward_WhenDeckFull_SetsPendingOffer()
         {
             var config = BuildConfigWithKnightDeck(10);

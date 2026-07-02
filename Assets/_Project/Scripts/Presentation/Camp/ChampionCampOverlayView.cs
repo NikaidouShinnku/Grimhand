@@ -347,6 +347,7 @@ namespace Grimhand.Presentation.Camp
 
         void SaveAndClose()
         {
+            EnsureRosterSize();
             SanitizeRosterCardOwnership();
             SanitizeDuplicateCharacters();
             _onRosterChanged?.Invoke(_roster);

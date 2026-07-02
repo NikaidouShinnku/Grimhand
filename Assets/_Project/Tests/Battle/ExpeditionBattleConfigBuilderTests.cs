@@ -438,5 +438,78 @@ namespace Grimhand.Battle.Tests
             Assert.Fail($"Missing combatant for team {team}");
             return null;
         }
+
+        [Test]
+        public void BuildEncounter_TrimsExtraTemplatePlayersToPartySize()
+        {
+            var template = new BattleConfig();
+            template.Combatants.Add(new CombatantConfig
+            {
+                Team = TeamSide.Player,
+                Slot = FormationSlot.Front,
+                CharacterDefinitionId = "char_knight"
+            });
+            template.Combatants.Add(new CombatantConfig
+            {
+                Team = TeamSide.Player,
+                Slot = FormationSlot.Middle,
+                CharacterDefinitionId = "char_mage"
+            });
+            template.Combatants.Add(new CombatantConfig
+            {
+                Team = TeamSide.Player,
+                Slot = FormationSlot.Back,
+                CharacterDefinitionId = "char_ranger"
+            });
+            template.Combatants.Add(new CombatantConfig
+            {
+                Team = TeamSide.Player,
+                Slot = FormationSlot.Back,
+                CharacterDefinitionId = "char_lich_queen"
+            });
+            template.Combatants.Add(new CombatantConfig
+            {
+                Team = TeamSide.Enemy,
+                CharacterDefinitionId = "char_goblin"
+            });
+
+            var party = new List<PartyMemberSnapshot>
+            {
+                new() { CharacterDefinitionId = "char_knight" },
+                new() { CharacterDefinitionId = "char_mage" },
+                new() { CharacterDefinitionId = "char_ranger" }
+            };
+
+            var config = ExpeditionBattleConfigBuilder.BuildEncounter(
+                template, party, new List<string>(), battleSeed: 1, applyPartyHp: true, floor: 1);
+
+            var playerCount = 0;
+            foreach (var cc in config.Combatants)
+            {
+                if (cc.Team == TeamSide.Player)
+                    playerCount++;
+            }
+
+            Assert.AreEqual(CampRosterState.PartySize, playerCount);
+        }
+
+        [Test]
+        public void EnforceMaxSize_TruncatesAndDedupesParty()
+        {
+            var party = new List<PartyMemberSnapshot>
+            {
+                new() { CharacterDefinitionId = "char_knight" },
+                new() { CharacterDefinitionId = "char_mage" },
+                new() { CharacterDefinitionId = "char_ranger" },
+                new() { CharacterDefinitionId = "char_lich_queen" }
+            };
+
+            ExpeditionPartyRules.EnforceMaxSize(party);
+
+            Assert.AreEqual(CampRosterState.PartySize, party.Count);
+            Assert.AreEqual("char_knight", party[0].CharacterDefinitionId);
+            Assert.AreEqual("char_mage", party[1].CharacterDefinitionId);
+            Assert.AreEqual("char_ranger", party[2].CharacterDefinitionId);
+        }
     }
 }

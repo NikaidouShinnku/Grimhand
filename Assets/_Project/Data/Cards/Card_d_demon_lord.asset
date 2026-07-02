@@ -23,8 +23,8 @@ MonoBehaviour:
   Actions:
   - Type: 0
     Target: 1
-    Value: 20
-    StatusId: 
+    Value: 25
+    StatusId:
     Stacks: 1
     Duration: -1
     ScaleWithAttack: 0

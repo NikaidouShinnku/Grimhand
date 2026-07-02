@@ -119,10 +119,10 @@ TextureImporter:
       name: lichqueen_idle_1024_0
       rect:
         serializedVersion: 2
-        x: 7
-        y: 631
-        width: 298
-        height: 218
+        x: 0
+        y: 15
+        width: 1009
+        height: 922
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -141,10 +141,10 @@ TextureImporter:
       name: lichqueen_idle_1024_1
       rect:
         serializedVersion: 2
-        x: 15
-        y: 15
-        width: 1009
-        height: 922
+        x: 719
+        y: 631
+        width: 298
+        height: 218
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}

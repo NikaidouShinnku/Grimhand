@@ -119,6 +119,9 @@ namespace Grimhand.Content
                 _ => entry.IdlePortrait
             };
 
+            if (sprite != null && !IsValidAnimationFrame(sprite))
+                sprite = entry.IdlePortrait;
+
             if (sprite != null)
                 return sprite;
 

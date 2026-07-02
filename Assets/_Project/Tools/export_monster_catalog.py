@@ -31,8 +31,8 @@ ACTION = {
 }
 CONDITION = {0: "", 1: "【应对攻击】"}
 KW_CN = {
-    "melee": "近战", "far_shot": "远射", "snipe": "狙击", "aoe": "AOE",
-    "guard": "防御", "slow": "减速", "poison": "中毒", "summon": "召唤",
+    "aoe": "AOE",
+    "slow": "减速", "poison": "中毒", "summon": "召唤",
     "parry": "应对攻击", "exhaust": "消耗", "self_destruct": "自毁",
     "bonus_hand": "额外手牌",
 }

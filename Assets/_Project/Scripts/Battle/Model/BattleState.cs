@@ -96,6 +96,12 @@ namespace Grimhand.Battle.Model
         public int TalentRangerBloodDebtAttackBonus { get; set; }
         public int TalentSacrificeHpAccumulatedBattle { get; set; }
 
+        /// <summary>巫妖女王 s2_lv5：本场战斗首张消耗牌 -1 费（待消耗）。</summary>
+        public bool TalentLichFirstExhaustDiscountPending { get; set; }
+
+        /// <summary>v0.9：本场战斗全队累计应对成功次数（战术大师的终结技按此计算伤害）。</summary>
+        public int RespondSuccessCount { get; set; }
+
         /// <summary>魔焰颅骨：战斗开始前等待玩家选择。</summary>
         public bool AwaitingFelskullChoice { get; set; }
 

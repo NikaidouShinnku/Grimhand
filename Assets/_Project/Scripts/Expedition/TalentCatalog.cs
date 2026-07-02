@@ -9,12 +9,16 @@ namespace Grimhand.Expedition
         public const string KnightId = "char_knight";
         public const string MageId = "char_mage";
         public const string RangerId = "char_ranger";
+        public const string SnakeQueenId = "char_snake_queen";
+        public const string LichQueenId = "char_lich_queen";
 
         public static readonly IReadOnlyList<string> PlayableCharacterIds = new[]
         {
             KnightId,
             MageId,
-            RangerId
+            RangerId,
+            SnakeQueenId,
+            LichQueenId
         };
 
         static readonly List<TalentDefinition> All = BuildAll();
@@ -55,6 +59,8 @@ namespace Grimhand.Expedition
             list.AddRange(BuildKnight());
             list.AddRange(BuildMage());
             list.AddRange(BuildRanger());
+            list.AddRange(BuildSnakeQueen());
+            list.AddRange(BuildLichQueen());
             return list;
         }
 
@@ -95,13 +101,13 @@ namespace Grimhand.Expedition
                 "法老死亡时，全队获得25护甲");
 
             yield return Def(MageId, 2, 2, "talent_mage_s2_lv2", "先声状态",
-                "每场战斗第一张状态牌消耗能量-1");
+                "每场战斗第一张状态牌能量消耗-1");
             yield return Def(MageId, 2, 4, "talent_mage_s2_lv4", "剧毒",
                 "施加的中毒层数+2");
             yield return Def(MageId, 2, 6, "talent_mage_s2_lv6", "初击减速",
                 "每场战斗中，受到法老伤害的第一个敌人获得1层减速");
-            yield return Def(MageId, 2, 10, "talent_mage_s2_lv10", "毒爆",
-                "所有中毒层数的累计伤害都会在一回合内爆发");
+            yield return Def(MageId, 2, 10, "talent_mage_s2_lv10", "永驻毒蚀",
+                "所有施加的中毒层数-1，但持续时间变为永久");
         }
 
         static IEnumerable<TalentDefinition> BuildRanger()
@@ -117,12 +123,54 @@ namespace Grimhand.Expedition
 
             yield return Def(RangerId, 2, 2, "talent_ranger_s2_lv2", "嗜血护甲",
                 "吸血效果超出HP上限时，溢出转化为等量护甲");
+            yield return Def(RangerId, 2, 3, "talent_ranger_s2_lv3", "微献保护",
+                "献祭生命值小于5时不会扣血");
             yield return Def(RangerId, 2, 4, "talent_ranger_s2_lv4", "血祭节流",
                 "每次献祭后，下一张牌能量消耗-1（最低0）");
             yield return Def(RangerId, 2, 6, "talent_ranger_s2_lv6", "无尽血刃",
                 "远征开始时，将一张「无尽血刃」置入该角色牌组");
             yield return Def(RangerId, 2, 8, "talent_ranger_s2_lv8", "孤猎",
                 "非Boss战中，若只有一个敌人，则获得30%增伤");
+        }
+
+        static IEnumerable<TalentDefinition> BuildSnakeQueen()
+        {
+            yield return Def(SnakeQueenId, 1, 1, "talent_snake_s1_lv1", "毒血免疫",
+                "自身免疫中毒的跳伤伤害");
+            yield return Def(SnakeQueenId, 1, 4, "talent_snake_s1_lv4", "毒甲共生",
+                "回合开始时，自身每层中毒提供1%强固");
+            yield return Def(SnakeQueenId, 1, 6, "talent_snake_s1_lv6", "毒息汲取",
+                "任意敌人因中毒受到伤害时，自身回复1HP");
+            yield return Def(SnakeQueenId, 1, 10, "talent_snake_s1_lv10", "以毒养命",
+                "自身中毒的跳伤变为治疗而非伤害");
+
+            yield return Def(SnakeQueenId, 2, 2, "talent_snake_s2_lv2", "毒蜕净化",
+                "单次受到超过自身25%最大HP的伤害后，清除自身所有负面状态");
+            yield return Def(SnakeQueenId, 2, 4, "talent_snake_s2_lv4", "蛇之疾速",
+                "任意敌人处于中毒时，自身+1SPD（不叠加）");
+            yield return Def(SnakeQueenId, 2, 7, "talent_snake_s2_lv7", "毒囊武装",
+                "远征开始时，将一张「引爆毒囊」置入该角色牌组");
+            yield return Def(SnakeQueenId, 2, 10, "talent_snake_s2_lv10", "慢性毒素",
+                "中毒持续时间结束时层数减半而非清零");
+        }
+
+        static IEnumerable<TalentDefinition> BuildLichQueen()
+        {
+            yield return Def(LichQueenId, 1, 1, "talent_lich_s1_lv1", "虚界恩赐",
+                "获得虚化时回复3HP");
+            yield return Def(LichQueenId, 1, 4, "talent_lich_s1_lv4", "灵体无伤",
+                "虚化期间受到的伤害为0并回复3HP（替代原封顶1）");
+            yield return Def(LichQueenId, 1, 7, "talent_lich_s1_lv7", "零点共鸣",
+                "回合开始时若能量为0，则+1能量");
+            yield return Def(LichQueenId, 1, 10, "talent_lich_s1_lv10", "虚空之主",
+                "永久处于虚化时不再受永恒虚无真伤（TODO：占位）");
+
+            yield return Def(LichQueenId, 2, 2, "talent_lich_s2_lv2", "灵界专注",
+                "非攻击类卡牌造成的伤害+10%（TODO：语义待确认）");
+            yield return Def(LichQueenId, 2, 5, "talent_lich_s2_lv5", "魂火节流",
+                "每场战斗中使用的第一张消耗牌能量消耗-1");
+            yield return Def(LichQueenId, 2, 10, "talent_lich_s2_lv10", "封印武装",
+                "远征开始时，将一张「灵界封印」置入该角色牌组");
         }
 
         static TalentDefinition Def(

@@ -5,9 +5,6 @@ TextureImporter:
   - first:
       213: -2083033746714116127
     second: snakequeen_idle_1024_0
-  - first:
-      213: 223079405788433356
-    second: snakequeen_idle_1024_1
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -119,7 +116,7 @@ TextureImporter:
       name: snakequeen_idle_1024_0
       rect:
         serializedVersion: 2
-        x: 15
+        x: 55
         y: 15
         width: 954
         height: 962
@@ -133,28 +130,6 @@ TextureImporter:
       bones: []
       spriteID: 1ef34fff7d39713e0800000000000000
       internalID: -2083033746714116127
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: snakequeen_idle_1024_1
-      rect:
-        serializedVersion: 2
-        x: 1015
-        y: 0
-        width: 9
-        height: 9
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: ccb89b2a989881300800000000000000
-      internalID: 223079405788433356
       vertices: []
       indices: 
       edges: []
@@ -174,7 +149,6 @@ TextureImporter:
       entries: []
     nameFileIdTable:
       snakequeen_idle_1024_0: -2083033746714116127
-      snakequeen_idle_1024_1: 223079405788433356
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

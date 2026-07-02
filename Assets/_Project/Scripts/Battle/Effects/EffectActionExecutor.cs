@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Reactions;
 using Grimhand.Battle.Rules;
 using Grimhand.Battle.Status;
+using Grimhand.Battle.V09;
 using Grimhand.Core;
 
 namespace Grimhand.Battle.Effects
@@ -177,8 +179,9 @@ namespace Grimhand.Battle.Effects
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
                 case EffectActionType.DrawCards:
-                    state.PendingDrawNextTurn += value;
-                    events.Add(new BattleEvent(BattleEventKind.CardDrawn, $"下回合额外抽 {value} 张")
+                    // v0.9：抽牌效果当回合立即抽到手中（配合 quick_start 可在本回合规划阶段直接使用）。
+                    DeckRules.DrawCards(state, actor.Team, rng, value, events);
+                    events.Add(new BattleEvent(BattleEventKind.CardDrawn, $"立即抽 {value} 张牌")
                     {
                         CombatantId = actor.Id,
                         CardInstanceId = card.InstanceId
@@ -248,6 +251,315 @@ namespace Grimhand.Battle.Effects
 
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Defense, actor.Id, false, 0);
                     break;
+                // ===== v0.9 新增动作类型 =====
+                case EffectActionType.ConsumeBlockDealDamage:
+                {
+                    if (target == null)
+                        break;
+                    var blockConsumed = actor.Block;
+                    if (blockConsumed <= 0 && action.Value <= 0)
+                        break;
+                    actor.Block = 0;
+                    if (blockConsumed > 0)
+                    {
+                        events.Add(new BattleEvent(BattleEventKind.BlockGained,
+                            $"{actor.DisplayName} 消耗护甲 {blockConsumed}")
+                        {
+                            CombatantId = actor.Id,
+                            Amount = blockConsumed
+                        });
+                    }
+                    var consumeDamage = blockConsumed + Math.Max(0, action.Value);
+                    if (consumeDamage > 0 && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
+                    {
+                        DamageRules.ApplyDamage(
+                            state, actor, target, consumeDamage, card.CardType, events,
+                            canTriggerParry: false, rng: rng, cardCost: card.Cost,
+                            ignoreDefPercent: action.IgnoreDefPercent,
+                            sourceCardInstanceId: sourceCardInstanceId);
+                    }
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Attack, target?.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.DamagePerRespondCount:
+                {
+                    if (target == null)
+                        break;
+                    var count = state.RespondSuccessCount;
+                    var dmg = Math.Max(0, count * action.Value);
+                    if (dmg > 0 && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
+                    {
+                        DamageRules.ApplyDamage(
+                            state, actor, target, dmg, card.CardType, events,
+                            canTriggerParry: false, rng: rng, cardCost: card.Cost,
+                            ignoreDefPercent: action.IgnoreDefPercent,
+                            sourceCardInstanceId: sourceCardInstanceId);
+                    }
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Attack, target?.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.DoubleStatusStacks:
+                {
+                    if (target == null)
+                        break;
+                    DoubleTargetStatusStacks(target, StatusCatalog.Poison, events);
+                    DoubleTargetStatusStacks(target, StatusCatalog.Burn, events);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, target.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.RecycleExhaustCardsFromDiscard:
+                {
+                    RecycleExhaustCardsInDiscard(state, actor.Team, events);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.DealDamageScaledByActorHpLoss:
+                {
+                    if (target == null)
+                        break;
+                    var basePower = value;
+                    var step = Math.Max(1, action.HpLossStepPercent);
+                    var lostPercent = Math.Max(0, (actor.MaxHp - actor.Hp) * 100 / Math.Max(1, actor.MaxHp));
+                    var steps = lostPercent / step;
+                    basePower += steps * Math.Max(0, action.HpLossStepValue);
+                    if (basePower > 0 && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
+                    {
+                        DamageRules.ApplyDamage(
+                            state, actor, target, basePower, card.CardType, events,
+                            canTriggerParry: true, rng: rng, cardCost: card.Cost,
+                            ignoreDefPercent: action.IgnoreDefPercent,
+                            sourceCardInstanceId: sourceCardInstanceId);
+                    }
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Attack, target?.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.DealDamageAlternateIfHealedThisTurn:
+                {
+                    if (target == null)
+                        break;
+                    var dmg = actor.HealedThisTurn && action.AlternateValueIfHealed > 0
+                        ? action.AlternateValueIfHealed
+                        : value;
+                    if (dmg > 0 && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
+                    {
+                        DamageRules.ApplyDamage(
+                            state, actor, target, dmg, card.CardType, events,
+                            canTriggerParry: true, rng: rng, cardCost: card.Cost,
+                            ignoreDefPercent: action.IgnoreDefPercent,
+                            sourceCardInstanceId: sourceCardInstanceId);
+                    }
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Attack, target?.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.DealDamageBonusPerTargetDebuffStack:
+                {
+                    if (target == null)
+                        break;
+                    var debuffStacks = CountDebuffStacks(target);
+                    var dmg = value + debuffStacks * Math.Max(0, action.Stacks);
+                    if (dmg > 0 && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
+                    {
+                        DamageRules.ApplyDamage(
+                            state, actor, target, dmg, card.CardType, events,
+                            canTriggerParry: true, rng: rng, cardCost: card.Cost,
+                            ignoreDefPercent: action.IgnoreDefPercent,
+                            sourceCardInstanceId: sourceCardInstanceId);
+                    }
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Attack, target?.Id, false, 0);
+                    break;
+                }
+                // ===== v0.9 毒蛇女王 / 巫妖女王 新增动作 =====
+                case EffectActionType.GainEnergy:
+                {
+                    if (action.Value > 0 && actor.IsAlive)
+                    {
+                        state.EnergyCurrent = Math.Min(state.EnergyMax, state.EnergyCurrent + action.Value);
+                        events.Add(new BattleEvent(BattleEventKind.EnergyChanged, $"获得 {action.Value} 能量")
+                        {
+                            CombatantId = actor.Id,
+                            Energy = state.EnergyCurrent,
+                            EnergyMax = state.EnergyMax,
+                            EnergyRemaining = state.EnergyCurrent,
+                            Amount = action.Value
+                        });
+                    }
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.DrawToHandLimit:
+                {
+                    var hand = state.GetHand(actor.Team);
+                    var draw = Math.Max(0, state.Config.HandLimit - hand.Count);
+                    if (draw > 0)
+                        DeckRules.DrawCards(state, actor.Team, rng, draw, events);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.GainBlockBonusIfSelfPoisoned:
+                {
+                    var totalBlock = value;
+                    if (StatusRules.HasStatus(actor, StatusCatalog.Poison))
+                        totalBlock += Math.Max(0, action.Stacks);
+                    totalBlock += RelicBattleRules.GetOutgoingDefenseFlatBonus(state.Config?.RunModifiers, actor);
+                    totalBlock = RelicBattleRules.ApplyPharaohBlockBonus(state.Config?.RunModifiers, actor, totalBlock);
+                    DamageRules.ApplyBlock(beneficiary, totalBlock, events, state, rng);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Defense, beneficiary.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.ApplyPoisonBySpeedCompare:
+                {
+                    if (target != null
+                        && TargetRules.IsTargetValidForAction(state, target, action.Reach, action)
+                        && value > 0)
+                    {
+                        DamageRules.ApplyDamage(
+                            state, actor, target, value, card.CardType, events,
+                            canTriggerParry: true, rng: rng, cardCost: card.Cost,
+                            ignoreDefPercent: action.IgnoreDefPercent,
+                            sourceCardInstanceId: sourceCardInstanceId);
+                    }
+                    if (target != null)
+                    {
+                        var actorSpeed = StatusRules.GetEffectiveSpeed(state, actor);
+                        var targetSpeed = StatusRules.GetEffectiveSpeed(state, target);
+                        var stacks = targetSpeed < actorSpeed ? Math.Max(1, action.Stacks) : 1;
+                        var duration = targetSpeed < actorSpeed ? Math.Max(1, action.Duration) : Math.Max(1, action.Duration);
+                        StatusRules.ApplyStatus(state, target, StatusCatalog.Poison, stacks, duration, events);
+                    }
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Attack, target?.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.RemovePoisonHealPerStack:
+                {
+                    V09NewMechanicsRules.RemovePoisonHealPerStack(state, actor, action.Value, events);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.TransferHalfPoisonToRandomEnemy:
+                {
+                    V09NewMechanicsRules.TransferHalfPoisonToRandomEnemy(state, actor, rng, events);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.ApplyConstrict:
+                {
+                    if (target != null && target.Team != actor.Team)
+                        V09NewMechanicsRules.ApplyConstrict(state, actor, target, action.Value, action.Duration, events);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Attack, target?.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.SettlePoisonAndClear:
+                {
+                    if (action.Target == EffectTarget.AllEnemies)
+                    {
+                        var enemyTeam = actor.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
+                        foreach (var targetId in PositionRules.SnapshotAliveCombatantIds(state, enemyTeam))
+                        {
+                            var t = state.GetCombatant(targetId);
+                            if (t != null && t.IsAlive)
+                                V09NewMechanicsRules.SettlePoisonAndClear(state, actor, t, events);
+                        }
+                    }
+                    else if (target != null)
+                        V09NewMechanicsRules.SettlePoisonAndClear(state, actor, target, events);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, target?.Id ?? actor.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.ApplyDelayedDamage:
+                {
+                    if (target != null)
+                        StatusRules.ApplyStatus(state, target, StatusCatalog.DelayedDamage, action.Value, 1, events);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, target?.Id ?? actor.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.EtherealCountBonusDamage:
+                {
+                    var bonus = V09NewMechanicsRules.GetEtherealEntryCount(state) * Math.Max(0, action.Stacks);
+                    var dmg = value + bonus;
+                    if (action.Target == EffectTarget.AllEnemies)
+                    {
+                        var enemyTeam = actor.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
+                        foreach (var targetId in PositionRules.SnapshotAliveCombatantIds(state, enemyTeam))
+                        {
+                            var t = state.GetCombatant(targetId);
+                            if (t != null && t.IsAlive)
+                                DamageRules.ApplyDamage(state, actor, t, dmg, card.CardType, events,
+                                    canTriggerParry: true, rng: rng, cardCost: card.Cost,
+                                    sourceCardInstanceId: sourceCardInstanceId, isAoEWave: true);
+                        }
+                    }
+                    else if (target != null && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
+                        DamageRules.ApplyDamage(state, actor, target, dmg, card.CardType, events,
+                            canTriggerParry: true, rng: rng, cardCost: card.Cost,
+                            sourceCardInstanceId: sourceCardInstanceId);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Attack, target?.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.AddTokenCardToHand:
+                {
+                    V09NewMechanicsRules.AddTokenCardToHand(state, actor, action.TokenCardId, events);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.ShuffleHandCosts:
+                {
+                    V09NewMechanicsRules.ShuffleHandCosts(state, actor, rng);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.RandomSnakeGodEffect:
+                {
+                    ExecuteRandomSnakeGodEffect(state, actor, card, action, events, rng, sourceCardInstanceId);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Attack, "", false, 0);
+                    break;
+                }
+                case EffectActionType.SealNextEnemyCard:
+                {
+                    // 占位：对敌方施加封印状态（TODO：敌方下张牌失效逻辑待实装）
+                    if (target != null && target.Team != actor.Team)
+                        StatusRules.ApplyStatus(state, target, StatusCatalog.SealedNextCard, 1, 2, events);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, target?.Id ?? actor.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.LockSelfCards:
+                {
+                    if (actor != null && actor.IsAlive)
+                        actor.CardsLockedTurnsRemaining = Math.Max(actor.CardsLockedTurnsRemaining, Math.Max(1, action.Value));
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.DrawCardsIfEthereal:
+                {
+                    var draw = StatusRules.HasStatus(actor, StatusCatalog.Ethereal) && action.AlternateValue > 0
+                        ? action.AlternateValue
+                        : Math.Max(0, action.Value);
+                    if (draw > 0)
+                        DeckRules.DrawCards(state, actor.Team, rng, draw, events);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.BuffAllOtherAllies:
+                {
+                    foreach (var ally in state.GetTeam(actor.Team))
+                    {
+                        if (ally == null || !ally.IsAlive || ally.Id == actor.Id)
+                            continue;
+                        StatusRules.ApplyStatus(state, ally, action.StatusId, Math.Max(1, action.Stacks), action.Duration, events);
+                    }
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.RevealEnemyIntent:
+                {
+                    // 占位：看破敌人意图系统尚未实装；暂抽 1 牌。
+                    DeckRules.DrawCards(state, actor.Team, rng, 1, events);
+                    events.Add(new BattleEvent(BattleEventKind.StatusApplied, "TODO: 恐惧低语 看破敌人意图")
+                    {
+                        CombatantId = actor.Id
+                    });
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    break;
+                }
             }
 
             if (action.SelfDamageFlat > 0 && actor.IsAlive && !sacrificeSelfDamageAppliedEarly)
@@ -273,7 +585,10 @@ namespace Grimhand.Battle.Effects
                 canTriggerParry: false, isSacrificeDamage: true, rng: rng,
                 sourceCardInstanceId: sourceCardInstanceId);
             if (state.LastAction.DamageAmount > 0)
+            {
                 TalentBattleRules.OnSacrificeHpSpent(state, actor, state.LastAction.DamageAmount);
+                PassiveCardMechanicsRules.TryTriggerBloodFrenzyOnSacrifice(state, actor, events);
+            }
         }
 
         static void ApplyRandomPlayerPlayLock(
@@ -394,8 +709,16 @@ namespace Grimhand.Battle.Effects
                 && action.StatusId == StatusCatalog.Poison)
                 stacks = PassiveCardMechanicsRules.ResolveFinalBindPoisonStacks(state, target, stacks);
 
-            TalentBattleRules.AdjustPoisonStacks(state, actor, ref stacks);
-            StatusRules.ApplyStatus(state, target, action.StatusId, stacks, action.Duration, events);
+            // v0.9 毒囊破裂：施毒者有 venom_sac_burst 时 +1 层中毒
+            stacks = V09NewMechanicsRules.AdjustPoisonStacksForVenomSac(actor, action.StatusId, stacks);
+
+            var duration = action.Duration;
+            if (action.StatusId == StatusCatalog.Poison)
+            {
+                TalentBattleRules.AdjustPoisonStacks(state, actor, ref stacks);
+                duration = TalentBattleRules.AdjustPoisonDuration(state, actor, duration);
+            }
+            StatusRules.ApplyStatus(state, target, action.StatusId, stacks, duration, events);
 
             if (!action.SplashBehindTarget || target == null)
                 return;
@@ -588,6 +911,128 @@ namespace Grimhand.Battle.Effects
             var blockValue = action.FallbackBlockValue;
             if (blockValue > 0)
                 DamageRules.ApplyBlock(actor, blockValue, events, state, rng);
+        }
+
+        // ===== v0.9 新增动作类型的辅助方法 =====
+
+        static void ExecuteRandomSnakeGodEffect(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState card,
+            EffectActionSpec action,
+            List<BattleEvent> events,
+            BattleRng rng,
+            int sourceCardInstanceId)
+        {
+            if (state == null || actor == null || rng == null)
+                return;
+
+            var enemyTeam = actor.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
+            var roll = rng.NextIndex(3);
+            if (roll == 0)
+            {
+                // AOE 造成 Value 伤害
+                foreach (var targetId in PositionRules.SnapshotAliveCombatantIds(state, enemyTeam))
+                {
+                    var t = state.GetCombatant(targetId);
+                    if (t != null && t.IsAlive)
+                        DamageRules.ApplyDamage(state, actor, t, action.Value, card.CardType, events,
+                            canTriggerParry: false, rng: rng, cardCost: card.Cost,
+                            sourceCardInstanceId: sourceCardInstanceId, isAoEWave: true);
+                }
+            }
+            else if (roll == 1)
+            {
+                // AOE 施加 Stacks 层中毒（永久）
+                foreach (var targetId in PositionRules.SnapshotAliveCombatantIds(state, enemyTeam))
+                {
+                    var t = state.GetCombatant(targetId);
+                    if (t != null && t.IsAlive)
+                        StatusRules.ApplyStatus(state, t, StatusCatalog.Poison, Math.Max(1, action.Stacks), -1, events);
+                }
+            }
+            else
+            {
+                // 随机一名敌人造成 AlternateValue 伤害
+                var pick = TargetRules.PickRandomEnemies(state, actor.Team, 1, rng);
+                if (pick != null && pick.Count > 0 && pick[0] != null)
+                    DamageRules.ApplyDamage(state, actor, pick[0], action.AlternateValue, card.CardType, events,
+                        canTriggerParry: false, rng: rng, cardCost: card.Cost,
+                        sourceCardInstanceId: sourceCardInstanceId);
+            }
+
+            events.Add(new BattleEvent(BattleEventKind.StatusApplied, "蛇神的回应降临")
+            {
+                CombatantId = actor.Id,
+                Amount = roll
+            });
+        }
+
+        static void DoubleTargetStatusStacks(CombatantState target, string statusId, List<BattleEvent> events)
+        {
+            var existing = StatusRules.FindStatus(target, statusId);
+            if (existing == null || existing.Stacks <= 0)
+                return;
+            existing.Stacks *= 2;
+            events.Add(new BattleEvent(BattleEventKind.StatusApplied,
+                $"{target.DisplayName} {StatusCatalog.Get(statusId)?.DisplayName} 层数翻倍")
+            {
+                CombatantId = target.Id,
+                Amount = existing.Stacks,
+                TargetId = statusId
+            });
+        }
+
+        static int CountDebuffStacks(CombatantState target)
+        {
+            if (target == null)
+                return 0;
+            var total = 0;
+            foreach (var status in target.Statuses)
+            {
+                if (status.Stacks <= 0)
+                    continue;
+                var def = StatusCatalog.Get(status.StatusId);
+                if (def == null)
+                    continue;
+                // 视为减益：跳伤（中毒/灼烧）、减速、虚弱、破损、易伤、减伤对自身无意义但属负面修饰
+                if (def.TurnStartDamagePerStack > 0
+                    || def.TurnEndDamagePerStack > 0
+                    || def.SpeedModifierPerStack < 0
+                    || def.OutgoingDamageReductionFlatPerStack > 0
+                    || def.BlockGainReductionPercentPerStack > 0
+                    || def.IncomingDamagePercentPerStack > 0)
+                {
+                    total += status.Stacks;
+                }
+            }
+            return total;
+        }
+
+        static void RecycleExhaustCardsInDiscard(BattleState state, TeamSide team, List<BattleEvent> events)
+        {
+            var discard = state.GetDiscardPile(team);
+            var draw = state.GetDrawPile(team);
+            var moved = 0;
+            for (var i = discard.Count - 1; i >= 0; i--)
+            {
+                var card = discard[i];
+                if (card == null || !card.Keywords.Contains("exhaust"))
+                    continue;
+                card.Keywords.Remove("exhaust");
+                discard.RemoveAt(i);
+                draw.Add(card);
+                moved++;
+            }
+
+            if (moved > 0)
+            {
+                events.Add(new BattleEvent(BattleEventKind.CardDrawn,
+                    $"神圣轮回：将 {moved} 张消耗牌洗回抽牌堆并祛除消耗")
+                {
+                    Amount = moved
+                });
+            }
         }
     }
 }

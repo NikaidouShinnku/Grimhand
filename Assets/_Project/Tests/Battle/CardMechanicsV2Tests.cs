@@ -40,7 +40,7 @@ namespace Grimhand.Battle.Tests
 
             Assert.AreEqual(30, mage.Hp);
             Assert.Less(warrior.Hp, 40);
-            Assert.AreEqual(34, warrior.Hp);
+            Assert.AreEqual(35, warrior.Hp);
         }
 
         [Test]

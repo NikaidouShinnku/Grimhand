@@ -2081,7 +2081,8 @@ namespace Grimhand.Expedition
                 return;
 
             var clone = ExpeditionBattleConfigBuilder.CloneTemplate(curseTemplate);
-            clone.OwnerCharacterId = curseOwnerId;
+            // 诅咒牌无归属角色：作为额外污染牌加入整场远征的公共牌池，不在任意角色牌组内。
+            clone.OwnerCharacterId = "";
             ExpeditionRunDeckRules.TryAddRunWideBonusCard(_config, _run, clone, RecordRunAcquisition);
         }
 

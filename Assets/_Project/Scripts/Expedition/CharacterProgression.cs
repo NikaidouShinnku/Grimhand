@@ -26,6 +26,18 @@ namespace Grimhand.Expedition
             85, 89, 93, 97, 101, 105, 109, 113, 117, 121
         };
 
+        static readonly int[] SnakeQueenHp =
+        {
+            55, 60, 65, 70, 75, 80, 85, 90, 95, 100,
+            105, 110, 115, 120, 125, 130, 135, 140, 145, 150
+        };
+
+        static readonly int[] LichQueenHp =
+        {
+            48, 53, 58, 63, 68, 73, 78, 83, 88, 93,
+            98, 103, 108, 113, 118, 123, 128, 133, 138, 143
+        };
+
         static readonly int[] XpToLevel =
         {
             0, 0, 8, 11, 14, 17, 20, 23, 26, 29,
@@ -35,6 +47,8 @@ namespace Grimhand.Expedition
         public const int WarriorSpeed = 7;
         public const int PharaohSpeed = 5;
         public const int DemonSpeed = 6;
+        public const int SnakeQueenSpeed = 6;
+        public const int LichQueenSpeed = 7;
 
         public static int ClampLevel(int level) =>
             level < MinLevel ? MinLevel : level > MaxLevel ? MaxLevel : level;
@@ -86,6 +100,8 @@ namespace Grimhand.Expedition
                 "char_knight" or "char_warrior" => new CharacterStats(WarriorHp[index], WarriorSpeed),
                 "char_mage" or "char_pharaoh" => new CharacterStats(PharaohHp[index], PharaohSpeed),
                 "char_ranger" or "char_demon" => new CharacterStats(DemonHp[index], DemonSpeed),
+                "char_snake_queen" or "char_viper_queen" => new CharacterStats(SnakeQueenHp[index], SnakeQueenSpeed),
+                "char_lich_queen" or "char_lich" => new CharacterStats(LichQueenHp[index], LichQueenSpeed),
                 _ => new CharacterStats(WarriorHp[index], WarriorSpeed)
             };
         }

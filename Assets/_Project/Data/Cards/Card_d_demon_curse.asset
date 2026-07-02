@@ -10,29 +10,28 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d1e8e1f9605a6fb4fa4e4fa5586de5ee, type: 3}
-  m_Name: Card_m_320
+  m_Name: Card_d_demon_curse
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
-  CardId: m_320
-  DisplayName: "320"
-  OwnerCharacterId: char_ghost_queen
-  Cost: 1
-  CardType: 0
+  CardId: d_demon_curse
+  DisplayName: "\u6076\u9B54\u8BC5\u5492"
+  OwnerCharacterId: char_ranger
+  Cost: 0
+  CardType: 2
+  Keywords: []
   Rarity: 0
-  Keywords:
-  - ethereal
   Actions:
-  - Type: 0
+  - Type: 3
     Target: 0
-    Value: 1
-    StatusId: 
-    Stacks: 1
-    Duration: -1
+    Value: 0
+    StatusId: weaken
+    Stacks: 10
+    Duration: 2
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 1
+    Reach: 0
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100
@@ -40,7 +39,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
-    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusId:
     BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
@@ -56,7 +55,7 @@ MonoBehaviour:
     RepeatPerEnemyAttackCardThisTurn: 0
     FallbackBlockDefenseScalePercent: 100
     FallbackBlockValue: 0
-    SummonCharacterId: 
+    SummonCharacterId:
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
   CardArt: {fileID: 0}

@@ -216,6 +216,20 @@ namespace Grimhand.Presentation.Battle
             return ok;
         }
 
+        /// <summary>测试用：将一张卡牌（按模板）直接置入玩家手牌，便于在图鉴中点选测试。</summary>
+        public bool TryAddCardToHand(CardTemplate template)
+        {
+            if (Engine == null || template == null)
+                return false;
+
+            var instance = Engine.AddCardTemplateToHand(template);
+            if (instance == null)
+                return false;
+
+            DrainEvents();
+            return true;
+        }
+
         public bool CommitPlan()
         {
             if (Engine == null || !CanInteractWithBattle())

@@ -14,6 +14,16 @@ namespace Grimhand.Battle.Rules
     {
         public static bool IsPolluted(CardInstanceState card) => !card.IsUsable;
 
+        /// <summary>诅咒牌（如混沌之触）：占用牌库/手牌位但无法被打出，只能通过弃牌/摧毁事件移除。</summary>
+        public static bool IsCurseCard(CardInstanceState card)
+        {
+            if (card == null)
+                return false;
+            if (card.Keywords != null && card.Keywords.Contains("curse"))
+                return true;
+            return !string.IsNullOrEmpty(card.DefinitionId) && card.DefinitionId.StartsWith("curse_");
+        }
+
         /// <summary>
         /// 规划阶段是否需要玩家点选具体角色。
         /// 例外：自身防御/治疗/抽牌、按槽位自动解析、应对类效果、敌方全体（未来）。

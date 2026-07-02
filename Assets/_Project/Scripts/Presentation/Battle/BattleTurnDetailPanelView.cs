@@ -24,6 +24,13 @@ namespace Grimhand.Presentation.Battle
 
         public bool IsOpen => _open;
 
+        public void Hide()
+        {
+            _open = false;
+            if (_panel != null)
+                _panel.gameObject.SetActive(false);
+        }
+
         public void Initialize(BattleSession session, Transform battleRoot)
         {
             _session = session;
@@ -96,16 +103,26 @@ namespace Grimhand.Presentation.Battle
             if (_bodyText == null || _content == null)
                 return;
 
-            Canvas.ForceUpdateCanvases();
-            var width = _content.rect.width > 1f ? _content.rect.width - 16f : 500f;
-            var height = _bodyText.preferredHeight + 16f;
+            // 先确定正文宽度（依据当前视口宽度），再触发布局重建，
+            // 让 ContentSizeFitter 基于正确宽度计算 preferredHeight，
+            // 否则文字换行行数会按旧/零宽度估算，导致内容高度偏小、滚动不到底。
+            var viewportWidth = _scroll != null && _scroll.viewport != null
+                ? _scroll.viewport.rect.width
+                : (_content.rect.width > 1f ? _content.rect.width : 500f);
             var bodyRt = _bodyText.rectTransform;
-            bodyRt.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);
-            bodyRt.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, Mathf.Max(height, 80f));
-            _content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, bodyRt.rect.height + 8f);
+            bodyRt.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, Mathf.Max(viewportWidth - 16f, 80f));
+
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(bodyRt);
             LayoutRebuilder.ForceRebuildLayoutImmediate(_content);
+
             if (_scroll != null)
+            {
                 _scroll.verticalNormalizedPosition = 1f;
+                // 再强制一次，避免滚动条在内容增高后未更新可滚动范围。
+                Canvas.ForceUpdateCanvases();
+                _scroll.verticalNormalizedPosition = 1f;
+            }
         }
 
         void EnsureBuilt(Transform battleRoot)

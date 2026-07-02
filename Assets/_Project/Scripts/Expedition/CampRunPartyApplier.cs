@@ -20,7 +20,9 @@ namespace Grimhand.Expedition
                 var member = new PartyMemberSnapshot
                 {
                     CharacterDefinitionId = loadout.CharacterDefinitionId,
-                    DisplayName = loadout.DisplayName,
+                    DisplayName = CharacterDisplayNames.GetOrFallback(
+                        loadout.CharacterDefinitionId,
+                        loadout.DisplayName),
                     Level = 1,
                     Hp = stats.MaxHp,
                     MaxHp = stats.MaxHp

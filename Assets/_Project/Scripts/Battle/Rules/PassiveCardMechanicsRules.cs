@@ -27,6 +27,17 @@ namespace Grimhand.Battle.Rules
         public const int SandSpearReforgeBaseDamage = 4;
         public const int FinalBindBonusPoisonStacks = 30;
 
+        // v0.9 玩家卡牌被动常量
+        public const int RespondStanceBlock = 8;
+        public const int BattleWillAttackPercentPerHit = 5;
+        public const int HeavyArmorBlockBonusPercent = 20;
+        public const int FinalBulwarkKeepPercent = 50;
+        public const int RotAvatarPoisonStacks = 2;
+        public const int BloodFrenzyAttackPercent = 5;
+        public const int BloodSharingAllyHealPercent = 30;
+        public const int PlagueSpreadChancePercent = 30;
+        public const string HolyInfusionCardId = "p_holy_infusion";
+
         public static int GetEndlessBladeDamageMultiplierPercent(BattleState state, int cardInstanceId)
         {
             if (state == null || cardInstanceId <= 0)
@@ -308,6 +319,184 @@ namespace Grimhand.Battle.Rules
             var hasPoison = StatusRules.GetStatusStacks(target, StatusCatalog.Poison) > 0;
             var hasSlow = StatusRules.GetStatusStacks(target, StatusCatalog.Slow) > 0;
             return hasPoison && hasSlow ? FinalBindBonusPoisonStacks : defaultStacks;
+        }
+
+        // ===== v0.9 玩家被动卡牌触发钩子 =====
+
+        /// <summary>应对姿态：应对成功时获得8护甲。在 RespondEffectExecutor 应对成功后调用。</summary>
+        public static void TryTriggerRespondStanceOnRespondSuccess(
+            BattleState state, CombatantState actor, List<BattleEvent> events, BattleRng rng)
+        {
+            if (state == null || actor == null || !actor.IsAlive || events == null)
+                return;
+            if (!StatusRules.HasStatus(actor, StatusCatalog.RespondStance))
+                return;
+            DamageRules.ApplyBlock(actor, RespondStanceBlock, events, state, rng);
+        }
+
+        /// <summary>战意觉醒：受到HP伤害后获得5%增伤（永久）。在 DamageRules 受伤后调用。</summary>
+        public static void OnDamageTakenBattleWill(
+            BattleState state, CombatantState target, int hpDamage, List<BattleEvent> events)
+        {
+            if (state == null || target == null || hpDamage <= 0 || events == null)
+                return;
+            if (!StatusRules.HasStatus(target, StatusCatalog.BattleWill))
+                return;
+            StatusRules.ApplyStatus(
+                state, target, StatusCatalog.AttackUpPercent,
+                BattleWillAttackPercentPerHit, -1, events);
+        }
+
+        /// <summary>重甲强化：获得护甲时额外+20%。返回放大后的护甲值。</summary>
+        public static int ApplyHeavyArmorBlockBonus(CombatantState actor, int amount)
+        {
+            if (actor == null || amount <= 0)
+                return amount;
+            if (!StatusRules.HasStatus(actor, StatusCatalog.HeavyArmor))
+                return amount;
+            return Math.Max(1, (int)Math.Round(amount * (100f + HeavyArmorBlockBonusPercent) / 100f));
+        }
+
+        /// <summary>最终壁垒：回合末护甲清零时仅清除 (100-FinalBulwarkKeepPercent)%。返回应保留的护甲。</summary>
+        public static int GetFinalBulwarkRetainedBlock(CombatantState combatant)
+        {
+            if (combatant == null || combatant.Block <= 0)
+                return 0;
+            if (!StatusRules.HasStatus(combatant, StatusCatalog.FinalBulwark))
+                return 0;
+            return (int)Math.Round(combatant.Block * FinalBulwarkKeepPercent / 100f);
+        }
+
+        /// <summary>背水一战：HP将降至0时，改为保留1HP（消耗1层持续时间）。返回是否触发。</summary>
+        public static bool TryTriggerLastStand(
+            BattleState state, CombatantState target, ref int hpDamage, List<BattleEvent> events)
+        {
+            if (state == null || target == null || hpDamage <= 0 || events == null)
+                return false;
+            if (!StatusRules.HasStatus(target, StatusCatalog.LastStand))
+                return false;
+            if (target.Hp - hpDamage > 0)
+                return false;
+
+            hpDamage = target.Hp - 1;
+            if (hpDamage < 0)
+                hpDamage = 0;
+            events.Add(new BattleEvent(BattleEventKind.StatusApplied, $"{target.DisplayName} 背水一战：HP 保留 1")
+            {
+                CombatantId = target.Id,
+                Amount = 1
+            });
+            return true;
+        }
+
+        /// <summary>腐朽化身：回合开始时给所有敌人施加2层中毒（永久）。</summary>
+        public static void TryTriggerRotAvatarOnTurnStart(
+            BattleState state, List<BattleEvent> events)
+        {
+            if (state == null || events == null)
+                return;
+            var caster = FindAliveWithStatus(state, TeamSide.Player, StatusCatalog.RotAvatar);
+            if (caster == null)
+                return;
+            foreach (var enemy in state.GetTeam(TeamSide.Enemy))
+            {
+                if (!enemy.IsAlive)
+                    continue;
+                StatusRules.ApplyStatus(
+                    state, enemy, StatusCatalog.Poison, RotAvatarPoisonStacks, -1, events);
+            }
+        }
+
+        /// <summary>鲜血狂欢：献祭后获得5%增伤（永久）。在献祭自伤结算后调用。</summary>
+        public static void TryTriggerBloodFrenzyOnSacrifice(
+            BattleState state, CombatantState actor, List<BattleEvent> events)
+        {
+            if (state == null || actor == null || events == null)
+                return;
+            if (!StatusRules.HasStatus(actor, StatusCatalog.BloodFrenzy))
+                return;
+            StatusRules.ApplyStatus(
+                state, actor, StatusCatalog.AttackUpPercent,
+                BloodFrenzyAttackPercent, -1, events);
+        }
+
+        /// <summary>分血仪式：恶魔回复HP时，治疗其他我方角色30%的回复量。</summary>
+        public static void TryTriggerBloodSharingOnHeal(
+            BattleState state, CombatantState healed, int healedAmount, List<BattleEvent> events)
+        {
+            if (state == null || healed == null || healedAmount <= 0 || events == null)
+                return;
+            if (!StatusRules.HasStatus(healed, StatusCatalog.BloodSharing))
+                return;
+            var share = Math.Max(1, (int)Math.Round(healedAmount * BloodSharingAllyHealPercent / 100f));
+            foreach (var ally in state.GetTeam(healed.Team))
+            {
+                if (!ally.IsAlive || ally.Id == healed.Id)
+                    continue;
+                DamageRules.ApplyHeal(state, ally, share, events, healed);
+            }
+        }
+
+        /// <summary>瘟疫蔓延：敌人因中毒受伤时，30%概率将一半层数传染给相邻敌人。</summary>
+        public static void TryTriggerPlagueSpreadOnPoisonTick(
+            BattleState state, CombatantState victim, List<BattleEvent> events, BattleRng rng)
+        {
+            if (state == null || victim == null || victim.Team != TeamSide.Enemy || rng == null)
+                return;
+            var caster = FindAliveWithStatus(state, TeamSide.Player, StatusCatalog.PlagueSpread);
+            if (caster == null)
+                return;
+            if (rng.NextInt(1, 100) > PlagueSpreadChancePercent)
+                return;
+            var poison = StatusRules.FindStatus(victim, StatusCatalog.Poison);
+            if (poison == null || poison.Stacks <= 0)
+                return;
+            var behindId = PositionRules.SnapshotCombatantBehindId(state, victim);
+            if (string.IsNullOrEmpty(behindId))
+                return;
+            var behind = state.GetCombatant(behindId);
+            if (behind == null || !behind.IsAlive)
+                return;
+            var spreadStacks = Math.Max(1, poison.Stacks / 2);
+            // 保持原持续时间：中毒本身为永久，故 -1
+            StatusRules.ApplyStatus(state, behind, StatusCatalog.Poison, spreadStacks, -1, events);
+            events.Add(new BattleEvent(BattleEventKind.StatusApplied, $"瘟疫蔓延：传染 {spreadStacks} 层中毒")
+            {
+                CombatantId = behind.Id,
+                Amount = spreadStacks,
+                TargetId = StatusCatalog.Poison
+            });
+        }
+
+        /// <summary>神圣灌注：演员下张牌结算后重复一次。返回是否执行了重复。</summary>
+        public static bool TryTriggerHolyInfusionRepeat(
+            BattleState state, CombatantState actor, CardInstanceState card,
+            List<BattleEvent> events, BattleRng rng)
+        {
+            if (state == null || actor == null || card == null || events == null)
+                return false;
+            if (card.DefinitionId == HolyInfusionCardId)
+                return false; // 不重复自身
+            if (!StatusRules.HasStatus(actor, StatusCatalog.HolyInfusionPending))
+                return false;
+            StatusRules.RemoveStatus(actor, StatusCatalog.HolyInfusionPending, 1, events);
+            events.Add(new BattleEvent(BattleEventKind.StatusApplied, $"{actor.DisplayName} 神圣灌注：重复出牌")
+            {
+                CombatantId = actor.Id,
+                CardInstanceId = card.InstanceId
+            });
+            EffectActionExecutor.ExecuteAll(state, actor, card, events, rng);
+            return true;
+        }
+
+        static CombatantState FindAliveWithStatus(BattleState state, TeamSide team, string statusId)
+        {
+            foreach (var c in state.GetTeam(team))
+            {
+                if (c.IsAlive && StatusRules.HasStatus(c, statusId))
+                    return c;
+            }
+            return null;
         }
 
         static CombatantState PickRandomAliveEnemy(BattleState state, BattleRng rng)

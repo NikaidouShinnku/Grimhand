@@ -125,10 +125,10 @@ TextureImporter:
       name: lichqueen_hit_1024_0
       rect:
         serializedVersion: 2
-        x: 7
-        y: 607
-        width: 258
-        height: 202
+        x: 39
+        y: 47
+        width: 866
+        height: 962
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -147,10 +147,10 @@ TextureImporter:
       name: lichqueen_hit_1024_1
       rect:
         serializedVersion: 2
-        x: 79
-        y: 575
-        width: 26
-        height: 42
+        x: 759
+        y: 607
+        width: 258
+        height: 202
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -169,10 +169,10 @@ TextureImporter:
       name: lichqueen_hit_1024_2
       rect:
         serializedVersion: 2
-        x: 119
-        y: 47
-        width: 866
-        height: 962
+        x: 919
+        y: 575
+        width: 26
+        height: 42
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -191,7 +191,7 @@ TextureImporter:
       name: lichqueen_hit_1024_3
       rect:
         serializedVersion: 2
-        x: 63
+        x: 847
         y: 423
         width: 114
         height: 162

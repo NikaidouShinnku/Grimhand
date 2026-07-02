@@ -180,17 +180,15 @@ namespace Grimhand.Battle.Demo
 
             if (id == "r_snipe" || id == "r_snipe2")
             {
-                return WithKeywords(
-                    CardTemplate.Create(id, name, owner, cost, type,
-                        new EffectActionSpec
-                        {
-                            Type = EffectActionType.DealDamage,
-                            Target = EffectTarget.DefaultEnemy,
-                            Value = power,
-                            ScaleWithAttack = true,
-                            Reach = TargetReach.Any
-                        }),
-                    "snipe");
+                return CardTemplate.Create(id, name, owner, cost, type,
+                    new EffectActionSpec
+                    {
+                        Type = EffectActionType.DealDamage,
+                        Target = EffectTarget.DefaultEnemy,
+                        Value = power,
+                        ScaleWithAttack = true,
+                        Reach = TargetReach.Any
+                    });
             }
 
             if (id.StartsWith("r_pierce"))
@@ -207,23 +205,21 @@ namespace Grimhand.Battle.Demo
                             SplashBehindTarget = true,
                             SplashPowerPercent = 80
                         }),
-                    "pierce", "melee");
+                    "pierce");
             }
 
             if (id.StartsWith("r_far_shot"))
             {
-                return WithKeywords(
-                    CardTemplate.Create(id, name, owner, cost, type,
-                        new EffectActionSpec
-                        {
-                            Type = EffectActionType.DealDamage,
-                            Target = EffectTarget.DefaultEnemy,
-                            Value = power,
-                            ScaleWithAttack = true,
-                            Reach = TargetReach.Any,
-                            BackRowPowerPercent = 70
-                        }),
-                    "far_shot");
+                return CardTemplate.Create(id, name, owner, cost, type,
+                    new EffectActionSpec
+                    {
+                        Type = EffectActionType.DealDamage,
+                        Target = EffectTarget.DefaultEnemy,
+                        Value = power,
+                        ScaleWithAttack = true,
+                        Reach = TargetReach.Any,
+                        BackRowPowerPercent = 70
+                    });
             }
 
             if (id == "r_mark" || id == "r_mark2" || id == "r_mark3")
@@ -268,8 +264,6 @@ namespace Grimhand.Battle.Demo
             }
 
             var template = CardTemplate.FromLegacy(id, name, owner, cost, type, effect, power, drawNextTurn);
-            if (type == CardType.Attack && effect == CardEffectKind.DealDamage)
-                template.Keywords.Add("melee");
             return template;
         }
 

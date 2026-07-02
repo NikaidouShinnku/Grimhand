@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84c30176d181a5747a85983cdd126a0c, type: 3}
+  m_Name: Character_Lich_Queen
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
+  CharacterId: char_lich_queen
+  DisplayName: "\u5DEB\u5996\u5973\u738B"
+  Team: 0
+  Slot: 3
+  Level: 1
+  MaxHp: 48
+  BaseAttack: 0
+  BaseDefense: 0
+  Speed: 7
+  Deck:
+  - {fileID: 11400000, guid: ac1219cd58df4a84881579dbb8c87064, type: 2}
+  - {fileID: 11400000, guid: ac1219cd58df4a84881579dbb8c87064, type: 2}
+  - {fileID: 11400000, guid: 87966bc5c5b44f58b20d738740d01e53, type: 2}
+  - {fileID: 11400000, guid: b2716ad59c6d4157b7ba8714e4f73536, type: 2}
+  - {fileID: 11400000, guid: 467e729a2e8b472e974ce46cc245b4f0, type: 2}
+  - {fileID: 11400000, guid: 467e729a2e8b472e974ce46cc245b4f0, type: 2}
+  - {fileID: 11400000, guid: 467e729a2e8b472e974ce46cc245b4f0, type: 2}
+  - {fileID: 11400000, guid: b2314b0ec4444e6bb6467510222f796e, type: 2}
+  SkillPool: []
+  Traits: []

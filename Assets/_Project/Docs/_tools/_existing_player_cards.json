@@ -1,0 +1,634 @@
+[
+  {
+    "file": "Card_w_author_realm_strike.asset",
+    "CardId": "w_author_realm_strike",
+    "DisplayName": "作者境的一击",
+    "OwnerCharacterId": "char_knight",
+    "Cost": "0",
+    "CardType": "0",
+    "Rarity": "4",
+    "Keywords": [
+      "aoe"
+    ],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_w_basic_slash.asset",
+    "CardId": "w_basic_slash",
+    "DisplayName": "基础斩击",
+    "OwnerCharacterId": "char_knight",
+    "Cost": "1",
+    "CardType": "0",
+    "Rarity": "0",
+    "Keywords": [],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_w_blade_storm.asset",
+    "CardId": "w_blade_storm",
+    "DisplayName": "剑刃风暴",
+    "OwnerCharacterId": "char_knight",
+    "Cost": "3",
+    "CardType": "0",
+    "Rarity": "3",
+    "Keywords": [],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_w_charge.asset",
+    "CardId": "w_charge",
+    "DisplayName": "战士冲锋",
+    "OwnerCharacterId": "char_knight",
+    "Cost": "3",
+    "CardType": "0",
+    "Rarity": "2",
+    "Keywords": [],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_w_defensive_stance.asset",
+    "CardId": "w_defensive_stance",
+    "DisplayName": "防御架势",
+    "OwnerCharacterId": "char_knight",
+    "Cost": "1",
+    "CardType": "1",
+    "Rarity": "0",
+    "Keywords": [
+      "parry"
+    ],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_w_fatal_strike.asset",
+    "CardId": "w_fatal_strike",
+    "DisplayName": "致命打击",
+    "OwnerCharacterId": "char_knight",
+    "Cost": "3",
+    "CardType": "0",
+    "Rarity": "1",
+    "Keywords": [],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_w_first_strike.asset",
+    "CardId": "w_first_strike",
+    "DisplayName": "先发制人",
+    "OwnerCharacterId": "char_knight",
+    "Cost": "1",
+    "CardType": "0",
+    "Rarity": "0",
+    "Keywords": [
+      "quick_start"
+    ],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_w_god_descends.asset",
+    "CardId": "w_god_descends",
+    "DisplayName": "天神下凡",
+    "OwnerCharacterId": "char_knight",
+    "Cost": "5",
+    "CardType": "2",
+    "Rarity": "4",
+    "Keywords": [
+      "exhaust"
+    ],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_w_guardian.asset",
+    "CardId": "w_guardian",
+    "DisplayName": "誓死守护",
+    "OwnerCharacterId": "char_knight",
+    "Cost": "2",
+    "CardType": "1",
+    "Rarity": "2",
+    "Keywords": [],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_w_iron_parry.asset",
+    "CardId": "w_iron_parry",
+    "DisplayName": "铁壁弹反",
+    "OwnerCharacterId": "char_knight",
+    "Cost": "2",
+    "CardType": "1",
+    "Rarity": "2",
+    "Keywords": [
+      "parry"
+    ],
+    "NumActions": 2
+  },
+  {
+    "file": "Card_w_pommel_strike.asset",
+    "CardId": "w_pommel_strike",
+    "DisplayName": "剑柄猛击",
+    "OwnerCharacterId": "char_knight",
+    "Cost": "1",
+    "CardType": "0",
+    "Rarity": "1",
+    "Keywords": [
+      "respond_status"
+    ],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_w_power_cleave.asset",
+    "CardId": "w_power_cleave",
+    "DisplayName": "猛力劈砍",
+    "OwnerCharacterId": "char_knight",
+    "Cost": "2",
+    "CardType": "0",
+    "Rarity": "1",
+    "Keywords": [],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_w_shield_block.asset",
+    "CardId": "w_shield_block",
+    "DisplayName": "举盾格挡",
+    "OwnerCharacterId": "char_knight",
+    "Cost": "1",
+    "CardType": "1",
+    "Rarity": "0",
+    "Keywords": [],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_w_taunt.asset",
+    "CardId": "w_taunt",
+    "DisplayName": "嘲讽挑衅",
+    "OwnerCharacterId": "char_knight",
+    "Cost": "2",
+    "CardType": "1",
+    "Rarity": "1",
+    "Keywords": [],
+    "NumActions": 2
+  },
+  {
+    "file": "Card_w_unyielding.asset",
+    "CardId": "w_unyielding",
+    "DisplayName": "不屈意志",
+    "OwnerCharacterId": "char_knight",
+    "Cost": "0",
+    "CardType": "2",
+    "Rarity": "3",
+    "Keywords": [
+      "exhaust"
+    ],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_w_war_cry.asset",
+    "CardId": "w_war_cry",
+    "DisplayName": "战吼鼓舞",
+    "OwnerCharacterId": "char_knight",
+    "Cost": "1",
+    "CardType": "2",
+    "Rarity": "0",
+    "Keywords": [
+      "quick_start"
+    ],
+    "NumActions": 3
+  },
+  {
+    "file": "Card_p_anubis_avatar.asset",
+    "CardId": "p_anubis_avatar",
+    "DisplayName": "阿努比斯化身",
+    "OwnerCharacterId": "char_mage",
+    "Cost": "6",
+    "CardType": "2",
+    "Rarity": "4",
+    "Keywords": [
+      "exhaust"
+    ],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_p_bless.asset",
+    "CardId": "p_bless",
+    "DisplayName": "祈祷祝福",
+    "OwnerCharacterId": "char_mage",
+    "Cost": "1",
+    "CardType": "2",
+    "Rarity": "1",
+    "Keywords": [
+      "exhaust"
+    ],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_p_decree.asset",
+    "CardId": "p_decree",
+    "DisplayName": "法老权令",
+    "OwnerCharacterId": "char_mage",
+    "Cost": "2",
+    "CardType": "2",
+    "Rarity": "2",
+    "Keywords": [],
+    "NumActions": 3
+  },
+  {
+    "file": "Card_p_lifesteal.asset",
+    "CardId": "p_lifesteal",
+    "DisplayName": "生命汲取",
+    "OwnerCharacterId": "char_mage",
+    "Cost": "2",
+    "CardType": "0",
+    "Rarity": "2",
+    "Keywords": [],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_p_memory_fragment.asset",
+    "CardId": "p_memory_fragment",
+    "DisplayName": "记忆残片",
+    "OwnerCharacterId": "char_mage",
+    "Cost": "2",
+    "CardType": "2",
+    "Rarity": "1",
+    "Keywords": [
+      "quick_start"
+    ],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_p_pharaoh_curse.asset",
+    "CardId": "p_pharaoh_curse",
+    "DisplayName": "法老诅咒",
+    "OwnerCharacterId": "char_mage",
+    "Cost": "1",
+    "CardType": "2",
+    "Rarity": "1",
+    "Keywords": [],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_p_revive_bless.asset",
+    "CardId": "p_revive_bless",
+    "DisplayName": "复活祝福",
+    "OwnerCharacterId": "char_mage",
+    "Cost": "3",
+    "CardType": "2",
+    "Rarity": "3",
+    "Keywords": [
+      "quick_start",
+      "exhaust"
+    ],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_p_sand_arrow.asset",
+    "CardId": "p_sand_arrow",
+    "DisplayName": "沙之箭",
+    "OwnerCharacterId": "char_mage",
+    "Cost": "0",
+    "CardType": "0",
+    "Rarity": "0",
+    "Keywords": [
+      "exhaust"
+    ],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_p_sand_barrier.asset",
+    "CardId": "p_sand_barrier",
+    "DisplayName": "沙尘结界",
+    "OwnerCharacterId": "char_mage",
+    "Cost": "2",
+    "CardType": "1",
+    "Rarity": "1",
+    "Keywords": [],
+    "NumActions": 3
+  },
+  {
+    "file": "Card_p_sand_ray.asset",
+    "CardId": "p_sand_ray",
+    "DisplayName": "沙暴射线",
+    "OwnerCharacterId": "char_mage",
+    "Cost": "1",
+    "CardType": "0",
+    "Rarity": "0",
+    "Keywords": [],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_p_sand_shield.asset",
+    "CardId": "p_sand_shield",
+    "DisplayName": "沙之盾",
+    "OwnerCharacterId": "char_mage",
+    "Cost": "0",
+    "CardType": "1",
+    "Rarity": "0",
+    "Keywords": [
+      "exhaust"
+    ],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_p_sand_spear_reforge.asset",
+    "CardId": "p_sand_spear_reforge",
+    "DisplayName": "沙矛重塑",
+    "OwnerCharacterId": "char_mage",
+    "Cost": "3",
+    "CardType": "0",
+    "Rarity": "3",
+    "Keywords": [
+      "exhaust"
+    ],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_p_scarab_shield.asset",
+    "CardId": "p_scarab_shield",
+    "DisplayName": "圣甲虫护盾",
+    "OwnerCharacterId": "char_mage",
+    "Cost": "1",
+    "CardType": "1",
+    "Rarity": "0",
+    "Keywords": [],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_p_solar_blessing.asset",
+    "CardId": "p_solar_blessing",
+    "DisplayName": "太阳神的庇佑",
+    "OwnerCharacterId": "char_mage",
+    "Cost": "0",
+    "CardType": "1",
+    "Rarity": "3",
+    "Keywords": [
+      "x_cost"
+    ],
+    "NumActions": 0
+  },
+  {
+    "file": "Card_p_solar_god_wrath.asset",
+    "CardId": "p_solar_god_wrath",
+    "DisplayName": "太阳神之怒",
+    "OwnerCharacterId": "char_mage",
+    "Cost": "0",
+    "CardType": "0",
+    "Rarity": "3",
+    "Keywords": [
+      "x_cost",
+      "exhaust"
+    ],
+    "NumActions": 0
+  },
+  {
+    "file": "Card_p_solar_judgment.asset",
+    "CardId": "p_solar_judgment",
+    "DisplayName": "日光审判",
+    "OwnerCharacterId": "char_mage",
+    "Cost": "4",
+    "CardType": "0",
+    "Rarity": "2",
+    "Keywords": [],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_p_solar_wrath.asset",
+    "CardId": "p_solar_wrath",
+    "DisplayName": "太阳之怒",
+    "OwnerCharacterId": "char_mage",
+    "Cost": "2",
+    "CardType": "0",
+    "Rarity": "3",
+    "Keywords": [
+      "aoe"
+    ],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_p_undead_curse.asset",
+    "CardId": "p_undead_curse",
+    "DisplayName": "亡灵诅咒",
+    "OwnerCharacterId": "char_mage",
+    "Cost": "3",
+    "CardType": "0",
+    "Rarity": "2",
+    "Keywords": [],
+    "NumActions": 2
+  },
+  {
+    "file": "Card_d_blood_armor.asset",
+    "CardId": "d_blood_armor",
+    "DisplayName": "鲜血铠甲",
+    "OwnerCharacterId": "char_ranger",
+    "Cost": "1",
+    "CardType": "1",
+    "Rarity": "0",
+    "Keywords": [
+      "sacrifice"
+    ],
+    "NumActions": 2
+  },
+  {
+    "file": "Card_d_blood_flame.asset",
+    "CardId": "d_blood_flame",
+    "DisplayName": "血焰爆发",
+    "OwnerCharacterId": "char_ranger",
+    "Cost": "2",
+    "CardType": "0",
+    "Rarity": "1",
+    "Keywords": [
+      "sacrifice"
+    ],
+    "NumActions": 2
+  },
+  {
+    "file": "Card_d_blood_hand.asset",
+    "CardId": "d_blood_hand",
+    "DisplayName": "掠血之手",
+    "OwnerCharacterId": "char_ranger",
+    "Cost": "2",
+    "CardType": "0",
+    "Rarity": "1",
+    "Keywords": [],
+    "NumActions": 3
+  },
+  {
+    "file": "Card_d_blood_tail.asset",
+    "CardId": "d_blood_tail",
+    "DisplayName": "血尾贯穿",
+    "OwnerCharacterId": "char_ranger",
+    "Cost": "2",
+    "CardType": "0",
+    "Rarity": "2",
+    "Keywords": [],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_d_curse_chain.asset",
+    "CardId": "d_curse_chain",
+    "DisplayName": "诅咒之链",
+    "OwnerCharacterId": "char_ranger",
+    "Cost": "2",
+    "CardType": "0",
+    "Rarity": "2",
+    "Keywords": [
+      "quick_start"
+    ],
+    "NumActions": 2
+  },
+  {
+    "file": "Card_d_dark_mist.asset",
+    "CardId": "d_dark_mist",
+    "DisplayName": "黑暗之雾",
+    "OwnerCharacterId": "char_ranger",
+    "Cost": "2",
+    "CardType": "0",
+    "Rarity": "1",
+    "Keywords": [
+      "aoe",
+      "sacrifice"
+    ],
+    "NumActions": 3
+  },
+  {
+    "file": "Card_d_dark_sacrifice.asset",
+    "CardId": "d_dark_sacrifice",
+    "DisplayName": "暗黑献祭",
+    "OwnerCharacterId": "char_ranger",
+    "Cost": "3",
+    "CardType": "0",
+    "Rarity": "3",
+    "Keywords": [
+      "sacrifice"
+    ],
+    "NumActions": 2
+  },
+  {
+    "file": "Card_d_demon_curse.asset",
+    "CardId": "d_demon_curse",
+    "DisplayName": "恶魔诅咒",
+    "OwnerCharacterId": "char_ranger",
+    "Cost": "0",
+    "CardType": "2",
+    "Rarity": "0",
+    "Keywords": [],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_d_demon_lord.asset",
+    "CardId": "d_demon_lord",
+    "DisplayName": "魔王降临",
+    "OwnerCharacterId": "char_ranger",
+    "Cost": "4",
+    "CardType": "0",
+    "Rarity": "3",
+    "Keywords": [
+      "sacrifice"
+    ],
+    "NumActions": 2
+  },
+  {
+    "file": "Card_d_demon_pact.asset",
+    "CardId": "d_demon_pact",
+    "DisplayName": "恶魔契约",
+    "OwnerCharacterId": "char_ranger",
+    "Cost": "2",
+    "CardType": "2",
+    "Rarity": "0",
+    "Keywords": [
+      "sacrifice"
+    ],
+    "NumActions": 3
+  },
+  {
+    "file": "Card_d_devil_touch.asset",
+    "CardId": "d_devil_touch",
+    "DisplayName": "恶魔之触",
+    "OwnerCharacterId": "char_ranger",
+    "Cost": "1",
+    "CardType": "0",
+    "Rarity": "0",
+    "Keywords": [],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_d_endless_blade.asset",
+    "CardId": "d_endless_blade",
+    "DisplayName": "无尽血刃",
+    "OwnerCharacterId": "char_ranger",
+    "Cost": "3",
+    "CardType": "0",
+    "Rarity": "4",
+    "Keywords": [
+      "sacrifice"
+    ],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_d_final_blood_ritual.asset",
+    "CardId": "d_final_blood_ritual",
+    "DisplayName": "最终鲜血仪式",
+    "OwnerCharacterId": "char_ranger",
+    "Cost": "3",
+    "CardType": "2",
+    "Rarity": "4",
+    "Keywords": [
+      "exhaust"
+    ],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_d_hell_fire.asset",
+    "CardId": "d_hell_fire",
+    "DisplayName": "地狱烈焰",
+    "OwnerCharacterId": "char_ranger",
+    "Cost": "3",
+    "CardType": "0",
+    "Rarity": "2",
+    "Keywords": [
+      "aoe",
+      "sacrifice"
+    ],
+    "NumActions": 2
+  },
+  {
+    "file": "Card_d_life_siphon.asset",
+    "CardId": "d_life_siphon",
+    "DisplayName": "生命虹吸",
+    "OwnerCharacterId": "char_ranger",
+    "Cost": "2",
+    "CardType": "0",
+    "Rarity": "2",
+    "Keywords": [],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_d_shadow_claw.asset",
+    "CardId": "d_shadow_claw",
+    "DisplayName": "暗影爪击",
+    "OwnerCharacterId": "char_ranger",
+    "Cost": "1",
+    "CardType": "0",
+    "Rarity": "0",
+    "Keywords": [],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_d_soul_rip.asset",
+    "CardId": "d_soul_rip",
+    "DisplayName": "灵魂撕裂",
+    "OwnerCharacterId": "char_ranger",
+    "Cost": "2",
+    "CardType": "0",
+    "Rarity": "2",
+    "Keywords": [],
+    "NumActions": 1
+  },
+  {
+    "file": "Card_d_vamp_aura.asset",
+    "CardId": "d_vamp_aura",
+    "DisplayName": "吸血光环",
+    "OwnerCharacterId": "char_ranger",
+    "Cost": "1",
+    "CardType": "2",
+    "Rarity": "1",
+    "Keywords": [],
+    "NumActions": 1
+  }
+]

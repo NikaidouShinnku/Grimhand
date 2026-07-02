@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
 using Grimhand.Content;
@@ -21,6 +22,7 @@ namespace Grimhand.Presentation.Battle
         CharacterVisualCatalogSO _characterVisuals;
         BattleUiIconCatalogSO _uiIcons;
         Dictionary<string, CardDefinitionSO> _definitions = new();
+        Action<CardDefinitionSO> _onAddToHand;
 
         RectTransform _panel;
         RectTransform _content;
@@ -38,13 +40,15 @@ namespace Grimhand.Presentation.Battle
             CardVisualCatalogSO cardCatalog,
             CharacterVisualCatalogSO characterVisuals,
             BattleUiIconCatalogSO uiIcons,
-            Dictionary<string, CardDefinitionSO> definitions)
+            Dictionary<string, CardDefinitionSO> definitions,
+            Action<CardDefinitionSO> onAddToHand = null)
         {
             _cardPrefab = cardPrefab;
             _cardCatalog = cardCatalog;
             _characterVisuals = characterVisuals;
             _uiIcons = uiIcons;
             _definitions = definitions ?? new Dictionary<string, CardDefinitionSO>();
+            _onAddToHand = onAddToHand;
             EnsureBuilt(root);
         }
 
@@ -145,7 +149,9 @@ namespace Grimhand.Presentation.Battle
             foreach (var group in groups)
                 totalCards += group.Cards.Count;
 
-            _titleText.text = $"卡牌图鉴（测试）— 共 {totalCards} 张";
+            _titleText.text = _onAddToHand != null
+                ? $"卡牌图鉴（测试）— 共 {totalCards} 张　点击卡牌直接置入手牌"
+                : $"卡牌图鉴（测试）— 共 {totalCards} 张";
 
             foreach (var group in groups)
             {
@@ -231,19 +237,19 @@ namespace Grimhand.Presentation.Battle
                     def);
                 var visual = CardVisualResolver.Resolve(preview, _cardCatalog, _characterVisuals, _definitions);
 
-                var view = Object.Instantiate(_cardPrefab, holder.transform);
+                var view = UnityEngine.Object.Instantiate(_cardPrefab, holder.transform);
                 CardView.ApplyHandPresentationScaleCentered(view, CardScale);
                 view.BindWithCard(
                     preview,
                     visual,
                     selected: false,
                     polluted: false,
-                    interactable: false,
+                    interactable: _onAddToHand != null,
                     orderBadge: "",
                     statsLine: BattleUiFormatters.BuildCardStatsLinePreview(preview, _definitions),
                     uiIcons: _uiIcons,
                     characterVisuals: _characterVisuals,
-                    onClick: null,
+                    onClick: _onAddToHand != null ? _ => OnCodexCardClicked(def) : null,
                     onHoverEnter: null,
                     onHoverExit: null);
 
@@ -377,6 +383,14 @@ namespace Grimhand.Presentation.Battle
             fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
             return rt;
+        }
+
+        void OnCodexCardClicked(CardDefinitionSO def)
+        {
+            if (def == null)
+                return;
+            _onAddToHand?.Invoke(def);
+            _tooltip?.Hide();
         }
 
         void BindCardTooltip(GameObject target, CardInstanceState card)

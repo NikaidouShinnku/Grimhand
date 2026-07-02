@@ -24,4 +24,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: cff24cfbdd23055499505ea773708ebd, type: 2}
   - {fileID: 11400000, guid: a9c89e0b15b92d345a3cdb5fca8c4a97, type: 2}
   - {fileID: 11400000, guid: 424b10110d6b72f4691b82112e7c55ef, type: 2}
+  - {fileID: 11400000, guid: 6dc2caf4790d419ca326bdcb891868ef, type: 2}
+  - {fileID: 11400000, guid: 11b9abc47cfd42b8b5e34e444dba94aa, type: 2}
   SummonTemplates: []

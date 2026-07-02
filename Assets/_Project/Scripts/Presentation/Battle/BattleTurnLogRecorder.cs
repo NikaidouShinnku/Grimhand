@@ -38,6 +38,14 @@ namespace Grimhand.Presentation.Battle
             if (ShouldStartRound(e))
                 BeginRound();
 
+            // 规划阶段的快速启动卡也要写入明细（不必等到提交计划）。
+            if (!_recording
+                && state?.Phase == TurnPhase.Planning
+                && e.Kind == BattleEventKind.CardResolvedStarted)
+            {
+                BeginRound();
+            }
+
             if (!_recording)
                 return;
 

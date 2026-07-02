@@ -62,10 +62,9 @@ namespace Grimhand.Presentation.Battle
             var peers = new List<CombatantState>();
             foreach (var c in state.GetTeam(unit.Team))
             {
-                if (!c.IsAlive)
+                if (c.DisplayName != unit.DisplayName)
                     continue;
-                if (c.DisplayName == unit.DisplayName)
-                    peers.Add(c);
+                peers.Add(c);
             }
 
             if (peers.Count <= 1)
@@ -73,8 +72,8 @@ namespace Grimhand.Presentation.Battle
 
             peers.Sort((a, b) =>
             {
-                var sa = (int)PositionRules.GetEffectiveSlot(state, a);
-                var sb = (int)PositionRules.GetEffectiveSlot(state, b);
+                var sa = (int)a.Slot;
+                var sb = (int)b.Slot;
                 var cmp = sa.CompareTo(sb);
                 return cmp != 0 ? cmp : string.CompareOrdinal(a.Id, b.Id);
             });
@@ -1515,8 +1514,11 @@ namespace Grimhand.Presentation.Battle
                 && !CardVisualResolver.MatchesDefinitionBaseline(card, def))
                 return false;
 
-            if (!CardDescriptionCatalog.TryGetByDisplayName(card.DisplayName, out var excelText)
-                || string.IsNullOrWhiteSpace(excelText))
+            if (!CardDescriptionCatalog.TryGetByCardId(card.DefinitionId, out var excelText)
+                && !CardDescriptionCatalog.TryGetByDisplayName(card.DisplayName, out excelText))
+                return false;
+
+            if (string.IsNullOrWhiteSpace(excelText))
                 return false;
 
             var lines = new List<string> { excelText.Trim() };
@@ -1544,7 +1546,7 @@ namespace Grimhand.Presentation.Battle
 
             line = card.DefinitionId switch
             {
-                "curse_chaos_touch" => "【诅咒】\n打出后无任何效果，浪费1点能量与1个手牌位。",
+                "curse_chaos_touch" => "【诅咒】\n无法被打出。占用牌库与手牌位以污染牌组，可通过弃牌/摧毁类事件移除。",
                 _ => "【诅咒】\n占用手牌位，可通过商人删牌或祭坛献祭移除。"
             };
             return true;

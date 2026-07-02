@@ -81,7 +81,7 @@ namespace Grimhand.Battle.Rules
             if (state == null || intendedTarget == null || attacker == null)
                 return intendedTarget;
 
-            if (intendedTarget.Team != attacker.Team)
+            if (intendedTarget.Team == attacker.Team)
                 return intendedTarget;
 
             if (StatusRules.HasStatus(intendedTarget, StatusCatalog.Guard))

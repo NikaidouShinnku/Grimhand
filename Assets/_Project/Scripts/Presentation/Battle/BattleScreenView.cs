@@ -527,9 +527,26 @@ namespace Grimhand.Presentation.Battle
                 _catalog,
                 _characterVisuals,
                 _uiIcons,
-                _definitions);
+                _definitions,
+                OnCodexCardAddToHand);
 
             ApplyCodexButtonLayout();
+        }
+
+        void OnCodexCardAddToHand(CardDefinitionSO def)
+        {
+            if (def == null || _session == null)
+                return;
+
+            if (!_session.CanInteractWithBattle())
+                return;
+
+            var template = def.ToTemplate();
+            if (_session.TryAddCardToHand(template))
+            {
+                _codexOverlay?.Hide();
+                Refresh();
+            }
         }
 
         void EnsurePresentationSpeedHud()
@@ -542,8 +559,27 @@ namespace Grimhand.Presentation.Battle
 
         void ToggleCodexPanel()
         {
+            var willOpen = _codexOverlay == null || !_codexOverlay.IsOpen;
+            if (willOpen)
+                CloseOtherOverlays(_codexOverlay);
             _codexOverlay?.RefreshCardPrefab(handPanel?.CardPrefab);
             _codexOverlay?.Toggle();
+        }
+
+        // 任意 UI 浮层（背包/图鉴/地图/明细）打开时，关闭其余已打开的浮层，避免叠层信息过载。
+        void CloseOtherOverlays(object keepOpen)
+        {
+            if (!ReferenceEquals(keepOpen, _turnDetailPanel) && _turnDetailPanel != null && _turnDetailPanel.IsOpen)
+                _turnDetailPanel.Hide();
+            if (!ReferenceEquals(keepOpen, _codexOverlay) && _codexOverlay != null && _codexOverlay.IsOpen)
+                _codexOverlay.Hide();
+            if (!ReferenceEquals(keepOpen, _mapPanel) && _mapPanel != null && _mapPanel.IsOpen)
+                _mapPanel.Hide();
+            if (!ReferenceEquals(keepOpen, _inventoryPanel) && _inventoryPanel != null && _inventoryPanel.IsOpen)
+            {
+                _inventoryPanel.Hide();
+                ApplyInventoryBackdrop(false);
+            }
         }
 
         void ApplyCodexButtonLayout()
@@ -577,6 +613,9 @@ namespace Grimhand.Presentation.Battle
 
         void ToggleMapPanel()
         {
+            var willOpen = _mapPanel == null || !_mapPanel.IsOpen;
+            if (willOpen)
+                CloseOtherOverlays(_mapPanel);
             _mapPanel?.Toggle();
             if (_mapPanel != null && _mapPanel.IsOpen)
                 _mapPanel.Refresh();
@@ -693,6 +732,9 @@ namespace Grimhand.Presentation.Battle
 
         void ToggleTurnDetailPanel()
         {
+            var willOpen = _turnDetailPanel == null || !_turnDetailPanel.IsOpen;
+            if (willOpen)
+                CloseOtherOverlays(_turnDetailPanel);
             _turnDetailPanel?.Toggle();
             if (_turnDetailPanel != null && _turnDetailPanel.IsOpen)
                 _turnDetailPanel.Refresh();
@@ -808,6 +850,9 @@ namespace Grimhand.Presentation.Battle
 
         void ToggleInventoryPanel()
         {
+            var willOpen = _inventoryPanel == null || !_inventoryPanel.IsOpen;
+            if (willOpen)
+                CloseOtherOverlays(_inventoryPanel);
             _inventoryPanel?.Toggle();
             var open = _inventoryPanel != null && _inventoryPanel.IsOpen;
             if (open)

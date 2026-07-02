@@ -74,7 +74,7 @@ namespace Grimhand.Expedition
         }
 
         static CardTemplate QueenClaw() =>
-            Dmg("m_queen_claw", "幽灵爪击", 1, 20, TargetReach.Any, "snipe");
+            Dmg("m_queen_claw", "幽灵爪击", 1, 20, TargetReach.Any);
 
         static CardTemplate QueenDeterrence()
         {
@@ -128,7 +128,7 @@ namespace Grimhand.Expedition
 
         static CardTemplate QueenSpiritGuard()
         {
-            var card = BaseCard("m_queen_spirit_guard", "灵气护体", 1, CardType.Defense, "guard");
+            var card = BaseCard("m_queen_spirit_guard", "灵气护体", 1, CardType.Defense);
             card.Actions.Add(new EffectActionSpec
             {
                 Type = EffectActionType.GainBlock,

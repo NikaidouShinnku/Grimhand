@@ -241,9 +241,10 @@ namespace Grimhand.Presentation.Camp
             h.childControlWidth = false;
             h.childControlHeight = true;
 
-            for (var i = 0; i < _roster.Members.Count; i++)
+            for (var vi = 0; vi < _roster.Members.Count && vi < CampFormationDisplay.VisualOrderMemberIndices.Length; vi++)
             {
-                var member = _roster.Members[i];
+                var index = CampFormationDisplay.VisualOrderMemberIndices[vi];
+                var member = _roster.Members[index];
                 var card = CampUiRuntime.CreateImage("MemberSummary", layoutGo.transform,
                     new Color(0.12f, 0.16f, 0.24f, 0.95f)).gameObject;
                 var rt = card.GetComponent<RectTransform>();
@@ -265,6 +266,14 @@ namespace Grimhand.Presentation.Camp
                 name.rectTransform.anchorMax = new Vector2(1f, 0f);
                 name.rectTransform.offsetMin = new Vector2(8f, 52f);
                 name.rectTransform.offsetMax = new Vector2(-8f, 84f);
+
+                var slot = CampUiRuntime.CreateText(card.transform, CampFormationDisplay.SlotLabel(index),
+                    14, FontStyle.Normal);
+                slot.rectTransform.anchorMin = new Vector2(0f, 0f);
+                slot.rectTransform.anchorMax = new Vector2(1f, 0f);
+                slot.rectTransform.offsetMin = new Vector2(8f, 84f);
+                slot.rectTransform.offsetMax = new Vector2(-8f, 108f);
+                slot.color = new Color(0.72f, 0.78f, 0.9f, 1f);
 
                 var deckCount = 0;
                 foreach (var id in member.DeckCardIds)

@@ -167,25 +167,36 @@ namespace Grimhand.Expedition
             if (!applyPartyHp || party == null || party.Count == 0)
                 return;
 
+            // 按阵型槽位顺序将编队成员映射到玩家 combatant（支持军营换人后角色 ID 与模板不一致）。
+            var players = new List<CombatantConfig>();
             foreach (var cc in config.Combatants)
             {
-                if (cc.Team != TeamSide.Player)
+                if (cc.Team == TeamSide.Player)
+                    players.Add(cc);
+            }
+
+            players.Sort((a, b) => a.Slot.CompareTo(b.Slot));
+
+            for (var i = 0; i < players.Count && i < party.Count; i++)
+            {
+                var cc = players[i];
+                var member = party[i];
+                if (member == null || string.IsNullOrEmpty(member.CharacterDefinitionId))
                     continue;
 
-                foreach (var member in party)
-                {
-                    if (member.CharacterDefinitionId != cc.CharacterDefinitionId)
-                        continue;
+                cc.CharacterDefinitionId = member.CharacterDefinitionId;
+                cc.DisplayName = CharacterDisplayNames.GetOrFallback(
+                    member.CharacterDefinitionId,
+                    member.DisplayName);
 
-                    ApplyPartyProgress(cc, member, expeditionModifiers);
-                    ApplyMemberDeckFromSnapshot(
-                        cc,
-                        member,
-                        expeditionConfig,
-                        playerCardCatalog,
-                        runWideBonusCards);
-                    break;
-                }
+                ApplyPartyProgress(cc, member, expeditionModifiers);
+                ApplyMemberDeckFromSnapshot(
+                    cc,
+                    member,
+                    expeditionConfig,
+                    playerCardCatalog,
+                    runWideBonusCards,
+                    addOwnerlessRunWideCards: i == 0);
             }
         }
 
@@ -209,7 +220,8 @@ namespace Grimhand.Expedition
             PartyMemberSnapshot member,
             ExpeditionConfig expeditionConfig,
             IReadOnlyList<CardTemplate> cardCatalog,
-            IReadOnlyList<CardTemplate> runWideBonusCards = null)
+            IReadOnlyList<CardTemplate> runWideBonusCards = null,
+            bool addOwnerlessRunWideCards = true)
         {
             if (member == null || expeditionConfig == null)
             {
@@ -228,14 +240,15 @@ namespace Grimhand.Expedition
                 cc.DeckTemplates.Add(template);
             }
 
-            AppendRunWideBonusCards(cc, member, runWideBonusCards, cardCatalog);
+            AppendRunWideBonusCards(cc, member, runWideBonusCards, cardCatalog, addOwnerlessRunWideCards);
         }
 
         static void AppendRunWideBonusCards(
             CombatantConfig cc,
             PartyMemberSnapshot member,
             IReadOnlyList<CardTemplate> runWideBonusCards,
-            IReadOnlyList<CardTemplate> cardCatalog)
+            IReadOnlyList<CardTemplate> cardCatalog,
+            bool addOwnerlessRunWideCards = true)
         {
             if (runWideBonusCards == null || member == null)
                 return;
@@ -245,9 +258,16 @@ namespace Grimhand.Expedition
                 if (bonus == null || string.IsNullOrEmpty(bonus.DefinitionId))
                     continue;
 
-                if (!string.IsNullOrEmpty(bonus.OwnerCharacterId)
-                    && bonus.OwnerCharacterId != member.CharacterDefinitionId)
+                if (!string.IsNullOrEmpty(bonus.OwnerCharacterId))
+                {
+                    if (bonus.OwnerCharacterId != member.CharacterDefinitionId)
+                        continue;
+                }
+                else if (!addOwnerlessRunWideCards)
+                {
+                    // 无归属角色的额外牌（如诅咒牌）只在首个队员处入池一次，避免三倍污染。
                     continue;
+                }
 
                 var template = CloneTemplate(bonus);
                 HydrateTemplateFromCatalog(template, cardCatalog);
@@ -356,20 +376,40 @@ namespace Grimhand.Expedition
             IReadOnlyList<PartyMemberSnapshot> existingParty = null)
         {
             var party = new List<PartyMemberSnapshot>();
-            var capturedIds = new HashSet<string>();
             if (state?.Combatants == null)
                 return party;
 
+            var playerCombatants = new List<CombatantState>();
             foreach (var c in state.Combatants)
             {
-                if (c.Team != TeamSide.Player)
-                    continue;
+                if (c.Team == TeamSide.Player)
+                    playerCombatants.Add(c);
+            }
 
-                var existing = FindExistingMember(existingParty, c.CharacterDefinitionId);
+            playerCombatants.Sort((a, b) => ((int)a.Slot).CompareTo((int)b.Slot));
+
+            if (playerCombatants.Count == 0)
+            {
+                if (existingParty != null)
+                {
+                    for (var i = 0; i < existingParty.Count && party.Count < CampRosterState.PartySize; i++)
+                    {
+                        if (existingParty[i] != null)
+                            party.Add(CloneExpeditionMember(existingParty[i]));
+                    }
+                }
+
+                return party;
+            }
+
+            for (var i = 0; i < playerCombatants.Count && party.Count < CampRosterState.PartySize; i++)
+            {
+                var c = playerCombatants[i];
+                var existing = ResolveExistingMember(existingParty, i, c.CharacterDefinitionId);
                 var snap = new PartyMemberSnapshot
                 {
                     CharacterDefinitionId = c.CharacterDefinitionId,
-                    DisplayName = c.DisplayName,
+                    DisplayName = CharacterDisplayNames.GetOrFallback(c.CharacterDefinitionId, c.DisplayName),
                     Level = CharacterProgression.ClampLevel(c.Level),
                     Xp = c.Xp,
                     Hp = c.Hp,
@@ -384,21 +424,6 @@ namespace Grimhand.Expedition
 
                 CopyExpeditionDeckProgress(snap, existing);
                 party.Add(snap);
-                capturedIds.Add(c.CharacterDefinitionId);
-            }
-
-            if (existingParty != null)
-            {
-                foreach (var existing in existingParty)
-                {
-                    if (existing == null || string.IsNullOrEmpty(existing.CharacterDefinitionId))
-                        continue;
-
-                    if (capturedIds.Contains(existing.CharacterDefinitionId))
-                        continue;
-
-                    party.Add(CloneExpeditionMember(existing));
-                }
             }
 
             return party;
@@ -457,6 +482,24 @@ namespace Grimhand.Expedition
 
             CopyExpeditionDeckProgress(snap, existing);
             return snap;
+        }
+
+        static PartyMemberSnapshot ResolveExistingMember(
+            IReadOnlyList<PartyMemberSnapshot> party,
+            int slotIndex,
+            string characterDefinitionId)
+        {
+            if (party == null || string.IsNullOrEmpty(characterDefinitionId))
+                return null;
+
+            if (slotIndex >= 0 && slotIndex < party.Count)
+            {
+                var atSlot = party[slotIndex];
+                if (atSlot?.CharacterDefinitionId == characterDefinitionId)
+                    return atSlot;
+            }
+
+            return FindExistingMember(party, characterDefinitionId);
         }
 
         static PartyMemberSnapshot FindExistingMember(

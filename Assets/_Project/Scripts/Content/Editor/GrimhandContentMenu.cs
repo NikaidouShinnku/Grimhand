@@ -252,13 +252,13 @@ namespace Grimhand.Content.Editor
             return new EnemyCardSet
             {
                 Bite = SaveCard("g_bite", "撕咬", "char_goblin_brute", 1, CardType.Attack,
-                    Kw("melee"),
+                    null,
                     Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 6, scaleAttack: true)),
                 Scratch = SaveCard("g_scratch", "抓挠", "char_goblin_brute", 1, CardType.Attack,
-                    Kw("melee"),
+                    null,
                     Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 5, scaleAttack: true)),
                 Lunge = SaveCard("g_lunge", "猛扑", "char_goblin_brute", 2, CardType.Attack,
-                    Kw("melee"),
+                    null,
                     Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 10, scaleAttack: true)),
                 Hex = SaveCard("g_hex", "邪咒", "char_goblin_shaman", 2, CardType.Status,
                     Kw("poison"),
@@ -269,11 +269,11 @@ namespace Grimhand.Content.Editor
                     Action(EffectActionType.ApplyStatus, EffectTarget.DefaultEnemy, 0,
                         statusId: StatusCatalog.Slow, stacks: 1, duration: 2)),
                 Arrow = SaveCard("g_arrow", "箭矢", "char_goblin_archer", 1, CardType.Attack,
-                    Kw("far_shot"),
+                    null,
                     Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 8, scaleAttack: true,
                         reach: TargetReach.Any, backRowPowerPercent: 80)),
                 Aim = SaveCard("g_aim", "瞄准", "char_goblin_archer", 2, CardType.Attack,
-                    Kw("snipe"),
+                    null,
                     Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 14, scaleAttack: true,
                         reach: TargetReach.Any))
             };

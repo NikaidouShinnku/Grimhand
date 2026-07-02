@@ -498,22 +498,22 @@ namespace Grimhand.Presentation.Camp
             portraitRt.anchorMin = new Vector2(0.5f, 1f);
             portraitRt.anchorMax = new Vector2(0.5f, 1f);
             portraitRt.pivot = new Vector2(0.5f, 1f);
-            portraitRt.anchoredPosition = new Vector2(0f, -20f);
-            portraitRt.sizeDelta = new Vector2(128f, 128f);
+            portraitRt.anchoredPosition = new Vector2(0f, -16f);
+            portraitRt.sizeDelta = new Vector2(120f, 120f);
 
             var name = CampUiRuntime.CreateText(go.transform, character.DisplayName, 22, FontStyle.Bold,
                 TextAnchor.UpperCenter);
             name.rectTransform.anchorMin = new Vector2(0f, 1f);
             name.rectTransform.anchorMax = new Vector2(1f, 1f);
-            name.rectTransform.offsetMin = new Vector2(8f, -168f);
-            name.rectTransform.offsetMax = new Vector2(-8f, -136f);
+            name.rectTransform.offsetMin = new Vector2(8f, -152f);
+            name.rectTransform.offsetMax = new Vector2(-8f, -124f);
 
             var level = CampUiRuntime.CreateText(go.transform, $"Lv.{progress.OutOfRunLevel}  经验 {progress.OutOfRunXp}",
                 16, FontStyle.Normal, TextAnchor.UpperCenter);
             level.rectTransform.anchorMin = new Vector2(0f, 1f);
             level.rectTransform.anchorMax = new Vector2(1f, 1f);
-            level.rectTransform.offsetMin = new Vector2(8f, -200f);
-            level.rectTransform.offsetMax = new Vector2(-8f, -172f);
+            level.rectTransform.offsetMin = new Vector2(8f, -184f);
+            level.rectTransform.offsetMax = new Vector2(-8f, -156f);
             level.color = new Color(0.8f, 0.84f, 0.92f, 1f);
 
             var summary = CampUiRuntime.CreateText(go.transform, TalentRules.BuildActiveEffectsSummary(progress),

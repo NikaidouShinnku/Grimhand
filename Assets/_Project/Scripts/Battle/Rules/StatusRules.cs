@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Status;
+using Grimhand.Battle.V09;
+using Grimhand.Core;
 
 namespace Grimhand.Battle.Rules
 {
@@ -89,6 +91,15 @@ namespace Grimhand.Battle.Rules
             CombatantRules.RefreshDerivedStats(target);
             RelicBattleRules.RefreshDerivedStats(state, target, state?.Config?.RunModifiers);
 
+            // v0.9 钩子：获得中毒（不朽蛇蜕增伤）/ 获得虚化（绝望之魔回收、巫妖天赋、虚化计数）
+            if (statusId == StatusCatalog.Poison)
+                V09NewMechanicsRules.OnPoisonAppliedToSelf(state, target, statusId, events);
+            else if (statusId == StatusCatalog.Ethereal)
+            {
+                V09NewMechanicsRules.IncrementEtherealEntryCount(state);
+                V09NewMechanicsRules.OnEtherealGained(state, target, events);
+            }
+
             if (mirrorChainWraith)
                 MinionTraitRules.ShareChainWraithDebuff(state, target, statusId, stacks, durationOverride, events);
         }
@@ -121,7 +132,7 @@ namespace Grimhand.Battle.Rules
             CombatantRules.RefreshDerivedStats(target);
         }
 
-        public static void ProcessTurnStartStatuses(BattleState state, List<BattleEvent> events)
+        public static void ProcessTurnStartStatuses(BattleState state, List<BattleEvent> events, BattleRng rng = null)
         {
             foreach (var combatant in state.Combatants)
             {
@@ -135,13 +146,12 @@ namespace Grimhand.Battle.Rules
                         continue;
 
                     var damage = def.TurnStartDamagePerStack * status.Stacks;
-                    TalentBattleRules.ProcessPoisonTick(state, def, status, ref damage);
-                    ApplyStatusTickDamage(state, combatant, def, status.StatusId, damage, events);
+                    ApplyStatusTickDamage(state, combatant, def, status.StatusId, damage, events, rng);
                 }
             }
         }
 
-        public static void ProcessTurnEndStatuses(BattleState state, List<BattleEvent> events)
+        public static void ProcessTurnEndStatuses(BattleState state, List<BattleEvent> events, BattleRng rng = null)
         {
             foreach (var combatant in state.Combatants)
             {
@@ -155,7 +165,7 @@ namespace Grimhand.Battle.Rules
                         continue;
 
                     var damage = def.TurnEndDamagePerStack * status.Stacks;
-                    ApplyStatusTickDamage(state, combatant, def, status.StatusId, damage, events);
+                    ApplyStatusTickDamage(state, combatant, def, status.StatusId, damage, events, rng);
                 }
             }
         }
@@ -166,9 +176,16 @@ namespace Grimhand.Battle.Rules
             StatusDefinition def,
             string statusId,
             int damage,
-            List<BattleEvent> events)
+            List<BattleEvent> events,
+            BattleRng rng = null)
         {
             if (combatant == null || damage <= 0)
+                return;
+
+            // v0.9 天赋：中毒跳伤前判定（免疫 / 转治疗 / 敌人中_dt毒回血）
+            if (statusId == StatusCatalog.Poison)
+                TalentBattleRules.OnPoisonTick(state, combatant, ref damage, events);
+            if (damage <= 0)
                 return;
 
             // 中毒/灼烧跳伤：直扣 HP，不经过护甲与 DEF（设计表：中毒忽视护甲、灼烧忽视 DEF）。
@@ -179,6 +196,10 @@ namespace Grimhand.Battle.Rules
                 Amount = damage,
                 TargetId = statusId
             });
+
+            // v0.9 瘟疫蔓延：敌人因中毒受伤时触发传染判定
+            if (statusId == StatusCatalog.Poison && combatant.Team == TeamSide.Enemy && damage > 0 && rng != null)
+                PassiveCardMechanicsRules.TryTriggerPlagueSpreadOnPoisonTick(state, combatant, events, rng);
 
             if (!combatant.IsAlive
                 && CombatMechanicsRules.TryPreventDeathWithReviveBlessing(state, combatant, events))
@@ -212,6 +233,15 @@ namespace Grimhand.Battle.Rules
                     {
                         if (status.StatusId == StatusCatalog.FinalSummonPending)
                             PassiveCardMechanicsRules.OnFinalSummonPendingExpired(state, combatant, events);
+
+                        // v0.9 蛇 s2_lv10：中毒到期层数减半续存而非清除
+                        if (status.StatusId == StatusCatalog.Poison
+                            && TalentBattleRules.TryHandlePoisonExpiry(state, combatant, status, events))
+                        {
+                            CombatantRules.RefreshDerivedStats(combatant);
+                            RelicBattleRules.RefreshDerivedStats(state, combatant, state?.Config?.RunModifiers);
+                            continue;
+                        }
 
                         combatant.Statuses.RemoveAt(i);
                         events.Add(new BattleEvent(BattleEventKind.StatusExpired, def.DisplayName)

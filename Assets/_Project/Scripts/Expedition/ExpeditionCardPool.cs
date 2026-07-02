@@ -13,7 +13,9 @@ namespace Grimhand.Expedition
         {
             "char_knight", "char_warrior",
             "char_mage", "char_pharaoh",
-            "char_ranger", "char_demon"
+            "char_ranger", "char_demon",
+            "char_snake_queen", "char_viper_queen",
+            "char_lich_queen", "char_lich"
         };
 
         public static List<CardTemplate> CollectPlayerCardTemplates(ExpeditionConfig config)

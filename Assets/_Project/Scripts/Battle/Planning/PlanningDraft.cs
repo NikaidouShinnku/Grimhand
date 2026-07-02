@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
+using Grimhand.Battle.V09;
 
 namespace Grimhand.Battle.Planning
 {
@@ -381,7 +382,8 @@ namespace Grimhand.Battle.Planning
 
             var ownerId = PositionRules.GetOwnerCombatantId(_state, card);
             var owner = ownerId != null ? _state.GetCombatant(ownerId) : null;
-            return TalentBattleRules.GetEffectivePlayCost(_state, owner, card);
+            var cost = TalentBattleRules.GetEffectivePlayCost(_state, owner, card);
+            return V09NewMechanicsRules.AdjustPlayCostForHandCostZero(_state, owner, cost);
         }
 
         void ConsumeTalentDiscountIfApplied(CombatantState owner, CardInstanceState card, int cost)
@@ -396,6 +398,12 @@ namespace Grimhand.Battle.Planning
                      && card.CardType == CardType.Status)
             {
                 _state.TalentMageFirstStatusDiscountPending = false;
+            }
+            else if (_state.TalentLichFirstExhaustDiscountPending
+                     && owner.CharacterDefinitionId == TalentBattleRules.LichQueenId
+                     && card.Keywords != null && card.Keywords.Contains("exhaust"))
+            {
+                _state.TalentLichFirstExhaustDiscountPending = false;
             }
         }
     }

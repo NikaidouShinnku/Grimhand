@@ -58,6 +58,11 @@ MonoBehaviour:
     SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
+    HpLossStepPercent: 0
+    HpLossStepValue: 0
+    AlternateValueIfHealed: 0
+    TokenCardId: 
+    CostReduction: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

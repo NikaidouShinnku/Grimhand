@@ -10,25 +10,79 @@ namespace Grimhand.Expedition
     {
         public static void ApplyRunStartEffects(ExpeditionRunState run, ExpeditionConfig config)
         {
-            if (run?.Party == null || run.TalentRun.EndlessBladeInjected)
+            if (run?.Party == null)
                 return;
 
+            // 战士（恶魔）s2_lv6：无尽血刃
+            if (!run.TalentRun.EndlessBladeInjected
+                && HasAnyMemberTalent(run, "talent_ranger_s2_lv6"))
+            {
+                InjectStartingCard(run, config, "talent_ranger_s2_lv6",
+                    PassiveCardMechanicsRules.EndlessBladeCardId,
+                    TalentCatalog.RangerId,
+                    () => run.TalentRun.EndlessBladeInjected = true);
+            }
+
+            // 毒蛇女王 s2_lv7：引爆毒囊
+            if (!run.TalentRun.SnakeDetonateVenomInjected
+                && HasAnyMemberTalent(run, "talent_snake_s2_lv7"))
+            {
+                InjectStartingCard(run, config, "talent_snake_s2_lv7",
+                    "v_detonate_venom",
+                    TalentCatalog.SnakeQueenId,
+                    () => run.TalentRun.SnakeDetonateVenomInjected = true);
+            }
+
+            // 巫妖女王 s2_lv10：灵界封印
+            if (!run.TalentRun.LichRealmSealInjected
+                && HasAnyMemberTalent(run, "talent_lich_s2_lv10"))
+            {
+                InjectStartingCard(run, config, "talent_lich_s2_lv10",
+                    "l_realm_seal",
+                    TalentCatalog.LichQueenId,
+                    () => run.TalentRun.LichRealmSealInjected = true);
+            }
+        }
+
+        static bool HasAnyMemberTalent(ExpeditionRunState run, string talentId)
+        {
             foreach (var member in run.Party)
             {
-                if (member == null || !HasMemberTalent(member, "talent_ranger_s2_lv6"))
-                    continue;
-
-                var blade = TryFindCatalogCard(config, PassiveCardMechanicsRules.EndlessBladeCardId);
-                if (blade == null)
-                    break;
-
-                var clone = ExpeditionBattleConfigBuilder.CloneTemplate(blade);
-                clone.OwnerCharacterId = TalentCatalog.RangerId;
-                ExpeditionDeckInstanceRules.PrepareNewDeckCard(member, clone);
-                member.BonusCards.Add(clone);
-                run.TalentRun.EndlessBladeInjected = true;
-                break;
+                if (member != null && HasMemberTalent(member, talentId))
+                    return true;
             }
+            return false;
+        }
+
+        static void InjectStartingCard(
+            ExpeditionRunState run,
+            ExpeditionConfig config,
+            string talentId,
+            string cardDefinitionId,
+            string ownerCharacterId,
+            System.Action markInjected)
+        {
+            PartyMemberSnapshot target = null;
+            foreach (var member in run.Party)
+            {
+                if (member != null && HasMemberTalent(member, talentId))
+                {
+                    target = member;
+                    break;
+                }
+            }
+            if (target == null)
+                return;
+
+            var card = TryFindCatalogCard(config, cardDefinitionId);
+            if (card == null)
+                return;
+
+            var clone = ExpeditionBattleConfigBuilder.CloneTemplate(card);
+            clone.OwnerCharacterId = ownerCharacterId;
+            ExpeditionDeckInstanceRules.PrepareNewDeckCard(target, clone);
+            target.BonusCards.Add(clone);
+            markInjected();
         }
 
         static CardTemplate TryFindCatalogCard(ExpeditionConfig config, string definitionId)

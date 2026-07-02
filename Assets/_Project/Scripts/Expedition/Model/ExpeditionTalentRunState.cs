@@ -6,12 +6,16 @@ namespace Grimhand.Expedition.Model
         public bool MageReviveUsed { get; set; }
         public int RangerSacrificeHpTotal { get; set; }
         public bool EndlessBladeInjected { get; set; }
+        public bool SnakeDetonateVenomInjected { get; set; }
+        public bool LichRealmSealInjected { get; set; }
 
         public void Reset()
         {
             MageReviveUsed = false;
             RangerSacrificeHpTotal = 0;
             EndlessBladeInjected = false;
+            SnakeDetonateVenomInjected = false;
+            LichRealmSealInjected = false;
         }
     }
 }

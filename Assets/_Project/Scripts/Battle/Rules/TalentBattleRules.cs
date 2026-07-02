@@ -15,6 +15,8 @@ namespace Grimhand.Battle.Rules
         public const string KnightId = RelicEffectRules.WarriorCharacterId;
         public const string MageId = RelicBattleRules.PharaohCharacterId;
         public const string RangerId = RelicEffectRules.DemonCharacterId;
+        public const string SnakeQueenId = "char_snake_queen";
+        public const string LichQueenId = "char_lich_queen";
 
         public static void OnBattleInitialized(BattleState state)
         {
@@ -25,6 +27,7 @@ namespace Grimhand.Battle.Rules
             state.TalentMageFirstHitSlowPending = HasTalent(state, "talent_mage_s2_lv6");
             state.TalentMageReviveAvailable = state.Config.Talents.MageReviveAvailable;
             state.TalentRangerBloodDebtAttackBonus = state.Config.Talents.RangerBloodDebtAttackBonus;
+            state.TalentLichFirstExhaustDiscountPending = HasTalent(state, "talent_lich_s2_lv5");
 
             foreach (var combatant in state.Combatants)
             {
@@ -336,6 +339,9 @@ namespace Grimhand.Battle.Rules
                 }
             }
 
+            if (HasTalent(state, "talent_ranger_s2_lv3") && damage < 5)
+                return 0;
+
             return Math.Max(1, damage);
         }
 
@@ -361,6 +367,15 @@ namespace Grimhand.Battle.Rules
                 && owner.CharacterDefinitionId == MageId
                 && card.CardType == CardType.Status
                 && HasTalent(state, "talent_mage_s2_lv2"))
+            {
+                cost = Math.Max(0, cost - 1);
+            }
+
+            // 巫妖女王 s2_lv5：每场战斗首张消耗牌 -1 费
+            if (state.TalentLichFirstExhaustDiscountPending
+                && owner.CharacterDefinitionId == LichQueenId
+                && card.Keywords != null && card.Keywords.Contains("exhaust")
+                && HasTalent(state, "talent_lich_s2_lv5"))
             {
                 cost = Math.Max(0, cost - 1);
             }
@@ -395,22 +410,41 @@ namespace Grimhand.Battle.Rules
 
         public static void AdjustPoisonStacks(BattleState state, CombatantState applier, ref int stacks)
         {
-            if (applier?.CharacterDefinitionId == MageId && HasTalent(state, "talent_mage_s2_lv4"))
-                stacks += 2;
-        }
-
-        public static void ProcessPoisonTick(
-            BattleState state,
-            StatusDefinition def,
-            StatusInstance status,
-            ref int damage)
-        {
-            if (def?.Id != StatusCatalog.Poison || !HasTalent(state, "talent_mage_s2_lv10"))
+            if (applier?.CharacterDefinitionId != MageId)
                 return;
 
-            // 毒爆：本回合爆发全部层数的累计伤害（层数×单次伤害），随后清空层数
-            damage = status.Stacks * def.TurnStartDamagePerStack;
-            status.Stacks = 0;
+            if (HasTalent(state, "talent_mage_s2_lv4"))
+                stacks += 2;
+
+            if (HasTalent(state, "talent_mage_s2_lv10"))
+                stacks = Math.Max(0, stacks - 1);
+        }
+
+        public static int AdjustPoisonDuration(BattleState state, CombatantState applier, int duration)
+        {
+            if (applier?.CharacterDefinitionId != MageId)
+                return duration;
+
+            if (HasTalent(state, "talent_mage_s2_lv10"))
+                return -1;
+
+            return duration;
+        }
+
+        /// <summary>v0.9 巫妖女王：获得虚化时触发的天赋钩子（s1_lv1 回 3HP 等）。</summary>
+        public static void OnEtherealGained(BattleState state, CombatantState target, List<BattleEvent> events)
+        {
+            if (state == null || target == null || events == null)
+                return;
+
+            // 巫妖女王 s1_lv1：获得虚化时回复 3HP
+            if (target.CharacterDefinitionId == LichQueenId
+                && HasTalent(state, "talent_lich_s1_lv1"))
+            {
+                DamageRules.ApplyHeal(state, target, 3, events, target);
+            }
+
+            // 巫妖女王 s1_lv4：虚化中受伤不掉血且回 3HP —— 由 DamageRules 的 ethereal 分支处理，此处不重复。
         }
 
         public static void OnMageDamageDealt(
@@ -482,6 +516,193 @@ namespace Grimhand.Battle.Rules
             }
 
             return list;
+        }
+
+        // ===== v0.9 毒蛇女王 / 巫妖女王 天赋 =====
+
+        static CombatantState FindAlivePlayerCharacter(BattleState state, string characterId)
+        {
+            foreach (var c in state.Combatants)
+            {
+                if (c.Team == TeamSide.Player && c.IsAlive && c.CharacterDefinitionId == characterId)
+                    return c;
+            }
+            return null;
+        }
+
+        /// <summary>回合开始时触发的 v0.9 天赋（蛇 s1_lv4 / s2_lv4，巫妖 s1_lv7）。</summary>
+        public static void ProcessTurnStartV09Talents(BattleState state, List<BattleEvent> events)
+        {
+            if (state == null)
+                return;
+
+            // 巫妖女王 s1_lv7：回合开始能量为0则+1
+            if (state.EnergyCurrent == 0 && HasTalent(state, "talent_lich_s1_lv7"))
+            {
+                var lich = FindAlivePlayerCharacter(state, LichQueenId);
+                if (lich != null)
+                {
+                    state.EnergyCurrent = Math.Min(state.EnergyMax, state.EnergyCurrent + 1);
+                    events.Add(new BattleEvent(BattleEventKind.EnergyChanged, "零点共鸣 +1 能量")
+                    {
+                        CombatantId = lich.Id,
+                        Energy = state.EnergyCurrent,
+                        EnergyMax = state.EnergyMax,
+                        EnergyRemaining = state.EnergyCurrent,
+                        Amount = 1
+                    });
+                }
+            }
+
+            foreach (var combatant in state.Combatants)
+            {
+                if (combatant == null || combatant.Team != TeamSide.Player || !combatant.IsAlive)
+                    continue;
+
+                if (combatant.CharacterDefinitionId == SnakeQueenId)
+                {
+                    var poisonStacks = StatusRules.GetStatusStacks(combatant, StatusCatalog.Poison);
+
+                    // s1_lv4：每层中毒 +1% 强固（持续1回合，每回合刷新）
+                    if (poisonStacks > 0 && HasTalent(state, "talent_snake_s1_lv4"))
+                        StatusRules.ApplyStatus(state, combatant, StatusCatalog.DefenseUpPercent, poisonStacks, 1, events);
+
+                    // s2_lv4：任意敌人中毒则 +1SPD（不叠加）
+                    if (HasTalent(state, "talent_snake_s2_lv4")
+                        && !StatusRules.HasStatus(combatant, StatusCatalog.SnakeSwiftness)
+                        && AnyEnemyHasPoison(state))
+                    {
+                        StatusRules.ApplyStatus(state, combatant, StatusCatalog.SnakeSwiftness, 1, -1, events);
+                    }
+                }
+            }
+        }
+
+        static bool AnyEnemyHasPoison(BattleState state)
+        {
+            foreach (var c in state.Combatants)
+            {
+                if (c.Team == TeamSide.Enemy && c.IsAlive && StatusRules.HasStatus(c, StatusCatalog.Poison))
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>中毒跳伤前钩子：返回处理后的伤害（可为0）。蛇 s1_lv1 免疫 / s1_lv10 转治疗 / s1_lv6 敌人中_dt毒时自身回1。</summary>
+        public static void OnPoisonTick(BattleState state, CombatantState combatant, ref int damage, List<BattleEvent> events)
+        {
+            if (state == null || combatant == null || damage <= 0)
+                return;
+
+            if (combatant.CharacterDefinitionId == SnakeQueenId)
+            {
+                if (HasTalent(state, "talent_snake_s1_lv1"))
+                {
+                    damage = 0;
+                    return;
+                }
+                if (HasTalent(state, "talent_snake_s1_lv10"))
+                {
+                    var heal = damage;
+                    damage = 0;
+                    DamageRules.ApplyHeal(state, combatant, heal, events, combatant);
+                    return;
+                }
+            }
+
+            if (combatant.Team == TeamSide.Enemy && HasTalent(state, "talent_snake_s1_lv6"))
+            {
+                var snake = FindAlivePlayerCharacter(state, SnakeQueenId);
+                if (snake != null)
+                    DamageRules.ApplyHeal(state, snake, 1, events, snake);
+            }
+        }
+
+        /// <summary>蛇 s2_lv2：单次受到超过 25% 最大HP 的伤害后清除自身所有负面状态。</summary>
+        public static void OnDamageTakenV09(BattleState state, CombatantState recipient, int hpDamage, List<BattleEvent> events)
+        {
+            if (state == null || recipient == null || hpDamage <= 0)
+                return;
+            if (recipient.CharacterDefinitionId != SnakeQueenId || !HasTalent(state, "talent_snake_s2_lv2"))
+                return;
+
+            var threshold = Math.Max(1, recipient.MaxHp / 4);
+            if (hpDamage < threshold)
+                return;
+
+            ClearAllDebuffs(state, recipient, events);
+        }
+
+        static void ClearAllDebuffs(BattleState state, CombatantState target, List<BattleEvent> events)
+        {
+            for (var i = target.Statuses.Count - 1; i >= 0; i--)
+            {
+                var s = target.Statuses[i];
+                var def = StatusCatalog.Get(s.StatusId);
+                if (def == null)
+                    continue;
+                if (def.TurnStartDamagePerStack > 0
+                    || def.TurnEndDamagePerStack > 0
+                    || def.SpeedModifierPerStack < 0
+                    || def.OutgoingDamageReductionFlatPerStack > 0
+                    || def.BlockGainReductionPercentPerStack > 0
+                    || def.IncomingDamagePercentPerStack > 0)
+                {
+                    target.Statuses.RemoveAt(i);
+                    events.Add(new BattleEvent(BattleEventKind.StatusRemoved, def.DisplayName)
+                    {
+                        CombatantId = target.Id,
+                        TargetId = s.StatusId
+                    });
+                }
+            }
+            CombatantRules.RefreshDerivedStats(target);
+        }
+
+        /// <summary>蛇 s2_lv10：中毒持续时间结束时层数减半而非清零。返回 true 表示已接管处理。</summary>
+        public static bool TryHandlePoisonExpiry(CombatantState combatant, StatusInstance status)
+        {
+            if (combatant == null || status == null || status.StatusId != StatusCatalog.Poison)
+                return false;
+            // 该天赋为 run 级；此处通过 combatant 所属角色与全局天赋上下文判断需 state，
+            // 但钩子调用方持有 state，改用带 state 重载。
+            return false;
+        }
+
+        public static bool TryHandlePoisonExpiry(BattleState state, CombatantState combatant, StatusInstance status, List<BattleEvent> events)
+        {
+            if (state == null || combatant == null || status == null || status.StatusId != StatusCatalog.Poison)
+                return false;
+            if (combatant.CharacterDefinitionId != SnakeQueenId || !HasTalent(state, "talent_snake_s2_lv10"))
+                return false;
+            if (status.Stacks <= 1)
+                return false;
+
+            status.Stacks = Math.Max(1, status.Stacks / 2);
+            // 续 1 回合而非移除
+            status.RemainingTurns = Math.Max(status.RemainingTurns, 1);
+            events.Add(new BattleEvent(BattleEventKind.StatusApplied, "慢性毒素：中毒层数减半续存")
+            {
+                CombatantId = combatant.Id,
+                Amount = status.Stacks,
+                TargetId = StatusCatalog.Poison
+            });
+            return true;
+        }
+
+        /// <summary>巫妖 s1_lv4：虚化中受伤改为0并回3HP。返回 true 表示已接管 ethereal 分支。</summary>
+        public static bool TryHandleEtherealDamage(BattleState state, CombatantState recipient, ref int hpDamage, List<BattleEvent> events)
+        {
+            if (state == null || recipient == null || hpDamage <= 0)
+                return false;
+            if (recipient.CharacterDefinitionId != LichQueenId || !HasTalent(state, "talent_lich_s1_lv4"))
+                return false;
+            if (!StatusRules.HasStatus(recipient, StatusCatalog.Ethereal))
+                return false;
+
+            hpDamage = 0;
+            DamageRules.ApplyHeal(state, recipient, 3, events, recipient);
+            return true;
         }
     }
 }

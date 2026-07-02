@@ -44,6 +44,17 @@ namespace Grimhand.Content
         public string SummonCharacterId = "";
         public bool GrantInvulnerableOnRespondArm;
         public bool LifestealUnblockedOnly;
+        // v0.9 新增字段
+        /// <summary>怒火焚身：每损失此百分比最大HP，额外 +HpLossStepValue 伤害。</summary>
+        public int HpLossStepPercent;
+        /// <summary>怒火焚身：每个HP损失步长的额外伤害值。</summary>
+        public int HpLossStepValue;
+        /// <summary>鲜血撕咬：本回合回复过生命时改用的固定伤害值。</summary>
+        public int AlternateValueIfHealed;
+        /// <summary>毒蛇/巫妖 v0.9：AddTokenCardToHand 要置入手牌的卡牌 DefinitionId。</summary>
+        public string TokenCardId = "";
+        /// <summary>召唤卡牌之灵：抽到的牌费用减免值（占位）。</summary>
+        public int CostReduction;
 
         public EffectActionSpec ToSpec()
         {
@@ -86,7 +97,12 @@ namespace Grimhand.Content
                 FallbackBlockValue = FallbackBlockValue,
                 SummonCharacterId = SummonCharacterId,
                 GrantInvulnerableOnRespondArm = GrantInvulnerableOnRespondArm,
-                LifestealUnblockedOnly = LifestealUnblockedOnly
+                LifestealUnblockedOnly = LifestealUnblockedOnly,
+                HpLossStepPercent = HpLossStepPercent,
+                HpLossStepValue = HpLossStepValue,
+                AlternateValueIfHealed = AlternateValueIfHealed,
+                TokenCardId = TokenCardId,
+                CostReduction = CostReduction
             };
         }
 
@@ -131,7 +147,12 @@ namespace Grimhand.Content
                 FallbackBlockValue = spec.FallbackBlockValue,
                 SummonCharacterId = spec.SummonCharacterId,
                 GrantInvulnerableOnRespondArm = spec.GrantInvulnerableOnRespondArm,
-                LifestealUnblockedOnly = spec.LifestealUnblockedOnly
+                LifestealUnblockedOnly = spec.LifestealUnblockedOnly,
+                HpLossStepPercent = spec.HpLossStepPercent,
+                HpLossStepValue = spec.HpLossStepValue,
+                AlternateValueIfHealed = spec.AlternateValueIfHealed,
+                TokenCardId = spec.TokenCardId,
+                CostReduction = spec.CostReduction
             };
         }
     }

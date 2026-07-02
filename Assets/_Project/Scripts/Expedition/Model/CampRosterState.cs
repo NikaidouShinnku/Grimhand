@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Grimhand.Expedition;
 
 namespace Grimhand.Expedition.Model
 {
@@ -38,6 +39,9 @@ namespace Grimhand.Expedition.Model
                     if (!hasAnyCard)
                         return false;
                 }
+
+                if (!CampRosterValidation.HasUniqueCharacters(this))
+                    return false;
 
                 return true;
             }

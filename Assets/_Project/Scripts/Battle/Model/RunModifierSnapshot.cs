@@ -90,6 +90,9 @@ namespace Grimhand.Battle.Model
         /// <summary>圣阳之书：含「阳/日」牌使用时额外视为 +N 级（可超出升级上限）。</summary>
         public int HolysunSpellbookBonusUpgradeLevels { get; set; }
 
+        /// <summary>巫妖女王灵魂挽歌：本场远征中累计进入虚化状态的次数（每进入一次 +1）。</summary>
+        public int EtherealEntryCount { get; set; }
+
         public static RunModifierSnapshot Empty { get; } = new();
     }
 }

@@ -214,6 +214,219 @@ namespace Grimhand.Battle.Tests
             Assert.AreEqual(50, cc.MaxHp);
         }
 
+        [Test]
+        public void CaptureParty_MatchesExistingBySlotIndex_NotCharacterId()
+        {
+            var previous = new List<PartyMemberSnapshot>
+            {
+                new()
+                {
+                    CharacterDefinitionId = "char_knight",
+                    DisplayName = "战士"
+                },
+                new()
+                {
+                    CharacterDefinitionId = "char_snake_queen",
+                    DisplayName = "毒蛇女王"
+                },
+                new()
+                {
+                    CharacterDefinitionId = "char_lich_queen",
+                    DisplayName = "巫妖女王"
+                }
+            };
+            previous[1].BonusCards.Add(new CardTemplate
+            {
+                DefinitionId = "snake_bonus",
+                OwnerCharacterId = "char_snake_queen"
+            });
+            previous[2].BonusCards.Add(new CardTemplate
+            {
+                DefinitionId = "lich_bonus",
+                OwnerCharacterId = "char_lich_queen"
+            });
+
+            var state = new BattleState
+            {
+                Outcome = BattleOutcome.PlayerVictory,
+                Combatants =
+                {
+                    new CombatantState
+                    {
+                        Team = TeamSide.Player,
+                        Slot = FormationSlot.Front,
+                        CharacterDefinitionId = "char_knight",
+                        DisplayName = "恶魔",
+                        Hp = 30,
+                        MaxHp = 40
+                    },
+                    new CombatantState
+                    {
+                        Team = TeamSide.Player,
+                        Slot = FormationSlot.Middle,
+                        CharacterDefinitionId = "char_ranger",
+                        DisplayName = "恶魔",
+                        Hp = 40,
+                        MaxHp = 45
+                    },
+                    new CombatantState
+                    {
+                        Team = TeamSide.Player,
+                        Slot = FormationSlot.Back,
+                        CharacterDefinitionId = "char_lich_queen",
+                        DisplayName = "恶魔",
+                        Hp = 35,
+                        MaxHp = 45
+                    }
+                }
+            };
+
+            var party = ExpeditionBattleConfigBuilder.CaptureParty(state, previous);
+
+            Assert.AreEqual(3, party.Count);
+            Assert.AreEqual("char_ranger", party[1].CharacterDefinitionId);
+            Assert.AreEqual("恶魔", party[1].DisplayName);
+            Assert.AreEqual(0, party[1].BonusCards.Count);
+            Assert.AreEqual("char_lich_queen", party[2].CharacterDefinitionId);
+            Assert.AreEqual("巫妖女王", party[2].DisplayName);
+            Assert.AreEqual(1, party[2].BonusCards.Count);
+            Assert.AreEqual("lich_bonus", party[2].BonusCards[0].DefinitionId);
+        }
+
+        [Test]
+        public void CaptureParty_DoesNotAppendFourthMember()
+        {
+            var previous = new List<PartyMemberSnapshot>
+            {
+                new() { CharacterDefinitionId = "char_knight", DisplayName = "战士" },
+                new() { CharacterDefinitionId = "char_snake_queen", DisplayName = "毒蛇女王" },
+                new() { CharacterDefinitionId = "char_lich_queen", DisplayName = "巫妖女王" },
+                new() { CharacterDefinitionId = "char_ranger", DisplayName = "恶魔" }
+            };
+
+            var state = new BattleState
+            {
+                Outcome = BattleOutcome.PlayerVictory,
+                Combatants =
+                {
+                    new CombatantState
+                    {
+                        Team = TeamSide.Player,
+                        Slot = FormationSlot.Front,
+                        CharacterDefinitionId = "char_knight",
+                        DisplayName = "战士",
+                        Hp = 30,
+                        MaxHp = 40
+                    },
+                    new CombatantState
+                    {
+                        Team = TeamSide.Player,
+                        Slot = FormationSlot.Middle,
+                        CharacterDefinitionId = "char_snake_queen",
+                        DisplayName = "毒蛇女王",
+                        Hp = 50,
+                        MaxHp = 55
+                    },
+                    new CombatantState
+                    {
+                        Team = TeamSide.Player,
+                        Slot = FormationSlot.Back,
+                        CharacterDefinitionId = "char_lich_queen",
+                        DisplayName = "巫妖女王",
+                        Hp = 40,
+                        MaxHp = 45
+                    }
+                }
+            };
+
+            var party = ExpeditionBattleConfigBuilder.CaptureParty(state, previous);
+            Assert.AreEqual(3, party.Count);
+        }
+
+        [Test]
+        public void BuildEncounter_AppliesPartyBySlotIndex_NotCharacterIdMatch()
+        {
+            var template = new BattleConfig();
+            template.Combatants.Add(new CombatantConfig
+            {
+                Id = "player_slot1",
+                Team = TeamSide.Player,
+                Slot = FormationSlot.Front,
+                CharacterDefinitionId = "char_knight",
+                DisplayName = "战士",
+                Level = 1,
+                MaxHp = 80
+            });
+            template.Combatants.Add(new CombatantConfig
+            {
+                Id = "player_slot2",
+                Team = TeamSide.Player,
+                Slot = FormationSlot.Middle,
+                CharacterDefinitionId = "char_mage",
+                DisplayName = "法老",
+                Level = 1,
+                MaxHp = 60
+            });
+            template.Combatants.Add(new CombatantConfig
+            {
+                Id = "player_slot3",
+                Team = TeamSide.Player,
+                Slot = FormationSlot.Back,
+                CharacterDefinitionId = "char_ranger",
+                DisplayName = "恶魔",
+                Level = 1,
+                MaxHp = 45
+            });
+
+            var party = new List<PartyMemberSnapshot>
+            {
+                new()
+                {
+                    CharacterDefinitionId = "char_knight",
+                    DisplayName = "战士",
+                    Level = 1,
+                    Hp = 70,
+                    MaxHp = 80
+                },
+                new()
+                {
+                    CharacterDefinitionId = "char_snake_queen",
+                    DisplayName = "毒蛇女王",
+                    Level = 1,
+                    Hp = 55,
+                    MaxHp = 55
+                },
+                new()
+                {
+                    CharacterDefinitionId = "char_ranger",
+                    DisplayName = "恶魔",
+                    Level = 1,
+                    Hp = 40,
+                    MaxHp = 45
+                }
+            };
+
+            var config = ExpeditionBattleConfigBuilder.BuildEncounter(
+                template, party, new List<string>(), battleSeed: 42, applyPartyHp: true, floor: 1);
+
+            var slot2 = FindPlayerBySlot(config, FormationSlot.Middle);
+            Assert.AreEqual("char_snake_queen", slot2.CharacterDefinitionId);
+            Assert.AreEqual("毒蛇女王", slot2.DisplayName);
+            Assert.AreEqual(55, slot2.StartHp);
+        }
+
+        static CombatantConfig FindPlayerBySlot(BattleConfig config, FormationSlot slot)
+        {
+            foreach (var cc in config.Combatants)
+            {
+                if (cc.Team == TeamSide.Player && cc.Slot == slot)
+                    return cc;
+            }
+
+            Assert.Fail($"Missing player slot {slot}");
+            return null;
+        }
+
         static CombatantConfig FindCombatant(BattleConfig config, TeamSide team)
         {
             foreach (var cc in config.Combatants)

@@ -27,6 +27,8 @@ namespace Grimhand.Presentation.Battle
             "战士",
             "法老",
             "恶魔",
+            "毒蛇女王",
+            "巫妖女王",
             "Boss",
             "敌人",
             "哥布林",
@@ -74,6 +76,10 @@ namespace Grimhand.Presentation.Battle
                 return "法老";
             if (id.StartsWith("d_"))
                 return "恶魔";
+            if (id.StartsWith("v_"))
+                return "毒蛇女王";
+            if (id.StartsWith("l_"))
+                return "巫妖女王";
             if (id.StartsWith("m_king_") || id.StartsWith("m_queen_"))
                 return "Boss";
             if (id.StartsWith("m_"))

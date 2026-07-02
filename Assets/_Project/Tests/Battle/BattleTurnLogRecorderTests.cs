@@ -53,6 +53,34 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
+        public void Feed_RecordsQuickStartDuringPlanning()
+        {
+            var recorder = new BattleTurnLogRecorder();
+            var state = BuildStateWithActor("lich", "巫妖女王", TeamSide.Player);
+            state.Phase = TurnPhase.Planning;
+            state.CardsById[10] = new CardInstanceState { InstanceId = 10, DisplayName = "灵界降临" };
+
+            recorder.Feed(new BattleEvent(BattleEventKind.CardResolvedStarted, "灵界降临")
+            {
+                CombatantId = "lich",
+                CardInstanceId = 10
+            }, state);
+            recorder.Feed(new BattleEvent(BattleEventKind.StatusApplied, "hand_cost_zero")
+            {
+                CombatantId = "lich",
+                Amount = 1
+            }, state);
+            recorder.Feed(new BattleEvent(BattleEventKind.CardResolvedEnded, "灵界降临")
+            {
+                CombatantId = "lich",
+                CardInstanceId = 10
+            }, state);
+
+            Assert.AreEqual(1, recorder.LastRound.Count);
+            StringAssert.Contains("灵界降临", recorder.LastRound[0]);
+        }
+
+        [Test]
         public void Feed_TrimsToMaxFortyLines()
         {
             var recorder = new BattleTurnLogRecorder();

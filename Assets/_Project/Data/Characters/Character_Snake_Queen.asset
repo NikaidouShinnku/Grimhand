@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84c30176d181a5747a85983cdd126a0c, type: 3}
+  m_Name: Character_Snake_Queen
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
+  CharacterId: char_snake_queen
+  DisplayName: "\u6BD2\u86C7\u5973\u738B"
+  Team: 0
+  Slot: 2
+  Level: 1
+  MaxHp: 55
+  BaseAttack: 0
+  BaseDefense: 0
+  Speed: 6
+  Deck:
+  - {fileID: 11400000, guid: 2c20d40c5f2a481f8d4bcdfc3642eff7, type: 2}
+  - {fileID: 11400000, guid: 2c20d40c5f2a481f8d4bcdfc3642eff7, type: 2}
+  - {fileID: 11400000, guid: 2c20d40c5f2a481f8d4bcdfc3642eff7, type: 2}
+  - {fileID: 11400000, guid: 9aee953524fc4246b60316f3d43fd18b, type: 2}
+  - {fileID: 11400000, guid: 9aee953524fc4246b60316f3d43fd18b, type: 2}
+  - {fileID: 11400000, guid: a653f2ff099e4fe4aebeb4229dd40f24, type: 2}
+  - {fileID: 11400000, guid: e17b6b8de564417f9c5c62aee343daae, type: 2}
+  - {fileID: 11400000, guid: 22ce8c3baf414d56a596fae17084c856, type: 2}
+  SkillPool: []
+  Traits: []

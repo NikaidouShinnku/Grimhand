@@ -119,10 +119,10 @@ TextureImporter:
       name: lichqueen_defend_1024_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 695
-        width: 153
-        height: 210
+        x: 7
+        y: 23
+        width: 1010
+        height: 938
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -141,10 +141,10 @@ TextureImporter:
       name: lichqueen_defend_1024_1
       rect:
         serializedVersion: 2
-        x: 7
-        y: 23
-        width: 1010
-        height: 938
+        x: 871
+        y: 695
+        width: 153
+        height: 210
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}

@@ -19,7 +19,7 @@ MonoBehaviour:
   CardType: 2
   Keywords:
   - sacrifice
-  Rarity: 1
+  Rarity: 0
   Actions:
   - Type: 0
     Target: 1

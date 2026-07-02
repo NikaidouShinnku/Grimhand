@@ -93,7 +93,7 @@ namespace Grimhand.Expedition
         }
 
         static CardTemplate KingBoneSlash() =>
-            Dmg("m_king_bone_slash", "骨王斩击", 1, 15, TargetReach.FrontAndMiddle, "melee");
+            Dmg("m_king_bone_slash", "骨王斩击", 1, 15, TargetReach.FrontAndMiddle);
 
         static CardTemplate KingBoneRoar()
         {
@@ -111,7 +111,7 @@ namespace Grimhand.Expedition
         }
 
         static CardTemplate KingBoneSpear() =>
-            Dmg("m_king_bone_spear", "投掷骨矛", 1, 15, TargetReach.MiddleAndBack, "far_shot");
+            Dmg("m_king_bone_spear", "投掷骨矛", 1, 15, TargetReach.MiddleAndBack);
 
         static CardTemplate KingSummonThrone()
         {
@@ -129,7 +129,7 @@ namespace Grimhand.Expedition
 
         static CardTemplate KingBoneBlock()
         {
-            var card = BaseCard("m_king_bone_block", "骨甲格挡", 1, CardType.Defense, "guard");
+            var card = BaseCard("m_king_bone_block", "骨甲格挡", 1, CardType.Defense);
             card.Actions.Add(new EffectActionSpec
             {
                 Type = EffectActionType.GainBlockFromLastDamagePercent,
@@ -142,7 +142,7 @@ namespace Grimhand.Expedition
 
         static CardTemplate KingBoneShield()
         {
-            var card = BaseCard("m_king_bone_shield", "召唤骨盾", 2, CardType.Defense, "guard");
+            var card = BaseCard("m_king_bone_shield", "召唤骨盾", 2, CardType.Defense);
             card.Actions.Add(new EffectActionSpec
             {
                 Type = EffectActionType.GainBlock,

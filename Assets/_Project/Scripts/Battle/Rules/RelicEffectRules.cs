@@ -27,6 +27,7 @@ namespace Grimhand.Battle.Rules
             combatant.UsedDefenseThisTurn = false;
             combatant.TurnAttackBonusPercent = 0;
             combatant.TurnDefenseBonusPercent = 0;
+            combatant.HealedThisTurn = false;
             TalentBattleRules.ResetTurnFlags(combatant);
         }
 
@@ -266,6 +267,8 @@ namespace Grimhand.Battle.Rules
             MinionTraitRules.OnCardResolved(state, actor, card, events);
             if (card.CardType == CardType.Attack)
                 MinionTraitRules.ConsumeBloodRageAfterAttack(actor, card.CardType);
+            // v0.9 神圣灌注：演员下张牌结算后重复一次（消耗 holy_infusion_pending 状态）
+            PassiveCardMechanicsRules.TryTriggerHolyInfusionRepeat(state, actor, card, events, rng);
         }
 
         public static void OnEnemyKilled(

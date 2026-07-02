@@ -9,7 +9,7 @@ namespace Grimhand.Battle.Tests
     public class DrawCardsTests
     {
         [Test]
-        public void DrawCardsEffect_AddsPendingDrawForNextTurn()
+        public void DrawCardsEffect_DrawsImmediately()
         {
             var config = DemoBattleFactory.CreateDefault3v3();
             var engine = new BattleEngine(config);
@@ -34,9 +34,12 @@ namespace Grimhand.Battle.Tests
             });
 
             var events = new System.Collections.Generic.List<Events.BattleEvent>();
+            var handBefore = state.PlayerHand.Count;
             EffectActionExecutor.ExecuteAll(state, actor, card, events, null);
 
-            Assert.AreEqual(2, state.PendingDrawNextTurn);
+            // v0.9：抽牌效果当回合立即抽到手中，不再延迟到下回合。
+            Assert.AreEqual(handBefore + 2, state.PlayerHand.Count);
+            Assert.AreEqual(0, state.PendingDrawNextTurn);
         }
 
         [Test]

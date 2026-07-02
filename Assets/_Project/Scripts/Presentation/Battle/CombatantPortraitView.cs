@@ -94,6 +94,11 @@ namespace Grimhand.Presentation.Battle
             if (_isDead || _isAnimating || portraitImage == null || _visuals == null)
                 return;
 
+            // 槽位在战斗结束/领奖等阶段会被禁用，此时启动协程会抛
+            // "Coroutine couldn't be started because the game object is inactive!"。
+            if (!gameObject.activeInHierarchy)
+                return;
+
             RestoreHomePosition();
 
             var frames = _visuals.GetIdleAnimationFrames(_characterDefinitionId);

@@ -48,6 +48,28 @@ MonoBehaviour:
     IdleAnimationFrames: []
     IdleAnimationGifPath: The Grimhands Asset/characters/devil/devil_idle_anime.gif
     PreserveOriginalFacing: 0
+  - CharacterId: char_snake_queen
+    IdlePortrait: {fileID: -2083033746714116127, guid: bbead5e6bebf082479dc64f7be358239, type: 3}
+    AttackPortrait: {fileID: -6487485071930385607, guid: a92058eed0c3a1847aa2ce1371b7f744, type: 3}
+    DefensePortrait: {fileID: 5731767165217827674, guid: 517640e40e85d7c4ea44b7f7f2ad35f3, type: 3}
+    HitPortrait: {fileID: 4219208660190694281, guid: 26f03d9d5929aea49a93bf718fa7a569, type: 3}
+    HitPortraitFacesRight: 0
+    DeathPortrait: {fileID: -7611408772286399222, guid: 77d284c45fa0d9142be7681131d76f26, type: 3}
+    CardProfilePortrait: {fileID: 8474043446877892977, guid: 968a669b06107b140b716525004924ee, type: 3}
+    IdleAnimationFrames: []
+    IdleAnimationGifPath: The Grimhands Asset/characters/snake queen/snakequeen_idle_anime.gif
+    PreserveOriginalFacing: 0
+  - CharacterId: char_lich_queen
+    IdlePortrait: {fileID: -3476260634662720789, guid: 4285d3a71f480c34980ebee25cb0b4b1, type: 3}
+    AttackPortrait: {fileID: 3430629070921437099, guid: 0405ca65efa783d4d80b777a63585a3f, type: 3}
+    DefensePortrait: {fileID: -3931857232798235531, guid: 9193b713a6dde8c43a50bd60903bcf01, type: 3}
+    HitPortrait: {fileID: 1074795696139998472, guid: 22b99049ce2f4cf47aa4353200222621, type: 3}
+    HitPortraitFacesRight: 0
+    DeathPortrait: {fileID: -1337705455199795731, guid: 1c13ea9f888bdb341a1cf152cdd9690e, type: 3}
+    CardProfilePortrait: {fileID: -8988957266394059364, guid: f2b0fd23c9ea2914687b1cc5d3d305e5, type: 3}
+    IdleAnimationFrames: []
+    IdleAnimationGifPath: The Grimhands Asset/characters/lich queen/lichqueen_idle_anime.gif
+    PreserveOriginalFacing: 0
   - CharacterId: char_goblin
     IdlePortrait: {fileID: -7546124878013289674, guid: 4e9517047cbe912459dca45a57e6de36, type: 3}
     AttackPortrait: {fileID: -7546124878013289674, guid: 4e9517047cbe912459dca45a57e6de36, type: 3}

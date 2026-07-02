@@ -9,6 +9,7 @@ using Grimhand.Battle.Planning;
 using Grimhand.Battle.Reactions;
 using Grimhand.Battle.Rules;
 using Grimhand.Battle.Status;
+using Grimhand.Battle.V09;
 using Grimhand.Core;
 
 namespace Grimhand.Battle
@@ -176,6 +177,7 @@ namespace Grimhand.Battle
                 return false;
 
             var cost = TalentBattleRules.GetEffectivePlayCost(_state, owner, card);
+            cost = V09NewMechanicsRules.AdjustPlayCostForHandCostZero(_state, owner, cost);
             if (!EnergyRules.CanAfford(_state.EnergyCurrent, cost))
                 return false;
 
@@ -539,12 +541,16 @@ namespace Grimhand.Battle
             MinionTraitRules.PrepareTurnEndArmorRetain(_state);
 
             foreach (var c in _state.Combatants)
-                c.Block = 0;
+            {
+                // v0.9 最终壁垒：回合末仅清除50%护甲，保留 GetFinalBulwarkRetainedBlock 返回的部分
+                var retained = PassiveCardMechanicsRules.GetFinalBulwarkRetainedBlock(c);
+                c.Block = retained;
+            }
 
             DeckRules.DiscardHandAtEndOfTurn(_state, TeamSide.Player, _events);
             DeckRules.DiscardHandAtEndOfTurn(_state, TeamSide.Enemy, _events);
 
-            StatusRules.ProcessTurnEndStatuses(_state, _events);
+            StatusRules.ProcessTurnEndStatuses(_state, _events, _rng);
             StatusRules.ProcessEndOfTurnDurations(_state, _events);
             RelicEffectRules.ProcessEndOfTurn(_state, _events);
             _state.ConsumableDodgeBonusThisTurn = 0f;
@@ -558,10 +564,16 @@ namespace Grimhand.Battle
         void ProcessDrawPhase()
         {
             EnergyRules.ApplyTurnStartRegen(_state);
-            StatusRules.ProcessTurnStartStatuses(_state, _events);
+            StatusRules.ProcessTurnStartStatuses(_state, _events, _rng);
             RelicEffectRules.ProcessTurnStart(_state, _rng, _events);
             BossTraitRules.ProcessTurnStart(_state, _events);
             MinionTraitRules.ProcessTurnStart(_state, _events);
+            // v0.9 腐朽化身：回合开始给所有敌人2层中毒（永久）
+            PassiveCardMechanicsRules.TryTriggerRotAvatarOnTurnStart(_state, _events);
+            // v0.9 毒蛇/巫妖新机制：缠绕/延迟伤害/永恒虚无/祈求远古蛇神
+            V09NewMechanicsRules.ProcessTurnStart(_state, _events, _rng);
+            // v0.9 天赋：蛇 s1_lv4/s2_lv4、巫妖 s1_lv7
+            TalentBattleRules.ProcessTurnStartV09Talents(_state, _events);
             foreach (var combatant in _state.Combatants)
                 AnubisAvatarRules.ProcessTurnStart(combatant);
             EvaluateOutcome();
@@ -876,8 +888,51 @@ namespace Grimhand.Battle
             foreach (var action in template.Actions)
                 card.Actions.Add(CloneAction(action));
             card.Keywords.AddRange(template.Keywords);
+            if (CardRules.IsCurseCard(card))
+                card.IsUsable = false;
             _state.CardsById[id] = card;
             return card;
+        }
+
+        /// <summary>测试用：按模板生成一张卡牌实例并置入玩家手牌（手牌满则进弃牌堆）。</summary>
+        public CardInstanceState AddCardTemplateToHand(CardTemplate template)
+        {
+            if (_state == null || template == null)
+                return null;
+
+            var owner = ResolveOwnerForTemplate(template);
+            var instance = CreateCardInstance(template, owner?.Id ?? "");
+
+            if (_state.PlayerHand.Count < _state.Config.HandLimit)
+                _state.PlayerHand.Add(instance);
+            else
+                _state.PlayerDiscardPile.Add(instance);
+
+            _events.Add(new BattleEvent(BattleEventKind.CardDrawn, instance.DisplayName)
+            {
+                CombatantId = owner?.Id,
+                CardInstanceId = instance.InstanceId
+            });
+            return instance;
+        }
+
+        CombatantState ResolveOwnerForTemplate(CardTemplate template)
+        {
+            if (_state == null)
+                return null;
+
+            if (!string.IsNullOrEmpty(template.OwnerCharacterId))
+            {
+                foreach (var c in _state.Combatants)
+                    if (c.Team == TeamSide.Player && c.CharacterDefinitionId == template.OwnerCharacterId)
+                        return c;
+            }
+
+            foreach (var c in _state.Combatants)
+                if (c.Team == TeamSide.Player && c.IsAlive)
+                    return c;
+
+            return null;
         }
 
         static EffectActionSpec CloneAction(EffectActionSpec source) => EffectActionSpec.Clone(source);

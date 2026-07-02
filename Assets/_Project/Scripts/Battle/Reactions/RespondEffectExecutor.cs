@@ -3,6 +3,7 @@ using Grimhand.Battle.Effects;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
+using Grimhand.Battle.Status;
 using Grimhand.Core;
 
 namespace Grimhand.Battle.Reactions
@@ -43,6 +44,9 @@ namespace Grimhand.Battle.Reactions
                     CardInstanceId = card.InstanceId
                 });
                 TalentBattleRules.OnRespondSuccess(state, actor);
+                if (state.RespondSuccessCount < int.MaxValue)
+                    state.RespondSuccessCount++;
+                PassiveCardMechanicsRules.TryTriggerRespondStanceOnRespondSuccess(state, actor, events, rng);
 
                 if (card.DefinitionId == PassiveCardMechanicsRules.FinalGuardCardId)
                     PassiveCardMechanicsRules.OnFinalGuardResponded(state, events);
@@ -69,6 +73,19 @@ namespace Grimhand.Battle.Reactions
             {
                 case EffectActionType.GainBlockFromLastDamagePercent:
                     RegisterMitigation(state, context.EnemyCardInstanceId, actor.Id, action.Value);
+                    break;
+
+                case EffectActionType.ParryImmuneAndSlowAttacker:
+                    // 见招拆招：100% 免疫此次伤害，并对攻击者施加 Stacks 层减速
+                    RegisterMitigation(state, context.EnemyCardInstanceId, actor.Id, 100);
+                    {
+                        var attacker2 = state.GetCombatant(context.EnemyCombatantId);
+                        if (attacker2 != null && attacker2.IsAlive && action.Stacks > 0)
+                        {
+                            StatusRules.ApplyStatus(
+                                state, attacker2, StatusCatalog.Slow, action.Stacks, 2, events);
+                        }
+                    }
                     break;
 
                 case EffectActionType.ReflectLastDamageToAttacker:

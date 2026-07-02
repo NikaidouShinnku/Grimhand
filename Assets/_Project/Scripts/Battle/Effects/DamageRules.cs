@@ -4,6 +4,7 @@ using Grimhand.Battle.Model;
 using Grimhand.Battle.Reactions;
 using Grimhand.Battle.Rules;
 using Grimhand.Battle.Status;
+using Grimhand.Battle.V09;
 using Grimhand.Core;
 
 namespace Grimhand.Battle.Effects
@@ -84,7 +85,11 @@ namespace Grimhand.Battle.Effects
                     state, sourceCardInstanceId, recipient.Id);
 
             if (StatusRules.HasStatus(recipient, StatusCatalog.Ethereal) && hpDamage > 0)
-                hpDamage = 1;
+            {
+                // v0.9 巫妖 s1_lv4：虚化中受伤改为0并回3HP（接管 ethereal 封顶1）
+                if (!TalentBattleRules.TryHandleEtherealDamage(state, recipient, ref hpDamage, events))
+                    hpDamage = 1;
+            }
 
             if (hpDamage > 0 && rng != null)
             {
@@ -110,7 +115,11 @@ namespace Grimhand.Battle.Effects
             var hpBefore = recipient.Hp;
             var wasAlive = recipient.IsAlive;
             if (hpDamage > 0)
+            {
+                // v0.9 背水一战：HP将降至0以下时保留1HP
+                PassiveCardMechanicsRules.TryTriggerLastStand(state, recipient, ref hpDamage, events);
                 recipient.Hp = Math.Max(0, recipient.Hp - hpDamage);
+            }
 
             BossTraitRules.TryTriggerGhostQueenEnrage(state, recipient, hpBefore, events);
             if (hpDamage > 0)
@@ -144,7 +153,14 @@ namespace Grimhand.Battle.Effects
             state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Attack, recipient.Id, killed, hpDamage);
 
             if (hpDamage > 0)
+            {
                 CombatMechanicsRules.TryTriggerUnyielding(state, recipient, events);
+                PassiveCardMechanicsRules.OnDamageTakenBattleWill(state, recipient, hpDamage, events);
+                // v0.9 两界行者：受击后获虚化
+                V09NewMechanicsRules.AfterDamageResolveEtherealOnNextHit(state, recipient, hpDamage, events);
+                // v0.9 蛇 s2_lv2：单次受到超过25%最大HP伤害后清负面
+                TalentBattleRules.OnDamageTakenV09(state, recipient, hpDamage, events);
+            }
 
             if (killed)
             {
@@ -190,6 +206,8 @@ namespace Grimhand.Battle.Effects
                 RelicBattleRules.RefreshDerivedStats(state, actor, state.Config?.RunModifiers);
 
             amount = CombatModifierRules.ApplyBlockGainModifiers(actor, amount);
+            // v0.9 重甲强化：获得护甲时额外 +20%
+            amount = PassiveCardMechanicsRules.ApplyHeavyArmorBlockBonus(actor, amount);
             if (amount <= 0)
                 return;
 
@@ -226,12 +244,15 @@ namespace Grimhand.Battle.Effects
 
             if (healed > 0)
             {
+                actor.HealedThisTurn = true;
                 events.Add(new BattleEvent(BattleEventKind.HealApplied, actor.DisplayName)
                 {
                     CombatantId = actor.Id,
                     Amount = healed,
                     IsLifesteal = isLifesteal
                 });
+                // v0.9 分血仪式：恶魔回复HP时治疗其他我方30%
+                PassiveCardMechanicsRules.TryTriggerBloodSharingOnHeal(state, actor, healed, events);
             }
 
             if (overflow > 0)

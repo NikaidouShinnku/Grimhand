@@ -98,6 +98,19 @@ namespace Grimhand.Battle.Model
         /// <summary>按实际 HP 伤害（非格挡部分）吸血。</summary>
         public bool LifestealUnblockedOnly { get; set; }
 
+        // v0.9 新增字段
+        /// <summary>怒火焚身：每损失此百分比最大HP，额外 +HpLossStepValue 伤害。</summary>
+        public int HpLossStepPercent { get; set; }
+        /// <summary>怒火焚身：每个HP损失步长的额外伤害值。</summary>
+        public int HpLossStepValue { get; set; }
+        /// <summary>鲜血撕咬：本回合回复过生命时改用的固定伤害值。</summary>
+        public int AlternateValueIfHealed { get; set; }
+
+        /// <summary>毒蛇/巫妖 v0.9：AddTokenCardToHand 要置入手牌的卡牌 DefinitionId。</summary>
+        public string TokenCardId { get; set; } = "";
+        /// <summary>召唤卡牌之灵：抽到的牌费用减免值（占位，待精修）。</summary>
+        public int CostReduction { get; set; }
+
         public static EffectActionSpec Clone(EffectActionSpec source)
         {
             if (source == null)
@@ -142,7 +155,12 @@ namespace Grimhand.Battle.Model
                 FallbackBlockValue = source.FallbackBlockValue,
                 SummonCharacterId = source.SummonCharacterId,
                 GrantInvulnerableOnRespondArm = source.GrantInvulnerableOnRespondArm,
-                LifestealUnblockedOnly = source.LifestealUnblockedOnly
+                LifestealUnblockedOnly = source.LifestealUnblockedOnly,
+                HpLossStepPercent = source.HpLossStepPercent,
+                HpLossStepValue = source.HpLossStepValue,
+                AlternateValueIfHealed = source.AlternateValueIfHealed,
+                TokenCardId = source.TokenCardId,
+                CostReduction = source.CostReduction
             };
         }
     }

@@ -179,7 +179,7 @@ namespace Grimhand.Battle.Rules
             if (!string.IsNullOrEmpty(card.OwnerCombatantId))
             {
                 var bound = state.GetCombatant(card.OwnerCombatantId);
-                if (bound != null && bound.IsAlive)
+                if (bound != null)
                     return card.OwnerCombatantId;
             }
 

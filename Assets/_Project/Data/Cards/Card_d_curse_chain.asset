@@ -17,7 +17,8 @@ MonoBehaviour:
   OwnerCharacterId: char_ranger
   Cost: 2
   CardType: 0
-  Keywords: []
+  Keywords:
+  - quick_start
   Rarity: 2
   Actions:
   - Type: 0

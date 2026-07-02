@@ -18,8 +18,7 @@ MonoBehaviour:
   Cost: 2
   CardType: 0
   Rarity: 1
-  Keywords:
-  - melee
+  Keywords: []
   Actions:
   - Type: 0
     Target: 0

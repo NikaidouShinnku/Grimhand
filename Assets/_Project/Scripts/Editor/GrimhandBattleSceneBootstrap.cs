@@ -98,6 +98,9 @@ namespace Grimhand.Editor
             AddCharacterVisuals(catalog, "char_knight", "characters/warrior", "warrior", hitPortraitFacesRight: true);
             AddCharacterVisuals(catalog, "char_mage", "characters/pharoah", "pharoah", hitPortraitFacesRight: false);
             AddCharacterVisuals(catalog, "char_ranger", "characters/devil", "devil", hitPortraitFacesRight: false);
+            AddCharacterVisuals(catalog, "char_snake_queen", "characters/snake queen", "snakequeen", hitPortraitFacesRight: false);
+            AddCharacterVisuals(catalog, "char_lich_queen", "characters/lich queen", "lichqueen", hitPortraitFacesRight: false);
+            FixLichQueenDeathPortrait(catalog);
             AddIdleOnlyVisual(catalog, "char_goblin", "monsters/goblin_idle_1024.png");
             AddIdleOnlyVisual(catalog, "char_slime", "monsters/slime_idle_1024.png");
             AddIdleOnlyVisual(catalog, "char_skeleton", "monsters/skeleton_idle_1024.png");
@@ -137,6 +140,14 @@ namespace Grimhand.Editor
                 Debug.LogWarning($"[Grimhand] 未找到立绘：{characterId}（{folder}/{prefix}）");
 
             catalog.Entries.Add(entry);
+        }
+
+        static void FixLichQueenDeathPortrait(CharacterVisualCatalogSO catalog)
+        {
+            // 巫妖女王的死亡立绘文件名为 lichqueen_death_1024.png（非 _defeat_），单独补上。
+            var entry = catalog.Entries.Find(e => e.CharacterId == "char_lich_queen");
+            if (entry != null && entry.DeathPortrait == null)
+                entry.DeathPortrait = LoadPortraitSprite("characters/lich queen/lichqueen_death_1024.png");
         }
 
         static void AddIdleOnlyVisual(CharacterVisualCatalogSO catalog, string characterId, string relativePath)
@@ -214,26 +225,52 @@ namespace Grimhand.Editor
             if (string.IsNullOrEmpty(assetPath))
                 return null;
 
-            var assets = AssetDatabase.LoadAllAssetsAtPath(assetPath);
-            foreach (var asset in assets)
+            var sprites = new List<Sprite>();
+            foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(assetPath))
             {
                 if (asset is Sprite sprite)
+                    sprites.Add(sprite);
+            }
+
+            if (sprites.Count == 0)
+            {
+                var direct = AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
+                if (direct != null)
+                    return direct;
+
+                var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(assetPath);
+                if (texture == null)
+                    return null;
+
+                return Sprite.Create(
+                    texture,
+                    new Rect(0f, 0f, texture.width, texture.height),
+                    new Vector2(0.5f, 0.5f),
+                    100f);
+            }
+
+            foreach (var sprite in sprites)
+            {
+                if (sprite.name.EndsWith("_0"))
                     return sprite;
             }
 
-            var direct = AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
-            if (direct != null)
-                return direct;
+            Sprite best = null;
+            var bestArea = 0f;
+            foreach (var sprite in sprites)
+            {
+                if (!CharacterVisualCatalogSO.IsValidAnimationFrame(sprite))
+                    continue;
 
-            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(assetPath);
-            if (texture == null)
-                return null;
+                var area = sprite.rect.width * sprite.rect.height;
+                if (area > bestArea)
+                {
+                    bestArea = area;
+                    best = sprite;
+                }
+            }
 
-            return Sprite.Create(
-                texture,
-                new Rect(0f, 0f, texture.width, texture.height),
-                new Vector2(0.5f, 0.5f),
-                100f);
+            return best ?? sprites[0];
         }
 
         static void EnsureFolder(string path)

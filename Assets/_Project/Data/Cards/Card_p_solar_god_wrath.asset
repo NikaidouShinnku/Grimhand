@@ -19,6 +19,7 @@ MonoBehaviour:
   CardType: 0
   Keywords:
   - x_cost
+  - exhaust
   Rarity: 3
   Actions:
 

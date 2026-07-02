@@ -119,6 +119,7 @@ namespace Grimhand.Presentation.Camp
         {
             _roster = roster;
             EnsureBuilt();
+            SanitizeDuplicateCharacters();
             _overlayRoot.gameObject.SetActive(true);
             transform.SetAsLastSibling();
             _activeMemberIndex = 0;
@@ -150,7 +151,43 @@ namespace Grimhand.Presentation.Camp
                 list.Add(character);
             }
 
+            foreach (var id in CampRosterBuilder.PlayableCharacterIds)
+            {
+                if (seen.Contains(id))
+                    continue;
+
+                var fromSetup = FindCharacterInSetup(id);
+                if (fromSetup != null && seen.Add(id))
+                    list.Add(fromSetup);
+            }
+
+            list.Sort((a, b) => IndexOfPlayable(a.CharacterId).CompareTo(IndexOfPlayable(b.CharacterId)));
             return list;
+        }
+
+        CharacterDefinitionSO FindCharacterInSetup(string characterId)
+        {
+            if (_battleSetup?.Combatants == null)
+                return null;
+
+            foreach (var c in _battleSetup.Combatants)
+            {
+                if (c != null && c.CharacterId == characterId)
+                    return c;
+            }
+
+            return null;
+        }
+
+        static int IndexOfPlayable(string characterId)
+        {
+            for (var i = 0; i < CampRosterBuilder.PlayableCharacterIds.Count; i++)
+            {
+                if (CampRosterBuilder.PlayableCharacterIds[i] == characterId)
+                    return i;
+            }
+
+            return 99;
         }
 
         void EnsureBuilt()
@@ -311,9 +348,32 @@ namespace Grimhand.Presentation.Camp
         void SaveAndClose()
         {
             SanitizeRosterCardOwnership();
+            SanitizeDuplicateCharacters();
             _onRosterChanged?.Invoke(_roster);
             Hide();
             _onClose?.Invoke();
+        }
+
+        void SanitizeDuplicateCharacters()
+        {
+            if (_roster?.Members == null)
+                return;
+
+            var seen = new HashSet<string>();
+            foreach (var member in _roster.Members)
+            {
+                if (member == null || string.IsNullOrEmpty(member.CharacterDefinitionId))
+                    continue;
+
+                if (seen.Add(member.CharacterDefinitionId))
+                    continue;
+
+                member.CharacterDefinitionId = "";
+                member.DisplayName = "";
+                member.DeckCardIds.Clear();
+                while (member.DeckCardIds.Count < CampRosterState.DeckSize)
+                    member.DeckCardIds.Add("");
+            }
         }
 
         void SanitizeRosterCardOwnership()
@@ -386,10 +446,10 @@ namespace Grimhand.Presentation.Camp
             h.childForceExpandHeight = false;
             _dynamicObjects.Add(layoutGo);
 
-            for (var i = 0; i < CampRosterState.PartySize; i++)
+            for (var vi = 0; vi < CampRosterState.PartySize; vi++)
             {
-                var index = i;
-                var member = _roster.Members[i];
+                var index = CampFormationDisplay.VisualOrderMemberIndices[vi];
+                var member = _roster.Members[index];
                 var card = CreateMemberCard(layoutGo.transform, member, index, index == _activeMemberIndex);
                 card.GetComponent<Button>().onClick.AddListener(() =>
                 {
@@ -423,18 +483,26 @@ namespace Grimhand.Presentation.Camp
                 ? _characterVisuals.GetPortrait(member.CharacterDefinitionId)
                 : null;
             var portraitRt = portrait.rectTransform;
-            portraitRt.anchorMin = new Vector2(0f, 0f);
-            portraitRt.anchorMax = new Vector2(0f, 1f);
+            portraitRt.anchorMin = new Vector2(0f, 0.5f);
+            portraitRt.anchorMax = new Vector2(0f, 0.5f);
             portraitRt.pivot = new Vector2(0f, 0.5f);
-            portraitRt.sizeDelta = new Vector2(96f, 96f);
+            portraitRt.sizeDelta = new Vector2(88f, 88f);
             portraitRt.anchoredPosition = new Vector2(12f, 0f);
+
+            var slotLabel = CampUiRuntime.CreateText(go.transform, CampFormationDisplay.SlotLabel(memberIndex),
+                13, FontStyle.Bold, TextAnchor.UpperLeft);
+            slotLabel.rectTransform.anchorMin = new Vector2(0f, 1f);
+            slotLabel.rectTransform.anchorMax = new Vector2(1f, 1f);
+            slotLabel.rectTransform.offsetMin = new Vector2(108f, -52f);
+            slotLabel.rectTransform.offsetMax = new Vector2(-8f, -36f);
+            slotLabel.color = new Color(0.75f, 0.82f, 0.95f, 1f);
 
             var name = CampUiRuntime.CreateText(go.transform,
                 string.IsNullOrEmpty(member.DisplayName) ? "未选择" : member.DisplayName,
-                20, FontStyle.Bold, TextAnchor.UpperLeft);
+                18, FontStyle.Bold, TextAnchor.UpperLeft);
             name.rectTransform.anchorMin = new Vector2(0f, 1f);
             name.rectTransform.anchorMax = new Vector2(1f, 1f);
-            name.rectTransform.offsetMin = new Vector2(116f, -40f);
+            name.rectTransform.offsetMin = new Vector2(108f, -36f);
             name.rectTransform.offsetMax = new Vector2(-8f, -8f);
 
             var filled = CountFilledSlots(member);
@@ -442,7 +510,7 @@ namespace Grimhand.Presentation.Camp
                 15, FontStyle.Normal, TextAnchor.UpperLeft);
             deckInfo.rectTransform.anchorMin = new Vector2(0f, 0f);
             deckInfo.rectTransform.anchorMax = new Vector2(1f, 0f);
-            deckInfo.rectTransform.offsetMin = new Vector2(116f, 36f);
+            deckInfo.rectTransform.offsetMin = new Vector2(108f, 36f);
             deckInfo.rectTransform.offsetMax = new Vector2(-120f, 64f);
             deckInfo.color = filled == CampRosterState.DeckSize
                 ? new Color(0.7f, 0.95f, 0.72f, 1f)
@@ -494,18 +562,32 @@ namespace Grimhand.Presentation.Camp
 
             foreach (var character in _playableCharacters)
             {
-                var pickBtn = CampUiRuntime.CreateButton(row.transform, character.DisplayName,
-                    new Color(0.2f, 0.32f, 0.48f, 1f), new Vector2(180f, 160f));
+                var pickBtn = CampUiRuntime.CreateButton(row.transform, "",
+                    new Color(0.2f, 0.32f, 0.48f, 1f), new Vector2(140f, 180f));
                 var pickRt = pickBtn.GetComponent<RectTransform>();
-                pickRt.sizeDelta = new Vector2(180f, 160f);
+                pickRt.sizeDelta = new Vector2(140f, 180f);
 
                 var portrait = CampUiRuntime.CreateImage("Portrait", pickBtn.transform, Color.white);
                 portrait.sprite = _characterVisuals?.GetPortrait(character.CharacterId);
                 portrait.preserveAspect = true;
                 var pRt = portrait.rectTransform;
-                pRt.anchorMin = new Vector2(0.5f, 0.55f);
-                pRt.anchorMax = new Vector2(0.5f, 0.55f);
+                pRt.anchorMin = new Vector2(0.5f, 1f);
+                pRt.anchorMax = new Vector2(0.5f, 1f);
+                pRt.pivot = new Vector2(0.5f, 1f);
+                pRt.anchoredPosition = new Vector2(0f, -12f);
                 pRt.sizeDelta = new Vector2(96f, 96f);
+
+                var nameLabel = CampUiRuntime.CreateText(pickBtn.transform,
+                    CampRosterValidation.FindMemberIndexWithCharacter(_roster, character.CharacterId, memberIndex) >= 0
+                        ? $"{character.DisplayName}\n(互换)"
+                        : character.DisplayName,
+                    16,
+                    FontStyle.Bold, TextAnchor.UpperCenter);
+                var nameRt = nameLabel.rectTransform;
+                nameRt.anchorMin = new Vector2(0f, 0f);
+                nameRt.anchorMax = new Vector2(1f, 0f);
+                nameRt.offsetMin = new Vector2(4f, 8f);
+                nameRt.offsetMax = new Vector2(-4f, 36f);
 
                 var captured = character;
                 pickBtn.onClick.AddListener(() =>
@@ -528,9 +610,14 @@ namespace Grimhand.Presentation.Camp
 
         void ApplyCharacter(int memberIndex, CharacterDefinitionSO character)
         {
+            var duplicateIndex = CampRosterValidation.FindMemberIndexWithCharacter(
+                _roster, character.CharacterId, memberIndex);
+            if (duplicateIndex >= 0)
+                CampRosterValidation.SwapMembers(_roster, memberIndex, duplicateIndex);
+
             var member = _roster.Members[memberIndex];
             member.CharacterDefinitionId = character.CharacterId;
-            member.DisplayName = character.DisplayName;
+            member.DisplayName = CharacterDisplayNames.GetOrFallback(character.CharacterId, character.DisplayName);
 
             var defaultLoadout = CampRosterBuilder.CreateDefaultMember(character, _cardPool);
             member.DeckCardIds.Clear();
@@ -680,6 +767,12 @@ namespace Grimhand.Presentation.Camp
         {
             if (_hintText == null || _roster == null)
                 return;
+
+            if (!CampRosterValidation.HasUniqueCharacters(_roster))
+            {
+                _hintText.text = "编队中存在重复角色，请为每个槽位选择不同角色。";
+                return;
+            }
 
             var member = _roster.Members[_activeMemberIndex];
             var ready = _roster.IsReadyForExpedition;

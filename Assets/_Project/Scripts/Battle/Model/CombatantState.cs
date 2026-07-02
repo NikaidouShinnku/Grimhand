@@ -128,6 +128,11 @@ namespace Grimhand.Battle.Model
         /// <summary>天赋：献祭后下一张牌减费。</summary>
         public bool TalentNextSacrificeEnergyDiscount { get; set; }
 
+        /// <summary>v0.9：本回合是否回复过生命（鲜血撕咬等）。</summary>
+        public bool HealedThisTurn { get; set; }
+        /// <summary>v0.9：本场战斗累计应对成功次数（战术大师的终结技等）。</summary>
+        public int RespondSuccessCount { get; set; }
+
         /// <summary>石像鬼本回合攻击姿态加值。</summary>
         public int GargoyleStanceAttackBonus { get; set; }
 

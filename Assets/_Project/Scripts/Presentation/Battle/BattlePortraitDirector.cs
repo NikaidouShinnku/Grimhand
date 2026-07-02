@@ -510,7 +510,12 @@ namespace Grimhand.Presentation.Battle
                 target.ShowDodgeNumber();
 
             if (useDefensePose)
+            {
+                var blockingSprite = _effects?.Blocking;
+                if (blockingSprite != null)
+                    target.StartCoroutine(target.PlayOverlayEffect(blockingSprite));
                 yield return target.PlayInPlacePose(PortraitPoseKind.Defense, DefenseReactDuration);
+            }
 
             if (blocked)
             {

@@ -51,6 +51,15 @@ namespace Grimhand.Presentation.Battle
             StartCoroutine(DeferredScrollAfterLayout());
         }
 
+        public void Hide()
+        {
+            if (!_open)
+                return;
+            _open = false;
+            if (_overlayRoot != null)
+                _overlayRoot.gameObject.SetActive(false);
+        }
+
         public void Refresh()
         {
             if (!_built || _session == null || !_session.IsExpeditionMode || _scrollContent == null)

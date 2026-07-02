@@ -18,6 +18,7 @@ MonoBehaviour:
   Cost: 3
   CardType: 2
   Keywords:
+  - quick_start
   - exhaust
   Rarity: 3
   Actions:

@@ -17,16 +17,16 @@ MonoBehaviour:
   OwnerCharacterId: char_knight
   Cost: 2
   CardType: 1
+  Rarity: 1
   Keywords:
   - parry
-  Rarity: 1
   Actions:
   - Type: 17
-    Target: 4
-    Value: 0
+    Target: 1
+    Value: 100
     StatusId: 
     Stacks: 2
-    Duration: 2
+    Duration: -1
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100
@@ -59,9 +59,6 @@ MonoBehaviour:
     SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
-    HpLossStepPercent: 0
-    HpLossStepValue: 0
-    AlternateValueIfHealed: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

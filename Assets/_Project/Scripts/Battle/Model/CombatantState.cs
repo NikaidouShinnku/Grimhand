@@ -74,8 +74,14 @@ namespace Grimhand.Battle.Model
         /// <summary>本回合是否已被攻击命中（用于致命打击等条件加伤）。</summary>
         public bool HitThisTurn { get; set; }
 
+        /// <summary>嗜血抓挠等：下次攻击额外固定伤害，出手后清零。</summary>
+        public int NextAttackFlatBonus { get; set; }
+
         /// <summary>剩余无法出牌回合数（阿努比斯化身等）。</summary>
         public int CardsLockedTurnsRemaining { get; set; }
+
+        /// <summary>剩余无法使用攻击牌回合数（蛛网包裹等）。</summary>
+        public int AttackCardsLockedTurnsRemaining { get; set; }
 
         public bool GhostQueenEnrageTriggered { get; set; }
         public bool SkipRemainingPlaysThisTurn { get; set; }
@@ -148,5 +154,7 @@ namespace Grimhand.Battle.Model
         public bool IsAlive => Hp > 0;
 
         public bool IsCardsLocked => CardsLockedTurnsRemaining > 0;
+
+        public bool IsAttackCardsLocked => AttackCardsLockedTurnsRemaining > 0;
     }
 }

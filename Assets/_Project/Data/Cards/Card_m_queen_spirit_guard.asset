@@ -17,8 +17,8 @@ MonoBehaviour:
   OwnerCharacterId: char_ghost_queen
   Cost: 1
   CardType: 1
-  Keywords: []
   Rarity: 0
+  Keywords: []
   Actions:
   - Type: 1
     Target: 1

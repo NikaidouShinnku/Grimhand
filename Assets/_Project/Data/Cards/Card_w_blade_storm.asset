@@ -17,8 +17,8 @@ MonoBehaviour:
   OwnerCharacterId: char_knight
   Cost: 3
   CardType: 0
-  Keywords: []
   Rarity: 3
+  Keywords: []
   Actions:
   - Type: 0
     Target: 13
@@ -31,7 +31,7 @@ MonoBehaviour:
     AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 0
+    Reach: 1
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100

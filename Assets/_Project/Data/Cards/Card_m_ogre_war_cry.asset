@@ -17,15 +17,15 @@ MonoBehaviour:
   OwnerCharacterId: char_ogre
   Cost: 2
   CardType: 2
-  Keywords: []
   Rarity: 2
+  Keywords: []
   Actions:
   - Type: 3
-    Target: 1
+    Target: 12
     Value: 0
-    StatusId: 
-    Stacks: 1
-    Duration: -1
+    StatusId: attack_up
+    Stacks: 2
+    Duration: 2
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100

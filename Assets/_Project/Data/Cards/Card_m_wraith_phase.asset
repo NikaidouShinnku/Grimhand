@@ -17,9 +17,9 @@ MonoBehaviour:
   OwnerCharacterId: char_wraith
   Cost: 1
   CardType: 1
+  Rarity: 0
   Keywords:
   - parry
-  Rarity: 0
   Actions:
   - Type: 9
     Target: 1

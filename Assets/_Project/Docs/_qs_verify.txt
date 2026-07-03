@@ -1,0 +1,1 @@
+﻿strict audit: fail=0/1

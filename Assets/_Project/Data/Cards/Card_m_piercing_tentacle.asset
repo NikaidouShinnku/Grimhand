@@ -17,21 +17,21 @@ MonoBehaviour:
   OwnerCharacterId: char_abyss_creature
   Cost: 2
   CardType: 0
-  Keywords: []
   Rarity: 2
+  Keywords: []
   Actions:
   - Type: 0
     Target: 0
     Value: 17
     StatusId: 
-    Stacks: 0
+    Stacks: 1
     Duration: -1
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 1
+    Reach: 0
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100
@@ -69,7 +69,7 @@ MonoBehaviour:
     AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 1
+    Reach: 0
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100

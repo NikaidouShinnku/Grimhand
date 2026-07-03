@@ -8,7 +8,9 @@
         "Grimhand.Expedition",
         "Grimhand.Presentation"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": true,
@@ -20,7 +22,7 @@
         "UNITY_INCLUDE_TESTS"
     ],
     "versionDefines": [],
-    "noEngineReferences": true,
+    "noEngineReferences": false,
     "optionalUnityReferences": [
         "TestAssemblies"
     ]

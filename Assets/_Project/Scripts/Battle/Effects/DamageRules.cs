@@ -57,7 +57,8 @@ namespace Grimhand.Battle.Effects
 
             var effectiveBlock = CombatModifierRules.ComputeEffectiveBlock(recipient, ignoreDefPercent);
             var blocked = Math.Min(effectiveBlock, raw);
-            recipient.Block -= blocked;
+            // 无视 N% 护甲：按有效护甲折算格挡量，仍扣减真实护甲（例：10 护甲 + 50% 无视 + 10 伤 → 护甲 -5，HP -5）
+            recipient.Block = Math.Max(0, recipient.Block - blocked);
             if (raw > 0)
                 MinionTraitRules.OnIncomingDamageHit(state, actor, recipient, events);
             var afterBlock = raw - blocked;

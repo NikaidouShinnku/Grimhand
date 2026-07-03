@@ -328,6 +328,12 @@ namespace Grimhand.Expedition
             foreach (var member in _run.Party)
                 CampCollectionProgress.SyncMemberFromRun(_run, member);
             TalentDatabase.SyncRunStateFromBattle(state, _run.TalentRun);
+            if (state.Config?.RunModifiers != null)
+            {
+                _run.V09EtherealEntryCount = state.Config.RunModifiers.EtherealEntryCount;
+                _run.V09ExpeditionRespondSuccessCount = state.Config.RunModifiers.ExpeditionRespondSuccessCount;
+                _run.V09SandSpearExhaustCardsPlayed = state.Config.RunModifiers.SandSpearExhaustCardsPlayed;
+            }
             ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
 
             if (state.Outcome == BattleOutcome.PlayerVictory)
@@ -1700,6 +1706,9 @@ namespace Grimhand.Expedition
             config.EnergyCap += _run.Modifiers.EnergyCapBonus;
             config.HandLimit += _run.Modifiers.HandLimitBonus;
             config.TurnStartEnergyRegen = System.Math.Max(config.TurnStartEnergyRegen, 4);
+            config.RunModifiers.EtherealEntryCount = _run.V09EtherealEntryCount;
+            config.RunModifiers.ExpeditionRespondSuccessCount = _run.V09ExpeditionRespondSuccessCount;
+            config.RunModifiers.SandSpearExhaustCardsPlayed = _run.V09SandSpearExhaustCardsPlayed;
             return config;
         }
 
@@ -1767,6 +1776,9 @@ namespace Grimhand.Expedition
             config.EnergyCap += _run.Modifiers.EnergyCapBonus;
             config.HandLimit += _run.Modifiers.HandLimitBonus;
             config.TurnStartEnergyRegen = System.Math.Max(config.TurnStartEnergyRegen, 4);
+            config.RunModifiers.EtherealEntryCount = _run.V09EtherealEntryCount;
+            config.RunModifiers.ExpeditionRespondSuccessCount = _run.V09ExpeditionRespondSuccessCount;
+            config.RunModifiers.SandSpearExhaustCardsPlayed = _run.V09SandSpearExhaustCardsPlayed;
             return config;
         }
 

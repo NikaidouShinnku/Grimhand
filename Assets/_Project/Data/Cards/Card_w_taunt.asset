@@ -17,8 +17,8 @@ MonoBehaviour:
   OwnerCharacterId: char_knight
   Cost: 2
   CardType: 1
-  Keywords: []
   Rarity: 1
+  Keywords: []
   Actions:
   - Type: 3
     Target: 1
@@ -60,14 +60,14 @@ MonoBehaviour:
     LifestealUnblockedOnly: 0
   - Type: 1
     Target: 1
-    Value: 19
+    Value: 0
     StatusId: 
     Stacks: 1
     Duration: -1
     ScaleWithAttack: 0
-    ScaleWithDefense: 0
+    ScaleWithDefense: 1
     AttackScalePercent: 100
-    DefenseScalePercent: 100
+    DefenseScalePercent: 120
     Condition: 0
     Reach: 1
     SplashBehindTarget: 0

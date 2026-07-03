@@ -17,14 +17,14 @@ MonoBehaviour:
   OwnerCharacterId: char_gargoyle
   Cost: 2
   CardType: 1
-  Keywords: []
   Rarity: 1
+  Keywords: []
   Actions:
   - Type: 1
     Target: 1
     Value: 11
     StatusId: 
-    Stacks: 0
+    Stacks: 1
     Duration: -1
     ScaleWithAttack: 0
     ScaleWithDefense: 0

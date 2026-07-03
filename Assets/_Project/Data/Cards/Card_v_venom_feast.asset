@@ -18,12 +18,13 @@ MonoBehaviour:
   Cost: 4
   CardType: 2
   Rarity: 3
-  Keywords: []
+  Keywords:
+  - aoe
   Actions:
-  - Type: 31
-    Target: 12
-    Value: 0
-    StatusId: ""
+  - Type: 0
+    Target: 0
+    Value: 8
+    StatusId: 
     Stacks: 1
     Duration: -1
     ScaleWithAttack: 0
@@ -39,7 +40,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
-    BonusIfTargetHasStatusId: ""
+    BonusIfTargetHasStatusId: 
     BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
@@ -55,14 +56,47 @@ MonoBehaviour:
     RepeatPerEnemyAttackCardThisTurn: 0
     FallbackBlockDefenseScalePercent: 100
     FallbackBlockValue: 0
-    SummonCharacterId: ""
+    SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
-    HpLossStepPercent: 0
-    HpLossStepValue: 0
-    AlternateValueIfHealed: 0
-    TokenCardId: ""
-    CostReduction: 0
+  - Type: 3
+    Target: 0
+    Value: 0
+    StatusId: poison
+    Stacks: 2
+    Duration: 2
+    ScaleWithAttack: 0
+    ScaleWithDefense: 0
+    AttackScalePercent: 100
+    DefenseScalePercent: 100
+    Condition: 0
+    Reach: 1
+    SplashBehindTarget: 0
+    SplashPowerPercent: 100
+    BackRowPowerPercent: 100
+    IgnoreDefPercent: 0
+    BonusIfTargetHpBelowPercent: 0
+    BonusIfTargetHpBelowFlat: 0
+    BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
+    LifestealPercent: 0
+    HealMaxHpPercent: 0
+    OnKillHealAmount: 0
+    HitCount: 1
+    AlternateAttackScalePercent: 0
+    AlternateValue: 0
+    UseAlternateIfTargetHasDebuff: 0
+    AlternateAttackScaleIfActorUsedAttack: 0
+    AlternateValueIfActorUsedAttack: 0
+    DamageMultiplierPercentIfRespondArmed: 100
+    SelfDamageFlat: 0
+    RepeatPerEnemyAttackCardThisTurn: 0
+    FallbackBlockDefenseScalePercent: 100
+    FallbackBlockValue: 0
+    SummonCharacterId: 
+    GrantInvulnerableOnRespondArm: 0
+    LifestealUnblockedOnly: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

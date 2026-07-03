@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Grimhand.Battle.Effects;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Status;
@@ -78,7 +79,9 @@ namespace Grimhand.Battle.Rules
                 var bonusHp = System.Math.Max(1,
                     (int)System.Math.Round(beforeMax * def.MaxHpPercentBonusPerStack / 100f * stacks));
                 target.MaxHp = beforeMax + bonusHp;
-                target.Hp = System.Math.Min(target.MaxHp, target.Hp + bonusHp);
+                // 血族传承等：只提高上限，不补当前生命
+                if (statusId != StatusCatalog.BloodlineLegacy)
+                    target.Hp = System.Math.Min(target.MaxHp, target.Hp + bonusHp);
             }
 
             events.Add(new BattleEvent(BattleEventKind.StatusApplied, def.DisplayName)
@@ -102,6 +105,9 @@ namespace Grimhand.Battle.Rules
 
             if (mirrorChainWraith)
                 MinionTraitRules.ShareChainWraithDebuff(state, target, statusId, stacks, durationOverride, events);
+
+            if (statusId == StatusCatalog.Taunt && target.Team == TeamSide.Player)
+                TargetRules.RefreshEnemyResolutionTargetsForTaunt(state);
         }
 
         public static int GetStatusStacks(CombatantState target, string statusId)
@@ -185,6 +191,11 @@ namespace Grimhand.Battle.Rules
             // v0.9 天赋：中毒跳伤前判定（免疫 / 转治疗 / 敌人中_dt毒回血）
             if (statusId == StatusCatalog.Poison)
                 TalentBattleRules.OnPoisonTick(state, combatant, ref damage, events);
+            if (damage <= 0)
+                return;
+
+            if (combatant.Team == TeamSide.Enemy)
+                damage = V09NewMechanicsRules.ApplyPsionicBodyBonus(state, TeamSide.Player, damage);
             if (damage <= 0)
                 return;
 

@@ -36,7 +36,5 @@ namespace Grimhand.Expedition.Model
         /// <summary>祭坛 SPD+1 已购买次数（每角色最多 2 次）。</summary>
         public int AltarSpeedUpgrades { get; set; }
         public int PersonalSpeedBonus { get; set; }
-        /// <summary>沙矛重塑：每次消耗牌对随机敌人造成的伤害（0=未激活）。</summary>
-        public int SandSpearReforgeDamage { get; set; }
     }
 }

@@ -13,6 +13,8 @@ namespace Grimhand.Battle.Planning
         readonly List<int> _selectedQueue = new();
         readonly Dictionary<int, string> _targetByCard = new();
         int? _awaitingTargetCardId;
+        bool _awaitingQuickStartResolve;
+        int? _pendingQuickStartInstanceId;
         string _awaitingConsumableId;
         int _awaitingConsumableSlotIndex = -1;
 
@@ -25,6 +27,7 @@ namespace Grimhand.Battle.Planning
         public IReadOnlyList<int> SelectedQueue => _selectedQueue;
         public int EnergyRemaining => _state.EnergyCurrent;
         public int? AwaitingTargetCardId => _awaitingTargetCardId;
+        public bool AwaitingQuickStartResolve => _awaitingQuickStartResolve;
         public string AwaitingConsumableId => _awaitingConsumableId;
         public int AwaitingConsumableSlotIndex => _awaitingConsumableSlotIndex;
         public bool IsAwaitingConsumableTarget => !string.IsNullOrEmpty(_awaitingConsumableId);
@@ -104,6 +107,7 @@ namespace Grimhand.Battle.Planning
             if (CardRules.ShouldPromptForTarget(_state, card, owner) && !_targetByCard.ContainsKey(instanceId))
             {
                 _awaitingTargetCardId = instanceId;
+                _awaitingQuickStartResolve = card.Keywords.Contains("quick_start");
                 _events.Add(new BattleEvent(BattleEventKind.TargetSelectionRequired, card.DisplayName)
                 {
                     CardInstanceId = instanceId
@@ -143,13 +147,33 @@ namespace Grimhand.Battle.Planning
 
             _targetByCard[cardId] = combatantId;
             _awaitingTargetCardId = null;
+
+            if (_awaitingQuickStartResolve)
+            {
+                _awaitingQuickStartResolve = false;
+                _state.ResolutionTargets[cardId] = combatantId;
+                _pendingQuickStartInstanceId = cardId;
+                return true;
+            }
+
             CompleteSelect(card, cardId);
             return true;
+        }
+
+        public bool TryConsumePendingQuickStart(out int cardInstanceId)
+        {
+            cardInstanceId = _pendingQuickStartInstanceId ?? 0;
+            if (_pendingQuickStartInstanceId == null)
+                return false;
+
+            _pendingQuickStartInstanceId = null;
+            return cardInstanceId > 0;
         }
 
         public void CancelAwaitingTarget()
         {
             _awaitingTargetCardId = null;
+            _awaitingQuickStartResolve = false;
         }
 
         public bool TryBeginConsumableUse(string consumableId, int slotIndex)
@@ -306,6 +330,7 @@ namespace Grimhand.Battle.Planning
             _selectedQueue.Clear();
             _targetByCard.Clear();
             _awaitingTargetCardId = null;
+            _awaitingQuickStartResolve = false;
             CancelConsumableTargeting();
         }
 
@@ -369,7 +394,7 @@ namespace Grimhand.Battle.Planning
             if (owner == null || owner.Team != TeamSide.Player || !owner.IsAlive)
                 return false;
 
-            if (owner.IsCardsLocked)
+            if (CardLockRules.ShouldBlockPlayerCardPlanning(owner, c))
                 return false;
 
             if (CardLockRules.QueueBlocksOwnerCard(_state, _selectedQueue, owner, c))
@@ -378,7 +403,7 @@ namespace Grimhand.Battle.Planning
             return true;
         }
 
-        int GetPlayCost(CardInstanceState card)
+        public int GetPlayCost(CardInstanceState card)
         {
             if (card == null)
                 return 0;
@@ -386,7 +411,21 @@ namespace Grimhand.Battle.Planning
             var ownerId = PositionRules.GetOwnerCombatantId(_state, card);
             var owner = ownerId != null ? _state.GetCombatant(ownerId) : null;
             var cost = TalentBattleRules.GetEffectivePlayCost(_state, owner, card);
-            return V09NewMechanicsRules.AdjustPlayCostForHandCostZero(_state, owner, cost);
+            cost = V09NewMechanicsRules.AdjustPlayCostForHandCostZero(_state, owner, cost);
+            if (HolyInfusionSurchargeApplies(card))
+                cost += 1;
+            return cost;
+        }
+
+        bool HolyInfusionSurchargeApplies(CardInstanceState card)
+        {
+            if (card == null || card.DefinitionId == PassiveCardMechanicsRules.HolyInfusionCardId)
+                return false;
+            if (_selectedQueue.Count == 0)
+                return false;
+
+            var last = _state.GetCard(_selectedQueue[_selectedQueue.Count - 1]);
+            return last?.DefinitionId == PassiveCardMechanicsRules.HolyInfusionCardId;
         }
 
         void ConsumeTalentDiscountIfApplied(CombatantState owner, CardInstanceState card, int cost)

@@ -17,8 +17,8 @@ MonoBehaviour:
   OwnerCharacterId: char_ranger
   Cost: 1
   CardType: 2
-  Keywords: []
   Rarity: 1
+  Keywords: []
   Actions:
   - Type: 3
     Target: 1
@@ -41,7 +41,7 @@ MonoBehaviour:
     BonusIfTargetHitThisTurnPercent: 0
     BonusIfTargetHasStatusId: 
     BonusIfTargetHasStatusFlat: 0
-    LifestealPercent: 30
+    LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0
     HitCount: 1

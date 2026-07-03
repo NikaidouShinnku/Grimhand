@@ -35,11 +35,17 @@ namespace Grimhand.Battle.Effects
                     return PickRandomAlly(state, actor.Team, rng);
                 case EffectTarget.DefaultEnemy:
                 case EffectTarget.ManualSelected:
+                    if (TryGetTauntForcedTarget(state, actor, action, reach, out var tauntTarget))
+                        return tauntTarget;
+
                     if (TryGetSelectedTarget(state, cardInstanceId, out var picked)
                         && IsTargetValidForAction(state, picked, reach, action))
                     {
                         return picked;
                     }
+
+                    if (actor.Team == TeamSide.Player)
+                        return null;
 
                     if (UsesAutoReachRoll(action))
                     {
@@ -95,12 +101,8 @@ namespace Grimhand.Battle.Effects
             if (action == null || reach == TargetReach.Any)
                 return true;
 
-            if (action.Type != EffectActionType.DealDamage
-                && action.Type != EffectActionType.ApplyStatus
-                && action.Type != EffectActionType.RemoveStatus)
-            {
+            if (!CardRules.ActionRequiresCharacterPickForReach(action))
                 return true;
-            }
 
             var slot = PositionRules.GetEffectiveSlot(state, target);
             return TargetReachRules.IsSlotAllowed(reach, slot);
@@ -270,16 +272,46 @@ namespace Grimhand.Battle.Effects
             if (action == null)
                 return false;
 
+            if (!CardRules.ActionRequiresCharacterPickForReach(action))
+                return false;
+
             switch (action.Target)
             {
                 case EffectTarget.DefaultEnemy:
                 case EffectTarget.ManualSelected:
-                    return action.Type is EffectActionType.DealDamage
-                        or EffectActionType.ApplyStatus
-                        or EffectActionType.RemoveStatus;
+                    return true;
                 default:
                     return false;
             }
+        }
+
+        static bool TryGetTauntForcedTarget(
+            BattleState state,
+            CombatantState actor,
+            EffectActionSpec action,
+            TargetReach reach,
+            out CombatantState tauntTarget)
+        {
+            tauntTarget = null;
+            if (state == null || actor == null || action == null || actor.Team != TeamSide.Enemy)
+                return false;
+
+            if (action.Type != EffectActionType.DealDamage
+                && action.Type != EffectActionType.ApplyStatus
+                && action.Type != EffectActionType.RemoveStatus)
+            {
+                return false;
+            }
+
+            var taunt = CombatMechanicsRules.FindTauntHolder(state, TeamSide.Player);
+            if (taunt == null || !taunt.IsAlive)
+                return false;
+
+            if (!TargetReachRules.IsSlotAllowed(reach, PositionRules.GetEffectiveSlot(state, taunt)))
+                return false;
+
+            tauntTarget = taunt;
+            return true;
         }
 
         public static List<CombatantState> PickRandomEnemies(
@@ -304,6 +336,38 @@ namespace Grimhand.Battle.Effects
             return result;
         }
 
+        /// <summary>嘲讽生效后，刷新尚未结算的敌方意图目标（覆盖规划期预掷）。</summary>
+        public static void RefreshEnemyResolutionTargetsForTaunt(BattleState state)
+        {
+            if (state?.EnemyPlan?.PlayQueue == null)
+                return;
+
+            var taunt = CombatMechanicsRules.FindTauntHolder(state, TeamSide.Player);
+            if (taunt == null)
+                return;
+
+            foreach (var cardInstanceId in state.EnemyPlan.PlayQueue)
+            {
+                var card = state.GetCard(cardInstanceId);
+                var ownerId = PositionRules.GetOwnerCombatantId(state, card);
+                var actor = ownerId != null ? state.GetCombatant(ownerId) : null;
+                if (card == null || actor == null || !actor.IsAlive || actor.Team != TeamSide.Enemy)
+                    continue;
+
+                foreach (var cardAction in card.Actions)
+                {
+                    if (cardAction.Condition != ReactionConditionType.None)
+                        continue;
+
+                    if (!TryGetTauntForcedTarget(state, actor, cardAction, cardAction.Reach, out var forced))
+                        continue;
+
+                    state.ResolutionTargets[cardInstanceId] = forced.Id;
+                    break;
+                }
+            }
+        }
+
         /// <summary>规划阶段预览敌方意图时，优先使用本回合已预掷的目标。</summary>
         public static CombatantState PredictIntentTarget(
             BattleState state,
@@ -312,6 +376,15 @@ namespace Grimhand.Battle.Effects
         {
             if (state == null || actor == null || card == null)
                 return null;
+
+            foreach (var cardAction in card.Actions)
+            {
+                if (cardAction.Condition != ReactionConditionType.None)
+                    continue;
+
+                if (TryGetTauntForcedTarget(state, actor, cardAction, cardAction.Reach, out var tauntTarget))
+                    return tauntTarget;
+            }
 
             if (state.ResolutionTargets.TryGetValue(card.InstanceId, out var assignedId))
             {

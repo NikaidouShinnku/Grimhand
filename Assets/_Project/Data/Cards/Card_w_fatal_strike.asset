@@ -41,6 +41,7 @@ MonoBehaviour:
     BonusIfTargetHitThisTurnPercent: 50
     BonusIfTargetHasStatusId: 
     BonusIfTargetHasStatusFlat: 0
+    BonusIfActorFasterThanAllEnemiesFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0

@@ -27,6 +27,7 @@ namespace Grimhand.Content
         public int BonusIfTargetHitThisTurnPercent;
         public string BonusIfTargetHasStatusId = "";
         public int BonusIfTargetHasStatusFlat;
+        public int BonusIfActorFasterThanAllEnemiesFlat;
         public int LifestealPercent;
         public int HealMaxHpPercent;
         public int OnKillHealAmount;
@@ -81,6 +82,7 @@ namespace Grimhand.Content
                 BonusIfTargetHitThisTurnPercent = BonusIfTargetHitThisTurnPercent,
                 BonusIfTargetHasStatusId = BonusIfTargetHasStatusId,
                 BonusIfTargetHasStatusFlat = BonusIfTargetHasStatusFlat,
+                BonusIfActorFasterThanAllEnemiesFlat = BonusIfActorFasterThanAllEnemiesFlat,
                 LifestealPercent = LifestealPercent,
                 HealMaxHpPercent = HealMaxHpPercent,
                 OnKillHealAmount = OnKillHealAmount,
@@ -131,6 +133,7 @@ namespace Grimhand.Content
                 BonusIfTargetHitThisTurnPercent = spec.BonusIfTargetHitThisTurnPercent,
                 BonusIfTargetHasStatusId = spec.BonusIfTargetHasStatusId,
                 BonusIfTargetHasStatusFlat = spec.BonusIfTargetHasStatusFlat,
+                BonusIfActorFasterThanAllEnemiesFlat = spec.BonusIfActorFasterThanAllEnemiesFlat,
                 LifestealPercent = spec.LifestealPercent,
                 HealMaxHpPercent = spec.HealMaxHpPercent,
                 OnKillHealAmount = spec.OnKillHealAmount,

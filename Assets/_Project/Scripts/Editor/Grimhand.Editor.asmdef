@@ -3,6 +3,7 @@
     "rootNamespace": "Grimhand.Editor",
     "references": [
         "Grimhand.Battle",
+        "Grimhand.Core",
         "Grimhand.Presentation",
         "Grimhand.Content",
         "Grimhand.Content.Editor",

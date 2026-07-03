@@ -173,7 +173,14 @@ namespace Grimhand.Battle
 
             var ownerId = PositionRules.GetOwnerCombatantId(_state, card);
             var owner = ownerId != null ? _state.GetCombatant(ownerId) : null;
-            if (owner == null || owner.Team != TeamSide.Player || !owner.IsAlive || owner.IsCardsLocked)
+            if (owner == null || owner.Team != TeamSide.Player || !owner.IsAlive)
+                return false;
+
+            if (CardLockRules.ShouldBlockPlayerCardPlanning(owner, card))
+                return false;
+
+            if (CardRules.ShouldPromptForTarget(_state, card, owner)
+                && !_state.ResolutionTargets.ContainsKey(instanceId))
                 return false;
 
             var cost = TalentBattleRules.GetEffectivePlayCost(_state, owner, card);
@@ -184,6 +191,8 @@ namespace Grimhand.Battle
             _state.EnergyCurrent -= cost;
             if (CardPowerRules.UsesRemainingEnergyCost(card))
                 _state.EnergySpentByCardInstanceId[card.InstanceId] = cost;
+
+            _state.PlayerHand.Remove(card);
 
             ResolveCardImmediately(owner, card);
 
@@ -199,6 +208,7 @@ namespace Grimhand.Battle
                 EnergyMax = _state.EnergyMax,
                 EnergyRemaining = _state.EnergyCurrent
             });
+            EvaluateOutcome();
             return true;
         }
 
@@ -235,7 +245,11 @@ namespace Grimhand.Battle
             TrySelfDestructAfterCard(actor, card);
 
             if (card.Keywords.Contains("exhaust") || card.IsBonusHandCard)
+            {
+                if (actor.Team == TeamSide.Player)
+                    PassiveCardMechanicsRules.RecordExpeditionExhaustCardPlayed(_state, _events);
                 DeckRules.ExhaustCard(_state, actor.Team, card, _events);
+            }
             else
                 DeckRules.MovePlayedCardToDiscard(_state, actor.Team, card, _events);
 
@@ -388,9 +402,8 @@ namespace Grimhand.Battle
 
             if (card.Keywords.Contains("exhaust") || card.IsBonusHandCard)
             {
-                if (card.DefinitionId != PassiveCardMechanicsRules.SandSpearReforgeCardId)
-                    PassiveCardMechanicsRules.TryTriggerSandSpearReforgeOnExhaust(
-                        _state, actor, card, _events, _rng);
+                if (actor.Team == TeamSide.Player)
+                    PassiveCardMechanicsRules.RecordExpeditionExhaustCardPlayed(_state, _events);
                 DeckRules.ExhaustCard(_state, actor.Team, card, _events);
             }
             else
@@ -440,6 +453,26 @@ namespace Grimhand.Battle
             if (CardLockRules.ShouldSkipPlayerCard(actor, card))
             {
                 CardLockRules.SkipLockedPlayerCard(_state, actor, card, _events);
+                EvaluateOutcome();
+                return;
+            }
+
+            if (actor.Team == TeamSide.Enemy
+                && StatusRules.HasStatus(actor, StatusCatalog.SealedNextCard))
+            {
+                StatusRules.RemoveStatus(actor, StatusCatalog.SealedNextCard, 1, _events);
+                _events.Add(new BattleEvent(BattleEventKind.ReactionTriggered,
+                    $"{card.DisplayName} 被灵界封印，进入弃牌堆且不生效")
+                {
+                    CombatantId = actor.Id,
+                    CardInstanceId = card.InstanceId
+                });
+                DeckRules.MovePlayedCardToDiscard(_state, actor.Team, card, _events);
+                _events.Add(new BattleEvent(BattleEventKind.CardResolvedEnded, card.DisplayName)
+                {
+                    CombatantId = actor.Id,
+                    CardInstanceId = card.InstanceId
+                });
                 EvaluateOutcome();
                 return;
             }
@@ -500,9 +533,8 @@ namespace Grimhand.Battle
 
             if (card.Keywords.Contains("exhaust") || card.IsBonusHandCard)
             {
-                if (card.DefinitionId != PassiveCardMechanicsRules.SandSpearReforgeCardId)
-                    PassiveCardMechanicsRules.TryTriggerSandSpearReforgeOnExhaust(
-                        _state, actor, card, _events, _rng);
+                if (actor.Team == TeamSide.Player)
+                    PassiveCardMechanicsRules.RecordExpeditionExhaustCardPlayed(_state, _events);
                 DeckRules.ExhaustCard(_state, actor.Team, card, _events);
             }
             else
@@ -773,7 +805,6 @@ namespace Grimhand.Battle
 
             RelicBattleRules.RefreshAllDerivedStats(_state);
             TalentBattleRules.OnBattleInitialized(_state);
-            ApplyExpeditionPersistentStatuses(config);
             RelicBattleRules.ApplyTeamHpBonus(_state, config.RunModifiers);
 
             foreach (var combatant in _state.Combatants)
@@ -794,30 +825,6 @@ namespace Grimhand.Battle
 
             if (config.RunModifiers?.RequiresFelskullChoice == true)
                 _state.AwaitingFelskullChoice = true;
-        }
-
-        void ApplyExpeditionPersistentStatuses(BattleConfig config)
-        {
-            if (config?.Combatants == null)
-                return;
-
-            foreach (var cc in config.Combatants)
-            {
-                if (cc.Team != TeamSide.Player || cc.SandSpearReforgeDamage <= 0)
-                    continue;
-
-                var combatant = _state.GetCombatant(cc.Id);
-                if (combatant == null || !combatant.IsAlive)
-                    continue;
-
-                StatusRules.ApplyStatus(
-                    _state,
-                    combatant,
-                    StatusCatalog.SandSpearReforge,
-                    cc.SandSpearReforgeDamage,
-                    -1,
-                    _events);
-            }
         }
 
         static void PrepareCombatantDeck(CombatantConfig cc, BattleRng deckRng)

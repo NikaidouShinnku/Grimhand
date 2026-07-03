@@ -54,6 +54,12 @@ namespace Grimhand.Expedition
         public ExpeditionTalentRunState TalentRun { get; } = new();
         /// <summary>远征级额外牌池（诅咒等），不计入角色 10 张上限，不可放弃。</summary>
         public List<CardTemplate> RunWideBonusCards { get; } = new();
+        /// <summary>v0.9：巫妖灵魂挽歌 — 整场远征累计进入虚化次数。</summary>
+        public int V09EtherealEntryCount { get; set; }
+        /// <summary>v0.9：战术大师 — 整场远征累计应对成功次数。</summary>
+        public int V09ExpeditionRespondSuccessCount { get; set; }
+        /// <summary>v0.9：沙矛重塑 — 整场远征累计打出的消耗牌张数。</summary>
+        public int V09SandSpearExhaustCardsPlayed { get; set; }
         public string PendingTravelerGiftRelicId { get; set; } = "";
         public string PendingTravelerGiftCurseOwnerId { get; set; } = "";
     }

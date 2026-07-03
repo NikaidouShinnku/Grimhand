@@ -17,8 +17,8 @@ MonoBehaviour:
   OwnerCharacterId: char_bat
   Cost: 3
   CardType: 0
-  Keywords: []
   Rarity: 1
+  Keywords: []
   Actions:
   - Type: 0
     Target: 12

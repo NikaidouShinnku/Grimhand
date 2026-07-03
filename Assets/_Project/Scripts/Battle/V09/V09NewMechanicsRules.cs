@@ -63,6 +63,11 @@ namespace Grimhand.Battle.V09
             if (combatant == null || damage <= 0)
                 return;
 
+            if (combatant.Team == TeamSide.Enemy)
+                damage = ApplyPsionicBodyBonus(state, TeamSide.Player, damage);
+            if (damage <= 0)
+                return;
+
             combatant.Hp = System.Math.Max(0, combatant.Hp - damage);
             events.Add(new BattleEvent(BattleEventKind.StatusTickDamage, label)
             {
@@ -418,6 +423,48 @@ namespace Grimhand.Battle.V09
             if (state?.Config?.RunModifiers == null)
                 return;
             state.Config.RunModifiers.EtherealEntryCount += 1;
+        }
+
+        public static bool IsNonCombatPhase(BattleState state) =>
+            state != null
+            && state.Phase != TurnPhase.SpeedResolve
+            && state.Phase != TurnPhase.BattleEnd;
+
+        public static bool TeamHasPsionicBody(BattleState state)
+        {
+            if (state == null)
+                return false;
+
+            foreach (var ally in state.GetTeam(TeamSide.Player))
+            {
+                if (ally != null && ally.IsAlive && StatusRules.HasStatus(ally, StatusCatalog.PsionicBody))
+                    return true;
+            }
+
+            return false;
+        }
+
+        public static int AdjustRealmBurstDamage(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState card,
+            int power,
+            List<BattleEvent> events)
+        {
+            if (card?.DefinitionId != "l_realm_burst" || actor == null || !StatusRules.HasStatus(actor, StatusCatalog.Ethereal))
+                return power;
+
+            StatusRules.RemoveStatus(actor, StatusCatalog.Ethereal, 1, events);
+            return 30;
+        }
+
+        /// <summary>灵能体：非战斗时段我方造成的伤害 +20%。</summary>
+        public static int ApplyPsionicBodyBonus(BattleState state, TeamSide sourceTeam, int damage)
+        {
+            if (damage <= 0 || sourceTeam != TeamSide.Player || !IsNonCombatPhase(state) || !TeamHasPsionicBody(state))
+                return damage;
+
+            return System.Math.Max(1, (int)System.Math.Round(damage * 1.2f));
         }
     }
 }

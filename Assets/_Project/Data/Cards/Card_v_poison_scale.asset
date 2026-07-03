@@ -19,14 +19,14 @@ MonoBehaviour:
   CardType: 1
   Rarity: 1
   Keywords:
-  - respond_attack
+  - parry
   Actions:
-  - Type: 3
+  - Type: 9
     Target: 1
-    Value: 0
-    StatusId: "damage_reduction"
-    Stacks: 50
-    Duration: 1
+    Value: 50
+    StatusId: 
+    Stacks: 1
+    Duration: -1
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100
@@ -40,7 +40,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
-    BonusIfTargetHasStatusId: ""
+    BonusIfTargetHasStatusId: 
     BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
@@ -56,18 +56,13 @@ MonoBehaviour:
     RepeatPerEnemyAttackCardThisTurn: 0
     FallbackBlockDefenseScalePercent: 100
     FallbackBlockValue: 0
-    SummonCharacterId: ""
+    SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
-    HpLossStepPercent: 0
-    HpLossStepValue: 0
-    AlternateValueIfHealed: 0
-    TokenCardId: ""
-    CostReduction: 0
   - Type: 3
     Target: 4
     Value: 0
-    StatusId: "poison"
+    StatusId: poison
     Stacks: 3
     Duration: -1
     ScaleWithAttack: 0
@@ -83,7 +78,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
-    BonusIfTargetHasStatusId: ""
+    BonusIfTargetHasStatusId: 
     BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
@@ -99,14 +94,9 @@ MonoBehaviour:
     RepeatPerEnemyAttackCardThisTurn: 0
     FallbackBlockDefenseScalePercent: 100
     FallbackBlockValue: 0
-    SummonCharacterId: ""
+    SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
-    HpLossStepPercent: 0
-    HpLossStepValue: 0
-    AlternateValueIfHealed: 0
-    TokenCardId: ""
-    CostReduction: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

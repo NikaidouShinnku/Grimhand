@@ -21,12 +21,12 @@ MonoBehaviour:
   Keywords:
   - aoe
   Actions:
-  - Type: 3
-    Target: 1
+  - Type: 25
+    Target: 0
     Value: 0
     StatusId: 
     Stacks: 1
-    Duration: -1
+    Duration: 1
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100

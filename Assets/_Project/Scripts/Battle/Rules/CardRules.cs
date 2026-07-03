@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Grimhand.Battle.Effects;
 using Grimhand.Battle.Model;
 
 namespace Grimhand.Battle.Rules
@@ -95,15 +96,27 @@ namespace Grimhand.Battle.Rules
 
         public static bool ActionRequiresCharacterPickForReach(EffectActionSpec action)
         {
+            if (action == null || !IsDirectedCharacterTarget(action.Target))
+                return false;
+
             switch (action.Type)
             {
                 case EffectActionType.DealDamage:
                 case EffectActionType.ApplyStatus:
                 case EffectActionType.RemoveStatus:
-                    return IsDirectedCharacterTarget(action.Target);
                 case EffectActionType.Heal:
                 case EffectActionType.GainBlock:
-                    return action.Target != EffectTarget.Self && IsDirectedCharacterTarget(action.Target);
+                case EffectActionType.ConsumeBlockDealDamage:
+                case EffectActionType.DamagePerRespondCount:
+                case EffectActionType.DealDamageScaledByActorHpLoss:
+                case EffectActionType.DealDamageAlternateIfHealedThisTurn:
+                case EffectActionType.DealDamageBonusPerTargetDebuffStack:
+                case EffectActionType.ApplyPoisonBySpeedCompare:
+                case EffectActionType.ApplyConstrict:
+                case EffectActionType.ApplyDelayedDamage:
+                case EffectActionType.DoubleStatusStacks:
+                case EffectActionType.SealNextEnemyCard:
+                    return true;
                 default:
                     return false;
             }
@@ -148,6 +161,102 @@ namespace Grimhand.Battle.Rules
             if (next == TargetPickSide.None || current == next)
                 return current;
             return current;
+        }
+
+        /// <summary>敌人规划：Reach 范围内至少有一名合法目标时才可入选。</summary>
+        public static bool CardHasPlayableTargets(BattleState state, CardInstanceState card, CombatantState owner)
+        {
+            if (state == null || card == null || owner == null || !owner.IsAlive)
+                return false;
+
+            var hasTargetedAction = false;
+            foreach (var action in card.Actions)
+            {
+                if (action.Condition != ReactionConditionType.None)
+                    continue;
+
+                if (!ActionNeedsEnemyReachCheck(action))
+                    continue;
+
+                hasTargetedAction = true;
+                if (HasReachTarget(state, owner, action))
+                    return true;
+            }
+
+            return !hasTargetedAction;
+        }
+
+        static bool ActionNeedsEnemyReachCheck(EffectActionSpec action)
+        {
+            if (action == null)
+                return false;
+
+            switch (action.Type)
+            {
+                case EffectActionType.DealDamage:
+                case EffectActionType.ApplyStatus:
+                case EffectActionType.RemoveStatus:
+                case EffectActionType.ConsumeBlockDealDamage:
+                case EffectActionType.DealDamageScaledByActorHpLoss:
+                case EffectActionType.DealDamageAlternateIfHealedThisTurn:
+                case EffectActionType.DealDamageBonusPerTargetDebuffStack:
+                    break;
+                default:
+                    return false;
+            }
+
+            return action.Target is EffectTarget.DefaultEnemy
+                or EffectTarget.ManualSelected
+                or EffectTarget.AllEnemies
+                or EffectTarget.RandomEnemy
+                or EffectTarget.RandomEnemies
+                or EffectTarget.EnemyFrontSlot
+                or EffectTarget.EnemyMiddleSlot
+                or EffectTarget.EnemyBackSlot;
+        }
+
+        static bool HasReachTarget(BattleState state, CombatantState owner, EffectActionSpec action)
+        {
+            if (action.Target == EffectTarget.AllEnemies)
+            {
+                var enemyTeam = owner.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
+                foreach (var unit in state.GetTeam(enemyTeam))
+                {
+                    if (unit.IsAlive && TargetReachRules.IsSlotAllowed(
+                            action.Reach, PositionRules.GetEffectiveSlot(state, unit)))
+                        return true;
+                }
+
+                return false;
+            }
+
+            if (action.Target == EffectTarget.RandomEnemy || action.Target == EffectTarget.RandomEnemies)
+            {
+                var enemyTeam = owner.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
+                foreach (var unit in PositionRules.GetAliveSortedByPhysicalSlot(state, enemyTeam))
+                {
+                    if (TargetReachRules.IsSlotAllowed(
+                            action.Reach, PositionRules.GetEffectiveSlot(state, unit)))
+                        return true;
+                }
+
+                return false;
+            }
+
+            var targetTeam = owner.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
+            foreach (var unit in state.GetTeam(targetTeam))
+            {
+                if (!unit.IsAlive)
+                    continue;
+
+                if (!TargetReachRules.IsSlotAllowed(action.Reach, PositionRules.GetEffectiveSlot(state, unit)))
+                    continue;
+
+                if (TargetRules.IsTargetValidForAction(state, unit, action.Reach, action))
+                    return true;
+            }
+
+            return false;
         }
     }
 }

@@ -17,16 +17,16 @@ MonoBehaviour:
   OwnerCharacterId: char_corrupted_crab
   Cost: 3
   CardType: 2
+  Rarity: 2
   Keywords:
   - aoe
-  Rarity: 2
   Actions:
-  - Type: 3
-    Target: 1
+  - Type: 25
+    Target: 0
     Value: 0
     StatusId: 
     Stacks: 1
-    Duration: -1
+    Duration: 1
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100

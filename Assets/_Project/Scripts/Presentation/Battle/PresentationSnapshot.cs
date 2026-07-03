@@ -335,6 +335,15 @@ namespace Grimhand.Presentation.Battle
                 _block[id] = 0;
         }
 
+        public void SyncBlockFromLive(BattleState state)
+        {
+            if (state == null)
+                return;
+
+            foreach (var combatant in state.Combatants)
+                _block[combatant.Id] = combatant.Block;
+        }
+
         public void ApplyDamage(string combatantId, int amount)
         {
             if (string.IsNullOrEmpty(combatantId) || amount <= 0)

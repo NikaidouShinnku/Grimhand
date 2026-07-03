@@ -19,18 +19,9 @@ SPECIAL_EMPTY_OK = {
     "m_queen_command",
 }
 
-PASSIVE_HANDLED = {
-    "d_endless_blade",
-    "p_sand_spear_reforge",
-    "m_spider_fatal_bind",
-    "m_gargoyle_sunder",
-    "m_final_bind",
-    "m_magic_lightning",
-    "m_golem_crack_fist",
-    "m_final_summon",
-    "m_king_summon_workshop",
-    "m_rat_swarm_call",
-}
+# 仅保留：无 Actions 且效果完全在 SpecialCardRules / BossTrait 的极少数卡。
+# 禁止「整卡跳过 compare」——与描述一致必须逐张核对。
+PASSIVE_HANDLED: set[str] = set()
 
 # Status/special summon cards — description mentions 召唤 but effect is status-driven.
 STATUS_SUMMON_CARDS = {
@@ -64,6 +55,7 @@ def parse_actions(text: str) -> list[dict]:
             "SelfDamageFlat", "LifestealPercent", "SplashBehindTarget",
             "SplashPowerPercent", "IgnoreDefPercent", "HealMaxHpPercent",
             "OnKillHealAmount", "ScaleWithAttack", "SummonCharacterId",
+            "Reach", "Condition",
         ):
             fm = re.search(rf"{field}:\s*(.*)", block)
             if not fm:
@@ -84,7 +76,7 @@ def expected_from_desc(desc: str) -> dict:
     exp: dict = {}
     hits = list(re.finditer(r"造成\s*(\d+)\s*点?伤害", desc))
     if hits:
-        exp["damage"] = int(hits[-1].group(1))
+        exp["damage"] = int(hits[0].group(1))
     m = re.search(r"(?:获得|添加|各获得)\s*(\d+)\s*(?:点)?护甲", desc)
     if m:
         exp["block"] = int(m.group(1))
@@ -138,6 +130,7 @@ def expected_from_desc(desc: str) -> dict:
 def actual_from_actions(actions: list[dict]) -> dict:
     act: dict = {}
     dmg = [a["Value"] for a in actions if a["Type"] == 0 and a.get("Value")]
+    dmg += [a["Value"] for a in actions if a["Type"] == 33 and a.get("Value")]
     if dmg:
         act["damage"] = dmg[-1]
     blk = [a["Value"] for a in actions if a["Type"] == 1 and a.get("Value")]
@@ -163,16 +156,22 @@ def actual_from_actions(actions: list[dict]) -> dict:
     )
     for st in ("poison", "slow", "burn", "vulnerable", "weaken"):
         act[st] = sum(a.get("Stacks", 0) for a in actions if a["Type"] == 3 and a.get("StatusId") == st)
+    act["slow"] += sum(a.get("Stacks", 0) for a in actions if a["Type"] == 17 and a.get("Stacks"))
     act["taunt"] = sum(a.get("Stacks", 0) for a in actions if a["Type"] == 3 and a.get("StatusId") == "taunt")
     act["summon"] = any(a["Type"] == 14 and a.get("SummonCharacterId") for a in actions)
     act["sacrifice_hp"] = max((a.get("SelfDamageFlat", 0) for a in actions), default=0)
     act["lifesteal"] = any(a.get("LifestealPercent", 0) > 0 for a in actions)
     act["hit_count"] = max((a.get("HitCount", 1) for a in actions if a["Type"] == 0), default=1)
+    repeat_vals = [a.get("Value", 0) for a in actions if a["Type"] == 0 and a.get("RepeatPerEnemyAttackCardThisTurn")]
+    if repeat_vals and act.get("hit_count", 1) == 1:
+        act["hit_count"] = max(repeat_vals)
     act["on_kill_heal"] = max((a.get("OnKillHealAmount", 0) for a in actions), default=0)
     return act
 
 
 def compare(cid: str, desc: str, actions: list[dict]) -> list[str]:
+    if cid in PASSIVE_HANDLED:
+        return []
     if cid in SPECIAL_EMPTY_OK and ("剩余所有能量" in desc or cid.startswith("p_solar")):
         return []
     if not actions and cid in SPECIAL_EMPTY_OK:
@@ -190,13 +189,21 @@ def compare(cid: str, desc: str, actions: list[dict]) -> list[str]:
             continue
         if key == "poison" and cid == "m_magic_lightning":
             continue
-        if key == "damage" and cid in PASSIVE_HANDLED and cid in ("p_sand_spear_reforge",):
+        if key == "damage" and cid in PASSIVE_HANDLED:
+            continue
+        if key == "lifesteal" and cid in PASSIVE_HANDLED:
+            continue
+        if key == "on_kill_heal" and cid in PASSIVE_HANDLED:
+            continue
+        if key == "next_attack" and cid in PASSIVE_HANDLED:
             continue
         ev, av = exp[key], act.get(key, 0)
         if av != ev:
             issues.append(f"{key}: 描述={ev} 实现={av}")
 
-    if exp.get("block") and cid in PASSIVE_HANDLED and cid in ("m_golem_crack_fist", "m_raise_bones"):
+    if exp.get("block") and cid in PASSIVE_HANDLED:
+        pass
+    elif exp.get("block") and cid in PASSIVE_HANDLED and cid in ("m_golem_crack_fist", "m_raise_bones"):
         pass
     elif exp.get("block") and act.get("block", 0) != exp["block"]:
         blk_exp = exp["block"]
@@ -207,7 +214,7 @@ def compare(cid: str, desc: str, actions: list[dict]) -> list[str]:
     if exp.get("taunt") and act.get("taunt", 0) < 1:
         issues.append("taunt: 描述有嘲讽 实现无")
     if exp.get("summon") and not act.get("summon"):
-        if cid in STATUS_SUMMON_CARDS:
+        if cid in STATUS_SUMMON_CARDS or cid in PASSIVE_HANDLED:
             pass
         else:
             issues.append("summon: 描述有召唤 实现无")
@@ -220,7 +227,7 @@ def compare(cid: str, desc: str, actions: list[dict]) -> list[str]:
         sac_flat = act.get("sacrifice_hp", 0)
         if self_sac != exp["sacrifice_hp"] and sac_flat != exp["sacrifice_hp"]:
             issues.append(f"sacrifice_hp: 描述={exp['sacrifice_hp']} 实现={max(self_sac, sac_flat)}")
-    if exp.get("lifesteal") and not act.get("lifesteal"):
+    if exp.get("lifesteal") and not act.get("lifesteal") and cid not in PASSIVE_HANDLED:
         issues.append("lifesteal: 描述有吸血 实现无")
     if exp.get("hit_count") and act.get("hit_count", 1) != exp["hit_count"]:
         issues.append(f"hit_count: 描述={exp['hit_count']} 实现={act.get('hit_count', 1)}")

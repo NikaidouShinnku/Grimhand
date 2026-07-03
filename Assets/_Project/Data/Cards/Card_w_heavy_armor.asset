@@ -16,10 +16,10 @@ MonoBehaviour:
   DisplayName: "\u91CD\u7532\u5F3A\u5316"
   OwnerCharacterId: char_knight
   Cost: 3
-  CardType: 1
+  CardType: 2
+  Rarity: 2
   Keywords:
   - exhaust
-  Rarity: 2
   Actions:
   - Type: 3
     Target: 1
@@ -59,9 +59,6 @@ MonoBehaviour:
     SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
-    HpLossStepPercent: 0
-    HpLossStepValue: 0
-    AlternateValueIfHealed: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

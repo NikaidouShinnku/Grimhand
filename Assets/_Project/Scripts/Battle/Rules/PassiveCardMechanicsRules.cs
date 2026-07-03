@@ -113,7 +113,7 @@ namespace Grimhand.Battle.Rules
             if (!StatusRules.HasStatus(actor, StatusCatalog.FinalBloodRitual))
                 return;
 
-            DeckRules.DrawCards(state, actor.Team, rng, FinalBloodRitualDraw, events);
+            DeckRules.DrawCards(state, actor.Team, rng, FinalBloodRitualDraw, events, retainInHandOverTurnEnd: true);
             DamageRules.ApplyHeal(state, actor, FinalBloodRitualHeal, events, actor);
         }
 
@@ -155,53 +155,64 @@ namespace Grimhand.Battle.Rules
             }
         }
 
-        public static void TryTriggerSandSpearReforgeOnExhaust(
+        /// <summary>玩家打出消耗牌：远征沙矛计数 +1（不计入沙矛本身结算，结算后再 +1）。</summary>
+        public static void RecordExpeditionExhaustCardPlayed(
             BattleState state,
-            CombatantState actor,
-            CardInstanceState exhaustedCard,
-            List<BattleEvent> events,
-            BattleRng rng)
+            List<BattleEvent> events)
         {
-            if (state == null || actor == null || exhaustedCard == null || rng == null)
+            if (state?.Config?.RunModifiers == null)
                 return;
 
-            if (actor.Team != TeamSide.Player)
-                return;
-
-            foreach (var ally in state.Combatants)
+            state.Config.RunModifiers.SandSpearExhaustCardsPlayed += 1;
+            events.Add(new BattleEvent(BattleEventKind.StatusApplied, "沙矛计数：消耗牌 +1")
             {
-                if (!ally.IsAlive || ally.Team != TeamSide.Player)
-                    continue;
-
-                if (!StatusRules.HasStatus(ally, StatusCatalog.SandSpearReforge))
-                    continue;
-
-                var power = StatusRules.GetStatusStacks(ally, StatusCatalog.SandSpearReforge);
-                if (power <= 0)
-                    power = SandSpearReforgeBaseDamage;
-
-                var target = PickRandomAliveEnemy(state, rng);
-                if (target == null)
-                    return;
-
-                DamageRules.ApplyDamage(
-                    state, ally, target, power, CardType.Attack, events,
-                    rng: rng, logSuffix: "（沙矛重塑）");
-                return;
-            }
+                Amount = state.Config.RunModifiers.SandSpearExhaustCardsPlayed
+            });
         }
 
+        public static int GetSandSpearExhaustCount(BattleState state) =>
+            state?.Config?.RunModifiers?.SandSpearExhaustCardsPlayed ?? 0;
+
+        /// <summary>打出沙矛重塑：按远征累计消耗牌次数，每次随机敌人 4 伤。</summary>
         public static void OnSandSpearReforgePlayed(
             BattleState state,
             CombatantState actor,
             CardInstanceState card,
-            List<BattleEvent> events)
+            List<BattleEvent> events,
+            BattleRng rng)
         {
-            if (state == null || actor == null)
+            if (state == null || actor == null || card == null || rng == null)
                 return;
 
-            StatusRules.ApplyStatus(
-                state, actor, StatusCatalog.SandSpearReforge, SandSpearReforgeBaseDamage, -1, events);
+            var hits = GetSandSpearExhaustCount(state);
+            if (hits <= 0)
+            {
+                events.Add(new BattleEvent(BattleEventKind.StatusApplied, $"{card.DisplayName}：尚无消耗牌计数")
+                {
+                    CombatantId = actor.Id,
+                    CardInstanceId = card.InstanceId
+                });
+                return;
+            }
+
+            for (var i = 0; i < hits; i++)
+            {
+                var target = PickRandomAliveEnemy(state, rng);
+                if (target == null)
+                    break;
+
+                DamageRules.ApplyDamage(
+                    state, actor, target, SandSpearReforgeBaseDamage, CardType.Attack, events,
+                    rng: rng, logSuffix: "（沙矛重塑）", sourceCardInstanceId: card.InstanceId);
+            }
+
+            events.Add(new BattleEvent(BattleEventKind.StatusApplied,
+                $"{card.DisplayName}：4 伤 ×{hits}（消耗牌计数）")
+            {
+                CombatantId = actor.Id,
+                CardInstanceId = card.InstanceId,
+                Amount = hits
+            });
         }
 
         public static void AfterSingleHitResolved(
@@ -451,21 +462,34 @@ namespace Grimhand.Battle.Rules
             var poison = StatusRules.FindStatus(victim, StatusCatalog.Poison);
             if (poison == null || poison.Stacks <= 0)
                 return;
-            var behindId = PositionRules.SnapshotCombatantBehindId(state, victim);
-            if (string.IsNullOrEmpty(behindId))
-                return;
-            var behind = state.GetCombatant(behindId);
-            if (behind == null || !behind.IsAlive)
-                return;
             var spreadStacks = Math.Max(1, poison.Stacks / 2);
-            // 保持原持续时间：中毒本身为永久，故 -1
-            StatusRules.ApplyStatus(state, behind, StatusCatalog.Poison, spreadStacks, -1, events);
+            var duration = poison.RemainingTurns;
+            var adjacent = CollectAdjacentAliveEnemies(state, victim);
+            if (adjacent.Count == 0)
+                return;
+            var spreadTarget = adjacent[rng.NextIndex(adjacent.Count)];
+            StatusRules.ApplyStatus(state, spreadTarget, StatusCatalog.Poison, spreadStacks, duration, events);
             events.Add(new BattleEvent(BattleEventKind.StatusApplied, $"瘟疫蔓延：传染 {spreadStacks} 层中毒")
             {
-                CombatantId = behind.Id,
+                CombatantId = spreadTarget.Id,
                 Amount = spreadStacks,
                 TargetId = StatusCatalog.Poison
             });
+        }
+
+        static List<CombatantState> CollectAdjacentAliveEnemies(BattleState state, CombatantState victim)
+        {
+            var result = new List<CombatantState>();
+            if (state == null || victim == null || !victim.IsAlive)
+                return result;
+
+            var alive = PositionRules.GetAliveSortedByPhysicalSlot(state, TeamSide.Enemy);
+            var rank = PositionRules.GetEffectiveRank(state, victim);
+            if (rank > 0)
+                result.Add(alive[rank - 1]);
+            if (rank >= 0 && rank + 1 < alive.Count)
+                result.Add(alive[rank + 1]);
+            return result;
         }
 
         /// <summary>神圣灌注：演员下张牌结算后重复一次。返回是否执行了重复。</summary>

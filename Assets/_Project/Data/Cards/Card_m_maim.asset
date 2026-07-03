@@ -17,8 +17,8 @@ MonoBehaviour:
   OwnerCharacterId: char_skeleton
   Cost: 2
   CardType: 2
-  Keywords: []
   Rarity: 1
+  Keywords: []
   Actions:
   - Type: 3
     Target: 0

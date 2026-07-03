@@ -17,12 +17,12 @@ MonoBehaviour:
   OwnerCharacterId: char_rat
   Cost: 2
   CardType: 0
+  Rarity: 2
   Keywords:
   - respond_status
-  Rarity: 2
   Actions:
   - Type: 0
-    Target: 0
+    Target: 4
     Value: 11
     StatusId: 
     Stacks: 1
@@ -31,7 +31,7 @@ MonoBehaviour:
     ScaleWithDefense: 0
     AttackScalePercent: 100
     DefenseScalePercent: 100
-    Condition: 0
+    Condition: 3
     Reach: 1
     SplashBehindTarget: 0
     SplashPowerPercent: 100
@@ -51,7 +51,7 @@ MonoBehaviour:
     UseAlternateIfTargetHasDebuff: 0
     AlternateAttackScaleIfActorUsedAttack: 0
     AlternateValueIfActorUsedAttack: 0
-    DamageMultiplierPercentIfRespondArmed: 100
+    DamageMultiplierPercentIfRespondArmed: 300
     SelfDamageFlat: 0
     RepeatPerEnemyAttackCardThisTurn: 0
     FallbackBlockDefenseScalePercent: 100

@@ -17,9 +17,10 @@ MonoBehaviour:
   OwnerCharacterId: char_ranger
   Cost: 3
   CardType: 2
+  Rarity: 4
   Keywords:
   - exhaust
-  Rarity: 4
+  - sacrifice
   Actions:
   - Type: 3
     Target: 1

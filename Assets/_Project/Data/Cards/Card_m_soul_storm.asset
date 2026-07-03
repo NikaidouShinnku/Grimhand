@@ -17,9 +17,9 @@ MonoBehaviour:
   OwnerCharacterId: char_wraith_elite
   Cost: 3
   CardType: 0
+  Rarity: 1
   Keywords:
   - aoe
-  Rarity: 1
   Actions:
   - Type: 0
     Target: 12

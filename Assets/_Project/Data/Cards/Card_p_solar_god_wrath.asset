@@ -17,10 +17,10 @@ MonoBehaviour:
   OwnerCharacterId: char_mage
   Cost: 0
   CardType: 0
-  Keywords:
-  - x_cost
-  - exhaust
   Rarity: 3
+  Keywords:
+  - exhaust
+  - x_cost
   Actions:
 
   CardArt: {fileID: 0}

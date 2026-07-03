@@ -17,8 +17,8 @@ MonoBehaviour:
   OwnerCharacterId: char_wraith
   Cost: 2
   CardType: 0
-  Keywords: []
   Rarity: 0
+  Keywords: []
   Actions:
   - Type: 0
     Target: 0
@@ -31,7 +31,7 @@ MonoBehaviour:
     AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 1
+    Reach: 0
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100

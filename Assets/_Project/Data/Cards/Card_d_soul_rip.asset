@@ -17,8 +17,8 @@ MonoBehaviour:
   OwnerCharacterId: char_ranger
   Cost: 2
   CardType: 0
-  Keywords: []
   Rarity: 2
+  Keywords: []
   Actions:
   - Type: 0
     Target: 0
@@ -35,7 +35,7 @@ MonoBehaviour:
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100
-    IgnoreDefPercent: 100
+    IgnoreDefPercent: 0
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0

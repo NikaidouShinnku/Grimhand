@@ -93,6 +93,12 @@ namespace Grimhand.Presentation.Battle
                 uiIconCatalog = UnityEditor.AssetDatabase.LoadAssetAtPath<BattleUiIconCatalogSO>(
                     dataRoot + "/BattleUiIconCatalog_Demo.asset");
             }
+
+            if (relicVisualCatalog == null)
+            {
+                relicVisualCatalog = UnityEditor.AssetDatabase.LoadAssetAtPath<RelicVisualCatalogSO>(
+                    dataRoot + "/RelicVisualCatalog_Demo.asset");
+            }
 #endif
         }
 

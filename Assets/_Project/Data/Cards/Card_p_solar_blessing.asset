@@ -17,9 +17,9 @@ MonoBehaviour:
   OwnerCharacterId: char_mage
   Cost: 0
   CardType: 1
+  Rarity: 3
   Keywords:
   - x_cost
-  Rarity: 3
   Actions:
 
   CardArt: {fileID: 0}

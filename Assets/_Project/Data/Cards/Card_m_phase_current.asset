@@ -17,8 +17,8 @@ MonoBehaviour:
   OwnerCharacterId: char_jellyfish_caster
   Cost: 2
   CardType: 2
-  Keywords: []
   Rarity: 2
+  Keywords: []
   Actions:
   - Type: 3
     Target: 0

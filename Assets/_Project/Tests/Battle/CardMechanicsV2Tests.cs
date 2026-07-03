@@ -482,5 +482,83 @@ namespace Grimhand.Battle.Tests
             Assert.IsTrue(lich.IsCardsLocked);
             Assert.IsTrue(CardLockRules.ShouldSkipPlayerCard(lich, claw));
         }
+
+        [Test]
+        public void IgnoreDefPercent_SplitsDamageBetweenBlockAndHp()
+        {
+            var state = BuildState();
+            var attacker = AddUnit(state, "atk", TeamSide.Player, FormationSlot.Front, atk: 0, def: 0);
+            var defender = AddUnit(state, "def", TeamSide.Enemy, FormationSlot.Front, hp: 20, def: 0);
+            defender.Block = 10;
+
+            var events = new List<BattleEvent>();
+            DamageRules.ApplyDamage(state, attacker, defender, 10, CardType.Attack, events, ignoreDefPercent: 50);
+
+            Assert.AreEqual(5, defender.Block);
+            Assert.AreEqual(15, defender.Hp);
+        }
+
+        [Test]
+        public void BloodlineLegacy_IncreasesMaxHpWithoutHealing()
+        {
+            var state = BuildState();
+            var demon = AddUnit(state, "demon", TeamSide.Player, FormationSlot.Front, hp: 10, def: 0);
+            demon.MaxHp = 20;
+
+            StatusRules.ApplyStatus(state, demon, StatusCatalog.BloodlineLegacy, 1, -1, new List<BattleEvent>());
+
+            Assert.AreEqual(30, demon.MaxHp);
+            Assert.AreEqual(10, demon.Hp);
+        }
+
+        [Test]
+        public void SandSpearReforge_DealsFourDamagePerExpeditionExhaustCount()
+        {
+            var state = BuildState();
+            state.Config.RunModifiers = new RunModifierSnapshot { SandSpearExhaustCardsPlayed = 3 };
+            var mage = AddUnit(state, "mage", TeamSide.Player, FormationSlot.Front, atk: 0, def: 0);
+            var enemy = AddUnit(state, "enemy", TeamSide.Enemy, FormationSlot.Front, hp: 30, def: 0);
+            var rng = new BattleRng(42);
+            var events = new List<BattleEvent>();
+            var card = new CardInstanceState
+            {
+                InstanceId = 1,
+                DefinitionId = PassiveCardMechanicsRules.SandSpearReforgeCardId,
+                DisplayName = "沙矛重塑"
+            };
+
+            PassiveCardMechanicsRules.OnSandSpearReforgePlayed(state, mage, card, events, rng);
+
+            Assert.Less(enemy.Hp, 30);
+        }
+
+        [Test]
+        public void TideCharge_BonusWhenActorFasterThanAllEnemies()
+        {
+            var action = ActionAtk(12, 100);
+            action.BonusIfActorFasterThanAllEnemiesFlat = 8;
+            var state = BuildState();
+            var actor = AddUnit(state, "horse", TeamSide.Enemy, FormationSlot.Front, atk: 5, def: 0);
+            actor.Speed = 10;
+            AddUnit(state, "slow", TeamSide.Player, FormationSlot.Front, atk: 0, def: 0).Speed = 3;
+            var target = AddUnit(state, "target", TeamSide.Player, FormationSlot.Middle, hp: 40, def: 0);
+
+            Assert.AreEqual(
+                20,
+                CombatMechanicsRules.ComputeConditionalDamageBonus(state, action, target, 12, actor));
+        }
+
+        [Test]
+        public void SandSpearReforge_IncrementsExhaustCounterForExpedition()
+        {
+            var state = BuildState();
+            state.Config.RunModifiers = new RunModifierSnapshot();
+            var events = new List<BattleEvent>();
+
+            PassiveCardMechanicsRules.RecordExpeditionExhaustCardPlayed(state, events);
+            PassiveCardMechanicsRules.RecordExpeditionExhaustCardPlayed(state, events);
+
+            Assert.AreEqual(2, PassiveCardMechanicsRules.GetSandSpearExhaustCount(state));
+        }
     }
 }

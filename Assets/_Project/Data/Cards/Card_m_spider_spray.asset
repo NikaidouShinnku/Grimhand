@@ -17,9 +17,9 @@ MonoBehaviour:
   OwnerCharacterId: char_spider_lady
   Cost: 3
   CardType: 0
+  Rarity: 2
   Keywords:
   - aoe
-  Rarity: 2
   Actions:
   - Type: 0
     Target: 12

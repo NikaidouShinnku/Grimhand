@@ -16,12 +16,26 @@ namespace Grimhand.Battle.Rules
                 System.Math.Max(1, turnsRemaining));
         }
 
-        public static void ProcessTurnStart(CombatantState combatant)
+        public static void ApplyAttackLock(CombatantState actor, int turnsRemaining)
         {
-            if (combatant == null || combatant.CardsLockedTurnsRemaining <= 0)
+            if (actor == null)
                 return;
 
-            combatant.CardsLockedTurnsRemaining--;
+            actor.AttackCardsLockedTurnsRemaining = System.Math.Max(
+                actor.AttackCardsLockedTurnsRemaining,
+                System.Math.Max(1, turnsRemaining));
+        }
+
+        public static void ProcessTurnStart(CombatantState combatant)
+        {
+            if (combatant == null)
+                return;
+
+            if (combatant.CardsLockedTurnsRemaining > 0)
+                combatant.CardsLockedTurnsRemaining--;
+
+            if (combatant.AttackCardsLockedTurnsRemaining > 0)
+                combatant.AttackCardsLockedTurnsRemaining--;
         }
 
         public static bool AppliesSelfLock(CardInstanceState card)
@@ -38,12 +52,20 @@ namespace Grimhand.Battle.Rules
             return false;
         }
 
+        public static bool ShouldBlockPlayerCardPlanning(CombatantState actor, CardInstanceState card)
+        {
+            if (actor == null || card == null || actor.Team != TeamSide.Player)
+                return false;
+
+            if (actor.IsCardsLocked)
+                return true;
+
+            return actor.IsAttackCardsLocked && card.CardType == CardType.Attack;
+        }
+
         public static bool ShouldSkipPlayerCard(CombatantState actor, CardInstanceState card)
         {
-            return actor != null
-                   && card != null
-                   && actor.Team == TeamSide.Player
-                   && actor.IsCardsLocked;
+            return ShouldBlockPlayerCardPlanning(actor, card);
         }
 
         public static void SkipLockedPlayerCard(
@@ -53,9 +75,12 @@ namespace Grimhand.Battle.Rules
             List<BattleEvent> events)
         {
             RefundEnergy(state, card, events);
+            var reason = actor.IsCardsLocked
+                ? "出牌被锁定"
+                : "攻击牌被锁定";
             events.Add(new BattleEvent(
                 BattleEventKind.ReactionTriggered,
-                $"{actor.DisplayName} 出牌被锁定，{card.DisplayName} 未生效")
+                $"{actor.DisplayName} {reason}，{card.DisplayName} 未生效")
             {
                 CombatantId = actor.Id,
                 CardInstanceId = card.InstanceId

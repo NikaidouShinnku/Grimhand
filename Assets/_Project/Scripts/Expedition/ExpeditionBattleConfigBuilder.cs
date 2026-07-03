@@ -420,7 +420,6 @@ namespace Grimhand.Expedition
             cc.BaseAttack = member.PersonalAttackBonus;
             cc.BaseDefense = 0;
             cc.Speed = stats.Speed + member.PersonalSpeedBonus;
-            cc.SandSpearReforgeDamage = member.SandSpearReforgeDamage;
         }
 
         public static List<PartyMemberSnapshot> CaptureParty(
@@ -468,10 +467,7 @@ namespace Grimhand.Expedition
                     MaxHp = c.MaxHp,
                     PersonalAttackBonus = existing?.PersonalAttackBonus ?? 0,
                     SelectedTalentSlot1Id = existing?.SelectedTalentSlot1Id ?? "",
-                    SelectedTalentSlot2Id = existing?.SelectedTalentSlot2Id ?? "",
-                    SandSpearReforgeDamage = System.Math.Max(
-                        existing?.SandSpearReforgeDamage ?? 0,
-                        StatusRules.GetStatusStacks(c, StatusCatalog.SandSpearReforge))
+                    SelectedTalentSlot2Id = existing?.SelectedTalentSlot2Id ?? ""
                 };
 
                 CopyExpeditionDeckProgress(snap, existing);
@@ -528,8 +524,7 @@ namespace Grimhand.Expedition
                 MaxHpPenalty = existing.MaxHpPenalty,
                 PersonalAttackBonus = existing.PersonalAttackBonus,
                 SelectedTalentSlot1Id = existing.SelectedTalentSlot1Id,
-                SelectedTalentSlot2Id = existing.SelectedTalentSlot2Id,
-                SandSpearReforgeDamage = existing.SandSpearReforgeDamage
+                SelectedTalentSlot2Id = existing.SelectedTalentSlot2Id
             };
 
             CopyExpeditionDeckProgress(snap, existing);
@@ -683,7 +678,10 @@ namespace Grimhand.Expedition
                 RequiresFelskullChoice = source.RequiresFelskullChoice,
                 FelskullOutgoingDamagePercentBonus = source.FelskullOutgoingDamagePercentBonus,
                 FirstPlayerAttackPending = source.FirstPlayerAttackPending,
-                HolysunSpellbookBonusUpgradeLevels = source.HolysunSpellbookBonusUpgradeLevels
+                HolysunSpellbookBonusUpgradeLevels = source.HolysunSpellbookBonusUpgradeLevels,
+                EtherealEntryCount = source.EtherealEntryCount,
+                ExpeditionRespondSuccessCount = source.ExpeditionRespondSuccessCount,
+                SandSpearExhaustCardsPlayed = source.SandSpearExhaustCardsPlayed
             };
         }
 

@@ -22,8 +22,8 @@ MonoBehaviour:
   - respond_status
   Actions:
   - Type: 0
-    Target: 0
-    Value: 11
+    Target: 4
+    Value: 12
     StatusId: 
     Stacks: 1
     Duration: -1
@@ -31,7 +31,7 @@ MonoBehaviour:
     ScaleWithDefense: 0
     AttackScalePercent: 100
     DefenseScalePercent: 100
-    Condition: 0
+    Condition: 3
     Reach: 1
     SplashBehindTarget: 0
     SplashPowerPercent: 100

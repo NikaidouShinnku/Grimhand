@@ -46,6 +46,8 @@ namespace Grimhand.Battle.Reactions
                 TalentBattleRules.OnRespondSuccess(state, actor);
                 if (state.RespondSuccessCount < int.MaxValue)
                     state.RespondSuccessCount++;
+                if (state.Config?.RunModifiers != null)
+                    state.Config.RunModifiers.ExpeditionRespondSuccessCount++;
                 PassiveCardMechanicsRules.TryTriggerRespondStanceOnRespondSuccess(state, actor, events, rng);
 
                 if (card.DefinitionId == PassiveCardMechanicsRules.FinalGuardCardId)
@@ -111,6 +113,7 @@ namespace Grimhand.Battle.Reactions
                 case EffectActionType.DealDamage:
                 case EffectActionType.ApplyStatus:
                 case EffectActionType.LockSelfCards:
+                case EffectActionType.LockAttackCards:
                     var target = ResolveRespondTarget(state, actor, card, context, action, rng);
                     if (target == null)
                         break;

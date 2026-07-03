@@ -15,12 +15,21 @@ namespace Grimhand.Battle.Reactions
 
             foreach (var action in card.Actions)
             {
-                if (action.Type == EffectActionType.DealDamage)
+                if (ActionDealsDamage(action.Type))
                     return true;
             }
 
             return false;
         }
+
+        static bool ActionDealsDamage(EffectActionType type) =>
+            type is EffectActionType.DealDamage
+                or EffectActionType.ConsumeBlockDealDamage
+                or EffectActionType.DealDamageScaledByActorHpLoss
+                or EffectActionType.DealDamageAlternateIfHealedThisTurn
+                or EffectActionType.DealDamageBonusPerTargetDebuffStack
+                or EffectActionType.DamagePerRespondCount
+                or EffectActionType.EtherealCountBonusDamage;
 
         public static bool EnemyStepIsStatus(BattleState state, ResolutionStep enemyStep)
         {
@@ -74,7 +83,7 @@ namespace Grimhand.Battle.Reactions
 
             foreach (var action in card.Actions)
             {
-                if (action.Type != EffectActionType.DealDamage)
+                if (!ActionDealsDamage(action.Type))
                     continue;
 
                 if (action.Target == EffectTarget.AllEnemies)
@@ -177,7 +186,7 @@ namespace Grimhand.Battle.Reactions
             var max = 0;
             foreach (var action in card.Actions)
             {
-                if (action.Type != EffectActionType.DealDamage)
+                if (!ActionDealsDamage(action.Type))
                     continue;
 
                 var value = CardPowerRules.ComputeActionValue(action, attacker);

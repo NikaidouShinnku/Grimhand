@@ -37,6 +37,26 @@ namespace Grimhand.Battle.Effects
 
                 ExecuteOne(state, actor, card, action, events, rng, sourceCardInstanceId: card.InstanceId);
             }
+
+            TryGrantBloodScratchNextAttack(state, actor, card, events);
+        }
+
+        static void TryGrantBloodScratchNextAttack(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState card,
+            List<BattleEvent> events)
+        {
+            if (card?.DefinitionId != "g_blood_scratch" || actor == null)
+                return;
+
+            actor.NextAttackFlatBonus = 3;
+            events.Add(new BattleEvent(BattleEventKind.StatusApplied, $"{actor.DisplayName} 下次攻击+3")
+            {
+                CombatantId = actor.Id,
+                Amount = 3,
+                TargetId = StatusCatalog.AttackUp
+            });
         }
 
         public static void ExecuteFailedRespondActions(
@@ -196,7 +216,7 @@ namespace Grimhand.Battle.Effects
                     break;
                 case EffectActionType.DrawCards:
                     // v0.9：抽牌效果当回合立即抽到手中（配合 quick_start 可在本回合规划阶段直接使用）。
-                    DeckRules.DrawCards(state, actor.Team, rng, value, events);
+                    DeckRules.DrawCards(state, actor.Team, rng, value, events, retainInHandOverTurnEnd: true);
                     events.Add(new BattleEvent(BattleEventKind.CardDrawn, $"立即抽 {value} 张牌")
                     {
                         CombatantId = actor.Id,
@@ -282,7 +302,8 @@ namespace Grimhand.Battle.Effects
                             $"{actor.DisplayName} 消耗护甲 {blockConsumed}")
                         {
                             CombatantId = actor.Id,
-                            Amount = blockConsumed
+                            Amount = blockConsumed,
+                            TargetId = actor.Id
                         });
                     }
                     var consumeDamage = blockConsumed + Math.Max(0, action.Value);
@@ -301,7 +322,7 @@ namespace Grimhand.Battle.Effects
                 {
                     if (target == null)
                         break;
-                    var count = state.RespondSuccessCount;
+                    var count = state.Config?.RunModifiers?.ExpeditionRespondSuccessCount ?? state.RespondSuccessCount;
                     var dmg = Math.Max(0, count * action.Value);
                     if (dmg > 0 && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
                     {
@@ -407,7 +428,7 @@ namespace Grimhand.Battle.Effects
                     var hand = state.GetHand(actor.Team);
                     var draw = Math.Max(0, state.Config.HandLimit - hand.Count);
                     if (draw > 0)
-                        DeckRules.DrawCards(state, actor.Team, rng, draw, events);
+                        DeckRules.DrawCards(state, actor.Team, rng, draw, events, retainInHandOverTurnEnd: true);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
                 }
@@ -531,7 +552,6 @@ namespace Grimhand.Battle.Effects
                 }
                 case EffectActionType.SealNextEnemyCard:
                 {
-                    // 占位：对敌方施加封印状态（TODO：敌方下张牌失效逻辑待实装）
                     if (target != null && target.Team != actor.Team)
                         StatusRules.ApplyStatus(state, target, StatusCatalog.SealedNextCard, 1, 2, events);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, target?.Id ?? actor.Id, false, 0);
@@ -544,13 +564,20 @@ namespace Grimhand.Battle.Effects
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
                 }
+                case EffectActionType.LockAttackCards:
+                {
+                    if (actor != null && actor.IsAlive)
+                        CardLockRules.ApplyAttackLock(actor, action.Value);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    break;
+                }
                 case EffectActionType.DrawCardsIfEthereal:
                 {
                     var draw = StatusRules.HasStatus(actor, StatusCatalog.Ethereal) && action.AlternateValue > 0
                         ? action.AlternateValue
                         : Math.Max(0, action.Value);
                     if (draw > 0)
-                        DeckRules.DrawCards(state, actor.Team, rng, draw, events);
+                        DeckRules.DrawCards(state, actor.Team, rng, draw, events, retainInHandOverTurnEnd: true);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
                 }
@@ -567,12 +594,29 @@ namespace Grimhand.Battle.Effects
                 }
                 case EffectActionType.RevealEnemyIntent:
                 {
-                    // 占位：看破敌人意图系统尚未实装；暂抽 1 牌。
-                    DeckRules.DrawCards(state, actor.Team, rng, 1, events);
-                    events.Add(new BattleEvent(BattleEventKind.StatusApplied, "TODO: 恐惧低语 看破敌人意图")
+                    var revealCount = System.Math.Max(1, action.Value);
+                    var revealed = 0;
+                    foreach (var intent in state.EnemyIntents)
                     {
-                        CombatantId = actor.Id
-                    });
+                        if (!intent.IsHidden)
+                            continue;
+
+                        intent.IsHidden = false;
+                        revealed++;
+                        var intentCard = state.GetCard(intent.CardInstanceId);
+                        var intentOwnerId = intent.OwnerCombatantId;
+                        var intentOwner = intentOwnerId != null ? state.GetCombatant(intentOwnerId) : null;
+                        var label = intentCard != null
+                            ? CardPowerRules.DescribeCardEffect(intentCard, intentOwner, false)
+                            : "未知意图";
+                        events.Add(new BattleEvent(BattleEventKind.EnemyIntentPrepared, label)
+                        {
+                            CardInstanceId = intent.CardInstanceId
+                        });
+                        if (revealed >= revealCount)
+                            break;
+                    }
+
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
                 }
@@ -660,7 +704,8 @@ namespace Grimhand.Battle.Effects
 
                 var primaryPower = CombatMechanicsRules.ComputeActionValueForTarget(state, action, actor, target);
                 primaryPower = TargetReachRules.AdjustPowerForTarget(state, action, target, primaryPower);
-                primaryPower = CombatMechanicsRules.ComputeConditionalDamageBonus(state, action, target, primaryPower);
+                primaryPower = CombatMechanicsRules.ComputeConditionalDamageBonus(
+                    state, action, target, primaryPower, actor);
                 primaryPower = PassiveCardMechanicsRules.ApplyEndlessBladeMultiplier(state, card, primaryPower);
 
                 DamageRules.ApplyDamage(
@@ -785,6 +830,8 @@ namespace Grimhand.Battle.Effects
             if (target == null)
                 return;
 
+            value = V09NewMechanicsRules.AdjustRealmBurstDamage(state, actor, card, value, events);
+
             PassiveCardMechanicsRules.PrepareGargoyleSunderTarget(state, target, card, events);
 
             var hitCount = System.Math.Max(1, action.HitCount);
@@ -842,7 +889,8 @@ namespace Grimhand.Battle.Effects
 
             var primaryPower = CombatMechanicsRules.ComputeActionValueForTarget(state, action, actor, target);
             primaryPower = TargetReachRules.AdjustPowerForTarget(state, action, target, primaryPower);
-            primaryPower = CombatMechanicsRules.ComputeConditionalDamageBonus(state, action, target, primaryPower);
+            primaryPower = CombatMechanicsRules.ComputeConditionalDamageBonus(
+                state, action, target, primaryPower, actor);
             primaryPower = PassiveCardMechanicsRules.ApplyEndlessBladeMultiplier(state, card, primaryPower);
 
             if (card.Keywords.Contains("respond_status") && state.PlayerRespondStatusUsedThisTurn)

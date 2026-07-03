@@ -38,7 +38,7 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
-        public void Burn_TurnEndDealsTwoDamagePerStack()
+        public void Burn_TurnStartDealsTwoDamagePerStack()
         {
             var state = new BattleState();
             var target = new CombatantState { Id = "e1", Hp = 20, MaxHp = 20, BaseDefense = 5 };
@@ -48,7 +48,7 @@ namespace Grimhand.Battle.Tests
                 new System.Collections.Generic.List<Events.BattleEvent>());
 
             var events = new System.Collections.Generic.List<Events.BattleEvent>();
-            StatusRules.ProcessTurnEndStatuses(state, events);
+            StatusRules.ProcessTurnStartStatuses(state, events);
 
             Assert.AreEqual(12, target.Hp);
             Assert.AreEqual(8, events[0].Amount);

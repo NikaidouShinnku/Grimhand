@@ -181,7 +181,11 @@ namespace Grimhand.Battle.Rules
                 var bound = state.GetCombatant(card.OwnerCombatantId);
                 if (bound != null)
                     return card.OwnerCombatantId;
+                return null;
             }
+
+            if (!card.IsUsable)
+                return null;
 
             foreach (var c in state.Combatants)
             {

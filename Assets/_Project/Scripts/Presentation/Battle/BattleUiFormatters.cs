@@ -239,6 +239,14 @@ namespace Grimhand.Presentation.Battle
             if (card.DefinitionId == PassiveCardMechanicsRules.EndlessBladeCardId)
                 lines.Add("使用后此牌伤害在本场战斗中翻倍");
 
+            if (card.DefinitionId == PassiveCardMechanicsRules.SandSpearReforgeCardId)
+            {
+                var hits = PassiveCardMechanicsRules.GetSandSpearExhaustCount(state);
+                lines.Add(hits > 0
+                    ? $"随机 {PassiveCardMechanicsRules.SandSpearReforgeBaseDamage} 伤 ×{hits}（远征消耗牌计数）"
+                    : $"随机 {PassiveCardMechanicsRules.SandSpearReforgeBaseDamage} 伤 ×0（尚未打出消耗牌）");
+            }
+
             return string.Join("\n", lines);
         }
 
@@ -1011,6 +1019,155 @@ namespace Grimhand.Presentation.Battle
             }
 
             return sb.ToString();
+        }
+
+        /// <summary>悬停角色时，独立状态框的炉石式描述（含天神下凡等特殊状态）。</summary>
+        public static string FormatStatusTooltipDescriptions(CombatantState unit)
+        {
+            if (unit == null)
+                return "";
+
+            var sb = new StringBuilder();
+            AppendStatusTooltipEntry(sb, unit.CardsLockedTurnsRemaining > 0,
+                "禁出牌", $"剩余 {unit.CardsLockedTurnsRemaining} 回合无法出牌");
+            AppendStatusTooltipEntry(sb, unit.AttackCardsLockedTurnsRemaining > 0,
+                "禁攻击牌", $"剩余 {unit.AttackCardsLockedTurnsRemaining} 回合无法使用攻击牌");
+            AppendStatusTooltipEntry(sb, unit.BloodRageStacks > 0,
+                "血怒", $"下一张攻击 +{unit.BloodRageStacks * MinionTraitCatalog.OgreBloodRageDamagePercentPerStack}%");
+            AppendStatusTooltipEntry(sb, unit.SacrificeAttackStacks > 0,
+                "献祭增伤", $"出站伤害 +{unit.SacrificeAttackStacks}%（血祭坛等）");
+            AppendStatusTooltipEntry(sb, unit.NextAttackFlatBonus > 0,
+                "下次攻击", $"额外 +{unit.NextAttackFlatBonus} 伤害");
+
+            foreach (var s in unit.Statuses)
+            {
+                if (s == null || s.Stacks <= 0)
+                    continue;
+
+                var def = StatusCatalog.Get(s.StatusId);
+                var name = def?.DisplayName ?? s.StatusId;
+                var desc = DescribeStatusForTooltip(s, def);
+                if (string.IsNullOrEmpty(desc))
+                    continue;
+
+                if (sb.Length > 0)
+                    sb.Append("\n\n");
+                sb.Append("<b>").Append(name).Append(" ×").Append(s.Stacks).Append("</b>\n");
+                sb.Append(desc);
+            }
+
+            return sb.ToString();
+        }
+
+        static void AppendStatusTooltipEntry(StringBuilder sb, bool condition, string title, string body)
+        {
+            if (!condition || string.IsNullOrEmpty(body))
+                return;
+
+            if (sb.Length > 0)
+                sb.Append("\n\n");
+            sb.Append("<b>").Append(title).Append("</b>\n").Append(body);
+        }
+
+        static string DescribeStatusForTooltip(StatusInstance status, StatusDefinition def)
+        {
+            if (status == null)
+                return "";
+
+            switch (status.StatusId)
+            {
+                case StatusCatalog.AnubisAvatar:
+                    return "生命/攻击/防御 +50%；剩余禁出牌由化身状态维护";
+                case StatusCatalog.BloodlineLegacy:
+                    return "最大生命 +50%（当前生命不变）";
+                case StatusCatalog.PlagueSpread:
+                    return "敌人因中毒受伤时，30% 概率向相邻敌人传染一半层数";
+                case StatusCatalog.HolyInfusionPending:
+                    return "下一张打出的牌结算后重复一次";
+                case StatusCatalog.Poison:
+                    return "回合开始每层 1 伤害，无视护甲";
+                case StatusCatalog.Burn:
+                    return "回合结束每层 2 伤害";
+                case StatusCatalog.Weaken:
+                    return "出站伤害每层 -1%";
+                case StatusCatalog.Vulnerable:
+                    return "受到的伤害每层 +1%";
+                case StatusCatalog.LastStand:
+                    return "出站伤害 +20%；HP 将降至 0 以下时保留 1 HP";
+                case StatusCatalog.Taunt:
+                    return "敌人下一行动强制攻击自身";
+                case StatusCatalog.ReviveBlessing:
+                    return "HP 归零时恢复 25% HP（每场 1 次）";
+                case StatusCatalog.GodDescends:
+                    return "获得护甲时对全体敌人造成 8 伤害";
+                case StatusCatalog.FinalBloodRitual:
+                    return "触发【献祭】时抽 1 张并回复 5 HP";
+                case StatusCatalog.VampAura:
+                    return $"攻击吸血 {status.Stacks}%";
+                case StatusCatalog.AttackUp:
+                case StatusCatalog.DamageUp:
+                    return AppendStatusDurationLine(
+                        $"所有攻击牌伤害 +{status.Stacks * (def?.OutgoingDamageFlatPerStack ?? 1)}（每层 +{def?.OutgoingDamageFlatPerStack ?? 1}）",
+                        status, def);
+                case StatusCatalog.AttackUpPercent:
+                    return AppendStatusDurationLine(
+                        $"所有攻击牌伤害 +{status.Stacks * (def?.AttackPercentBonusPerStack ?? 1)}%（每层 +{def?.AttackPercentBonusPerStack ?? 1}%）",
+                        status, def);
+                case StatusCatalog.AttackDown:
+                    return $"出站伤害每层 -{def?.OutgoingDamageReductionFlatPerStack ?? 1}";
+                case StatusCatalog.DefenseUp:
+                    return AppendStatusDurationLine(
+                        $"获得护甲 +{status.Stacks * (def?.BlockGainFlatPerStack ?? 1)}（每层 +{def?.BlockGainFlatPerStack ?? 1}）",
+                        status, def);
+                case StatusCatalog.DefenseUpPercent:
+                    return AppendStatusDurationLine(
+                        $"防御属性 +{status.Stacks * (def?.DefensePercentBonusPerStack ?? 1)}%（每层 +{def?.DefensePercentBonusPerStack ?? 1}%）",
+                        status, def);
+                case StatusCatalog.ArmorUp:
+                    return $"获得护甲每层 +{def?.BlockGainFlatPerStack ?? 1}";
+                case StatusCatalog.Guard:
+                    return "本回合队友受到的伤害转移给自身，并减伤 50%";
+                case StatusCatalog.Ethereal:
+                    return "受到的攻击伤害最多造成 1 点";
+                default:
+                    break;
+            }
+
+            if (def == null)
+                return FormatStatusDuration(status, def);
+
+            var parts = new List<string>();
+            if (def.TurnStartDamagePerStack > 0)
+                parts.Add($"回合开始每层 {def.TurnStartDamagePerStack} 伤害");
+            if (def.TurnEndDamagePerStack > 0)
+                parts.Add($"回合结束每层 {def.TurnEndDamagePerStack} 伤害");
+            if (def.OutgoingDamageFlatPerStack > 0)
+                parts.Add($"所有攻击牌伤害 +{status.Stacks * def.OutgoingDamageFlatPerStack}（每层 +{def.OutgoingDamageFlatPerStack}）");
+            if (def.OutgoingDamagePercentPerStack > 0)
+                parts.Add($"所有攻击牌伤害 +{status.Stacks * def.OutgoingDamagePercentPerStack}%（每层 +{def.OutgoingDamagePercentPerStack}%）");
+            if (def.AttackPercentBonusPerStack > 0)
+                parts.Add($"所有攻击牌伤害 +{status.Stacks * def.AttackPercentBonusPerStack}%（每层 +{def.AttackPercentBonusPerStack}%）");
+            if (def.IncomingDamagePercentPerStack > 0)
+                parts.Add($"受到的伤害每层 +{def.IncomingDamagePercentPerStack}%");
+            if (def.MaxHpPercentBonusPerStack > 0)
+                parts.Add($"最大生命每层 +{def.MaxHpPercentBonusPerStack}%");
+            if (def.BlockGainFlatPerStack > 0)
+                parts.Add($"获得护甲每层 +{def.BlockGainFlatPerStack}");
+            if (def.BlockGainPercentPerStack > 0)
+                parts.Add($"获得护甲每层 +{def.BlockGainPercentPerStack}%");
+
+            var duration = FormatStatusDuration(status, def);
+            if (parts.Count == 0)
+                return duration;
+
+            var text = string.Join("；", parts);
+            return string.IsNullOrEmpty(duration) ? text : $"{text}\n{duration}";
+        }
+
+        static string AppendStatusDurationLine(string body, StatusInstance status, StatusDefinition def)
+        {
+            var duration = FormatStatusDuration(status, def);
+            return string.IsNullOrEmpty(duration) ? body : $"{body}\n{duration}";
         }
 
         public static string FormatStatusDuration(StatusInstance status, StatusDefinition definition = null)

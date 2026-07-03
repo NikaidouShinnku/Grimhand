@@ -59,7 +59,8 @@ namespace Grimhand.Battle.Rules
 
             var value = CardPowerRules.ComputeActionValue(action, owner);
             var primaryPower = TargetReachRules.AdjustPowerForTarget(state, action, intendedTarget, value);
-            primaryPower = CombatMechanicsRules.ComputeConditionalDamageBonus(state, action, intendedTarget, primaryPower);
+            primaryPower = CombatMechanicsRules.ComputeConditionalDamageBonus(
+                state, action, intendedTarget, primaryPower, owner);
             primaryPower = PassiveCardMechanicsRules.ApplyEndlessBladeMultiplier(state, card, primaryPower);
 
             return PreviewHpDamageFromPower(
@@ -174,7 +175,8 @@ namespace Grimhand.Battle.Rules
             {
                 var value = CardPowerRules.ComputeActionValue(action, owner);
                 var primaryPower = TargetReachRules.AdjustPowerForTarget(state, action, target, value);
-                primaryPower = CombatMechanicsRules.ComputeConditionalDamageBonus(state, action, target, primaryPower);
+                primaryPower = CombatMechanicsRules.ComputeConditionalDamageBonus(
+                    state, action, target, primaryPower, owner);
                 var hpDamage = PreviewHpDamageFromPower(
                     state,
                     owner,

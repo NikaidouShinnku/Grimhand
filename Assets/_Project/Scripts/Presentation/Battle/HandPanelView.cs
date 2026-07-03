@@ -16,6 +16,8 @@ namespace Grimhand.Presentation.Battle
         [SerializeField] Text handCountLabel;
 
         readonly List<CardView> _pool = new();
+        float _savedScrollX = -1f;
+        int _lastHandCount = -1;
 
         public CardView CardPrefab => cardPrefab;
 
@@ -89,7 +91,7 @@ namespace Grimhand.Presentation.Battle
                 var polluted = CardRules.IsPolluted(card);
                 var ownerId = PositionRules.GetOwnerCombatantId(state, card);
                 var owner = ownerId != null ? state.GetCombatant(ownerId) : null;
-                var playCost = TalentBattleRules.GetEffectivePlayCost(state, owner, card);
+                var playCost = draft.GetPlayCost(card);
                 var canAfford = draft.EnergyRemaining >= playCost;
                 var interactable = session.CanInteractWithBattle() && !polluted
                     && (isAwaitingTarget || isQueued || canAfford);
@@ -100,15 +102,39 @@ namespace Grimhand.Presentation.Battle
                     ? BattleUiFormatters.BuildSelectionBadge(state, draft, card, resolveSteps)
                     : null;
 
+                var quickStartImmediate = card.Keywords.Contains("quick_start")
+                    && !CardRules.ShouldPromptForTarget(state, card, owner);
+
                 view.BindWithCard(card, visual, showSelected, polluted, interactable, badge, stats,
-                    uiIcons, characterVisuals, onCardClick, onHoverEnter, onHoverExit, playCost, onQuickStart);
+                    uiIcons, characterVisuals, onCardClick, onHoverEnter, onHoverExit, playCost,
+                    quickStartImmediate ? onQuickStart : null);
             }
 
             if (scrollRect != null && contentRoot != null)
             {
-                scrollRect.horizontalNormalizedPosition = 0f;
+                if (_lastHandCount != needed)
+                {
+                    _savedScrollX = -1f;
+                    _lastHandCount = needed;
+                }
+
+                var scrollBeforeLayout = _savedScrollX >= 0f
+                    ? _savedScrollX
+                    : scrollRect.horizontalNormalizedPosition;
+
                 ReapplyPoolLayout();
+
+                scrollRect.horizontalNormalizedPosition = scrollBeforeLayout;
+                _savedScrollX = scrollBeforeLayout;
             }
+        }
+
+        void LateUpdate()
+        {
+            if (scrollRect == null || !scrollRect.gameObject.activeInHierarchy)
+                return;
+
+            _savedScrollX = scrollRect.horizontalNormalizedPosition;
         }
 
         static IReadOnlyList<CardInstanceState> ResolveHandCards(BattleState state, BattleSession session)

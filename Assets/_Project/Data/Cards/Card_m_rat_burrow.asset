@@ -17,15 +17,15 @@ MonoBehaviour:
   OwnerCharacterId: char_rat
   Cost: 2
   CardType: 1
+  Rarity: 1
   Keywords:
   - parry
-  Rarity: 1
   Actions:
   - Type: 9
     Target: 1
     Value: 70
     StatusId: 
-    Stacks: 0
+    Stacks: 1
     Duration: -1
     ScaleWithAttack: 0
     ScaleWithDefense: 0

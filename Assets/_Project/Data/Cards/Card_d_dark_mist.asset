@@ -17,15 +17,15 @@ MonoBehaviour:
   OwnerCharacterId: char_ranger
   Cost: 2
   CardType: 0
+  Rarity: 1
   Keywords:
   - aoe
   - sacrifice
-  Rarity: 1
   Actions:
   - Type: 0
     Target: 1
     Value: 10
-    StatusId:
+    StatusId: 
     Stacks: 1
     Duration: -1
     ScaleWithAttack: 0
@@ -41,7 +41,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
-    BonusIfTargetHasStatusId:
+    BonusIfTargetHasStatusId: 
     BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
@@ -57,13 +57,13 @@ MonoBehaviour:
     RepeatPerEnemyAttackCardThisTurn: 0
     FallbackBlockDefenseScalePercent: 100
     FallbackBlockValue: 0
-    SummonCharacterId:
+    SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
   - Type: 0
     Target: 12
     Value: 5
-    StatusId:
+    StatusId: 
     Stacks: 1
     Duration: -1
     ScaleWithAttack: 0
@@ -79,7 +79,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
-    BonusIfTargetHasStatusId:
+    BonusIfTargetHasStatusId: 
     BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
@@ -95,7 +95,7 @@ MonoBehaviour:
     RepeatPerEnemyAttackCardThisTurn: 0
     FallbackBlockDefenseScalePercent: 100
     FallbackBlockValue: 0
-    SummonCharacterId:
+    SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
   - Type: 3
@@ -117,7 +117,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
-    BonusIfTargetHasStatusId:
+    BonusIfTargetHasStatusId: 
     BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
@@ -133,7 +133,7 @@ MonoBehaviour:
     RepeatPerEnemyAttackCardThisTurn: 0
     FallbackBlockDefenseScalePercent: 100
     FallbackBlockValue: 0
-    SummonCharacterId:
+    SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
   CardArt: {fileID: 0}

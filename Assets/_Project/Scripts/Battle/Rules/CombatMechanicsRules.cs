@@ -127,33 +127,64 @@ namespace Grimhand.Battle.Rules
             BattleState state,
             EffectActionSpec action,
             CombatantState target,
-            int basePower)
+            int basePower,
+            CombatantState actor = null)
         {
-            if (action == null || target == null || basePower <= 0)
+            if (action == null || basePower <= 0)
                 return basePower;
 
             var power = basePower;
 
-            if (action.BonusIfTargetHpBelowPercent > 0
-                && target.MaxHp > 0
-                && target.Hp * 100 / target.MaxHp < action.BonusIfTargetHpBelowPercent)
+            if (target != null)
             {
-                power += action.BonusIfTargetHpBelowFlat;
+                if (action.BonusIfTargetHpBelowPercent > 0
+                    && target.MaxHp > 0
+                    && target.Hp * 100 / target.MaxHp < action.BonusIfTargetHpBelowPercent)
+                {
+                    power += action.BonusIfTargetHpBelowFlat;
+                }
+
+                if (action.BonusIfTargetHitThisTurnPercent > 0 && target.HitThisTurn)
+                {
+                    power += Math.Max(1, (int)Math.Round(basePower * action.BonusIfTargetHitThisTurnPercent / 100f));
+                }
+
+                if (action.BonusIfTargetHasStatusFlat > 0
+                    && !string.IsNullOrEmpty(action.BonusIfTargetHasStatusId)
+                    && StatusRules.HasStatus(target, action.BonusIfTargetHasStatusId))
+                {
+                    power += action.BonusIfTargetHasStatusFlat;
+                }
             }
 
-            if (action.BonusIfTargetHitThisTurnPercent > 0 && target.HitThisTurn)
+            if (action.BonusIfActorFasterThanAllEnemiesFlat > 0
+                && actor != null
+                && IsActorFasterThanAllEnemies(state, actor))
             {
-                power += Math.Max(1, (int)Math.Round(basePower * action.BonusIfTargetHitThisTurnPercent / 100f));
-            }
-
-            if (action.BonusIfTargetHasStatusFlat > 0
-                && !string.IsNullOrEmpty(action.BonusIfTargetHasStatusId)
-                && StatusRules.HasStatus(target, action.BonusIfTargetHasStatusId))
-            {
-                power += action.BonusIfTargetHasStatusFlat;
+                power += action.BonusIfActorFasterThanAllEnemiesFlat;
             }
 
             return power;
+        }
+
+        public static bool IsActorFasterThanAllEnemies(BattleState state, CombatantState actor)
+        {
+            if (state == null || actor == null || !actor.IsAlive)
+                return false;
+
+            var actorSpeed = StatusRules.GetEffectiveSpeed(state, actor);
+            var foundEnemy = false;
+            foreach (var enemy in state.GetTeam(TeamSide.Enemy))
+            {
+                if (!enemy.IsAlive)
+                    continue;
+
+                foundEnemy = true;
+                if (StatusRules.GetEffectiveSpeed(state, enemy) >= actorSpeed)
+                    return false;
+            }
+
+            return foundEnemy;
         }
 
         public static int ComputeActionValueForTarget(

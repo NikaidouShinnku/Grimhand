@@ -17,8 +17,8 @@ MonoBehaviour:
   OwnerCharacterId: char_ogre
   Cost: 1
   CardType: 1
-  Keywords: []
   Rarity: 1
+  Keywords: []
   Actions:
   - Type: 1
     Target: 1

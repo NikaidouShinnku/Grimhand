@@ -17,9 +17,9 @@ MonoBehaviour:
   OwnerCharacterId: char_gargoyle
   Cost: 1
   CardType: 0
+  Rarity: 1
   Keywords:
   - parry
-  Rarity: 1
   Actions:
   - Type: 9
     Target: 1
@@ -61,7 +61,7 @@ MonoBehaviour:
     LifestealUnblockedOnly: 0
   - Type: 0
     Target: 4
-    Value: 8
+    Value: 5
     StatusId: 
     Stacks: 1
     Duration: -1

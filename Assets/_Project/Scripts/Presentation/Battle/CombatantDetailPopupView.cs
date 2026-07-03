@@ -13,9 +13,13 @@ namespace Grimhand.Presentation.Battle
         const int FontSize = 15;
         const float ExpBarWidth = 72f;
         const float ExpBarHeight = 6f;
+        const float StatusPanelGap = 6f;
+        const float StatusPanelWidth = 240f;
 
         RectTransform _panel;
+        RectTransform _statusPanel;
         Text _bodyText;
+        Text _statusText;
         RectTransform _expRow;
         Text _expLabel;
         Image _expFill;
@@ -68,6 +72,7 @@ namespace Grimhand.Presentation.Battle
                 textOutline.effectDistance = new Vector2(1f, -1f);
 
                 BuildExpRow(go.transform);
+                BuildStatusPanel(_panel);
 
                 go.SetActive(false);
             }
@@ -131,6 +136,42 @@ namespace Grimhand.Presentation.Battle
             _expRow.gameObject.SetActive(false);
         }
 
+        void BuildStatusPanel(RectTransform panelParent)
+        {
+            var go = new GameObject("StatusPopup", typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(panelParent, false);
+            _statusPanel = go.GetComponent<RectTransform>();
+
+            var bg = go.GetComponent<Image>();
+            bg.color = new Color(0.06f, 0.08f, 0.12f, 0.94f);
+            bg.raycastTarget = false;
+
+            var outline = go.AddComponent<Outline>();
+            outline.effectColor = new Color(0.55f, 0.72f, 0.95f, 0.55f);
+            outline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            var textGo = new GameObject("Body", typeof(RectTransform), typeof(Text));
+            textGo.transform.SetParent(go.transform, false);
+            var textRt = textGo.GetComponent<RectTransform>();
+            textRt.anchorMin = Vector2.zero;
+            textRt.anchorMax = Vector2.one;
+            textRt.offsetMin = new Vector2(10f, 8f);
+            textRt.offsetMax = new Vector2(-10f, -8f);
+
+            _statusText = textGo.GetComponent<Text>();
+            _statusText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _statusText.fontSize = FontSize;
+            _statusText.fontStyle = FontStyle.Normal;
+            _statusText.color = new Color(0.92f, 0.95f, 1f, 1f);
+            _statusText.alignment = TextAnchor.UpperLeft;
+            _statusText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _statusText.verticalOverflow = VerticalWrapMode.Overflow;
+            _statusText.supportRichText = true;
+            _statusText.raycastTarget = false;
+
+            go.SetActive(false);
+        }
+
         void ApplySidePlacement()
         {
             if (_panel == null || _homeParent == null)
@@ -153,6 +194,29 @@ namespace Grimhand.Presentation.Battle
                 _panel.pivot = new Vector2(1f, 0.5f);
                 _panel.anchoredPosition = new Vector2(-8f, 0f);
             }
+
+            LayoutStatusPanelBesideMain();
+        }
+
+        void LayoutStatusPanelBesideMain()
+        {
+            if (_statusPanel == null || _panel == null)
+                return;
+
+            if (_team == TeamSide.Player)
+            {
+                _statusPanel.anchorMin = new Vector2(1f, 0.5f);
+                _statusPanel.anchorMax = new Vector2(1f, 0.5f);
+                _statusPanel.pivot = new Vector2(0f, 0.5f);
+                _statusPanel.anchoredPosition = new Vector2(StatusPanelGap, 0f);
+            }
+            else
+            {
+                _statusPanel.anchorMin = new Vector2(0f, 0.5f);
+                _statusPanel.anchorMax = new Vector2(0f, 0.5f);
+                _statusPanel.pivot = new Vector2(1f, 0.5f);
+                _statusPanel.anchoredPosition = new Vector2(-StatusPanelGap, 0f);
+            }
         }
 
         public void Refresh(
@@ -174,10 +238,7 @@ namespace Grimhand.Presentation.Battle
                 return;
             }
 
-            var status = CombatantDisplayHelper.GetStatusSummary(unit, presentation);
-            var statusDetail = presentation == null
-                ? BattleUiFormatters.FormatStatusHoverDetail(unit)
-                : "";
+            var statusTooltip = BattleUiFormatters.FormatStatusTooltipDescriptions(unit);
             var speed = CombatantDisplayHelper.GetSpeed(unit, presentation);
             var showExp = showExpBar && unit.Team == TeamSide.Player;
             var traitFootnote = CombatantDisplayHelper.GetTraitFootnote(unit, presentation);
@@ -186,16 +247,11 @@ namespace Grimhand.Presentation.Battle
             if (showExp)
                 lines += "\n";
             lines += $"\n生命 {unit.Hp}/{unit.MaxHp}    速度 {speed}";
-            if (presentation == null
-                && expeditionMember != null
+            if (expeditionMember != null
                 && expeditionMember.PersonalAttackBonus > 0)
             {
                 lines += $"\n增伤 +{expeditionMember.PersonalAttackBonus}";
             }
-            if (!string.IsNullOrEmpty(statusDetail))
-                lines += statusDetail;
-            else if (!string.IsNullOrEmpty(status))
-                lines += $"\n状态 {status}";
             if (!string.IsNullOrEmpty(traitFootnote))
                 lines += $"\n{traitFootnote}";
 
@@ -211,6 +267,19 @@ namespace Grimhand.Presentation.Battle
 
             _bodyText.text = lines;
 
+            if (_statusPanel != null && _statusText != null)
+            {
+                var hasStatusBox = !string.IsNullOrEmpty(statusTooltip);
+                _statusPanel.gameObject.SetActive(hasStatusBox);
+                if (hasStatusBox)
+                {
+                    _statusText.text = statusTooltip;
+                    var statusLines = statusTooltip.Split('\n').Length;
+                    var statusHeight = Mathf.Max(_panel.sizeDelta.y, 24f + statusLines * 18f);
+                    _statusPanel.sizeDelta = new Vector2(StatusPanelWidth, statusHeight);
+                }
+            }
+
             if (_expRow != null)
             {
                 _expRow.gameObject.SetActive(showExp);
@@ -223,10 +292,6 @@ namespace Grimhand.Presentation.Battle
             }
 
             var lineCount = 2;
-            if (!string.IsNullOrEmpty(statusDetail))
-                lineCount += statusDetail.Split('\n').Length;
-            else if (!string.IsNullOrEmpty(status))
-                lineCount += 1;
             if (!string.IsNullOrEmpty(traitFootnote))
                 lineCount += traitFootnote.Split('\n').Length;
             if (showExp)
@@ -241,6 +306,9 @@ namespace Grimhand.Presentation.Battle
                 _bodyText.rectTransform.offsetMax = new Vector2(-10f, -8f);
                 _bodyText.rectTransform.offsetMin = new Vector2(10f, top);
             }
+
+            LayoutStatusPanelBesideMain();
+            ApplySidePlacement();
         }
 
         public void SetVisible(bool visible)
@@ -251,6 +319,7 @@ namespace Grimhand.Presentation.Battle
             if (!visible)
             {
                 _panel.gameObject.SetActive(false);
+                _statusPanel?.gameObject.SetActive(false);
                 if (_homeParent != null && _panel.parent != _homeParent)
                 {
                     _panel.SetParent(_homeParent, false);
@@ -271,6 +340,7 @@ namespace Grimhand.Presentation.Battle
             }
 
             _panel.gameObject.SetActive(true);
+            LayoutStatusPanelBesideMain();
 
             var battleRoot = GetComponentInParent<BattleScreenView>()?.transform ?? transform.root;
             CombatantTooltipLayer.MountToFront(_panel, battleRoot);

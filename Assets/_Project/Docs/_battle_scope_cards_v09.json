@@ -1,0 +1,124 @@
+{
+  "version": "v0.9",
+  "definition": "从生效时刻持续到一方全灭（所有玩家死亡或所有敌人死亡），战斗结束清除",
+  "generatedAt": "2026-07-03T09:26:58.236004+00:00",
+  "count": 19,
+  "cardIds": [
+    "w_respond_stance",
+    "w_battle_will",
+    "w_heavy_armor",
+    "w_unyielding",
+    "w_god_descends",
+    "w_final_bulwark",
+    "w_last_stand",
+    "p_plague_spread",
+    "p_rot_avatar",
+    "p_anubis_avatar",
+    "d_blood_frenzy",
+    "d_bloodline_legacy",
+    "d_endless_blade",
+    "d_blood_sharing",
+    "d_final_blood_ritual",
+    "v_venom_sac_burst",
+    "v_immortal_shed",
+    "l_psionic_body",
+    "m_queen_wrath"
+  ],
+  "cards": [
+    {
+      "cardId": "w_respond_stance",
+      "displayName": "应对姿态",
+      "effect": "【消耗】本场战斗中，每次成功触发应对效果时获得8护甲"
+    },
+    {
+      "cardId": "w_battle_will",
+      "displayName": "战意觉醒",
+      "effect": "【消耗】本场战斗中，每次掉血会使自身获得5%增伤"
+    },
+    {
+      "cardId": "w_heavy_armor",
+      "displayName": "重甲强化",
+      "effect": "【消耗】本场战斗中，每次获得护甲时额外+20%护甲"
+    },
+    {
+      "cardId": "w_unyielding",
+      "displayName": "不屈意志",
+      "effect": "【消耗】在本场战斗中，当第一次血量降至25%以下时，恢复20HP"
+    },
+    {
+      "cardId": "w_god_descends",
+      "displayName": "天神下凡",
+      "effect": "【消耗】在本场战斗中，当获得护甲时，对所有敌人造成8伤害"
+    },
+    {
+      "cardId": "w_final_bulwark",
+      "displayName": "最终壁垒",
+      "effect": "【消耗】在本场战斗中，回合开始时仅清除50%护甲，而非全部"
+    },
+    {
+      "cardId": "w_last_stand",
+      "displayName": "背水一战",
+      "effect": "【消耗】本场战斗中，战士HP不会降至1以下（2回合），并获得20%增伤"
+    },
+    {
+      "cardId": "p_plague_spread",
+      "displayName": "瘟疫蔓延",
+      "effect": "【消耗】本场战斗中，当敌人因中毒受伤时，有30%概率将一半层数的该效果传染给相邻敌人（持续时间和原本保持一致）"
+    },
+    {
+      "cardId": "p_rot_avatar",
+      "displayName": "腐朽化身",
+      "effect": "【消耗】本场战斗中，所有敌人在回合开始时获得2层中毒（永久）"
+    },
+    {
+      "cardId": "p_anubis_avatar",
+      "displayName": "阿努比斯化身",
+      "effect": "【消耗】在本场战斗中，临时获得额外50%的血量上限，50%增伤和50%强固，但接下来的两个回合法老不能出牌"
+    },
+    {
+      "cardId": "d_blood_frenzy",
+      "displayName": "鲜血狂欢",
+      "effect": "【消耗】在本场战斗中，每次献祭后获得5%增伤"
+    },
+    {
+      "cardId": "d_bloodline_legacy",
+      "displayName": "血族传承",
+      "effect": "【消耗】在本场战斗中，恶魔可以拥有150%的最大HP"
+    },
+    {
+      "cardId": "d_endless_blade",
+      "displayName": "无尽血刃",
+      "effect": "【前/中/后】【献祭25%HP】造成25伤害，使用后此牌伤害在本场战斗中翻倍"
+    },
+    {
+      "cardId": "d_blood_sharing",
+      "displayName": "分血仪式",
+      "effect": "【消耗】在本场战斗中，当恶魔回复HP时治疗其他我方角色30%的回复量"
+    },
+    {
+      "cardId": "d_final_blood_ritual",
+      "displayName": "最终鲜血仪式",
+      "effect": "【消耗】在本场战斗中，每当使用者触发【献祭】关键词，抽一张牌并回复5HP"
+    },
+    {
+      "cardId": "v_venom_sac_burst",
+      "displayName": "毒囊破裂",
+      "effect": "【消耗】在本场战斗中，每当自身施加中毒，额外施加1层"
+    },
+    {
+      "cardId": "v_immortal_shed",
+      "displayName": "不朽蛇蜕",
+      "effect": "【消耗】在本场战斗中，每当自身获得中毒状态时（无论是否免疫），获得10%增伤（5回合）"
+    },
+    {
+      "cardId": "l_psionic_body",
+      "displayName": "灵能体",
+      "effect": "【消耗】在本场战斗中，我方在非战斗回合造成的伤害拥有20%增伤"
+    },
+    {
+      "cardId": "m_queen_wrath",
+      "displayName": "幽灵女王之怒",
+      "effect": "在本场战斗中，获得本场攻击牌伤害翻倍"
+    }
+  ]
+}

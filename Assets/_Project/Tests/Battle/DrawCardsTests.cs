@@ -2,6 +2,7 @@ using Grimhand.Battle;
 using Grimhand.Battle.Demo;
 using Grimhand.Battle.Effects;
 using Grimhand.Battle.Model;
+using Grimhand.Battle.Rules;
 using NUnit.Framework;
 
 namespace Grimhand.Battle.Tests
@@ -56,6 +57,32 @@ namespace Grimhand.Battle.Tests
 
             Assert.AreEqual(7, engine.State.PlayerHand.Count);
             Assert.AreEqual(0, engine.State.PendingDrawNextTurn);
+        }
+
+        [Test]
+        public void TurnStartDraw_DiscardsAtEndOfTurn_BattleDraw_Retains()
+        {
+            var config = DemoBattleFactory.CreateDefault3v3();
+            config.CardsDrawnPerTurn = 5;
+            config.HandLimit = 8;
+            var engine = new BattleEngine(config);
+            engine.StartBattle();
+
+            foreach (var card in engine.State.PlayerHand)
+                Assert.IsFalse(card.RetainInHandOverTurnEnd, "回合初抽牌不应标记保留");
+
+            var events = new System.Collections.Generic.List<Events.BattleEvent>();
+            engine.State.Phase = TurnPhase.SpeedResolve;
+            DeckRules.DrawCards(
+                engine.State, TeamSide.Player, null, 1, events, retainInHandOverTurnEnd: true);
+            var battleDrawn = engine.State.PlayerHand[^1];
+            Assert.IsTrue(battleDrawn.RetainInHandOverTurnEnd, "战斗阶段抽牌应标记保留");
+
+            DeckRules.DiscardHandAtEndOfTurn(engine.State, TeamSide.Player, events);
+
+            Assert.AreEqual(1, engine.State.PlayerHand.Count);
+            Assert.AreSame(battleDrawn, engine.State.PlayerHand[0]);
+            Assert.IsFalse(battleDrawn.RetainInHandOverTurnEnd);
         }
     }
 }

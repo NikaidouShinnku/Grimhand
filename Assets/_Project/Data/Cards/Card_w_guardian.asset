@@ -17,8 +17,8 @@ MonoBehaviour:
   OwnerCharacterId: char_knight
   Cost: 2
   CardType: 1
-  Keywords: []
   Rarity: 2
+  Keywords: []
   Actions:
   - Type: 3
     Target: 1

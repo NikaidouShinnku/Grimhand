@@ -17,9 +17,9 @@ MonoBehaviour:
   OwnerCharacterId: char_chain_wraith
   Cost: 1
   CardType: 1
+  Rarity: 1
   Keywords:
   - parry
-  Rarity: 1
   Actions:
   - Type: 9
     Target: 1
@@ -69,7 +69,7 @@ MonoBehaviour:
     ScaleWithDefense: 0
     AttackScalePercent: 100
     DefenseScalePercent: 100
-    Condition: 4
+    Condition: 1
     Reach: 1
     SplashBehindTarget: 0
     SplashPowerPercent: 100

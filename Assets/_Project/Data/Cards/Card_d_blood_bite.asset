@@ -17,10 +17,10 @@ MonoBehaviour:
   OwnerCharacterId: char_ranger
   Cost: 1
   CardType: 0
-  Keywords: []
   Rarity: 1
+  Keywords: []
   Actions:
-  - Type: 22
+  - Type: 0
     Target: 0
     Value: 7
     StatusId: 
@@ -58,9 +58,6 @@ MonoBehaviour:
     SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
-    HpLossStepPercent: 0
-    HpLossStepValue: 0
-    AlternateValueIfHealed: 14
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

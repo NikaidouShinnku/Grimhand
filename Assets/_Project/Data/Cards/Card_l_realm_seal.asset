@@ -15,7 +15,7 @@ MonoBehaviour:
   CardId: l_realm_seal
   DisplayName: "\u7075\u754C\u5C01\u5370"
   OwnerCharacterId: char_lich_queen
-  Cost: 1
+  Cost: 0
   CardType: 2
   Rarity: 2
   Keywords:
@@ -25,7 +25,7 @@ MonoBehaviour:
   - Type: 37
     Target: 0
     Value: 0
-    StatusId: ""
+    StatusId: 
     Stacks: 1
     Duration: -1
     ScaleWithAttack: 0
@@ -41,7 +41,7 @@ MonoBehaviour:
     BonusIfTargetHpBelowPercent: 0
     BonusIfTargetHpBelowFlat: 0
     BonusIfTargetHitThisTurnPercent: 0
-    BonusIfTargetHasStatusId: ""
+    BonusIfTargetHasStatusId: 
     BonusIfTargetHasStatusFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
@@ -57,14 +57,9 @@ MonoBehaviour:
     RepeatPerEnemyAttackCardThisTurn: 0
     FallbackBlockDefenseScalePercent: 100
     FallbackBlockValue: 0
-    SummonCharacterId: ""
+    SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
-    HpLossStepPercent: 0
-    HpLossStepValue: 0
-    AlternateValueIfHealed: 0
-    TokenCardId: ""
-    CostReduction: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

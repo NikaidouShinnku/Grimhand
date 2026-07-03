@@ -288,9 +288,17 @@ namespace Grimhand.Presentation.Battle
             }
 
             var ok = Engine.Draft.TryAssignTargetAndSelect(combatantId);
-            if (ok)
-                DrainEvents();
-            return ok;
+            if (!ok)
+                return false;
+
+            if (Engine.Draft.TryConsumePendingQuickStart(out var quickStartId))
+            {
+                if (!Engine.TryResolveQuickStartCard(quickStartId))
+                    return false;
+            }
+
+            DrainEvents();
+            return true;
         }
 
         public bool TryUseConsumableFromSlot(int slotIndex)

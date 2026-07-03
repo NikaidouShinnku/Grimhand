@@ -93,6 +93,12 @@ namespace Grimhand.Battle.Model
         /// <summary>巫妖女王灵魂挽歌：本场远征中累计进入虚化状态的次数（每进入一次 +1）。</summary>
         public int EtherealEntryCount { get; set; }
 
+        /// <summary>战术大师终结技：整场远征累计应对成功次数（跨场不清零）。</summary>
+        public int ExpeditionRespondSuccessCount { get; set; }
+
+        /// <summary>v0.9：沙矛重塑 — 整场远征累计打出的消耗牌张数。</summary>
+        public int SandSpearExhaustCardsPlayed { get; set; }
+
         public static RunModifierSnapshot Empty { get; } = new();
     }
 }

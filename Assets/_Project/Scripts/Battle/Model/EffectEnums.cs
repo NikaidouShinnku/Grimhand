@@ -83,7 +83,9 @@ namespace Grimhand.Battle.Model
         /// <summary>灵魂强化：使其他我方角色获得 StatusId 状态 Stacks 层 Duration 回合。</summary>
         BuffAllOtherAllies,
         /// <summary>恐惧低语：看破敌人意图（占位：抽1牌）。</summary>
-        RevealEnemyIntent
+        RevealEnemyIntent,
+        /// <summary>蛛网包裹等：下回合无法使用攻击牌。</summary>
+        LockAttackCards
     }
 
     public enum EffectTarget

@@ -28,7 +28,7 @@ NAME_ALIASES = {
     "破甲俯冲": "破甲冲锋",
 }
 
-CARD_TYPE_OVERRIDE = {"沙矛重塑": 2}
+CARD_TYPE_OVERRIDE = {}
 
 FULL_REBUILD_NAMES = {"沙矛重塑", "呼唤鼠群", "回气", "致命缠杀"}
 
@@ -39,7 +39,14 @@ CARD_OWNER = {
     "致命缠杀": "char_spider_lady",
 }
 
-PLAYER_OWNER = {"战士": "char_knight", "法老": "char_mage", "恶魔": "char_ranger"}
+PLAYER_OWNER = {
+    "战士": "char_knight",
+    "法老": "char_mage",
+    "恶魔": "char_ranger",
+    "毒蛇女王": "char_snake_queen",
+    "巫妖女王": "char_lich_queen",
+}
+PREFIX_BY_ROLE = {"战士": "w", "法老": "p", "恶魔": "d", "毒蛇女王": "v", "巫妖女王": "l"}
 MONSTER_CHAR = {
     "鼠人": "char_rat",
     "锁链怨灵": "char_chain_wraith",
@@ -105,6 +112,7 @@ RARITY = {"白": 0, "绿": 1, "蓝": 2, "紫": 3, "橙": 4, "橙/金": 4}  # 蓝
 KW_ID_MAP = {
     "消耗": "exhaust",
     "献祭": "sacrifice",
+    "快速启动": "quick_start",
     "应对攻击": "parry",
     "应对防御": "respond_defense",
     "应对状态": "respond_status",
@@ -136,18 +144,219 @@ T_SELF = 1
 T_FRONT_ALLY = 2
 T_DEFAULT_ENEMY = 0
 T_ALL_ENEMIES = 12
-T_RANDOM_ENEMY = 11
+T_RANDOM_ENEMY = 13
 T_ALLY_SLOTS = (9, 10, 11)  # AllyFrontSlot, AllyMiddleSlot, AllyBackSlot
 REACH_ANY = 0
 REACH_FRONT_MID = 1
 T_LAST_ACTOR = 4
 CONDITION_ATTACK = 1  # LastActionAttackOnSelf
+CONDITION_DEFENSE = 2  # LastActionDefenseOnTarget
+CONDITION_STATUS = 3  # LastActionStatusOnTarget
 
 RE_RESPOND_REDUCE = re.compile(r"获得(\d+)%减伤")
 RE_RESPOND_REFLECT = re.compile(r"反射(\d+)%伤害")
 RE_RESPOND_COUNTER = re.compile(r"对攻击者造成(\d+)(?:点?)?(?:反击)?伤害")
 
+CARD_ID_OVERRIDES: dict[str, list[dict]] = {
+    "w_pommel_strike": [
+        {"Type": 0, "Target": T_LAST_ACTOR, "Value": 6, "Condition": CONDITION_STATUS},
+    ],
+    "w_war_cry": [
+        {"Type": 3, "Target": 9, "StatusId": "attack_up_pct", "Stacks": 10, "Duration": 1},
+        {"Type": 3, "Target": 10, "StatusId": "attack_up_pct", "Stacks": 10, "Duration": 1},
+        {"Type": 3, "Target": 11, "StatusId": "attack_up_pct", "Stacks": 10, "Duration": 1},
+    ],
+    "w_first_strike": [
+        {"Type": 0, "Target": T_DEFAULT_ENEMY, "Value": 3, "Reach": REACH_FRONT_MID},
+    ],
+    "p_memory_fragment": [
+        {"Type": 7, "Target": T_SELF, "Value": 2},
+    ],
+    "p_revive_bless": [
+        {"Type": 3, "Target": T_FRONT_ALLY, "StatusId": "revive_blessing", "Stacks": 1, "Duration": -1, "Reach": REACH_ANY},
+    ],
+    "d_curse_chain": [
+        {"Type": 0, "Target": T_DEFAULT_ENEMY, "Value": 10, "Reach": REACH_ANY},
+        {"Type": 3, "Target": T_DEFAULT_ENEMY, "StatusId": "vulnerable", "Stacks": 20, "Duration": 2, "Reach": REACH_ANY},
+    ],
+    "v_digest_venom": [
+        {"Type": 31, "Target": T_SELF, "Value": 2},
+        {"Type": 3, "Target": T_SELF, "StatusId": "poison", "Stacks": 8, "Duration": 2},
+    ],
+    "l_gather_energy": [
+        {"Type": 0, "Target": T_SELF, "Value": 10},
+        {"Type": 31, "Target": T_SELF, "Value": 2},
+    ],
+    "l_dread_whisper": [
+        {"Type": 41, "Target": T_SELF, "Value": 1},
+    ],
+    "l_summon_chaos_spirit": [
+        {"Type": 32, "Target": T_SELF, "Value": 0},
+        {"Type": 35, "Target": T_SELF, "Value": 0},
+    ],
+    "l_realm_descent": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "hand_cost_zero", "Stacks": 1, "Duration": 1},
+    ],
+    "m_final_guard": [
+        {"Type": 1, "Target": T_SELF, "Value": 8, "Condition": CONDITION_ATTACK},
+        {"Type": 9, "Target": T_SELF, "Value": 50, "Condition": CONDITION_ATTACK},
+    ],
+    "p_plague_spread": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "plague_spread", "Stacks": 1, "Duration": -1},
+    ],
+    "p_sand_spear_reforge": [],
+    "p_holy_infusion": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "holy_infusion_pending", "Stacks": 1, "Duration": -1},
+    ],
+    "p_holy_cycle": [
+        {"Type": 22, "Target": T_SELF, "Value": 0},
+    ],
+    "p_curse_deepen": [
+        {"Type": 21, "Target": T_DEFAULT_ENEMY, "Value": 0},
+    ],
+    "p_bless": [
+        {"Type": 2, "Target": T_FRONT_ALLY, "Value": 10, "Reach": REACH_ANY},
+    ],
+    "d_dark_mist": [
+        {"Type": 0, "Target": T_SELF, "Value": 10},
+        {"Type": 0, "Target": T_ALL_ENEMIES, "Value": 5},
+        {"Type": 3, "Target": T_ALL_ENEMIES, "StatusId": "weaken", "Stacks": 20, "Duration": 2},
+    ],
+    "w_fatal_strike": [
+        {"Type": 0, "Target": T_DEFAULT_ENEMY, "Value": 22, "Reach": REACH_FRONT_MID,
+         "BonusIfTargetHitThisTurnPercent": 50},
+    ],
+    "w_power_cleave": [
+        {"Type": 0, "Target": T_DEFAULT_ENEMY, "Value": 18, "Reach": REACH_FRONT_MID,
+         "BonusIfTargetHpBelowPercent": 50, "BonusIfTargetHpBelowFlat": 8},
+    ],
+    "w_shield_slam": [
+        {"Type": 16, "Target": T_DEFAULT_ENEMY, "Value": 1, "Reach": REACH_FRONT_MID},
+    ],
+    "w_burning_fury": [
+        {"Type": 21, "Target": T_DEFAULT_ENEMY, "Value": 10, "Reach": REACH_FRONT_MID,
+         "HpLossStepPercent": 5, "HpLossStepValue": 1},
+    ],
+    "d_demon_curse": [
+        {"Type": 3, "Target": T_DEFAULT_ENEMY, "StatusId": "vulnerable", "Stacks": 3, "Duration": 3},
+    ],
+    "v_tongue_sense": [
+        {"Type": 3, "Target": T_LAST_ACTOR, "StatusId": "poison", "Stacks": 3, "Duration": 2, "Condition": CONDITION_STATUS},
+    ],
+    "m_bat_ambush": [
+        {"Type": 0, "Target": T_LAST_ACTOR, "Value": 12, "Condition": CONDITION_STATUS, "DamageMultiplierPercentIfRespondArmed": 300},
+    ],
+    "m_rat_ambush": [
+        {"Type": 0, "Target": T_LAST_ACTOR, "Value": 11, "Condition": CONDITION_STATUS, "DamageMultiplierPercentIfRespondArmed": 300},
+    ],
+    "m_golem_fist": [
+        {"Type": 0, "Target": T_LAST_ACTOR, "Value": 10, "Condition": CONDITION_ATTACK, "DamageMultiplierPercentIfRespondArmed": 200},
+    ],
+    "m_fester_claw": [
+        {"Type": 0, "Target": T_LAST_ACTOR, "Value": 9, "Condition": CONDITION_ATTACK, "DamageMultiplierPercentIfRespondArmed": 200},
+    ],
+    "m_spider_fatal_bind": [
+        {"Type": 29, "Target": T_DEFAULT_ENEMY, "Value": 6, "Duration": 2},
+        {"Type": 0, "Target": T_DEFAULT_ENEMY, "Value": 18},
+    ],
+    "m_corrosion_volley": [
+        {"Type": 0, "Target": T_RANDOM_ENEMY, "Value": 4, "HitCount": 5},
+    ],
+    "m_skull_explode": [
+        {"Type": 0, "Target": T_ALL_ENEMIES, "Value": 24},
+    ],
+    "d_demon_lord": [
+        {"Type": 0, "Target": T_SELF, "Value": 25},
+        {"Type": 0, "Target": T_DEFAULT_ENEMY, "Value": 45, "Reach": REACH_ANY},
+        {"Type": 2, "Target": T_SELF, "Value": 30, "OnKillHealAmount": 30},
+    ],
+    "v_detonate_venom": [
+        {"Type": 28, "Target": T_DEFAULT_ENEMY, "Value": 0},
+    ],
+    "v_detonate_venom": [
+        {"Type": 28, "Target": T_DEFAULT_ENEMY, "Value": 0},
+    ],
+    "v_venom_sac_burst": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "venom_sac_burst", "Stacks": 1, "Duration": -1},
+    ],
+    "v_immortal_shed": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "immortal_shed", "Stacks": 1, "Duration": -1},
+    ],
+    "v_pray_ancient_god": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "pray_ancient_snake_god", "Stacks": 1, "Duration": -1},
+    ],
+    "v_poison_feedback": [
+        {"Type": 26, "Target": T_SELF, "Value": 0},
+    ],
+    "v_venom_feast": [
+        {"Type": 0, "Target": T_DEFAULT_ENEMY, "Value": 8},
+        {"Type": 3, "Target": T_DEFAULT_ENEMY, "StatusId": "poison", "Stacks": 2, "Duration": 2},
+    ],
+    "v_shed_skin": [
+        {"Type": 27, "Target": T_SELF, "Value": 3},
+    ],
+    "l_charge": [
+        {"Type": 31, "Target": T_SELF, "Value": 1},
+    ],
+    "l_two_realms_walker": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "ethereal_on_next_hit", "Stacks": 1, "Duration": -1},
+    ],
+    "l_soul_devour": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "ethereal", "Stacks": 1, "Duration": 2},
+    ],
+    "l_eternal_void": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "eternal_void", "Stacks": 1, "Duration": -1},
+    ],
+    "m_raise_bones": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "bone_workshop", "Stacks": 1, "Duration": -1},
+    ],
+    "m_soul_bind": [
+        {"Type": 25, "Target": T_DEFAULT_ENEMY, "Value": 0, "Duration": 2},
+    ],
+    "m_ogre_war_cry": [
+        {"Type": 3, "Target": 12, "StatusId": "attack_up", "Stacks": 2, "Duration": 2},
+    ],
+    "m_rat_morale": [
+        {"Type": 3, "Target": 12, "StatusId": "attack_up", "Stacks": 2, "Duration": 2},
+    ],
+    "m_gargoyle_empower": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "attack_up_pct", "Stacks": 50, "Duration": 2},
+    ],
+    "m_gargoyle_sleep_stone": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "slow", "Stacks": 99, "Duration": 1},
+    ],
+    "m_spider_trap": [
+        {"Type": 43, "Target": T_DEFAULT_ENEMY, "Value": 1, "Duration": 1},
+    ],
+    "m_tidal_power": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "attack_up", "Stacks": 3, "Duration": 2},
+    ],
+    "m_abyss_creature_gaze": [
+        {"Type": 25, "Target": T_DEFAULT_ENEMY, "Value": 0, "Duration": 1},
+    ],
+    "m_abyss_gaze": [
+        {"Type": 25, "Target": T_DEFAULT_ENEMY, "Value": 0, "Duration": 1},
+    ],
+    "m_pinch_armor": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "armor_up", "Stacks": 5, "Duration": 2},
+    ],
+    "m_plunder": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "attack_up", "Stacks": 2, "Duration": 1},
+    ],
+    "m_ghost_ship": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "attack_up", "Stacks": 3, "Duration": 1},
+    ],
+    "m_queen_deterrence": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "taunt", "Stacks": 1, "Duration": 2},
+    ],
+    "m_queen_soul_drain": [
+        {"Type": 3, "Target": T_DEFAULT_ENEMY, "StatusId": "weaken", "Stacks": 2, "Duration": 2},
+    ],
+}
+
 CARD_ACTION_OVERRIDES: dict[str, list[dict]] = {
+    "剑柄猛击": CARD_ID_OVERRIDES["w_pommel_strike"],
+    "终焉守护": CARD_ID_OVERRIDES["m_final_guard"],
     "铁壁弹反": [
         {"Type": 9, "Target": T_SELF, "Value": 30, "Condition": CONDITION_ATTACK},
         {"Type": 8, "Target": T_LAST_ACTOR, "Value": 100, "Condition": CONDITION_ATTACK},
@@ -161,7 +370,7 @@ CARD_ACTION_OVERRIDES: dict[str, list[dict]] = {
         {"Type": 3, "Target": T_FRONT_ALLY, "StatusId": "defense_up", "Stacks": 3, "Duration": 1, "Reach": REACH_ANY},
     ],
     "圣甲虫护盾": [
-        {"Type": 1, "Target": T_FRONT_ALLY, "Value": 8, "Reach": REACH_ANY},
+        {"Type": 1, "Target": T_FRONT_ALLY, "Value": 10, "Reach": REACH_ANY},
     ],
     "复活祝福": [
         {"Type": 3, "Target": T_FRONT_ALLY, "StatusId": "revive_blessing", "Stacks": 1, "Duration": -1, "Reach": REACH_ANY},
@@ -169,15 +378,35 @@ CARD_ACTION_OVERRIDES: dict[str, list[dict]] = {
     "祈祷祝福": [
         {"Type": 2, "Target": T_FRONT_ALLY, "Value": 10, "Reach": REACH_ANY},
     ],
+    "黑暗之雾": [
+        {"Type": 0, "Target": T_SELF, "Value": 10},
+        {"Type": 0, "Target": T_ALL_ENEMIES, "Value": 5},
+        {"Type": 3, "Target": T_ALL_ENEMIES, "StatusId": "weaken", "Stacks": 20, "Duration": 2},
+    ],
+    "致命打击": [
+        {"Type": 0, "Target": T_DEFAULT_ENEMY, "Value": 22, "Reach": REACH_FRONT_MID,
+         "BonusIfTargetHitThisTurnPercent": 50},
+    ],
+    "猛力劈砍": [
+        {"Type": 0, "Target": T_DEFAULT_ENEMY, "Value": 18, "Reach": REACH_FRONT_MID,
+         "BonusIfTargetHpBelowPercent": 50, "BonusIfTargetHpBelowFlat": 8},
+    ],
+    "护盾猛击": [
+        {"Type": 16, "Target": T_DEFAULT_ENEMY, "Value": 1, "Reach": REACH_FRONT_MID},
+    ],
+    "怒火焚身": [
+        {"Type": 21, "Target": T_DEFAULT_ENEMY, "Value": 10, "Reach": REACH_FRONT_MID,
+         "HpLossStepPercent": 5, "HpLossStepValue": 1},
+    ],
     "沙尘结界": [
-        {"Type": 1, "Target": 9, "Value": 6, "Reach": REACH_ANY},
-        {"Type": 1, "Target": 10, "Value": 6, "Reach": REACH_ANY},
-        {"Type": 1, "Target": 11, "Value": 6, "Reach": REACH_ANY},
+        {"Type": 1, "Target": 9, "Value": 8, "Reach": REACH_ANY},
+        {"Type": 1, "Target": 10, "Value": 8, "Reach": REACH_ANY},
+        {"Type": 1, "Target": 11, "Value": 8, "Reach": REACH_ANY},
     ],
     "战吼鼓舞": [
-        {"Type": 3, "Target": 9, "StatusId": "attack_up", "Stacks": 3, "Duration": 1},
-        {"Type": 3, "Target": 10, "StatusId": "attack_up", "Stacks": 3, "Duration": 1},
-        {"Type": 3, "Target": 11, "StatusId": "attack_up", "Stacks": 3, "Duration": 1},
+        {"Type": 3, "Target": 9, "StatusId": "attack_up_pct", "Stacks": 10, "Duration": 1},
+        {"Type": 3, "Target": 10, "StatusId": "attack_up_pct", "Stacks": 10, "Duration": 1},
+        {"Type": 3, "Target": 11, "StatusId": "attack_up_pct", "Stacks": 10, "Duration": 1},
     ],
     "太阳神的庇佑": [
         {"Type": 1, "Target": 9, "Value": 3, "Reach": REACH_ANY},
@@ -215,12 +444,77 @@ CARD_ACTION_OVERRIDES: dict[str, list[dict]] = {
     ],
     "怨链投掷": [
         {
-            "Type": 0, "Target": T_DEFAULT_ENEMY, "Value": 20, "Reach": REACH_ANY,
+            "Type": 0, "Target": T_DEFAULT_ENEMY, "Value": 13, "Reach": REACH_ANY,
             "BonusIfTargetHasStatusId": "slow", "BonusIfTargetHasStatusFlat": 6,
         },
     ],
+    "以退为进": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "slow", "Stacks": 3, "Duration": 1},
+        {"Type": 1, "Target": T_SELF, "Value": 15},
+    ],
+    "吸血光环": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "vamp_aura", "Stacks": 30, "Duration": 1},
+    ],
+    "腐朽化身": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "rot_avatar", "Stacks": 1, "Duration": -1},
+    ],
+    "最终鲜血仪式": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "final_blood_ritual", "Stacks": 1, "Duration": -1},
+    ],
+    "终焉召唤": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "final_summon_pending", "Stacks": 1, "Duration": -1},
+    ],
+    "召唤骨之王座": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "bone_workshop", "Stacks": 1, "Duration": -1},
+    ],
+    "呼唤鼠群": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "rat_swarm_call", "Stacks": 1, "Duration": -1},
+    ],
     "太阳神之怒": [],
     "太阳神的庇佑": [],
+    "恐惧低语": [
+        {"Type": 41, "Target": 1, "Value": 1},
+    ],
+    "灵界封印": [
+        {"Type": 37, "Target": 0, "Value": 0},
+    ],
+    "战术大师的终结技": [
+        {"Type": 18, "Target": 0, "Value": 5, "Reach": REACH_FRONT_MID},
+    ],
+    "灵魂挽歌": [
+        {"Type": 33, "Target": 12, "Value": 8, "Stacks": 1},
+    ],
+    "万蛇噬心": [
+        {"Type": 30, "Target": 12, "Value": 20, "Duration": 2},
+        {"Type": 38, "Target": 1, "Value": 2},
+    ],
+    "蛛网包裹": [
+        {"Type": 9, "Target": 1, "Value": 50, "Condition": CONDITION_ATTACK},
+        {"Type": 42, "Target": 4, "Value": 1, "Condition": CONDITION_ATTACK},
+    ],
+    "毒鳞": [
+        {"Type": 9, "Target": 1, "Value": 50, "Condition": CONDITION_ATTACK},
+        {"Type": 3, "Target": 4, "StatusId": "poison", "Stacks": 3, "Duration": -1, "Condition": CONDITION_ATTACK},
+    ],
+    "见招拆招": [
+        {"Type": 17, "Target": 1, "Value": 100, "Stacks": 2, "Condition": CONDITION_ATTACK},
+    ],
+    "剑刃风暴": [
+        {"Type": 0, "Target": T_RANDOM_ENEMY, "Value": 5, "HitCount": 5},
+    ],
+    "嘲讽挑衅": [
+        {"Type": 3, "Target": 1, "StatusId": "taunt", "Stacks": 1, "Duration": 1},
+        {"Type": 1, "Target": 1, "Value": 0, "ScaleWithDefense": 1, "DefenseScalePercent": 120},
+    ],
+    "腐烂之触": [
+        {"Type": 23, "Target": 0, "Value": 12, "Stacks": 2, "Reach": REACH_FRONT_MID},
+    ],
+    "深渊鞭笞": [
+        {"Type": 0, "Target": 0, "Value": 5, "HitCount": 3, "Reach": REACH_ANY},
+    ],
+    "腐蚀乱射": [
+        {"Type": 0, "Target": T_RANDOM_ENEMY, "Value": 4, "HitCount": 5},
+    ],
 }
 
 # 选手动选敌时的 Reach（0=【前/中/后】，1=【前/中】）
@@ -336,6 +630,8 @@ def extract_keywords(desc: str) -> list[str]:
             kid = "respond_status"
         if not kid and "应对防御" in label:
             kid = "respond_defense"
+        if not kid and "快速启动" in label:
+            kid = "quick_start"
         if kid and kid not in seen:
             seen.add(kid)
             ids.append(kid)
@@ -364,11 +660,21 @@ def repair_keywords_section(text: str, keywords: list[str]) -> str:
 
 
 def infer_respond_actions(desc: str) -> list[dict]:
-    """解析【应对攻击】减伤 / 反射 / 反击伤害。"""
-    if "应对攻击" not in (desc or ""):
-        return []
-
+    """解析【应对攻击】减伤 / 反射 / 反击；【应对状态】反击伤害。"""
+    d = desc or ""
     actions: list[dict] = []
+
+    if "应对状态" in d:
+        m = RE_DAMAGE.search(d)
+        if m:
+            actions.append({
+                "Type": 0, "Target": T_LAST_ACTOR, "Value": int(m.group(1)),
+                "Condition": CONDITION_STATUS,
+            })
+        return actions
+
+    if "应对攻击" not in d:
+        return []
     m = RE_RESPOND_REDUCE.search(desc)
     if m:
         actions.append({
@@ -387,7 +693,9 @@ def infer_respond_actions(desc: str) -> list[dict]:
     return actions
 
 
-def infer_actions(name: str, desc: str, card_type: int) -> list[dict]:
+def infer_actions(name: str, desc: str, card_type: int, card_id: str | None = None) -> list[dict]:
+    if card_id and card_id in CARD_ID_OVERRIDES:
+        return [dict(a) for a in CARD_ID_OVERRIDES[card_id]]
     if name in CARD_ACTION_OVERRIDES:
         return [dict(a) for a in CARD_ACTION_OVERRIDES[name]]
 
@@ -420,13 +728,10 @@ def infer_actions(name: str, desc: str, card_type: int) -> list[dict]:
             })
         return actions
 
-    if "本场远征" in d and "消耗牌" in d:
-        return [{
-            "Type": 3, "Target": T_SELF, "Value": 0,
-            "StatusId": "sand_spear_reforge", "Stacks": 4, "Duration": -1,
-        }]
+    if "本场远征" in d and "消耗牌" in d and ("沙矛" in d or "sand_spear" in d):
+        return []
 
-    m = RE_SACRIFICE_HP.search(d)
+    if "沙矛重塑" in d or "sand_spear" in d:
     if m and m.group(1):
         actions.append({"Type": 0, "Target": T_SELF, "Value": int(m.group(1))})
     elif m and m.group(2):
@@ -462,11 +767,15 @@ def infer_actions(name: str, desc: str, card_type: int) -> list[dict]:
 
     m = RE_DAMAGE.search(d)
     if m:
-        reach = 0 if "后" in d and "前" not in d else 1
+        from card_reach_rules import parse_position_reach  # noqa: WPS433
+
+        reach = parse_position_reach(d)
+        if reach is None:
+            reach = REACH_FRONT_MID
         if "全体" in d or "AOE" in d or "所有敌人" in d:
             target, reach = 12, 0
         elif "随机" in d:
-            target = 11
+            target = T_RANDOM_ENEMY
         else:
             target = 0
         act = {"Type": 0, "Target": target, "Value": int(m.group(1)), "Reach": reach}
@@ -517,10 +826,15 @@ def infer_actions(name: str, desc: str, card_type: int) -> list[dict]:
         if m:
             stacks = int(m.group(1) or m.group(2))
             dur = -1 if "永久" in d else 2
+            from card_reach_rules import parse_position_reach as _parse_reach  # noqa: WPS433
+
+            poison_reach = _parse_reach(d)
+            if poison_reach is None:
+                poison_reach = REACH_ANY
             actions.append({
                 "Type": 3, "Target": 0, "Value": 0,
                 "StatusId": "poison", "Stacks": stacks, "Duration": dur,
-                "Reach": 1 if "前" in d else 0,
+                "Reach": poison_reach,
             })
 
     if "身后" in d and ("相同" in d or "身后位置" in d):
@@ -544,10 +858,15 @@ def infer_actions(name: str, desc: str, card_type: int) -> list[dict]:
                 target = T_LAST_ACTOR
             else:
                 target = 0
+            from card_reach_rules import parse_position_reach as _parse_reach  # noqa: WPS433
+
+            slow_reach = _parse_reach(d) if target == 0 else REACH_ANY
+            if slow_reach is None and target == 0:
+                slow_reach = REACH_ANY
             actions.append({
                 "Type": 3, "Target": target, "Value": 0,
                 "StatusId": "slow", "Stacks": stacks, "Duration": dur,
-                "Reach": 1 if target == 0 and "前" in d else 0,
+                "Reach": slow_reach if target == 0 else REACH_ANY,
             })
 
     if "鼠群呼唤" in d:
@@ -557,10 +876,7 @@ def infer_actions(name: str, desc: str, card_type: int) -> list[dict]:
         })
 
     if "沙矛重塑" in d or "sand_spear" in d:
-        actions.append({
-            "Type": 3, "Target": 1, "Value": 0,
-            "StatusId": "sand_spear_reforge", "Stacks": 1, "Duration": -1,
-        })
+        return []
 
     if not actions and card_type == 2:
         actions.append({"Type": 3, "Target": 1, "Value": 0, "StatusId": "", "Stacks": 1, "Duration": -1})
@@ -587,7 +903,7 @@ def format_action(act: dict) -> str:
             f'BonusIfTargetHasStatusId: {act["BonusIfTargetHasStatusId"]}',
             1,
         )
-    for key in ("Reach", "IgnoreDefPercent", "HealMaxHpPercent", "SelfDamageFlat", "LifestealPercent", "HitCount", "Condition", "SplashBehindTarget", "SplashPowerPercent", "BonusIfTargetHasStatusFlat"):
+    for key in ("Reach", "IgnoreDefPercent", "HealMaxHpPercent", "SelfDamageFlat", "LifestealPercent", "HitCount", "Condition", "SplashBehindTarget", "SplashPowerPercent", "BonusIfTargetHasStatusFlat", "DamageMultiplierPercentIfRespondArmed", "OnKillHealAmount"):
         if key in act:
             if isinstance(act[key], bool):
                 tail = re.sub(rf"({key}: )[^\n]+", rf"\g<1>{1 if act[key] else 0}", tail)
@@ -727,7 +1043,7 @@ def parse_player_rows(data: dict) -> list[dict]:
             "card_type": CARD_TYPE_OVERRIDE.get(name, CARD_TYPE.get((row[3] or "攻击").strip(), 0)),
             "rarity": RARITY.get((row[6] or "白").strip(), 0),
             "desc": desc,
-            "prefix": {"战士": "w", "法老": "p", "恶魔": "d"}.get(role, "w"),
+            "prefix": PREFIX_BY_ROLE.get(role, "w"),
         })
     return rows
 
@@ -765,6 +1081,8 @@ def parse_monster_rows(data: dict) -> list[dict]:
         desc = cell_str(row, 7)
         if not name or not desc or name == "卡牌名称":
             continue
+        if name in {"HP", "ATK", "DEF", "SPD"} or name.isdigit():
+            continue
         owner = CARD_OWNER.get(name, resolve_monster_owner(current_monster, monster_char))
         rows.append({
             "name": name,
@@ -798,6 +1116,8 @@ def parse_boss_rows(data: dict) -> list[dict]:
         name = cell_str(row, 1)
         desc = cell_str(row, 7)
         if not boss or not name or not desc:
+            continue
+        if name in {"HP", "ATK", "DEF", "SPD"} or name.isdigit():
             continue
         owner = CARD_OWNER.get(name, resolve_monster_owner(boss, monster_char))
         rows.append({
@@ -855,6 +1175,24 @@ def cs_escape(text: str) -> str:
     return (text or "").replace("\\", "\\\\").replace('"', '\\"')
 
 
+LEGACY_CATALOG_BY_ID: dict[str, str] = {
+    "curse_chaos_touch": "诅咒：混沌之触（远征附加）",
+    "g_aim": "哥布林：瞄准",
+    "g_lunge": "哥布林：猛扑",
+    "g_scratch": "哥布林：抓挠",
+    "g_wither": "哥布林：枯萎",
+    "m_bolt": "怪物：闪电",
+    "m_curse": "怪物：诅咒",
+    "m_poison": "怪物：中毒",
+    "m_slime_split": "史莱姆：分裂",
+    "m_void": "怪物：虚空",
+    "m_利爪劈击": "（遗留别名，待合并）",
+    "m_破甲俯冲": "（遗留别名，待合并）",
+    "m_终焉魂缚": "（遗留别名 → m_final_bind）",
+    "w_author_realm_strike": "测试卡：作者境的一击（非正式）",
+}
+
+
 def emit_description_catalog(entries: list[dict]) -> None:
     """entries: {name, card_id, desc}"""
     by_name: dict[str, str] = {}
@@ -866,6 +1204,9 @@ def emit_description_catalog(entries: list[dict]) -> None:
         by_name[e["name"]] = desc
         if e.get("card_id"):
             by_id[e["card_id"]] = desc
+
+    for cid, desc in LEGACY_CATALOG_BY_ID.items():
+        by_id[cid] = desc
 
     lines = [
         "using System.Collections.Generic;",

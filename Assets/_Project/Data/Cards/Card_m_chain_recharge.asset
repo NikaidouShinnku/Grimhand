@@ -17,9 +17,9 @@ MonoBehaviour:
   OwnerCharacterId: char_chain_wraith
   Cost: 3
   CardType: 2
+  Rarity: 2
   Keywords:
   - exhaust
-  Rarity: 2
   Actions:
   - Type: 2
     Target: 1

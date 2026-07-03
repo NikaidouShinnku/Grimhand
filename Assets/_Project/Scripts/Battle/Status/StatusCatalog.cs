@@ -98,7 +98,7 @@ namespace Grimhand.Battle.Status
                 DisplayName = "灼烧",
                 DurationKind = StatusDurationKind.Turns,
                 DefaultDuration = 2,
-                TurnEndDamagePerStack = 2,
+                TurnStartDamagePerStack = 2,
                 TickIgnoresDefense = true
             };
             map[AttackUp] = new StatusDefinition

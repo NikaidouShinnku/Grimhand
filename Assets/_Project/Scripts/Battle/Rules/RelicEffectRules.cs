@@ -230,11 +230,12 @@ namespace Grimhand.Battle.Rules
 
             actor.SacrificeAttackStacks += mods.SacrificeStackAttackBonus;
             RelicBattleRules.RefreshDerivedStats(state, actor, mods);
-            events.Add(new BattleEvent(BattleEventKind.BlockGained,
+            events.Add(new BattleEvent(BattleEventKind.StatusApplied,
                 $"{actor.DisplayName} 血祭坛 增伤+{mods.SacrificeStackAttackBonus}%")
             {
                 CombatantId = actor.Id,
-                Amount = actor.SacrificeAttackStacks
+                Amount = actor.SacrificeAttackStacks,
+                TargetId = StatusCatalog.DamageUp
             });
         }
 
@@ -263,6 +264,8 @@ namespace Grimhand.Battle.Rules
                 TryProcAttackBurn(state, actor, card, events, rng);
 
             OnSacrificeCardResolved(state, actor, card, events, rng);
+            if (card.DefinitionId == PassiveCardMechanicsRules.SandSpearReforgeCardId)
+                PassiveCardMechanicsRules.OnSandSpearReforgePlayed(state, actor, card, events, rng);
             TalentBattleRules.OnCardResolved(state, actor, card, events);
             MinionTraitRules.OnCardResolved(state, actor, card, events);
             if (card.CardType == CardType.Attack)

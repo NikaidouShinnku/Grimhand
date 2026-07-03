@@ -17,13 +17,13 @@ MonoBehaviour:
   OwnerCharacterId: char_ghost_queen
   Cost: 0
   CardType: 2
-  Keywords: []
   Rarity: 4
+  Keywords: []
   Actions:
   - Type: 3
     Target: 1
     Value: 0
-    StatusId: 
+    StatusId: ghost_queen_wrath
     Stacks: 1
     Duration: -1
     ScaleWithAttack: 0

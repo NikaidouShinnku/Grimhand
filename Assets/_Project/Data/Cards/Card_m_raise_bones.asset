@@ -17,14 +17,14 @@ MonoBehaviour:
   OwnerCharacterId: char_skeleton_elite
   Cost: 3
   CardType: 2
+  Rarity: 2
   Keywords:
   - exhaust
-  Rarity: 2
   Actions:
-  - Type: 14
+  - Type: 3
     Target: 1
     Value: 0
-    StatusId: 
+    StatusId: bone_workshop
     Stacks: 1
     Duration: -1
     ScaleWithAttack: 0
@@ -55,8 +55,8 @@ MonoBehaviour:
     SelfDamageFlat: 0
     RepeatPerEnemyAttackCardThisTurn: 0
     FallbackBlockDefenseScalePercent: 100
-    FallbackBlockValue: 6
-    SummonCharacterId: char_skeleton
+    FallbackBlockValue: 0
+    SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
   CardArt: {fileID: 0}

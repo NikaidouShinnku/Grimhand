@@ -17,8 +17,8 @@ MonoBehaviour:
   OwnerCharacterId: char_knight
   Cost: 1
   CardType: 0
-  Keywords: []
   Rarity: 1
+  Keywords: []
   Actions:
   - Type: 16
     Target: 0
@@ -58,9 +58,6 @@ MonoBehaviour:
     SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
-    HpLossStepPercent: 0
-    HpLossStepValue: 0
-    AlternateValueIfHealed: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

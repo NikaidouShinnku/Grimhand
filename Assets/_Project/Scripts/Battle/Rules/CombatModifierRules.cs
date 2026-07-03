@@ -98,6 +98,9 @@ namespace Grimhand.Battle.Rules
             combatant.OutgoingDamageFlatBonus += combatant.PersistentOutgoingDamageFlatBonus;
             combatant.BlockGainFlatBonus += combatant.PersistentBlockGainFlatBonus;
 
+            if (StatusRules.HasStatus(combatant, StatusCatalog.LastStand))
+                combatant.OutgoingDamagePercentBonus += 20;
+
             TalentBattleRules.ApplyCombatModifiers(state, combatant, mods);
         }
 
@@ -111,6 +114,7 @@ namespace Grimhand.Battle.Rules
 
             power += actor.OutgoingDamageFlatBonus;
             power -= actor.OutgoingDamageReductionFlat;
+            power += actor.NextAttackFlatBonus;
 
             if (actor.OutgoingDamagePercentBonus != 0)
             {

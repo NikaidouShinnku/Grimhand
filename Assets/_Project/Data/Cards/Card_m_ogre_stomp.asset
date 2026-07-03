@@ -17,9 +17,9 @@ MonoBehaviour:
   OwnerCharacterId: char_ogre
   Cost: 2
   CardType: 0
+  Rarity: 0
   Keywords:
   - aoe
-  Rarity: 0
   Actions:
   - Type: 0
     Target: 12

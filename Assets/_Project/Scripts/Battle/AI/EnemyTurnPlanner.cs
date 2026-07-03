@@ -30,6 +30,9 @@ namespace Grimhand.Battle.AI
                 if (owner == null || owner.Team != TeamSide.Enemy || !owner.IsAlive)
                     continue;
 
+                if (!CardRules.CardHasPlayableTargets(state, card, owner))
+                    continue;
+
                 candidates.Add(card);
             }
 

@@ -17,10 +17,10 @@ MonoBehaviour:
   OwnerCharacterId: char_phantom_captain
   Cost: 3
   CardType: 0
+  Rarity: 2
   Keywords:
   - exhaust
   - aoe
-  Rarity: 2
   Actions:
   - Type: 0
     Target: 12

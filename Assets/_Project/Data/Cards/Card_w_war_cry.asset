@@ -17,9 +17,9 @@ MonoBehaviour:
   OwnerCharacterId: char_knight
   Cost: 1
   CardType: 2
+  Rarity: 0
   Keywords:
   - quick_start
-  Rarity: 0
   Actions:
   - Type: 3
     Target: 9
@@ -32,7 +32,7 @@ MonoBehaviour:
     AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 0
+    Reach: 1
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100
@@ -70,7 +70,7 @@ MonoBehaviour:
     AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 0
+    Reach: 1
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100
@@ -108,7 +108,7 @@ MonoBehaviour:
     AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 0
+    Reach: 1
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100

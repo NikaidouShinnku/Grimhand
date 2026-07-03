@@ -17,11 +17,11 @@ MonoBehaviour:
   OwnerCharacterId: char_abyss_creature
   Cost: 2
   CardType: 0
-  Keywords: []
   Rarity: 2
+  Keywords: []
   Actions:
   - Type: 0
-    Target: 11
+    Target: 13
     Value: 4
     StatusId: 
     Stacks: 1

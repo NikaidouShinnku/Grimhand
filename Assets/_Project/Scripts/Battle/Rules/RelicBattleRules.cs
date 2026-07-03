@@ -173,6 +173,7 @@ namespace Grimhand.Battle.Rules
             if (actor == null || cardType != CardType.Attack)
                 return;
 
+            actor.NextAttackFlatBonus = 0;
             actor.FirstAttackBonusPending = false;
 
             var mods = state?.Config?.RunModifiers;

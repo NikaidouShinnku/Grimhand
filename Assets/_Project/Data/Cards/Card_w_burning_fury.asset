@@ -17,8 +17,8 @@ MonoBehaviour:
   OwnerCharacterId: char_knight
   Cost: 2
   CardType: 0
-  Keywords: []
   Rarity: 3
+  Keywords: []
   Actions:
   - Type: 21
     Target: 0
@@ -60,7 +60,6 @@ MonoBehaviour:
     LifestealUnblockedOnly: 0
     HpLossStepPercent: 5
     HpLossStepValue: 1
-    AlternateValueIfHealed: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

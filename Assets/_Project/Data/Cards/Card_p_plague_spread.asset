@@ -17,9 +17,9 @@ MonoBehaviour:
   OwnerCharacterId: char_mage
   Cost: 2
   CardType: 2
+  Rarity: 2
   Keywords:
   - exhaust
-  Rarity: 2
   Actions:
   - Type: 3
     Target: 1
@@ -59,9 +59,6 @@ MonoBehaviour:
     SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
-    HpLossStepPercent: 0
-    HpLossStepValue: 0
-    AlternateValueIfHealed: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

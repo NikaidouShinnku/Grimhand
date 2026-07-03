@@ -47,6 +47,9 @@ namespace Grimhand.Battle.Model
 
         public int BonusIfTargetHasStatusFlat { get; set; }
 
+        /// <summary>施法者有效速度快于所有存活敌人时，额外加此 flat 伤害（浪潮冲锋等）。</summary>
+        public int BonusIfActorFasterThanAllEnemiesFlat { get; set; }
+
         /// <summary>造成伤害后，按实际伤害回复生命的百分比。</summary>
         public int LifestealPercent { get; set; }
 
@@ -139,6 +142,7 @@ namespace Grimhand.Battle.Model
                 BonusIfTargetHitThisTurnPercent = source.BonusIfTargetHitThisTurnPercent,
                 BonusIfTargetHasStatusId = source.BonusIfTargetHasStatusId,
                 BonusIfTargetHasStatusFlat = source.BonusIfTargetHasStatusFlat,
+                BonusIfActorFasterThanAllEnemiesFlat = source.BonusIfActorFasterThanAllEnemiesFlat,
                 LifestealPercent = source.LifestealPercent,
                 HealMaxHpPercent = source.HealMaxHpPercent,
                 OnKillHealAmount = source.OnKillHealAmount,

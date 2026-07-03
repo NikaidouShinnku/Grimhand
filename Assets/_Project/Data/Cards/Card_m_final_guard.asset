@@ -17,13 +17,13 @@ MonoBehaviour:
   OwnerCharacterId: char_seahorse_guard
   Cost: 4
   CardType: 1
+  Rarity: 3
   Keywords:
   - parry
-  Rarity: 3
   Actions:
-  - Type: 9
+  - Type: 1
     Target: 1
-    Value: 50
+    Value: 8
     StatusId: 
     Stacks: 1
     Duration: -1
@@ -59,47 +59,9 @@ MonoBehaviour:
     SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
-  - Type: 1
+  - Type: 9
     Target: 1
-    Value: 8
-    StatusId: 
-    Stacks: 1
-    Duration: -1
-    ScaleWithAttack: 0
-    ScaleWithDefense: 0
-    AttackScalePercent: 100
-    DefenseScalePercent: 100
-    Condition: 0
-    Reach: 1
-    SplashBehindTarget: 0
-    SplashPowerPercent: 100
-    BackRowPowerPercent: 100
-    IgnoreDefPercent: 0
-    BonusIfTargetHpBelowPercent: 0
-    BonusIfTargetHpBelowFlat: 0
-    BonusIfTargetHitThisTurnPercent: 0
-    BonusIfTargetHasStatusId: 
-    BonusIfTargetHasStatusFlat: 0
-    LifestealPercent: 0
-    HealMaxHpPercent: 0
-    OnKillHealAmount: 0
-    HitCount: 1
-    AlternateAttackScalePercent: 0
-    AlternateValue: 0
-    UseAlternateIfTargetHasDebuff: 0
-    AlternateAttackScaleIfActorUsedAttack: 0
-    AlternateValueIfActorUsedAttack: 0
-    DamageMultiplierPercentIfRespondArmed: 100
-    SelfDamageFlat: 0
-    RepeatPerEnemyAttackCardThisTurn: 0
-    FallbackBlockDefenseScalePercent: 100
-    FallbackBlockValue: 0
-    SummonCharacterId: 
-    GrantInvulnerableOnRespondArm: 0
-    LifestealUnblockedOnly: 0
-  - Type: 12
-    Target: 1
-    Value: 99
+    Value: 50
     StatusId: 
     Stacks: 1
     Duration: -1

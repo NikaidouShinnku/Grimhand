@@ -46,7 +46,13 @@ namespace Grimhand.Battle.Tests
                 if (chest.HasConsumable)
                     AssertEventOnlyExcluded(chest.ConsumableId, $"chest seed {seed}");
 
-                var victory = ExpeditionRewardRoller.RollVictoryRewards(config, run, rng);
+                var victory = ExpeditionRewardRoller.RollVictoryRewards(
+                    config,
+                    run,
+                    rng,
+                    floor: 5,
+                    isElite: false,
+                    isBoss: false);
                 if (victory.HasConsumable)
                     AssertEventOnlyExcluded(victory.ConsumableId, $"victory seed {seed}");
             }

@@ -32,7 +32,9 @@ namespace Grimhand.Expedition
             var stats = CharacterProgression.GetStatsForCharacter(
                 member.CharacterDefinitionId,
                 CharacterProgression.ClampLevel(member.Level));
-            return System.Math.Max(1, stats.MaxHp + partyMaxHpBonus - member.MaxHpPenalty);
+            return System.Math.Max(
+                1,
+                stats.MaxHp + partyMaxHpBonus + member.AltarMaxHpBonus - member.MaxHpPenalty);
         }
 
         public static void GetDisplayHp(

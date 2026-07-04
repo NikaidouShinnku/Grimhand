@@ -45,12 +45,16 @@ namespace Grimhand.Expedition
             ConsumableInventory.EnsureInitialized(_run.ConsumableSlots);
             _run.PendingConsumableOfferId = "";
             _run.PendingCardOffer = null;
+            _run.PendingCardPackOffer = null;
             _run.CardAltar = null;
             _run.RunStartCampDecks.Clear();
             _run.ExtractedCampCollectionIndices.Clear();
             _run.Modifiers.TeamAttackBonus = 0;
             _run.Modifiers.TeamDefenseBonus = 0;
             _run.Modifiers.EnergyCapBonus = 0;
+            _run.Modifiers.HandLimitBonus = 0;
+            _run.Modifiers.AltarHpPlus5Purchases = 0;
+            _run.Modifiers.AltarHpPlus10Purchases = 0;
             _run.Modifiers.NextCombatEnemyAttackBonus = false;
             _run.Modifiers.ForeseenLayerCount = 0;
             _run.Modifiers.SkipNextRouteSelect = false;
@@ -168,12 +172,16 @@ namespace Grimhand.Expedition
             ConsumableInventory.EnsureInitialized(_run.ConsumableSlots);
             _run.PendingConsumableOfferId = "";
             _run.PendingCardOffer = null;
+            _run.PendingCardPackOffer = null;
             _run.CardAltar = null;
             _run.RunStartCampDecks.Clear();
             _run.ExtractedCampCollectionIndices.Clear();
             _run.Modifiers.TeamAttackBonus = 0;
             _run.Modifiers.TeamDefenseBonus = 0;
             _run.Modifiers.EnergyCapBonus = 0;
+            _run.Modifiers.HandLimitBonus = 0;
+            _run.Modifiers.AltarHpPlus5Purchases = 0;
+            _run.Modifiers.AltarHpPlus10Purchases = 0;
             _run.Modifiers.NextCombatEnemyAttackBonus = false;
             _run.Modifiers.ForeseenLayerCount = 0;
             _run.Modifiers.SkipNextRouteSelect = false;
@@ -395,7 +403,13 @@ namespace Grimhand.Expedition
                 return;
             }
 
-            _run.PendingRewardPickup = ExpeditionRewardRoller.RollVictoryRewards(_config, _run, _rng);
+            _run.PendingRewardPickup = ExpeditionRewardRoller.RollVictoryRewards(
+                _config,
+                _run,
+                _rng,
+                _run.LastBattleFloor,
+                _run.LastBattleWasElite,
+                _run.LastBattleWasBoss);
             _run.LastGoldReward = _run.PendingRewardPickup.Gold;
             _run.Phase = ExpeditionPhase.RewardPickup;
         }
@@ -544,6 +558,154 @@ namespace Grimhand.Expedition
             return true;
         }
 
+        public bool TrySkipRewardCardPack(int packIndex)
+        {
+            var rewards = _run.PendingRewardPickup;
+            if (_run.Phase != ExpeditionPhase.RewardPickup || rewards == null || !rewards.HasCardPacks)
+                return false;
+
+            if (packIndex < 0 || packIndex >= rewards.CardPacks.Count)
+                return false;
+
+            var entry = rewards.CardPacks[packIndex];
+            if (entry.IsResolved)
+                return false;
+
+            if (_run.PendingCardPackOffer?.RewardPackIndex == packIndex)
+                _run.PendingCardPackOffer = null;
+
+            entry.Skipped = true;
+            TryAdvanceFromRewardPickup();
+            return true;
+        }
+
+        public bool TryOpenRewardCardPack(int packIndex)
+        {
+            var rewards = _run.PendingRewardPickup;
+            if (_run.Phase != ExpeditionPhase.RewardPickup || rewards == null || !rewards.HasCardPacks)
+                return false;
+
+            if (packIndex < 0 || packIndex >= rewards.CardPacks.Count)
+                return false;
+
+            var entry = rewards.CardPacks[packIndex];
+            if (entry.IsResolved || !CardPackIds.IsValid(entry.PackId))
+                return false;
+
+            if (_run.PendingCardPackOffer != null || _run.PendingCardOffer != null)
+                return false;
+
+            var choices = CardPackRoller.RollChoices(entry.PackId, _config, _run, _rng);
+            if (choices.Count == 0)
+            {
+                entry.Skipped = true;
+                TryAdvanceFromRewardPickup();
+                return false;
+            }
+
+            _run.PendingCardPackOffer = new ExpeditionPendingCardPackOffer
+            {
+                PackId = entry.PackId,
+                Context = ExpeditionCardOfferContext.RewardPickup,
+                RewardPackIndex = packIndex
+            };
+            _run.PendingCardPackOffer.Choices.AddRange(choices);
+            return true;
+        }
+
+        public bool TryPickCardFromPack(int choiceIndex)
+        {
+            var packOffer = _run.PendingCardPackOffer;
+            if (packOffer == null || choiceIndex < 0 || choiceIndex >= packOffer.Choices.Count)
+                return false;
+
+            if (_run.PendingCardOffer != null)
+                return false;
+
+            var choice = packOffer.Choices[choiceIndex];
+            if (choice?.Template == null)
+                return false;
+
+            if (!TryFindPartyMember(choice.OwnerCharacterId, out var member) && _run.Party.Count > 0)
+                member = _run.Party[0];
+
+            if (member == null)
+                return false;
+
+            var offerContext = packOffer.Context == ExpeditionCardOfferContext.Shop
+                ? ExpeditionCardOfferContext.Shop
+                : ExpeditionCardOfferContext.CardPack;
+
+            var result = ExpeditionRunDeckRules.TryOfferCard(
+                _config,
+                _run,
+                member,
+                choice.Template,
+                offerContext,
+                RecordRunAcquisition);
+
+            if (result == CardGrantResult.Failed)
+            {
+                TrySkipCardPack();
+                return false;
+            }
+
+            if (result == CardGrantResult.PendingReplace)
+            {
+                _run.PendingCardOffer = new ExpeditionPendingCardOffer
+                {
+                    OwnerCharacterId = member.CharacterDefinitionId,
+                    Template = ExpeditionBattleConfigBuilder.CloneTemplate(choice.Template),
+                    Context = ExpeditionCardOfferContext.CardPack,
+                    SourceRewardPackIndex = packOffer.RewardPackIndex,
+                    SourceShopSlotIndex = packOffer.ShopSlotIndex,
+                    SourcePackId = packOffer.PackId
+                };
+                ExpeditionBattleConfigBuilder.HydrateTemplateFromCatalog(
+                    _run.PendingCardOffer.Template,
+                    _config.PlayerCardCatalog);
+                return true;
+            }
+
+            CompleteCardPackOffer(claimed: true);
+            return true;
+        }
+
+        public bool TrySkipCardPack()
+        {
+            if (_run.PendingCardPackOffer == null)
+                return false;
+
+            CompleteCardPackOffer(claimed: false);
+            return true;
+        }
+
+        void CompleteCardPackOffer(bool claimed)
+        {
+            var packOffer = _run.PendingCardPackOffer;
+            if (packOffer == null)
+                return;
+
+            if (packOffer.RewardPackIndex >= 0
+                && _run.PendingRewardPickup != null
+                && packOffer.RewardPackIndex < _run.PendingRewardPickup.CardPacks.Count)
+            {
+                var entry = _run.PendingRewardPickup.CardPacks[packOffer.RewardPackIndex];
+                if (claimed)
+                    entry.Claimed = true;
+                else
+                    entry.Skipped = true;
+            }
+
+            _run.PendingCardPackOffer = null;
+            _run.LastEventMessage = claimed
+                ? $"已从{CardPackIds.GetDisplayName(packOffer.PackId)}加入卡牌。"
+                : $"已放弃{CardPackIds.GetDisplayName(packOffer.PackId)}。";
+
+            if (packOffer.Context == ExpeditionCardOfferContext.RewardPickup)
+                TryAdvanceFromRewardPickup();
+        }
+
         public bool TryClaimRewardConsumable()
         {
             var rewards = _run.PendingRewardPickup;
@@ -675,6 +837,14 @@ namespace Grimhand.Expedition
                 TrySkipRewardRelic();
             if (rewards.HasCard && !rewards.CardClaimed && !rewards.CardSkipped)
                 TrySkipRewardCard();
+            if (rewards.HasCardPacks)
+            {
+                for (var i = 0; i < rewards.CardPacks.Count; i++)
+                {
+                    if (!rewards.CardPacks[i].IsResolved)
+                        TrySkipRewardCardPack(i);
+                }
+            }
             if (rewards.HasConsumable && !rewards.ConsumableClaimed && !rewards.ConsumableSkipped)
                 TrySkipRewardConsumable();
             if (rewards.HasStatBonus && !rewards.StatClaimed && !rewards.StatSkipped)
@@ -1136,13 +1306,30 @@ namespace Grimhand.Expedition
 
             var cardName = offer.Template.DisplayName;
             var context = offer.Context;
+            var sourceRewardPackIndex = offer.SourceRewardPackIndex;
+            var sourceShopSlotIndex = offer.SourceShopSlotIndex;
+            var sourcePackId = offer.SourcePackId;
             _run.PendingCardOffer = null;
             RecordRunAcquisition($"获得卡牌：{cardName}（{member.DisplayName}）");
 
-            if (context == ExpeditionCardOfferContext.RewardPickup && _run.PendingRewardPickup != null)
+            if (context == ExpeditionCardOfferContext.CardPack)
+            {
+                if (sourceRewardPackIndex >= 0
+                    && _run.PendingRewardPickup != null
+                    && sourceRewardPackIndex < _run.PendingRewardPickup.CardPacks.Count)
+                    _run.PendingRewardPickup.CardPacks[sourceRewardPackIndex].Claimed = true;
+
+                _run.PendingCardPackOffer = null;
+                TryAdvanceFromRewardPickup();
+            }
+            else if (context == ExpeditionCardOfferContext.RewardPickup && _run.PendingRewardPickup != null)
             {
                 _run.PendingRewardPickup.CardClaimed = true;
                 TryAdvanceFromRewardPickup();
+            }
+            else if (context == ExpeditionCardOfferContext.Shop)
+            {
+                _run.PendingCardPackOffer = null;
             }
 
             _run.LastEventMessage = $"已将 {cardName} 加入 {member.DisplayName} 的卡组。";
@@ -1155,9 +1342,18 @@ namespace Grimhand.Expedition
                 return false;
 
             var context = _run.PendingCardOffer.Context;
+            var sourceRewardPackIndex = _run.PendingCardOffer.SourceRewardPackIndex;
             _run.PendingCardOffer = null;
 
-            if (context == ExpeditionCardOfferContext.RewardPickup && _run.PendingRewardPickup != null)
+            if (context == ExpeditionCardOfferContext.CardPack && sourceRewardPackIndex >= 0
+                && _run.PendingRewardPickup != null
+                && sourceRewardPackIndex < _run.PendingRewardPickup.CardPacks.Count)
+            {
+                _run.PendingRewardPickup.CardPacks[sourceRewardPackIndex].Skipped = true;
+                _run.PendingCardPackOffer = null;
+                TryAdvanceFromRewardPickup();
+            }
+            else if (context == ExpeditionCardOfferContext.RewardPickup && _run.PendingRewardPickup != null)
             {
                 _run.PendingRewardPickup.CardSkipped = true;
                 TryAdvanceFromRewardPickup();
@@ -1167,9 +1363,31 @@ namespace Grimhand.Expedition
             {
                 ExpeditionCardOfferContext.Shop => "已放弃购买的卡牌。",
                 ExpeditionCardOfferContext.Event => "已放弃获得的卡牌。",
+                ExpeditionCardOfferContext.CardPack => "已放弃卡包中的卡牌。",
                 _ => "已放弃新卡牌。"
             };
             return true;
+        }
+
+        void OpenShopCardPack(int slotIndex, string packId)
+        {
+            if (!CardPackIds.IsValid(packId))
+                return;
+
+            var choices = CardPackRoller.RollChoices(packId, _config, _run, _rng);
+            if (choices.Count == 0)
+            {
+                _run.LastEventMessage = "卡包是空的。";
+                return;
+            }
+
+            _run.PendingCardPackOffer = new ExpeditionPendingCardPackOffer
+            {
+                PackId = packId,
+                Context = ExpeditionCardOfferContext.Shop,
+                ShopSlotIndex = slotIndex
+            };
+            _run.PendingCardPackOffer.Choices.AddRange(choices);
         }
 
         public bool TryBuyShopOffer(int slotIndex)
@@ -1190,7 +1408,7 @@ namespace Grimhand.Expedition
                 return false;
             }
 
-            if (!TryFulfillShopOffer(offer, out var message))
+            if (!TryFulfillShopOffer(slotIndex, offer, out var message))
             {
                 _run.LastEventMessage = message;
                 return false;
@@ -1207,6 +1425,12 @@ namespace Grimhand.Expedition
             if (_run.Phase != ExpeditionPhase.ShopVisit)
                 return false;
 
+            if (_run.PendingCardPackOffer != null || _run.PendingCardOffer != null)
+            {
+                _run.LastEventMessage = "请先处理当前卡包。";
+                return false;
+            }
+
             var cost = _run.Shop.NextRefreshCost;
             if (_run.Gold < cost)
             {
@@ -1220,49 +1444,27 @@ namespace Grimhand.Expedition
             return true;
         }
 
-        bool TryFulfillShopOffer(ShopOffer offer, out string message)
+        bool TryFulfillShopOffer(int slotIndex, ShopOffer offer, out string message)
         {
             message = "";
             switch (offer.Kind)
             {
-                case ShopOfferKind.Card:
+                case ShopOfferKind.CardPack:
                 {
-                    var template = BuildCardTemplateForGrant(
-                        offer.CardOwnerCharacterId,
-                        offer.CardDefinitionId,
-                        offer.CardDisplayName);
-                    if (template == null)
+                    if (!CardPackIds.IsValid(offer.CardPackId))
                     {
-                        message = "无法加入该卡牌。";
+                        message = "无法购买该卡包。";
                         return false;
                     }
 
-                    if (!TryFindPartyMember(offer.CardOwnerCharacterId, out var member) && _run.Party.Count > 0)
-                        member = _run.Party[0];
-
-                    if (member == null)
+                    if (_run.PendingCardPackOffer != null || _run.PendingCardOffer != null)
                     {
-                        message = "无法加入该卡牌。";
+                        message = "请先处理当前卡包。";
                         return false;
                     }
 
-                    var result = ExpeditionRunDeckRules.TryOfferCard(
-                        _config,
-                        _run,
-                        member,
-                        template,
-                        ExpeditionCardOfferContext.Shop,
-                        RecordRunAcquisition);
-
-                    if (result == CardGrantResult.Failed)
-                    {
-                        message = "无法加入该卡牌。";
-                        return false;
-                    }
-
-                    message = result == CardGrantResult.PendingReplace
-                        ? $"购买卡牌：{offer.CardDisplayName}（卡组已满，请选择要替换的卡牌）"
-                        : $"购买卡牌：{offer.CardDisplayName}（-{offer.Price} 金币）";
+                    OpenShopCardPack(slotIndex, offer.CardPackId);
+                    message = $"购买{CardPackIds.GetDisplayName(offer.CardPackId)}（-{offer.Price} 金币）";
                     return true;
                 }
 
@@ -1336,6 +1538,7 @@ namespace Grimhand.Expedition
             var offerId = _run.PendingConsumableOfferId;
             _run.PendingConsumableOfferId = "";
             _run.PendingCardOffer = null;
+            _run.PendingCardPackOffer = null;
 
             var rewards = _run.PendingRewardPickup;
             if (rewards == null || !rewards.HasConsumable || rewards.ConsumableId != offerId)
@@ -1520,6 +1723,9 @@ namespace Grimhand.Expedition
             if (_run.PendingCardOffer != null)
                 return;
 
+            if (_run.PendingCardPackOffer != null)
+                return;
+
             var kind = rewards?.Kind ?? RewardPickupKind.EventOrShrine;
             _run.PendingRewardPickup = null;
 
@@ -1674,6 +1880,7 @@ namespace Grimhand.Expedition
             }
 
             var seed = _rng.NextInt(1, int.MaxValue);
+            ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
             var config = ExpeditionBattleConfigBuilder.BuildEncounter(
                 template,
                 _run.Party,
@@ -1757,6 +1964,7 @@ namespace Grimhand.Expedition
             }
 
             var seed = _rng.NextInt(1, int.MaxValue);
+            ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
             var config = ExpeditionBattleConfigBuilder.BuildEncounter(
                 template,
                 _run.Party,

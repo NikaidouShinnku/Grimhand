@@ -31,6 +31,7 @@ namespace Grimhand.Expedition
         public List<string> RunAcquisitionLog { get; } = new();
         public string PendingConsumableOfferId { get; set; } = "";
         public ExpeditionPendingCardOffer PendingCardOffer { get; set; }
+        public ExpeditionPendingCardPackOffer PendingCardPackOffer { get; set; }
         public ExpeditionCardAltarState CardAltar { get; set; }
         /// <summary>开局时军营收藏的卡牌 ID（memberId → 10 张）；祭坛只读此快照，避免战后 party 快照丢字段。</summary>
         public Dictionary<string, List<string>> RunStartCampDecks { get; } = new();

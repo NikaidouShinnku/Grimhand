@@ -416,7 +416,7 @@ namespace Grimhand.Expedition
             cc.StartHp = member.Hp <= 0 ? 1 : member.Hp;
 
             var stats = CharacterProgression.GetStatsForCharacter(member.CharacterDefinitionId, cc.Level);
-            cc.MaxHp = stats.MaxHp;
+            cc.MaxHp = System.Math.Max(1, member.MaxHp > 0 ? member.MaxHp : stats.MaxHp);
             cc.BaseAttack = member.PersonalAttackBonus;
             cc.BaseDefense = 0;
             cc.Speed = stats.Speed + member.PersonalSpeedBonus;
@@ -509,6 +509,11 @@ namespace Grimhand.Expedition
 
             foreach (var index in existing.ExtractedCampCardIndices)
                 snap.ExtractedCampCardIndices.Add(index);
+
+            snap.AltarMaxHpBonus = existing.AltarMaxHpBonus;
+            snap.MaxHpPenalty = existing.MaxHpPenalty;
+            snap.AltarSpeedUpgrades = existing.AltarSpeedUpgrades;
+            snap.PersonalSpeedBonus = existing.PersonalSpeedBonus;
         }
 
         static PartyMemberSnapshot CloneExpeditionMember(PartyMemberSnapshot existing)
@@ -522,6 +527,9 @@ namespace Grimhand.Expedition
                 Hp = existing.Hp,
                 MaxHp = existing.MaxHp,
                 MaxHpPenalty = existing.MaxHpPenalty,
+                AltarMaxHpBonus = existing.AltarMaxHpBonus,
+                AltarSpeedUpgrades = existing.AltarSpeedUpgrades,
+                PersonalSpeedBonus = existing.PersonalSpeedBonus,
                 PersonalAttackBonus = existing.PersonalAttackBonus,
                 SelectedTalentSlot1Id = existing.SelectedTalentSlot1Id,
                 SelectedTalentSlot2Id = existing.SelectedTalentSlot2Id

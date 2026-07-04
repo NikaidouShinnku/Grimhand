@@ -5,13 +5,13 @@ namespace Grimhand.Expedition.Shop
     public sealed class ExpeditionShopState
     {
         public const int SlotCount = 6;
-        public const int BaseRefreshCost = 20;
+        public const int RefreshCostIncrement = 20;
 
         public List<ShopOffer> Offers { get; } = new();
         public int RefreshCount { get; set; }
 
-        public int NextRefreshCost =>
-            BaseRefreshCost * (1 << RefreshCount);
+        /// <summary>第一次刷新 0 金币，之后每次 +20。</summary>
+        public int NextRefreshCost => RefreshCount * RefreshCostIncrement;
 
         public bool IsOpen => Offers.Count > 0;
 

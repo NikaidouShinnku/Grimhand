@@ -2,7 +2,7 @@ namespace Grimhand.Expedition.Shop
 {
     public enum ShopOfferKind
     {
-        Card,
+        CardPack,
         Consumable,
         Relic
     }

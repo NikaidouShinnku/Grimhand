@@ -13,9 +13,13 @@ namespace Grimhand.Expedition
         public static ExpeditionRewardPickup RollVictoryRewards(
             ExpeditionConfig config,
             ExpeditionRunState run,
-            BattleRng rng)
+            BattleRng rng,
+            int floor,
+            bool isElite,
+            bool isBoss)
         {
-            var gold = ExpeditionEconomy.RollVictoryGold(config, rng);
+            var profile = CombatRewardRules.GetProfile(floor, isElite, isBoss);
+            var gold = CombatRewardRules.RollGold(rng, floor, isElite, isBoss);
             gold = ApplyGoldRelicBonus(gold, run.Relics, run.RelicGrowthTiers);
 
             var rewards = new ExpeditionRewardPickup
@@ -25,14 +29,13 @@ namespace Grimhand.Expedition
                 Gold = gold
             };
 
-            if (RollPercent(rng, config.RelicDropChancePercent))
+            if (RollPercent(rng, profile.RelicChancePercent))
                 rewards.RelicId = PickRandomRelicId(run.Relics, run, rng);
 
-            if (RollPercent(rng, config.RelicDropChancePercent))
+            if (RollPercent(rng, profile.ConsumableChancePercent))
                 rewards.ConsumableId = PickRandomConsumableId(rng);
 
-            if (RollPercent(rng, config.CardDropChancePercent))
-                TryRollCardReward(rewards, run, config, rng);
+            RollCardPacks(rewards, profile, rng);
 
             return rewards;
         }
@@ -54,7 +57,13 @@ namespace Grimhand.Expedition
                 Gold = gold
             };
 
-            RollChestPrimaryReward(reward, config, run, rng);
+            reward.CardPacks.Add(new CardPackRewardEntry { PackId = CardPackIds.Common });
+
+            var relicChance = config.TreasureRelicChancePercent > 0
+                ? config.TreasureRelicChancePercent
+                : 15;
+            if (RollPercent(rng, relicChance))
+                TryAssignRelicReward(reward, run, rng);
 
             var consumableChance = config.TreasureConsumableChancePercent > 0
                 ? config.TreasureConsumableChancePercent
@@ -65,28 +74,16 @@ namespace Grimhand.Expedition
             return reward;
         }
 
-        static void RollChestPrimaryReward(
-            ExpeditionRewardPickup reward,
-            ExpeditionConfig config,
-            ExpeditionRunState run,
-            BattleRng rng)
+        static void RollCardPacks(ExpeditionRewardPickup rewards, CombatRewardProfile profile, BattleRng rng)
         {
-            var cardChance = config.TreasureCardChancePercent > 0
-                ? config.TreasureCardChancePercent
-                : 60;
+            if (RollPercent(rng, profile.CommonPackChancePercent))
+                rewards.CardPacks.Add(new CardPackRewardEntry { PackId = CardPackIds.Common });
 
-            if (RollPercent(rng, cardChance))
-            {
-                TryRollCardReward(reward, run, config, rng);
-                if (!reward.HasCard)
-                    TryAssignRelicReward(reward, run, rng);
-            }
-            else
-            {
-                TryAssignRelicReward(reward, run, rng);
-                if (!reward.HasRelic)
-                    TryRollCardReward(reward, run, config, rng);
-            }
+            if (RollPercent(rng, profile.AdvancedPackChancePercent))
+                rewards.CardPacks.Add(new CardPackRewardEntry { PackId = CardPackIds.Advanced });
+
+            if (RollPercent(rng, profile.MasterPackChancePercent))
+                rewards.CardPacks.Add(new CardPackRewardEntry { PackId = CardPackIds.Master });
         }
 
         static void TryAssignRelicReward(ExpeditionRewardPickup reward, ExpeditionRunState run, BattleRng rng)
@@ -164,73 +161,6 @@ namespace Grimhand.Expedition
                 return "";
 
             return pool[rng.NextIndex(pool.Count)];
-        }
-
-        static void TryRollCardReward(
-            ExpeditionRewardPickup rewards,
-            ExpeditionRunState run,
-            ExpeditionConfig config,
-            BattleRng rng)
-        {
-            if (run.Party == null || run.Party.Count == 0 || config.CombatEncounters.Count == 0)
-                return;
-
-            var templates = CollectRewardCardTemplates(config);
-            if (templates.Count == 0)
-                return;
-
-            var member = run.Party[rng.NextIndex(run.Party.Count)];
-            CardTemplate picked = null;
-
-            var owned = new List<CardTemplate>();
-            foreach (var m in run.Party)
-                owned.AddRange(m.BonusCards);
-
-            var partyIds = new HashSet<string>();
-            foreach (var m in run.Party)
-            {
-                if (!string.IsNullOrEmpty(m?.CharacterDefinitionId))
-                    partyIds.Add(m.CharacterDefinitionId);
-            }
-
-            var eligibleTemplates = new List<CardTemplate>();
-            foreach (var template in templates)
-            {
-                if (partyIds.Contains(template.OwnerCharacterId))
-                    eligibleTemplates.Add(template);
-            }
-
-            if (eligibleTemplates.Count == 0)
-                return;
-
-            for (var attempt = 0; attempt < 12; attempt++)
-            {
-                var candidate = eligibleTemplates[rng.NextIndex(eligibleTemplates.Count)];
-                if (IsDuplicateOwned(candidate, owned))
-                    continue;
-
-                picked = candidate;
-                break;
-            }
-
-            picked ??= eligibleTemplates[rng.NextIndex(eligibleTemplates.Count)];
-            rewards.CardDefinitionId = picked.DefinitionId;
-            rewards.CardOwnerCharacterId = picked.OwnerCharacterId;
-            rewards.CardDisplayName = picked.DisplayName;
-        }
-
-        static List<CardTemplate> CollectRewardCardTemplates(ExpeditionConfig config) =>
-            ExpeditionCardPool.CollectPlayerCardTemplates(config);
-
-        static bool IsDuplicateOwned(CardTemplate candidate, IReadOnlyList<CardTemplate> owned)
-        {
-            foreach (var card in owned)
-            {
-                if (card.DefinitionId == candidate.DefinitionId)
-                    return true;
-            }
-
-            return false;
         }
 
         static bool OwnsRelic(IReadOnlyList<string> owned, string relicId)

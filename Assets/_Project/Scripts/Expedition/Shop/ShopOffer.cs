@@ -1,4 +1,5 @@
 using Grimhand.Battle.Model;
+using Grimhand.Expedition;
 
 namespace Grimhand.Expedition.Shop
 {
@@ -8,10 +9,7 @@ namespace Grimhand.Expedition.Shop
         public int Price { get; set; }
         public bool Sold { get; set; }
 
-        public string CardDefinitionId { get; set; } = "";
-        public string CardOwnerCharacterId { get; set; } = "";
-        public string CardDisplayName { get; set; } = "";
-        public CardRarity CardRarity { get; set; } = CardRarity.Common;
+        public string CardPackId { get; set; } = "";
 
         public string ConsumableId { get; set; } = "";
         public string ConsumableDisplayName { get; set; } = "";
@@ -23,7 +21,7 @@ namespace Grimhand.Expedition.Shop
         public string DisplayLabel =>
             Kind switch
             {
-                ShopOfferKind.Card => CardDisplayName,
+                ShopOfferKind.CardPack => CardPackIds.GetDisplayName(CardPackId),
                 ShopOfferKind.Consumable => ConsumableDisplayName,
                 ShopOfferKind.Relic => RelicDisplayName,
                 _ => ""

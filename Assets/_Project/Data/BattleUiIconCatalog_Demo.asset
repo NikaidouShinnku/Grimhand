@@ -37,6 +37,9 @@ MonoBehaviour:
   TalentRunePlate: {fileID: 3640283115439223827, guid: 24a2f5fd444af0844b332a37a382e580, type: 3}
   TreasureChestClosed: {fileID: -7219296677170973702, guid: a869e9d4f75b44e40bd0a5bba6b0122e, type: 3}
   TreasureChestOpen: {fileID: 4853945434919486788, guid: 5bc009981bcff9d4cb2419a05e08ffe0, type: 3}
+  CardPackCommon: {fileID: -1519921318013341297, guid: f9c629a5861cd3840af134456581a6af, type: 3}
+  CardPackAdvanced: {fileID: 7870305510674209257, guid: 363591c490d1a994bb0d37ff7494d241, type: 3}
+  CardPackMaster: {fileID: 1098162604486348374, guid: 83eec4659098dca4e81ce7f8642f5ce1, type: 3}
   CavePathVariants:
   - {fileID: -1454770268901060879, guid: d74fa96289368f64ead4a2ca6985e497, type: 3}
   - {fileID: -8336492127322243437, guid: 46ba8011886997b4faedacbc1dccfa5d, type: 3}

@@ -1,7 +1,5 @@
 using System.Collections.Generic;
-using Grimhand.Battle;
 using Grimhand.Battle.Consumables;
-using Grimhand.Battle.Model;
 using Grimhand.Core;
 using Grimhand.Expedition.Model;
 
@@ -9,15 +7,12 @@ namespace Grimhand.Expedition.Shop
 {
     public static class ExpeditionShopRoller
     {
-        static readonly ShopOfferKind[] DefaultLayout =
-        {
-            ShopOfferKind.Card,
-            ShopOfferKind.Card,
-            ShopOfferKind.Card,
-            ShopOfferKind.Consumable,
-            ShopOfferKind.Consumable,
-            ShopOfferKind.Relic
-        };
+        const int CommonPackSlot = 0;
+        const int AdvancedPackSlot = 1;
+        const int RelicSlotA = 2;
+        const int RelicSlotB = 3;
+        const int ConsumableSlotA = 4;
+        const int ConsumableSlotB = 5;
 
         public static void OpenShop(
             ExpeditionShopState shop,
@@ -26,7 +21,8 @@ namespace Grimhand.Expedition.Shop
             BattleRng rng)
         {
             shop.Clear();
-            RollStock(shop, config, run, rng, DefaultLayout);
+            EnsureOfferSlots(shop);
+            RollAllSlots(shop, config, run, rng, isRefresh: false);
         }
 
         public static void RefreshStock(
@@ -35,101 +31,107 @@ namespace Grimhand.Expedition.Shop
             ExpeditionRunState run,
             BattleRng rng)
         {
-            shop.Offers.Clear();
-            RollStock(shop, config, run, rng, DefaultLayout);
+            EnsureOfferSlots(shop);
+            RollUnsoldSlots(shop, config, run, rng);
             shop.RefreshCount++;
         }
 
-        static void RollStock(
+        static void EnsureOfferSlots(ExpeditionShopState shop)
+        {
+            while (shop.Offers.Count < ExpeditionShopState.SlotCount)
+                shop.Offers.Add(new ShopOffer());
+
+            if (shop.Offers.Count > ExpeditionShopState.SlotCount)
+                shop.Offers.RemoveRange(ExpeditionShopState.SlotCount, shop.Offers.Count - ExpeditionShopState.SlotCount);
+        }
+
+        static void RollAllSlots(
             ExpeditionShopState shop,
             ExpeditionConfig config,
             ExpeditionRunState run,
             BattleRng rng,
-            ShopOfferKind[] layout)
+            bool isRefresh)
         {
-            var kinds = (ShopOfferKind[])layout.Clone();
-            ShuffleKinds(kinds, rng);
-
-            foreach (var kind in kinds)
-            {
-                var offer = kind switch
-                {
-                    ShopOfferKind.Card => RollCardOffer(config, run, rng),
-                    ShopOfferKind.Consumable => RollConsumableOffer(rng),
-                    ShopOfferKind.Relic => RollRelicOffer(run, rng),
-                    _ => null
-                };
-
-                if (offer != null)
-                    shop.Offers.Add(offer);
-            }
-
-            while (shop.Offers.Count < ExpeditionShopState.SlotCount)
-            {
-                var fallback = RollConsumableOffer(rng) ?? RollCardOffer(config, run, rng);
-                if (fallback == null)
-                    break;
-
-                shop.Offers.Add(fallback);
-            }
+            for (var i = 0; i < ExpeditionShopState.SlotCount; i++)
+                RollSlot(shop, i, config, run, rng, isRefresh);
         }
 
-        static ShopOffer RollCardOffer(ExpeditionConfig config, ExpeditionRunState run, BattleRng rng)
+        static void RollUnsoldSlots(
+            ExpeditionShopState shop,
+            ExpeditionConfig config,
+            ExpeditionRunState run,
+            BattleRng rng)
         {
-            var templates = CollectShopCardTemplates(config);
-            if (templates.Count == 0 || run.Party == null || run.Party.Count == 0)
-                return null;
-
-            var member = run.Party[rng.NextIndex(run.Party.Count)];
-            CardTemplate picked = null;
-
-            for (var attempt = 0; attempt < 16; attempt++)
+            for (var i = 0; i < ExpeditionShopState.SlotCount; i++)
             {
-                var candidate = templates[rng.NextIndex(templates.Count)];
-                if (IsDuplicateOwned(candidate, run))
+                if (shop.Offers[i].Sold)
                     continue;
 
-                picked = candidate;
-                break;
+                RollSlot(shop, i, config, run, rng, isRefresh: true);
             }
-
-            picked ??= templates[rng.NextIndex(templates.Count)];
-            var rarity = CardRarityTable.GetOrDefault(picked.DefinitionId);
-
-            return new ShopOffer
-            {
-                Kind = ShopOfferKind.Card,
-                CardDefinitionId = picked.DefinitionId,
-                CardDisplayName = picked.DisplayName,
-                CardOwnerCharacterId = string.IsNullOrEmpty(picked.OwnerCharacterId)
-                    ? member.CharacterDefinitionId
-                    : picked.OwnerCharacterId,
-                CardRarity = rarity,
-                Price = ExpeditionShopPricing.RollCardPrice(rarity, rng)
-            };
         }
 
-        static ShopOffer RollConsumableOffer(BattleRng rng)
+        static void RollSlot(
+            ExpeditionShopState shop,
+            int slotIndex,
+            ExpeditionConfig config,
+            ExpeditionRunState run,
+            BattleRng rng,
+            bool isRefresh)
+        {
+            var offer = shop.Offers[slotIndex];
+            offer.Sold = false;
+
+            switch (slotIndex)
+            {
+                case CommonPackSlot:
+                    offer.Kind = ShopOfferKind.CardPack;
+                    offer.CardPackId = CardPackIds.Common;
+                    offer.Price = ExpeditionShopPricing.CommonPackPrice;
+                    break;
+                case AdvancedPackSlot:
+                    offer.Kind = ShopOfferKind.CardPack;
+                    offer.CardPackId = isRefresh && rng.NextIndex(100) < 10
+                        ? CardPackIds.Master
+                        : CardPackIds.Advanced;
+                    offer.Price = offer.CardPackId == CardPackIds.Master
+                        ? ExpeditionShopPricing.MasterPackPrice
+                        : ExpeditionShopPricing.AdvancedPackPrice;
+                    break;
+                case RelicSlotA:
+                case RelicSlotB:
+                    RollRelicOffer(offer, run, rng);
+                    break;
+                default:
+                    RollConsumableOffer(offer, rng);
+                    break;
+            }
+        }
+
+        static void RollConsumableOffer(ShopOffer offer, BattleRng rng)
         {
             var pool = new List<string>();
             ConsumableDatabase.CollectRewardPoolIds(pool);
 
             if (pool.Count == 0)
-                return null;
+            {
+                offer.Kind = ShopOfferKind.Consumable;
+                offer.ConsumableId = "";
+                offer.ConsumableDisplayName = "";
+                offer.Price = ExpeditionShopPricing.RollConsumablePrice(rng);
+                return;
+            }
 
             var id = pool[rng.NextIndex(pool.Count)];
             ConsumableDatabase.TryGet(id, out var def);
 
-            return new ShopOffer
-            {
-                Kind = ShopOfferKind.Consumable,
-                ConsumableId = id,
-                ConsumableDisplayName = def?.DisplayName ?? id,
-                Price = ExpeditionShopPricing.RollConsumablePrice(rng)
-            };
+            offer.Kind = ShopOfferKind.Consumable;
+            offer.ConsumableId = id;
+            offer.ConsumableDisplayName = def?.DisplayName ?? id;
+            offer.Price = ExpeditionShopPricing.RollConsumablePrice(rng);
         }
 
-        static ShopOffer RollRelicOffer(ExpeditionRunState run, BattleRng rng)
+        static void RollRelicOffer(ShopOffer offer, ExpeditionRunState run, BattleRng rng)
         {
             var pool = new List<RelicDefinition>();
             foreach (var relic in RelicDatabase.All)
@@ -147,43 +149,17 @@ namespace Grimhand.Expedition.Shop
             }
 
             if (pool.Count == 0)
-                return RollConsumableOffer(rng);
+            {
+                RollConsumableOffer(offer, rng);
+                return;
+            }
 
             var picked = pool[rng.NextIndex(pool.Count)];
-            return new ShopOffer
-            {
-                Kind = ShopOfferKind.Relic,
-                RelicId = picked.Id,
-                RelicDisplayName = picked.DisplayName,
-                RelicRarity = picked.Rarity,
-                Price = ExpeditionShopPricing.RollRelicPrice(picked.Rarity, rng)
-            };
-        }
-
-        static List<CardTemplate> CollectShopCardTemplates(ExpeditionConfig config) =>
-            ExpeditionCardPool.CollectPlayerCardTemplates(config);
-
-        static bool IsDuplicateOwned(CardTemplate candidate, ExpeditionRunState run)
-        {
-            foreach (var member in run.Party)
-            {
-                foreach (var owned in member.BonusCards)
-                {
-                    if (owned.DefinitionId == candidate.DefinitionId)
-                        return true;
-                }
-            }
-
-            return false;
-        }
-
-        static void ShuffleKinds(ShopOfferKind[] kinds, BattleRng rng)
-        {
-            for (var i = kinds.Length - 1; i > 0; i--)
-            {
-                var j = rng.NextIndex(i + 1);
-                (kinds[i], kinds[j]) = (kinds[j], kinds[i]);
-            }
+            offer.Kind = ShopOfferKind.Relic;
+            offer.RelicId = picked.Id;
+            offer.RelicDisplayName = picked.DisplayName;
+            offer.RelicRarity = picked.Rarity;
+            offer.Price = ExpeditionShopPricing.RollRelicPrice(rng);
         }
     }
 }

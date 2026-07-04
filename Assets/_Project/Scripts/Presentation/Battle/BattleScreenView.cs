@@ -57,6 +57,7 @@ namespace Grimhand.Presentation.Battle
         BattleInventoryPanelView _inventoryPanel;
         ConsumableReplaceOverlayView _consumableReplaceOverlay;
         CardDeckReplaceOverlayView _cardDeckReplaceOverlay;
+        CardPackPickOverlayView _cardPackPickOverlay;
         ExpeditionAltarOverlayView _altarOverlay;
         ConsumableVisualCatalogSO _consumableCatalog;
         BattleTurnDetailPanelView _turnDetailPanel;
@@ -448,6 +449,19 @@ namespace Grimhand.Presentation.Battle
                     _catalog,
                     _characterVisuals,
                     _uiIcons,
+                    _definitions);
+            }
+
+            if (_cardPackPickOverlay == null)
+            {
+                _cardPackPickOverlay = gameObject.AddComponent<CardPackPickOverlayView>();
+                _cardPackPickOverlay.Initialize(
+                    _session,
+                    transform,
+                    _uiIcons,
+                    handPanel?.CardPrefab,
+                    _catalog,
+                    _characterVisuals,
                     _definitions);
             }
 
@@ -924,6 +938,7 @@ namespace Grimhand.Presentation.Battle
             }
 
             _cardDeckReplaceOverlay?.Refresh();
+            _cardPackPickOverlay?.Refresh();
             _altarOverlay?.Refresh();
 
             RefreshPlanningChromeVisibility();

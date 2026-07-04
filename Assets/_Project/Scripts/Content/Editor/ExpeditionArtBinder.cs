@@ -42,6 +42,9 @@ namespace Grimhand.Content.Editor
             catalog.NoteIcon = LoadSprite(NoteIconPath);
             catalog.TreasureChestClosed = LoadSprite("Assets/The Grimhands Asset/icon/treasure_chest_closed.png");
             catalog.TreasureChestOpen = LoadSprite("Assets/The Grimhands Asset/icon/treasure_chest_open.png");
+            catalog.CardPackCommon = LoadSprite("Assets/The Grimhands Asset/card/cardpack_common.png");
+            catalog.CardPackAdvanced = LoadSprite("Assets/The Grimhands Asset/card/cardpack_advanced.png");
+            catalog.CardPackMaster = LoadSprite("Assets/The Grimhands Asset/card/cardpack_master.png");
 
             var paths = new Sprite[CavePathAssetPaths.Length];
             for (var i = 0; i < CavePathAssetPaths.Length; i++)

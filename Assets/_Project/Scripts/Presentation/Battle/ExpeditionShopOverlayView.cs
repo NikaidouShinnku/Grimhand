@@ -71,7 +71,8 @@ namespace Grimhand.Presentation.Battle
                 return;
             }
 
-            var show = _session.Expedition.Run.Phase == ExpeditionPhase.ShopVisit;
+            var show = _session.Expedition.Run.Phase == ExpeditionPhase.ShopVisit
+                       && _session.Expedition.Run.PendingCardPackOffer == null;
             SetVisible(show);
             if (!show)
                 return;
@@ -88,7 +89,7 @@ namespace Grimhand.Presentation.Battle
             _titleText.text = "流浪商人";
             _goldText.text = $"金币：{run.Gold}";
             _messageText.text = string.IsNullOrEmpty(run.LastEventMessage)
-                ? "点击商品购买，或使用刷新更换全部货品。"
+                ? "点击商品购买；刷新仅更换未售出的栏位（首次刷新免费）。"
                 : run.LastEventMessage;
 
             var refreshCost = run.Shop.NextRefreshCost;
@@ -152,8 +153,8 @@ namespace Grimhand.Presentation.Battle
 
             switch (offer.Kind)
             {
-                case ShopOfferKind.Card:
-                    BuildCardPreview(contentRoot, offer, cardScale);
+                case ShopOfferKind.CardPack:
+                    BuildCardPackPreview(contentRoot, offer);
                     break;
                 case ShopOfferKind.Relic:
                     BuildRelicPreview(contentRoot, offer);
@@ -168,7 +169,9 @@ namespace Grimhand.Presentation.Battle
             priceText.text = offer.Sold ? "已售出" : $"{offer.Price} 金币";
 
             var btn = slotGo.GetComponent<Button>();
-            var canBuy = !offer.Sold && gold >= offer.Price;
+            var canBuy = !offer.Sold && gold >= offer.Price
+                         && _session.Expedition.Run.PendingCardPackOffer == null
+                         && _session.Expedition.Run.PendingCardOffer == null;
             btn.interactable = canBuy;
             var slotIndex = index;
             btn.onClick.AddListener(() => _session.BuyShopOffer(slotIndex));
@@ -189,18 +192,13 @@ namespace Grimhand.Presentation.Battle
 
             switch (offer.Kind)
             {
-                case ShopOfferKind.Card:
-                {
-                    _definitions.TryGetValue(offer.CardDefinitionId, out var definition);
-                    var preview = CardVisualResolver.CreatePreviewInstance(
-                        offer.CardDefinitionId,
-                        offer.CardOwnerCharacterId,
-                        offer.CardDisplayName,
-                        definition);
-                    var keywords = BattleUiFormatters.BuildCardKeywordTooltip(null, preview, _definitions);
-                    _tooltip.BindHover(slotGo, offer.CardDisplayName, keywords, showTitle: false);
+                case ShopOfferKind.CardPack:
+                    _tooltip.BindHover(
+                        slotGo,
+                        CardPackIds.GetDisplayName(offer.CardPackId),
+                        "购买后开启三选一，选一张加入卡组或放弃。",
+                        showTitle: true);
                     break;
-                }
                 case ShopOfferKind.Relic:
                     if (RelicDatabase.TryGet(offer.RelicId, out var relic))
                         _tooltip.BindHover(slotGo, relic.DisplayName, relic.Description);
@@ -210,47 +208,6 @@ namespace Grimhand.Presentation.Battle
                         _tooltip.BindHover(slotGo, consumable.DisplayName, consumable.Description);
                     break;
             }
-        }
-
-        void BuildCardPreview(RectTransform parent, ShopOffer offer, float cardScale)
-        {
-            if (_cardPrefab == null)
-            {
-                var fallback = CreateText(parent, "Name", Vector2.zero, Vector2.one, 16, TextAnchor.MiddleCenter);
-                fallback.text = offer.CardDisplayName;
-                return;
-            }
-
-            _definitions.TryGetValue(offer.CardDefinitionId, out var definition);
-            var preview = CardVisualResolver.CreatePreviewInstance(
-                offer.CardDefinitionId,
-                offer.CardOwnerCharacterId,
-                offer.CardDisplayName,
-                definition);
-            var stats = BattleUiFormatters.BuildCardStatsLinePreview(preview, _definitions);
-
-            var cardView = Instantiate(_cardPrefab, parent);
-            CardView.ApplyHandPresentationScaleCentered(cardView, cardScale);
-
-            var visual = CardVisualResolver.Resolve(preview, _cardCatalog, _characterVisuals, _definitions);
-
-            cardView.BindWithCard(
-                preview,
-                visual,
-                selected: false,
-                polluted: false,
-                interactable: false,
-                orderBadge: "",
-                statsLine: stats,
-                uiIcons: _icons,
-                characterVisuals: _characterVisuals,
-                onClick: null,
-                onHoverEnter: null,
-                onHoverExit: null);
-
-            var cg = cardView.GetComponent<CanvasGroup>();
-            if (cg != null)
-                cg.alpha = 1f;
         }
 
         void BuildRelicPreview(RectTransform parent, ShopOffer offer)
@@ -293,23 +250,32 @@ namespace Grimhand.Presentation.Battle
             name.text = offer.ConsumableDisplayName;
         }
 
+        void BuildCardPackPreview(RectTransform parent, ShopOffer offer)
+        {
+            var iconGo = new GameObject("PackIcon", typeof(RectTransform), typeof(Image));
+            iconGo.transform.SetParent(parent, false);
+            var iconRt = iconGo.GetComponent<RectTransform>();
+            iconRt.anchorMin = new Vector2(0.2f, 0.28f);
+            iconRt.anchorMax = new Vector2(0.8f, 0.88f);
+            iconRt.offsetMin = Vector2.zero;
+            iconRt.offsetMax = Vector2.zero;
+            var icon = iconGo.GetComponent<Image>();
+            icon.sprite = CardPackVisuals.GetPackIcon(offer.CardPackId, _icons);
+            icon.preserveAspect = true;
+            icon.color = icon.sprite != null ? Color.white : new Color(0.85f, 0.75f, 0.45f, 1f);
+            icon.raycastTarget = false;
+
+            var name = CreateText(parent, "Name", new Vector2(0.05f, 0f), new Vector2(0.95f, 0.2f), 20, TextAnchor.MiddleCenter);
+            name.text = CardPackIds.GetDisplayName(offer.CardPackId);
+        }
+
         static string OfferKindLabel(ShopOffer offer) =>
             offer.Kind switch
             {
-                ShopOfferKind.Card => $"卡牌 · {RarityLabel(offer.CardRarity)}",
+                ShopOfferKind.CardPack => CardPackIds.GetDisplayName(offer.CardPackId),
                 ShopOfferKind.Relic => $"遗物 · {RelicRarityLabel(offer.RelicRarity)}",
                 ShopOfferKind.Consumable => "消耗品",
                 _ => ""
-            };
-
-        static string RarityLabel(CardRarity rarity) =>
-            rarity switch
-            {
-                CardRarity.Rare => "稀有",
-                CardRarity.Epic => "史诗",
-                CardRarity.SuperRare => "超稀有",
-                CardRarity.Legendary => "传说",
-                _ => "普通"
             };
 
         static string RelicRarityLabel(RelicRarity rarity) =>

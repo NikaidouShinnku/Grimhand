@@ -1,4 +1,5 @@
 using Grimhand.Battle.Model;
+using Grimhand.Core;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 using Grimhand.Expedition.Shop;
@@ -17,7 +18,10 @@ namespace Grimhand.Battle.Tests
 
             Assert.AreEqual(ExpeditionPhase.ShopVisit, engine.Run.Phase);
             Assert.AreEqual(ExpeditionShopState.SlotCount, engine.Run.Shop.Offers.Count);
-            Assert.AreEqual(ExpeditionShopState.BaseRefreshCost, engine.Run.Shop.NextRefreshCost);
+            Assert.AreEqual(0, engine.Run.Shop.NextRefreshCost);
+            Assert.AreEqual(ShopOfferKind.CardPack, engine.Run.Shop.Offers[0].Kind);
+            Assert.AreEqual(CardPackIds.Common, engine.Run.Shop.Offers[0].CardPackId);
+            Assert.AreEqual(ExpeditionShopPricing.CommonPackPrice, engine.Run.Shop.Offers[0].Price);
         }
 
         [Test]
@@ -28,26 +32,36 @@ namespace Grimhand.Battle.Tests
             EnterShop(engine);
             engine.Run.Gold = 500;
 
-            var offer = engine.Run.Shop.Offers[0];
+            var offer = engine.Run.Shop.Offers[4];
+            Assert.AreEqual(ShopOfferKind.Consumable, offer.Kind);
             var price = offer.Price;
-            Assert.IsTrue(engine.TryBuyShopOffer(0));
+            Assert.IsTrue(engine.TryBuyShopOffer(4));
             Assert.IsTrue(offer.Sold);
             Assert.AreEqual(500 - price, engine.Run.Gold);
         }
 
         [Test]
-        public void RefreshShop_DoublesCostAndRerollsAllOffers()
+        public void RefreshShop_IncrementsCostAndRerollsUnsoldOffers()
         {
             var engine = new ExpeditionEngine(BuildConfig());
             engine.StartRun();
             EnterShop(engine);
             engine.Run.Gold = 200;
+            var before = engine.Run.Shop.Offers[4].ConsumableId;
 
             Assert.IsTrue(engine.TryRefreshShop());
-            Assert.AreEqual(40, engine.Run.Shop.NextRefreshCost);
-            Assert.AreEqual(200 - ExpeditionShopState.BaseRefreshCost, engine.Run.Gold);
+            Assert.AreEqual(20, engine.Run.Shop.NextRefreshCost);
+            Assert.AreEqual(200, engine.Run.Gold);
             Assert.AreEqual(1, engine.Run.Shop.RefreshCount);
-            Assert.IsFalse(engine.Run.Shop.Offers[0].Sold);
+
+            engine.Run.Shop.Offers[4].Sold = true;
+            var beforeAdvanced = engine.Run.Shop.Offers[1].CardPackId;
+            Assert.IsTrue(engine.TryRefreshShop());
+            Assert.AreEqual(40, engine.Run.Shop.NextRefreshCost);
+            Assert.AreEqual(180, engine.Run.Gold);
+            Assert.IsFalse(engine.Run.Shop.Offers[4].Sold);
+            Assert.AreNotEqual(before, engine.Run.Shop.Offers[4].ConsumableId);
+            Assert.AreEqual(beforeAdvanced, engine.Run.Shop.Offers[1].CardPackId);
         }
 
         [Test]

@@ -95,18 +95,19 @@ namespace Grimhand.Presentation.Battle
             var offer = _session.Expedition.Run.PendingCardOffer;
             var cardReplaceActive = offer?.Template != null
                                     && offer.Context != ExpeditionCardOfferContext.Altar;
+            var packPickActive = _session.Expedition.Run.PendingCardPackOffer != null;
             if (_root != null)
             {
                 var dim = _root.GetComponent<Image>();
                 if (dim != null)
-                    dim.raycastTarget = !cardReplaceActive;
+                    dim.raycastTarget = !cardReplaceActive && !packPickActive;
             }
 
             var rewards = _session.Expedition.Run.PendingRewardPickup;
             var isChest = phase == ExpeditionPhase.RewardPickup && rewards?.Kind == RewardPickupKind.Chest;
 
             _chestPanel.gameObject.SetActive(isChest);
-            _rewardRow.gameObject.SetActive(phase == ExpeditionPhase.RewardPickup && !isChest);
+            _rewardRow.gameObject.SetActive(phase == ExpeditionPhase.RewardPickup && !isChest && !packPickActive);
             _doorRow.gameObject.SetActive(phase == ExpeditionPhase.RouteSelect);
             if (_skipVictoryButton != null)
             {
@@ -442,6 +443,21 @@ namespace Grimhand.Presentation.Battle
                     () => _session.ClaimRewardCard());
             }
 
+            for (var packIndex = 0; packIndex < rewards.CardPacks.Count; packIndex++)
+            {
+                var pack = rewards.CardPacks[packIndex];
+                if (pack.IsResolved || !CardPackIds.IsValid(pack.PackId))
+                    continue;
+
+                var localIndex = packIndex;
+                AddClaimCardPackReward(
+                    parent,
+                    ref x,
+                    spacing,
+                    pack.PackId,
+                    () => _session.OpenRewardCardPack(localIndex));
+            }
+
             if (rewards.HasConsumable && !rewards.ConsumableClaimed && !rewards.ConsumableSkipped)
             {
                 ConsumableDatabase.TryGet(rewards.ConsumableId, out var consumable);
@@ -477,6 +493,14 @@ namespace Grimhand.Presentation.Battle
                 return true;
             if (rewards.HasCard && !rewards.CardClaimed && !rewards.CardSkipped)
                 return true;
+            if (rewards.HasCardPacks)
+            {
+                foreach (var pack in rewards.CardPacks)
+                {
+                    if (!pack.IsResolved)
+                        return true;
+                }
+            }
             if (rewards.HasConsumable && !rewards.ConsumableClaimed && !rewards.ConsumableSkipped)
                 return true;
             if (rewards.HasStatBonus && !rewards.StatClaimed && !rewards.StatSkipped)
@@ -631,6 +655,17 @@ namespace Grimhand.Presentation.Battle
             var btn = CreateCardRewardButton(container, Vector2.zero, definitionId, ownerCharacterId, displayName, definition, onClaim, cardScale);
             _rewardButtons.Add(btn);
             x += spacing;
+        }
+
+        void AddClaimCardPackReward(
+            Transform parent,
+            ref float x,
+            float spacing,
+            string packId,
+            Action onClaim)
+        {
+            var label = CardPackIds.GetDisplayName(packId);
+            AddRewardButton(parent, ref x, label, CardPackVisuals.GetPackIcon(packId, _icons), onClaim);
         }
 
         static RectTransform CreateRewardContainer(Transform parent, Vector2 pos, bool useChestPanel = false)

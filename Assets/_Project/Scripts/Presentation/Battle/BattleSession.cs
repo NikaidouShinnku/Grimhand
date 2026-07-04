@@ -485,6 +485,45 @@ namespace Grimhand.Presentation.Battle
                 AddLog("请选择前进路线");
             else if (Expedition.Run.Phase == ExpeditionPhase.RewardPickup)
                 AddLog("拾取奖励 — 点击领取或放弃");
+            else if (Expedition.Run.Phase == ExpeditionPhase.ShopVisit)
+                AddLog("流浪商人 — 点击商品购买");
+
+            NotifyChanged();
+            return true;
+        }
+
+        public bool OpenRewardCardPack(int packIndex)
+        {
+            if (Expedition?.TryOpenRewardCardPack(packIndex) != true)
+                return false;
+
+            AddLog($"打开{CardPackIds.GetDisplayName(Expedition.Run.PendingCardPackOffer?.PackId)} — 三选一");
+            NotifyChanged();
+            return true;
+        }
+
+        public bool PickCardFromPack(int choiceIndex)
+        {
+            if (Expedition?.TryPickCardFromPack(choiceIndex) != true)
+                return false;
+
+            if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
+                AddLog(Expedition.Run.LastEventMessage);
+
+            if (!string.IsNullOrEmpty(Expedition.Run.PendingCardOffer?.Template?.DisplayName))
+                AddLog("卡组已满 — 请选择要替换的卡牌");
+
+            NotifyChanged();
+            return true;
+        }
+
+        public bool SkipCardPack()
+        {
+            if (Expedition?.TrySkipCardPack() != true)
+                return false;
+
+            if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
+                AddLog(Expedition.Run.LastEventMessage);
 
             NotifyChanged();
             return true;

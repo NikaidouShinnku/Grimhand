@@ -82,8 +82,8 @@ namespace Grimhand.Expedition
             if (!TrySpendPool(run, cost))
                 return false;
 
-            member.MaxHp += HpPlus5Amount;
-            member.Hp = System.Math.Min(member.MaxHp, member.Hp + HpPlus5Amount);
+            member.AltarMaxHpBonus += HpPlus5Amount;
+            ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(run.Party, run.Relics, run.RelicGrowthTiers);
             run.Modifiers.AltarHpPlus5Purchases++;
             return true;
         }

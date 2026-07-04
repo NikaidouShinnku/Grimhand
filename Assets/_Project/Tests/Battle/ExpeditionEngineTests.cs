@@ -125,16 +125,13 @@ namespace Grimhand.Battle.Tests
         {
             var config = BuildConfig();
             config.RunSeed = 7;
-            config.GoldMinPerVictory = 15;
-            config.GoldMaxPerVictory = 25;
 
             var engine = new ExpeditionEngine(config);
             engine.StartRun();
             SelectFirstCombatRoute(engine);
             CompleteVictory(engine, 25);
 
-            Assert.GreaterOrEqual(engine.Run.LastGoldReward, 15);
-            Assert.LessOrEqual(engine.Run.LastGoldReward, 25);
+            Assert.That(engine.Run.LastGoldReward, Is.InRange(15, 20));
             Assert.AreEqual(0, engine.Run.Gold);
 
             engine.TryClaimRewardGold();
@@ -347,6 +344,11 @@ namespace Grimhand.Battle.Tests
                 engine.TryClaimRewardRelic();
             if (engine.Run.PendingRewardPickup?.HasCard == true)
                 engine.TryClaimRewardCard();
+            if (engine.Run.PendingRewardPickup?.HasCardPacks == true)
+            {
+                for (var i = 0; i < engine.Run.PendingRewardPickup.CardPacks.Count; i++)
+                    engine.TrySkipRewardCardPack(i);
+            }
             if (engine.Run.PendingRewardPickup?.HasConsumable == true)
                 engine.TryClaimRewardConsumable();
         }

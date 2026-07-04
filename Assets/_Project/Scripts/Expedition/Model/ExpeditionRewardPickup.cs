@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Grimhand.Expedition.Model
 {
     public enum RewardPickupKind
@@ -20,11 +22,14 @@ namespace Grimhand.Expedition.Model
         public bool RelicClaimed { get; set; }
         public bool RelicSkipped { get; set; }
 
+        /// <summary>特殊事件等仍可直接发单卡；常规战斗/宝箱/商店走卡包。</summary>
         public string CardDefinitionId { get; set; } = "";
         public string CardOwnerCharacterId { get; set; } = "";
         public string CardDisplayName { get; set; } = "";
         public bool CardClaimed { get; set; }
         public bool CardSkipped { get; set; }
+
+        public List<CardPackRewardEntry> CardPacks { get; } = new();
 
         public string ConsumableId { get; set; } = "";
         public int ConsumableCount { get; set; } = 1;
@@ -53,6 +58,7 @@ namespace Grimhand.Expedition.Model
         public bool HasRelicEvolution =>
             !string.IsNullOrEmpty(RelicEvolveFromId) && !string.IsNullOrEmpty(RelicEvolveToId);
         public bool HasCard => !string.IsNullOrEmpty(CardDefinitionId);
+        public bool HasCardPacks => CardPacks.Count > 0;
         public bool HasConsumable => !string.IsNullOrEmpty(ConsumableId);
         public bool HasStatBonus =>
             TeamAttackBonus != 0
@@ -63,15 +69,38 @@ namespace Grimhand.Expedition.Model
             || EnableSoulRiftBattleStartRandomHpLoss
             || (EnableDivinePunishment && !HasGold);
 
-        public bool HasAnyReward => HasGold || HasRelic || HasCard || HasConsumable || HasStatBonus;
+        public bool HasAnyReward =>
+            HasGold || HasRelic || HasCard || HasCardPacks || HasConsumable || HasStatBonus;
 
         public bool IsGoldResolved => !HasGold || GoldClaimed || GoldSkipped;
         public bool IsRelicResolved => !HasRelic || RelicClaimed || RelicSkipped;
         public bool IsCardResolved => !HasCard || CardClaimed || CardSkipped;
+        public bool AreCardPacksResolved
+        {
+            get
+            {
+                if (!HasCardPacks)
+                    return true;
+
+                foreach (var pack in CardPacks)
+                {
+                    if (!pack.IsResolved)
+                        return false;
+                }
+
+                return true;
+            }
+        }
+
         public bool IsConsumableResolved => !HasConsumable || ConsumableClaimed || ConsumableSkipped;
         public bool IsStatResolved => !HasStatBonus || StatClaimed || StatSkipped;
 
         public bool IsFullyResolved =>
-            IsGoldResolved && IsRelicResolved && IsCardResolved && IsConsumableResolved && IsStatResolved;
+            IsGoldResolved
+            && IsRelicResolved
+            && IsCardResolved
+            && AreCardPacksResolved
+            && IsConsumableResolved
+            && IsStatResolved;
     }
 }

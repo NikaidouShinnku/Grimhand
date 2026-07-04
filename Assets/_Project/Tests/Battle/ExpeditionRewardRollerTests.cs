@@ -9,7 +9,7 @@ namespace Grimhand.Battle.Tests
     public class ExpeditionRewardRollerTests
     {
         [Test]
-        public void RollChestReward_AlwaysHasGoldAndRelicOrCard()
+        public void RollChestReward_AlwaysHasGoldAndCommonPack()
         {
             var config = BuildConfig();
             var run = new ExpeditionRunState();
@@ -20,22 +20,54 @@ namespace Grimhand.Battle.Tests
                 var reward = ExpeditionRewardRoller.RollChestReward(config, run, new BattleRng(seed));
 
                 Assert.Greater(reward.Gold, 0, $"seed {seed}");
-                Assert.IsTrue(reward.HasRelic || reward.HasCard, $"seed {seed} should have relic or card");
+                Assert.IsTrue(reward.HasCardPacks, $"seed {seed}");
+                Assert.AreEqual(CardPackIds.Common, reward.CardPacks[0].PackId, $"seed {seed}");
             }
         }
 
         [Test]
-        public void RollChestReward_CardAndRelicAreMutuallyExclusive()
+        public void RollVictoryRewards_CaveNormal_IncludesCommonPack()
         {
             var config = BuildConfig();
             var run = new ExpeditionRunState();
             run.Party.Add(new PartyMemberSnapshot { CharacterDefinitionId = "char_knight" });
 
-            for (var seed = 1; seed <= 30; seed++)
+            for (var seed = 1; seed <= 20; seed++)
             {
-                var reward = ExpeditionRewardRoller.RollChestReward(config, run, new BattleRng(seed));
-                Assert.IsFalse(reward.HasRelic && reward.HasCard, $"seed {seed}");
+                var reward = ExpeditionRewardRoller.RollVictoryRewards(
+                    config,
+                    run,
+                    new BattleRng(seed),
+                    floor: 3,
+                    isElite: false,
+                    isBoss: false);
+
+                Assert.That(reward.Gold, Is.InRange(15, 20), $"seed {seed}");
+                Assert.IsTrue(reward.HasCardPacks, $"seed {seed}");
+                Assert.AreEqual(CardPackIds.Common, reward.CardPacks[0].PackId, $"seed {seed}");
             }
+        }
+
+        [Test]
+        public void RollVictoryRewards_Boss_IncludesMasterPack()
+        {
+            var config = BuildConfig();
+            var run = new ExpeditionRunState();
+            run.Party.Add(new PartyMemberSnapshot { CharacterDefinitionId = "char_knight" });
+
+            var reward = ExpeditionRewardRoller.RollVictoryRewards(
+                config,
+                run,
+                new BattleRng(42),
+                floor: 20,
+                isElite: false,
+                isBoss: true);
+
+            Assert.AreEqual(40, reward.Gold);
+            Assert.IsTrue(reward.HasRelic);
+            Assert.IsTrue(reward.HasConsumable);
+            Assert.IsTrue(reward.HasCardPacks);
+            Assert.AreEqual(CardPackIds.Master, reward.CardPacks[0].PackId);
         }
 
         [Test]

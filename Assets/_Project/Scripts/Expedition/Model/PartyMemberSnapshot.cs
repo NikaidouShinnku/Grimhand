@@ -13,6 +13,8 @@ namespace Grimhand.Expedition.Model
         public int MaxHp { get; set; }
         /// <summary>远征期间永久扣除的最大生命（事件等），从有效 MaxHp 中减去。</summary>
         public int MaxHpPenalty { get; set; }
+        /// <summary>祭坛 HP+5 等永久加血（Sync 时计入有效 MaxHp，避免被基础值覆盖）。</summary>
+        public int AltarMaxHpBonus { get; set; }
         public int PersonalAttackBonus { get; set; }
         /// <summary>从基础牌组移除的卡牌计数（definitionId → 张数）。</summary>
         public Dictionary<string, int> RemovedCardCounts { get; } = new();

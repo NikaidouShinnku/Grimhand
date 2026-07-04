@@ -32,6 +32,12 @@ namespace Grimhand.Content
         public Sprite TalentRunePlate;
         public Sprite TreasureChestClosed;
         public Sprite TreasureChestOpen;
+        /// <summary>Assets/The Grimhands Asset/card/cardpack_common.png</summary>
+        public Sprite CardPackCommon;
+        /// <summary>Assets/The Grimhands Asset/card/cardpack_advanced.png</summary>
+        public Sprite CardPackAdvanced;
+        /// <summary>Assets/The Grimhands Asset/card/cardpack_master.png</summary>
+        public Sprite CardPackMaster;
         public Sprite[] CavePathVariants = System.Array.Empty<Sprite>();
         public Sprite DungeonBackground;
         public Sprite[] DungeonPathVariants = System.Array.Empty<Sprite>();

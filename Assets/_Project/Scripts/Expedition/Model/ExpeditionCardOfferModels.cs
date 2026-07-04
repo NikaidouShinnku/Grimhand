@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
+using Grimhand.Expedition;
 
 namespace Grimhand.Expedition.Model
 {
@@ -8,7 +9,8 @@ namespace Grimhand.Expedition.Model
         RewardPickup,
         Shop,
         Event,
-        Altar
+        Altar,
+        CardPack
     }
 
     public sealed class ExpeditionPendingCardOffer
@@ -16,6 +18,18 @@ namespace Grimhand.Expedition.Model
         public string OwnerCharacterId { get; set; } = "";
         public CardTemplate Template { get; set; }
         public ExpeditionCardOfferContext Context { get; set; }
+        public int SourceRewardPackIndex { get; set; } = -1;
+        public int SourceShopSlotIndex { get; set; } = -1;
+        public string SourcePackId { get; set; } = "";
+    }
+
+    public sealed class ExpeditionPendingCardPackOffer
+    {
+        public string PackId { get; set; } = "";
+        public ExpeditionCardOfferContext Context { get; set; }
+        public int RewardPackIndex { get; set; } = -1;
+        public int ShopSlotIndex { get; set; } = -1;
+        public List<CardPackChoice> Choices { get; } = new();
     }
 
     public sealed class ExpeditionCardAltarMemberDraft

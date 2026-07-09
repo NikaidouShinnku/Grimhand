@@ -74,7 +74,7 @@ namespace Grimhand.Battle.Effects
 
             var defenderMitigated = 0;
             var hadDefenderArm = DefenderRespondArmRules.TryConsumeForIncomingPlayerAttack(
-                state, actor, ref recipient, ref hpDamage, out defenderMitigated);
+                state, actor, ref recipient, ref hpDamage, events, out defenderMitigated);
 
             var beforeRespondMitigation = hpDamage;
             hpDamage = RespondEffectExecutor.ApplyMitigation(

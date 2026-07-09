@@ -85,7 +85,19 @@ namespace Grimhand.Battle.Model
         /// <summary>恐惧低语：看破敌人意图（占位：抽1牌）。</summary>
         RevealEnemyIntent,
         /// <summary>蛛网包裹等：下回合无法使用攻击牌。</summary>
-        LockAttackCards
+        LockAttackCards,
+        /// <summary>对随机一名指定 characterId 的友方造成伤害（如打开囚笼）。</summary>
+        DealDamageRandomCharacterAlly,
+        /// <summary>清除目标护甲后造成伤害；Stacks 为每清除 10 护甲的额外伤害。</summary>
+        StripBlockThenDealDamage,
+        /// <summary>随机交换 Value 名敌方角色的站位。</summary>
+        SwapRandomEnemies,
+        /// <summary>随机为自身 StatusId 增减 1 层（涨潮掌握）。</summary>
+        AdjustSelfStatusRandom,
+        /// <summary>按自身 RepeatPerStatusId 层数重复施加 AttackUpPercent。</summary>
+        ApplyAttackUpPerSelfStatusStack,
+        /// <summary>锁定涨潮为 Stacks 层并施加 TideLocked。</summary>
+        LockRisingTideStacks
     }
 
     public enum EffectTarget
@@ -109,7 +121,9 @@ namespace Grimhand.Battle.Model
         /// <summary>随机 N 名敌方；人数由 EffectActionSpec.Value 指定（如骨王怒吼 Value=2）。</summary>
         RandomEnemies,
         /// <summary>随机一名存活友方（含自身）。</summary>
-        RandomAlly
+        RandomAlly,
+        /// <summary>随机一名匹配 SummonCharacterId 的友方。</summary>
+        RandomAllyByCharacterId
     }
 
     public enum ReactionConditionType

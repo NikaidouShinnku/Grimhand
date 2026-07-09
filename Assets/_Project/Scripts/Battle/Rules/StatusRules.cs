@@ -106,6 +106,9 @@ namespace Grimhand.Battle.Rules
             if (mirrorChainWraith)
                 MinionTraitRules.ShareChainWraithDebuff(state, target, statusId, stacks, durationOverride, events);
 
+            if (statusId == StatusCatalog.BrandMark)
+                V09BossMechanicsRules.TryDetonateBrand(state, target, events);
+
             if (statusId == StatusCatalog.Taunt && target.Team == TeamSide.Player)
                 TargetRules.RefreshEnemyResolutionTargetsForTaunt(state);
         }

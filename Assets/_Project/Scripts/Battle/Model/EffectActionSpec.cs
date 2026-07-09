@@ -114,6 +114,13 @@ namespace Grimhand.Battle.Model
         /// <summary>召唤卡牌之灵：抽到的牌费用减免值（占位，待精修）。</summary>
         public int CostReduction { get; set; }
 
+        /// <summary>按 RepeatPerStatusId 层数重复执行（如潮汐神力）。</summary>
+        public string RepeatPerStatusId { get; set; } = "";
+
+        /// <summary>应对触发时对随机匹配 CharacterId 的友方造成额外伤害。</summary>
+        public int RespondSideEffectAllyDamage { get; set; }
+        public string RespondSideEffectAllyCharacterId { get; set; } = "";
+
         public static EffectActionSpec Clone(EffectActionSpec source)
         {
             if (source == null)
@@ -164,7 +171,10 @@ namespace Grimhand.Battle.Model
                 HpLossStepValue = source.HpLossStepValue,
                 AlternateValueIfHealed = source.AlternateValueIfHealed,
                 TokenCardId = source.TokenCardId,
-                CostReduction = source.CostReduction
+                CostReduction = source.CostReduction,
+                RepeatPerStatusId = source.RepeatPerStatusId,
+                RespondSideEffectAllyDamage = source.RespondSideEffectAllyDamage,
+                RespondSideEffectAllyCharacterId = source.RespondSideEffectAllyCharacterId
             };
         }
     }

@@ -6,6 +6,10 @@ namespace Grimhand.Content
         public const string SkeletonKing = "char_skeleton_king";
         public const string GhostQueen = "char_ghost_queen";
         public const string ExplosiveSkull = "char_explosive_skull";
+        public const string Warden = "char_warden";
+        public const string PrisonCage = "char_prison_cage";
+        public const string DarkKnight = "char_dark_knight";
+        public const string CorruptedOceanGoddess = "char_corrupted_ocean_goddess";
 
         public static bool IsBoss(string characterDefinitionId)
         {
@@ -14,7 +18,11 @@ namespace Grimhand.Content
 
             return characterDefinitionId == SkeletonKing
                 || characterDefinitionId == GhostQueen
-                || characterDefinitionId == ExplosiveSkull;
+                || characterDefinitionId == ExplosiveSkull
+                || characterDefinitionId == Warden
+                || characterDefinitionId == PrisonCage
+                || characterDefinitionId == DarkKnight
+                || characterDefinitionId == CorruptedOceanGoddess;
         }
     }
 }

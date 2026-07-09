@@ -1,0 +1,239 @@
+using System.Collections.Generic;
+using Grimhand.Battle;
+using Grimhand.Battle.Effects;
+using Grimhand.Battle.Model;
+using Grimhand.Battle.Rules;
+using Grimhand.Battle.Status;
+using Grimhand.Battle.V09;
+using Grimhand.Core;
+using Grimhand.Expedition;
+using NUnit.Framework;
+
+namespace Grimhand.Battle.Tests
+{
+    public sealed class V09BossMechanicsTests
+    {
+        [Test]
+        public void BrandMark_DetonatesAtThreeStacks()
+        {
+            var state = new BattleState();
+            var player = new CombatantState
+            {
+                Id = "p1",
+                Team = TeamSide.Player,
+                MaxHp = 100,
+                Hp = 100,
+                DisplayName = "骑士"
+            };
+            state.Combatants.Add(player);
+
+            var events = new List<Events.BattleEvent>();
+            StatusRules.ApplyStatus(state, player, StatusCatalog.BrandMark, 1, -1, events);
+            StatusRules.ApplyStatus(state, player, StatusCatalog.BrandMark, 1, -1, events);
+            StatusRules.ApplyStatus(state, player, StatusCatalog.BrandMark, 1, -1, events);
+
+            Assert.AreEqual(0, player.Hp);
+            Assert.IsFalse(StatusRules.HasStatus(player, StatusCatalog.BrandMark));
+        }
+
+        [Test]
+        public void WardenBuilder_IncludesCageSummonTemplate()
+        {
+            var config = WardenBossEncounterBuilder.BuildTemplate(null);
+            Assert.IsTrue(config.SummonTemplates.ContainsKey(CharacterTraitCatalog.PrisonCageCharacterId));
+            Assert.AreEqual(250, config.Combatants.Find(c => c.CharacterDefinitionId == WardenBossEncounterBuilder.CharacterId).MaxHp);
+            Assert.AreEqual(FormationSlot.Back,
+                config.Combatants.Find(c => c.CharacterDefinitionId == WardenBossEncounterBuilder.CharacterId).Slot);
+            Assert.AreEqual(WardenBossEncounterBuilder.CharacterId, config.VictoryOnCharacterDeathId);
+        }
+
+        [Test]
+        public void WardenBuilder_UsesMonsterTemplatesForCageReplacements()
+        {
+            var skeletonTemplate = new CombatantConfig
+            {
+                CharacterDefinitionId = "char_skeleton_elite",
+                DisplayName = "骷髅精英",
+                Team = TeamSide.Enemy,
+                MaxHp = 45,
+                UseSkillPool = true
+            };
+            skeletonTemplate.Traits.Add(MinionTraitCatalog.SkeletonEliteCardStats);
+            skeletonTemplate.SkillPoolCandidates.Add(new CardTemplate { DefinitionId = "m_elite_bone_wall" });
+
+            var map = new Dictionary<string, CombatantConfig>
+            {
+                ["char_skeleton_elite"] = skeletonTemplate
+            };
+
+            var config = WardenBossEncounterBuilder.BuildTemplate(null, map);
+            var elite = config.SummonTemplates["char_skeleton_elite"];
+
+            Assert.AreEqual(MinionTraitCatalog.SkeletonEliteCardStats, elite.Traits[0]);
+            Assert.AreEqual(1, elite.SkillPoolCandidates.Count);
+        }
+
+        [Test]
+        public void Warden_ProcessBattleStart_SpawnsTwoCagesWithoutCollectionModifiedError()
+        {
+            var config = WardenBossEncounterBuilder.BuildTemplate(null);
+            var state = new BattleState { Config = config };
+            var warden = new CombatantState
+            {
+                Id = "warden",
+                Team = TeamSide.Enemy,
+                Slot = FormationSlot.Back,
+                CharacterDefinitionId = WardenBossEncounterBuilder.CharacterId,
+                MaxHp = 250,
+                Hp = 250,
+                DisplayName = "典狱长"
+            };
+            warden.Traits.Add(CharacterTraitCatalog.WardenCageMaster);
+            state.Combatants.Add(warden);
+
+            var events = new List<Events.BattleEvent>();
+            Assert.DoesNotThrow(() => V09BossMechanicsRules.ProcessBattleStart(state, events, new BattleRng(7)));
+
+            var cages = 0;
+            foreach (var unit in state.Combatants)
+            {
+                if (unit.CharacterDefinitionId == CharacterTraitCatalog.PrisonCageCharacterId && unit.IsAlive)
+                    cages++;
+            }
+
+            Assert.AreEqual(3, state.Combatants.Count);
+            Assert.AreEqual(2, cages);
+            Assert.AreEqual(FormationSlot.Back, warden.Slot);
+
+            var cageSlots = new HashSet<FormationSlot>();
+            foreach (var unit in state.Combatants)
+            {
+                if (unit.CharacterDefinitionId == CharacterTraitCatalog.PrisonCageCharacterId)
+                    cageSlots.Add(unit.Slot);
+            }
+
+            Assert.IsTrue(cageSlots.Contains(FormationSlot.Front));
+            Assert.IsTrue(cageSlots.Contains(FormationSlot.Middle));
+        }
+
+        [Test]
+        public void Warden_ProcessBattleStart_SpawnsTwoCagesWhenWardenStartsInFront()
+        {
+            var config = WardenBossEncounterBuilder.BuildTemplate(null);
+            var state = new BattleState { Config = config };
+            var warden = new CombatantState
+            {
+                Id = "warden",
+                Team = TeamSide.Enemy,
+                Slot = FormationSlot.Front,
+                CharacterDefinitionId = WardenBossEncounterBuilder.CharacterId,
+                MaxHp = 250,
+                Hp = 250,
+                DisplayName = "典狱长"
+            };
+            warden.Traits.Add(CharacterTraitCatalog.WardenCageMaster);
+            state.Combatants.Add(warden);
+
+            var events = new List<Events.BattleEvent>();
+            V09BossMechanicsRules.ProcessBattleStart(state, events, new BattleRng(11));
+
+            var cages = 0;
+            foreach (var unit in state.Combatants)
+            {
+                if (unit.CharacterDefinitionId == CharacterTraitCatalog.PrisonCageCharacterId && unit.IsAlive)
+                    cages++;
+            }
+
+            Assert.AreEqual(3, state.Combatants.Count);
+            Assert.AreEqual(2, cages);
+            Assert.AreEqual(FormationSlot.Back, warden.Slot);
+        }
+
+        [Test]
+        public void OceanGoddess_LockRisingTide_DoesNotTriggerEbb()
+        {
+            var state = new BattleState { Config = new BattleConfig() };
+            var goddess = new CombatantState
+            {
+                Id = "boss",
+                Team = TeamSide.Enemy,
+                DisplayName = "女神",
+                MaxHp = 400,
+                Hp = 400
+            };
+            goddess.Traits.Add(CharacterTraitCatalog.OceanGoddessTide);
+            state.Combatants.Add(goddess);
+
+            var events = new List<Events.BattleEvent>();
+            V09BossMechanicsRules.LockRisingTide(state, goddess, 2, events);
+
+            Assert.AreEqual(V09BossMechanicsRules.TideLockedStackCount,
+                StatusRules.GetStatusStacks(goddess, StatusCatalog.RisingTide));
+            Assert.IsFalse(StatusRules.HasStatus(goddess, StatusCatalog.EbbingTide));
+        }
+
+        [Test]
+        public void WardenVictory_TriggersWhenWardenDiesWithMinionsAlive()
+        {
+            var config = WardenBossEncounterBuilder.BuildTemplate(null);
+            config.Combatants.Add(new CombatantConfig
+            {
+                Id = "player",
+                Team = TeamSide.Player,
+                Slot = FormationSlot.Front,
+                CharacterDefinitionId = "char_warrior",
+                MaxHp = 80
+            });
+
+            var engine = new BattleEngine(config);
+            var state = engine.State;
+
+            CombatantState warden = null;
+            foreach (var unit in state.Combatants)
+            {
+                if (unit.CharacterDefinitionId == WardenBossEncounterBuilder.CharacterId)
+                    warden = unit;
+            }
+
+            Assert.NotNull(warden);
+            warden.Hp = 0;
+
+            state.Combatants.Add(new CombatantState
+            {
+                Id = "bat",
+                Team = TeamSide.Enemy,
+                Slot = FormationSlot.Middle,
+                CharacterDefinitionId = "char_bat",
+                MaxHp = 55,
+                Hp = 55,
+                DisplayName = "巨翼蝙蝠"
+            });
+
+            engine.EvaluateOutcomeForTests();
+
+            Assert.AreEqual(BattleOutcome.PlayerVictory, state.Outcome);
+        }
+
+        [Test]
+        public void OceanGoddess_RisingTideTriggersEbbAtSix()
+        {
+            var state = new BattleState { Config = new BattleConfig() };
+            var goddess = new CombatantState
+            {
+                Id = "boss",
+                Team = TeamSide.Enemy,
+                DisplayName = "女神",
+                MaxHp = 400,
+                Hp = 400
+            };
+            goddess.Traits.Add(CharacterTraitCatalog.OceanGoddessTide);
+            state.Combatants.Add(goddess);
+
+            var events = new List<Events.BattleEvent>();
+            V09BossMechanicsRules.AdjustRisingTideStacks(state, goddess, 6, events);
+
+            Assert.IsFalse(StatusRules.HasStatus(goddess, StatusCatalog.RisingTide));
+            Assert.IsTrue(StatusRules.HasStatus(goddess, StatusCatalog.EbbingTide));
+        }
+    }
+}

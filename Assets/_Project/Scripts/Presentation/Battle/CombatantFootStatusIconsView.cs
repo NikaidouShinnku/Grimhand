@@ -40,6 +40,10 @@ namespace Grimhand.Presentation.Battle
             StatusCatalog.Ethereal,
             StatusCatalog.EtherealOnNextHit,
             StatusCatalog.ReviveBlessing,
+            StatusCatalog.RisingTide,
+            StatusCatalog.EbbingTide,
+            StatusCatalog.TideLocked,
+            StatusCatalog.TideEmpower,
         };
 
         readonly List<StatusSlot> _slots = new();
@@ -97,7 +101,10 @@ namespace Grimhand.Presentation.Battle
                 slot.Root.SetActive(true);
                 slot.Icon.sprite = StatusIconSpriteResolver.Resolve(icons, entry.StatusId);
                 slot.Icon.enabled = slot.Icon.sprite != null;
-                slot.Stacks.text = $"×{entry.Stacks}";
+                slot.Stacks.text = FormatStackLabel(entry.StatusId, entry.Stacks);
+                var stackWidth = MeasureStackTextWidth(entry.StatusId, entry.Stacks);
+                var stackRt = slot.Stacks.rectTransform;
+                stackRt.sizeDelta = new Vector2(stackWidth, IconSize);
             }
 
             LayoutSlots(visible);
@@ -232,7 +239,7 @@ namespace Grimhand.Presentation.Battle
 
             for (var i = 0; i < visible.Count; i++)
             {
-                var itemWidth = MeasureItemWidth(visible[i].Stacks);
+                var itemWidth = MeasureItemWidth(visible[i].StatusId, visible[i].Stacks);
                 if (currentRow.Count > 0 && currentWidth + ItemSpacing + itemWidth > MaxRowWidth)
                 {
                     rows.Add(currentRow);
@@ -262,7 +269,7 @@ namespace Grimhand.Presentation.Battle
                 {
                     if (j > 0)
                         rowWidth += ItemSpacing;
-                    rowWidth += MeasureItemWidth(visible[row[j]].Stacks);
+                    rowWidth += MeasureItemWidth(visible[row[j]].StatusId, visible[row[j]].Stacks);
                 }
 
                 var x = -rowWidth * 0.5f;
@@ -275,7 +282,7 @@ namespace Grimhand.Presentation.Battle
                     if (slotRt == null)
                         continue;
 
-                    var itemWidth = MeasureItemWidth(visible[slotIndex].Stacks);
+                    var itemWidth = MeasureItemWidth(visible[slotIndex].StatusId, visible[slotIndex].Stacks);
                     slotRt.anchorMin = new Vector2(0.5f, 1f);
                     slotRt.anchorMax = new Vector2(0.5f, 1f);
                     slotRt.pivot = new Vector2(0f, 1f);
@@ -288,10 +295,31 @@ namespace Grimhand.Presentation.Battle
             _row.sizeDelta = new Vector2(MaxRowWidth, totalHeight);
         }
 
-        static float MeasureItemWidth(int stacks)
+        static string FormatStackLabel(string statusId, int stacks)
         {
-            var digits = stacks < 10 ? 1 : stacks < 100 ? 2 : 3;
-            return IconSize + 2f + 10f + digits * 8f;
+            if (stacks <= 0)
+                return "";
+
+            if (statusId == StatusCatalog.DefenseDownPercent
+                || statusId == StatusCatalog.DefenseUpPercent
+                || statusId == StatusCatalog.AttackUpPercent
+                || statusId == StatusCatalog.Vulnerable
+                || statusId == StatusCatalog.DamageReduction
+                || statusId == StatusCatalog.ArmorDown)
+                return $"{stacks}%";
+
+            return $"×{stacks}";
+        }
+
+        static float MeasureItemWidth(string statusId, int stacks)
+        {
+            return IconSize + 2f + MeasureStackTextWidth(statusId, stacks);
+        }
+
+        static float MeasureStackTextWidth(string statusId, int stacks)
+        {
+            var label = FormatStackLabel(statusId, stacks);
+            return Mathf.Max(24f, 8f + label.Length * 8f);
         }
     }
 }

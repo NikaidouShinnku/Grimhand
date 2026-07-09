@@ -20,6 +20,7 @@ namespace Grimhand.Expedition
                 EnemyCardsDrawnPerTurn = source.EnemyCardsDrawnPerTurn,
                 EnemyTurnEnergyBudget = source.EnemyTurnEnergyBudget,
                 SkipFloorScaling = source.SkipFloorScaling,
+                VictoryOnCharacterDeathId = source.VictoryOnCharacterDeathId,
                 RunModifiers = CloneModifiers(source.RunModifiers)
             };
             if (source.Talents != null)

@@ -3,12 +3,14 @@ using Grimhand.Battle.Effects;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Status;
+using Grimhand.Battle.V09;
+using Grimhand.Core;
 
 namespace Grimhand.Battle.Rules
 {
     public static class BossTraitRules
     {
-        public static void ProcessTurnStart(BattleState state, List<BattleEvent> events)
+        public static void ProcessTurnStart(BattleState state, List<BattleEvent> events, BattleRng rng = null)
         {
             if (state == null)
                 return;
@@ -24,14 +26,20 @@ namespace Grimhand.Battle.Rules
                     ApplyTurnDefenseGrowth(combatant, events);
             }
 
+            V09BossMechanicsRules.ProcessTurnStart(state, events, null);
+
+            var skullSummoners = new List<CombatantState>();
             foreach (var combatant in state.Combatants)
             {
                 if (!combatant.IsAlive || combatant.Team != TeamSide.Enemy)
                     continue;
 
                 if (StatusRules.HasStatus(combatant, StatusCatalog.BoneWorkshop))
-                    SummonRules.TrySummonExplosiveSkull(state, combatant, events);
+                    skullSummoners.Add(combatant);
             }
+
+            foreach (var combatant in skullSummoners)
+                SummonRules.TrySummonExplosiveSkull(state, combatant, events);
         }
 
         public static void TryTriggerGhostQueenEnrage(

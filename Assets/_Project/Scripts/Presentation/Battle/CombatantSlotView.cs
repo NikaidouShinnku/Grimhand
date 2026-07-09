@@ -76,6 +76,7 @@ namespace Grimhand.Presentation.Battle
         float _presentationYOffsetLocal;
         string _hpBarLayoutCombatantId;
         bool _enemyLayoutLocked;
+        string _displayedCharacterDefinitionId;
         float _unifiedHpBarWorldY;
         Vector3 _footWorldOffsetFromPortraitFoot;
 
@@ -92,6 +93,7 @@ namespace Grimhand.Presentation.Battle
         {
             _enemyLayoutLocked = false;
             _hpBarLayoutCombatantId = null;
+            _displayedCharacterDefinitionId = null;
             _unifiedHpBarWorldY = 0f;
             _footWorldOffsetFromPortraitFoot = Vector3.zero;
         }
@@ -422,8 +424,7 @@ namespace Grimhand.Presentation.Battle
             if (_currentUnit == null)
                 return false;
 
-            var id = _currentUnit.CharacterDefinitionId;
-            return id == "char_skeleton_king" || id == GhostQueenBossEncounterBuilder.CharacterId;
+            return BossCharacterRules.IsBoss(_currentUnit.CharacterDefinitionId);
         }
 
         float ResolveFeetLine()
@@ -444,19 +445,21 @@ namespace Grimhand.Presentation.Battle
 
         float ResolvePortraitScale()
         {
-            if (team == TeamSide.Player)
-                return PlayerPortraitScale;
+            var scale = team switch
+            {
+                TeamSide.Player => PlayerPortraitScale,
+                _ when IsBossEnemyPortrait() => BossEnemyPortraitScale,
+                _ when _currentUnit != null && MinionTraitCatalog.IsAbyssRegionCharacter(_currentUnit.CharacterDefinitionId)
+                    => AbyssEnemyPortraitScale,
+                _ when _currentUnit != null && MinionTraitCatalog.UsesElevatedPortraitScale(_currentUnit.CharacterDefinitionId)
+                    => ElevatedEnemyPortraitScale,
+                _ => EnemyPortraitScale
+            };
 
-            if (IsBossEnemyPortrait())
-                return BossEnemyPortraitScale;
+            if (_currentUnit != null && _currentVisuals != null)
+                scale *= _currentVisuals.GetPortraitScaleMultiplier(_currentUnit.CharacterDefinitionId);
 
-            if (_currentUnit != null && MinionTraitCatalog.IsAbyssRegionCharacter(_currentUnit.CharacterDefinitionId))
-                return AbyssEnemyPortraitScale;
-
-            if (_currentUnit != null && MinionTraitCatalog.UsesElevatedPortraitScale(_currentUnit.CharacterDefinitionId))
-                return ElevatedEnemyPortraitScale;
-
-            return EnemyPortraitScale;
+            return scale;
         }
 
         bool ResolveMirrorPortrait()
@@ -513,6 +516,9 @@ namespace Grimhand.Presentation.Battle
 
         public void ApplyPortraitScaleFromRuntime()
         {
+            if (_currentUnit == null && string.IsNullOrEmpty(_combatantId))
+                return;
+
             if (_enemyLayoutLocked)
             {
                 ApplyPortraitMirror();
@@ -671,8 +677,16 @@ namespace Grimhand.Presentation.Battle
             BattleSession session = null)
         {
             var unit = FindCombatant(state);
-            if (unit?.Id != _hpBarLayoutCombatantId)
+            if (unit?.Id != _hpBarLayoutCombatantId
+                || (unit != null
+                    && unit.IsAlive
+                    && unit.CharacterDefinitionId != _displayedCharacterDefinitionId))
                 InvalidateEnemyHpBarLayout();
+
+            if (unit != null && unit.IsAlive)
+                _displayedCharacterDefinitionId = unit.CharacterDefinitionId;
+            else if (unit == null)
+                _displayedCharacterDefinitionId = null;
 
             _currentUnit = unit;
             _currentIcons = uiIcons;
@@ -690,14 +704,15 @@ namespace Grimhand.Presentation.Battle
 
             var preservePortraitLayout = _portraitView != null
                 && (_portraitView.IsAwayFromHome || _portraitView.IsAnimating);
-            if (!preservePortraitLayout && !_enemyLayoutLocked)
+            if (!preservePortraitLayout)
             {
-                ApplyStatusAnchorLayout();
+                if (!_enemyLayoutLocked)
+                    ApplyStatusAnchorLayout();
+
                 ApplyPortraitMirror();
-            }
-            else if (!preservePortraitLayout && team == TeamSide.Enemy && _enemyLayoutLocked)
-            {
-                _portraitView?.RestoreHomePosition();
+
+                if (team == TeamSide.Enemy && _enemyLayoutLocked)
+                    _portraitView?.RestoreHomePosition();
             }
 
             var displayAlive = unit != null

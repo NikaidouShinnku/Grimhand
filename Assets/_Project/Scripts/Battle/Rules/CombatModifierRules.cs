@@ -1,6 +1,7 @@
 using System;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Status;
+using Grimhand.Battle.V09;
 
 namespace Grimhand.Battle.Rules
 {
@@ -102,6 +103,11 @@ namespace Grimhand.Battle.Rules
                 combatant.OutgoingDamagePercentBonus += 20;
 
             TalentBattleRules.ApplyCombatModifiers(state, combatant, mods);
+
+            if (state != null && V09BossMechanicsRules.IsDarkKnightPoisonAuraActive(state))
+                V09BossMechanicsRules.ApplyDarkKnightPoisonVulnerability(combatant);
+
+            V09BossMechanicsRules.ApplyExtraTideDamageReduction(combatant);
         }
 
         public static int ApplyOutgoingDamageModifiers(

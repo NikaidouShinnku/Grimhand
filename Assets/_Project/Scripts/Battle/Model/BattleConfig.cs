@@ -39,6 +39,8 @@ namespace Grimhand.Battle.Model
         public int EnemyTurnEnergyBudget { get; set; }
         /// <summary>为 true 时远征楼层缩放不作用于本场敌人（Boss 固定数值）。</summary>
         public bool SkipFloorScaling { get; set; }
+        /// <summary>该角色定义 Id 的敌人死亡时立即判定玩家胜利（可仍有其他敌人存活）。</summary>
+        public string VictoryOnCharacterDeathId { get; set; } = "";
         public List<CombatantConfig> Combatants { get; } = new();
         public Dictionary<string, CombatantConfig> SummonTemplates { get; } = new();
         public Dictionary<string, CardTemplate> CardCatalog { get; } = new();

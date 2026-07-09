@@ -13,6 +13,7 @@ namespace Grimhand.Presentation.Battle
                 BattleEventKind.DamageApplied => true,
                 BattleEventKind.StatusTickDamage => true,
                 BattleEventKind.CharacterDied => true,
+                BattleEventKind.CombatantSpawned => true,
                 BattleEventKind.ParryTriggered => true,
                 BattleEventKind.HealApplied => true,
                 BattleEventKind.CharacterRevived => true,

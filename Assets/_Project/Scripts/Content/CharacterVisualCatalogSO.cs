@@ -31,6 +31,8 @@ namespace Grimhand.Content
         public string IdleAnimationGifPath = "";
         [Tooltip("为 true 时不镜像立绘，受击 pose 也不自动翻转。")]
         public bool PreserveOriginalFacing;
+        [Tooltip("相对 Boss/敌人默认缩放的额外倍率；用于立绘留白较多的 Boss。")]
+        public float PortraitScaleMultiplier = 1f;
     }
 
     [CreateAssetMenu(fileName = "CharacterVisualCatalog", menuName = "Grimhand/Character Visual Catalog")]
@@ -169,6 +171,15 @@ namespace Grimhand.Content
         {
             var entry = GetEntry(characterDefinitionId);
             return entry != null && entry.PreserveOriginalFacing;
+        }
+
+        public float GetPortraitScaleMultiplier(string characterDefinitionId)
+        {
+            var entry = GetEntry(characterDefinitionId);
+            if (entry == null || entry.PortraitScaleMultiplier <= 0f)
+                return 1f;
+
+            return entry.PortraitScaleMultiplier;
         }
 
         public IReadOnlyList<Sprite> GetIdleAnimationFrames(string characterDefinitionId)

@@ -770,6 +770,8 @@ namespace Grimhand.Presentation.Battle
             handPanel?.ReapplyPoolLayout();
             _inventoryPanel?.Refresh();
 
+            InvalidateAllEnemyHpBarLayouts();
+
             EnsurePlanningEnergyHud();
             BattleUiLayoutRuntimeFix.RefreshBottomHud(transform);
             if (ShouldShowBattlePlanningChrome())
@@ -777,7 +779,6 @@ namespace Grimhand.Presentation.Battle
             RefreshPlanningChromeVisibility();
             _activeCardBanner?.Relayout();
 
-            InvalidateAllEnemyHpBarLayouts();
             if (_session?.Engine?.State != null && ShouldShowBattlePlanningChrome())
                 RefreshBattlefield(_session.Engine.State, _session.Engine.Draft);
         }

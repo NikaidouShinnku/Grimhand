@@ -65,6 +65,13 @@ namespace Grimhand.Battle.Status
         public const string SnakeGodChanneling = "snake_god_channeling";   // 蛇神回应链中继标记
         public const string SnakeSwiftness = "snake_swiftness";             // 蛇之疾速：+1SPD（天赋）
 
+        // v0.9 Boss：典狱长 / 腐化海洋女神
+        public const string BrandMark = "brand_mark";
+        public const string RisingTide = "rising_tide";
+        public const string EbbingTide = "ebbing_tide";
+        public const string TideEmpower = "tide_empower";
+        public const string TideLocked = "tide_locked";
+
         static readonly Dictionary<string, StatusDefinition> Definitions = Build();
 
         public static StatusDefinition Get(string id)
@@ -449,6 +456,41 @@ namespace Grimhand.Battle.Status
                 DisplayName = "蛇之疾速",
                 DurationKind = StatusDurationKind.Permanent,
                 SpeedModifierPerStack = 1
+            };
+            map[BrandMark] = new StatusDefinition
+            {
+                Id = BrandMark,
+                DisplayName = "烙印",
+                DurationKind = StatusDurationKind.Permanent
+            };
+            map[RisingTide] = new StatusDefinition
+            {
+                Id = RisingTide,
+                DisplayName = "涨潮",
+                DurationKind = StatusDurationKind.Permanent,
+                IncomingDamageReductionPercentPerStack = 15,
+                AttackPercentBonusPerStack = 10
+            };
+            map[EbbingTide] = new StatusDefinition
+            {
+                Id = EbbingTide,
+                DisplayName = "退潮",
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 2,
+                IncomingDamagePercentPerStack = 50
+            };
+            map[TideEmpower] = new StatusDefinition
+            {
+                Id = TideEmpower,
+                DisplayName = "魔化潮汐",
+                DurationKind = StatusDurationKind.Permanent
+            };
+            map[TideLocked] = new StatusDefinition
+            {
+                Id = TideLocked,
+                DisplayName = "女神之怒",
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 2
             };
             return map;
         }

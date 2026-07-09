@@ -620,6 +620,54 @@ namespace Grimhand.Battle.Effects
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
                 }
+                case EffectActionType.DealDamageRandomCharacterAlly:
+                {
+                    var allyTarget = TargetRules.ResolveTarget(
+                        state, actor, EffectTarget.RandomAllyByCharacterId, sourceCardInstanceId, rng, action);
+                    if (allyTarget != null)
+                    {
+                        DamageRules.ApplyDamage(
+                            state, actor, allyTarget, action.Value, card.CardType, events,
+                            canTriggerParry: false, rng: rng, cardCost: card.Cost,
+                            sourceCardInstanceId: sourceCardInstanceId);
+                    }
+                    break;
+                }
+                case EffectActionType.StripBlockThenDealDamage:
+                {
+                    var stripTarget = TargetRules.ResolveTarget(
+                        state, actor, action.Target, sourceCardInstanceId, rng, action);
+                    V09BossMechanicsRules.StripBlockThenDealDamage(
+                        state, actor, stripTarget, card, action, events, rng, sourceCardInstanceId);
+                    break;
+                }
+                case EffectActionType.SwapRandomEnemies:
+                {
+                    var enemyTeam = actor.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
+                    V09BossMechanicsRules.SwapRandomEnemies(
+                        state, enemyTeam, System.Math.Max(1, action.Value), rng, events);
+                    break;
+                }
+                case EffectActionType.AdjustSelfStatusRandom:
+                {
+                    if (rng == null || string.IsNullOrEmpty(action.StatusId))
+                        break;
+                    var delta = rng.NextIndex(2) == 0 ? -1 : 1;
+                    if (action.StatusId == StatusCatalog.RisingTide)
+                        V09BossMechanicsRules.AdjustRisingTideStacks(state, actor, delta, events);
+                    break;
+                }
+                case EffectActionType.ApplyAttackUpPerSelfStatusStack:
+                {
+                    V09BossMechanicsRules.ApplyAttackUpPerSelfStatusStack(state, actor, action, events);
+                    break;
+                }
+                case EffectActionType.LockRisingTideStacks:
+                {
+                    V09BossMechanicsRules.LockRisingTide(
+                        state, actor, action.Duration >= 0 ? action.Duration : 2, events);
+                    break;
+                }
             }
 
             if (action.SelfDamageFlat > 0 && actor.IsAlive && !sacrificeSelfDamageAppliedEarly)

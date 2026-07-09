@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
+using Grimhand.Battle.V09;
 
 namespace Grimhand.Battle.Rules
 {
@@ -12,6 +13,7 @@ namespace Grimhand.Battle.Rules
                 return;
 
             MinionTraitRules.OnCharacterDied(state, combatant, events);
+            V09BossMechanicsRules.OnCharacterDied(state, combatant, events, rng: null);
             TalentBattleRules.OnCharacterDied(state, combatant, events);
 
             var polluted = 0;

@@ -467,22 +467,9 @@ namespace Grimhand.Presentation.Battle
             if (portraitImage == null)
                 return;
 
-            var scale = 1f;
-            if (sprite != null && _referenceSprite != null)
-            {
-                var refSize = _referenceSprite.rect.size;
-                var size = sprite.rect.size;
-                if (size.x > 0.01f && size.y > 0.01f)
-                {
-                    var fit = Mathf.Min(refSize.x / size.x, refSize.y / size.y);
-                    // Image 已拉伸铺满 parent；小图不再额外放大，只缩小过大的 pose。
-                    if (fit < 1f)
-                        scale = fit;
-                }
-            }
-
+            EnsurePortraitImageStable();
             var flipX = _poseFlipX ? -1f : 1f;
-            portraitImage.rectTransform.localScale = new Vector3(flipX * scale, scale, 1f);
+            portraitImage.rectTransform.localScale = new Vector3(flipX, 1f, 1f);
         }
 
         void EnsurePortraitImageStable()

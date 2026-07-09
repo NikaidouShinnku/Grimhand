@@ -33,6 +33,8 @@ namespace Grimhand.Battle.Effects
                     return PickRandomEnemy(state, actor.Team, rng);
                 case EffectTarget.RandomAlly:
                     return PickRandomAlly(state, actor.Team, rng);
+                case EffectTarget.RandomAllyByCharacterId:
+                    return PickRandomAllyByCharacterId(state, actor.Team, action?.SummonCharacterId, rng);
                 case EffectTarget.DefaultEnemy:
                 case EffectTarget.ManualSelected:
                     if (TryGetTauntForcedTarget(state, actor, action, reach, out var tauntTarget))
@@ -218,6 +220,25 @@ namespace Grimhand.Battle.Effects
         static CombatantState PickRandomAlly(BattleState state, TeamSide actorTeam, BattleRng rng)
         {
             var candidates = PositionRules.GetAliveSortedByPhysicalSlot(state, actorTeam);
+            return PickRandomCandidate(candidates, rng);
+        }
+
+        static CombatantState PickRandomAllyByCharacterId(
+            BattleState state,
+            TeamSide actorTeam,
+            string characterDefinitionId,
+            BattleRng rng)
+        {
+            if (string.IsNullOrEmpty(characterDefinitionId))
+                return PickRandomAlly(state, actorTeam, rng);
+
+            var candidates = new List<CombatantState>();
+            foreach (var ally in state.GetTeam(actorTeam))
+            {
+                if (ally.IsAlive && ally.CharacterDefinitionId == characterDefinitionId)
+                    candidates.Add(ally);
+            }
+
             return PickRandomCandidate(candidates, rng);
         }
 

@@ -32,6 +32,10 @@ namespace Grimhand.Battle
 
         public BattleState State => _state;
         public IReadOnlyList<BattleEvent> Events => _events;
+
+        /// <summary>测试：在手动修改 State 后重新判定胜负。</summary>
+        public void EvaluateOutcomeForTests() => EvaluateOutcome();
+
         public PlanningDraft Draft
         {
             get
@@ -615,7 +619,7 @@ namespace Grimhand.Battle
             EnergyRules.ApplyTurnStartRegen(_state);
             StatusRules.ProcessTurnStartStatuses(_state, _events, _rng);
             RelicEffectRules.ProcessTurnStart(_state, _rng, _events);
-            BossTraitRules.ProcessTurnStart(_state, _events);
+            BossTraitRules.ProcessTurnStart(_state, _events, _rng);
             MinionTraitRules.ProcessTurnStart(_state, _events);
             // v0.9 腐朽化身：回合开始给所有敌人2层中毒（永久）
             PassiveCardMechanicsRules.TryTriggerRotAvatarOnTurnStart(_state, _events);
@@ -731,13 +735,42 @@ namespace Grimhand.Battle
                 _state.Outcome = BattleOutcome.PlayerDefeat;
                 _events.Add(new BattleEvent(BattleEventKind.BattleEnded, "Defeat")
                     { Outcome = BattleOutcome.PlayerDefeat });
+                return;
             }
-            else if (!enemyAlive)
+
+            if (TryResolveObjectiveVictory())
+                return;
+
+            if (!enemyAlive)
             {
                 _state.Outcome = BattleOutcome.PlayerVictory;
                 _events.Add(new BattleEvent(BattleEventKind.BattleEnded, "Victory")
                     { Outcome = BattleOutcome.PlayerVictory });
             }
+        }
+
+        bool TryResolveObjectiveVictory()
+        {
+            var objectiveId = _state.Config?.VictoryOnCharacterDeathId;
+            if (string.IsNullOrEmpty(objectiveId))
+                return false;
+
+            foreach (var combatant in _state.Combatants)
+            {
+                if (combatant.Team != TeamSide.Enemy)
+                    continue;
+
+                if (combatant.CharacterDefinitionId != objectiveId)
+                    continue;
+
+                if (combatant.IsAlive)
+                    return false;
+            }
+
+            _state.Outcome = BattleOutcome.PlayerVictory;
+            _events.Add(new BattleEvent(BattleEventKind.BattleEnded, "Victory")
+                { Outcome = BattleOutcome.PlayerVictory });
+            return true;
         }
 
         void Initialize(BattleConfig config)
@@ -805,6 +838,7 @@ namespace Grimhand.Battle
 
             RelicBattleRules.RefreshAllDerivedStats(_state);
             TalentBattleRules.OnBattleInitialized(_state);
+            V09BossMechanicsRules.ProcessBattleStart(_state, _events, _rng);
             RelicBattleRules.ApplyTeamHpBonus(_state, config.RunModifiers);
 
             foreach (var combatant in _state.Combatants)

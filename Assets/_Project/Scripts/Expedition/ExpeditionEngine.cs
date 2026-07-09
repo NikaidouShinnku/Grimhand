@@ -1931,18 +1931,17 @@ namespace Grimhand.Expedition
                 var standard = _config.CombatEncounters.Count > 0
                     ? _config.CombatEncounters[0]
                     : null;
-                var templates = MonsterEncounterBuilder.BuildMonsterTemplateMap(_config.MonsterTemplates);
-                template = AbyssBossEncounterBuilder.BuildTemplate(standard, templates);
-                _run.CurrentBossDisplayName = AbyssBossEncounterBuilder.DisplayName;
+                template = CorruptedOceanGoddessBossEncounterBuilder.BuildTemplate(standard);
+                _run.CurrentBossDisplayName = CorruptedOceanGoddessBossEncounterBuilder.DisplayName;
             }
             else if (isDungeonBoss)
             {
                 var standard = _config.CombatEncounters.Count > 0
                     ? _config.CombatEncounters[0]
                     : null;
-                var templates = MonsterEncounterBuilder.BuildMonsterTemplateMap(_config.MonsterTemplates);
-                template = StoneGolemBossEncounterBuilder.BuildTemplate(standard, templates);
-                _run.CurrentBossDisplayName = StoneGolemBossEncounterBuilder.DisplayName;
+                var monsterTemplates = MonsterTemplateRegistry.BuildTemplateMap(_config);
+                template = Floor40BossEncounterBuilder.BuildRandomTemplate(standard, _rng, monsterTemplates);
+                _run.CurrentBossDisplayName = ResolveBossDisplayName(template);
             }
             else if (_config.BossEncounters.Count > 1)
             {
@@ -2005,6 +2004,15 @@ namespace Grimhand.Expedition
 
                 if (cc.CharacterDefinitionId == StoneGolemBossEncounterBuilder.CharacterId)
                     return StoneGolemBossEncounterBuilder.DisplayName;
+
+                if (cc.CharacterDefinitionId == WardenBossEncounterBuilder.CharacterId)
+                    return WardenBossEncounterBuilder.DisplayName;
+
+                if (cc.CharacterDefinitionId == DarkKnightBossEncounterBuilder.CharacterId)
+                    return DarkKnightBossEncounterBuilder.DisplayName;
+
+                if (cc.CharacterDefinitionId == CorruptedOceanGoddessBossEncounterBuilder.CharacterId)
+                    return CorruptedOceanGoddessBossEncounterBuilder.DisplayName;
 
                 if (cc.CharacterDefinitionId == "char_skeleton_king")
                     return Floor10BossEncounterBuilder.SkeletonKingDisplayName;

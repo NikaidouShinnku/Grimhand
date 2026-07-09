@@ -81,7 +81,7 @@ namespace Grimhand.Battle.Rules
                 or "char_corrupted_crab"
                 or "char_phantom_captain";
 
-        /// <summary>地牢怪 + 幽灵/骷髅精英：立绘略大于普通洞穴怪。</summary>
+        /// <summary>地牢怪 + 幽灵/骷髅精英/蝙蝠：立绘略大于普通洞穴怪。</summary>
         public static bool UsesElevatedPortraitScale(string characterDefinitionId) =>
             characterDefinitionId is "char_rat"
                 or "char_chain_wraith"
@@ -90,6 +90,7 @@ namespace Grimhand.Battle.Rules
                 or "char_stone_golem"
                 or "char_wraith"
                 or "char_wraith_elite"
-                or "char_skeleton_elite";
+                or "char_skeleton_elite"
+                or "char_bat";
     }
 }

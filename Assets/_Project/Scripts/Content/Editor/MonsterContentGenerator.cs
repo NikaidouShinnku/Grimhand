@@ -143,6 +143,7 @@ namespace Grimhand.Content.Editor
 
             UpdateDungeonVisualCatalog(catalog);
             UpdateAbyssVisualCatalog(catalog);
+            UpdateBossVisualCatalog(catalog);
 
             EditorUtility.SetDirty(catalog);
         }
@@ -530,10 +531,12 @@ namespace Grimhand.Content.Editor
             string death,
             string profile = null,
             string gifPath = null,
+            string defend = null,
             bool defendUsesHit = false,
-            bool preserveOriginalFacing = false)
+            bool preserveOriginalFacing = false,
+            float portraitScaleMultiplier = 1f)
         {
-            var idleSprite = AssetDatabase.LoadAssetAtPath<Sprite>(idle);
+            var idleSprite = LoadPoseSprite(idle);
             if (idleSprite == null)
                 return;
 
@@ -554,17 +557,26 @@ namespace Grimhand.Content.Editor
             }
 
             entry.IdlePortrait = idleSprite;
-            entry.AttackPortrait = AssetDatabase.LoadAssetAtPath<Sprite>(attack) ?? idleSprite;
-            entry.HitPortrait = AssetDatabase.LoadAssetAtPath<Sprite>(hit) ?? idleSprite;
+            entry.AttackPortrait = LoadPoseSprite(attack) ?? idleSprite;
+            entry.HitPortrait = LoadPoseSprite(hit) ?? idleSprite;
             entry.DefensePortrait = defendUsesHit
                 ? entry.HitPortrait
-                : AssetDatabase.LoadAssetAtPath<Sprite>(hit) ?? idleSprite;
-            entry.DeathPortrait = AssetDatabase.LoadAssetAtPath<Sprite>(death) ?? idleSprite;
+                : LoadPoseSprite(defend) ?? entry.HitPortrait ?? idleSprite;
+            entry.DeathPortrait = LoadPoseSprite(death) ?? idleSprite;
             entry.CardProfilePortrait = string.IsNullOrEmpty(profile)
                 ? null
-                : AssetDatabase.LoadAssetAtPath<Sprite>(profile);
+                : LoadPoseSprite(profile);
             entry.IdleAnimationGifPath = gifPath ?? "";
             entry.PreserveOriginalFacing = preserveOriginalFacing;
+            entry.PortraitScaleMultiplier = portraitScaleMultiplier <= 0f ? 1f : portraitScaleMultiplier;
+        }
+
+        static Sprite LoadPoseSprite(string spritePath)
+        {
+            if (string.IsNullOrEmpty(spritePath))
+                return null;
+
+            return LoadLargestSprite(spritePath);
         }
 
         static void UpsertVisual(CharacterVisualCatalogSO catalog, string characterId, string spritePath)

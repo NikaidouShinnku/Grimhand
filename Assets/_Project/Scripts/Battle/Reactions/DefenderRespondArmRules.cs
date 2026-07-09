@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
+using Grimhand.Battle.V09;
 
 namespace Grimhand.Battle.Reactions
 {
@@ -10,6 +12,8 @@ namespace Grimhand.Battle.Reactions
         public bool RedirectDoubleToRandomAlly { get; set; }
         public bool Consumed { get; set; }
         public bool GrantInvulnerableUntilTurnEnd { get; set; }
+        public int SideEffectAllyDamage { get; set; }
+        public string SideEffectAllyCharacterId { get; set; } = "";
     }
 
     /// <summary>敌方防御牌【应对攻击】：出牌后武装，下次受到玩家攻击时生效。</summary>
@@ -19,7 +23,9 @@ namespace Grimhand.Battle.Reactions
             BattleState state,
             string defenderId,
             int mitigationPercent,
-            bool grantInvulnerableUntilTurnEnd = false)
+            bool grantInvulnerableUntilTurnEnd = false,
+            int sideEffectAllyDamage = 0,
+            string sideEffectAllyCharacterId = "")
         {
             if (state == null || string.IsNullOrEmpty(defenderId))
                 return;
@@ -28,7 +34,9 @@ namespace Grimhand.Battle.Reactions
             {
                 DefenderId = defenderId,
                 MitigationPercent = mitigationPercent,
-                GrantInvulnerableUntilTurnEnd = grantInvulnerableUntilTurnEnd
+                GrantInvulnerableUntilTurnEnd = grantInvulnerableUntilTurnEnd,
+                SideEffectAllyDamage = sideEffectAllyDamage,
+                SideEffectAllyCharacterId = sideEffectAllyCharacterId ?? ""
             });
         }
 
@@ -58,7 +66,13 @@ namespace Grimhand.Battle.Reactions
                     && action.Condition == ReactionConditionType.LastActionAttackOnSelf
                     && action.Value > 0)
                 {
-                    ArmMitigation(state, actor.Id, action.Value, action.GrantInvulnerableOnRespondArm);
+                    ArmMitigation(
+                        state,
+                        actor.Id,
+                        action.Value,
+                        action.GrantInvulnerableOnRespondArm,
+                        action.RespondSideEffectAllyDamage,
+                        action.RespondSideEffectAllyCharacterId);
                     actor.RespondArmedThisTurn = true;
                     return;
                 }
@@ -76,6 +90,7 @@ namespace Grimhand.Battle.Reactions
             CombatantState attacker,
             ref CombatantState recipient,
             ref int hpDamage,
+            List<BattleEvent> events,
             out int mitigatedAmount)
         {
             mitigatedAmount = 0;
@@ -106,6 +121,10 @@ namespace Grimhand.Battle.Reactions
 
             if (arm.GrantInvulnerableUntilTurnEnd)
                 recipient.InvulnerableRestOfTurn = true;
+
+            if (arm.SideEffectAllyDamage > 0 && !string.IsNullOrEmpty(arm.SideEffectAllyCharacterId))
+                V09BossMechanicsRules.DamageRandomAllyByCharacterId(
+                    state, attacker, arm.SideEffectAllyCharacterId, arm.SideEffectAllyDamage, events);
 
             return true;
         }

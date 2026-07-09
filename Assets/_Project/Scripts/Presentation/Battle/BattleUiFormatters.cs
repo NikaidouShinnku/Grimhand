@@ -6,6 +6,7 @@ using Grimhand.Battle.Planning;
 using Grimhand.Battle.Reactions;
 using Grimhand.Battle.Rules;
 using Grimhand.Battle.Status;
+using Grimhand.Battle.V09;
 using Grimhand.Content;
 using Grimhand.Expedition.Model;
 
@@ -1129,6 +1130,25 @@ namespace Grimhand.Presentation.Battle
                     return "本回合队友受到的伤害转移给自身，并减伤 50%";
                 case StatusCatalog.Ethereal:
                     return "受到的攻击伤害最多造成 1 点";
+                case StatusCatalog.DefenseDownPercent:
+                case StatusCatalog.ArmorDown:
+                    return AppendStatusDurationLine(
+                        $"获得护甲减少 {status.Stacks * (def?.BlockGainReductionPercentPerStack ?? 1)}%（每层 -{def?.BlockGainReductionPercentPerStack ?? 1}%）",
+                        status, def);
+                case StatusCatalog.RisingTide:
+                    return AppendStatusDurationLine(
+                        $"减伤 +{status.Stacks * (def?.IncomingDamageReductionPercentPerStack ?? 15)}%，增伤 +{status.Stacks * (def?.AttackPercentBonusPerStack ?? 10)}%（每层 15% 减伤 / 10% 增伤）；达到 {V09BossMechanicsRules.RisingTideEbbThreshold} 层时消耗全部涨潮并获得退潮",
+                        status, def);
+                case StatusCatalog.EbbingTide:
+                    return AppendStatusDurationLine(
+                        $"无法获得涨潮；受到的伤害 +{def?.IncomingDamagePercentPerStack ?? 50}%",
+                        status, def);
+                case StatusCatalog.TideLocked:
+                    return AppendStatusDurationLine(
+                        $"涨潮锁定在 {V09BossMechanicsRules.TideLockedStackCount} 层",
+                        status, def);
+                case StatusCatalog.TideEmpower:
+                    return "魔化潮汐：每层涨潮额外提供 5% 减伤";
                 default:
                     break;
             }
@@ -1149,6 +1169,10 @@ namespace Grimhand.Presentation.Battle
                 parts.Add($"所有攻击牌伤害 +{status.Stacks * def.AttackPercentBonusPerStack}%（每层 +{def.AttackPercentBonusPerStack}%）");
             if (def.IncomingDamagePercentPerStack > 0)
                 parts.Add($"受到的伤害每层 +{def.IncomingDamagePercentPerStack}%");
+            if (def.IncomingDamageReductionPercentPerStack > 0)
+                parts.Add($"减伤 +{status.Stacks * def.IncomingDamageReductionPercentPerStack}%（每层 +{def.IncomingDamageReductionPercentPerStack}%）");
+            if (def.BlockGainReductionPercentPerStack > 0)
+                parts.Add($"获得护甲减少 {status.Stacks * def.BlockGainReductionPercentPerStack}%（每层 -{def.BlockGainReductionPercentPerStack}%）");
             if (def.MaxHpPercentBonusPerStack > 0)
                 parts.Add($"最大生命每层 +{def.MaxHpPercentBonusPerStack}%");
             if (def.BlockGainFlatPerStack > 0)

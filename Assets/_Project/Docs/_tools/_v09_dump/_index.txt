@@ -1,10 +1,11 @@
 角色和天赋	49x33	角色和天赋.txt
-卡牌	120x19	卡牌.txt
+卡牌	120x21	卡牌.txt
 遗物	62x7	遗物.txt
 消耗品	10x5	消耗品.txt
-Boss设计	25x11	Boss设计.txt
+Boss设计	60x11	Boss设计.txt
 小怪设计	184x8	小怪设计.txt
-怪物组合	63x8	怪物组合.txt
+怪物组合	64x9	怪物组合.txt
+商店	6x6	商店.txt
 事件	129x7	事件.txt
 icon设计	11x5	icon设计.txt
 说明（经验值和关键词等）	26x18	说明_经验值和关键词等_.txt

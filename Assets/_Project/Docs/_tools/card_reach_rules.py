@@ -42,12 +42,12 @@ def expects_manual_enemy_pick(desc: str, actions: list[dict]) -> bool:
     if any(x in (desc or "") for x in ("全体", "所有敌人", "AOE", "随机")):
         return False
     directed = {0, 1}  # DefaultEnemy, ManualSelected — 与 asset Target 字段一致
-    pick_types = {0, 3, 4, 23, 27, 30, 32, 16, 18, 21, 22, 23, 37}  # damage-like
+    pick_types = {0, 3, 4, 23, 27, 28, 29, 30, 32, 16, 18, 21, 22, 23, 37}  # damage-like
     for a in actions:
         if a.get("Condition", 0) != 0:
             continue
         t = a.get("Target", 0)
-        if t in directed and a.get("Type") in pick_types:
+        if t == 0 and a.get("Type") in pick_types:
             return True
     return False
 
@@ -56,11 +56,14 @@ def reach_matches_desc(desc: str, actions: list[dict]) -> tuple[bool, str]:
     expected = parse_position_reach(desc)
     if expected is None:
         return True, ""
+    # 怪物应对卡：描述中的【前/中】对应应对触发伤害，无无条件出牌 action
+    if actions and all(a.get("Condition", 0) != 0 for a in actions if a.get("Type") in (0, 3, 21, 23, 27, 28, 29, 30, 32, 37)):
+        return True, ""
     reaches = [
         a.get("Reach", 1)
         for a in actions
-        if a.get("Condition", 0) == 0 and a.get("Target", 0) in (0, 1)
-        and a.get("Type") in (0, 3, 4, 16, 18, 21, 22, 23, 27, 30, 32, 37)
+        if a.get("Condition", 0) == 0 and a.get("Target", 0) == 0
+        and a.get("Type") in (0, 3, 4, 16, 18, 21, 22, 23, 27, 28, 29, 30, 32, 37)
     ]
     if not reaches:
         return False, f"位置括号期望 Reach={expected} 但无对应 action"

@@ -21,17 +21,17 @@ MonoBehaviour:
   Keywords: []
   Actions:
   - Type: 3
-    Target: 1
+    Target: 0
     Value: 0
-    StatusId: armor_up
-    Stacks: 5
-    Duration: 2
+    StatusId: defense_down_pct
+    Stacks: 100
+    Duration: 1
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 1
+    Reach: 0
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100

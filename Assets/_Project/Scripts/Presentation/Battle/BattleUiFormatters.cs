@@ -1084,7 +1084,7 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.PlagueSpread:
                     return "敌人因中毒受伤时，30% 概率向相邻敌人传染一半层数";
                 case StatusCatalog.HolyInfusionPending:
-                    return "下一张打出的牌结算后重复一次";
+                    return "（已废弃）旧版神圣灌注待重复状态";
                 case StatusCatalog.Poison:
                     return "回合开始每层 1 伤害，无视护甲";
                 case StatusCatalog.Burn:

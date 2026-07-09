@@ -1,0 +1,35 @@
+{
+  "version": "v0.9",
+  "updatedAt": "2026-07-09T09:38:00Z",
+  "scope": {
+    "masterCards": 236,
+    "assetBacked": 236,
+    "bossBacklog": 31,
+    "bossBacklogFile": "_card_boss_backlog_v09.json"
+  },
+  "strictAudit": {
+    "total": 236,
+    "ok": 236,
+    "pending": 0
+  },
+  "behaviorTests": {
+    "total": 236,
+    "passed": 236,
+    "failed": 0,
+    "dualScenarioRespondCards": "CardV09BehaviorBatchRunner TestA+TestB for respond cards with unconditional post-period actions"
+  },
+  "phases": {
+    "phase0_baseline": "done",
+    "phase1_player_w_p_d_v_l": "done",
+    "phase2_monster_g_m": "done",
+    "boss_trait_backlog": "pending — 31 Boss设计表项无 Card asset，机制在 V09BossMechanicsRules"
+  },
+  "fixesThisSession": [
+    "repair_and_sync_cards.py 缩进修复",
+    "w_god_descends.asset YAML 损坏修复",
+    "Reach/StatusId/keyword 资产修正（d_demon_curse, p_curse_deepen, v_detonate_venom, m_spider_fatal_bind, m_pinch_armor, d_demon_lord, p_holy_infusion, m_queen_claw）",
+    "audit_card_effects / card_reach_rules / verify_card_strict 增强",
+    "CardV09BehaviorBatchRunner 应对卡 TestA+TestB",
+    "build_v09_toolchain 仅纳入有 asset 的卡，Boss 无资产项写入 backlog"
+  ]
+}

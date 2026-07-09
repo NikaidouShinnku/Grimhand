@@ -1,12 +1,12 @@
 {
   "version": "v0.9",
-  "generatedAt": "2026-07-03T08:56:00.525955+00:00",
+  "generatedAt": "2026-07-09T09:34:19.203884+00:00",
   "source": "_v09_xlsx_dump.json",
   "counts": {
     "player": 119,
     "monster": 101,
-    "boss": 18,
-    "total": 238
+    "boss": 47,
+    "total": 236
   },
   "cards": [
     {
@@ -672,9 +672,9 @@
     {
       "cardId": "p_holy_infusion",
       "displayName": "神圣灌注",
-      "effect": "【消耗】使友方角色使用的下一张牌重复使用一次，本卡消耗的能量等于下一张牌的费用+1",
-      "cost": "X",
-      "isXCost": true,
+      "effect": "【消耗】使友方角色使用的上一张牌重复使用一次，本卡消耗的能量等于上一张牌的费用+1",
+      "cost": "0",
+      "isXCost": false,
       "cardType": "状态",
       "cardTypeNum": 2,
       "rarity": "紫",
@@ -3461,7 +3461,7 @@
     {
       "cardId": "m_king_summon_workshop",
       "displayName": "召唤骨之王座",
-      "effect": "【消耗】每回合召唤一个易爆骷髅头",
+      "effect": "【消耗】每回合开始时召唤一个易爆骷髅头",
       "cost": "3",
       "isXCost": false,
       "cardType": "状态",
@@ -3539,41 +3539,9 @@
       "quantity": "-"
     },
     {
-      "cardId": "m_hp",
-      "displayName": "HP",
-      "effect": "Boss特性",
-      "cost": "（已删除）",
-      "isXCost": false,
-      "cardType": "（已删除）",
-      "cardTypeNum": 0,
-      "rarity": "总能量上限",
-      "ownerCharacterId": "char_rat",
-      "role": "Boss基本数值",
-      "prefix": "m",
-      "category": "boss",
-      "sourceSheet": "Boss设计",
-      "quantity": "每回合抽牌数"
-    },
-    {
-      "cardId": "m_220",
-      "displayName": "220",
-      "effect": "当血量第一次低于120时，获得1回合【虚化】（本回合受到的所有攻击最多造成1点伤害），并将幽灵女王之怒加入下回合手牌",
-      "cost": "—",
-      "isXCost": false,
-      "cardType": "—",
-      "cardTypeNum": 0,
-      "rarity": "4",
-      "ownerCharacterId": "char_ghost_queen",
-      "role": "幽灵女王",
-      "prefix": "m",
-      "category": "boss",
-      "sourceSheet": "Boss设计",
-      "quantity": "4"
-    },
-    {
       "cardId": "m_queen_claw",
       "displayName": "幽灵爪击",
-      "effect": "【前/中/后】造成 27伤害",
+      "effect": "【前/中/后】造成 23伤害",
       "cost": "1",
       "isXCost": false,
       "cardType": "攻击",

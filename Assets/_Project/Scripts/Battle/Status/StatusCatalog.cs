@@ -44,7 +44,7 @@ namespace Grimhand.Battle.Status
         public const string FinalBulwark = "final_bulwark";         // 最终壁垒：回合末仅清50%护甲
         public const string LastStand = "last_stand";               // 背水一战：2回合 HP不降至1以下
         public const string PlagueSpread = "plague_spread";         // 瘟疫蔓延：中毒tick 30%传染相邻
-        public const string HolyInfusionPending = "holy_infusion_pending"; // 神圣灌注：重复下一张牌
+        public const string HolyInfusionPending = "holy_infusion_pending"; // 旧版：下一张重复（v0.9 已改为结算时重复上一张）
         public const string RotAvatar = "rot_avatar";               // 腐朽化身：敌人回合开始2层中毒
         public const string BloodFrenzy = "blood_frenzy";           // 鲜血狂欢：献祭后5%增伤
         public const string BloodlineLegacy = "bloodline_legacy";   // 血族传承：150%最大HP

@@ -55,6 +55,9 @@ HOOK_CARD_IDS = {
     "p_solar_blessing", "m_spider_fatal_bind", "m_final_bind", "m_gargoyle_sunder",
     "m_magic_lightning", "m_golem_crack_fist", "m_final_summon", "m_king_summon_workshop",
     "m_rat_swarm_call", "p_holy_infusion", "p_anubis_avatar", "w_tactician_finisher",
+    "w_respond_stance", "w_god_descends", "w_last_stand", "w_burning_fury",
+    "d_final_blood_ritual", "p_rot_avatar", "g_blood_scratch", "m_raise_bones",
+    "v_shed_skin", "d_vamp_aura", "p_rot_touch",
 }
 
 
@@ -84,7 +87,14 @@ def check_hooks(cid: str, cs_text: str, actions: list[dict] | None = None) -> tu
             return True, f"statusId={sid}"
     # 特殊动作类型（阿努比斯化身等）
     special_types = {a.get("Type") for a in (actions or [])}
-    type_hook = {18: "DamagePerRespondCount", 10: "ApplyAnubisAvatar"}
+    type_hook = {
+        18: "DamagePerRespondCount",
+        10: "ApplyAnubisAvatar",
+        21: "DealDamageScaledByActorHpLoss",
+        23: "DealDamageBonusPerTargetDebuffStack",
+        27: "RemovePoisonHealPerStack",
+        28: "SettlePoisonAndClear",
+    }
     for t, name in type_hook.items():
         if t in special_types and name in cs_text:
             return True, name
@@ -103,8 +113,12 @@ def check_battle_scope(cid: str, desc: str, actions: list[dict]) -> tuple[bool, 
         a.get("Type") == 3 and a.get("Duration", -1) == -1
         for a in actions
     )
+    has_timed_battle = any(
+        a.get("Type") == 3 and (a.get("StatusId") or "").strip()
+        for a in actions
+    )
     has_special = cid in HOOK_CARD_IDS or cid == "d_endless_blade" or cid == "p_anubis_avatar"
-    if not has_perm and not has_special:
+    if not has_perm and not has_timed_battle and not has_special:
         return False, "本场战斗卡缺少 Permanent status 或已知钩子"
     cs = (
         PASSIVE_CS.read_text(encoding="utf-8")

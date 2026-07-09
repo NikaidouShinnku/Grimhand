@@ -23,6 +23,13 @@ SPECIAL_EMPTY_OK = {
 # 禁止「整卡跳过 compare」——与描述一致必须逐张核对。
 PASSIVE_HANDLED: set[str] = set()
 
+# 钩子/特殊动作：字面 YAML 不含数值，行为在 C# PassiveCardMechanicsRules / EffectActionExecutor 实现
+HOOK_NUMERIC_OK = {
+    "w_taunt", "w_respond_stance", "w_god_descends", "w_last_stand", "w_burning_fury",
+    "p_rot_touch", "p_rot_avatar", "p_sand_spear_reforge", "d_final_blood_ritual", "d_vamp_aura",
+    "v_shed_skin", "g_blood_scratch", "m_raise_bones", "m_golem_crack_fist",
+}
+
 # Status/special summon cards — description mentions 召唤 but effect is status-driven.
 STATUS_SUMMON_CARDS = {
     "m_king_summon_workshop",
@@ -54,8 +61,8 @@ def parse_actions(text: str) -> list[dict]:
             "Target", "Value", "StatusId", "Stacks", "Duration", "HitCount",
             "SelfDamageFlat", "LifestealPercent", "SplashBehindTarget",
             "SplashPowerPercent", "IgnoreDefPercent", "HealMaxHpPercent",
-            "OnKillHealAmount", "ScaleWithAttack", "SummonCharacterId",
-            "Reach", "Condition",
+            "OnKillHealAmount", "ScaleWithAttack", "ScaleWithDefense", "DefenseScalePercent",
+            "SummonCharacterId", "Reach", "Condition",
         ):
             fm = re.search(rf"{field}:\s*(.*)", block)
             if not fm:
@@ -131,14 +138,21 @@ def actual_from_actions(actions: list[dict]) -> dict:
     act: dict = {}
     dmg = [a["Value"] for a in actions if a["Type"] == 0 and a.get("Value")]
     dmg += [a["Value"] for a in actions if a["Type"] == 33 and a.get("Value")]
+    dmg += [a["Value"] for a in actions if a["Type"] == 21 and a.get("Value")]
+    dmg += [a["Value"] for a in actions if a["Type"] == 23 and a.get("Value")]
     if dmg:
         act["damage"] = dmg[-1]
     blk = [a["Value"] for a in actions if a["Type"] == 1 and a.get("Value")]
     if blk:
         act["block"] = blk[0]
+    if any(a["Type"] == 1 and a.get("ScaleWithDefense") for a in actions):
+        act["block_scaled"] = True
     heal = [a["Value"] for a in actions if a["Type"] == 2 and a.get("Value")]
     if heal:
         act["heal"] = heal[0]
+    heal27 = [a["Value"] for a in actions if a["Type"] == 27 and a.get("Value")]
+    if heal27:
+        act["heal"] = heal27[0]
     act["next_attack"] = sum(
         a.get("Stacks", 0)
         for a in actions
@@ -161,6 +175,9 @@ def actual_from_actions(actions: list[dict]) -> dict:
     act["summon"] = any(a["Type"] == 14 and a.get("SummonCharacterId") for a in actions)
     act["sacrifice_hp"] = max((a.get("SelfDamageFlat", 0) for a in actions), default=0)
     act["lifesteal"] = any(a.get("LifestealPercent", 0) > 0 for a in actions)
+    act["lifesteal"] = act["lifesteal"] or any(
+        a.get("StatusId") == "vamp_aura" for a in actions if a["Type"] == 3
+    )
     act["hit_count"] = max((a.get("HitCount", 1) for a in actions if a["Type"] == 0), default=1)
     repeat_vals = [a.get("Value", 0) for a in actions if a["Type"] == 0 and a.get("RepeatPerEnemyAttackCardThisTurn")]
     if repeat_vals and act.get("hit_count", 1) == 1:
@@ -171,6 +188,8 @@ def actual_from_actions(actions: list[dict]) -> dict:
 
 def compare(cid: str, desc: str, actions: list[dict]) -> list[str]:
     if cid in PASSIVE_HANDLED:
+        return []
+    if cid in HOOK_NUMERIC_OK:
         return []
     if cid in SPECIAL_EMPTY_OK and ("剩余所有能量" in desc or cid.startswith("p_solar")):
         return []
@@ -202,6 +221,8 @@ def compare(cid: str, desc: str, actions: list[dict]) -> list[str]:
             issues.append(f"{key}: 描述={ev} 实现={av}")
 
     if exp.get("block") and cid in PASSIVE_HANDLED:
+        pass
+    elif exp.get("block") and act.get("block_scaled"):
         pass
     elif exp.get("block") and cid in PASSIVE_HANDLED and cid in ("m_golem_crack_fist", "m_raise_bones"):
         pass

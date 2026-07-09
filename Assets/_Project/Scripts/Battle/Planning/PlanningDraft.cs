@@ -400,6 +400,9 @@ namespace Grimhand.Battle.Planning
             if (CardLockRules.QueueBlocksOwnerCard(_state, _selectedQueue, owner, c))
                 return false;
 
+            if (c.DefinitionId == PassiveCardMechanicsRules.HolyInfusionCardId && _selectedQueue.Count == 0)
+                return false;
+
             return true;
         }
 
@@ -412,20 +415,9 @@ namespace Grimhand.Battle.Planning
             var owner = ownerId != null ? _state.GetCombatant(ownerId) : null;
             var cost = TalentBattleRules.GetEffectivePlayCost(_state, owner, card);
             cost = V09NewMechanicsRules.AdjustPlayCostForHandCostZero(_state, owner, cost);
-            if (HolyInfusionSurchargeApplies(card))
-                cost += 1;
+            if (card.DefinitionId == PassiveCardMechanicsRules.HolyInfusionCardId)
+                return PassiveCardMechanicsRules.GetHolyInfusionPlayCost(_state, this);
             return cost;
-        }
-
-        bool HolyInfusionSurchargeApplies(CardInstanceState card)
-        {
-            if (card == null || card.DefinitionId == PassiveCardMechanicsRules.HolyInfusionCardId)
-                return false;
-            if (_selectedQueue.Count == 0)
-                return false;
-
-            var last = _state.GetCard(_selectedQueue[_selectedQueue.Count - 1]);
-            return last?.DefinitionId == PassiveCardMechanicsRules.HolyInfusionCardId;
         }
 
         void ConsumeTalentDiscountIfApplied(CombatantState owner, CardInstanceState card, int cost)

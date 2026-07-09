@@ -266,6 +266,92 @@ namespace Grimhand.Battle
             {
                 CombatantId = actor.Id
             });
+
+            MaybeResolveHolyInfusionFollowUp(card);
+        }
+
+        void MaybeResolveHolyInfusionFollowUp(CardInstanceState card)
+        {
+            if (card?.DefinitionId != PassiveCardMechanicsRules.HolyInfusionCardId)
+                return;
+
+            ResolveHolyInfusionFollowUp(card.InstanceId);
+        }
+
+        void ResolveHolyInfusionFollowUp(int holyInfusionCardInstanceId)
+        {
+            if (!PassiveCardMechanicsRules.TryGetHolyInfusionRepeatTarget(
+                    _state, holyInfusionCardInstanceId, out var repeatCardInstanceId))
+                return;
+
+            ResolveRepeatedCardPlay(repeatCardInstanceId, holyInfusionCardInstanceId);
+        }
+
+        /// <summary>神圣灌注：让上一张牌的所属角色再打出该牌一次（不再次进弃牌/消耗）。</summary>
+        void ResolveRepeatedCardPlay(int cardInstanceId, int holyInfusionCardInstanceId)
+        {
+            var card = _state.GetCard(cardInstanceId);
+            if (card == null)
+                return;
+
+            var ownerId = PositionRules.GetOwnerCombatantId(_state, card);
+            var actor = ownerId != null ? _state.GetCombatant(ownerId) : null;
+            if (actor == null || !actor.IsAlive)
+                return;
+
+            if (_state.PlayerPlan.TargetByCardInstanceId.TryGetValue(cardInstanceId, out var targetId))
+                _state.ResolutionTargets[cardInstanceId] = targetId;
+
+            card = HolysunSpellbookRules.ApplyForResolution(_state.Config?.RunModifiers, actor, card);
+            var eventStart = _events.Count;
+
+            _events.Add(new BattleEvent(BattleEventKind.StatusApplied,
+                $"{actor.DisplayName} 神圣灌注：再打出 {card.DisplayName}")
+            {
+                CombatantId = actor.Id,
+                CardInstanceId = holyInfusionCardInstanceId
+            });
+            _events.Add(new BattleEvent(BattleEventKind.PortraitPoseChanged, actor.DisplayName)
+            {
+                CombatantId = actor.Id,
+                CardType = card.CardType,
+                CardInstanceId = card.InstanceId
+            });
+            _events.Add(new BattleEvent(BattleEventKind.CardResolvedStarted, card.DisplayName)
+            {
+                CombatantId = actor.Id,
+                CardInstanceId = card.InstanceId,
+                CardType = card.CardType
+            });
+
+            PassiveCardMechanicsRules.ApplyEndlessBladeSacrifice(_state, actor, card, _events, _rng);
+
+            if (SpecialCardRules.IsSpecialCard(card))
+                SpecialCardRules.TryResolve(_state, actor, card, _events, _rng);
+            else
+                EffectActionExecutor.ExecuteAll(_state, actor, card, _events, _rng);
+
+            ConsumableRules.RecordLastPlayerAttackCard(_state, actor, card);
+            RelicBattleRules.TryApplyStatusCardTeamBlock(_state, actor, card, _events);
+            RelicEffectRules.OnCardResolved(_state, actor, card, _events, _rng);
+            PassiveCardMechanicsRules.OnEndlessBladeResolved(_state, card, _events);
+            if (card.DefinitionId == PassiveCardMechanicsRules.SpiderFatalBindCardId)
+                PassiveCardMechanicsRules.OnSpiderFatalBindResolved(_state, actor, card, _events, _rng);
+
+            TrySelfDestructAfterCard(actor, card);
+
+            _events.Add(new BattleEvent(BattleEventKind.CardResolvedEnded, card.DisplayName)
+            {
+                CombatantId = actor.Id,
+                CardInstanceId = card.InstanceId
+            });
+            _events.Add(new BattleEvent(BattleEventKind.PortraitIdleRestored, actor.DisplayName)
+            {
+                CombatantId = actor.Id
+            });
+
+            RecordPresentationCheckpoints(eventStart);
+            EvaluateOutcome();
         }
 
         bool CommitPlanInternal(string message, BattleEventKind kind)
@@ -419,6 +505,8 @@ namespace Grimhand.Battle
                 CardInstanceId = card.InstanceId
             });
 
+            MaybeResolveHolyInfusionFollowUp(card);
+
             RecordPresentationCheckpoints(eventStart);
             EvaluateOutcome();
         }
@@ -553,6 +641,8 @@ namespace Grimhand.Battle
             {
                 CombatantId = actor.Id
             });
+
+            MaybeResolveHolyInfusionFollowUp(card);
 
             if (actor.Team == TeamSide.Enemy)
                 RespondEffectExecutor.ResolvePendingParriesForEnemyCard(

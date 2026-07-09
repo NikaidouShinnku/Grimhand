@@ -5,1192 +5,1182 @@
     "w_author_realm_strike": {
       "testMethod": "CardV09BehaviorBatchRunner.w_author_realm_strike",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8076447Z"
+      "verifiedAt": "2026-07-09T09:38:55.7012461Z"
     },
     "w_basic_slash": {
       "testMethod": "CardV09BehaviorBatchRunner.w_basic_slash",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_shield_block": {
       "testMethod": "CardV09BehaviorBatchRunner.w_shield_block",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_defensive_stance": {
       "testMethod": "CardV09BehaviorBatchRunner.w_defensive_stance",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_war_cry": {
       "testMethod": "CardV09BehaviorBatchRunner.w_war_cry",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_first_strike": {
       "testMethod": "CardV09BehaviorBatchRunner.w_first_strike",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_power_cleave": {
       "testMethod": "CardV09BehaviorBatchRunner.w_power_cleave",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_shield_slam": {
       "testMethod": "CardV09BehaviorBatchRunner.w_shield_slam",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_strategic_retreat": {
       "testMethod": "CardV09BehaviorBatchRunner.w_strategic_retreat",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_pommel_strike": {
       "testMethod": "CardV09BehaviorBatchRunner.w_pommel_strike",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_parry_counter": {
       "testMethod": "CardV09BehaviorBatchRunner.w_parry_counter",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_taunt": {
       "testMethod": "CardV09BehaviorBatchRunner.w_taunt",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_iron_parry": {
       "testMethod": "CardV09BehaviorBatchRunner.w_iron_parry",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_respond_stance": {
       "testMethod": "CardV09BehaviorBatchRunner.w_respond_stance",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_battle_will": {
       "testMethod": "CardV09BehaviorBatchRunner.w_battle_will",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_heavy_armor": {
       "testMethod": "CardV09BehaviorBatchRunner.w_heavy_armor",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_charge": {
       "testMethod": "CardV09BehaviorBatchRunner.w_charge",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_guardian": {
       "testMethod": "CardV09BehaviorBatchRunner.w_guardian",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_fatal_strike": {
       "testMethod": "CardV09BehaviorBatchRunner.w_fatal_strike",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_blade_storm": {
       "testMethod": "CardV09BehaviorBatchRunner.w_blade_storm",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_tactician_finisher": {
       "testMethod": "CardV09BehaviorBatchRunner.w_tactician_finisher",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_burning_fury": {
       "testMethod": "CardV09BehaviorBatchRunner.w_burning_fury",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_unyielding": {
       "testMethod": "CardV09BehaviorBatchRunner.w_unyielding",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_god_descends": {
       "testMethod": "CardV09BehaviorBatchRunner.w_god_descends",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_final_bulwark": {
       "testMethod": "CardV09BehaviorBatchRunner.w_final_bulwark",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "w_last_stand": {
       "testMethod": "CardV09BehaviorBatchRunner.w_last_stand",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_sand_ray": {
       "testMethod": "CardV09BehaviorBatchRunner.p_sand_ray",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_bless": {
       "testMethod": "CardV09BehaviorBatchRunner.p_bless",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_sand_arrow": {
       "testMethod": "CardV09BehaviorBatchRunner.p_sand_arrow",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_sand_shield": {
       "testMethod": "CardV09BehaviorBatchRunner.p_sand_shield",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_scarab_shield": {
       "testMethod": "CardV09BehaviorBatchRunner.p_scarab_shield",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_pharaoh_curse": {
       "testMethod": "CardV09BehaviorBatchRunner.p_pharaoh_curse",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_memory_fragment": {
       "testMethod": "CardV09BehaviorBatchRunner.p_memory_fragment",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_solar_wrath": {
       "testMethod": "CardV09BehaviorBatchRunner.p_solar_wrath",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_rot_touch": {
       "testMethod": "CardV09BehaviorBatchRunner.p_rot_touch",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_sand_barrier": {
       "testMethod": "CardV09BehaviorBatchRunner.p_sand_barrier",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_lifesteal": {
       "testMethod": "CardV09BehaviorBatchRunner.p_lifesteal",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_decree": {
       "testMethod": "CardV09BehaviorBatchRunner.p_decree",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_plague_spread": {
       "testMethod": "CardV09BehaviorBatchRunner.p_plague_spread",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_curse_deepen": {
       "testMethod": "CardV09BehaviorBatchRunner.p_curse_deepen",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_undead_curse": {
       "testMethod": "CardV09BehaviorBatchRunner.p_undead_curse",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_solar_judgment": {
       "testMethod": "CardV09BehaviorBatchRunner.p_solar_judgment",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_revive_bless": {
       "testMethod": "CardV09BehaviorBatchRunner.p_revive_bless",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_sand_spear_reforge": {
       "testMethod": "CardV09BehaviorBatchRunner.p_sand_spear_reforge",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_holy_infusion": {
       "testMethod": "CardV09BehaviorBatchRunner.p_holy_infusion",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_solar_god_wrath": {
       "testMethod": "CardV09BehaviorBatchRunner.p_solar_god_wrath",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_solar_blessing": {
       "testMethod": "CardV09BehaviorBatchRunner.p_solar_blessing",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_rot_avatar": {
       "testMethod": "CardV09BehaviorBatchRunner.p_rot_avatar",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_anubis_avatar": {
       "testMethod": "CardV09BehaviorBatchRunner.p_anubis_avatar",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "p_holy_cycle": {
       "testMethod": "CardV09BehaviorBatchRunner.p_holy_cycle",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_shadow_claw": {
       "testMethod": "CardV09BehaviorBatchRunner.d_shadow_claw",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_demon_curse": {
       "testMethod": "CardV09BehaviorBatchRunner.d_demon_curse",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_devil_touch": {
       "testMethod": "CardV09BehaviorBatchRunner.d_devil_touch",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_blood_armor": {
       "testMethod": "CardV09BehaviorBatchRunner.d_blood_armor",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_demon_pact": {
       "testMethod": "CardV09BehaviorBatchRunner.d_demon_pact",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_blood_hand": {
       "testMethod": "CardV09BehaviorBatchRunner.d_blood_hand",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_blood_bite": {
       "testMethod": "CardV09BehaviorBatchRunner.d_blood_bite",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_dark_mist": {
       "testMethod": "CardV09BehaviorBatchRunner.d_dark_mist",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_vamp_aura": {
       "testMethod": "CardV09BehaviorBatchRunner.d_vamp_aura",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_blood_tail": {
       "testMethod": "CardV09BehaviorBatchRunner.d_blood_tail",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_life_siphon": {
       "testMethod": "CardV09BehaviorBatchRunner.d_life_siphon",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_blood_flame": {
       "testMethod": "CardV09BehaviorBatchRunner.d_blood_flame",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_dark_tear": {
       "testMethod": "CardV09BehaviorBatchRunner.d_dark_tear",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_soul_rip": {
       "testMethod": "CardV09BehaviorBatchRunner.d_soul_rip",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_curse_chain": {
       "testMethod": "CardV09BehaviorBatchRunner.d_curse_chain",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_hell_fire": {
       "testMethod": "CardV09BehaviorBatchRunner.d_hell_fire",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_dark_sacrifice": {
       "testMethod": "CardV09BehaviorBatchRunner.d_dark_sacrifice",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_blood_frenzy": {
       "testMethod": "CardV09BehaviorBatchRunner.d_blood_frenzy",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_bloodline_legacy": {
       "testMethod": "CardV09BehaviorBatchRunner.d_bloodline_legacy",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_demon_lord": {
       "testMethod": "CardV09BehaviorBatchRunner.d_demon_lord",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_endless_blade": {
       "testMethod": "CardV09BehaviorBatchRunner.d_endless_blade",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_blood_sharing": {
       "testMethod": "CardV09BehaviorBatchRunner.d_blood_sharing",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "d_final_blood_ritual": {
       "testMethod": "CardV09BehaviorBatchRunner.d_final_blood_ritual",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "v_snake_bite": {
       "testMethod": "CardV09BehaviorBatchRunner.v_snake_bite",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "v_python_guard": {
       "testMethod": "CardV09BehaviorBatchRunner.v_python_guard",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "v_scale_harden": {
       "testMethod": "CardV09BehaviorBatchRunner.v_scale_harden",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "v_poison_touch": {
       "testMethod": "CardV09BehaviorBatchRunner.v_poison_touch",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "v_queen_authority": {
       "testMethod": "CardV09BehaviorBatchRunner.v_queen_authority",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "v_tail_strike": {
       "testMethod": "CardV09BehaviorBatchRunner.v_tail_strike",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "v_poison_scale": {
       "testMethod": "CardV09BehaviorBatchRunner.v_poison_scale",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "v_snake_king_blessing": {
       "testMethod": "CardV09BehaviorBatchRunner.v_snake_king_blessing",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "v_venom_spit": {
       "testMethod": "CardV09BehaviorBatchRunner.v_venom_spit",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "v_detonate_venom": {
       "testMethod": "CardV09BehaviorBatchRunner.v_detonate_venom",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "v_digest_venom": {
       "testMethod": "CardV09BehaviorBatchRunner.v_digest_venom",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "v_shed_skin": {
       "testMethod": "CardV09BehaviorBatchRunner.v_shed_skin",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "v_tongue_sense": {
       "testMethod": "CardV09BehaviorBatchRunner.v_tongue_sense",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "v_queen_prevention": {
       "testMethod": "CardV09BehaviorBatchRunner.v_queen_prevention",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "v_venom_sac_burst": {
       "testMethod": "CardV09BehaviorBatchRunner.v_venom_sac_burst",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "v_venom_feast": {
       "testMethod": "CardV09BehaviorBatchRunner.v_venom_feast",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "v_python_constrict": {
       "testMethod": "CardV09BehaviorBatchRunner.v_python_constrict",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "v_immortal_shed": {
       "testMethod": "CardV09BehaviorBatchRunner.v_immortal_shed",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "v_poison_feedback": {
       "testMethod": "CardV09BehaviorBatchRunner.v_poison_feedback",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "v_all_snakes_heart": {
       "testMethod": "CardV09BehaviorBatchRunner.v_all_snakes_heart",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "v_pray_ancient_god": {
       "testMethod": "CardV09BehaviorBatchRunner.v_pray_ancient_god",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "v_snake_god_response": {
       "testMethod": "CardV09BehaviorBatchRunner.v_snake_god_response",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_ethereal_form": {
       "testMethod": "CardV09BehaviorBatchRunner.l_ethereal_form",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_void_gaze": {
       "testMethod": "CardV09BehaviorBatchRunner.l_void_gaze",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_charge": {
       "testMethod": "CardV09BehaviorBatchRunner.l_charge",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_ghost_claw": {
       "testMethod": "CardV09BehaviorBatchRunner.l_ghost_claw",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_gather_energy": {
       "testMethod": "CardV09BehaviorBatchRunner.l_gather_energy",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_spirit_walk": {
       "testMethod": "CardV09BehaviorBatchRunner.l_spirit_walk",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_psionic_cannon": {
       "testMethod": "CardV09BehaviorBatchRunner.l_psionic_cannon",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_dread_whisper": {
       "testMethod": "CardV09BehaviorBatchRunner.l_dread_whisper",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_soul_storm": {
       "testMethod": "CardV09BehaviorBatchRunner.l_soul_storm",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_two_realms_walker": {
       "testMethod": "CardV09BehaviorBatchRunner.l_two_realms_walker",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_soul_devour": {
       "testMethod": "CardV09BehaviorBatchRunner.l_soul_devour",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_psionic_body": {
       "testMethod": "CardV09BehaviorBatchRunner.l_psionic_body",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_soul_reinforce": {
       "testMethod": "CardV09BehaviorBatchRunner.l_soul_reinforce",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_realm_burst": {
       "testMethod": "CardV09BehaviorBatchRunner.l_realm_burst",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_psionic_focus": {
       "testMethod": "CardV09BehaviorBatchRunner.l_psionic_focus",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_realm_seal": {
       "testMethod": "CardV09BehaviorBatchRunner.l_realm_seal",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_soul_elegy": {
       "testMethod": "CardV09BehaviorBatchRunner.l_soul_elegy",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_summon_card_spirit": {
       "testMethod": "CardV09BehaviorBatchRunner.l_summon_card_spirit",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_summon_chaos_spirit": {
       "testMethod": "CardV09BehaviorBatchRunner.l_summon_chaos_spirit",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_wall_of_sighs": {
       "testMethod": "CardV09BehaviorBatchRunner.l_wall_of_sighs",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_despair_soul": {
       "testMethod": "CardV09BehaviorBatchRunner.l_despair_soul",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_realm_descent": {
       "testMethod": "CardV09BehaviorBatchRunner.l_realm_descent",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_super_psionic_cannon": {
       "testMethod": "CardV09BehaviorBatchRunner.l_super_psionic_cannon",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "l_eternal_void": {
       "testMethod": "CardV09BehaviorBatchRunner.l_eternal_void",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "g_bite": {
       "testMethod": "CardV09BehaviorBatchRunner.g_bite",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "g_blood_scratch": {
       "testMethod": "CardV09BehaviorBatchRunner.g_blood_scratch",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "g_throw": {
       "testMethod": "CardV09BehaviorBatchRunner.g_throw",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_slime_shield": {
       "testMethod": "CardV09BehaviorBatchRunner.m_slime_shield",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_slime_slam": {
       "testMethod": "CardV09BehaviorBatchRunner.m_slime_slam",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_slime_absorb": {
       "testMethod": "CardV09BehaviorBatchRunner.m_slime_absorb",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_slime_wrap": {
       "testMethod": "CardV09BehaviorBatchRunner.m_slime_wrap",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_bone_shield": {
       "testMethod": "CardV09BehaviorBatchRunner.m_bone_shield",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_bone_slash": {
       "testMethod": "CardV09BehaviorBatchRunner.m_bone_slash",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_bone_toss": {
       "testMethod": "CardV09BehaviorBatchRunner.m_bone_toss",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_maim": {
       "testMethod": "CardV09BehaviorBatchRunner.m_maim",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_bone_wall": {
       "testMethod": "CardV09BehaviorBatchRunner.m_bone_wall",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_bone_crush": {
       "testMethod": "CardV09BehaviorBatchRunner.m_bone_crush",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_bone_spear": {
       "testMethod": "CardV09BehaviorBatchRunner.m_bone_spear",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_shatter_rush": {
       "testMethod": "CardV09BehaviorBatchRunner.m_shatter_rush",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_raise_bones": {
       "testMethod": "CardV09BehaviorBatchRunner.m_raise_bones",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "g_arrow": {
       "testMethod": "CardV09BehaviorBatchRunner.g_arrow",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_wraith_phase": {
       "testMethod": "CardV09BehaviorBatchRunner.m_wraith_phase",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_wraith_soul_strike": {
       "testMethod": "CardV09BehaviorBatchRunner.m_wraith_soul_strike",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "g_hex": {
       "testMethod": "CardV09BehaviorBatchRunner.g_hex",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_soul_strike": {
       "testMethod": "CardV09BehaviorBatchRunner.m_soul_strike",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_phase": {
       "testMethod": "CardV09BehaviorBatchRunner.m_phase",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_advanced_hex": {
       "testMethod": "CardV09BehaviorBatchRunner.m_advanced_hex",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_soul_storm": {
       "testMethod": "CardV09BehaviorBatchRunner.m_soul_storm",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_soul_bind": {
       "testMethod": "CardV09BehaviorBatchRunner.m_soul_bind",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_ogre_heavy_punch": {
       "testMethod": "CardV09BehaviorBatchRunner.m_ogre_heavy_punch",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_ogre_stomp": {
       "testMethod": "CardV09BehaviorBatchRunner.m_ogre_stomp",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_ogre_war_cry": {
       "testMethod": "CardV09BehaviorBatchRunner.m_ogre_war_cry",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_ogre_combo_smash": {
       "testMethod": "CardV09BehaviorBatchRunner.m_ogre_combo_smash",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_ogre_thick_hide": {
       "testMethod": "CardV09BehaviorBatchRunner.m_ogre_thick_hide",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_bat_claw": {
       "testMethod": "CardV09BehaviorBatchRunner.m_bat_claw",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_bat_dive": {
       "testMethod": "CardV09BehaviorBatchRunner.m_bat_dive",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_bat_ambush": {
       "testMethod": "CardV09BehaviorBatchRunner.m_bat_ambush",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_bat_shadow_dodge": {
       "testMethod": "CardV09BehaviorBatchRunner.m_bat_shadow_dodge",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_bat_poison_wing": {
       "testMethod": "CardV09BehaviorBatchRunner.m_bat_poison_wing",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_bat_night_slash": {
       "testMethod": "CardV09BehaviorBatchRunner.m_bat_night_slash",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_rat_punch": {
       "testMethod": "CardV09BehaviorBatchRunner.m_rat_punch",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_rat_trash": {
       "testMethod": "CardV09BehaviorBatchRunner.m_rat_trash",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_rat_ambush": {
       "testMethod": "CardV09BehaviorBatchRunner.m_rat_ambush",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_rat_morale": {
       "testMethod": "CardV09BehaviorBatchRunner.m_rat_morale",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_rat_swarm_call": {
       "testMethod": "CardV09BehaviorBatchRunner.m_rat_swarm_call",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_rat_burrow": {
       "testMethod": "CardV09BehaviorBatchRunner.m_rat_burrow",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_chain_whip": {
       "testMethod": "CardV09BehaviorBatchRunner.m_chain_whip",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_chain_grudge": {
       "testMethod": "CardV09BehaviorBatchRunner.m_chain_grudge",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_chain_throw": {
       "testMethod": "CardV09BehaviorBatchRunner.m_chain_throw",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_chain_guard": {
       "testMethod": "CardV09BehaviorBatchRunner.m_chain_guard",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_grudge_guard": {
       "testMethod": "CardV09BehaviorBatchRunner.m_grudge_guard",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_final_bind": {
       "testMethod": "CardV09BehaviorBatchRunner.m_final_bind",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_chain_recharge": {
       "testMethod": "CardV09BehaviorBatchRunner.m_chain_recharge",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_gargoyle_claw": {
       "testMethod": "CardV09BehaviorBatchRunner.m_gargoyle_claw",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_gargoyle_petrify": {
       "testMethod": "CardV09BehaviorBatchRunner.m_gargoyle_petrify",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_gargoyle_sunder": {
       "testMethod": "CardV09BehaviorBatchRunner.m_gargoyle_sunder",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_gargoyle_empower": {
       "testMethod": "CardV09BehaviorBatchRunner.m_gargoyle_empower",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_gargoyle_counter": {
       "testMethod": "CardV09BehaviorBatchRunner.m_gargoyle_counter",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_gargoyle_sleep_stone": {
       "testMethod": "CardV09BehaviorBatchRunner.m_gargoyle_sleep_stone",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_spider_fang": {
       "testMethod": "CardV09BehaviorBatchRunner.m_spider_fang",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_spider_silk": {
       "testMethod": "CardV09BehaviorBatchRunner.m_spider_silk",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_spider_trap": {
       "testMethod": "CardV09BehaviorBatchRunner.m_spider_trap",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_spider_spray": {
       "testMethod": "CardV09BehaviorBatchRunner.m_spider_spray",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_spider_wrap": {
       "testMethod": "CardV09BehaviorBatchRunner.m_spider_wrap",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_spider_fatal_bind": {
       "testMethod": "CardV09BehaviorBatchRunner.m_spider_fatal_bind",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_golem_fist": {
       "testMethod": "CardV09BehaviorBatchRunner.m_golem_fist",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_golem_wall": {
       "testMethod": "CardV09BehaviorBatchRunner.m_golem_wall",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_golem_quake": {
       "testMethod": "CardV09BehaviorBatchRunner.m_golem_quake",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_golem_unmovable": {
       "testMethod": "CardV09BehaviorBatchRunner.m_golem_unmovable",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_golem_quake_slam": {
       "testMethod": "CardV09BehaviorBatchRunner.m_golem_quake_slam",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_golem_crack_fist": {
       "testMethod": "CardV09BehaviorBatchRunner.m_golem_crack_fist",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_tide_lance": {
       "testMethod": "CardV09BehaviorBatchRunner.m_tide_lance",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_tide_charge": {
       "testMethod": "CardV09BehaviorBatchRunner.m_tide_charge",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_water_shield": {
       "testMethod": "CardV09BehaviorBatchRunner.m_water_shield",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_guard_stance": {
       "testMethod": "CardV09BehaviorBatchRunner.m_guard_stance",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_tail_splash": {
       "testMethod": "CardV09BehaviorBatchRunner.m_tail_splash",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_final_guard": {
       "testMethod": "CardV09BehaviorBatchRunner.m_final_guard",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_jelly_sting": {
       "testMethod": "CardV09BehaviorBatchRunner.m_jelly_sting",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_phase_current": {
       "testMethod": "CardV09BehaviorBatchRunner.m_phase_current",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_gel_wall": {
       "testMethod": "CardV09BehaviorBatchRunner.m_gel_wall",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_bounce_sting": {
       "testMethod": "CardV09BehaviorBatchRunner.m_bounce_sting",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_magic_lightning": {
       "testMethod": "CardV09BehaviorBatchRunner.m_magic_lightning",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_final_summon": {
       "testMethod": "CardV09BehaviorBatchRunner.m_final_summon",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_paralyze_sting": {
       "testMethod": "CardV09BehaviorBatchRunner.m_paralyze_sting",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_mermaid_slash": {
       "testMethod": "CardV09BehaviorBatchRunner.m_mermaid_slash",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_tidal_power": {
       "testMethod": "CardV09BehaviorBatchRunner.m_tidal_power",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_mermaid_shield": {
       "testMethod": "CardV09BehaviorBatchRunner.m_mermaid_shield",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_wave_cleave": {
       "testMethod": "CardV09BehaviorBatchRunner.m_wave_cleave",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_abyss_lash": {
       "testMethod": "CardV09BehaviorBatchRunner.m_abyss_lash",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_abyss_creature_gaze": {
       "testMethod": "CardV09BehaviorBatchRunner.m_abyss_creature_gaze",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_shell_craft": {
       "testMethod": "CardV09BehaviorBatchRunner.m_shell_craft",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_corrosion_volley": {
       "testMethod": "CardV09BehaviorBatchRunner.m_corrosion_volley",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_piercing_tentacle": {
       "testMethod": "CardV09BehaviorBatchRunner.m_piercing_tentacle",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_giant_claw": {
       "testMethod": "CardV09BehaviorBatchRunner.m_giant_claw",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_abyss_gaze": {
       "testMethod": "CardV09BehaviorBatchRunner.m_abyss_gaze",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_reforge_shell": {
       "testMethod": "CardV09BehaviorBatchRunner.m_reforge_shell",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_pinch_armor": {
       "testMethod": "CardV09BehaviorBatchRunner.m_pinch_armor",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_fester_claw": {
       "testMethod": "CardV09BehaviorBatchRunner.m_fester_claw",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_phantom_slash": {
       "testMethod": "CardV09BehaviorBatchRunner.m_phantom_slash",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_musket_shot": {
       "testMethod": "CardV09BehaviorBatchRunner.m_musket_shot",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_phantom_armor": {
       "testMethod": "CardV09BehaviorBatchRunner.m_phantom_armor",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_plunder_strike": {
       "testMethod": "CardV09BehaviorBatchRunner.m_plunder_strike",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_plunder_cannon": {
       "testMethod": "CardV09BehaviorBatchRunner.m_plunder_cannon",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_plunder": {
       "testMethod": "CardV09BehaviorBatchRunner.m_plunder",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_ghost_ship": {
       "testMethod": "CardV09BehaviorBatchRunner.m_ghost_ship",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_king_bone_slash": {
       "testMethod": "CardV09BehaviorBatchRunner.m_king_bone_slash",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_king_bone_roar": {
       "testMethod": "CardV09BehaviorBatchRunner.m_king_bone_roar",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_king_bone_spear": {
       "testMethod": "CardV09BehaviorBatchRunner.m_king_bone_spear",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_king_summon_workshop": {
       "testMethod": "CardV09BehaviorBatchRunner.m_king_summon_workshop",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_king_bone_block": {
       "testMethod": "CardV09BehaviorBatchRunner.m_king_bone_block",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_king_bone_shield": {
       "testMethod": "CardV09BehaviorBatchRunner.m_king_bone_shield",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_king_white_storm": {
       "testMethod": "CardV09BehaviorBatchRunner.m_king_white_storm",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_skull_explode": {
       "testMethod": "CardV09BehaviorBatchRunner.m_skull_explode",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
-    },
-    "m_hp": {
-      "testMethod": "CardV09BehaviorBatchRunner.m_hp",
-      "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
-    },
-    "m_220": {
-      "testMethod": "CardV09BehaviorBatchRunner.m_220",
-      "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_queen_claw": {
       "testMethod": "CardV09BehaviorBatchRunner.m_queen_claw",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_queen_deterrence": {
       "testMethod": "CardV09BehaviorBatchRunner.m_queen_deterrence",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_queen_soul_drain": {
       "testMethod": "CardV09BehaviorBatchRunner.m_queen_soul_drain",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_queen_curse": {
       "testMethod": "CardV09BehaviorBatchRunner.m_queen_curse",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_queen_command": {
       "testMethod": "CardV09BehaviorBatchRunner.m_queen_command",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_queen_spirit_guard": {
       "testMethod": "CardV09BehaviorBatchRunner.m_queen_spirit_guard",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_queen_burst": {
       "testMethod": "CardV09BehaviorBatchRunner.m_queen_burst",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     },
     "m_queen_wrath": {
       "testMethod": "CardV09BehaviorBatchRunner.m_queen_wrath",
       "unityPassed": true,
-      "verifiedAt": "2026-07-03T10:29:42.8087001Z"
+      "verifiedAt": "2026-07-09T09:38:55.7022544Z"
     }
   }
 }

@@ -1,7 +1,7 @@
 {
-  "runAt": "2026-07-03T10:29:42.8107200Z",
-  "total": 238,
-  "passed": 238,
+  "runAt": "2026-07-09T09:38:55.7050028Z",
+  "total": 236,
+  "passed": 236,
   "failed": 0,
   "results": [
     {"cardId":"w_author_realm_strike","passed":true,"error":"special-exempt"},
@@ -232,8 +232,6 @@
     {"cardId":"m_king_bone_shield","passed":true,"error":"behavior-ok"},
     {"cardId":"m_king_white_storm","passed":true,"error":"behavior-ok"},
     {"cardId":"m_skull_explode","passed":true,"error":"behavior-ok"},
-    {"cardId":"m_hp","passed":true,"error":"special-exempt"},
-    {"cardId":"m_220","passed":true,"error":"special-exempt"},
     {"cardId":"m_queen_claw","passed":true,"error":"behavior-ok"},
     {"cardId":"m_queen_deterrence","passed":true,"error":"behavior-ok"},
     {"cardId":"m_queen_soul_drain","passed":true,"error":"behavior-ok"},

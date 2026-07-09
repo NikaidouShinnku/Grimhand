@@ -44,6 +44,7 @@ namespace Grimhand.Editor
             "l_ethereal_form",
             "l_spirit_walk",
             "v_snake_king_blessing",
+            "p_sand_spear_reforge",
         };
 
         public struct CardVerifyResult
@@ -134,9 +135,27 @@ namespace Grimhand.Editor
             else if (RespondRules.IsRespondCard(card))
             {
                 if (cardId.StartsWith("m_") || cardId.StartsWith("g_"))
-                    issues.AddRange(VerifyConditionalArmOrHook(cardId, card, xlsxEffect, exp));
+                {
+                    issues.AddRange(PrefixIssues("TestA", VerifyConditionalArmOrHook(cardId, card, xlsxEffect, exp)));
+                    if (HasUnconditionalActions(card))
+                    {
+                        var normalClause = GetNormalClauseAfterPeriod(xlsxEffect);
+                        var normalExp = EffectExpectations.Parse(normalClause);
+                        issues.AddRange(PrefixIssues("TestB",
+                            VerifyDirectExecution(cardId, card, normalClause, normalExp)));
+                    }
+                }
                 else
-                    issues.AddRange(VerifyRespondCard(cardId, card, xlsxEffect, exp));
+                {
+                    issues.AddRange(PrefixIssues("TestA", VerifyRespondCard(cardId, card, xlsxEffect, exp)));
+                    if (HasUnconditionalActions(card))
+                    {
+                        var normalClause = GetNormalClauseAfterPeriod(xlsxEffect);
+                        var normalExp = EffectExpectations.Parse(normalClause);
+                        issues.AddRange(PrefixIssues("TestB",
+                            VerifyDirectExecution(cardId, card, normalClause, normalExp)));
+                    }
+                }
             }
             else if (HasOnlyConditionalActions(card) && !HasUnconditionalActions(card))
             {
@@ -166,7 +185,21 @@ namespace Grimhand.Editor
             if (issues.Count > 0)
                 return Fail(cardId, testMethod, string.Join("; ", issues));
 
-            return Pass(cardId, testMethod, "behavior-ok");
+            var note = HasUnconditionalActions(card) && RespondRules.IsRespondCard(card)
+                ? "behavior-ok TestA+TestB"
+                : "behavior-ok";
+            return Pass(cardId, testMethod, note);
+        }
+
+        static IEnumerable<string> PrefixIssues(string prefix, List<string> issues) =>
+            issues.Select(i => $"{prefix}:{i}");
+
+        static string GetNormalClauseAfterPeriod(string desc)
+        {
+            if (string.IsNullOrEmpty(desc))
+                return string.Empty;
+            var idx = desc.IndexOf('。');
+            return idx < 0 || idx >= desc.Length - 1 ? string.Empty : desc[(idx + 1)..].Trim();
         }
 
         static bool IsMonsterConditionalAttackCard(string cardId, CardInstanceState card) =>

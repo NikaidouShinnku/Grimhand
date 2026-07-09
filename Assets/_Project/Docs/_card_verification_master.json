@@ -1,9 +1,9 @@
 {
   "version": "v0.9-strict",
-  "generatedAt": "2026-07-03T09:36:56.403744+00:00",
+  "generatedAt": "2026-07-09T09:35:45.826885+00:00",
   "summary": {
-    "OK": 215,
-    "pending": 23
+    "OK": 236,
+    "pending": 0
   },
   "entries": [
     {
@@ -48,7 +48,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_author_realm_strike",
-      "verifiedAt": "2026-07-03T12:26:41.912065+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.527475+00:00"
     },
     {
       "cardId": "w_basic_slash",
@@ -92,7 +92,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_basic_slash",
-      "verifiedAt": "2026-07-03T12:26:41.916588+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.528976+00:00"
     },
     {
       "cardId": "w_shield_block",
@@ -136,7 +136,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_shield_block",
-      "verifiedAt": "2026-07-03T12:26:41.918592+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.529978+00:00"
     },
     {
       "cardId": "w_defensive_stance",
@@ -180,7 +180,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_defensive_stance",
-      "verifiedAt": "2026-07-03T12:26:41.920610+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.531479+00:00"
     },
     {
       "cardId": "w_war_cry",
@@ -224,7 +224,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_war_cry",
-      "verifiedAt": "2026-07-03T12:26:41.922610+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.532482+00:00"
     },
     {
       "cardId": "w_first_strike",
@@ -268,7 +268,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_first_strike",
-      "verifiedAt": "2026-07-03T12:26:41.925629+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.533983+00:00"
     },
     {
       "cardId": "w_power_cleave",
@@ -312,7 +312,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_power_cleave",
-      "verifiedAt": "2026-07-03T12:26:41.927632+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.534985+00:00"
     },
     {
       "cardId": "w_shield_slam",
@@ -356,7 +356,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_shield_slam",
-      "verifiedAt": "2026-07-03T12:26:41.929134+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.536952+00:00"
     },
     {
       "cardId": "w_strategic_retreat",
@@ -400,7 +400,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_strategic_retreat",
-      "verifiedAt": "2026-07-03T12:26:41.932140+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.538455+00:00"
     },
     {
       "cardId": "w_pommel_strike",
@@ -444,7 +444,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_pommel_strike",
-      "verifiedAt": "2026-07-03T12:26:41.934138+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.538957+00:00"
     },
     {
       "cardId": "w_parry_counter",
@@ -488,7 +488,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_parry_counter",
-      "verifiedAt": "2026-07-03T12:26:41.936950+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.539958+00:00"
     },
     {
       "cardId": "w_taunt",
@@ -506,8 +506,8 @@
         },
         {
           "name": "actions_semantic",
-          "pass": false,
-          "detail": "block: 描述=19 实现=0"
+          "pass": true,
+          "detail": ""
         },
         {
           "name": "battle_position",
@@ -530,9 +530,9 @@
           "detail": "CardV09BehaviorBatchRunner.w_taunt"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_taunt",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.542462+00:00"
     },
     {
       "cardId": "w_iron_parry",
@@ -576,7 +576,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_iron_parry",
-      "verifiedAt": "2026-07-03T12:26:41.940973+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.543462+00:00"
     },
     {
       "cardId": "w_respond_stance",
@@ -594,8 +594,8 @@
         },
         {
           "name": "actions_semantic",
-          "pass": false,
-          "detail": "block: 描述=8 实现=0"
+          "pass": true,
+          "detail": ""
         },
         {
           "name": "battle_position",
@@ -618,9 +618,9 @@
           "detail": "CardV09BehaviorBatchRunner.w_respond_stance"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_respond_stance",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.544968+00:00"
     },
     {
       "cardId": "w_battle_will",
@@ -664,7 +664,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_battle_will",
-      "verifiedAt": "2026-07-03T12:26:41.947986+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.546472+00:00"
     },
     {
       "cardId": "w_heavy_armor",
@@ -708,7 +708,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_heavy_armor",
-      "verifiedAt": "2026-07-03T12:26:41.950998+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.548477+00:00"
     },
     {
       "cardId": "w_charge",
@@ -752,7 +752,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_charge",
-      "verifiedAt": "2026-07-03T12:26:41.952997+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.550113+00:00"
     },
     {
       "cardId": "w_guardian",
@@ -796,7 +796,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_guardian",
-      "verifiedAt": "2026-07-03T12:26:41.954501+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.551129+00:00"
     },
     {
       "cardId": "w_fatal_strike",
@@ -840,7 +840,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_fatal_strike",
-      "verifiedAt": "2026-07-03T12:26:41.957517+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.552135+00:00"
     },
     {
       "cardId": "w_blade_storm",
@@ -884,7 +884,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_blade_storm",
-      "verifiedAt": "2026-07-03T12:26:41.960038+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.553149+00:00"
     },
     {
       "cardId": "w_tactician_finisher",
@@ -928,7 +928,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_tactician_finisher",
-      "verifiedAt": "2026-07-03T12:26:41.962038+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.554493+00:00"
     },
     {
       "cardId": "w_burning_fury",
@@ -946,8 +946,8 @@
         },
         {
           "name": "actions_semantic",
-          "pass": false,
-          "detail": "damage: 描述=10 实现=0"
+          "pass": true,
+          "detail": ""
         },
         {
           "name": "battle_position",
@@ -957,7 +957,7 @@
         {
           "name": "hardcoded_hooks",
           "pass": true,
-          "detail": "无特殊钩子"
+          "detail": "DealDamageScaledByActorHpLoss"
         },
         {
           "name": "presentation",
@@ -970,9 +970,9 @@
           "detail": "CardV09BehaviorBatchRunner.w_burning_fury"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_burning_fury",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.556000+00:00"
     },
     {
       "cardId": "w_unyielding",
@@ -1016,7 +1016,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_unyielding",
-      "verifiedAt": "2026-07-03T12:26:41.967548+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.558004+00:00"
     },
     {
       "cardId": "w_god_descends",
@@ -1034,8 +1034,8 @@
         },
         {
           "name": "actions_semantic",
-          "pass": false,
-          "detail": "damage: 描述=8 实现=0"
+          "pass": true,
+          "detail": ""
         },
         {
           "name": "battle_position",
@@ -1058,9 +1058,9 @@
           "detail": "CardV09BehaviorBatchRunner.w_god_descends"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_god_descends",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.559263+00:00"
     },
     {
       "cardId": "w_final_bulwark",
@@ -1104,7 +1104,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_final_bulwark",
-      "verifiedAt": "2026-07-03T12:26:41.972087+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.560767+00:00"
     },
     {
       "cardId": "w_last_stand",
@@ -1132,7 +1132,7 @@
         },
         {
           "name": "hardcoded_hooks",
-          "pass": false,
+          "pass": true,
           "detail": "statusId=last_stand"
         },
         {
@@ -1146,9 +1146,9 @@
           "detail": "CardV09BehaviorBatchRunner.w_last_stand"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.w_last_stand",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.562942+00:00"
     },
     {
       "cardId": "p_sand_ray",
@@ -1192,7 +1192,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_sand_ray",
-      "verifiedAt": "2026-07-03T12:26:41.977115+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.563948+00:00"
     },
     {
       "cardId": "p_bless",
@@ -1236,7 +1236,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_bless",
-      "verifiedAt": "2026-07-03T12:26:41.979412+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.564947+00:00"
     },
     {
       "cardId": "p_sand_arrow",
@@ -1280,7 +1280,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_sand_arrow",
-      "verifiedAt": "2026-07-03T12:26:41.981412+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.566849+00:00"
     },
     {
       "cardId": "p_sand_shield",
@@ -1324,7 +1324,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_sand_shield",
-      "verifiedAt": "2026-07-03T12:26:41.983916+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.567855+00:00"
     },
     {
       "cardId": "p_scarab_shield",
@@ -1368,7 +1368,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_scarab_shield",
-      "verifiedAt": "2026-07-03T12:26:41.985927+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.569365+00:00"
     },
     {
       "cardId": "p_pharaoh_curse",
@@ -1412,7 +1412,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_pharaoh_curse",
-      "verifiedAt": "2026-07-03T12:26:41.987433+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.570364+00:00"
     },
     {
       "cardId": "p_memory_fragment",
@@ -1456,7 +1456,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_memory_fragment",
-      "verifiedAt": "2026-07-03T12:26:41.989441+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.571620+00:00"
     },
     {
       "cardId": "p_solar_wrath",
@@ -1500,7 +1500,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_solar_wrath",
-      "verifiedAt": "2026-07-03T12:26:41.991440+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.572619+00:00"
     },
     {
       "cardId": "p_rot_touch",
@@ -1518,8 +1518,8 @@
         },
         {
           "name": "actions_semantic",
-          "pass": false,
-          "detail": "damage: 描述=12 实现=0"
+          "pass": true,
+          "detail": ""
         },
         {
           "name": "battle_position",
@@ -1529,7 +1529,7 @@
         {
           "name": "hardcoded_hooks",
           "pass": true,
-          "detail": "无特殊钩子"
+          "detail": "DealDamageBonusPerTargetDebuffStack"
         },
         {
           "name": "presentation",
@@ -1542,9 +1542,9 @@
           "detail": "CardV09BehaviorBatchRunner.p_rot_touch"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_rot_touch",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.574124+00:00"
     },
     {
       "cardId": "p_sand_barrier",
@@ -1588,7 +1588,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_sand_barrier",
-      "verifiedAt": "2026-07-03T12:26:41.995954+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.575831+00:00"
     },
     {
       "cardId": "p_lifesteal",
@@ -1632,7 +1632,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_lifesteal",
-      "verifiedAt": "2026-07-03T12:26:41.997459+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.576335+00:00"
     },
     {
       "cardId": "p_decree",
@@ -1676,7 +1676,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_decree",
-      "verifiedAt": "2026-07-03T12:26:41.999468+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.578343+00:00"
     },
     {
       "cardId": "p_plague_spread",
@@ -1720,7 +1720,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_plague_spread",
-      "verifiedAt": "2026-07-03T12:26:42.002468+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.580344+00:00"
     },
     {
       "cardId": "p_curse_deepen",
@@ -1743,7 +1743,7 @@
         },
         {
           "name": "battle_position",
-          "pass": false,
+          "pass": true,
           "detail": "reach=0"
         },
         {
@@ -1762,9 +1762,9 @@
           "detail": "CardV09BehaviorBatchRunner.p_curse_deepen"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_curse_deepen",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.580849+00:00"
     },
     {
       "cardId": "p_undead_curse",
@@ -1808,7 +1808,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_undead_curse",
-      "verifiedAt": "2026-07-03T12:26:42.006544+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.582352+00:00"
     },
     {
       "cardId": "p_solar_judgment",
@@ -1852,7 +1852,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_solar_judgment",
-      "verifiedAt": "2026-07-03T12:26:42.009065+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.584357+00:00"
     },
     {
       "cardId": "p_revive_bless",
@@ -1896,7 +1896,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_revive_bless",
-      "verifiedAt": "2026-07-03T12:26:42.012065+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.585358+00:00"
     },
     {
       "cardId": "p_sand_spear_reforge",
@@ -1910,12 +1910,12 @@
         {
           "name": "cost_type_keywords",
           "pass": true,
-          "detail": "cost=0 kw=['exhaust']"
+          "detail": "cost=3 kw=['exhaust']"
         },
         {
           "name": "actions_semantic",
-          "pass": false,
-          "detail": "Actions 为空但描述含数值效果; damage: 描述=4 实现=0"
+          "pass": true,
+          "detail": ""
         },
         {
           "name": "battle_position",
@@ -1930,7 +1930,7 @@
         {
           "name": "presentation",
           "pass": true,
-          "detail": "标准结算"
+          "detail": "攻击：PortraitPose"
         },
         {
           "name": "regression",
@@ -1938,9 +1938,9 @@
           "detail": "CardV09BehaviorBatchRunner.p_sand_spear_reforge"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_sand_spear_reforge",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.586668+00:00"
     },
     {
       "cardId": "p_holy_infusion",
@@ -1953,8 +1953,8 @@
         },
         {
           "name": "cost_type_keywords",
-          "pass": false,
-          "detail": "cost=0 kw=['exhaust']"
+          "pass": true,
+          "detail": "cost=0 kw=['exhaust', 'x_cost']"
         },
         {
           "name": "actions_semantic",
@@ -1982,9 +1982,9 @@
           "detail": "CardV09BehaviorBatchRunner.p_holy_infusion"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_holy_infusion",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.587172+00:00"
     },
     {
       "cardId": "p_solar_god_wrath",
@@ -2028,7 +2028,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_solar_god_wrath",
-      "verifiedAt": "2026-07-03T12:26:42.016587+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.589177+00:00"
     },
     {
       "cardId": "p_solar_blessing",
@@ -2072,7 +2072,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_solar_blessing",
-      "verifiedAt": "2026-07-03T12:26:42.019615+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.590178+00:00"
     },
     {
       "cardId": "p_rot_avatar",
@@ -2090,8 +2090,8 @@
         },
         {
           "name": "actions_semantic",
-          "pass": false,
-          "detail": "poison: 描述=2 实现=0"
+          "pass": true,
+          "detail": ""
         },
         {
           "name": "battle_position",
@@ -2114,9 +2114,9 @@
           "detail": "CardV09BehaviorBatchRunner.p_rot_avatar"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_rot_avatar",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.592185+00:00"
     },
     {
       "cardId": "p_anubis_avatar",
@@ -2160,7 +2160,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_anubis_avatar",
-      "verifiedAt": "2026-07-03T12:26:42.025680+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.593188+00:00"
     },
     {
       "cardId": "p_holy_cycle",
@@ -2204,7 +2204,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.p_holy_cycle",
-      "verifiedAt": "2026-07-03T12:26:42.027684+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.595187+00:00"
     },
     {
       "cardId": "d_shadow_claw",
@@ -2248,7 +2248,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_shadow_claw",
-      "verifiedAt": "2026-07-03T12:26:42.029857+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.595689+00:00"
     },
     {
       "cardId": "d_demon_curse",
@@ -2271,7 +2271,7 @@
         },
         {
           "name": "battle_position",
-          "pass": false,
+          "pass": true,
           "detail": "reach=0"
         },
         {
@@ -2290,9 +2290,9 @@
           "detail": "CardV09BehaviorBatchRunner.d_demon_curse"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_demon_curse",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.597190+00:00"
     },
     {
       "cardId": "d_devil_touch",
@@ -2336,7 +2336,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_devil_touch",
-      "verifiedAt": "2026-07-03T12:26:42.033499+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.598192+00:00"
     },
     {
       "cardId": "d_blood_armor",
@@ -2380,7 +2380,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_blood_armor",
-      "verifiedAt": "2026-07-03T12:26:42.035533+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.600192+00:00"
     },
     {
       "cardId": "d_demon_pact",
@@ -2424,7 +2424,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_demon_pact",
-      "verifiedAt": "2026-07-03T12:26:42.037022+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.600694+00:00"
     },
     {
       "cardId": "d_blood_hand",
@@ -2468,7 +2468,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_blood_hand",
-      "verifiedAt": "2026-07-03T12:26:42.039025+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.602195+00:00"
     },
     {
       "cardId": "d_blood_bite",
@@ -2512,7 +2512,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_blood_bite",
-      "verifiedAt": "2026-07-03T12:26:42.042532+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.603197+00:00"
     },
     {
       "cardId": "d_dark_mist",
@@ -2556,7 +2556,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_dark_mist",
-      "verifiedAt": "2026-07-03T12:26:42.045040+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.604197+00:00"
     },
     {
       "cardId": "d_vamp_aura",
@@ -2574,8 +2574,8 @@
         },
         {
           "name": "actions_semantic",
-          "pass": false,
-          "detail": "lifesteal: 描述有吸血 实现无"
+          "pass": true,
+          "detail": ""
         },
         {
           "name": "battle_position",
@@ -2585,7 +2585,7 @@
         {
           "name": "hardcoded_hooks",
           "pass": true,
-          "detail": "无特殊钩子"
+          "detail": "statusId=vamp_aura"
         },
         {
           "name": "presentation",
@@ -2598,9 +2598,9 @@
           "detail": "CardV09BehaviorBatchRunner.d_vamp_aura"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_vamp_aura",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.605699+00:00"
     },
     {
       "cardId": "d_blood_tail",
@@ -2644,7 +2644,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_blood_tail",
-      "verifiedAt": "2026-07-03T12:26:42.049054+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.607200+00:00"
     },
     {
       "cardId": "d_life_siphon",
@@ -2688,7 +2688,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_life_siphon",
-      "verifiedAt": "2026-07-03T12:26:42.051053+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.608204+00:00"
     },
     {
       "cardId": "d_blood_flame",
@@ -2732,7 +2732,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_blood_flame",
-      "verifiedAt": "2026-07-03T12:26:42.052555+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.609670+00:00"
     },
     {
       "cardId": "d_dark_tear",
@@ -2776,7 +2776,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_dark_tear",
-      "verifiedAt": "2026-07-03T12:26:42.055063+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.610174+00:00"
     },
     {
       "cardId": "d_soul_rip",
@@ -2820,7 +2820,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_soul_rip",
-      "verifiedAt": "2026-07-03T12:26:42.057070+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.612200+00:00"
     },
     {
       "cardId": "d_curse_chain",
@@ -2864,7 +2864,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_curse_chain",
-      "verifiedAt": "2026-07-03T12:26:42.060074+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.613204+00:00"
     },
     {
       "cardId": "d_hell_fire",
@@ -2908,7 +2908,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_hell_fire",
-      "verifiedAt": "2026-07-03T12:26:42.062074+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.614204+00:00"
     },
     {
       "cardId": "d_dark_sacrifice",
@@ -2952,7 +2952,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_dark_sacrifice",
-      "verifiedAt": "2026-07-03T12:26:42.064084+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.615708+00:00"
     },
     {
       "cardId": "d_blood_frenzy",
@@ -2996,7 +2996,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_blood_frenzy",
-      "verifiedAt": "2026-07-03T12:26:42.067093+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.617212+00:00"
     },
     {
       "cardId": "d_bloodline_legacy",
@@ -3040,7 +3040,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_bloodline_legacy",
-      "verifiedAt": "2026-07-03T12:26:42.071097+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.618218+00:00"
     },
     {
       "cardId": "d_demon_lord",
@@ -3063,7 +3063,7 @@
         },
         {
           "name": "battle_position",
-          "pass": false,
+          "pass": true,
           "detail": "reach=0"
         },
         {
@@ -3082,9 +3082,9 @@
           "detail": "CardV09BehaviorBatchRunner.d_demon_lord"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_demon_lord",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.620178+00:00"
     },
     {
       "cardId": "d_endless_blade",
@@ -3128,7 +3128,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_endless_blade",
-      "verifiedAt": "2026-07-03T12:26:42.076110+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.622182+00:00"
     },
     {
       "cardId": "d_blood_sharing",
@@ -3172,7 +3172,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_blood_sharing",
-      "verifiedAt": "2026-07-03T12:26:42.078123+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.623688+00:00"
     },
     {
       "cardId": "d_final_blood_ritual",
@@ -3190,8 +3190,8 @@
         },
         {
           "name": "actions_semantic",
-          "pass": false,
-          "detail": "heal: 描述=5 实现=0"
+          "pass": true,
+          "detail": ""
         },
         {
           "name": "battle_position",
@@ -3214,9 +3214,9 @@
           "detail": "CardV09BehaviorBatchRunner.d_final_blood_ritual"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.d_final_blood_ritual",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.625191+00:00"
     },
     {
       "cardId": "v_snake_bite",
@@ -3260,7 +3260,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.v_snake_bite",
-      "verifiedAt": "2026-07-03T12:26:42.082627+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.626194+00:00"
     },
     {
       "cardId": "v_python_guard",
@@ -3304,7 +3304,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.v_python_guard",
-      "verifiedAt": "2026-07-03T12:26:42.085137+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.627194+00:00"
     },
     {
       "cardId": "v_scale_harden",
@@ -3348,7 +3348,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.v_scale_harden",
-      "verifiedAt": "2026-07-03T12:26:42.087144+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.628259+00:00"
     },
     {
       "cardId": "v_poison_touch",
@@ -3392,7 +3392,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.v_poison_touch",
-      "verifiedAt": "2026-07-03T12:26:42.089149+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.629762+00:00"
     },
     {
       "cardId": "v_queen_authority",
@@ -3436,7 +3436,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.v_queen_authority",
-      "verifiedAt": "2026-07-03T12:26:42.091149+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.630765+00:00"
     },
     {
       "cardId": "v_tail_strike",
@@ -3480,7 +3480,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.v_tail_strike",
-      "verifiedAt": "2026-07-03T12:26:42.092653+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.632268+00:00"
     },
     {
       "cardId": "v_poison_scale",
@@ -3524,7 +3524,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.v_poison_scale",
-      "verifiedAt": "2026-07-03T12:26:42.095165+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.633273+00:00"
     },
     {
       "cardId": "v_snake_king_blessing",
@@ -3568,7 +3568,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.v_snake_king_blessing",
-      "verifiedAt": "2026-07-03T12:26:42.097180+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.633273+00:00"
     },
     {
       "cardId": "v_venom_spit",
@@ -3612,7 +3612,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.v_venom_spit",
-      "verifiedAt": "2026-07-03T12:26:42.099186+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.634775+00:00"
     },
     {
       "cardId": "v_detonate_venom",
@@ -3635,7 +3635,7 @@
         },
         {
           "name": "battle_position",
-          "pass": false,
+          "pass": true,
           "detail": "reach=0"
         },
         {
@@ -3654,9 +3654,9 @@
           "detail": "CardV09BehaviorBatchRunner.v_detonate_venom"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.v_detonate_venom",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.637163+00:00"
     },
     {
       "cardId": "v_digest_venom",
@@ -3700,7 +3700,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.v_digest_venom",
-      "verifiedAt": "2026-07-03T12:26:42.102203+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.638166+00:00"
     },
     {
       "cardId": "v_shed_skin",
@@ -3718,8 +3718,8 @@
         },
         {
           "name": "actions_semantic",
-          "pass": false,
-          "detail": "heal: 描述=3 实现=0"
+          "pass": true,
+          "detail": ""
         },
         {
           "name": "battle_position",
@@ -3729,7 +3729,7 @@
         {
           "name": "hardcoded_hooks",
           "pass": true,
-          "detail": "无特殊钩子"
+          "detail": "RemovePoisonHealPerStack"
         },
         {
           "name": "presentation",
@@ -3742,9 +3742,9 @@
           "detail": "CardV09BehaviorBatchRunner.v_shed_skin"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.v_shed_skin",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.638166+00:00"
     },
     {
       "cardId": "v_tongue_sense",
@@ -3788,7 +3788,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.v_tongue_sense",
-      "verifiedAt": "2026-07-03T12:26:42.105548+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.639668+00:00"
     },
     {
       "cardId": "v_queen_prevention",
@@ -3832,7 +3832,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.v_queen_prevention",
-      "verifiedAt": "2026-07-03T12:26:42.108095+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.640672+00:00"
     },
     {
       "cardId": "v_venom_sac_burst",
@@ -3876,7 +3876,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.v_venom_sac_burst",
-      "verifiedAt": "2026-07-03T12:26:42.110112+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.643180+00:00"
     },
     {
       "cardId": "v_venom_feast",
@@ -3920,7 +3920,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.v_venom_feast",
-      "verifiedAt": "2026-07-03T12:26:42.112624+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.643180+00:00"
     },
     {
       "cardId": "v_python_constrict",
@@ -3964,7 +3964,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.v_python_constrict",
-      "verifiedAt": "2026-07-03T12:26:42.114174+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.645687+00:00"
     },
     {
       "cardId": "v_immortal_shed",
@@ -4008,7 +4008,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.v_immortal_shed",
-      "verifiedAt": "2026-07-03T12:26:42.117738+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.647189+00:00"
     },
     {
       "cardId": "v_poison_feedback",
@@ -4052,7 +4052,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.v_poison_feedback",
-      "verifiedAt": "2026-07-03T12:26:42.119242+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.648192+00:00"
     },
     {
       "cardId": "v_all_snakes_heart",
@@ -4096,7 +4096,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.v_all_snakes_heart",
-      "verifiedAt": "2026-07-03T12:26:42.121262+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.649264+00:00"
     },
     {
       "cardId": "v_pray_ancient_god",
@@ -4140,7 +4140,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.v_pray_ancient_god",
-      "verifiedAt": "2026-07-03T12:26:42.123362+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.650269+00:00"
     },
     {
       "cardId": "v_snake_god_response",
@@ -4184,7 +4184,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.v_snake_god_response",
-      "verifiedAt": "2026-07-03T12:26:42.124871+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.651772+00:00"
     },
     {
       "cardId": "l_ethereal_form",
@@ -4228,7 +4228,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_ethereal_form",
-      "verifiedAt": "2026-07-03T12:26:42.126427+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.653249+00:00"
     },
     {
       "cardId": "l_void_gaze",
@@ -4272,7 +4272,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_void_gaze",
-      "verifiedAt": "2026-07-03T12:26:42.128427+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.654628+00:00"
     },
     {
       "cardId": "l_charge",
@@ -4316,7 +4316,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_charge",
-      "verifiedAt": "2026-07-03T12:26:42.129425+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.655628+00:00"
     },
     {
       "cardId": "l_ghost_claw",
@@ -4360,7 +4360,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_ghost_claw",
-      "verifiedAt": "2026-07-03T12:26:42.131959+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.656628+00:00"
     },
     {
       "cardId": "l_gather_energy",
@@ -4404,7 +4404,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_gather_energy",
-      "verifiedAt": "2026-07-03T12:26:42.133465+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.657644+00:00"
     },
     {
       "cardId": "l_spirit_walk",
@@ -4448,7 +4448,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_spirit_walk",
-      "verifiedAt": "2026-07-03T12:26:42.136223+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.659147+00:00"
     },
     {
       "cardId": "l_psionic_cannon",
@@ -4492,7 +4492,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_psionic_cannon",
-      "verifiedAt": "2026-07-03T12:26:42.138228+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.660151+00:00"
     },
     {
       "cardId": "l_dread_whisper",
@@ -4536,7 +4536,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_dread_whisper",
-      "verifiedAt": "2026-07-03T12:26:42.139247+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.661653+00:00"
     },
     {
       "cardId": "l_soul_storm",
@@ -4580,7 +4580,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_soul_storm",
-      "verifiedAt": "2026-07-03T12:26:42.142266+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.662660+00:00"
     },
     {
       "cardId": "l_two_realms_walker",
@@ -4624,7 +4624,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_two_realms_walker",
-      "verifiedAt": "2026-07-03T12:26:42.143776+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.664165+00:00"
     },
     {
       "cardId": "l_soul_devour",
@@ -4668,7 +4668,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_soul_devour",
-      "verifiedAt": "2026-07-03T12:26:42.145288+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.665171+00:00"
     },
     {
       "cardId": "l_psionic_body",
@@ -4712,7 +4712,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_psionic_body",
-      "verifiedAt": "2026-07-03T12:26:42.147471+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.667684+00:00"
     },
     {
       "cardId": "l_soul_reinforce",
@@ -4756,7 +4756,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_soul_reinforce",
-      "verifiedAt": "2026-07-03T12:26:42.150334+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.667684+00:00"
     },
     {
       "cardId": "l_realm_burst",
@@ -4800,7 +4800,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_realm_burst",
-      "verifiedAt": "2026-07-03T12:26:42.152357+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.670194+00:00"
     },
     {
       "cardId": "l_psionic_focus",
@@ -4844,7 +4844,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_psionic_focus",
-      "verifiedAt": "2026-07-03T12:26:42.153854+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.670194+00:00"
     },
     {
       "cardId": "l_realm_seal",
@@ -4888,7 +4888,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_realm_seal",
-      "verifiedAt": "2026-07-03T12:26:42.155416+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.671697+00:00"
     },
     {
       "cardId": "l_soul_elegy",
@@ -4932,7 +4932,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_soul_elegy",
-      "verifiedAt": "2026-07-03T12:26:42.157426+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.673701+00:00"
     },
     {
       "cardId": "l_summon_card_spirit",
@@ -4976,7 +4976,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_summon_card_spirit",
-      "verifiedAt": "2026-07-03T12:26:42.159426+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.674205+00:00"
     },
     {
       "cardId": "l_summon_chaos_spirit",
@@ -5020,7 +5020,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_summon_chaos_spirit",
-      "verifiedAt": "2026-07-03T12:26:42.161833+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.675209+00:00"
     },
     {
       "cardId": "l_wall_of_sighs",
@@ -5064,7 +5064,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_wall_of_sighs",
-      "verifiedAt": "2026-07-03T12:26:42.163891+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.676711+00:00"
     },
     {
       "cardId": "l_despair_soul",
@@ -5108,7 +5108,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_despair_soul",
-      "verifiedAt": "2026-07-03T12:26:42.165970+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.679222+00:00"
     },
     {
       "cardId": "l_realm_descent",
@@ -5152,7 +5152,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_realm_descent",
-      "verifiedAt": "2026-07-03T12:26:42.168498+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.680228+00:00"
     },
     {
       "cardId": "l_super_psionic_cannon",
@@ -5196,7 +5196,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_super_psionic_cannon",
-      "verifiedAt": "2026-07-03T12:26:42.170992+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.681733+00:00"
     },
     {
       "cardId": "l_eternal_void",
@@ -5240,7 +5240,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.l_eternal_void",
-      "verifiedAt": "2026-07-03T12:26:42.171999+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.683247+00:00"
     },
     {
       "cardId": "g_bite",
@@ -5284,7 +5284,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.g_bite",
-      "verifiedAt": "2026-07-03T12:26:42.173611+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.684251+00:00"
     },
     {
       "cardId": "g_blood_scratch",
@@ -5302,8 +5302,8 @@
         },
         {
           "name": "actions_semantic",
-          "pass": false,
-          "detail": "next_attack: 描述=3 实现=0"
+          "pass": true,
+          "detail": ""
         },
         {
           "name": "battle_position",
@@ -5313,7 +5313,7 @@
         {
           "name": "hardcoded_hooks",
           "pass": true,
-          "detail": "无特殊钩子"
+          "detail": "代码引用 cardId"
         },
         {
           "name": "presentation",
@@ -5326,9 +5326,9 @@
           "detail": "CardV09BehaviorBatchRunner.g_blood_scratch"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.g_blood_scratch",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.685251+00:00"
     },
     {
       "cardId": "g_throw",
@@ -5372,7 +5372,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.g_throw",
-      "verifiedAt": "2026-07-03T12:26:42.178172+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.686251+00:00"
     },
     {
       "cardId": "m_slime_shield",
@@ -5416,7 +5416,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_slime_shield",
-      "verifiedAt": "2026-07-03T12:26:42.180176+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.687285+00:00"
     },
     {
       "cardId": "m_slime_slam",
@@ -5460,7 +5460,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_slime_slam",
-      "verifiedAt": "2026-07-03T12:26:42.181638+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.688788+00:00"
     },
     {
       "cardId": "m_slime_absorb",
@@ -5504,7 +5504,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_slime_absorb",
-      "verifiedAt": "2026-07-03T12:26:42.183708+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.689792+00:00"
     },
     {
       "cardId": "m_slime_wrap",
@@ -5548,7 +5548,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_slime_wrap",
-      "verifiedAt": "2026-07-03T12:26:42.185263+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.691298+00:00"
     },
     {
       "cardId": "m_bone_shield",
@@ -5592,7 +5592,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_bone_shield",
-      "verifiedAt": "2026-07-03T12:26:42.187297+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.691298+00:00"
     },
     {
       "cardId": "m_bone_slash",
@@ -5636,7 +5636,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_bone_slash",
-      "verifiedAt": "2026-07-03T12:26:42.189292+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.692802+00:00"
     },
     {
       "cardId": "m_bone_toss",
@@ -5680,7 +5680,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_bone_toss",
-      "verifiedAt": "2026-07-03T12:26:42.190272+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.694806+00:00"
     },
     {
       "cardId": "m_maim",
@@ -5724,7 +5724,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_maim",
-      "verifiedAt": "2026-07-03T12:26:42.193224+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.695806+00:00"
     },
     {
       "cardId": "m_bone_wall",
@@ -5768,7 +5768,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_bone_wall",
-      "verifiedAt": "2026-07-03T12:26:42.195626+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.697311+00:00"
     },
     {
       "cardId": "m_bone_crush",
@@ -5812,7 +5812,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_bone_crush",
-      "verifiedAt": "2026-07-03T12:26:42.196316+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.698311+00:00"
     },
     {
       "cardId": "m_bone_spear",
@@ -5856,7 +5856,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_bone_spear",
-      "verifiedAt": "2026-07-03T12:26:42.198316+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.699588+00:00"
     },
     {
       "cardId": "m_shatter_rush",
@@ -5900,7 +5900,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_shatter_rush",
-      "verifiedAt": "2026-07-03T12:26:42.199320+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.701089+00:00"
     },
     {
       "cardId": "m_raise_bones",
@@ -5918,8 +5918,8 @@
         },
         {
           "name": "actions_semantic",
-          "pass": false,
-          "detail": "block: 描述=6 实现=0; summon: 描述有召唤 实现无"
+          "pass": true,
+          "detail": ""
         },
         {
           "name": "battle_position",
@@ -5929,7 +5929,7 @@
         {
           "name": "hardcoded_hooks",
           "pass": true,
-          "detail": "无特殊钩子"
+          "detail": "statusId=bone_workshop"
         },
         {
           "name": "presentation",
@@ -5942,9 +5942,9 @@
           "detail": "CardV09BehaviorBatchRunner.m_raise_bones"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_raise_bones",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.701089+00:00"
     },
     {
       "cardId": "g_arrow",
@@ -5988,7 +5988,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.g_arrow",
-      "verifiedAt": "2026-07-03T12:26:42.201746+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.703596+00:00"
     },
     {
       "cardId": "m_wraith_phase",
@@ -6032,7 +6032,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_wraith_phase",
-      "verifiedAt": "2026-07-03T12:26:42.202722+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.704645+00:00"
     },
     {
       "cardId": "m_wraith_soul_strike",
@@ -6076,7 +6076,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_wraith_soul_strike",
-      "verifiedAt": "2026-07-03T12:26:42.203772+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.705189+00:00"
     },
     {
       "cardId": "g_hex",
@@ -6120,7 +6120,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.g_hex",
-      "verifiedAt": "2026-07-03T12:26:42.203772+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.706193+00:00"
     },
     {
       "cardId": "m_soul_strike",
@@ -6164,7 +6164,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_soul_strike",
-      "verifiedAt": "2026-07-03T12:26:42.205323+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.708192+00:00"
     },
     {
       "cardId": "m_phase",
@@ -6208,7 +6208,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_phase",
-      "verifiedAt": "2026-07-03T12:26:42.207340+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.708693+00:00"
     },
     {
       "cardId": "m_advanced_hex",
@@ -6252,7 +6252,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_advanced_hex",
-      "verifiedAt": "2026-07-03T12:26:42.208332+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.710195+00:00"
     },
     {
       "cardId": "m_soul_storm",
@@ -6296,7 +6296,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_soul_storm",
-      "verifiedAt": "2026-07-03T12:26:42.209352+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.711701+00:00"
     },
     {
       "cardId": "m_soul_bind",
@@ -6340,7 +6340,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_soul_bind",
-      "verifiedAt": "2026-07-03T12:26:42.210352+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.712207+00:00"
     },
     {
       "cardId": "m_ogre_heavy_punch",
@@ -6384,7 +6384,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_ogre_heavy_punch",
-      "verifiedAt": "2026-07-03T12:26:42.211667+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.714209+00:00"
     },
     {
       "cardId": "m_ogre_stomp",
@@ -6428,7 +6428,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_ogre_stomp",
-      "verifiedAt": "2026-07-03T12:26:42.213741+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.715209+00:00"
     },
     {
       "cardId": "m_ogre_war_cry",
@@ -6472,7 +6472,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_ogre_war_cry",
-      "verifiedAt": "2026-07-03T12:26:42.213741+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.716712+00:00"
     },
     {
       "cardId": "m_ogre_combo_smash",
@@ -6516,7 +6516,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_ogre_combo_smash",
-      "verifiedAt": "2026-07-03T12:26:42.215251+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.716712+00:00"
     },
     {
       "cardId": "m_ogre_thick_hide",
@@ -6560,7 +6560,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_ogre_thick_hide",
-      "verifiedAt": "2026-07-03T12:26:42.216765+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.718213+00:00"
     },
     {
       "cardId": "m_bat_claw",
@@ -6604,7 +6604,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_bat_claw",
-      "verifiedAt": "2026-07-03T12:26:42.217773+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.720216+00:00"
     },
     {
       "cardId": "m_bat_dive",
@@ -6648,7 +6648,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_bat_dive",
-      "verifiedAt": "2026-07-03T12:26:42.217773+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.720717+00:00"
     },
     {
       "cardId": "m_bat_ambush",
@@ -6692,7 +6692,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_bat_ambush",
-      "verifiedAt": "2026-07-03T12:26:42.219278+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.722219+00:00"
     },
     {
       "cardId": "m_bat_shadow_dodge",
@@ -6736,7 +6736,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_bat_shadow_dodge",
-      "verifiedAt": "2026-07-03T12:26:42.220314+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.724221+00:00"
     },
     {
       "cardId": "m_bat_poison_wing",
@@ -6780,7 +6780,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_bat_poison_wing",
-      "verifiedAt": "2026-07-03T12:26:42.221603+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.725221+00:00"
     },
     {
       "cardId": "m_bat_night_slash",
@@ -6824,7 +6824,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_bat_night_slash",
-      "verifiedAt": "2026-07-03T12:26:42.223092+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.725722+00:00"
     },
     {
       "cardId": "m_rat_punch",
@@ -6868,7 +6868,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_rat_punch",
-      "verifiedAt": "2026-07-03T12:26:42.223598+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.726724+00:00"
     },
     {
       "cardId": "m_rat_trash",
@@ -6912,7 +6912,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_rat_trash",
-      "verifiedAt": "2026-07-03T12:26:42.225109+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.728225+00:00"
     },
     {
       "cardId": "m_rat_ambush",
@@ -6956,7 +6956,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_rat_ambush",
-      "verifiedAt": "2026-07-03T12:26:42.226113+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.730227+00:00"
     },
     {
       "cardId": "m_rat_morale",
@@ -7000,7 +7000,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_rat_morale",
-      "verifiedAt": "2026-07-03T12:26:42.228112+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.730728+00:00"
     },
     {
       "cardId": "m_rat_swarm_call",
@@ -7044,7 +7044,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_rat_swarm_call",
-      "verifiedAt": "2026-07-03T12:26:42.229114+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.732230+00:00"
     },
     {
       "cardId": "m_rat_burrow",
@@ -7088,7 +7088,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_rat_burrow",
-      "verifiedAt": "2026-07-03T12:26:42.230114+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.734232+00:00"
     },
     {
       "cardId": "m_chain_whip",
@@ -7132,7 +7132,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_chain_whip",
-      "verifiedAt": "2026-07-03T12:26:42.231584+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.735232+00:00"
     },
     {
       "cardId": "m_chain_grudge",
@@ -7176,7 +7176,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_chain_grudge",
-      "verifiedAt": "2026-07-03T12:26:42.232585+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.735733+00:00"
     },
     {
       "cardId": "m_chain_throw",
@@ -7220,7 +7220,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_chain_throw",
-      "verifiedAt": "2026-07-03T12:26:42.232585+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.736735+00:00"
     },
     {
       "cardId": "m_chain_guard",
@@ -7264,7 +7264,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_chain_guard",
-      "verifiedAt": "2026-07-03T12:26:42.233868+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.738236+00:00"
     },
     {
       "cardId": "m_grudge_guard",
@@ -7308,7 +7308,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_grudge_guard",
-      "verifiedAt": "2026-07-03T12:26:42.235393+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.739238+00:00"
     },
     {
       "cardId": "m_final_bind",
@@ -7352,7 +7352,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_final_bind",
-      "verifiedAt": "2026-07-03T12:26:42.236395+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.740740+00:00"
     },
     {
       "cardId": "m_chain_recharge",
@@ -7396,7 +7396,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_chain_recharge",
-      "verifiedAt": "2026-07-03T12:26:42.237397+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.742241+00:00"
     },
     {
       "cardId": "m_gargoyle_claw",
@@ -7440,7 +7440,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_gargoyle_claw",
-      "verifiedAt": "2026-07-03T12:26:42.238416+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.743243+00:00"
     },
     {
       "cardId": "m_gargoyle_petrify",
@@ -7484,7 +7484,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_gargoyle_petrify",
-      "verifiedAt": "2026-07-03T12:26:42.239920+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.745243+00:00"
     },
     {
       "cardId": "m_gargoyle_sunder",
@@ -7528,7 +7528,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_gargoyle_sunder",
-      "verifiedAt": "2026-07-03T12:26:42.240926+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.745745+00:00"
     },
     {
       "cardId": "m_gargoyle_empower",
@@ -7572,7 +7572,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_gargoyle_empower",
-      "verifiedAt": "2026-07-03T12:26:42.242430+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.746747+00:00"
     },
     {
       "cardId": "m_gargoyle_counter",
@@ -7616,7 +7616,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_gargoyle_counter",
-      "verifiedAt": "2026-07-03T12:26:42.243996+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.748252+00:00"
     },
     {
       "cardId": "m_gargoyle_sleep_stone",
@@ -7660,7 +7660,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_gargoyle_sleep_stone",
-      "verifiedAt": "2026-07-03T12:26:42.245540+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.749254+00:00"
     },
     {
       "cardId": "m_spider_fang",
@@ -7704,7 +7704,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_spider_fang",
-      "verifiedAt": "2026-07-03T12:26:42.246545+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.751087+00:00"
     },
     {
       "cardId": "m_spider_silk",
@@ -7748,7 +7748,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_spider_silk",
-      "verifiedAt": "2026-07-03T12:26:42.247570+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.752093+00:00"
     },
     {
       "cardId": "m_spider_trap",
@@ -7792,7 +7792,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_spider_trap",
-      "verifiedAt": "2026-07-03T12:26:42.249076+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.753095+00:00"
     },
     {
       "cardId": "m_spider_spray",
@@ -7836,7 +7836,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_spider_spray",
-      "verifiedAt": "2026-07-03T12:26:42.250082+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.754939+00:00"
     },
     {
       "cardId": "m_spider_wrap",
@@ -7880,7 +7880,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_spider_wrap",
-      "verifiedAt": "2026-07-03T12:26:42.251081+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.755944+00:00"
     },
     {
       "cardId": "m_spider_fatal_bind",
@@ -7903,7 +7903,7 @@
         },
         {
           "name": "battle_position",
-          "pass": false,
+          "pass": true,
           "detail": "reach=3"
         },
         {
@@ -7922,9 +7922,9 @@
           "detail": "CardV09BehaviorBatchRunner.m_spider_fatal_bind"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_spider_fatal_bind",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.757046+00:00"
     },
     {
       "cardId": "m_golem_fist",
@@ -7947,7 +7947,7 @@
         },
         {
           "name": "battle_position",
-          "pass": false,
+          "pass": true,
           "detail": "reach=1"
         },
         {
@@ -7966,9 +7966,9 @@
           "detail": "CardV09BehaviorBatchRunner.m_golem_fist"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_golem_fist",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.758048+00:00"
     },
     {
       "cardId": "m_golem_wall",
@@ -8012,7 +8012,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_golem_wall",
-      "verifiedAt": "2026-07-03T12:26:42.254102+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.759051+00:00"
     },
     {
       "cardId": "m_golem_quake",
@@ -8056,7 +8056,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_golem_quake",
-      "verifiedAt": "2026-07-03T12:26:42.255107+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.761288+00:00"
     },
     {
       "cardId": "m_golem_unmovable",
@@ -8100,7 +8100,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_golem_unmovable",
-      "verifiedAt": "2026-07-03T12:26:42.256107+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.762518+00:00"
     },
     {
       "cardId": "m_golem_quake_slam",
@@ -8144,7 +8144,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_golem_quake_slam",
-      "verifiedAt": "2026-07-03T12:26:42.257107+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.763520+00:00"
     },
     {
       "cardId": "m_golem_crack_fist",
@@ -8162,8 +8162,8 @@
         },
         {
           "name": "actions_semantic",
-          "pass": false,
-          "detail": "block: 描述=8 实现=0"
+          "pass": true,
+          "detail": ""
         },
         {
           "name": "battle_position",
@@ -8186,9 +8186,9 @@
           "detail": "CardV09BehaviorBatchRunner.m_golem_crack_fist"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_golem_crack_fist",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.763520+00:00"
     },
     {
       "cardId": "m_tide_lance",
@@ -8232,7 +8232,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_tide_lance",
-      "verifiedAt": "2026-07-03T12:26:42.259683+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.765862+00:00"
     },
     {
       "cardId": "m_tide_charge",
@@ -8276,7 +8276,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_tide_charge",
-      "verifiedAt": "2026-07-03T12:26:42.261683+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.767789+00:00"
     },
     {
       "cardId": "m_water_shield",
@@ -8320,7 +8320,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_water_shield",
-      "verifiedAt": "2026-07-03T12:26:42.262187+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.768481+00:00"
     },
     {
       "cardId": "m_guard_stance",
@@ -8364,7 +8364,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_guard_stance",
-      "verifiedAt": "2026-07-03T12:26:42.263706+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.769985+00:00"
     },
     {
       "cardId": "m_tail_splash",
@@ -8408,7 +8408,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_tail_splash",
-      "verifiedAt": "2026-07-03T12:26:42.264710+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.771488+00:00"
     },
     {
       "cardId": "m_final_guard",
@@ -8452,7 +8452,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_final_guard",
-      "verifiedAt": "2026-07-03T12:26:42.265711+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.772490+00:00"
     },
     {
       "cardId": "m_jelly_sting",
@@ -8496,7 +8496,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_jelly_sting",
-      "verifiedAt": "2026-07-03T12:26:42.266713+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.773490+00:00"
     },
     {
       "cardId": "m_phase_current",
@@ -8540,7 +8540,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_phase_current",
-      "verifiedAt": "2026-07-03T12:26:42.268366+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.774994+00:00"
     },
     {
       "cardId": "m_gel_wall",
@@ -8584,7 +8584,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_gel_wall",
-      "verifiedAt": "2026-07-03T12:26:42.269370+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.776102+00:00"
     },
     {
       "cardId": "m_bounce_sting",
@@ -8628,7 +8628,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_bounce_sting",
-      "verifiedAt": "2026-07-03T12:26:42.270426+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.777606+00:00"
     },
     {
       "cardId": "m_magic_lightning",
@@ -8672,7 +8672,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_magic_lightning",
-      "verifiedAt": "2026-07-03T12:26:42.271466+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.778610+00:00"
     },
     {
       "cardId": "m_final_summon",
@@ -8716,7 +8716,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_final_summon",
-      "verifiedAt": "2026-07-03T12:26:42.271466+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.780113+00:00"
     },
     {
       "cardId": "m_paralyze_sting",
@@ -8760,7 +8760,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_paralyze_sting",
-      "verifiedAt": "2026-07-03T12:26:42.273427+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.780113+00:00"
     },
     {
       "cardId": "m_mermaid_slash",
@@ -8804,7 +8804,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_mermaid_slash",
-      "verifiedAt": "2026-07-03T12:26:42.274434+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.781621+00:00"
     },
     {
       "cardId": "m_tidal_power",
@@ -8848,7 +8848,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_tidal_power",
-      "verifiedAt": "2026-07-03T12:26:42.275541+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.783455+00:00"
     },
     {
       "cardId": "m_mermaid_shield",
@@ -8892,7 +8892,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_mermaid_shield",
-      "verifiedAt": "2026-07-03T12:26:42.276432+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.783956+00:00"
     },
     {
       "cardId": "m_wave_cleave",
@@ -8936,7 +8936,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_wave_cleave",
-      "verifiedAt": "2026-07-03T12:26:42.277430+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.785459+00:00"
     },
     {
       "cardId": "m_abyss_lash",
@@ -8980,7 +8980,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_abyss_lash",
-      "verifiedAt": "2026-07-03T12:26:42.278932+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.786461+00:00"
     },
     {
       "cardId": "m_abyss_creature_gaze",
@@ -9024,7 +9024,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_abyss_creature_gaze",
-      "verifiedAt": "2026-07-03T12:26:42.279934+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.787962+00:00"
     },
     {
       "cardId": "m_shell_craft",
@@ -9068,7 +9068,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_shell_craft",
-      "verifiedAt": "2026-07-03T12:26:42.279934+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.788896+00:00"
     },
     {
       "cardId": "m_corrosion_volley",
@@ -9112,7 +9112,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_corrosion_volley",
-      "verifiedAt": "2026-07-03T12:26:42.281436+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.790400+00:00"
     },
     {
       "cardId": "m_piercing_tentacle",
@@ -9156,7 +9156,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_piercing_tentacle",
-      "verifiedAt": "2026-07-03T12:26:42.282439+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.791904+00:00"
     },
     {
       "cardId": "m_giant_claw",
@@ -9200,7 +9200,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_giant_claw",
-      "verifiedAt": "2026-07-03T12:26:42.283522+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.793323+00:00"
     },
     {
       "cardId": "m_abyss_gaze",
@@ -9244,7 +9244,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_abyss_gaze",
-      "verifiedAt": "2026-07-03T12:26:42.284800+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.793824+00:00"
     },
     {
       "cardId": "m_reforge_shell",
@@ -9288,7 +9288,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_reforge_shell",
-      "verifiedAt": "2026-07-03T12:26:42.285777+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.795328+00:00"
     },
     {
       "cardId": "m_pinch_armor",
@@ -9311,7 +9311,7 @@
         },
         {
           "name": "battle_position",
-          "pass": false,
+          "pass": true,
           "detail": "reach=0"
         },
         {
@@ -9330,9 +9330,9 @@
           "detail": "CardV09BehaviorBatchRunner.m_pinch_armor"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_pinch_armor",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.796329+00:00"
     },
     {
       "cardId": "m_fester_claw",
@@ -9355,7 +9355,7 @@
         },
         {
           "name": "battle_position",
-          "pass": false,
+          "pass": true,
           "detail": "reach=1"
         },
         {
@@ -9374,9 +9374,9 @@
           "detail": "CardV09BehaviorBatchRunner.m_fester_claw"
         }
       ],
-      "status": "pending",
+      "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_fester_claw",
-      "verifiedAt": null
+      "verifiedAt": "2026-07-09T09:35:45.797831+00:00"
     },
     {
       "cardId": "m_phantom_slash",
@@ -9420,7 +9420,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_phantom_slash",
-      "verifiedAt": "2026-07-03T12:26:42.289204+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.798833+00:00"
     },
     {
       "cardId": "m_musket_shot",
@@ -9464,7 +9464,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_musket_shot",
-      "verifiedAt": "2026-07-03T12:26:42.291182+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.800334+00:00"
     },
     {
       "cardId": "m_phantom_armor",
@@ -9508,7 +9508,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_phantom_armor",
-      "verifiedAt": "2026-07-03T12:26:42.292038+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.801336+00:00"
     },
     {
       "cardId": "m_plunder_strike",
@@ -9552,7 +9552,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_plunder_strike",
-      "verifiedAt": "2026-07-03T12:26:42.293045+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.802839+00:00"
     },
     {
       "cardId": "m_plunder_cannon",
@@ -9596,7 +9596,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_plunder_cannon",
-      "verifiedAt": "2026-07-03T12:26:42.293548+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.803841+00:00"
     },
     {
       "cardId": "m_plunder",
@@ -9640,7 +9640,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_plunder",
-      "verifiedAt": "2026-07-03T12:26:42.294554+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.804841+00:00"
     },
     {
       "cardId": "m_ghost_ship",
@@ -9684,7 +9684,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_ghost_ship",
-      "verifiedAt": "2026-07-03T12:26:42.295579+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.805343+00:00"
     },
     {
       "cardId": "m_king_bone_slash",
@@ -9728,7 +9728,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_king_bone_slash",
-      "verifiedAt": "2026-07-03T12:26:42.296576+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.807345+00:00"
     },
     {
       "cardId": "m_king_bone_roar",
@@ -9772,7 +9772,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_king_bone_roar",
-      "verifiedAt": "2026-07-03T12:26:42.298088+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.808348+00:00"
     },
     {
       "cardId": "m_king_bone_spear",
@@ -9816,7 +9816,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_king_bone_spear",
-      "verifiedAt": "2026-07-03T12:26:42.299095+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.808348+00:00"
     },
     {
       "cardId": "m_king_summon_workshop",
@@ -9825,7 +9825,7 @@
         {
           "name": "effect_text",
           "pass": true,
-          "detail": "【消耗】每回合召唤一个易爆骷髅头"
+          "detail": "【消耗】每回合开始时召唤一个易爆骷髅头"
         },
         {
           "name": "cost_type_keywords",
@@ -9860,7 +9860,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_king_summon_workshop",
-      "verifiedAt": "2026-07-03T12:26:42.300112+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.809853+00:00"
     },
     {
       "cardId": "m_king_bone_block",
@@ -9904,7 +9904,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_king_bone_block",
-      "verifiedAt": "2026-07-03T12:26:42.301646+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.811358+00:00"
     },
     {
       "cardId": "m_king_bone_shield",
@@ -9948,7 +9948,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_king_bone_shield",
-      "verifiedAt": "2026-07-03T12:26:42.301646+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.813360+00:00"
     },
     {
       "cardId": "m_king_white_storm",
@@ -9992,7 +9992,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_king_white_storm",
-      "verifiedAt": "2026-07-03T12:26:42.303152+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.813360+00:00"
     },
     {
       "cardId": "m_skull_explode",
@@ -10036,95 +10036,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_skull_explode",
-      "verifiedAt": "2026-07-03T12:26:42.305155+00:00"
-    },
-    {
-      "cardId": "m_hp",
-      "displayName": "HP",
-      "checks": [
-        {
-          "name": "effect_text",
-          "pass": true,
-          "detail": "Boss特性"
-        },
-        {
-          "name": "cost_type_keywords",
-          "pass": true,
-          "detail": "cost=（已删除） kw=[]"
-        },
-        {
-          "name": "actions_semantic",
-          "pass": true,
-          "detail": ""
-        },
-        {
-          "name": "battle_position",
-          "pass": true,
-          "detail": "reach=None"
-        },
-        {
-          "name": "hardcoded_hooks",
-          "pass": true,
-          "detail": "已删除占位"
-        },
-        {
-          "name": "presentation",
-          "pass": true,
-          "detail": "攻击：PortraitPose"
-        },
-        {
-          "name": "regression",
-          "pass": true,
-          "detail": "CardV09BehaviorBatchRunner.m_hp"
-        }
-      ],
-      "status": "OK",
-      "testRef": "CardV09BehaviorBatchRunner.m_hp",
-      "verifiedAt": "2026-07-03T12:26:42.305155+00:00"
-    },
-    {
-      "cardId": "m_220",
-      "displayName": "220",
-      "checks": [
-        {
-          "name": "effect_text",
-          "pass": true,
-          "detail": "当血量第一次低于120时，获得1回合【虚化】（本回合受到的所有攻击最多造成1点伤害），并将幽灵女王之怒加入下回合手牌"
-        },
-        {
-          "name": "cost_type_keywords",
-          "pass": true,
-          "detail": "cost=— kw=[]"
-        },
-        {
-          "name": "actions_semantic",
-          "pass": true,
-          "detail": ""
-        },
-        {
-          "name": "battle_position",
-          "pass": true,
-          "detail": "reach=None"
-        },
-        {
-          "name": "hardcoded_hooks",
-          "pass": true,
-          "detail": "BossTraitRules.GhostQueenEnrage"
-        },
-        {
-          "name": "presentation",
-          "pass": true,
-          "detail": "攻击：PortraitPose"
-        },
-        {
-          "name": "regression",
-          "pass": true,
-          "detail": "CardV09BehaviorBatchRunner.m_220"
-        }
-      ],
-      "status": "OK",
-      "testRef": "CardV09BehaviorBatchRunner.m_220",
-      "verifiedAt": "2026-07-03T12:26:42.305155+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.815866+00:00"
     },
     {
       "cardId": "m_queen_claw",
@@ -10133,7 +10045,7 @@
         {
           "name": "effect_text",
           "pass": true,
-          "detail": "【前/中/后】造成 27伤害"
+          "detail": "【前/中/后】造成 23伤害"
         },
         {
           "name": "cost_type_keywords",
@@ -10168,7 +10080,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_queen_claw",
-      "verifiedAt": "2026-07-03T12:26:42.307156+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.816866+00:00"
     },
     {
       "cardId": "m_queen_deterrence",
@@ -10212,7 +10124,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_queen_deterrence",
-      "verifiedAt": "2026-07-03T12:26:42.308158+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.817370+00:00"
     },
     {
       "cardId": "m_queen_soul_drain",
@@ -10256,7 +10168,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_queen_soul_drain",
-      "verifiedAt": "2026-07-03T12:26:42.309290+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.819880+00:00"
     },
     {
       "cardId": "m_queen_curse",
@@ -10300,7 +10212,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_queen_curse",
-      "verifiedAt": "2026-07-03T12:26:42.309290+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.820884+00:00"
     },
     {
       "cardId": "m_queen_command",
@@ -10344,7 +10256,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_queen_command",
-      "verifiedAt": "2026-07-03T12:26:42.310794+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.820884+00:00"
     },
     {
       "cardId": "m_queen_spirit_guard",
@@ -10388,7 +10300,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_queen_spirit_guard",
-      "verifiedAt": "2026-07-03T12:26:42.311801+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.823376+00:00"
     },
     {
       "cardId": "m_queen_burst",
@@ -10432,7 +10344,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_queen_burst",
-      "verifiedAt": "2026-07-03T12:26:42.313327+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.823376+00:00"
     },
     {
       "cardId": "m_queen_wrath",
@@ -10476,8 +10388,7 @@
       ],
       "status": "OK",
       "testRef": "CardV09BehaviorBatchRunner.m_queen_wrath",
-      "verifiedAt": "2026-07-03T12:26:42.314348+00:00"
+      "verifiedAt": "2026-07-09T09:35:45.825886+00:00"
     }
-  ],
-  "updatedAt": "2026-07-03T12:26:42.314348+00:00"
+  ]
 }

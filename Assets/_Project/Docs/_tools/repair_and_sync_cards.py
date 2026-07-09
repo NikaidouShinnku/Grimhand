@@ -205,9 +205,7 @@ CARD_ID_OVERRIDES: dict[str, list[dict]] = {
         {"Type": 3, "Target": T_SELF, "StatusId": "plague_spread", "Stacks": 1, "Duration": -1},
     ],
     "p_sand_spear_reforge": [],
-    "p_holy_infusion": [
-        {"Type": 3, "Target": T_SELF, "StatusId": "holy_infusion_pending", "Stacks": 1, "Duration": -1},
-    ],
+    "p_holy_infusion": [],
     "p_holy_cycle": [
         {"Type": 22, "Target": T_SELF, "Value": 0},
     ],
@@ -732,10 +730,7 @@ def infer_actions(name: str, desc: str, card_type: int, card_id: str | None = No
         return []
 
     if "沙矛重塑" in d or "sand_spear" in d:
-    if m and m.group(1):
-        actions.append({"Type": 0, "Target": T_SELF, "Value": int(m.group(1))})
-    elif m and m.group(2):
-        actions.append({"Type": 0, "Target": T_SELF, "Value": 0, "HealMaxHpPercent": int(m.group(2))})
+        return []
 
     m = RE_DRAW.search(d)
     if m:

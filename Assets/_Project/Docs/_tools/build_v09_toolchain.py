@@ -286,6 +286,25 @@ def main() -> int:
     assets = index_assets()
     assign_card_ids(all_cards, assets)
 
+    # 行为测试/strict 仅覆盖已有 Card_*.asset 的卡；Boss 设计表无资产项另建 backlog
+    asset_ids = set(assets["by_id"].keys())
+    scoped_cards = [c for c in all_cards if c["cardId"] in asset_ids]
+    backlog = [c for c in all_cards if c["cardId"] not in asset_ids]
+    if backlog:
+        backlog_path = ROOT / "Docs" / "_card_boss_backlog_v09.json"
+        backlog_path.write_text(
+            json.dumps({
+                "version": "v0.9",
+                "generatedAt": datetime.now(timezone.utc).isoformat(),
+                "count": len(backlog),
+                "cards": backlog,
+            }, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        print(f"Wrote {backlog_path.relative_to(ROOT)} backlog={len(backlog)}")
+
+    all_cards = scoped_cards
+
     master = {
         "version": "v0.9",
         "generatedAt": datetime.now(timezone.utc).isoformat(),

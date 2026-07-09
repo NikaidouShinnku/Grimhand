@@ -492,25 +492,62 @@ namespace Grimhand.Battle.Rules
             return result;
         }
 
-        /// <summary>神圣灌注：演员下张牌结算后重复一次。返回是否执行了重复。</summary>
-        public static bool TryTriggerHolyInfusionRepeat(
-            BattleState state, CombatantState actor, CardInstanceState card,
-            List<BattleEvent> events, BattleRng rng)
+        /// <summary>神圣灌注：解析应重复的规划队列上一张牌（穿透灌注链）。</summary>
+        public static bool TryGetHolyInfusionRepeatTarget(
+            BattleState state,
+            int holyInfusionInstanceId,
+            out int repeatCardInstanceId)
         {
-            if (state == null || actor == null || card == null || events == null)
+            repeatCardInstanceId = 0;
+            if (state == null || holyInfusionInstanceId <= 0)
                 return false;
+
+            var idx = state.PlayerPlan.PlayQueue.IndexOf(holyInfusionInstanceId);
+            if (idx <= 0)
+                return false;
+
+            repeatCardInstanceId = ResolveHolyInfusionRepeatTarget(state, state.PlayerPlan.PlayQueue[idx - 1]);
+            return repeatCardInstanceId > 0;
+        }
+
+        static int ResolveHolyInfusionRepeatTarget(BattleState state, int cardInstanceId)
+        {
+            var card = state.GetCard(cardInstanceId);
+            if (card == null)
+                return 0;
+
             if (card.DefinitionId == HolyInfusionCardId)
-                return false; // 不重复自身
-            if (!StatusRules.HasStatus(actor, StatusCatalog.HolyInfusionPending))
-                return false;
-            StatusRules.RemoveStatus(actor, StatusCatalog.HolyInfusionPending, 1, events);
-            events.Add(new BattleEvent(BattleEventKind.StatusApplied, $"{actor.DisplayName} 神圣灌注：重复出牌")
             {
-                CombatantId = actor.Id,
-                CardInstanceId = card.InstanceId
-            });
-            EffectActionExecutor.ExecuteAll(state, actor, card, events, rng);
-            return true;
+                var idx = state.PlayerPlan.PlayQueue.IndexOf(cardInstanceId);
+                if (idx <= 0)
+                    return 0;
+                return ResolveHolyInfusionRepeatTarget(state, state.PlayerPlan.PlayQueue[idx - 1]);
+            }
+
+            var ownerId = PositionRules.GetOwnerCombatantId(state, card);
+            var owner = ownerId != null ? state.GetCombatant(ownerId) : null;
+            if (owner == null || owner.Team != TeamSide.Player || !owner.IsAlive)
+                return 0;
+
+            return cardInstanceId;
+        }
+
+        public static bool CanSelectHolyInfusion(Planning.PlanningDraft draft) =>
+            draft != null && draft.SelectedQueue.Count > 0;
+
+        public static int GetHolyInfusionPlayCost(BattleState state, Planning.PlanningDraft draft)
+        {
+            if (state == null || draft == null || draft.SelectedQueue.Count == 0)
+                return int.MaxValue;
+
+            var prev = state.GetCard(draft.SelectedQueue[draft.SelectedQueue.Count - 1]);
+            if (prev == null)
+                return int.MaxValue;
+
+            var prevOwnerId = PositionRules.GetOwnerCombatantId(state, prev);
+            var prevOwner = prevOwnerId != null ? state.GetCombatant(prevOwnerId) : null;
+            var baseCost = TalentBattleRules.GetEffectivePlayCost(state, prevOwner, prev);
+            return baseCost + 1;
         }
 
         static CombatantState FindAliveWithStatus(BattleState state, TeamSide team, string statusId)

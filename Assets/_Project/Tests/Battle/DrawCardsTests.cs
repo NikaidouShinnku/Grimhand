@@ -38,9 +38,10 @@ namespace Grimhand.Battle.Tests
             var handBefore = state.PlayerHand.Count;
             EffectActionExecutor.ExecuteAll(state, actor, card, events, null);
 
-            // v0.9：抽牌效果当回合立即抽到手中，不再延迟到下回合。
             Assert.AreEqual(handBefore + 2, state.PlayerHand.Count);
             Assert.AreEqual(0, state.PendingDrawNextTurn);
+            foreach (var drawn in state.PlayerHand)
+                Assert.IsFalse(drawn.RetainInHandOverTurnEnd, "即时抽牌不应标记回合末保留");
         }
 
         [Test]
@@ -60,7 +61,7 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
-        public void TurnStartDraw_DiscardsAtEndOfTurn_BattleDraw_Retains()
+        public void TurnStartDraw_DiscardsAtEndOfTurn_OnlyInheritRetains()
         {
             var config = DemoBattleFactory.CreateDefault3v3();
             config.CardsDrawnPerTurn = 5;
@@ -69,20 +70,85 @@ namespace Grimhand.Battle.Tests
             engine.StartBattle();
 
             foreach (var card in engine.State.PlayerHand)
-                Assert.IsFalse(card.RetainInHandOverTurnEnd, "回合初抽牌不应标记保留");
+                Assert.IsFalse(CardRules.HasInheritKeyword(card), "回合初抽牌不应带继承");
 
             var events = new System.Collections.Generic.List<Events.BattleEvent>();
             engine.State.Phase = TurnPhase.SpeedResolve;
-            DeckRules.DrawCards(
-                engine.State, TeamSide.Player, null, 1, events, retainInHandOverTurnEnd: true);
+            DeckRules.DrawCards(engine.State, TeamSide.Player, null, 1, events);
             var battleDrawn = engine.State.PlayerHand[^1];
-            Assert.IsTrue(battleDrawn.RetainInHandOverTurnEnd, "战斗阶段抽牌应标记保留");
+            Assert.IsFalse(CardRules.HasInheritKeyword(battleDrawn), "战斗阶段即时抽牌默认不带继承");
+
+            battleDrawn.Keywords.Add("inherit");
 
             DeckRules.DiscardHandAtEndOfTurn(engine.State, TeamSide.Player, events);
 
             Assert.AreEqual(1, engine.State.PlayerHand.Count);
             Assert.AreSame(battleDrawn, engine.State.PlayerHand[0]);
-            Assert.IsFalse(battleDrawn.RetainInHandOverTurnEnd);
+        }
+
+        [Test]
+        public void MemoryFragment_QuickStartDraw_DoesNotCarryToNextTurn()
+        {
+            var config = DemoBattleFactory.CreateDefault3v3();
+            config.CardsDrawnPerTurn = 5;
+            config.HandLimit = 8;
+            var engine = new BattleEngine(config);
+            engine.StartBattle();
+
+            var state = engine.State;
+            var mage = state.Combatants.Find(c => c.CharacterDefinitionId == "char_mage");
+            Assert.IsNotNull(mage);
+
+            var fragment = new CardInstanceState
+            {
+                InstanceId = 88001,
+                DefinitionId = "p_memory_fragment",
+                DisplayName = "记忆残片",
+                OwnerCharacterId = "char_mage",
+                CardType = CardType.Status,
+                Cost = 2,
+                IsUsable = true
+            };
+            fragment.Keywords.Add("quick_start");
+            fragment.Actions.Add(new EffectActionSpec
+            {
+                Type = EffectActionType.DrawCards,
+                Target = EffectTarget.Self,
+                Value = 2
+            });
+            state.CardsById[fragment.InstanceId] = fragment;
+            state.PlayerHand.Add(fragment);
+
+            var handBeforeQuickStart = state.PlayerHand.Count;
+            Assert.True(engine.TryResolveQuickStartCard(fragment.InstanceId));
+            Assert.AreEqual(handBeforeQuickStart + 1, state.PlayerHand.Count,
+                "快速启动：打出记忆残片后手牌 = 原手牌 -1 +2");
+
+            engine.SkipPlayerTurn();
+            engine.FlushPendingEndOfTurn();
+
+            Assert.AreEqual(5, state.PlayerHand.Count,
+                "下回合应仅抽到 5 张，不应保留快速启动抽到的牌");
+        }
+
+        [Test]
+        public void InheritCard_RetainsAcrossTurn_AndStillDrawsFullHand()
+        {
+            var config = DemoBattleFactory.CreateDefault3v3();
+            config.CardsDrawnPerTurn = 5;
+            config.HandLimit = 8;
+            var engine = new BattleEngine(config);
+            engine.StartBattle();
+
+            var state = engine.State;
+            var inheritCard = state.PlayerHand[0];
+            inheritCard.Keywords.Add("inherit");
+
+            engine.SkipPlayerTurn();
+            engine.FlushPendingEndOfTurn();
+
+            Assert.AreEqual(6, state.PlayerHand.Count, "1 张继承 + 下回合抽 5 张");
+            Assert.IsTrue(state.PlayerHand.Exists(CardRules.HasInheritKeyword));
         }
     }
 }

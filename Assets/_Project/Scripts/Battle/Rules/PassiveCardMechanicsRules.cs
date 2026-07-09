@@ -113,7 +113,7 @@ namespace Grimhand.Battle.Rules
             if (!StatusRules.HasStatus(actor, StatusCatalog.FinalBloodRitual))
                 return;
 
-            DeckRules.DrawCards(state, actor.Team, rng, FinalBloodRitualDraw, events, retainInHandOverTurnEnd: true);
+            DeckRules.DrawCards(state, actor.Team, rng, FinalBloodRitualDraw, events);
             DamageRules.ApplyHeal(state, actor, FinalBloodRitualHeal, events, actor);
         }
 

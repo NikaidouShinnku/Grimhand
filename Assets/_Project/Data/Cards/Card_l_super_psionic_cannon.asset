@@ -18,7 +18,8 @@ MonoBehaviour:
   Cost: 10
   CardType: 0
   Rarity: 4
-  Keywords: []
+  Keywords:
+  - inherit
   Actions:
   - Type: 0
     Target: 0

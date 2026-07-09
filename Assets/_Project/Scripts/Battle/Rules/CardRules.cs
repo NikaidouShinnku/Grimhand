@@ -25,6 +25,10 @@ namespace Grimhand.Battle.Rules
             return !string.IsNullOrEmpty(card.DefinitionId) && card.DefinitionId.StartsWith("curse_");
         }
 
+        /// <summary>继承牌：回合结束时保留在手牌中，不占用下回合抽牌数。</summary>
+        public static bool HasInheritKeyword(CardInstanceState card) =>
+            card?.Keywords != null && card.Keywords.Contains("inherit");
+
         /// <summary>
         /// 规划阶段是否需要玩家点选具体角色。
         /// 例外：自身防御/治疗/抽牌、按槽位自动解析、应对类效果、敌方全体（未来）。

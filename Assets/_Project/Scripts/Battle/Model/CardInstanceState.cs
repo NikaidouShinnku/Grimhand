@@ -15,7 +15,7 @@ namespace Grimhand.Battle.Model
         public string OwnerCombatantId { get; set; } = "";
         /// <summary>回合开始注入的手牌，不占抽牌上限；回合末移除。</summary>
         public bool IsBonusHandCard { get; set; }
-        /// <summary>速度结算/快速启动阶段抽入手牌，下回合开始时仍保留。</summary>
+        /// <summary>已废弃：请使用 Keywords 中的 inherit。保留字段仅为序列化兼容。</summary>
         public bool RetainInHandOverTurnEnd { get; set; }
         public string DisplayName { get; set; } = "";
         /// <summary>祭坛/事件升级次数，用于卡名显示 +N。</summary>

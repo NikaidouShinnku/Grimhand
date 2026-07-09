@@ -67,32 +67,29 @@ namespace Grimhand.Battle.Rules
             TeamSide team,
             BattleRng rng,
             int count,
-            List<BattleEvent> events,
-            bool retainInHandOverTurnEnd = false)
+            List<BattleEvent> events)
         {
             for (var i = 0; i < count; i++)
-                DrawOne(state, team, rng, events, retainInHandOverTurnEnd);
+                DrawOne(state, team, rng, events);
         }
 
         static void DrawOne(
             BattleState state,
             TeamSide team,
             BattleRng rng,
-            List<BattleEvent> events,
-            bool retainInHandOverTurnEnd)
+            List<BattleEvent> events)
         {
-            if (TryDrawPlayableCard(state, team, events, retainInHandOverTurnEnd))
+            if (TryDrawPlayableCard(state, team, events))
                 return;
 
             ReshuffleDiscardIntoDraw(state, team, rng, events);
-            TryDrawPlayableCard(state, team, events, retainInHandOverTurnEnd);
+            TryDrawPlayableCard(state, team, events);
         }
 
         static bool TryDrawPlayableCard(
             BattleState state,
             TeamSide team,
-            List<BattleEvent> events,
-            bool retainInHandOverTurnEnd)
+            List<BattleEvent> events)
         {
             var draw = state.GetDrawPile(team);
             var skipPolluted = team == TeamSide.Player
@@ -116,7 +113,7 @@ namespace Grimhand.Battle.Rules
                     continue;
                 }
 
-                TryAddToHand(state, team, card, events, retainInHandOverTurnEnd);
+                TryAddToHand(state, team, card, events);
                 return true;
             }
 
@@ -127,15 +124,12 @@ namespace Grimhand.Battle.Rules
             BattleState state,
             TeamSide team,
             CardInstanceState card,
-            List<BattleEvent> events,
-            bool retainInHandOverTurnEnd = false)
+            List<BattleEvent> events)
         {
             var hand = state.GetHand(team);
             if (hand.Count < state.Config.HandLimit)
             {
                 hand.Add(card);
-                if (retainInHandOverTurnEnd)
-                    card.RetainInHandOverTurnEnd = true;
 
                 events.Add(new BattleEvent(BattleEventKind.CardDrawn, card.DisplayName)
                 {
@@ -169,11 +163,8 @@ namespace Grimhand.Battle.Rules
                     continue;
                 }
 
-                if (team == TeamSide.Player && card.RetainInHandOverTurnEnd)
-                {
-                    card.RetainInHandOverTurnEnd = false;
+                if (team == TeamSide.Player && CardRules.HasInheritKeyword(card))
                     continue;
-                }
 
                 hand.RemoveAt(i);
                 state.GetDiscardPile(team).Add(card);

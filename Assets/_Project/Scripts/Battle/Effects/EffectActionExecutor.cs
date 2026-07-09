@@ -216,7 +216,7 @@ namespace Grimhand.Battle.Effects
                     break;
                 case EffectActionType.DrawCards:
                     // v0.9：抽牌效果当回合立即抽到手中（配合 quick_start 可在本回合规划阶段直接使用）。
-                    DeckRules.DrawCards(state, actor.Team, rng, value, events, retainInHandOverTurnEnd: true);
+                    DeckRules.DrawCards(state, actor.Team, rng, value, events);
                     events.Add(new BattleEvent(BattleEventKind.CardDrawn, $"立即抽 {value} 张牌")
                     {
                         CombatantId = actor.Id,
@@ -428,7 +428,7 @@ namespace Grimhand.Battle.Effects
                     var hand = state.GetHand(actor.Team);
                     var draw = Math.Max(0, state.Config.HandLimit - hand.Count);
                     if (draw > 0)
-                        DeckRules.DrawCards(state, actor.Team, rng, draw, events, retainInHandOverTurnEnd: true);
+                        DeckRules.DrawCards(state, actor.Team, rng, draw, events);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
                 }
@@ -577,7 +577,7 @@ namespace Grimhand.Battle.Effects
                         ? action.AlternateValue
                         : Math.Max(0, action.Value);
                     if (draw > 0)
-                        DeckRules.DrawCards(state, actor.Team, rng, draw, events, retainInHandOverTurnEnd: true);
+                        DeckRules.DrawCards(state, actor.Team, rng, draw, events);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
                 }

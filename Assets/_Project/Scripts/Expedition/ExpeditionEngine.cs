@@ -1100,6 +1100,30 @@ namespace Grimhand.Expedition
             return true;
         }
 
+        public bool TryAltarRestHealWithGold()
+        {
+            if (_run.Phase != ExpeditionPhase.ShrineChoice || _run.CardAltar == null)
+                return false;
+
+            if (!ExpeditionAltarUpgradeRules.TryRestHealWithGold(_run))
+                return false;
+
+            _run.LastEventMessage = $"花费 {ExpeditionAltarUpgradeRules.RestHealGoldCost} 金币，全队回复 {ExpeditionAltarUpgradeRules.RestHealPercent}% 生命";
+            return true;
+        }
+
+        public bool TryAltarRestHealWithXp()
+        {
+            if (_run.Phase != ExpeditionPhase.ShrineChoice || _run.CardAltar == null)
+                return false;
+
+            if (!ExpeditionAltarUpgradeRules.TryRestHealWithXp(_run))
+                return false;
+
+            _run.LastEventMessage = $"花费 {ExpeditionAltarUpgradeRules.RestHealXpCost} 经验，全队回复 {ExpeditionAltarUpgradeRules.RestHealPercent}% 生命";
+            return true;
+        }
+
         public int GetAltarBaseEnergyCap()
         {
             if (_config.CombatEncounters.Count > 0 && _config.CombatEncounters[0] != null)

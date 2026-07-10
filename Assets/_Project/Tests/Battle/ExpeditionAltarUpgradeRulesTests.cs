@@ -101,5 +101,101 @@ namespace Grimhand.Battle.Tests
             CardUpgradeRules.ApplyToTemplate(template, member);
             Assert.Greater(template.Actions[0].Value, before);
         }
+
+        [Test]
+        public void RestHeal_WithGold_HealsPartyWithoutLeavingAltar()
+        {
+            var run = new ExpeditionRunState
+            {
+                Gold = 50,
+                SharedXpPool = 100
+            };
+            var member = new PartyMemberSnapshot
+            {
+                CharacterDefinitionId = "char_knight",
+                DisplayName = "骑士",
+                Level = 1,
+                Hp = 40,
+                MaxHp = 100
+            };
+            run.Party.Add(member);
+            ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(run.Party, run.Relics, run.RelicGrowthTiers);
+
+            Assert.IsTrue(ExpeditionAltarUpgradeRules.TryRestHealWithGold(run));
+            Assert.AreEqual(20, run.Gold);
+            Assert.Greater(member.Hp, 40);
+            Assert.LessOrEqual(member.Hp, member.MaxHp);
+        }
+
+        [Test]
+        public void RestHeal_WithXp_HealsParty()
+        {
+            var run = new ExpeditionRunState
+            {
+                Gold = 0,
+                SharedXpPool = 30
+            };
+            var member = new PartyMemberSnapshot
+            {
+                CharacterDefinitionId = "char_knight",
+                DisplayName = "骑士",
+                Level = 1,
+                Hp = 50,
+                MaxHp = 100
+            };
+            run.Party.Add(member);
+            ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(run.Party, run.Relics, run.RelicGrowthTiers);
+            var hpBefore = member.Hp;
+
+            Assert.IsTrue(ExpeditionAltarUpgradeRules.TryRestHealWithXp(run));
+            Assert.AreEqual(10, run.SharedXpPool);
+            Assert.Greater(member.Hp, hpBefore);
+        }
+
+        [Test]
+        public void RestHeal_DoesNothingWhenPartyFullHp()
+        {
+            var run = new ExpeditionRunState { Gold = 100, SharedXpPool = 100 };
+            var member = new PartyMemberSnapshot
+            {
+                CharacterDefinitionId = "char_knight",
+                DisplayName = "骑士",
+                Level = 1,
+                Hp = 100,
+                MaxHp = 100
+            };
+            run.Party.Add(member);
+            ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(run.Party, run.Relics, run.RelicGrowthTiers);
+
+            Assert.IsFalse(ExpeditionAltarUpgradeRules.TryRestHealWithGold(run));
+            Assert.AreEqual(100, run.Gold);
+        }
+
+        [Test]
+        public void RestHeal_AfterGoldHealToFull_BlocksXpHeal()
+        {
+            var run = new ExpeditionRunState
+            {
+                Gold = 50,
+                SharedXpPool = 30
+            };
+            var member = new PartyMemberSnapshot
+            {
+                CharacterDefinitionId = "char_knight",
+                DisplayName = "骑士",
+                Level = 1,
+                Hp = 78,
+                MaxHp = 80
+            };
+            run.Party.Add(member);
+            ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(run.Party, run.Relics, run.RelicGrowthTiers);
+
+            Assert.IsTrue(ExpeditionAltarUpgradeRules.TryRestHealWithGold(run));
+            Assert.AreEqual(80, member.Hp);
+            Assert.IsFalse(ExpeditionAltarUpgradeRules.PartyHasRestHealableMember(run));
+            Assert.IsFalse(ExpeditionAltarUpgradeRules.CanRestHealWithXp(run));
+            Assert.IsFalse(ExpeditionAltarUpgradeRules.TryRestHealWithXp(run));
+            Assert.AreEqual(30, run.SharedXpPool);
+        }
     }
 }

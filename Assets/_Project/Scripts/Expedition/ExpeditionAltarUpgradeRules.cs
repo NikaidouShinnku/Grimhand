@@ -16,6 +16,10 @@ namespace Grimhand.Expedition
         public const int SpeedPlus1SecondCost = 35;
         public const int HpPlus5Amount = 5;
 
+        public const int RestHealGoldCost = 30;
+        public const int RestHealXpCost = 20;
+        public const int RestHealPercent = 25;
+
         /// <summary>能量上限 8→9→10，各档 XP（Excel 能量上限升级表）。</summary>
         public static readonly int[] EnergyCapUpgradeCosts = { 100, 200 };
         public const int MaxEnergyCapUpgrades = 2;
@@ -131,6 +135,100 @@ namespace Grimhand.Expedition
                 return false;
 
             return CardUpgradeRules.TryUpgradeLevel(member, deckInstanceId, displayName, 1);
+        }
+
+        public static int ComputeRestHealAmount(PartyMemberSnapshot member, ExpeditionRunState run)
+        {
+            if (member == null || run == null)
+                return 0;
+
+            var bonus = ExpeditionPartyStatsRules.GetPartyMaxHpBonus(run.Party, run.Relics, run.RelicGrowthTiers);
+            var max = ExpeditionPartyStatsRules.GetEffectiveMaxHp(member, bonus);
+            return System.Math.Max(1, max * RestHealPercent / 100);
+        }
+
+        public static bool PartyHasRestHealableMember(ExpeditionRunState run)
+        {
+            if (run?.Party == null)
+                return false;
+
+            ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(run.Party, run.Relics, run.RelicGrowthTiers);
+
+            var bonus = ExpeditionPartyStatsRules.GetPartyMaxHpBonus(run.Party, run.Relics, run.RelicGrowthTiers);
+            foreach (var member in run.Party)
+            {
+                if (member == null || member.Hp <= 0)
+                    continue;
+
+                var maxHp = ExpeditionPartyStatsRules.GetEffectiveMaxHp(member, bonus);
+                if (member.Hp < maxHp)
+                    return true;
+            }
+
+            return false;
+        }
+
+        public static bool CanRestHealWithGold(ExpeditionRunState run) =>
+            run != null && run.Gold >= RestHealGoldCost && PartyHasRestHealableMember(run);
+
+        public static bool CanRestHealWithXp(ExpeditionRunState run) =>
+            run != null && run.SharedXpPool >= RestHealXpCost && PartyHasRestHealableMember(run);
+
+        public static bool TryRestHealWithGold(ExpeditionRunState run)
+        {
+            if (!CanRestHealWithGold(run))
+                return false;
+
+            run.Gold -= RestHealGoldCost;
+            ApplyRestHeal(run);
+            return true;
+        }
+
+        public static bool TryRestHealWithXp(ExpeditionRunState run)
+        {
+            if (!CanRestHealWithXp(run))
+                return false;
+
+            if (!TrySpendPool(run, RestHealXpCost))
+                return false;
+
+            ApplyRestHeal(run);
+            return true;
+        }
+
+        static void ApplyRestHeal(ExpeditionRunState run)
+        {
+            var bonus = ExpeditionPartyStatsRules.GetPartyMaxHpBonus(run.Party, run.Relics, run.RelicGrowthTiers);
+            foreach (var member in run.Party)
+            {
+                if (member == null || member.Hp <= 0)
+                    continue;
+
+                var maxHp = ExpeditionPartyStatsRules.GetEffectiveMaxHp(member, bonus);
+                member.MaxHp = maxHp;
+                ExpeditionPartyStatsRules.GetDisplayHp(
+                    member, run.Party, run.Relics, run.RelicGrowthTiers, out var currentHp, out _);
+                var heal = System.Math.Max(1, maxHp * RestHealPercent / 100);
+                member.Hp = System.Math.Min(maxHp, currentHp + heal);
+            }
+
+            ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(run.Party, run.Relics, run.RelicGrowthTiers);
+            ClampPartyHpToEffectiveMax(run);
+        }
+
+        static void ClampPartyHpToEffectiveMax(ExpeditionRunState run)
+        {
+            var bonus = ExpeditionPartyStatsRules.GetPartyMaxHpBonus(run.Party, run.Relics, run.RelicGrowthTiers);
+            foreach (var member in run.Party)
+            {
+                if (member == null)
+                    continue;
+
+                var maxHp = ExpeditionPartyStatsRules.GetEffectiveMaxHp(member, bonus);
+                member.MaxHp = maxHp;
+                if (member.Hp > maxHp)
+                    member.Hp = maxHp;
+            }
         }
     }
 }

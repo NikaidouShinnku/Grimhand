@@ -48,35 +48,12 @@ namespace Grimhand.Expedition
                     member.CampDeckCardIds.Add(cardId ?? "");
 
                 run.RunStartCampDecks[member.CharacterDefinitionId] = new List<string>(member.CampDeckCardIds);
-                if (HasFilledCampDeck(member.CampDeckCardIds))
-                {
-                    member.UsesCampDeckAsBattleBase = true;
-                    for (var i = 0; i < member.CampDeckCardIds.Count; i++)
-                    {
-                        if (!string.IsNullOrEmpty(member.CampDeckCardIds[i]))
-                            CampCollectionProgress.MarkExtracted(run, member.CharacterDefinitionId, i);
-                    }
-                }
 
                 run.Party.Add(member);
             }
 
             ExpeditionPartyRules.EnforceMaxSize(run.Party);
             ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(run.Party, run.Relics, run.RelicGrowthTiers);
-        }
-
-        static bool HasFilledCampDeck(IReadOnlyList<string> cardIds)
-        {
-            if (cardIds == null)
-                return false;
-
-            foreach (var id in cardIds)
-            {
-                if (!string.IsNullOrEmpty(id))
-                    return true;
-            }
-
-            return false;
         }
 
         public static void ApplyTalentsFromMeta(PartyMemberSnapshot member, CampMetaState meta)

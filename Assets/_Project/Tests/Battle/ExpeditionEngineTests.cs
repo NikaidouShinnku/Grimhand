@@ -388,7 +388,7 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
-        public void CampDeck_FromRoster_ReplacesDefaultBattleDeck()
+        public void CampDeck_FromRoster_StaysInAltarCollectionUntilExtracted()
         {
             var config = BuildConfigWithKnightDeck(4);
             var roster = new CampRosterState();
@@ -405,10 +405,14 @@ namespace Grimhand.Battle.Tests
             engine.StartRun(roster);
             var snap = engine.Run.Party[0];
 
-            Assert.IsTrue(snap.UsesCampDeckAsBattleBase);
-            Assert.AreEqual(CampRosterState.DeckSize, ExpeditionRunDeckRules.CountMemberDeck(config, snap));
+            Assert.IsFalse(snap.UsesCampDeckAsBattleBase);
+            Assert.AreEqual(4, ExpeditionRunDeckRules.CountMemberDeck(config, snap));
             foreach (var entry in ExpeditionRunDeckCatalog.CollectMemberDeckEntries(config, snap))
-                StringAssert.StartsWith("camp_card_", entry.Template.DefinitionId);
+                StringAssert.StartsWith("base_", entry.Template.DefinitionId);
+
+            Assert.AreEqual(
+                CampRosterState.DeckSize,
+                ExpeditionRunDeckRules.GetAvailableCollectionIndices(engine.Run, snap).Count);
         }
 
         [Test]

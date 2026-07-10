@@ -456,6 +456,28 @@ namespace Grimhand.Presentation.Battle
             return true;
         }
 
+        public bool AltarRestHealWithGold()
+        {
+            if (Expedition?.TryAltarRestHealWithGold() != true)
+                return false;
+
+            if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
+                AddLog(Expedition.Run.LastEventMessage);
+
+            return true;
+        }
+
+        public bool AltarRestHealWithXp()
+        {
+            if (Expedition?.TryAltarRestHealWithXp() != true)
+                return false;
+
+            if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
+                AddLog(Expedition.Run.LastEventMessage);
+
+            return true;
+        }
+
         public bool ReplaceDeckCardForOffer(string deckCardKey)
         {
             if (Expedition?.TryReplaceDeckCardForPendingOffer(deckCardKey) != true)

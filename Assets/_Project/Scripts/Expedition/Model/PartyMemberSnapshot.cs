@@ -27,9 +27,9 @@ namespace Grimhand.Expedition.Model
         /// <summary>单张攻击牌永久平铺增伤（deckInstanceId → 额外伤害）。</summary>
         public Dictionary<string, int> CardFlatDamageBonuses { get; } = new();
         public List<CardTemplate> BonusCards { get; } = new();
-        /// <summary>军营配置的牌组；<see cref="UsesCampDeckAsBattleBase"/> 为 true 时即本场战斗初始牌组，否则仅祭坛收藏池。</summary>
+        /// <summary>军营收藏牌组，仅在祭坛取出后加入远征卡组；战斗初始套牌来自 Content 默认配置。</summary>
         public List<string> CampDeckCardIds { get; } = new();
-        /// <summary>远征开始时是否以军营牌组替换 Content 默认套牌。</summary>
+        /// <summary>遗留标记：为 true 时以军营牌组作为战斗初始套牌（新局不再自动开启）。</summary>
         public bool UsesCampDeckAsBattleBase { get; set; }
         /// <summary>本局已从收藏取走的收藏槽位索引。</summary>
         public HashSet<int> ExtractedCampCardIndices { get; } = new();

@@ -5,6 +5,7 @@
         "Grimhand.Battle",
         "Grimhand.Core",
         "Grimhand.Presentation",
+        "Grimhand.Persistence",
         "Grimhand.Content",
         "Grimhand.Content.Editor",
         "Unity.InputSystem"

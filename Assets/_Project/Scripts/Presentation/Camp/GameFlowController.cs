@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
+using Grimhand.Persistence;
 using Grimhand.Presentation.Battle;
 using UnityEngine;
 
@@ -22,6 +23,9 @@ namespace Grimhand.Presentation.Camp
 
         CampRosterState _roster;
         CampMetaState _meta;
+        CampCollectionState _collection;
+        PlayerProfileState _profile;
+        SaveService _saveService;
         Dictionary<string, CardDefinitionSO> _definitions;
 
         void Awake() => EnsureReferences();
@@ -42,8 +46,20 @@ namespace Grimhand.Presentation.Camp
                 expeditionSetup = battleController.ExpeditionSetup;
 
             _definitions = CardVisualResolver.BuildDefinitionLookup(battleSetup, expeditionSetup);
-            _roster = CampRosterBuilder.CreateDefault(battleSetup, expeditionSetup);
-            _meta = CampMetaState.CreateDefaultDemo();
+            var validationContext = SaveValidationContextBuilder.Build(expeditionSetup);
+            _saveService = new SaveService(
+                new LocalFileSaveStorage(SaveService.DefaultSaveDirectory),
+                validationContext);
+
+            var loadResult = _saveService.LoadOrCreate(() =>
+                PlayerProfileFactory.CreateNew(battleSetup, expeditionSetup));
+            _profile = loadResult.Profile;
+            _meta = _profile.Meta;
+            _roster = _profile.Roster;
+            _collection = _profile.Collection;
+
+            if (loadResult.Source != SaveLoadSource.Primary)
+                Debug.Log($"[GameFlow] 读档: {loadResult.Message} ({loadResult.Source})");
 
             var cardPrefab = battleController.HandCardPrefab;
             var cardCatalog = battleController.CardVisualCatalog;
@@ -143,13 +159,17 @@ namespace Grimhand.Presentation.Camp
         void OnRosterSaved(CampRosterState roster)
         {
             _roster = roster;
+            _profile.Roster = roster;
             battleController.SetCampRoster(_roster);
+            SaveProfile();
         }
 
         void OnMetaSaved(CampMetaState meta)
         {
             _meta = meta;
+            _profile.Meta = meta;
             battleController.SetCampMeta(_meta);
+            SaveProfile();
         }
 
         void BeginExpedition()
@@ -157,6 +177,14 @@ namespace Grimhand.Presentation.Camp
             if (_roster == null || !_roster.IsReadyForExpedition)
             {
                 campScreen?.ShowToast("请先在军营完成编队（3 人，每人至少 1 张牌）。");
+                ShowCamp();
+                return;
+            }
+
+            if (CampCollectionRules.BlocksExpeditionStart(_collection, _profile.CollectionCapacity))
+            {
+                campScreen?.ShowToast(
+                    $"军营收藏 {_collection.Count}/{_profile.CollectionCapacity} 超出上限，请整理后再出发。");
                 ShowCamp();
                 return;
             }
@@ -171,6 +199,23 @@ namespace Grimhand.Presentation.Camp
         {
             campScreen?.ShowToast($"{feature} — 即将开放");
         }
+
+        public void SaveProfile()
+        {
+            if (_saveService == null || _profile == null)
+                return;
+
+            if (!_saveService.TrySave(_profile, out var error))
+                Debug.LogWarning($"[GameFlow] 存档失败: {error}");
+        }
+
+        void OnApplicationPause(bool paused)
+        {
+            if (paused)
+                SaveProfile();
+        }
+
+        void OnApplicationQuit() => SaveProfile();
 
         void EnsureReferences()
         {

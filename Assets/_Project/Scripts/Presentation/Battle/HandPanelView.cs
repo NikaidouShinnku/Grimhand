@@ -93,8 +93,9 @@ namespace Grimhand.Presentation.Battle
                 var owner = ownerId != null ? state.GetCombatant(ownerId) : null;
                 var playCost = draft.GetPlayCost(card);
                 var canAfford = draft.EnergyRemaining >= playCost;
+                var canSelect = draft.IsCardSelectable(card.InstanceId);
                 var interactable = session.CanInteractWithBattle() && !polluted
-                    && (isAwaitingTarget || isQueued || canAfford);
+                    && (isAwaitingTarget || isQueued || canSelect);
                 var visual = CardVisualResolver.Resolve(card, catalog, characterVisuals, definitions);
                 var stats = BattleUiFormatters.BuildCardStatsLineForHand(
                     state, draft, card, damagePreviewTarget, definitions);

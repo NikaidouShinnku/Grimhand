@@ -1,13 +1,8 @@
 {
-    "name": "Grimhand.Presentation",
-    "rootNamespace": "Grimhand.Presentation",
+    "name": "Grimhand.Persistence",
+    "rootNamespace": "Grimhand.Persistence",
     "references": [
-        "Grimhand.Battle",
-        "Grimhand.Content",
-        "Grimhand.Core",
-        "Grimhand.Expedition",
-        "Grimhand.Persistence",
-        "Unity.InputSystem"
+        "Grimhand.Expedition"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

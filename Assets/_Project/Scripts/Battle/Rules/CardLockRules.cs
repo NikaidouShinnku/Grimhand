@@ -135,6 +135,23 @@ namespace Grimhand.Battle.Rules
             if (state == null || owner == null || candidate == null || selectedQueue == null)
                 return false;
 
+            if (AppliesSelfLock(candidate))
+            {
+                foreach (var cardId in selectedQueue)
+                {
+                    if (cardId == candidate.InstanceId)
+                        continue;
+
+                    var queued = state.GetCard(cardId);
+                    if (queued == null)
+                        continue;
+
+                    var queuedOwnerId = PositionRules.GetOwnerCombatantId(state, queued);
+                    if (queuedOwnerId == owner.Id)
+                        return true;
+                }
+            }
+
             foreach (var cardId in selectedQueue)
             {
                 var queued = state.GetCard(cardId);

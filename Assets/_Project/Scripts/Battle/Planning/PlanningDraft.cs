@@ -101,7 +101,7 @@ namespace Grimhand.Battle.Planning
             var ownerId = PositionRules.GetOwnerCombatantId(_state, card);
             var owner = ownerId != null ? _state.GetCombatant(ownerId) : null;
 
-            if (!EnergyRules.CanAfford(_state.EnergyCurrent, TalentBattleRules.GetEffectivePlayCost(_state, owner, card)))
+            if (!EnergyRules.CanAfford(_state.EnergyCurrent, GetPlayCost(card)))
                 return false;
 
             if (CardRules.ShouldPromptForTarget(_state, card, owner) && !_targetByCard.ContainsKey(instanceId))
@@ -371,6 +371,20 @@ namespace Grimhand.Battle.Planning
                 EnergyMax = _state.EnergyMax,
                 EnergyRemaining = _state.EnergyCurrent
             });
+        }
+
+        public bool IsCardSelectable(int instanceId)
+        {
+            if (_state.Phase != TurnPhase.Planning)
+                return false;
+
+            if (_selectedQueue.Contains(instanceId))
+                return false;
+
+            if (!TryGetSelectableCard(instanceId, out var card))
+                return false;
+
+            return EnergyRules.CanAfford(_state.EnergyCurrent, GetPlayCost(card));
         }
 
         bool TryGetSelectableCard(int instanceId, out CardInstanceState card)

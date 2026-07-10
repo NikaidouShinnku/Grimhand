@@ -6,6 +6,7 @@
         "Grimhand.Content",
         "Grimhand.Core",
         "Grimhand.Expedition",
+        "Grimhand.Persistence",
         "Grimhand.Presentation"
     ],
     "includePlatforms": [

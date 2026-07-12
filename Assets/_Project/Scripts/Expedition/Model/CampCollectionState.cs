@@ -19,5 +19,14 @@ namespace Grimhand.Expedition.Model
 
             Entries.Add(cardId);
         }
+
+        public bool TryRemoveAt(int index)
+        {
+            if (index < 0 || index >= Entries.Count)
+                return false;
+
+            Entries.RemoveAt(index);
+            return true;
+        }
     }
 }

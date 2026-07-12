@@ -25,19 +25,6 @@ namespace Grimhand.Expedition.Model
 
                     if (member.DeckCardIds == null || member.DeckCardIds.Count != DeckSize)
                         return false;
-
-                    var hasAnyCard = false;
-                    foreach (var id in member.DeckCardIds)
-                    {
-                        if (!string.IsNullOrEmpty(id))
-                        {
-                            hasAnyCard = true;
-                            break;
-                        }
-                    }
-
-                    if (!hasAnyCard)
-                        return false;
                 }
 
                 if (!CampRosterValidation.HasUniqueCharacters(this))
@@ -53,5 +40,8 @@ namespace Grimhand.Expedition.Model
         public string CharacterDefinitionId { get; set; } = "";
         public string DisplayName { get; set; } = "";
         public List<string> DeckCardIds { get; } = new();
+
+        /// <summary>与 DeckCardIds 同槽位；指向 CampCollectionState.Entries 下标，-1 表示空槽。</summary>
+        public List<int> DeckCollectionEntryIndices { get; } = new();
     }
 }

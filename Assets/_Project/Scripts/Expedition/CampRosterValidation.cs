@@ -73,6 +73,13 @@ namespace Grimhand.Expedition
                     copy.DeckCardIds.Add(id ?? "");
             }
 
+            if (source?.DeckCollectionEntryIndices != null)
+            {
+                foreach (var index in source.DeckCollectionEntryIndices)
+                    copy.DeckCollectionEntryIndices.Add(index);
+            }
+
+            CampRosterLoadoutRules.EnsureDeckStructure(copy);
             return copy;
         }
 
@@ -86,6 +93,12 @@ namespace Grimhand.Expedition
             target.DeckCardIds.Clear();
             foreach (var id in source.DeckCardIds)
                 target.DeckCardIds.Add(id ?? "");
+
+            target.DeckCollectionEntryIndices.Clear();
+            foreach (var index in source.DeckCollectionEntryIndices)
+                target.DeckCollectionEntryIndices.Add(index);
+
+            CampRosterLoadoutRules.EnsureDeckStructure(target);
         }
     }
 }

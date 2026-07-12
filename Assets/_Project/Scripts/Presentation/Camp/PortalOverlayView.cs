@@ -282,7 +282,7 @@ namespace Grimhand.Presentation.Camp
                         deckCount++;
                 }
 
-                var deck = CampUiRuntime.CreateText(card.transform, $"卡组 {deckCount}/10", 15, FontStyle.Normal);
+                var deck = CampUiRuntime.CreateText(card.transform, $"祭坛携带 {deckCount}/10", 15, FontStyle.Normal);
                 deck.rectTransform.anchorMin = new Vector2(0f, 0f);
                 deck.rectTransform.anchorMax = new Vector2(1f, 0f);
                 deck.rectTransform.offsetMin = new Vector2(8f, 20f);

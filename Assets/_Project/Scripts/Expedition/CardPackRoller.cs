@@ -104,6 +104,35 @@ namespace Grimhand.Expedition
             return choices;
         }
 
+        /// <summary>局外商店开包：从全部可玩角色中 roll，稀有度权重与局内一致。</summary>
+        public static List<CardPackChoice> RollMetaChoices(
+            string packId,
+            ExpeditionConfig config,
+            IReadOnlyList<string> characterIds,
+            BattleRng rng)
+        {
+            if (config == null || characterIds == null || characterIds.Count == 0 || rng == null)
+                return new List<CardPackChoice>();
+
+            var run = new ExpeditionRunState();
+            foreach (var characterId in characterIds)
+            {
+                if (string.IsNullOrEmpty(characterId))
+                    continue;
+
+                run.Party.Add(new PartyMemberSnapshot
+                {
+                    CharacterDefinitionId = characterId,
+                    DisplayName = characterId
+                });
+            }
+
+            if (run.Party.Count == 0)
+                return new List<CardPackChoice>();
+
+            return RollChoices(packId, config, run, rng);
+        }
+
         static bool TryRollChoiceAtRarity(
             ExpeditionConfig config,
             ExpeditionRunState run,

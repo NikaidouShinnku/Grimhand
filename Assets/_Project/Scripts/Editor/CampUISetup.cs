@@ -71,12 +71,13 @@ namespace Grimhand.Editor
             var champion = EnsureComponent<ChampionCampOverlayView>(overlayHost, "ChampionCampOverlay");
             var talent = EnsureComponent<TalentCampOverlayView>(overlayHost, "TalentCampOverlay");
             var portal = EnsureComponent<PortalOverlayView>(overlayHost, "PortalOverlay");
+            var metaShop = EnsureComponent<MetaShopOverlayView>(overlayHost, "MetaShopOverlay");
             var soPortal = new SerializedObject(portal);
             soPortal.FindProperty("portalBackground").objectReferenceValue =
                 GrimhandBattleSceneBootstrap.LoadFirstSprite(PortalBackgroundPath);
             soPortal.ApplyModifiedPropertiesWithoutUndo();
 
-            WireGameFlowController(campView, gameMenu, settingsOverlay, champion, talent, portal);
+            WireGameFlowController(campView, gameMenu, settingsOverlay, champion, talent, portal, metaShop);
 
             campGo.transform.SetSiblingIndex(canvas.transform.childCount - 3);
             gameMenu.transform.SetAsLastSibling();
@@ -99,7 +100,8 @@ namespace Grimhand.Editor
             GameSettingsOverlayView settingsOverlay,
             ChampionCampOverlayView championCamp,
             TalentCampOverlayView talentCamp,
-            PortalOverlayView portalOverlay)
+            PortalOverlayView portalOverlay,
+            MetaShopOverlayView metaShop)
         {
             var demoGo = GameObject.Find("BattleDemo");
             if (demoGo == null)
@@ -132,6 +134,7 @@ namespace Grimhand.Editor
             soFlow.FindProperty("championCamp").objectReferenceValue = championCamp;
             soFlow.FindProperty("talentCamp").objectReferenceValue = talentCamp;
             soFlow.FindProperty("portalOverlay").objectReferenceValue = portalOverlay;
+            soFlow.FindProperty("metaShop").objectReferenceValue = metaShop;
             soFlow.FindProperty("battleSetup").objectReferenceValue = battleSetup;
             soFlow.FindProperty("expeditionSetup").objectReferenceValue = expeditionSetup;
             soFlow.ApplyModifiedPropertiesWithoutUndo();

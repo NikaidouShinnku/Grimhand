@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
 using Grimhand.Content;
+using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 
 namespace Grimhand.Presentation.Camp
@@ -21,7 +22,6 @@ namespace Grimhand.Presentation.Camp
             if (battleSetup == null)
                 return roster;
 
-            var catalog = BuildCardCatalog(expeditionSetup);
             foreach (var character in battleSetup.Combatants)
             {
                 if (character == null || character.Team != TeamSide.Player)
@@ -30,38 +30,27 @@ namespace Grimhand.Presentation.Camp
                 if (roster.Members.Count >= CampRosterState.PartySize)
                     break;
 
-                roster.Members.Add(CreateDefaultMember(character, catalog));
+                roster.Members.Add(CreateEmptyMember(character));
             }
 
             while (roster.Members.Count < CampRosterState.PartySize)
-                roster.Members.Add(new CampMemberLoadout());
+            {
+                var empty = new CampMemberLoadout();
+                CampRosterLoadoutRules.EnsureDeckStructure(empty);
+                roster.Members.Add(empty);
+            }
 
             return roster;
         }
 
-        public static CampMemberLoadout CreateDefaultMember(
-            CharacterDefinitionSO character,
-            IReadOnlyList<CardDefinitionSO> catalog)
+        public static CampMemberLoadout CreateEmptyMember(CharacterDefinitionSO character)
         {
             var loadout = new CampMemberLoadout
             {
-                CharacterDefinitionId = character.CharacterId,
-                DisplayName = character.DisplayName
+                CharacterDefinitionId = character?.CharacterId ?? "",
+                DisplayName = character?.DisplayName ?? ""
             };
-
-            foreach (var card in character.Deck)
-            {
-                if (card == null || string.IsNullOrEmpty(card.CardId))
-                    continue;
-
-                loadout.DeckCardIds.Add(card.CardId);
-                if (loadout.DeckCardIds.Count >= CampRosterState.DeckSize)
-                    break;
-            }
-
-            while (loadout.DeckCardIds.Count < CampRosterState.DeckSize)
-                loadout.DeckCardIds.Add("");
-
+            CampRosterLoadoutRules.EnsureDeckStructure(loadout);
             return loadout;
         }
 
@@ -90,6 +79,24 @@ namespace Grimhand.Presentation.Camp
                 return false;
 
             return card.OwnerCharacterId == characterDefinitionId;
+        }
+
+        public static Dictionary<string, string> BuildCardOwnerLookup(
+            IReadOnlyDictionary<string, CardDefinitionSO> definitions)
+        {
+            var lookup = new Dictionary<string, string>();
+            if (definitions == null)
+                return lookup;
+
+            foreach (var pair in definitions)
+            {
+                if (pair.Value == null || string.IsNullOrEmpty(pair.Key))
+                    continue;
+
+                lookup[pair.Key] = pair.Value.OwnerCharacterId ?? "";
+            }
+
+            return lookup;
         }
     }
 }

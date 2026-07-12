@@ -22,6 +22,7 @@ namespace Grimhand.Presentation.Camp
         [SerializeField] ChampionCampOverlayView championCamp;
         [SerializeField] TalentCampOverlayView talentCamp;
         [SerializeField] PortalOverlayView portalOverlay;
+        [SerializeField] MetaShopOverlayView metaShop;
         [SerializeField] BattleSetupSO battleSetup;
         [SerializeField] ExpeditionSetupSO expeditionSetup;
 
@@ -81,7 +82,7 @@ namespace Grimhand.Presentation.Camp
             settingsOverlay?.Initialize(CloseSettings);
 
             campScreen?.ConfigureArt(uiIcons);
-            campScreen?.Initialize(OpenChampionCamp, OpenPortal, OpenTalentCamp, ShowComingSoon, uiIcons);
+            campScreen?.Initialize(OpenChampionCamp, OpenPortal, OpenTalentCamp, OpenMetaShop, uiIcons, ShowComingSoon);
             championCamp?.Initialize(
                 battleSetup,
                 expeditionSetup,
@@ -91,6 +92,7 @@ namespace Grimhand.Presentation.Camp
                 uiIcons,
                 _definitions,
                 OnRosterSaved,
+                OnCollectionSaved,
                 OnOverlayClosed);
             talentCamp?.Initialize(
                 battleSetup,
@@ -99,6 +101,16 @@ namespace Grimhand.Presentation.Camp
                 OnMetaSaved,
                 OnOverlayClosed);
             portalOverlay?.Initialize(battleSetup, charCatalog, BeginExpedition, OnOverlayClosed);
+            metaShop?.Initialize(
+                expeditionSetup,
+                battleSetup,
+                cardPrefab,
+                cardCatalog,
+                charCatalog,
+                uiIcons,
+                _definitions,
+                OnShopProfileChanged,
+                OnOverlayClosed);
 
             battleController.SetCampRoster(_roster);
             battleController.SetCampMeta(_meta);
@@ -121,6 +133,7 @@ namespace Grimhand.Presentation.Camp
             championCamp?.Hide();
             talentCamp?.Hide();
             portalOverlay?.Hide();
+            metaShop?.Hide();
             settingsOverlay?.Hide();
             battleController.SetBattleScreenVisible(false);
             gameMenu?.Show(_profile.HasActiveRun);
@@ -138,6 +151,7 @@ namespace Grimhand.Presentation.Camp
             championCamp?.Hide();
             talentCamp?.Hide();
             portalOverlay?.Hide();
+            metaShop?.Hide();
             settingsOverlay?.Hide();
             battleController.SetBattleScreenVisible(false);
         }
@@ -157,6 +171,7 @@ namespace Grimhand.Presentation.Camp
             championCamp?.Hide();
             talentCamp?.Hide();
             portalOverlay?.Hide();
+            metaShop?.Hide();
             settingsOverlay?.Hide();
             battleController.SetBattleScreenVisible(true);
         }
@@ -210,7 +225,7 @@ namespace Grimhand.Presentation.Camp
         void OpenChampionCamp()
         {
             campScreen?.Hide();
-            championCamp?.Show(_roster, _meta, _profile.AccountGold);
+            championCamp?.Show(_roster, _meta, _profile.AccountGold, _collection, _profile.CollectionCapacity);
         }
 
         void OpenTalentCamp()
@@ -228,8 +243,31 @@ namespace Grimhand.Presentation.Camp
             talentCamp.Show(_meta);
         }
 
+        void OpenMetaShop()
+        {
+            EnsureReferences();
+            if (metaShop == null)
+            {
+                Debug.LogError("[GameFlow] 未找到 MetaShopOverlay。请执行 Grimhand → Setup Camp UI in Scene。");
+                campScreen?.ShowToast("商店界面未就绪，请重新 Setup Camp UI。");
+                campScreen?.Show(_profile.AccountGold);
+                return;
+            }
+
+            campScreen?.Hide();
+            metaShop.Show(_profile);
+        }
+
+        void OnShopProfileChanged()
+        {
+            SaveProfile();
+            campScreen?.RefreshAccountGold(_profile.AccountGold);
+            metaShop?.Refresh();
+        }
+
         void OpenPortal()
         {
+            CampRosterLoadoutRules.EnsureRosterStructure(_roster);
             campScreen?.Hide();
             portalOverlay?.Show(_roster);
         }
@@ -243,6 +281,9 @@ namespace Grimhand.Presentation.Camp
                 return;
 
             if (portalOverlay != null && portalOverlay.IsOpen)
+                return;
+
+            if (metaShop != null && metaShop.IsOpen)
                 return;
 
             if (settingsOverlay != null && settingsOverlay.IsOpen)
@@ -259,6 +300,13 @@ namespace Grimhand.Presentation.Camp
             SaveProfile();
         }
 
+        void OnCollectionSaved(CampCollectionState collection)
+        {
+            _collection = collection;
+            _profile.Collection = collection;
+            SaveProfile();
+        }
+
         void OnMetaSaved(CampMetaState meta)
         {
             _meta = meta;
@@ -271,7 +319,7 @@ namespace Grimhand.Presentation.Camp
         {
             if (_roster == null || !_roster.IsReadyForExpedition)
             {
-                campScreen?.ShowToast("请先在军营完成编队（3 人，每人至少 1 张牌）。");
+                campScreen?.ShowToast("请先在军营配置 3 名不同角色。");
                 ShowCamp();
                 return;
             }
@@ -421,6 +469,12 @@ namespace Grimhand.Presentation.Camp
 
             if (portalOverlay == null)
                 portalOverlay = FindAnyObjectByType<PortalOverlayView>(FindObjectsInactive.Include);
+
+            if (metaShop == null && canvasRoot != null)
+                metaShop = CampOverlayBootstrap.EnsureOverlay<MetaShopOverlayView>(canvasRoot, "MetaShopOverlay");
+
+            if (metaShop == null)
+                metaShop = FindAnyObjectByType<MetaShopOverlayView>(FindObjectsInactive.Include);
         }
     }
 }

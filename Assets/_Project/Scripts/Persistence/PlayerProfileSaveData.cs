@@ -38,5 +38,6 @@ namespace Grimhand.Persistence
         public string characterDefinitionId = "";
         public string displayName = "";
         public string[] deckCardIds = Array.Empty<string>();
+        public int[] deckCollectionEntryIndices = Array.Empty<int>();
     }
 }

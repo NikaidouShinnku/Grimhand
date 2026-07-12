@@ -10,7 +10,7 @@ using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Camp
 {
-    /// <summary>军营：3 角色槽 + 每人 10 张牌，Demo 阶段全卡池可选。</summary>
+    /// <summary>军营：3 角色槽 + 从收藏选取每人 10 张祭坛携带牌。</summary>
     [DisallowMultipleComponent]
     public sealed class ChampionCampOverlayView : MonoBehaviour
     {
@@ -31,12 +31,17 @@ namespace Grimhand.Presentation.Camp
 
         CampRosterState _roster;
         CampMetaState _meta;
+        CampCollectionState _collection;
         int _accountGold;
+        int _collectionCapacity;
         Action<CampRosterState> _onRosterChanged;
+        Action<CampCollectionState> _onCollectionChanged;
         Action _onClose;
 
         RectTransform _overlayRoot;
+        RectTransform _hubPanel;
         RectTransform _body;
+        CampCollectionManageView _collectionManageView;
         RectTransform _memberRow;
         RectTransform _deckGrid;
         RectTransform _poolGrid;
@@ -65,6 +70,7 @@ namespace Grimhand.Presentation.Camp
             BattleUiIconCatalogSO uiIcons,
             Dictionary<string, CardDefinitionSO> definitions,
             Action<CampRosterState> onRosterChanged,
+            Action<CampCollectionState> onCollectionChanged,
             Action onClose)
         {
             _battleSetup = battleSetup;
@@ -75,6 +81,7 @@ namespace Grimhand.Presentation.Camp
             _uiIcons = uiIcons;
             _definitions = definitions ?? new Dictionary<string, CardDefinitionSO>();
             _onRosterChanged = onRosterChanged;
+            _onCollectionChanged = onCollectionChanged;
             _onClose = onClose;
 
             _cardPool = CampRosterBuilder.BuildCardCatalog(expeditionSetup);
@@ -127,20 +134,70 @@ namespace Grimhand.Presentation.Camp
 
         public void Show(CampRosterState roster, CampMetaState meta, int accountGold)
         {
+            Show(roster, meta, accountGold, null, CampCollectionState.DefaultCapacity);
+        }
+
+        public void Show(
+            CampRosterState roster,
+            CampMetaState meta,
+            int accountGold,
+            CampCollectionState collection,
+            int collectionCapacity)
+        {
             _roster = roster;
             _meta = meta;
             _accountGold = accountGold;
+            _collection = collection;
+            _collectionCapacity = collectionCapacity;
             EnsureBuilt();
             SanitizeDuplicateCharacters();
+            CampRosterLoadoutRules.SanitizeRoster(_roster, _collection, CardOwnerLookup);
             _overlayRoot.gameObject.SetActive(true);
             transform.SetAsLastSibling();
             _activeMemberIndex = 0;
             _selectedDeckSlot = 0;
+            ShowHub();
+        }
+
+        void ShowHub()
+        {
+            _tooltip?.Hide();
+            _hubPanel.gameObject.SetActive(true);
+            _body.gameObject.SetActive(false);
+            _collectionManageView?.Hide();
+        }
+
+        void ShowTeamPanel()
+        {
+            _tooltip?.Hide();
+            _hubPanel.gameObject.SetActive(false);
+            _body.gameObject.SetActive(true);
+            _collectionManageView?.Hide();
             Rebuild();
+        }
+
+        void ShowCollectionPanel()
+        {
+            _tooltip?.Hide();
+            _hubPanel.gameObject.SetActive(false);
+            _body.gameObject.SetActive(false);
+            _collectionManageView?.Show(_collection, _roster, _collectionCapacity);
+        }
+
+        void CloseToCamp()
+        {
+            Hide();
+            _onClose?.Invoke();
+        }
+
+        void NotifyCollectionChanged()
+        {
+            _onCollectionChanged?.Invoke(_collection);
         }
 
         public void Hide()
         {
+            _collectionManageView?.Hide();
             if (_overlayRoot != null)
                 _overlayRoot.gameObject.SetActive(false);
         }
@@ -234,7 +291,7 @@ namespace Grimhand.Presentation.Camp
             headerRt.offsetMin = new Vector2(20f, -58f);
             headerRt.offsetMax = new Vector2(-20f, -8f);
 
-            var title = CampUiRuntime.CreateText(header.transform, "出征编队", 26, FontStyle.Bold,
+            var title = CampUiRuntime.CreateText(header.transform, "配置队伍", 26, FontStyle.Bold,
                 TextAnchor.MiddleLeft);
             title.rectTransform.anchorMin = new Vector2(0f, 0f);
             title.rectTransform.anchorMax = new Vector2(0.42f, 1f);
@@ -276,11 +333,7 @@ namespace Grimhand.Presentation.Camp
             closeRt.anchorMax = new Vector2(1f, 0.5f);
             closeRt.pivot = new Vector2(1f, 0.5f);
             closeRt.anchoredPosition = new Vector2(0f, 0f);
-            _closeButton.onClick.AddListener(() =>
-            {
-                Hide();
-                _onClose?.Invoke();
-            });
+            _closeButton.onClick.AddListener(ShowHub);
 
             _confirmButton = CampUiRuntime.CreateButton(header.transform, "保存编队", new Color(0.55f, 0.42f, 0.15f, 1f),
                 new Vector2(140f, 40f));
@@ -289,7 +342,7 @@ namespace Grimhand.Presentation.Camp
             confirmRt.anchorMax = new Vector2(1f, 0.5f);
             confirmRt.pivot = new Vector2(1f, 0.5f);
             confirmRt.anchoredPosition = new Vector2(-132f, 0f);
-            _confirmButton.onClick.AddListener(SaveAndClose);
+            _confirmButton.onClick.AddListener(SaveAndReturnToHub);
 
             _memberRow = CampUiRuntime.CreateRect("MemberRow", _body).GetComponent<RectTransform>();
             _memberRow.anchorMin = new Vector2(0f, 1f);
@@ -304,7 +357,7 @@ namespace Grimhand.Presentation.Camp
             deckColumnRt.offsetMin = new Vector2(20f, 52f);
             deckColumnRt.offsetMax = new Vector2(-8f, -208f);
 
-            var deckLabel = CampUiRuntime.CreateText(deckColumn.transform, "当前卡组", 18, FontStyle.Bold,
+            var deckLabel = CampUiRuntime.CreateText(deckColumn.transform, "携带卡牌", 18, FontStyle.Bold,
                 TextAnchor.MiddleLeft);
             deckLabel.rectTransform.anchorMin = new Vector2(0f, 1f);
             deckLabel.rectTransform.anchorMax = new Vector2(1f, 1f);
@@ -330,7 +383,7 @@ namespace Grimhand.Presentation.Camp
             poolColumnRt.offsetMin = new Vector2(0f, 52f);
             poolColumnRt.offsetMax = new Vector2(-20f, -208f);
 
-            var poolLabel = CampUiRuntime.CreateText(poolColumn.transform, "卡牌库", 18, FontStyle.Bold,
+            var poolLabel = CampUiRuntime.CreateText(poolColumn.transform, "军营收藏", 18, FontStyle.Bold,
                 TextAnchor.MiddleLeft);
             poolLabel.rectTransform.anchorMin = new Vector2(0f, 1f);
             poolLabel.rectTransform.anchorMax = new Vector2(1f, 1f);
@@ -386,16 +439,115 @@ namespace Grimhand.Presentation.Camp
 
             _tooltip = _overlayRoot.gameObject.AddComponent<InventoryTooltipView>();
             _tooltip.Initialize(_overlayRoot);
+
+            BuildHubPanel();
+            var collectionHost = CampUiRuntime.CreateRect("CollectionManageHost", _overlayRoot);
+            CampUiRuntime.StretchFull(collectionHost.GetComponent<RectTransform>());
+            _collectionManageView = collectionHost.AddComponent<CampCollectionManageView>();
+            _collectionManageView.Initialize(
+                _battleSetup,
+                _cardPrefab,
+                _cardCatalog,
+                _characterVisuals,
+                _uiIcons,
+                _definitions,
+                NotifyCollectionChanged,
+                ShowHub);
+
+            _body.gameObject.SetActive(false);
         }
 
-        void SaveAndClose()
+        void BuildHubPanel()
+        {
+            _hubPanel = CampUiRuntime.CreateImage("HubPanel", _overlayRoot, new Color(0.07f, 0.08f, 0.11f, 0.98f))
+                .rectTransform;
+            CampUiRuntime.Stretch(_hubPanel, 48f, 48f, -48f, -48f);
+
+            var title = CampUiRuntime.CreateText(_hubPanel, "军营", 32, FontStyle.Bold, TextAnchor.UpperCenter);
+            title.rectTransform.anchorMin = new Vector2(0f, 1f);
+            title.rectTransform.anchorMax = new Vector2(1f, 1f);
+            title.rectTransform.offsetMin = new Vector2(0f, -56f);
+            title.rectTransform.offsetMax = new Vector2(0f, -8f);
+            title.color = new Color(0.95f, 0.88f, 0.62f, 1f);
+
+            var closeBtn = CampUiRuntime.CreateButton(_hubPanel, "返回营地", new Color(0.28f, 0.3f, 0.36f, 1f),
+                new Vector2(140f, 42f));
+            var closeRt = closeBtn.GetComponent<RectTransform>();
+            closeRt.anchorMin = new Vector2(1f, 1f);
+            closeRt.anchorMax = new Vector2(1f, 1f);
+            closeRt.pivot = new Vector2(1f, 1f);
+            closeRt.anchoredPosition = new Vector2(-8f, -8f);
+            closeBtn.onClick.AddListener(CloseToCamp);
+
+            var hint = CampUiRuntime.CreateText(_hubPanel,
+                "管理出征队伍与永久收藏卡牌。局外商店获得的卡牌可在「管理卡牌」中查看。",
+                16, FontStyle.Italic, TextAnchor.UpperCenter);
+            hint.rectTransform.anchorMin = new Vector2(0f, 1f);
+            hint.rectTransform.anchorMax = new Vector2(1f, 1f);
+            hint.rectTransform.offsetMin = new Vector2(24f, -96f);
+            hint.rectTransform.offsetMax = new Vector2(-24f, -60f);
+            hint.color = new Color(0.72f, 0.76f, 0.84f, 1f);
+
+            var buttonRow = CampUiRuntime.CreateRect("HubButtons", _hubPanel);
+            var rowRt = buttonRow.GetComponent<RectTransform>();
+            rowRt.anchorMin = new Vector2(0.08f, 0.18f);
+            rowRt.anchorMax = new Vector2(0.92f, 0.78f);
+            rowRt.offsetMin = Vector2.zero;
+            rowRt.offsetMax = Vector2.zero;
+            var rowLayout = buttonRow.AddComponent<HorizontalLayoutGroup>();
+            rowLayout.spacing = 32f;
+            rowLayout.childAlignment = TextAnchor.MiddleCenter;
+            rowLayout.childControlWidth = true;
+            rowLayout.childControlHeight = true;
+            rowLayout.childForceExpandWidth = true;
+            rowLayout.childForceExpandHeight = true;
+
+            CreateHubActionButton(buttonRow.transform, "配置队伍",
+                "编辑远征小队成员和每人10张可在祭坛提取的卡牌",
+                new Color(0.18f, 0.28f, 0.42f, 0.98f),
+                ShowTeamPanel);
+            CreateHubActionButton(buttonRow.transform, "管理卡牌",
+                "浏览收藏、筛选查看详情，或永久移除卡牌",
+                new Color(0.28f, 0.22f, 0.38f, 0.98f),
+                ShowCollectionPanel);
+        }
+
+        static void CreateHubActionButton(
+            Transform parent,
+            string title,
+            string subtitle,
+            Color bg,
+            Action onClick)
+        {
+            var go = CampUiRuntime.CreateRect(title, parent);
+            var layout = go.AddComponent<LayoutElement>();
+            layout.minHeight = 280f;
+            layout.preferredHeight = 320f;
+
+            var bgImage = go.AddComponent<Image>();
+            bgImage.color = bg;
+
+            var btn = go.AddComponent<Button>();
+            btn.targetGraphic = bgImage;
+            btn.onClick.AddListener(() => onClick?.Invoke());
+
+            var titleText = CampUiRuntime.CreateText(go.transform, title, 28, FontStyle.Bold, TextAnchor.UpperCenter);
+            CampUiRuntime.SetAnchored(titleText.rectTransform, 0.08f, 0.58f, 0.92f, 0.88f);
+            titleText.color = new Color(0.95f, 0.9f, 0.72f, 1f);
+
+            var subText = CampUiRuntime.CreateText(go.transform, subtitle, 16, FontStyle.Normal, TextAnchor.UpperCenter);
+            CampUiRuntime.SetAnchored(subText.rectTransform, 0.1f, 0.18f, 0.9f, 0.52f);
+            subText.color = new Color(0.78f, 0.82f, 0.92f, 1f);
+            subText.horizontalOverflow = HorizontalWrapMode.Wrap;
+        }
+
+        void SaveAndReturnToHub()
         {
             EnsureRosterSize();
-            SanitizeRosterCardOwnership();
+            CampRosterLoadoutRules.SanitizeRoster(_roster, _collection, CardOwnerLookup);
             SanitizeDuplicateCharacters();
             _onRosterChanged?.Invoke(_roster);
-            Hide();
-            _onClose?.Invoke();
+            ShowHub();
         }
 
         void SanitizeDuplicateCharacters()
@@ -414,34 +566,9 @@ namespace Grimhand.Presentation.Camp
 
                 member.CharacterDefinitionId = "";
                 member.DisplayName = "";
-                member.DeckCardIds.Clear();
-                while (member.DeckCardIds.Count < CampRosterState.DeckSize)
-                    member.DeckCardIds.Add("");
-            }
-        }
-
-        void SanitizeRosterCardOwnership()
-        {
-            if (_roster == null)
-                return;
-
-            foreach (var member in _roster.Members)
-            {
-                if (member == null)
-                    continue;
-
-                for (var i = 0; i < member.DeckCardIds.Count; i++)
-                {
-                    var id = member.DeckCardIds[i];
-                    if (string.IsNullOrEmpty(id))
-                        continue;
-
-                    if (!_definitions.TryGetValue(id, out var definition)
-                        || !CampRosterBuilder.IsCardOwnedByCharacter(definition, member.CharacterDefinitionId))
-                    {
-                        member.DeckCardIds[i] = "";
-                    }
-                }
+                CampRosterLoadoutRules.EnsureDeckStructure(member);
+                for (var slot = 0; slot < CampRosterState.DeckSize; slot++)
+                    CampRosterLoadoutRules.ClearSlot(member, slot);
             }
         }
 
@@ -463,19 +590,17 @@ namespace Grimhand.Presentation.Camp
         void EnsureRosterSize()
         {
             while (_roster.Members.Count < CampRosterState.PartySize)
-                _roster.Members.Add(new CampMemberLoadout());
+            {
+                var empty = new CampMemberLoadout();
+                CampRosterLoadoutRules.EnsureDeckStructure(empty);
+                _roster.Members.Add(empty);
+            }
 
             while (_roster.Members.Count > CampRosterState.PartySize)
                 _roster.Members.RemoveAt(_roster.Members.Count - 1);
 
-            for (var i = 0; i < CampRosterState.PartySize; i++)
-            {
-                var member = _roster.Members[i];
-                while (member.DeckCardIds.Count < CampRosterState.DeckSize)
-                    member.DeckCardIds.Add("");
-                while (member.DeckCardIds.Count > CampRosterState.DeckSize)
-                    member.DeckCardIds.RemoveAt(member.DeckCardIds.Count - 1);
-            }
+            foreach (var member in _roster.Members)
+                CampRosterLoadoutRules.EnsureDeckStructure(member);
         }
 
         void RebuildMemberRow()
@@ -551,7 +676,7 @@ namespace Grimhand.Presentation.Camp
             name.rectTransform.offsetMax = new Vector2(-8f, -8f);
 
             var filled = CountFilledSlots(member);
-            var deckInfo = CampUiRuntime.CreateText(go.transform, $"卡组 {filled}/{CampRosterState.DeckSize}",
+            var deckInfo = CampUiRuntime.CreateText(go.transform, $"祭坛携带 {filled}/{CampRosterState.DeckSize}",
                 15, FontStyle.Normal, TextAnchor.UpperLeft);
             deckInfo.rectTransform.anchorMin = new Vector2(0f, 0f);
             deckInfo.rectTransform.anchorMax = new Vector2(1f, 0f);
@@ -691,10 +816,8 @@ namespace Grimhand.Presentation.Camp
             member.CharacterDefinitionId = character.CharacterId;
             member.DisplayName = CharacterDisplayNames.GetOrFallback(character.CharacterId, character.DisplayName);
 
-            var defaultLoadout = CampRosterBuilder.CreateDefaultMember(character, _cardPool);
-            member.DeckCardIds.Clear();
-            foreach (var id in defaultLoadout.DeckCardIds)
-                member.DeckCardIds.Add(id);
+            for (var slot = 0; slot < CampRosterState.DeckSize; slot++)
+                CampRosterLoadoutRules.ClearSlot(member, slot);
         }
 
         void RebuildDeckSlots()
@@ -714,7 +837,7 @@ namespace Grimhand.Presentation.Camp
                 btn.onClick.AddListener(() =>
                 {
                     if (_selectedDeckSlot == slotIndex && !string.IsNullOrEmpty(member.DeckCardIds[slotIndex]))
-                        member.DeckCardIds[slotIndex] = "";
+                        CampRosterLoadoutRules.ClearSlot(member, slotIndex);
                     else
                         _selectedDeckSlot = slotIndex;
                     Rebuild();
@@ -753,15 +876,31 @@ namespace Grimhand.Presentation.Camp
         void RebuildCardPool()
         {
             var member = _roster.Members[_activeMemberIndex];
-            foreach (var card in _cardPool)
+            if (_collection == null || _collection.Count == 0)
             {
-                if (card == null || string.IsNullOrEmpty(card.CardId))
+                LayoutRebuilder.ForceRebuildLayoutImmediate(_poolGrid);
+                _poolScroll.verticalNormalizedPosition = 1f;
+                UpdateHint();
+                return;
+            }
+
+            var assigned = CampRosterLoadoutRules.CollectAssignedCollectionIndices(_roster);
+            for (var entryIndex = 0; entryIndex < _collection.Count; entryIndex++)
+            {
+                if (assigned.Contains(entryIndex))
+                    continue;
+
+                var cardId = _collection.Entries[entryIndex];
+                if (string.IsNullOrEmpty(cardId))
+                    continue;
+
+                if (!_definitions.TryGetValue(cardId, out var card))
                     continue;
 
                 if (!CampRosterBuilder.IsCardOwnedByCharacter(card, member.CharacterDefinitionId))
                     continue;
 
-                var holder = CampUiRuntime.CreateRect(card.CardId, _poolGrid);
+                var holder = CampUiRuntime.CreateRect($"{cardId}_{entryIndex}", _poolGrid);
                 var holderRt = holder.GetComponent<RectTransform>();
                 holderRt.sizeDelta = new Vector2(168f * CardScale + 8f, 236f * CardScale + 8f);
 
@@ -771,16 +910,16 @@ namespace Grimhand.Presentation.Camp
                 var view = Instantiate(_cardPrefab, holder.transform);
                 CardView.ApplyHandPresentationScaleCentered(view, CardScale);
                 var preview = CardVisualResolver.CreatePreviewInstance(
-                    card.CardId,
+                    cardId,
                     member.CharacterDefinitionId,
                     card.DisplayName,
                     card);
                 var visual = CardVisualResolver.Resolve(preview, _cardCatalog, _characterVisuals, _definitions);
                 var statsLine = BattleUiFormatters.BuildCardStatsLinePreview(preview, _definitions);
-                var capturedId = card.CardId;
+                var capturedIndex = entryIndex;
                 view.BindWithCard(preview, visual, false, false, true, "", statsLine,
                     _uiIcons, _characterVisuals,
-                    _ => AssignCardToSelectedSlot(capturedId),
+                    _ => AssignCollectionEntryToSelectedSlot(capturedIndex),
                     null,
                     null);
                 BindCardTooltip(holder, preview);
@@ -806,18 +945,21 @@ namespace Grimhand.Presentation.Camp
             _tooltip.BindHover(target, card.DisplayName, body, showTitle: false);
         }
 
-        void AssignCardToSelectedSlot(string cardId)
+        void AssignCollectionEntryToSelectedSlot(int collectionEntryIndex)
         {
             if (_selectedDeckSlot < 0 || _selectedDeckSlot >= CampRosterState.DeckSize)
                 return;
 
-            var member = _roster.Members[_activeMemberIndex];
-            _definitions.TryGetValue(cardId, out var definition);
-            if (definition != null
-                && !CampRosterBuilder.IsCardOwnedByCharacter(definition, member.CharacterDefinitionId))
+            if (!CampRosterLoadoutRules.TryAssignCollectionEntry(
+                    _roster,
+                    _collection,
+                    CardOwnerLookup,
+                    _activeMemberIndex,
+                    _selectedDeckSlot,
+                    collectionEntryIndex,
+                    out _))
                 return;
 
-            member.DeckCardIds[_selectedDeckSlot] = cardId;
             if (_selectedDeckSlot < CampRosterState.DeckSize - 1)
                 _selectedDeckSlot++;
             Rebuild();
@@ -848,9 +990,34 @@ namespace Grimhand.Presentation.Camp
 
             var member = _roster.Members[_activeMemberIndex];
             var ready = _roster.IsReadyForExpedition;
+            var assigned = CampRosterLoadoutRules.CollectAssignedCollectionIndices(_roster);
+            var availableForMember = 0;
+            if (_collection != null)
+            {
+                for (var i = 0; i < _collection.Count; i++)
+                {
+                    if (assigned.Contains(i))
+                        continue;
+
+                    var cardId = _collection.Entries[i];
+                    if (!_definitions.TryGetValue(cardId, out var definition))
+                        continue;
+
+                    if (CampRosterBuilder.IsCardOwnedByCharacter(definition, member.CharacterDefinitionId))
+                        availableForMember++;
+                }
+            }
+
+            if (availableForMember == 0 && CountFilledSlots(member) == 0)
+            {
+                _hintText.text =
+                    $"正在编辑：{member.DisplayName} — 左侧祭坛携带为空；请先在局外商店获得该角色卡牌，或从右侧收藏选取填入。";
+                return;
+            }
+
             _hintText.text = ready
-                ? "编队已就绪。保存后可通过传送门开始远征。"
-                : $"正在编辑：{member.DisplayName} — 选中槽位 {_selectedDeckSlot + 1}，点击右侧「{member.DisplayName}专属」卡牌填入；再次点击已填槽位可清空。";
+                ? "编队已就绪（远征仍使用角色初始卡组；左侧为空表示祭坛暂无可提取收藏牌）。保存后可通过传送门开始远征。"
+                : $"正在编辑：{member.DisplayName} — 选中槽位 {_selectedDeckSlot + 1}，点击右侧收藏卡牌填入祭坛携带；再次点击已填槽位可归还收藏。";
         }
 
         void RefreshMetaSummary()
@@ -896,5 +1063,7 @@ namespace Grimhand.Presentation.Camp
 
             _dynamicObjects.Clear();
         }
+
+        Dictionary<string, string> CardOwnerLookup => CampRosterBuilder.BuildCardOwnerLookup(_definitions);
     }
 }

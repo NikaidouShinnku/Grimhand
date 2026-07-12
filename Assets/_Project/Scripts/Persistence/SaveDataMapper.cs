@@ -55,7 +55,8 @@ namespace Grimhand.Persistence
                     {
                         characterDefinitionId = member.CharacterDefinitionId ?? "",
                         displayName = member.DisplayName ?? "",
-                        deckCardIds = member.DeckCardIds?.ToArray() ?? Array.Empty<string>()
+                        deckCardIds = member.DeckCardIds?.ToArray() ?? Array.Empty<string>(),
+                        deckCollectionEntryIndices = member.DeckCollectionEntryIndices?.ToArray() ?? Array.Empty<int>()
                     });
                 }
             }
@@ -131,9 +132,19 @@ namespace Grimhand.Persistence
                             member.DeckCardIds.Add(cardId ?? "");
                     }
 
+                    if (memberDto.deckCollectionEntryIndices != null)
+                    {
+                        foreach (var entryIndex in memberDto.deckCollectionEntryIndices)
+                            member.DeckCollectionEntryIndices.Add(entryIndex);
+                    }
+
+                    CampRosterLoadoutRules.EnsureDeckStructure(member);
+
                     profile.Roster.Members.Add(member);
                 }
             }
+
+            CampRosterLoadoutRules.SanitizeRoster(profile.Roster, profile.Collection, null);
 
             if (dto.hasActiveRun && !string.IsNullOrWhiteSpace(dto.activeRunJson))
             {

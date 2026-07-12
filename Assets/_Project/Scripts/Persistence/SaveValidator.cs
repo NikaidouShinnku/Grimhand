@@ -158,6 +158,13 @@ namespace Grimhand.Persistence
                 return false;
             }
 
+            if (member.deckCollectionEntryIndices != null
+                && member.deckCollectionEntryIndices.Length > CampRosterState.DeckSize)
+            {
+                error = $"角色 {member.characterDefinitionId} 收藏绑定超过 {CampRosterState.DeckSize} 槽。";
+                return false;
+            }
+
             foreach (var cardId in member.deckCardIds)
             {
                 if (string.IsNullOrEmpty(cardId))

@@ -23,7 +23,8 @@ namespace Grimhand.Presentation.Camp
         Action _onChampionCamp;
         Action _onPortal;
         Action _onTalentAltar;
-        Action<string> _onComingSoon;
+        Action _onMetaShop;
+        Action<string> _onFeatureComingSoon;
 
         public void ConfigureArt(BattleUiIconCatalogSO icons) => uiIcons = icons;
 
@@ -31,8 +32,9 @@ namespace Grimhand.Presentation.Camp
             Action onChampionCamp,
             Action onPortal,
             Action onTalentAltar,
-            Action<string> onComingSoon,
-            BattleUiIconCatalogSO icons = null)
+            Action onMetaShop,
+            BattleUiIconCatalogSO icons = null,
+            Action<string> onFeatureComingSoon = null)
         {
             if (icons != null)
                 uiIcons = icons;
@@ -40,7 +42,8 @@ namespace Grimhand.Presentation.Camp
             _onChampionCamp = onChampionCamp;
             _onPortal = onPortal;
             _onTalentAltar = onTalentAltar;
-            _onComingSoon = onComingSoon;
+            _onMetaShop = onMetaShop;
+            _onFeatureComingSoon = onFeatureComingSoon;
             EnsureBuilt();
             HideToast();
         }
@@ -165,8 +168,7 @@ namespace Grimhand.Presentation.Camp
                 new Vector2(0.38f, 0.06f), TalentAltarHeight, _onTalentAltar);
 
             CreateBuilding(zone.transform, "MerchantCamp", uiIcons?.MerchantCampBuilding,
-                new Vector2(0.79f, 0.06f), MerchantHeight,
-                () => _onComingSoon?.Invoke("商店"));
+                new Vector2(0.79f, 0.06f), MerchantHeight, _onMetaShop);
         }
 
         void CreateBuilding(
@@ -246,7 +248,7 @@ namespace Grimhand.Presentation.Camp
         {
             var btn = CampUiRuntime.CreateButton(parent, label, new Color(0.18f, 0.22f, 0.32f, 0.9f),
                 new Vector2(120f, 38f));
-            btn.onClick.AddListener(() => _onComingSoon?.Invoke(toastKey));
+            btn.onClick.AddListener(() => _onFeatureComingSoon?.Invoke(toastKey));
         }
 
         void BuildToast(Transform parent)

@@ -4,6 +4,7 @@ using Grimhand.Battle.Planning;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
 using Grimhand.Content;
+using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 using UnityEngine;
 using UnityEngine.UI;
@@ -118,7 +119,7 @@ namespace Grimhand.Presentation.Battle
             confirmButton.onClick.AddListener(() => _session?.CommitPlan());
             skipButton.onClick.AddListener(() => _session?.SkipTurn());
             restartButton.onClick.AddListener(() => _session?.RestartRunOrBattle());
-            runRestartButton.onClick.AddListener(() => _session?.RestartRunOrBattle());
+            runRestartButton.onClick.AddListener(() => _session?.ReturnToCampOrRestart());
 
             foreach (var slot in playerSlots)
             {
@@ -1480,17 +1481,34 @@ namespace Grimhand.Presentation.Battle
 
                     if (phase == ExpeditionPhase.RunComplete)
                     {
+                        var run = _session.Expedition.Run;
+                        var completed = run.Map?.NodesCompleted ?? run.BattlesWon;
+                        var total = run.Map?.ChapterLayerCount ?? ExpeditionRegionRules.FullLayerCount;
                         runEndTitleText.text = "远征完成";
                         runEndBodyText.text =
-                            $"三场战斗全胜。\n{BattleUiFormatters.FormatPartySummary(_session.Expedition.Run.Party, _session.Expedition.Run.Gold)}";
+                            $"恭喜通关 {completed}/{total} 层！\n{BattleUiFormatters.FormatPartySummary(run.Party, run.Gold)}";
+                        SetRunEndButtonLabel("返回营地");
                     }
                     else if (phase == ExpeditionPhase.RunFailed)
                     {
                         runEndTitleText.text = "远征失败";
-                        runEndBodyText.text = "队伍无法继续。可重开远征再试。";
+                        runEndBodyText.text = string.IsNullOrEmpty(_session.Expedition.Run.LastEventMessage)
+                            ? "队伍已无法继续作战。"
+                            : _session.Expedition.Run.LastEventMessage;
+                        SetRunEndButtonLabel("撤退回营地");
                     }
                 }
             }
+        }
+
+        void SetRunEndButtonLabel(string label)
+        {
+            if (runRestartButton == null)
+                return;
+
+            var text = runRestartButton.GetComponentInChildren<Text>();
+            if (text != null)
+                text.text = label;
         }
 
         void ShowKeywordTooltip(CardInstanceState card, RectTransform anchor)

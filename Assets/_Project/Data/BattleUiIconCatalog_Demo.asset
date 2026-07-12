@@ -19,6 +19,7 @@ MonoBehaviour:
   SpeedIcon: {fileID: 7652682938272544106, guid: ee07d130bf02d374594858f8f917a92b, type: 3}
   EnergyIcon: {fileID: -6418339764939565836, guid: 311789829f9cd874fb49b68dcd48101a, type: 3}
   GoldIcon: {fileID: 7675826601332790545, guid: a5b67a7abb80c714d9fe56b8ffa7cdb7, type: 3}
+  CampGoldIcon: {fileID: 3804289776885823797, guid: b5a0c04eb57249544ad20e21bf277b2a, type: 3}
   XpIcon: {fileID: 7653998179898489512, guid: dcec7e86f9cdd6e419934dd68928b581, type: 3}
   InventoryIcon: {fileID: -4863336276314997047, guid: 9d83a3aedba6e634aa9f738f86bf7f77, type: 3}
   ConfirmPlayIcon: {fileID: 5371412345509669250, guid: 659e3c16f94883e42adc90d6d5195e52, type: 3}
@@ -33,6 +34,11 @@ MonoBehaviour:
   ChampionCampBuilding: {fileID: -7344717493082030579, guid: 648ebbf42bc7b564c822f634853fcda6, type: 3}
   MerchantCampBuilding: {fileID: 1068998374052479245, guid: 24f6602b4c282414b8ba9f8fb4d661ac, type: 3}
   PortalBuilding: {fileID: -5816642994671486895, guid: 8001fab66b4b9164f897cd99ce75c3c9, type: 3}
+  GameMenuButtons:
+  - {fileID: -8289206137012799017, guid: c1a8b4b2c884f314a83a5a74d9c12a0f, type: 3}
+  - {fileID: -7619838892229133767, guid: c1a8b4b2c884f314a83a5a74d9c12a0f, type: 3}
+  - {fileID: -8782951037924688522, guid: c1a8b4b2c884f314a83a5a74d9c12a0f, type: 3}
+  - {fileID: -351546187692099805, guid: c1a8b4b2c884f314a83a5a74d9c12a0f, type: 3}
   TalentAltarBuilding: {fileID: -7883540776455437975, guid: 25365cd805f3d9845a027898103047dd, type: 3}
   TalentRunePlate: {fileID: 3640283115439223827, guid: 24a2f5fd444af0844b332a37a382e580, type: 3}
   TreasureChestClosed: {fileID: -7219296677170973702, guid: a869e9d4f75b44e40bd0a5bba6b0122e, type: 3}

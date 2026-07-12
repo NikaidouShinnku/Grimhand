@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Grimhand.Content;
 using Grimhand.Expedition.Model;
+using Grimhand.Persistence;
 using UnityEngine;
 
 namespace Grimhand.Presentation.Battle
@@ -162,6 +163,16 @@ namespace Grimhand.Presentation.Battle
             _session.BeginExpedition(roster, mapStartLayer);
             screenView.Refresh();
             screenView.BeginPlanningIdleLoops();
+        }
+
+        public bool ResumeExpeditionFromCamp(ActiveRunSnapshot snapshot)
+        {
+            if (!_session.ResumeExpedition(snapshot))
+                return false;
+
+            screenView.Refresh();
+            screenView.BeginPlanningIdleLoops();
+            return true;
         }
 
         void Update()

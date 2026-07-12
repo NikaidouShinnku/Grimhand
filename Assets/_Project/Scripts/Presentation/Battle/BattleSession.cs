@@ -9,6 +9,7 @@ using Grimhand.Battle.Rules;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 using Grimhand.Content;
+using Grimhand.Persistence;
 using UnityEngine;
 
 namespace Grimhand.Presentation.Battle
@@ -121,6 +122,37 @@ namespace Grimhand.Presentation.Battle
             NotifyChanged();
         }
 
+        public bool ResumeExpedition(ActiveRunSnapshot snapshot)
+        {
+            if (snapshot == null || !snapshot.HasRun)
+                return false;
+
+            var config = BuildExpeditionConfig(snapshot.MapStartLayer);
+            config.RunSeed = snapshot.RunSeed;
+
+            if (!ExpeditionRunSaveCodec.TryDeserialize(snapshot.RunJson, config, out var run, out _))
+                return false;
+
+            Expedition = new ExpeditionEngine(config);
+            Expedition.ResumeRun(run, snapshot.RngState);
+            _log.Clear();
+            _turnLog.Reset();
+            _battleEndHandled = false;
+
+            if (Expedition.Run.Phase == ExpeditionPhase.InBattle)
+            {
+                AddLog($"继续远征 — 第 {Expedition.CurrentBattleNumber} 层战斗");
+                StartExpeditionBattle();
+            }
+            else
+            {
+                AddLog($"继续远征 — 当前阶段：{Expedition.Run.Phase}");
+            }
+
+            NotifyChanged();
+            return true;
+        }
+
         public void BeginGhostQueenBossTest(BattleSetupSO ghostQueenBossSetup)
         {
             if (ExpeditionSetup == null)
@@ -169,6 +201,16 @@ namespace Grimhand.Presentation.Battle
 
         public void StartExpeditionBattle()
         {
+            if (Expedition?.Run?.CurrentBattleConfig == null)
+            {
+                Expedition.RebuildCurrentBattleForResume();
+                if (Expedition.Run.CurrentBattleConfig == null)
+                {
+                    Debug.LogError("[BattleSession] 无法重建远征战斗配置，Continue 失败。");
+                    return;
+                }
+            }
+
             var config = Expedition.Run.CurrentBattleConfig;
             Engine = new BattleEngine(config);
             Engine.StartBattle();
@@ -884,6 +926,20 @@ namespace Grimhand.Presentation.Battle
                 RestartBattle();
         }
 
+        public void ReturnToCampOrRestart()
+        {
+            if (IsExpeditionMode
+                && Expedition.Run.Phase is ExpeditionPhase.RunComplete or ExpeditionPhase.RunFailed)
+            {
+                ReturnToCampRequested?.Invoke();
+                return;
+            }
+
+            RestartRunOrBattle();
+        }
+
+        public Action ReturnToCampRequested;
+
         public bool CanInteractWithBattle() =>
             Engine != null &&
             !Engine.State.AwaitingFelskullChoice &&
@@ -1096,5 +1152,7 @@ namespace Grimhand.Presentation.Battle
         }
 
         void NotifyChanged() => Changed?.Invoke();
+
+        public void RequestRefresh() => NotifyChanged();
     }
 }

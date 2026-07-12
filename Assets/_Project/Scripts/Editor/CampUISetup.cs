@@ -20,8 +20,8 @@ namespace Grimhand.Editor
             SetupCampUIInternal(saveScene: false);
             EditorUtility.DisplayDialog(
                 "营地 UI 已搭建",
-                "已在当前场景创建 CampScreen。\n\n" +
-                "Play 后先进入营地，点击「军营」配队，「天赋祭坛」配置天赋，「传送门」开始 Demo 远征。\n\n" +
+                "已在当前场景创建 CampScreen 与 GameMenu。\n\n" +
+                "Play 后先进入主菜单：Start 进营地，Continue 断线重连。\n\n" +
                 "推荐：Grimhand → Open Battle Test Scene 一键准备。",
                 "好的");
         }
@@ -66,6 +66,8 @@ namespace Grimhand.Editor
 
             EnsureOverlayHost(canvas.transform, out var overlayHost);
             EnsureOverlayHostOnTop(canvas.transform, overlayHost);
+            var gameMenu = EnsureComponent<GameMenuView>(canvas.transform, "GameMenu");
+            var settingsOverlay = EnsureComponent<GameSettingsOverlayView>(overlayHost, "GameSettingsOverlay");
             var champion = EnsureComponent<ChampionCampOverlayView>(overlayHost, "ChampionCampOverlay");
             var talent = EnsureComponent<TalentCampOverlayView>(overlayHost, "TalentCampOverlay");
             var portal = EnsureComponent<PortalOverlayView>(overlayHost, "PortalOverlay");
@@ -74,9 +76,10 @@ namespace Grimhand.Editor
                 GrimhandBattleSceneBootstrap.LoadFirstSprite(PortalBackgroundPath);
             soPortal.ApplyModifiedPropertiesWithoutUndo();
 
-            WireGameFlowController(campView, champion, talent, portal);
+            WireGameFlowController(campView, gameMenu, settingsOverlay, champion, talent, portal);
 
-            campGo.transform.SetSiblingIndex(canvas.transform.childCount - 2);
+            campGo.transform.SetSiblingIndex(canvas.transform.childCount - 3);
+            gameMenu.transform.SetAsLastSibling();
 
             var battleScreen = canvas.transform.Find("BattleScreen");
             if (battleScreen != null)
@@ -92,6 +95,8 @@ namespace Grimhand.Editor
 
         static void WireGameFlowController(
             CampScreenView campView,
+            GameMenuView gameMenu,
+            GameSettingsOverlayView settingsOverlay,
             ChampionCampOverlayView championCamp,
             TalentCampOverlayView talentCamp,
             PortalOverlayView portalOverlay)
@@ -121,13 +126,14 @@ namespace Grimhand.Editor
 
             var soFlow = new SerializedObject(flow);
             soFlow.FindProperty("battleController").objectReferenceValue = controller;
+            soFlow.FindProperty("gameMenu").objectReferenceValue = gameMenu;
+            soFlow.FindProperty("settingsOverlay").objectReferenceValue = settingsOverlay;
             soFlow.FindProperty("campScreen").objectReferenceValue = campView;
             soFlow.FindProperty("championCamp").objectReferenceValue = championCamp;
             soFlow.FindProperty("talentCamp").objectReferenceValue = talentCamp;
             soFlow.FindProperty("portalOverlay").objectReferenceValue = portalOverlay;
             soFlow.FindProperty("battleSetup").objectReferenceValue = battleSetup;
             soFlow.FindProperty("expeditionSetup").objectReferenceValue = expeditionSetup;
-            soFlow.FindProperty("startAtCamp").boolValue = true;
             soFlow.ApplyModifiedPropertiesWithoutUndo();
 
             var soController = new SerializedObject(controller);

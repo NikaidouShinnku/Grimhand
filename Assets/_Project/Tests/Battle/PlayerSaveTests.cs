@@ -74,11 +74,83 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
-        public void CreateNewProfile_UsesLevelZeroMeta()
+        public void RoundTrip_PreservesActiveRunSnapshot()
+        {
+            var storage = new LocalFileSaveStorage(_tempDir);
+            var service = new SaveService(storage, _context);
+            var profile = CreateSampleProfile();
+            profile.ActiveRun = new ActiveRunSnapshot
+            {
+                MapStartLayer = 21,
+                RunSeed = 12345,
+                RngState = 99,
+                MetaGoldSyncedRunGold = 10,
+                RunJson = "{\"version\":1,\"phase\":1,\"battlesWon\":0}"
+            };
+
+            Assert.IsTrue(service.TrySave(profile, out var saveError), saveError);
+
+            var loaded = service.LoadOrCreate(() => throw new InvalidOperationException("不应创建新档"));
+            Assert.IsTrue(loaded.Profile.HasActiveRun);
+            Assert.AreEqual(21, loaded.Profile.ActiveRun.MapStartLayer);
+            Assert.AreEqual(12345, loaded.Profile.ActiveRun.RunSeed);
+            Assert.AreEqual(99ul, loaded.Profile.ActiveRun.RngState);
+            Assert.AreEqual(10, loaded.Profile.ActiveRun.MetaGoldSyncedRunGold);
+        }
+
+        [Test]
+        public void MetaEconomySync_AddsOnlyRunGoldGainsToAccountGold()
+        {
+            var profile = CreateSampleProfile();
+            profile.AccountGold = 100;
+            profile.ActiveRun = new ActiveRunSnapshot { MetaGoldSyncedRunGold = 5 };
+            var run = new ExpeditionRunState { Gold = 12 };
+
+            MetaEconomySync.SyncMetaGoldFromRun(profile, run);
+
+            Assert.AreEqual(107, profile.AccountGold);
+            Assert.AreEqual(12, profile.ActiveRun.MetaGoldSyncedRunGold);
+
+            run.Gold = 8;
+            MetaEconomySync.SyncMetaGoldFromRun(profile, run);
+            Assert.AreEqual(107, profile.AccountGold);
+        }
+
+        [Test]
+        public void RunSettlementRules_GrantsNodesCompletedTimesFiveXp()
+        {
+            var meta = CampMetaState.CreateNewProfile();
+            var run = new ExpeditionRunState();
+            run.Party.Add(new PartyMemberSnapshot { CharacterDefinitionId = TalentCatalog.KnightId });
+            run.Map = new ExpeditionMapState { NodesCompleted = 4 };
+
+            RunSettlementRules.ApplyRunEndMetaRewards(run, meta);
+
+            Assert.AreEqual(20, meta.GetOrCreate(TalentCatalog.KnightId).OutOfRunXp);
+        }
+
+        [Test]
+        public void CreateNewProfile_StartsAtLevelOne()
         {
             var meta = CampMetaState.CreateNewProfile();
             foreach (var characterId in TalentCatalog.PlayableCharacterIds)
-                Assert.AreEqual(0, meta.GetOrCreate(characterId).OutOfRunLevel);
+                Assert.AreEqual(1, meta.GetOrCreate(characterId).OutOfRunLevel);
+        }
+
+        [Test]
+        public void RunSettlementRules_AutoLevelsWhenEnoughXp()
+        {
+            var meta = CampMetaState.CreateNewProfile();
+            var progress = meta.GetOrCreate(TalentCatalog.KnightId);
+            progress.OutOfRunXp = 90;
+            var run = new ExpeditionRunState();
+            run.Party.Add(new PartyMemberSnapshot { CharacterDefinitionId = TalentCatalog.KnightId });
+            run.Map = new ExpeditionMapState { NodesCompleted = 2 };
+
+            RunSettlementRules.ApplyRunEndMetaRewards(run, meta);
+
+            Assert.AreEqual(2, progress.OutOfRunLevel);
+            Assert.AreEqual(0, progress.OutOfRunXp);
         }
 
         static PlayerProfileState CreateSampleProfile()

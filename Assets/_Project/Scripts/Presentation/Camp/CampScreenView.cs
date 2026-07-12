@@ -19,6 +19,7 @@ namespace Grimhand.Presentation.Camp
         bool _built;
         GameObject _toastPanel;
         Text _toastText;
+        Text _accountGoldText;
         Action _onChampionCamp;
         Action _onPortal;
         Action _onTalentAltar;
@@ -44,11 +45,18 @@ namespace Grimhand.Presentation.Camp
             HideToast();
         }
 
-        public void Show()
+        public void Show(int accountGold = 0)
         {
             EnsureBuilt();
+            RefreshAccountGold(accountGold);
             gameObject.SetActive(true);
             transform.SetAsLastSibling();
+        }
+
+        public void RefreshAccountGold(int accountGold)
+        {
+            if (_accountGoldText != null)
+                _accountGoldText.text = accountGold.ToString();
         }
 
         public void Hide() => gameObject.SetActive(false);
@@ -114,26 +122,26 @@ namespace Grimhand.Presentation.Camp
             title.rectTransform.offsetMin = new Vector2(24f, 0f);
             title.rectTransform.offsetMax = Vector2.zero;
 
-            var stats = CampUiRuntime.CreateText(bar.transform, "Lv.1    金币 999", 18, FontStyle.Normal,
+            _accountGoldText = CampUiRuntime.CreateText(bar.transform, "0", 18, FontStyle.Normal,
                 TextAnchor.MiddleRight);
-            stats.rectTransform.anchorMin = new Vector2(0.45f, 0f);
-            stats.rectTransform.anchorMax = new Vector2(1f, 1f);
-            stats.rectTransform.offsetMin = Vector2.zero;
-            stats.rectTransform.offsetMax = new Vector2(-24f, 0f);
-            stats.color = new Color(0.92f, 0.88f, 0.72f, 1f);
+            _accountGoldText.rectTransform.anchorMin = new Vector2(0.45f, 0f);
+            _accountGoldText.rectTransform.anchorMax = new Vector2(1f, 1f);
+            _accountGoldText.rectTransform.offsetMin = Vector2.zero;
+            _accountGoldText.rectTransform.offsetMax = new Vector2(-56f, 0f);
+            _accountGoldText.color = new Color(0.92f, 0.88f, 0.72f, 1f);
 
-            var goldIcon = uiIcons != null ? uiIcons.GoldIcon : null;
+            var goldIcon = uiIcons != null ? uiIcons.CampGoldIcon : null;
             if (goldIcon != null)
             {
-                var icon = CampUiRuntime.CreateImage("GoldIcon", bar.transform, Color.white);
+                var icon = CampUiRuntime.CreateImage("CampGoldIcon", bar.transform, Color.white);
                 icon.sprite = goldIcon;
                 icon.preserveAspect = true;
                 var iconRt = icon.rectTransform;
                 iconRt.anchorMin = new Vector2(1f, 0.5f);
                 iconRt.anchorMax = new Vector2(1f, 0.5f);
                 iconRt.pivot = new Vector2(1f, 0.5f);
-                iconRt.anchoredPosition = new Vector2(-120f, 0f);
-                iconRt.sizeDelta = new Vector2(28f, 28f);
+                iconRt.anchoredPosition = new Vector2(-24f, 0f);
+                iconRt.sizeDelta = new Vector2(32f, 32f);
             }
         }
 

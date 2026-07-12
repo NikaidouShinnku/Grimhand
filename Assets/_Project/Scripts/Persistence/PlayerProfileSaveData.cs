@@ -13,6 +13,13 @@ namespace Grimhand.Persistence
         public string[] collectionEntries = Array.Empty<string>();
         public CharacterMetaProgressDto[] characters = Array.Empty<CharacterMetaProgressDto>();
         public CampMemberLoadoutDto[] rosterMembers = Array.Empty<CampMemberLoadoutDto>();
+        public bool hasActiveRun;
+        public int activeRunVersion;
+        public int activeRunMapStartLayer = 1;
+        public int activeRunSeed;
+        public string activeRunRngState = "1";
+        public int activeRunMetaGoldSynced;
+        public string activeRunJson = "";
     }
 
     [Serializable]

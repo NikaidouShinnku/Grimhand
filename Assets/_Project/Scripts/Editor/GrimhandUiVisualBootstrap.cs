@@ -49,6 +49,7 @@ namespace Grimhand.Editor
             catalog.SpeedIcon = LoadFirstSprite(IconRoot + "SPD.png");
             catalog.EnergyIcon = LoadFirstSprite(IconRoot + "ERG.png");
             catalog.GoldIcon = LoadFirstSprite(IconRoot + "coin.png");
+            catalog.CampGoldIcon = LoadNamedSprite(IconRoot + "camp_gold.png", "camp_gold_0");
             catalog.XpIcon = LoadFirstSprite(IconRoot + "XP.png");
             catalog.InventoryIcon = LoadFirstSprite(IconRoot + "inventory.png");
             catalog.ConfirmPlayIcon = LoadFirstSprite(IconRoot + "check.png");
@@ -64,6 +65,13 @@ namespace Grimhand.Editor
             catalog.ChampionCampBuilding = LoadNamedSprite(CampArtRoot + "champion_camp.png", "champion_camp_0");
             catalog.MerchantCampBuilding = LoadNamedSprite(CampArtRoot + "merchant_camp.png", "merchant_camp_0");
             catalog.PortalBuilding = LoadNamedSprite(CampArtRoot + "portal.png", "portal_0");
+            catalog.GameMenuButtons = new[]
+            {
+                LoadNamedSprite(IconRoot + "gamemenu.png", "gamemenu_0"),
+                LoadNamedSprite(IconRoot + "gamemenu.png", "gamemenu_1"),
+                LoadNamedSprite(IconRoot + "gamemenu.png", "gamemenu_2"),
+                LoadNamedSprite(IconRoot + "gamemenu.png", "gamemenu_3")
+            };
             catalog.TalentAltarBuilding = LoadNamedSprite(CampArtRoot + "talent_alter.png", "talent_alter_0");
             catalog.TalentRunePlate = LoadNamedSprite(IconRoot + "talent_rune_plate.png", "talent_rune_plate_0");
             catalog.TreasureChestClosed = LoadFirstSprite("Assets/The Grimhands Asset/icon/treasure_chest_closed.png");

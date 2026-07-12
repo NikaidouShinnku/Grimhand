@@ -63,5 +63,7 @@ namespace Grimhand.Expedition
         public int V09SandSpearExhaustCardsPlayed { get; set; }
         public string PendingTravelerGiftRelicId { get; set; } = "";
         public string PendingTravelerGiftCurseOwnerId { get; set; } = "";
+        /// <summary>宝箱奖励 UI 已开启（Continue 后恢复用）。</summary>
+        public bool ChestRewardRevealed { get; set; }
     }
 }

@@ -30,6 +30,8 @@ namespace Grimhand.Presentation.Camp
         List<CharacterDefinitionSO> _playableCharacters = new();
 
         CampRosterState _roster;
+        CampMetaState _meta;
+        int _accountGold;
         Action<CampRosterState> _onRosterChanged;
         Action _onClose;
 
@@ -40,6 +42,9 @@ namespace Grimhand.Presentation.Camp
         RectTransform _poolGrid;
         ScrollRect _poolScroll;
         Text _hintText;
+        Text _metaSummaryText;
+        Text _accountGoldAmountText;
+        Image _campGoldIcon;
         Button _closeButton;
         Button _confirmButton;
         InventoryTooltipView _tooltip;
@@ -117,7 +122,14 @@ namespace Grimhand.Presentation.Camp
 
         public void Show(CampRosterState roster)
         {
+            Show(roster, null, 0);
+        }
+
+        public void Show(CampRosterState roster, CampMetaState meta, int accountGold)
+        {
             _roster = roster;
+            _meta = meta;
+            _accountGold = accountGold;
             EnsureBuilt();
             SanitizeDuplicateCharacters();
             _overlayRoot.gameObject.SetActive(true);
@@ -224,7 +236,38 @@ namespace Grimhand.Presentation.Camp
 
             var title = CampUiRuntime.CreateText(header.transform, "出征编队", 26, FontStyle.Bold,
                 TextAnchor.MiddleLeft);
-            CampUiRuntime.StretchFull(title.rectTransform);
+            title.rectTransform.anchorMin = new Vector2(0f, 0f);
+            title.rectTransform.anchorMax = new Vector2(0.42f, 1f);
+            title.rectTransform.offsetMin = Vector2.zero;
+            title.rectTransform.offsetMax = Vector2.zero;
+
+            _metaSummaryText = CampUiRuntime.CreateText(header.transform, "", 15, FontStyle.Normal,
+                TextAnchor.MiddleLeft);
+            _metaSummaryText.rectTransform.anchorMin = new Vector2(0.52f, 0f);
+            _metaSummaryText.rectTransform.anchorMax = new Vector2(1f, 1f);
+            _metaSummaryText.rectTransform.offsetMin = new Vector2(0f, 0f);
+            _metaSummaryText.rectTransform.offsetMax = new Vector2(-280f, 0f);
+            _metaSummaryText.color = new Color(0.88f, 0.84f, 0.68f, 1f);
+            _metaSummaryText.supportRichText = false;
+
+            var campGoldIconGo = CampUiRuntime.CreateImage("CampGoldIcon", header.transform, Color.white);
+            _campGoldIcon = campGoldIconGo;
+            _campGoldIcon.sprite = _uiIcons != null ? _uiIcons.CampGoldIcon : null;
+            _campGoldIcon.preserveAspect = true;
+            var campGoldIconRt = _campGoldIcon.rectTransform;
+            campGoldIconRt.anchorMin = new Vector2(0.42f, 0.5f);
+            campGoldIconRt.anchorMax = new Vector2(0.42f, 0.5f);
+            campGoldIconRt.pivot = new Vector2(0f, 0.5f);
+            campGoldIconRt.anchoredPosition = Vector2.zero;
+            campGoldIconRt.sizeDelta = new Vector2(24f, 24f);
+
+            _accountGoldAmountText = CampUiRuntime.CreateText(header.transform, "0", 15, FontStyle.Bold,
+                TextAnchor.MiddleLeft);
+            _accountGoldAmountText.rectTransform.anchorMin = new Vector2(0.42f, 0f);
+            _accountGoldAmountText.rectTransform.anchorMax = new Vector2(0.52f, 1f);
+            _accountGoldAmountText.rectTransform.offsetMin = new Vector2(28f, 0f);
+            _accountGoldAmountText.rectTransform.offsetMax = Vector2.zero;
+            _accountGoldAmountText.color = new Color(0.92f, 0.88f, 0.72f, 1f);
 
             _closeButton = CampUiRuntime.CreateButton(header.transform, "返回", new Color(0.28f, 0.3f, 0.36f, 1f),
                 new Vector2(120f, 40f));
@@ -251,7 +294,7 @@ namespace Grimhand.Presentation.Camp
             _memberRow = CampUiRuntime.CreateRect("MemberRow", _body).GetComponent<RectTransform>();
             _memberRow.anchorMin = new Vector2(0f, 1f);
             _memberRow.anchorMax = new Vector2(1f, 1f);
-            _memberRow.offsetMin = new Vector2(20f, -188f);
+            _memberRow.offsetMin = new Vector2(20f, -200f);
             _memberRow.offsetMax = new Vector2(-20f, -68f);
 
             var deckColumn = CampUiRuntime.CreateRect("DeckColumn", _body);
@@ -259,7 +302,7 @@ namespace Grimhand.Presentation.Camp
             deckColumnRt.anchorMin = new Vector2(0f, 0f);
             deckColumnRt.anchorMax = new Vector2(0.48f, 1f);
             deckColumnRt.offsetMin = new Vector2(20f, 52f);
-            deckColumnRt.offsetMax = new Vector2(-8f, -196f);
+            deckColumnRt.offsetMax = new Vector2(-8f, -208f);
 
             var deckLabel = CampUiRuntime.CreateText(deckColumn.transform, "当前卡组", 18, FontStyle.Bold,
                 TextAnchor.MiddleLeft);
@@ -285,7 +328,7 @@ namespace Grimhand.Presentation.Camp
             poolColumnRt.anchorMin = new Vector2(0.52f, 0f);
             poolColumnRt.anchorMax = new Vector2(1f, 1f);
             poolColumnRt.offsetMin = new Vector2(0f, 52f);
-            poolColumnRt.offsetMax = new Vector2(-20f, -196f);
+            poolColumnRt.offsetMax = new Vector2(-20f, -208f);
 
             var poolLabel = CampUiRuntime.CreateText(poolColumn.transform, "卡牌库", 18, FontStyle.Bold,
                 TextAnchor.MiddleLeft);
@@ -406,6 +449,7 @@ namespace Grimhand.Presentation.Camp
         {
             _tooltip?.Hide();
             ClearDynamic();
+            RefreshMetaSummary();
             if (_roster == null)
                 return;
 
@@ -470,10 +514,10 @@ namespace Grimhand.Presentation.Camp
             var go = CampUiRuntime.CreateImage("Member", parent,
                 active ? new Color(0.35f, 0.48f, 0.72f, 0.95f) : new Color(0.16f, 0.18f, 0.24f, 0.95f)).gameObject;
             var rt = go.GetComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(320f, 128f);
+            rt.sizeDelta = new Vector2(320f, 140f);
             var le = go.AddComponent<LayoutElement>();
             le.preferredWidth = 320f;
-            le.preferredHeight = 128f;
+            le.preferredHeight = 140f;
 
             var btn = go.AddComponent<Button>();
             btn.targetGraphic = go.GetComponent<Image>();
@@ -516,6 +560,19 @@ namespace Grimhand.Presentation.Camp
             deckInfo.color = filled == CampRosterState.DeckSize
                 ? new Color(0.7f, 0.95f, 0.72f, 1f)
                 : new Color(0.95f, 0.75f, 0.55f, 1f);
+
+            if (_meta != null && !string.IsNullOrEmpty(member.CharacterDefinitionId))
+            {
+                var progress = _meta.GetOrCreate(member.CharacterDefinitionId);
+                var metaLine = CampUiRuntime.CreateText(go.transform,
+                    MetaProgressionRules.FormatXpProgress(progress),
+                    14, FontStyle.Normal, TextAnchor.UpperLeft);
+                metaLine.rectTransform.anchorMin = new Vector2(0f, 0f);
+                metaLine.rectTransform.anchorMax = new Vector2(1f, 0f);
+                metaLine.rectTransform.offsetMin = new Vector2(108f, 8f);
+                metaLine.rectTransform.offsetMax = new Vector2(-120f, 32f);
+                metaLine.color = new Color(0.78f, 0.82f, 0.95f, 1f);
+            }
 
             var swapBtn = CampUiRuntime.CreateButton(go.transform, "换人", new Color(0.22f, 0.28f, 0.38f, 1f),
                 new Vector2(88f, 32f));
@@ -587,8 +644,22 @@ namespace Grimhand.Presentation.Camp
                 var nameRt = nameLabel.rectTransform;
                 nameRt.anchorMin = new Vector2(0f, 0f);
                 nameRt.anchorMax = new Vector2(1f, 0f);
-                nameRt.offsetMin = new Vector2(4f, 8f);
-                nameRt.offsetMax = new Vector2(-4f, 36f);
+                nameRt.offsetMin = new Vector2(4f, 28f);
+                nameRt.offsetMax = new Vector2(-4f, 56f);
+
+                if (_meta != null)
+                {
+                    var progress = _meta.GetOrCreate(character.CharacterId);
+                    var metaLabel = CampUiRuntime.CreateText(pickBtn.transform,
+                        MetaProgressionRules.FormatXpProgress(progress),
+                        13, FontStyle.Normal, TextAnchor.UpperCenter);
+                    var metaRt = metaLabel.rectTransform;
+                    metaRt.anchorMin = new Vector2(0f, 0f);
+                    metaRt.anchorMax = new Vector2(1f, 0f);
+                    metaRt.offsetMin = new Vector2(4f, 8f);
+                    metaRt.offsetMax = new Vector2(-4f, 26f);
+                    metaLabel.color = new Color(0.75f, 0.8f, 0.92f, 1f);
+                }
 
                 var captured = character;
                 pickBtn.onClick.AddListener(() =>
@@ -780,6 +851,39 @@ namespace Grimhand.Presentation.Camp
             _hintText.text = ready
                 ? "编队已就绪。保存后可通过传送门开始远征。"
                 : $"正在编辑：{member.DisplayName} — 选中槽位 {_selectedDeckSlot + 1}，点击右侧「{member.DisplayName}专属」卡牌填入；再次点击已填槽位可清空。";
+        }
+
+        void RefreshMetaSummary()
+        {
+            if (_accountGoldAmountText != null)
+                _accountGoldAmountText.text = _accountGold.ToString();
+
+            if (_campGoldIcon != null && _uiIcons?.CampGoldIcon != null)
+                _campGoldIcon.sprite = _uiIcons.CampGoldIcon;
+
+            if (_metaSummaryText == null)
+                return;
+
+            if (_meta == null || _playableCharacters.Count == 0)
+            {
+                _metaSummaryText.text = "";
+                return;
+            }
+
+            var levelParts = new List<string>();
+            foreach (var character in _playableCharacters)
+            {
+                if (character == null || string.IsNullOrEmpty(character.CharacterId))
+                    continue;
+
+                var progress = _meta.GetOrCreate(character.CharacterId);
+                var name = string.IsNullOrEmpty(character.DisplayName) ? character.CharacterId : character.DisplayName;
+                levelParts.Add($"{name} {MetaProgressionRules.FormatLevelProgress(progress)}");
+            }
+
+            _metaSummaryText.text = levelParts.Count > 0
+                ? string.Join("  ·  ", levelParts)
+                : "";
         }
 
         void ClearDynamic()

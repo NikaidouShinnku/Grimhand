@@ -340,13 +340,10 @@ namespace Grimhand.Expedition
 
             ExpeditionRewardPickup pickup = null;
             if (config != null &&
-                ExpeditionCardPool.TryRollCardReward(config, run, CardRarity.SuperRare, rng, out var card, out var owner))
+                ExpeditionCardPool.TryRollCardRewardForMemberWithFallback(
+                    config, member, CardRarity.SuperRare, rng, out var card))
             {
-                var cardOwner = card.OwnerCharacterId == member.CharacterDefinitionId
-                                || string.IsNullOrEmpty(card.OwnerCharacterId)
-                    ? member
-                    : owner;
-                pickup = ExpeditionRewardPickupFactory.Card(card, cardOwner, "古书奖励");
+                pickup = ExpeditionRewardPickupFactory.Card(card, member, "古书奖励");
             }
 
             if (pickup != null)

@@ -56,6 +56,12 @@ namespace Grimhand.Presentation.Battle
             }
 
             var packOffer = _session.Expedition.Run.PendingCardPackOffer;
+            if (packOffer != null)
+            {
+                _session.Expedition.ReconcileAfterResume();
+                packOffer = _session.Expedition.Run.PendingCardPackOffer;
+            }
+
             if (packOffer == null || packOffer.Choices.Count == 0 || _session.Expedition.Run.PendingCardOffer != null)
             {
                 SetVisible(false);

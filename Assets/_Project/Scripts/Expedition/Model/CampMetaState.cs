@@ -28,7 +28,7 @@ namespace Grimhand.Expedition.Model
                 state.Characters[characterId] = new CharacterMetaProgress
                 {
                     CharacterDefinitionId = characterId,
-                    OutOfRunLevel = 0,
+                    OutOfRunLevel = 1,
                     OutOfRunXp = 0
                 };
             }

@@ -12,6 +12,8 @@ namespace Grimhand.Content
         public Sprite SpeedIcon;
         public Sprite EnergyIcon;
         public Sprite GoldIcon;
+        /// <summary>局外金币图标（Assets/The Grimhands Asset/icon/camp_gold.png）</summary>
+        public Sprite CampGoldIcon;
         public Sprite XpIcon;
         public Sprite InventoryIcon;
         public Sprite ConfirmPlayIcon;
@@ -26,6 +28,8 @@ namespace Grimhand.Content
         public Sprite ChampionCampBuilding;
         public Sprite MerchantCampBuilding;
         public Sprite PortalBuilding;
+        /// <summary>gamemenu.png 切片：0=START, 1=CONTINUE, 2=SETTINGS, 3=QUIT GAME</summary>
+        public Sprite[] GameMenuButtons = System.Array.Empty<Sprite>();
         /// <summary>Assets/The Grimhands Asset/path and background/talent_alter.png</summary>
         public Sprite TalentAltarBuilding;
         /// <summary>Assets/The Grimhands Asset/icon/talent_rune_plate.png</summary>

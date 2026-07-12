@@ -5,21 +5,25 @@ using Grimhand.Expedition.Model;
 using Grimhand.Persistence;
 using Grimhand.Presentation.Battle;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace Grimhand.Presentation.Camp
 {
-    /// <summary>营地 ↔ 战斗/远征 流程切换。</summary>
+    /// <summary>主菜单 ↔ 营地 ↔ 战斗/远征 流程切换。</summary>
     [DisallowMultipleComponent]
     public sealed class GameFlowController : MonoBehaviour
     {
         [SerializeField] BattleScreenController battleController;
+        [SerializeField] GameMenuView gameMenu;
+        [SerializeField] GameSettingsOverlayView settingsOverlay;
         [SerializeField] CampScreenView campScreen;
         [SerializeField] ChampionCampOverlayView championCamp;
         [SerializeField] TalentCampOverlayView talentCamp;
         [SerializeField] PortalOverlayView portalOverlay;
         [SerializeField] BattleSetupSO battleSetup;
         [SerializeField] ExpeditionSetupSO expeditionSetup;
-        [SerializeField] bool startAtCamp = true;
 
         CampRosterState _roster;
         CampMetaState _meta;
@@ -28,11 +32,17 @@ namespace Grimhand.Presentation.Camp
         SaveService _saveService;
         Dictionary<string, CardDefinitionSO> _definitions;
 
+        bool _trackingExpedition;
+        bool _runEndHandled;
+        ExpeditionPhase? _lastCheckpointPhase;
+        int _activeMapStartLayer = 1;
+
         void Awake() => EnsureReferences();
 
         void Start()
         {
             EnsureReferences();
+            GameSettings.ApplyAudioVolumes();
 
             if (battleController == null)
             {
@@ -66,6 +76,10 @@ namespace Grimhand.Presentation.Camp
             var charCatalog = battleController.CharacterVisualCatalog;
             var uiIcons = battleController.UiIconCatalog;
 
+            gameMenu?.ConfigureArt(uiIcons);
+            gameMenu?.Initialize(EnterCampFromMenu, ContinueExpedition, OpenSettings, QuitGame, uiIcons);
+            settingsOverlay?.Initialize(CloseSettings);
+
             campScreen?.ConfigureArt(uiIcons);
             campScreen?.Initialize(OpenChampionCamp, OpenPortal, OpenTalentCamp, ShowComingSoon, uiIcons);
             championCamp?.Initialize(
@@ -88,37 +102,115 @@ namespace Grimhand.Presentation.Camp
 
             battleController.SetCampRoster(_roster);
             battleController.SetCampMeta(_meta);
+            battleController.PrepareSession(startExpedition: false);
+            battleController.Session.Changed += OnSessionChanged;
+            battleController.Session.ReturnToCampRequested = ReturnToCampFromRunEnd;
 
-            battleController.PrepareSession(startExpedition: !startAtCamp);
-
-            if (startAtCamp)
-                ShowCamp();
-            else
-                ShowBattle();
+            ShowMainMenu();
         }
 
-        void ShowCamp()
+        void OnDestroy()
         {
-            campScreen?.Show();
-            championCamp?.Hide();
-            talentCamp?.Hide();
-            portalOverlay?.Hide();
-            battleController.SetBattleScreenVisible(false);
+            if (battleController?.Session != null)
+                battleController.Session.Changed -= OnSessionChanged;
         }
 
-        void ShowBattle()
+        void ShowMainMenu()
         {
             campScreen?.Hide();
             championCamp?.Hide();
             talentCamp?.Hide();
             portalOverlay?.Hide();
+            settingsOverlay?.Hide();
+            battleController.SetBattleScreenVisible(false);
+            gameMenu?.Show(_profile.HasActiveRun);
+        }
+
+        void EnterCampFromMenu()
+        {
+            gameMenu?.Hide();
+            ShowCamp();
+        }
+
+        void ShowCamp()
+        {
+            campScreen?.Show(_profile.AccountGold);
+            championCamp?.Hide();
+            talentCamp?.Hide();
+            portalOverlay?.Hide();
+            settingsOverlay?.Hide();
+            battleController.SetBattleScreenVisible(false);
+        }
+
+        void ReturnToCampFromRunEnd()
+        {
+            _trackingExpedition = false;
+            battleController.SetBattleScreenVisible(false);
+            ShowCamp();
+            campScreen?.RefreshAccountGold(_profile.AccountGold);
+        }
+
+        void ShowBattle()
+        {
+            gameMenu?.Hide();
+            campScreen?.Hide();
+            championCamp?.Hide();
+            talentCamp?.Hide();
+            portalOverlay?.Hide();
+            settingsOverlay?.Hide();
             battleController.SetBattleScreenVisible(true);
+        }
+
+        void OpenSettings()
+        {
+            settingsOverlay?.Show();
+        }
+
+        void CloseSettings()
+        {
+            if (campScreen != null && campScreen.gameObject.activeSelf)
+                return;
+
+            gameMenu?.Show(_profile.HasActiveRun);
+        }
+
+        void QuitGame()
+        {
+            SaveProfile();
+#if UNITY_EDITOR
+            EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
+        }
+
+        void ContinueExpedition()
+        {
+            if (!_profile.HasActiveRun)
+            {
+                gameMenu?.Show(false);
+                return;
+            }
+
+            if (!battleController.ResumeExpeditionFromCamp(_profile.ActiveRun))
+            {
+                Debug.LogWarning("[GameFlow] 断线存档损坏，已清除。");
+                ActiveRunPersistence.Clear(_profile);
+                SaveProfile();
+                gameMenu?.Show(false);
+                return;
+            }
+
+            _trackingExpedition = true;
+            _runEndHandled = false;
+            _lastCheckpointPhase = battleController.Session.Expedition?.Run.Phase;
+            ShowBattle();
         }
 
         void OpenChampionCamp()
         {
             campScreen?.Hide();
-            championCamp?.Show(_roster);
+            championCamp?.Show(_roster, _meta, _profile.AccountGold);
         }
 
         void OpenTalentCamp()
@@ -128,7 +220,7 @@ namespace Grimhand.Presentation.Camp
             {
                 Debug.LogError("[GameFlow] 未找到 TalentCampOverlay。请执行 Grimhand → Setup Camp UI in Scene。");
                 campScreen?.ShowToast("天赋界面未就绪，请重新 Setup Camp UI。");
-                campScreen?.Show();
+                campScreen?.Show(_profile.AccountGold);
                 return;
             }
 
@@ -153,7 +245,10 @@ namespace Grimhand.Presentation.Camp
             if (portalOverlay != null && portalOverlay.IsOpen)
                 return;
 
-            campScreen?.Show();
+            if (settingsOverlay != null && settingsOverlay.IsOpen)
+                return;
+
+            campScreen?.Show(_profile.AccountGold);
         }
 
         void OnRosterSaved(CampRosterState roster)
@@ -189,15 +284,79 @@ namespace Grimhand.Presentation.Camp
                 return;
             }
 
+            _activeMapStartLayer = portalOverlay?.SelectedStartLayer ?? 1;
             battleController.SetCampRoster(_roster);
             battleController.SetCampMeta(_meta);
             ShowBattle();
-            battleController.BeginExpeditionFromCamp(_roster, portalOverlay?.SelectedStartLayer ?? 1);
+            battleController.BeginExpeditionFromCamp(_roster, _activeMapStartLayer);
+
+            var engine = battleController.Session.Expedition;
+            if (engine != null)
+            {
+                ActiveRunPersistence.BeginNewRun(_profile, engine, _activeMapStartLayer);
+                _trackingExpedition = true;
+                _runEndHandled = false;
+                _lastCheckpointPhase = engine.Run.Phase;
+                SaveProfile();
+            }
         }
 
         void ShowComingSoon(string feature)
         {
             campScreen?.ShowToast($"{feature} — 即将开放");
+        }
+
+        void OnSessionChanged()
+        {
+            if (!_trackingExpedition)
+                return;
+
+            var expedition = battleController.Session.Expedition;
+            if (expedition == null)
+                return;
+
+            var phase = expedition.Run.Phase;
+            if (phase is ExpeditionPhase.RunComplete or ExpeditionPhase.RunFailed)
+            {
+                if (!_runEndHandled)
+                {
+                    _runEndHandled = true;
+                    FinalizeExpeditionRun(expedition.Run);
+                    campScreen?.RefreshAccountGold(_profile.AccountGold);
+                }
+
+                return;
+            }
+
+            if (_lastCheckpointPhase != phase)
+            {
+                _lastCheckpointPhase = phase;
+                SaveActiveRunCheckpoint();
+                return;
+            }
+
+            if (phase is not ExpeditionPhase.InBattle)
+                SaveActiveRunCheckpoint();
+        }
+
+        void FinalizeExpeditionRun(ExpeditionRunState run)
+        {
+            MetaEconomySync.SyncMetaGoldFromRun(_profile, run);
+            RunSettlementRules.ApplyRunEndMetaRewards(run, _meta);
+            ActiveRunPersistence.Clear(_profile);
+            _trackingExpedition = false;
+            _lastCheckpointPhase = null;
+            SaveProfile();
+        }
+
+        void SaveActiveRunCheckpoint()
+        {
+            var engine = battleController.Session.Expedition;
+            if (engine == null || engine.Run.Phase is ExpeditionPhase.RunComplete or ExpeditionPhase.RunFailed)
+                return;
+
+            ActiveRunPersistence.UpdateCheckpoint(_profile, engine);
+            SaveProfile();
         }
 
         public void SaveProfile()
@@ -212,15 +371,30 @@ namespace Grimhand.Presentation.Camp
         void OnApplicationPause(bool paused)
         {
             if (paused)
+            {
+                if (_trackingExpedition)
+                    SaveActiveRunCheckpoint();
                 SaveProfile();
+            }
         }
 
-        void OnApplicationQuit() => SaveProfile();
+        void OnApplicationQuit()
+        {
+            if (_trackingExpedition)
+                SaveActiveRunCheckpoint();
+            SaveProfile();
+        }
 
         void EnsureReferences()
         {
             if (battleController == null)
                 battleController = GetComponent<BattleScreenController>();
+
+            if (gameMenu == null)
+                gameMenu = FindAnyObjectByType<GameMenuView>(FindObjectsInactive.Include);
+
+            if (settingsOverlay == null)
+                settingsOverlay = FindAnyObjectByType<GameSettingsOverlayView>(FindObjectsInactive.Include);
 
             if (campScreen == null)
                 campScreen = FindAnyObjectByType<CampScreenView>(FindObjectsInactive.Include);
@@ -228,6 +402,13 @@ namespace Grimhand.Presentation.Camp
             var canvasRoot = campScreen != null
                 ? campScreen.transform.parent
                 : FindAnyObjectByType<Canvas>()?.transform;
+
+            if (gameMenu == null && canvasRoot != null)
+                gameMenu = CampOverlayBootstrap.EnsureOverlay<GameMenuView>(canvasRoot, "GameMenu");
+
+            if (settingsOverlay == null && canvasRoot != null)
+                settingsOverlay = CampOverlayBootstrap.EnsureOverlay<GameSettingsOverlayView>(
+                    canvasRoot, "GameSettingsOverlay");
 
             if (championCamp == null)
                 championCamp = FindAnyObjectByType<ChampionCampOverlayView>(FindObjectsInactive.Include);

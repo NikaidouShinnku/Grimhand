@@ -197,7 +197,7 @@ namespace Grimhand.Expedition.Events
             {
                 var loss = System.Math.Max(1, member.Hp * System.Math.Abs(percent) / 100);
                 if (percent < 0)
-                    member.Hp = System.Math.Max(1, member.Hp - loss);
+                    member.Hp = System.Math.Max(0, member.Hp - loss);
                 else
                     member.Hp = System.Math.Min(member.MaxHp, member.Hp + loss);
             }
@@ -211,7 +211,7 @@ namespace Grimhand.Expedition.Events
             foreach (var member in run.Party)
             {
                 var loss = System.Math.Max(1, member.Hp * System.Math.Abs(percent) / 100);
-                member.Hp = System.Math.Max(1, member.Hp - loss);
+                member.Hp = System.Math.Max(0, member.Hp - loss);
             }
         }
 
@@ -222,7 +222,7 @@ namespace Grimhand.Expedition.Events
                 var member = run.Party[0];
                 var delta = System.Math.Max(1, member.Hp * System.Math.Abs(percent) / 100);
                 member.Hp = percent < 0
-                    ? System.Math.Max(1, member.Hp - delta)
+                    ? System.Math.Max(0, member.Hp - delta)
                     : System.Math.Min(member.MaxHp, member.Hp + delta);
             }
 

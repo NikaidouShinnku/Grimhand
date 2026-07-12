@@ -142,6 +142,33 @@ namespace Grimhand.Expedition
             return true;
         }
 
+        /// <summary>优先指定稀有度，若无可用牌则依次降级，保证事件奖励能 roll 出可领取卡牌。</summary>
+        public static bool TryRollCardRewardForMemberWithFallback(
+            ExpeditionConfig config,
+            PartyMemberSnapshot member,
+            CardRarity preferredRarity,
+            BattleRng rng,
+            out CardTemplate picked)
+        {
+            picked = null;
+            if (TryRollCardRewardForMember(config, member, preferredRarity, rng, out picked))
+                return true;
+
+            if (preferredRarity != CardRarity.Rare
+                && TryRollCardRewardForMember(config, member, CardRarity.Rare, rng, out picked))
+                return true;
+
+            if (preferredRarity != CardRarity.Common
+                && TryRollCardRewardForMember(config, member, CardRarity.Common, rng, out picked))
+                return true;
+
+            if (preferredRarity != CardRarity.SuperRare
+                && TryRollCardRewardForMember(config, member, CardRarity.SuperRare, rng, out picked))
+                return true;
+
+            return false;
+        }
+
         static List<CardTemplate> FilterPoolForCharacter(IReadOnlyList<CardTemplate> pool, string characterId)
         {
             var owned = new List<CardTemplate>();

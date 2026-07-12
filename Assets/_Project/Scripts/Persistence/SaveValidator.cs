@@ -65,6 +65,21 @@ namespace Grimhand.Persistence
                 }
             }
 
+            if (dto.hasActiveRun)
+            {
+                if (string.IsNullOrWhiteSpace(dto.activeRunJson))
+                {
+                    error = "hasActiveRun 为 true 但 activeRunJson 为空。";
+                    return false;
+                }
+
+                if (dto.activeRunMapStartLayer <= 0)
+                {
+                    error = $"activeRunMapStartLayer 非法: {dto.activeRunMapStartLayer}";
+                    return false;
+                }
+            }
+
             return true;
         }
 
@@ -77,7 +92,7 @@ namespace Grimhand.Persistence
                 return false;
             }
 
-            if (character.outOfRunLevel < 0 || character.outOfRunLevel > context.MaxCharacterLevel)
+            if (character.outOfRunLevel < 1 || character.outOfRunLevel > context.MaxCharacterLevel)
             {
                 error = $"角色 {character.characterDefinitionId} 等级非法: {character.outOfRunLevel}";
                 return false;

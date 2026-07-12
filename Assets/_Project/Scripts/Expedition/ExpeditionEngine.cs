@@ -27,6 +27,247 @@ namespace Grimhand.Expedition
         public ExpeditionRunState Run => _run;
         public ExpeditionConfig Config => _config;
 
+        public ulong RngState
+        {
+            get => _rng.State;
+            set => _rng.RestoreState(value);
+        }
+
+        public static ExpeditionRunState CloneRunState(ExpeditionRunState source) =>
+            ExpeditionRunStateCopy.Clone(source);
+
+        public ExpeditionRunState ExportRunState() => ExpeditionRunStateCopy.Clone(_run, _config);
+
+        public void ResumeRun(ExpeditionRunState run, ulong rngState)
+        {
+            if (run == null)
+                throw new System.ArgumentNullException(nameof(run));
+
+            ExpeditionRunStateCopy.CopyInto(ExpeditionRunStateCopy.Clone(run, _config), _run, _config);
+            _rng.RestoreState(rngState);
+
+            if (_run.Phase == ExpeditionPhase.InBattle)
+                RebuildCurrentBattleForResume();
+            else
+                ReconcileAfterResume();
+        }
+
+        /// <summary>Continue 后修复半开奖励、卡包三选一、事件交互等中间态。</summary>
+        public void ReconcileAfterResume()
+        {
+            ReconcilePendingCardOffer();
+            ReconcilePendingCardPackOffer();
+            ReconcileChestRewardState();
+            ReconcileEventInteraction();
+            ReconcileRouteSelect();
+            ReconcileRewardPickupProgress();
+        }
+
+        void ReconcilePendingCardOffer()
+        {
+            var offer = _run.PendingCardOffer;
+            if (offer == null)
+                return;
+
+            if (offer.Template == null || string.IsNullOrEmpty(offer.Template.DefinitionId))
+            {
+                _run.PendingCardOffer = null;
+                return;
+            }
+
+            ExpeditionBattleConfigBuilder.HydrateTemplateFromCatalog(offer.Template, _config.PlayerCardCatalog);
+        }
+
+        void ReconcilePendingCardPackOffer()
+        {
+            var offer = _run.PendingCardPackOffer;
+            if (offer == null)
+                return;
+
+            var hasValidChoice = false;
+            foreach (var choice in offer.Choices)
+            {
+                if (choice?.Template == null || string.IsNullOrEmpty(choice.Template.DefinitionId))
+                    continue;
+
+                ExpeditionBattleConfigBuilder.HydrateTemplateFromCatalog(choice.Template, _config.PlayerCardCatalog);
+                hasValidChoice = true;
+            }
+
+            if (hasValidChoice)
+                return;
+
+            offer.Choices.Clear();
+            if (CardPackIds.IsValid(offer.PackId))
+            {
+                var choices = CardPackRoller.RollChoices(offer.PackId, _config, _run, _rng);
+                if (choices.Count > 0)
+                {
+                    offer.Choices.AddRange(choices);
+                    return;
+                }
+            }
+
+            _run.PendingCardPackOffer = null;
+        }
+
+        void ReconcileChestRewardState()
+        {
+            if (_run.Phase != ExpeditionPhase.RewardPickup
+                || _run.PendingRewardPickup?.Kind != RewardPickupKind.Chest)
+            {
+                return;
+            }
+
+            if (_run.PendingRewardPickup != null && !_run.PendingRewardPickup.IsFullyResolved)
+                _run.ChestRewardRevealed = true;
+        }
+
+        void ReconcileEventInteraction()
+        {
+            if (_run.Phase != ExpeditionPhase.EventInteraction || _run.EventInteraction == null)
+                return;
+
+            if (_run.EventInteraction.StepIndex >= _run.EventInteraction.Steps.Count)
+                FinishEventInteractionSequence();
+        }
+
+        void ReconcileRouteSelect()
+        {
+            if (_run.Phase != ExpeditionPhase.RouteSelect || _run.PendingRoutes.Count > 0)
+                return;
+
+            LoadRoutesForNextLayer();
+        }
+
+        void ReconcileRewardPickupProgress()
+        {
+            if (_run.Phase != ExpeditionPhase.RewardPickup)
+                return;
+
+            var rewards = _run.PendingRewardPickup;
+            if (rewards == null || !rewards.HasAnyReward)
+            {
+                _run.PendingRewardPickup = null;
+                TryAdvanceFromRewardPickup();
+                return;
+            }
+
+            if (rewards.IsFullyResolved)
+                TryAdvanceFromRewardPickup();
+        }
+
+        void FailRun(string message)
+        {
+            _run.Phase = ExpeditionPhase.RunFailed;
+            _run.PendingRoutes.Clear();
+            _run.PendingRewardPickup = null;
+            _run.PendingEventBattleKey = "";
+            _run.PendingEventBattleVictoryReward = null;
+            _run.PendingEvent = null;
+            _run.PendingEventAftermath = null;
+            _run.EventInteraction = null;
+            _run.PendingCardOffer = null;
+            _run.PendingCardPackOffer = null;
+            _run.PendingShrine = null;
+            _run.CardAltar = null;
+            if (!string.IsNullOrEmpty(message))
+                _run.LastEventMessage = message;
+        }
+
+        bool TryFailRunIfPartyWiped(string message = "队伍全员倒下，远征失败。")
+        {
+            if (_run.Phase is ExpeditionPhase.RunComplete or ExpeditionPhase.RunFailed)
+                return false;
+
+            if (!ExpeditionPartyRules.IsPartyWiped(_run.Party))
+                return false;
+
+            FailRun(message);
+            return true;
+        }
+
+        public void RebuildCurrentBattleForResume()
+        {
+            if (_run.Phase != ExpeditionPhase.InBattle)
+                return;
+
+            _run.CurrentBattleConfig = null;
+
+            if (!string.IsNullOrEmpty(_run.PendingEventBattleKey))
+            {
+                RecordLastBattleContext(CurrentBattleNumber, isElite: false, isBoss: false);
+                _run.CurrentBattleConfig = BuildBattleFromEncounter(0, applyPartyHp: true);
+                return;
+            }
+
+            var layerNumber = (_run.Map?.NodesCompleted ?? 0) + 1;
+            var layer = _run.Map?.GetLayer(layerNumber);
+
+            if (TryRebuildBossBattleForResume(layer, layerNumber))
+                return;
+
+            if (layer == null || !layer.ChosenOptionIndex.HasValue)
+                return;
+
+            var optionIndex = layer.ChosenOptionIndex.Value;
+            if (optionIndex < 0 || optionIndex >= layer.Options.Count)
+                return;
+
+            var option = layer.Options[optionIndex];
+            if (option.NodeType == ExpeditionNodeType.Boss)
+            {
+                RecordLastBattleContext(layer.LayerNumber, isElite: false, isBoss: true);
+                _run.CurrentBattleConfig = BuildBossBattle(applyPartyHp: true);
+                return;
+            }
+
+            RecordLastBattleContext(layer.LayerNumber, option.IsElite, isBoss: false);
+            _run.CurrentBattleConfig = BuildBattleFromEncounter(
+                option.EncounterIndex,
+                applyPartyHp: true,
+                option.MonsterEncounterId,
+                option.IsElite,
+                layer.LayerNumber);
+        }
+
+        bool TryRebuildBossBattleForResume(ExpeditionMapLayer layer, int layerNumber)
+        {
+            if (layer != null && IsBossLayer(layer))
+            {
+                RecordLastBattleContext(layer.LayerNumber, isElite: false, isBoss: true);
+                _run.CurrentBattleConfig = BuildBossBattle(applyPartyHp: true);
+                return _run.CurrentBattleConfig != null;
+            }
+
+            if (ExpeditionRegionRules.IsBossTestStartLayer(_config.MapStartLayer)
+                && layerNumber == _config.MapStartLayer)
+            {
+                RecordLastBattleContext(layerNumber, isElite: false, isBoss: true);
+                _run.CurrentBattleConfig = BuildBossBattle(applyPartyHp: true);
+                return _run.CurrentBattleConfig != null;
+            }
+
+            return false;
+        }
+
+        static bool IsBossLayer(ExpeditionMapLayer layer)
+        {
+            if (layer == null)
+                return false;
+
+            if (layer.IsBoss)
+                return true;
+
+            foreach (var option in layer.Options)
+            {
+                if (option?.NodeType == ExpeditionNodeType.Boss)
+                    return true;
+            }
+
+            return false;
+        }
+
         public void StartRun(CampRosterState campRoster = null, CampMetaState campMeta = null)
         {
             _run.Phase = ExpeditionPhase.RouteSelect;
@@ -106,6 +347,9 @@ namespace Grimhand.Expedition
                 return;
 
             ExpeditionMapGenerator.ForceBossLayer(_run.Map, _config.MapStartLayer);
+            var layer = _run.Map?.GetLayer(_config.MapStartLayer);
+            if (layer != null && layer.Options.Count > 0)
+                layer.ChosenOptionIndex = 0;
             RecordLastBattleContext(_config.MapStartLayer, isElite: false, isBoss: true);
             _run.Phase = ExpeditionPhase.InBattle;
             _run.CurrentBattleConfig = BuildBossBattle(applyPartyHp: true);
@@ -352,11 +596,7 @@ namespace Grimhand.Expedition
 
             if (state.Outcome == BattleOutcome.PlayerDefeat)
             {
-                _run.Phase = ExpeditionPhase.RunFailed;
-                _run.PendingRoutes.Clear();
-                _run.PendingRewardPickup = null;
-                _run.PendingEventBattleKey = "";
-                _run.PendingEventBattleVictoryReward = null;
+                FailRun("战斗失败，队伍无法继续。");
                 return;
             }
 
@@ -538,6 +778,10 @@ namespace Grimhand.Expedition
             {
                 rewards.CardClaimed = true;
                 TryAdvanceFromRewardPickup();
+            }
+            else if (result == CardGrantResult.PendingReplace)
+            {
+                // PendingCardOffer 已由 TryOfferCard 写入，等待替换 UI。
             }
 
             return true;
@@ -1008,6 +1252,9 @@ namespace Grimhand.Expedition
                 _run.Phase = ExpeditionPhase.EventInteraction;
                 return true;
             }
+
+            if (TryFailRunIfPartyWiped())
+                return true;
 
             return ApplyEventOutcome(outcome);
         }
@@ -1729,6 +1976,7 @@ namespace Grimhand.Expedition
 
             _run.PendingRewardPickup = pickup;
             _run.Phase = ExpeditionPhase.RewardPickup;
+            _run.ChestRewardRevealed = false;
             return true;
         }
 
@@ -1829,6 +2077,9 @@ namespace Grimhand.Expedition
         {
             if (outcome == null)
                 return false;
+
+            if (TryFailRunIfPartyWiped())
+                return true;
 
             if (!string.IsNullOrEmpty(outcome.EventBattleKey))
                 _run.PendingEventBattleKey = outcome.EventBattleKey;
@@ -2128,6 +2379,15 @@ namespace Grimhand.Expedition
                     return false;
             }
 
+            if (step.Kind is ExpeditionEventStepKind.ShowTeamHpLoss or ExpeditionEventStepKind.PickMemberHpLoss)
+            {
+                if (TryFailRunIfPartyWiped())
+                {
+                    _run.EventInteraction = null;
+                    return true;
+                }
+            }
+
             interaction.StepIndex++;
             if (interaction.StepIndex >= interaction.Steps.Count)
                 FinishEventInteractionSequence();
@@ -2271,7 +2531,7 @@ namespace Grimhand.Expedition
                 if (step.FlatHpDelta > 0)
                     member.Hp = System.Math.Min(maxHp, member.Hp + step.FlatHpDelta);
                 else
-                    member.Hp = System.Math.Max(1, member.Hp - System.Math.Abs(step.FlatHpDelta));
+                    member.Hp = System.Math.Max(0, member.Hp - System.Math.Abs(step.FlatHpDelta));
                 return;
             }
 
@@ -2289,12 +2549,12 @@ namespace Grimhand.Expedition
             {
                 var maxHpLoss = System.Math.Max(1, maxHp * System.Math.Abs(step.PercentHpDelta) / 100);
                 member.MaxHpPenalty += maxHpLoss;
-                member.Hp = System.Math.Max(1, member.Hp - maxHpLoss);
+                member.Hp = System.Math.Max(0, member.Hp - maxHpLoss);
                 return;
             }
 
             var currentHpLoss = System.Math.Max(1, member.Hp * System.Math.Abs(step.PercentHpDelta) / 100);
-            member.Hp = System.Math.Max(1, member.Hp - currentHpLoss);
+            member.Hp = System.Math.Max(0, member.Hp - currentHpLoss);
         }
 
         bool TryFindPartyMember(string characterId, out PartyMemberSnapshot member)
@@ -2360,8 +2620,12 @@ namespace Grimhand.Expedition
                 return;
 
             interaction?.DeferredRunAction?.Invoke(_run);
+            if (TryFailRunIfPartyWiped())
+                return;
 
             ApplyPendingTravelerGift();
+            if (TryFailRunIfPartyWiped())
+                return;
 
             if (interaction?.DeferredOutcome != null)
             {

@@ -23,6 +23,14 @@ namespace Grimhand.Core
 
         public int Seed => _seed;
 
+        public ulong State
+        {
+            get => _state;
+            set => _state = value == 0 ? 1 : value;
+        }
+
+        public void RestoreState(ulong state) => State = state;
+
         public int NextInt(int minInclusive, int maxExclusive)
         {
             if (maxExclusive <= minInclusive)

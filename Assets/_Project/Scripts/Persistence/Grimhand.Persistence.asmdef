@@ -2,6 +2,7 @@
     "name": "Grimhand.Persistence",
     "rootNamespace": "Grimhand.Persistence",
     "references": [
+        "Grimhand.Battle",
         "Grimhand.Expedition"
     ],
     "includePlatforms": [],

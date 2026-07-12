@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 
 namespace Grimhand.Persistence
@@ -60,6 +61,17 @@ namespace Grimhand.Persistence
             }
 
             dto.rosterMembers = members.ToArray();
+            dto.hasActiveRun = profile.HasActiveRun;
+            if (profile.ActiveRun != null && profile.ActiveRun.HasRun)
+            {
+                dto.activeRunVersion = profile.ActiveRun.Version;
+                dto.activeRunMapStartLayer = profile.ActiveRun.MapStartLayer;
+                dto.activeRunSeed = profile.ActiveRun.RunSeed;
+                dto.activeRunRngState = profile.ActiveRun.RngState.ToString();
+                dto.activeRunMetaGoldSynced = profile.ActiveRun.MetaGoldSyncedRunGold;
+                dto.activeRunJson = profile.ActiveRun.RunJson ?? "";
+            }
+
             return dto;
         }
 
@@ -87,7 +99,7 @@ namespace Grimhand.Persistence
                     if (characterDto == null || string.IsNullOrEmpty(characterDto.characterDefinitionId))
                         continue;
 
-                    profile.Meta.Characters[characterDto.characterDefinitionId] = new CharacterMetaProgress
+                    var progress = new CharacterMetaProgress
                     {
                         CharacterDefinitionId = characterDto.characterDefinitionId,
                         OutOfRunLevel = characterDto.outOfRunLevel,
@@ -95,6 +107,8 @@ namespace Grimhand.Persistence
                         SelectedSlot1TalentId = characterDto.selectedSlot1TalentId ?? "",
                         SelectedSlot2TalentId = characterDto.selectedSlot2TalentId ?? ""
                     };
+                    MetaProgressionRules.NormalizeProgress(progress);
+                    profile.Meta.Characters[characterDto.characterDefinitionId] = progress;
                 }
             }
 
@@ -119,6 +133,20 @@ namespace Grimhand.Persistence
 
                     profile.Roster.Members.Add(member);
                 }
+            }
+
+            if (dto.hasActiveRun && !string.IsNullOrWhiteSpace(dto.activeRunJson))
+            {
+                ulong.TryParse(dto.activeRunRngState, out var rngState);
+                profile.ActiveRun = new ActiveRunSnapshot
+                {
+                    Version = dto.activeRunVersion > 0 ? dto.activeRunVersion : ActiveRunSnapshot.CurrentVersion,
+                    MapStartLayer = dto.activeRunMapStartLayer > 0 ? dto.activeRunMapStartLayer : 1,
+                    RunSeed = dto.activeRunSeed,
+                    RngState = rngState > 0 ? rngState : 1,
+                    MetaGoldSyncedRunGold = dto.activeRunMetaGoldSynced,
+                    RunJson = dto.activeRunJson
+                };
             }
 
             return profile;

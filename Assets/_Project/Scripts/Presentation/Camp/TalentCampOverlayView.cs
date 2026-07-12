@@ -29,6 +29,7 @@ namespace Grimhand.Presentation.Camp
         RectTransform _detailSlot2Row;
         Text _detailTitle;
         Text _detailLevel;
+        Text _detailXpHint;
         Text _detailSummary;
         Text _detailSlot1Label;
         Text _detailSlot2Label;
@@ -63,7 +64,11 @@ namespace Grimhand.Presentation.Camp
         {
             _meta = meta ?? CampMetaState.CreateDefaultDemo();
             foreach (var characterId in TalentCatalog.PlayableCharacterIds)
-                TalentRules.PruneInvalidSelections(_meta.GetOrCreate(characterId));
+            {
+                var progress = _meta.GetOrCreate(characterId);
+                MetaProgressionRules.NormalizeProgress(progress);
+                TalentRules.PruneInvalidSelections(progress);
+            }
             _ownedCharacters = CollectOwnedCharacters();
             EnsureBuilt();
             HideTooltip();
@@ -291,12 +296,19 @@ namespace Grimhand.Presentation.Camp
             _detailLevel.rectTransform.offsetMax = new Vector2(-8f, -44f);
             _detailLevel.color = new Color(0.82f, 0.86f, 0.95f, 1f);
 
+            _detailXpHint = CampUiRuntime.CreateText(top.transform, "", 15, FontStyle.Italic, TextAnchor.UpperLeft);
+            _detailXpHint.rectTransform.anchorMin = new Vector2(0f, 1f);
+            _detailXpHint.rectTransform.anchorMax = new Vector2(1f, 1f);
+            _detailXpHint.rectTransform.offsetMin = new Vector2(112f, -96f);
+            _detailXpHint.rectTransform.offsetMax = new Vector2(-8f, -72f);
+            _detailXpHint.color = new Color(0.68f, 0.74f, 0.88f, 1f);
+
             var summaryBox = CampUiRuntime.CreateImage("SummaryBox", _detailPanel, new Color(0.12f, 0.14f, 0.19f, 0.95f));
             var summaryRt = summaryBox.rectTransform;
             summaryRt.anchorMin = new Vector2(0f, 1f);
             summaryRt.anchorMax = new Vector2(1f, 1f);
-            summaryRt.offsetMin = new Vector2(20f, -212f);
-            summaryRt.offsetMax = new Vector2(-20f, -156f);
+            summaryRt.offsetMin = new Vector2(20f, -228f);
+            summaryRt.offsetMax = new Vector2(-20f, -168f);
 
             var summaryLabel = CampUiRuntime.CreateText(summaryBox.transform, "当前生效效果", 15, FontStyle.Bold,
                 TextAnchor.UpperLeft);
@@ -404,7 +416,9 @@ namespace Grimhand.Presentation.Camp
 
             var progress = _meta.GetOrCreate(characterId);
             _detailTitle.text = $"角色：{displayName}";
-            _detailLevel.text = $"局外等级 Lv.{progress.OutOfRunLevel}    经验 {progress.OutOfRunXp}";
+            _detailLevel.text = MetaProgressionRules.FormatLevelProgress(progress);
+            if (_detailXpHint != null)
+                _detailXpHint.text = "";
             _detailPortrait.sprite = _characterVisuals != null
                 ? _characterVisuals.GetPortrait(characterId)
                 : null;
@@ -508,7 +522,7 @@ namespace Grimhand.Presentation.Camp
             name.rectTransform.offsetMin = new Vector2(8f, -152f);
             name.rectTransform.offsetMax = new Vector2(-8f, -124f);
 
-            var level = CampUiRuntime.CreateText(go.transform, $"Lv.{progress.OutOfRunLevel}  经验 {progress.OutOfRunXp}",
+            var level = CampUiRuntime.CreateText(go.transform, MetaProgressionRules.FormatLevelProgress(progress),
                 16, FontStyle.Normal, TextAnchor.UpperCenter);
             level.rectTransform.anchorMin = new Vector2(0f, 1f);
             level.rectTransform.anchorMax = new Vector2(1f, 1f);

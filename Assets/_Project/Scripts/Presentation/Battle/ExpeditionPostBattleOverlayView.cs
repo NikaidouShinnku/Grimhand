@@ -92,6 +92,8 @@ namespace Grimhand.Presentation.Battle
             if (!show)
                 return;
 
+            _session.Expedition.ReconcileAfterResume();
+
             var offer = _session.Expedition.Run.PendingCardOffer;
             var cardReplaceActive = offer?.Template != null
                                     && offer.Context != ExpeditionCardOfferContext.Altar;
@@ -105,6 +107,7 @@ namespace Grimhand.Presentation.Battle
 
             var rewards = _session.Expedition.Run.PendingRewardPickup;
             var isChest = phase == ExpeditionPhase.RewardPickup && rewards?.Kind == RewardPickupKind.Chest;
+            _chestRevealed = isChest && _session.Expedition.Run.ChestRewardRevealed;
 
             _chestPanel.gameObject.SetActive(isChest);
             _rewardRow.gameObject.SetActive(phase == ExpeditionPhase.RewardPickup && !isChest && !packPickActive);
@@ -123,11 +126,14 @@ namespace Grimhand.Presentation.Battle
                 if (_chestRewardKey != rewardKey)
                 {
                     _chestRewardKey = rewardKey;
-                    _chestRevealed = false;
+                    if (!_session.Expedition.Run.ChestRewardRevealed)
+                        _chestRevealed = false;
                 }
 
                 if (!_chestRevealed)
                     ResetChestOpenArt();
+                else
+                    ShowChestOpenArt();
             }
             else
             {
@@ -343,6 +349,8 @@ namespace Grimhand.Presentation.Battle
         void RevealChest()
         {
             _chestRevealed = true;
+            if (_session?.Expedition?.Run != null)
+                _session.Expedition.Run.ChestRewardRevealed = true;
             ShowChestOpenArt();
 
             if (_chestClosedLayer != null)
@@ -352,6 +360,7 @@ namespace Grimhand.Presentation.Battle
                 _chestSkipButton.gameObject.SetActive(HasRemainingRewards(_session.Expedition.Run.PendingRewardPickup));
 
             RefreshRewardPickup(useChestPanel: true);
+            _session?.RequestRefresh();
         }
 
         static string BuildChestRewardKey(ExpeditionRewardPickup rewards)
@@ -359,7 +368,10 @@ namespace Grimhand.Presentation.Battle
             if (rewards == null)
                 return "";
 
-            return $"{rewards.Gold}|{rewards.RelicId}|{rewards.CardDefinitionId}|{rewards.ConsumableId}";
+            var key = $"{rewards.Gold}|{rewards.RelicId}|{rewards.CardDefinitionId}|{rewards.ConsumableId}";
+            foreach (var pack in rewards.CardPacks)
+                key += $"|{pack.PackId}:{pack.Claimed}:{pack.Skipped}";
+            return key;
         }
 
         void RefreshRewardPickup(bool useChestPanel)
@@ -473,13 +485,39 @@ namespace Grimhand.Presentation.Battle
 
             if (rewards.HasStatBonus && !rewards.StatClaimed && !rewards.StatSkipped)
             {
-                AddClaimStatReward(
-                    parent,
-                    ref x,
-                    spacing,
-                    rewards,
-                    () => _session.ClaimRewardStat());
+                if (IsGrantXpOnlyStatReward(rewards))
+                {
+                    AddClaimReward(
+                        parent,
+                        ref x,
+                        spacing,
+                        $"经验\n+{rewards.GrantXp}",
+                        _icons?.GoldIcon,
+                        () => _session.ClaimRewardStat());
+                }
+                else
+                {
+                    AddClaimStatReward(
+                        parent,
+                        ref x,
+                        spacing,
+                        rewards,
+                        () => _session.ClaimRewardStat());
+                }
             }
+        }
+
+        static bool IsGrantXpOnlyStatReward(ExpeditionRewardPickup rewards)
+        {
+            if (rewards == null || rewards.GrantXp <= 0)
+                return false;
+
+            return rewards.TeamAttackBonus == 0
+                   && rewards.TeamDefenseBonus == 0
+                   && rewards.EnergyCapBonus == 0
+                   && rewards.PersonalAttackBonus == 0
+                   && !rewards.EnableSoulRiftBattleStartRandomHpLoss
+                   && !rewards.EnableDivinePunishment;
         }
 
         static bool HasRemainingRewards(ExpeditionRewardPickup rewards)

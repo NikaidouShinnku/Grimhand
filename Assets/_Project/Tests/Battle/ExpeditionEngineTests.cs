@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Grimhand.Battle;
 using Grimhand.Battle.Model;
 using Grimhand.Expedition;
+using Grimhand.Expedition.Events;
 using Grimhand.Expedition.Model;
 using NUnit.Framework;
 
@@ -238,6 +239,57 @@ namespace Grimhand.Battle.Tests
             engine.OnBattleFinished(state);
 
             Assert.AreEqual(ExpeditionPhase.RunFailed, engine.Run.Phase);
+            Assert.AreEqual("战斗失败，队伍无法继续。", engine.Run.LastEventMessage);
+        }
+
+        [Test]
+        public void PartyWipe_FromEventHpLoss_FailsRun()
+        {
+            var engine = new ExpeditionEngine(BuildConfig());
+            engine.StartRun();
+            engine.Run.Phase = ExpeditionPhase.EventInteraction;
+            foreach (var member in engine.Run.Party)
+                member.Hp = 5;
+
+            engine.Run.EventInteraction = new ExpeditionEventInteractionState();
+            engine.Run.EventInteraction.Steps.Add(new ExpeditionEventInteractionStep
+            {
+                Kind = ExpeditionEventStepKind.ShowTeamHpLoss,
+                FlatHpDelta = -999
+            });
+
+            Assert.IsTrue(engine.CompleteEventInteractionStep());
+            Assert.AreEqual(ExpeditionPhase.RunFailed, engine.Run.Phase);
+            Assert.IsNull(engine.Run.EventInteraction);
+            Assert.AreEqual("队伍全员倒下，远征失败。", engine.Run.LastEventMessage);
+            foreach (var member in engine.Run.Party)
+                Assert.AreEqual(0, member.Hp);
+        }
+
+        [Test]
+        public void IsPartyWiped_AllMembersAtZeroHp_ReturnsTrue()
+        {
+            var party = new List<PartyMemberSnapshot>
+            {
+                new() { CharacterDefinitionId = "char_knight", Hp = 0 },
+                new() { CharacterDefinitionId = "char_ranger", Hp = 0 },
+                new() { CharacterDefinitionId = "char_mage", Hp = 0 }
+            };
+
+            Assert.IsTrue(ExpeditionPartyRules.IsPartyWiped(party));
+        }
+
+        [Test]
+        public void IsPartyWiped_AnyMemberAlive_ReturnsFalse()
+        {
+            var party = new List<PartyMemberSnapshot>
+            {
+                new() { CharacterDefinitionId = "char_knight", Hp = 0 },
+                new() { CharacterDefinitionId = "char_ranger", Hp = 1 },
+                new() { CharacterDefinitionId = "char_mage", Hp = 0 }
+            };
+
+            Assert.IsFalse(ExpeditionPartyRules.IsPartyWiped(party));
         }
 
         [Test]
@@ -321,6 +373,124 @@ namespace Grimhand.Battle.Tests
             Assert.IsTrue(engine.TryResolveEventChoice(2));
             Assert.AreEqual(ExpeditionPhase.RouteSelect, engine.Run.Phase);
             Assert.AreEqual(1, engine.Run.Map.NodesCompleted);
+        }
+
+        [Test]
+        public void CursedBookshelf_Read_OpensRewardPickupWithCardAndXp()
+        {
+            var config = BuildConfigWithBookshelfCard();
+            var engine = new ExpeditionEngine(config);
+            engine.StartRun();
+
+            engine.Run.PendingRoutes.Clear();
+            engine.Run.PendingRoutes.Add(new ExpeditionRouteOption
+            {
+                NodeType = ExpeditionNodeType.Event,
+                EventId = Expedition.Events.ExpeditionEventIds.CursedBookshelf,
+                LayerNumber = 1,
+                MapOptionIndex = 0,
+                DisplayName = "被诅咒的书架",
+                Description = "事件"
+            });
+
+            Assert.IsTrue(engine.TrySelectRoute(0));
+            Assert.IsTrue(engine.TryResolveEventChoice(0));
+            Assert.AreEqual(ExpeditionPhase.EventInteraction, engine.Run.Phase);
+            Assert.IsTrue(engine.CompleteEventInteractionStep());
+            Assert.IsTrue(engine.CompleteEventInteractionStep());
+
+            Assert.AreEqual(ExpeditionPhase.RewardPickup, engine.Run.Phase);
+            Assert.IsTrue(engine.Run.PendingRewardPickup.HasCard);
+            Assert.AreEqual(5, engine.Run.PendingRewardPickup.GrantXp);
+        }
+
+        [Test]
+        public void ReconcileAfterResume_ClearsStaleCardPackOfferAndAllowsOpen()
+        {
+            var engine = new ExpeditionEngine(BuildConfig());
+            engine.StartRun();
+            engine.Run.Phase = ExpeditionPhase.RewardPickup;
+            engine.Run.PendingRewardPickup = ExpeditionRewardRoller.RollChestReward(
+                engine.Config,
+                engine.Run,
+                new Grimhand.Core.BattleRng(7));
+            engine.Run.ChestRewardRevealed = true;
+            engine.Run.PendingCardPackOffer = new ExpeditionPendingCardPackOffer
+            {
+                PackId = CardPackIds.Common,
+                Context = ExpeditionCardOfferContext.RewardPickup,
+                RewardPackIndex = 0
+            };
+
+            engine.ReconcileAfterResume();
+
+            Assert.IsNull(engine.Run.PendingCardPackOffer);
+            Assert.IsTrue(engine.TryOpenRewardCardPack(0));
+            Assert.NotNull(engine.Run.PendingCardPackOffer);
+            Assert.Greater(engine.Run.PendingCardPackOffer.Choices.Count, 0);
+        }
+
+        [Test]
+        public void ReconcileAfterResume_AdvancesWhenRewardsFullyResolved()
+        {
+            var engine = new ExpeditionEngine(BuildConfig());
+            engine.StartRun();
+            engine.Run.Phase = ExpeditionPhase.RewardPickup;
+            var rewards = ExpeditionRewardRoller.RollChestReward(
+                engine.Config,
+                engine.Run,
+                new Grimhand.Core.BattleRng(11));
+            rewards.GoldClaimed = true;
+            foreach (var pack in rewards.CardPacks)
+            {
+                pack.Skipped = true;
+            }
+
+            if (rewards.HasRelic)
+                rewards.RelicSkipped = true;
+            if (rewards.HasConsumable)
+                rewards.ConsumableSkipped = true;
+
+            engine.Run.PendingRewardPickup = rewards;
+            engine.Run.PendingCardPackOffer = new ExpeditionPendingCardPackOffer
+            {
+                PackId = CardPackIds.Common,
+                Context = ExpeditionCardOfferContext.RewardPickup
+            };
+
+            engine.ReconcileAfterResume();
+
+            Assert.AreEqual(ExpeditionPhase.RouteSelect, engine.Run.Phase);
+            Assert.IsNull(engine.Run.PendingRewardPickup);
+        }
+
+        [Test]
+        public void RebuildCurrentBattleForResume_BossTestLayer_RebuildsBossBattle()
+        {
+            var config = BuildConfig();
+            ExpeditionRegionRules.ApplyMapStartLayer(config, ExpeditionRegionRules.CaveBossLayer);
+            var engine = new ExpeditionEngine(config);
+            engine.StartRun();
+            engine.Run.Phase = ExpeditionPhase.InBattle;
+            engine.Run.CurrentBattleConfig = null;
+
+            engine.RebuildCurrentBattleForResume();
+
+            Assert.IsNotNull(engine.Run.CurrentBattleConfig);
+            Assert.Greater(engine.Run.CurrentBattleConfig.Combatants.Count, 0);
+        }
+
+        static ExpeditionConfig BuildConfigWithBookshelfCard()
+        {
+            var config = BuildConfig();
+            CardRarityTable.Register("bookshelf_blue", CardRarity.SuperRare);
+            config.PlayerCardCatalog.Add(new CardTemplate
+            {
+                DefinitionId = "bookshelf_blue",
+                DisplayName = "古书蓝卡",
+                OwnerCharacterId = "char_knight"
+            });
+            return config;
         }
 
         static void CompleteVictory(ExpeditionEngine engine, int hp)

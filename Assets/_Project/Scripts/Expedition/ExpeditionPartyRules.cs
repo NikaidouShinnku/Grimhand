@@ -29,6 +29,25 @@ namespace Grimhand.Expedition
                 party.RemoveAt(party.Count - 1);
         }
 
+        public static bool IsPartyWiped(IReadOnlyList<PartyMemberSnapshot> party)
+        {
+            if (party == null || party.Count == 0)
+                return false;
+
+            var hasMember = false;
+            foreach (var member in party)
+            {
+                if (member == null || string.IsNullOrEmpty(member.CharacterDefinitionId))
+                    continue;
+
+                hasMember = true;
+                if (member.Hp > 0)
+                    return false;
+            }
+
+            return hasMember;
+        }
+
         public static bool HasUsableCampRoster(CampRosterState roster)
         {
             if (roster?.Members == null || roster.Members.Count == 0)

@@ -1,3 +1,4 @@
+using Grimhand.Presentation.Audio;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -59,6 +60,7 @@ namespace Grimhand.Presentation.Camp
 
             var text = CreateText(img.transform, label, 16, FontStyle.Bold);
             Stretch(text.rectTransform, 8f, 6f, -8f, -6f);
+            UiAudioHooks.WireButton(btn);
             return btn;
         }
 

@@ -10,6 +10,7 @@ using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 using Grimhand.Content;
 using Grimhand.Persistence;
+using Grimhand.Presentation.Audio;
 using UnityEngine;
 
 namespace Grimhand.Presentation.Battle
@@ -455,6 +456,7 @@ namespace Grimhand.Presentation.Battle
             if (Expedition?.TryUpgradeAltarMemberHp(memberId) != true)
                 return false;
 
+            GameAudioService.Instance.PlayUiUpgradePower();
             if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
                 AddLog(Expedition.Run.LastEventMessage);
 
@@ -467,6 +469,7 @@ namespace Grimhand.Presentation.Battle
             if (Expedition?.TryUpgradeAltarEnergyCap() != true)
                 return false;
 
+            GameAudioService.Instance.PlayUiUpgradePower();
             if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
                 AddLog(Expedition.Run.LastEventMessage);
 
@@ -479,6 +482,7 @@ namespace Grimhand.Presentation.Battle
             if (Expedition?.TryUpgradeAltarHandLimit() != true)
                 return false;
 
+            GameAudioService.Instance.PlayUiUpgradePower();
             if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
                 AddLog(Expedition.Run.LastEventMessage);
 
@@ -491,6 +495,7 @@ namespace Grimhand.Presentation.Battle
             if (Expedition?.TryUpgradeAltarCard(memberId, deckInstanceId, displayName) != true)
                 return false;
 
+            GameAudioService.Instance.PlayUiUpgradeCard();
             if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
                 AddLog(Expedition.Run.LastEventMessage);
 
@@ -973,7 +978,7 @@ namespace Grimhand.Presentation.Battle
             CheckExpeditionBattleEnd();
         }
 
-        ExpeditionConfig BuildExpeditionConfig(int mapStartLayer = 1)
+        public ExpeditionConfig BuildExpeditionConfig(int mapStartLayer = 1)
         {
             ExpeditionConfig config;
             if (ExpeditionSetup != null)
@@ -1116,10 +1121,15 @@ namespace Grimhand.Presentation.Battle
                 var label = string.IsNullOrEmpty(e.Message) ? "消耗品" : e.Message;
                 if (!_consumablesUsedThisBattle.Contains(label))
                     _consumablesUsedThisBattle.Add(label);
+                var isPotion = label.Contains("药水");
+                GameAudioService.Instance.PlayBattleUseConsumable(isPotion);
             }
 
             switch (e.Kind)
             {
+                case BattleEventKind.CardDrawn:
+                    GameAudioService.Instance.PlayBattleCardDraw();
+                    break;
                 case BattleEventKind.BattleEnded:
                     AddLog($"战斗结束: {e.Outcome}");
                     break;

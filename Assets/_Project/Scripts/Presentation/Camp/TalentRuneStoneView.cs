@@ -1,5 +1,6 @@
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
+using Grimhand.Presentation.Audio;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -113,6 +114,7 @@ namespace Grimhand.Presentation.Camp
             _button.transition = Selectable.Transition.None;
             _button.onClick.RemoveAllListeners();
             _button.onClick.AddListener(() => _onClick?.Invoke(_talent));
+            UiAudioHooks.WireButton(_button);
         }
 
         void RefreshVisual()

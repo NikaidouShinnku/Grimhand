@@ -5,13 +5,14 @@ using Grimhand.Battle.Model;
 using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
+using Grimhand.Presentation.Audio;
 using Grimhand.Presentation.Battle;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Camp
 {
-    /// <summary>军营收藏管理：筛选、浏览、详情与永久移除。</summary>
+    /// <summary>军营收藏管理：筛选、浏览、详情与出售。</summary>
     [DisallowMultipleComponent]
     public sealed class CampCollectionManageView : MonoBehaviour
     {
@@ -20,6 +21,7 @@ namespace Grimhand.Presentation.Camp
         const float GridSpacing = 6f;
         const float CardAspect = 236f / 168f;
         const float DetailCardScale = 1.72f;
+        const float SellButtonWidth = 200f;
 
         struct CollectionRow
         {
@@ -36,11 +38,13 @@ namespace Grimhand.Presentation.Camp
         Dictionary<string, CardDefinitionSO> _definitions = new();
         List<CharacterDefinitionSO> _characters = new();
         Action _onCollectionChanged;
+        Action<int> _onGoldGained;
         Action _onBack;
 
         CampCollectionState _collection;
         CampRosterState _roster;
         int _collectionCapacity;
+        int _pendingSellGold;
 
         RectTransform _panel;
         RectTransform _listPanel;
@@ -50,6 +54,7 @@ namespace Grimhand.Presentation.Camp
         GridLayoutGroup _gridLayout;
         float _gridCardScale = 0.55f;
         GameObject _confirmPanel;
+        Text _confirmTitleText;
         Text _confirmBodyText;
         Text _titleText;
         Text _summaryText;
@@ -58,11 +63,13 @@ namespace Grimhand.Presentation.Camp
         Text _detailMetaText;
         Text _detailStatsText;
         Text _detailKeywordText;
+        Text _sellGoldText;
+        Image _sellGoldIcon;
         RectTransform _detailCardAnchor;
         Button _filterCostButton;
         Button _filterRarityButton;
         Button _filterOwnerButton;
-        Button _removeButton;
+        Button _sellButton;
 
         int? _filterCost;
         CardRarity? _filterRarity;
@@ -93,6 +100,7 @@ namespace Grimhand.Presentation.Camp
             BattleUiIconCatalogSO uiIcons,
             Dictionary<string, CardDefinitionSO> definitions,
             Action onCollectionChanged,
+            Action<int> onGoldGained,
             Action onBack)
         {
             _cardPrefab = cardPrefab;
@@ -101,6 +109,7 @@ namespace Grimhand.Presentation.Camp
             _uiIcons = uiIcons;
             _definitions = definitions ?? new Dictionary<string, CardDefinitionSO>();
             _onCollectionChanged = onCollectionChanged;
+            _onGoldGained = onGoldGained;
             _onBack = onBack;
             _characters = CollectCharacters(battleSetup);
             EnsureBuilt();
@@ -312,6 +321,7 @@ namespace Grimhand.Presentation.Camp
             _detailKeywordText.text = string.IsNullOrWhiteSpace(keywords)
                 ? "（无关键词说明）"
                 : keywords;
+            RefreshKeywordScrollLayout();
 
             if (_cardPrefab != null)
             {
@@ -334,8 +344,38 @@ namespace Grimhand.Presentation.Camp
                     null);
             }
 
-            _removeButton.interactable = true;
+            _sellButton.interactable = true;
+            RefreshSellPriceDisplay(cardId, definition);
             HideConfirmPanel();
+        }
+
+        void RefreshSellPriceDisplay(string cardId, CardDefinitionSO definition)
+        {
+            var gold = CampCollectionRules.GetSellGold(ResolveRarity(cardId, definition));
+            if (_sellGoldText != null)
+                _sellGoldText.text = gold.ToString();
+            if (_sellGoldIcon != null && _uiIcons?.CampGoldIcon != null)
+                _sellGoldIcon.sprite = _uiIcons.CampGoldIcon;
+        }
+
+        static CardRarity ResolveRarity(string cardId, CardDefinitionSO definition)
+        {
+            if (definition != null)
+                return definition.Rarity;
+            return CardRarityTable.GetOrDefault(cardId);
+        }
+
+        void RefreshKeywordScrollLayout()
+        {
+            if (_detailKeywordText == null)
+                return;
+
+            Canvas.ForceUpdateCanvases();
+            var textRt = _detailKeywordText.rectTransform;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(textRt);
+            var content = textRt.parent as RectTransform;
+            if (content != null)
+                LayoutRebuilder.ForceRebuildLayoutImmediate(content);
         }
 
         void ClearDetailCard()
@@ -347,22 +387,29 @@ namespace Grimhand.Presentation.Camp
                 Destroy(child.gameObject);
         }
 
-        void TryRemoveCurrent()
+        void TrySellCurrent()
         {
             if (_collection == null || _detailEntryIndex < 0 || _detailEntryIndex >= _collection.Count)
                 return;
 
-            _definitions.TryGetValue(_collection.Entries[_detailEntryIndex], out var definition);
-            var cardName = definition != null ? definition.DisplayName : _collection.Entries[_detailEntryIndex];
-            ShowConfirmPanel($"确定永久移除「{cardName}」？\n此操作不可撤销。");
+            var cardId = _collection.Entries[_detailEntryIndex];
+            _definitions.TryGetValue(cardId, out var definition);
+            var cardName = definition != null ? definition.DisplayName : cardId;
+            _pendingSellGold = CampCollectionRules.GetSellGold(ResolveRarity(cardId, definition));
+            ShowConfirmPanel($"确定出售「{cardName}」？\n将获得 {_pendingSellGold} 黄金，并从收藏中移除。");
         }
 
-        void ConfirmRemoveCurrent()
+        void ConfirmSellCurrent()
         {
             if (_collection == null || _detailEntryIndex < 0)
                 return;
 
-            if (!CampCollectionRules.TryRemoveCollectionEntry(_collection, _detailEntryIndex, out var message))
+            var cardId = _collection.Entries[_detailEntryIndex];
+            _definitions.TryGetValue(cardId, out var definition);
+            var rarity = ResolveRarity(cardId, definition);
+
+            if (!CampCollectionRules.TrySellCollectionEntry(
+                    _collection, _detailEntryIndex, rarity, out var goldGained, out var message))
             {
                 HideConfirmPanel();
                 return;
@@ -372,6 +419,12 @@ namespace Grimhand.Presentation.Camp
                 CampRosterLoadoutRules.OnCollectionEntryRemoved(_roster, _detailEntryIndex);
 
             HideConfirmPanel();
+            if (goldGained > 0)
+            {
+                _onGoldGained?.Invoke(goldGained);
+                GameAudioService.Instance.PlayUiGoldAcquire();
+            }
+
             _onCollectionChanged?.Invoke();
             ShowListPanel();
             RebuildList();
@@ -597,8 +650,8 @@ namespace Grimhand.Presentation.Camp
             CampUiRuntime.Stretch(_detailPanel, 24f, 24f, -24f, -24f);
             _detailPanel.gameObject.SetActive(false);
 
-            var backBtn = CampUiRuntime.CreateButton(_detailPanel, "返回列表", new Color(0.28f, 0.3f, 0.36f, 1f),
-                new Vector2(140f, 42f));
+            var backBtn = CampUiRuntime.CreateButton(_detailPanel, "返回收藏", new Color(0.28f, 0.3f, 0.36f, 1f),
+                new Vector2(160f, 42f));
             var backRt = backBtn.GetComponent<RectTransform>();
             backRt.anchorMin = new Vector2(1f, 1f);
             backRt.anchorMax = new Vector2(1f, 1f);
@@ -607,12 +660,15 @@ namespace Grimhand.Presentation.Camp
             backBtn.onClick.AddListener(ShowListPanel);
 
             _detailTitleText = CampUiRuntime.CreateText(_detailPanel, "", 34, FontStyle.Bold, TextAnchor.UpperLeft);
-            CampUiRuntime.SetAnchored(_detailTitleText.rectTransform, 0.04f, 0.9f, 0.96f, 0.98f);
+            // 右侧留给「返回收藏」，避免标题全宽透明区域挡住按钮左半边点击。
+            CampUiRuntime.SetAnchored(_detailTitleText.rectTransform, 0.04f, 0.9f, 0.72f, 0.98f);
             _detailTitleText.color = new Color(0.95f, 0.88f, 0.62f, 1f);
+            _detailTitleText.raycastTarget = false;
 
             _detailMetaText = CampUiRuntime.CreateText(_detailPanel, "", 20, FontStyle.Normal, TextAnchor.UpperLeft);
             CampUiRuntime.SetAnchored(_detailMetaText.rectTransform, 0.44f, 0.84f, 0.96f, 0.9f);
             _detailMetaText.color = new Color(0.82f, 0.86f, 0.95f, 1f);
+            _detailMetaText.raycastTarget = false;
 
             _detailCardAnchor = CampUiRuntime.CreateRect("CardAnchor", _detailPanel).GetComponent<RectTransform>();
             CampUiRuntime.SetAnchored(_detailCardAnchor, 0.03f, 0.1f, 0.4f, 0.9f);
@@ -642,6 +698,7 @@ namespace Grimhand.Presentation.Camp
             keywordScroll.horizontal = false;
             keywordScroll.vertical = true;
             keywordScroll.movementType = ScrollRect.MovementType.Clamped;
+            keywordScroll.scrollSensitivity = 28f;
 
             var keywordViewport = CampUiRuntime.CreateRect("Viewport", keywordScrollGo.transform);
             var keywordViewportRt = keywordViewport.GetComponent<RectTransform>();
@@ -650,35 +707,80 @@ namespace Grimhand.Presentation.Camp
             keywordViewport.AddComponent<Image>().color = new Color(1f, 1f, 1f, 0.01f);
             keywordScroll.viewport = keywordViewportRt;
 
-            var keywordContent = CampUiRuntime.CreateRect("Content", keywordViewport.transform).GetComponent<RectTransform>();
+            var keywordContent = CampUiRuntime.CreateRect("Content", keywordViewport.transform)
+                .GetComponent<RectTransform>();
             keywordContent.anchorMin = new Vector2(0f, 1f);
             keywordContent.anchorMax = new Vector2(1f, 1f);
             keywordContent.pivot = new Vector2(0.5f, 1f);
-            _detailKeywordText = CampUiRuntime.CreateText(keywordContent, "", 18, FontStyle.Normal, TextAnchor.UpperLeft);
-            CampUiRuntime.Stretch(_detailKeywordText.rectTransform, 8f, 8f, -8f, -8f);
-            _detailKeywordText.color = new Color(0.86f, 0.9f, 0.98f, 1f);
-            _detailKeywordText.horizontalOverflow = HorizontalWrapMode.Wrap;
-            _detailKeywordText.verticalOverflow = VerticalWrapMode.Overflow;
+            keywordContent.anchoredPosition = Vector2.zero;
+            keywordContent.sizeDelta = new Vector2(0f, 0f);
             var keywordFitter = keywordContent.gameObject.AddComponent<ContentSizeFitter>();
+            keywordFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
             keywordFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
             keywordScroll.content = keywordContent;
 
-            _removeButton = CampUiRuntime.CreateButton(_detailPanel, "永久移除", new Color(0.62f, 0.22f, 0.22f, 1f),
-                new Vector2(200f, 52f));
-            var removeRt = _removeButton.GetComponent<RectTransform>();
-            removeRt.anchorMin = new Vector2(0.03f, 0.03f);
-            removeRt.anchorMax = new Vector2(0.03f, 0.03f);
-            removeRt.pivot = new Vector2(0f, 0f);
-            removeRt.anchoredPosition = Vector2.zero;
-            _removeButton.onClick.AddListener(TryRemoveCurrent);
-            _removeButton.transform.SetAsLastSibling();
+            _detailKeywordText = CampUiRuntime.CreateText(keywordContent, "", 18, FontStyle.Normal, TextAnchor.UpperLeft);
+            var keywordTextRt = _detailKeywordText.rectTransform;
+            keywordTextRt.anchorMin = new Vector2(0f, 1f);
+            keywordTextRt.anchorMax = new Vector2(1f, 1f);
+            keywordTextRt.pivot = new Vector2(0.5f, 1f);
+            keywordTextRt.anchoredPosition = Vector2.zero;
+            keywordTextRt.sizeDelta = new Vector2(-16f, 0f);
+            _detailKeywordText.color = new Color(0.86f, 0.9f, 0.98f, 1f);
+            _detailKeywordText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _detailKeywordText.verticalOverflow = VerticalWrapMode.Overflow;
+            var keywordTextFitter = _detailKeywordText.gameObject.AddComponent<ContentSizeFitter>();
+            keywordTextFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            keywordTextFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            _sellButton = CampUiRuntime.CreateButton(_detailPanel, "出售卡牌", new Color(0.62f, 0.22f, 0.22f, 1f),
+                new Vector2(SellButtonWidth, 52f));
+            var sellRt = _sellButton.GetComponent<RectTransform>();
+            sellRt.anchorMin = new Vector2(0.03f, 0.03f);
+            sellRt.anchorMax = new Vector2(0.03f, 0.03f);
+            sellRt.pivot = new Vector2(0f, 0f);
+            sellRt.anchoredPosition = Vector2.zero;
+            _sellButton.onClick.AddListener(TrySellCurrent);
+
+            var sellGoldRow = CampUiRuntime.CreateRect("SellGold", _detailPanel).GetComponent<RectTransform>();
+            sellGoldRow.anchorMin = new Vector2(0.03f, 0.03f);
+            sellGoldRow.anchorMax = new Vector2(0.03f, 0.03f);
+            sellGoldRow.pivot = new Vector2(0f, 0f);
+            sellGoldRow.anchoredPosition = new Vector2(SellButtonWidth + 16f, 8f);
+            sellGoldRow.sizeDelta = new Vector2(180f, 36f);
+            var sellGoldLayout = sellGoldRow.gameObject.AddComponent<HorizontalLayoutGroup>();
+            sellGoldLayout.spacing = 8f;
+            sellGoldLayout.childAlignment = TextAnchor.MiddleLeft;
+            sellGoldLayout.childControlWidth = false;
+            sellGoldLayout.childControlHeight = true;
+            sellGoldLayout.childForceExpandWidth = false;
+            sellGoldLayout.childForceExpandHeight = false;
+
+            _sellGoldIcon = CampUiRuntime.CreateImage("SellGoldIcon", sellGoldRow, Color.white);
+            _sellGoldIcon.preserveAspect = true;
+            _sellGoldIcon.sprite = _uiIcons != null ? _uiIcons.CampGoldIcon : null;
+            _sellGoldIcon.raycastTarget = false;
+            var sellIconLe = _sellGoldIcon.gameObject.AddComponent<LayoutElement>();
+            sellIconLe.preferredWidth = 32f;
+            sellIconLe.preferredHeight = 32f;
+
+            _sellGoldText = CampUiRuntime.CreateText(sellGoldRow, "0", 24, FontStyle.Bold, TextAnchor.MiddleLeft);
+            _sellGoldText.color = new Color(0.95f, 0.88f, 0.62f, 1f);
+            _sellGoldText.raycastTarget = false;
+            var sellTextLe = _sellGoldText.gameObject.AddComponent<LayoutElement>();
+            sellTextLe.preferredWidth = 120f;
+            sellTextLe.preferredHeight = 32f;
+
+            backBtn.transform.SetAsLastSibling();
+            _sellButton.transform.SetAsLastSibling();
+            sellGoldRow.SetAsLastSibling();
 
             BuildConfirmPanel();
         }
 
         void BuildConfirmPanel()
         {
-            _confirmPanel = CampUiRuntime.CreateImage("ConfirmRemove", _panel, new Color(0f, 0f, 0f, 0.72f)).gameObject;
+            _confirmPanel = CampUiRuntime.CreateImage("ConfirmSell", _panel, new Color(0f, 0f, 0f, 0.72f)).gameObject;
             CampUiRuntime.StretchFull(_confirmPanel.GetComponent<RectTransform>());
 
             var dialog = CampUiRuntime.CreateImage("Dialog", _confirmPanel.transform, new Color(0.1f, 0.11f, 0.15f, 0.98f));
@@ -688,14 +790,16 @@ namespace Grimhand.Presentation.Camp
             dialogRt.pivot = new Vector2(0.5f, 0.5f);
             dialogRt.sizeDelta = new Vector2(520f, 260f);
 
-            var title = CampUiRuntime.CreateText(dialog.transform, "确认移除", 24, FontStyle.Bold, TextAnchor.UpperCenter);
-            CampUiRuntime.SetAnchored(title.rectTransform, 0.08f, 0.78f, 0.92f, 0.94f);
-            title.color = new Color(0.95f, 0.85f, 0.55f, 1f);
+            _confirmTitleText = CampUiRuntime.CreateText(dialog.transform, "确认出售", 24, FontStyle.Bold, TextAnchor.UpperCenter);
+            CampUiRuntime.SetAnchored(_confirmTitleText.rectTransform, 0.08f, 0.78f, 0.92f, 0.94f);
+            _confirmTitleText.color = new Color(0.95f, 0.85f, 0.55f, 1f);
+            _confirmTitleText.raycastTarget = false;
 
             _confirmBodyText = CampUiRuntime.CreateText(dialog.transform, "", 18, FontStyle.Normal, TextAnchor.UpperCenter);
             CampUiRuntime.SetAnchored(_confirmBodyText.rectTransform, 0.08f, 0.34f, 0.92f, 0.76f);
             _confirmBodyText.color = new Color(0.88f, 0.9f, 0.96f, 1f);
             _confirmBodyText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _confirmBodyText.raycastTarget = false;
 
             var cancelBtn = CampUiRuntime.CreateButton(dialog.transform, "取消", new Color(0.28f, 0.3f, 0.36f, 1f),
                 new Vector2(160f, 44f));
@@ -706,14 +810,14 @@ namespace Grimhand.Presentation.Camp
             cancelRt.anchoredPosition = Vector2.zero;
             cancelBtn.onClick.AddListener(HideConfirmPanel);
 
-            var confirmBtn = CampUiRuntime.CreateButton(dialog.transform, "确认移除", new Color(0.62f, 0.22f, 0.22f, 1f),
+            var confirmBtn = CampUiRuntime.CreateButton(dialog.transform, "确认出售", new Color(0.62f, 0.22f, 0.22f, 1f),
                 new Vector2(160f, 44f));
             var confirmRt = confirmBtn.GetComponent<RectTransform>();
             confirmRt.anchorMin = new Vector2(0.88f, 0.1f);
             confirmRt.anchorMax = new Vector2(0.88f, 0.1f);
             confirmRt.pivot = new Vector2(1f, 0f);
             confirmRt.anchoredPosition = Vector2.zero;
-            confirmBtn.onClick.AddListener(ConfirmRemoveCurrent);
+            confirmBtn.onClick.AddListener(ConfirmSellCurrent);
 
             _confirmPanel.SetActive(false);
         }

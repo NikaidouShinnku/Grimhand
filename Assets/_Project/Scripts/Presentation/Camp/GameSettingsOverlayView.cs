@@ -4,16 +4,18 @@ using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Camp
 {
-    /// <summary>音量设置面板（音效未实装，先持久化数值）。</summary>
+    /// <summary>设置：音乐 / 音效 / 分辨率。</summary>
     [DisallowMultipleComponent]
     public sealed class GameSettingsOverlayView : MonoBehaviour
     {
         bool _built;
         RectTransform _root;
-        Slider _masterSlider;
         Slider _musicSlider;
         Slider _sfxSlider;
+        Text _resolutionLabel;
+        Toggle _fullscreenToggle;
         Action _onClose;
+        int _resolutionIndex;
 
         public bool IsOpen => _root != null && _root.gameObject.activeSelf;
 
@@ -25,18 +27,35 @@ namespace Grimhand.Presentation.Camp
 
         public void Show()
         {
+            // GameMenu 在 Canvas 上常盖在 CampOverlays 之上；需要把自身（及祖先）提到最前。
+            gameObject.SetActive(true);
             EnsureBuilt();
-            _masterSlider.SetValueWithoutNotify(GameSettings.MasterVolume);
             _musicSlider.SetValueWithoutNotify(GameSettings.MusicVolume);
             _sfxSlider.SetValueWithoutNotify(GameSettings.SfxVolume);
+            _resolutionIndex = GameSettings.FindClosestPresetIndex();
+            RefreshResolutionLabel();
+            if (_fullscreenToggle != null)
+                _fullscreenToggle.SetIsOnWithoutNotify(GameSettings.Fullscreen);
             _root.gameObject.SetActive(true);
-            transform.SetAsLastSibling();
+            BringToFrontUnderCanvas();
         }
 
         public void Hide()
         {
             if (_root != null)
                 _root.gameObject.SetActive(false);
+        }
+
+        void BringToFrontUnderCanvas()
+        {
+            var t = transform;
+            while (t != null)
+            {
+                t.SetAsLastSibling();
+                if (t.parent == null || t.parent.GetComponent<Canvas>() != null)
+                    break;
+                t = t.parent;
+            }
         }
 
         void EnsureBuilt()
@@ -61,7 +80,7 @@ namespace Grimhand.Presentation.Camp
             panel.anchorMin = new Vector2(0.5f, 0.5f);
             panel.anchorMax = new Vector2(0.5f, 0.5f);
             panel.pivot = new Vector2(0.5f, 0.5f);
-            panel.sizeDelta = new Vector2(420f, 340f);
+            panel.sizeDelta = new Vector2(520f, 460f);
 
             var title = CampUiRuntime.CreateText(panel, "设置", 28, FontStyle.Bold, TextAnchor.UpperCenter);
             title.rectTransform.anchorMin = new Vector2(0f, 1f);
@@ -69,28 +88,27 @@ namespace Grimhand.Presentation.Camp
             title.rectTransform.offsetMin = new Vector2(0f, -56f);
             title.rectTransform.offsetMax = new Vector2(0f, -8f);
 
-            _masterSlider = CreateVolumeRow(panel, "主音量", 0.72f, GameSettings.MasterVolume, v =>
+            _musicSlider = CreateVolumeRow(panel, "音乐", 0.78f, GameSettings.MusicVolume, v =>
             {
-                GameSettings.MasterVolume = v;
+                GameSettings.MusicVolume = v;
                 GameSettings.ApplyAudioVolumes();
                 GameSettings.Save();
             });
-            _musicSlider = CreateVolumeRow(panel, "音乐", 0.52f, GameSettings.MusicVolume, v =>
-            {
-                GameSettings.MusicVolume = v;
-                GameSettings.Save();
-            });
-            _sfxSlider = CreateVolumeRow(panel, "音效", 0.32f, GameSettings.SfxVolume, v =>
+            _sfxSlider = CreateVolumeRow(panel, "音效", 0.62f, GameSettings.SfxVolume, v =>
             {
                 GameSettings.SfxVolume = v;
+                GameSettings.ApplyAudioVolumes();
                 GameSettings.Save();
             });
 
-            var hint = CampUiRuntime.CreateText(panel, "音效系统尚未实装，音量设置已保存。", 14, FontStyle.Italic,
+            BuildResolutionRow(panel);
+            BuildFullscreenRow(panel);
+
+            var hint = CampUiRuntime.CreateText(panel, "分辨率更改后立即生效。", 14, FontStyle.Italic,
                 TextAnchor.LowerCenter);
             hint.rectTransform.anchorMin = new Vector2(0f, 0f);
             hint.rectTransform.anchorMax = new Vector2(1f, 0f);
-            hint.rectTransform.offsetMin = new Vector2(16f, 56f);
+            hint.rectTransform.offsetMin = new Vector2(16f, 64f);
             hint.rectTransform.offsetMax = new Vector2(-16f, 96f);
             hint.color = new Color(0.7f, 0.72f, 0.78f, 1f);
 
@@ -110,23 +128,123 @@ namespace Grimhand.Presentation.Camp
             _root.gameObject.SetActive(false);
         }
 
+        void BuildResolutionRow(RectTransform panel)
+        {
+            var row = CampUiRuntime.CreateRect("ResolutionRow", panel).GetComponent<RectTransform>();
+            row.anchorMin = new Vector2(0.08f, 0.38f);
+            row.anchorMax = new Vector2(0.92f, 0.52f);
+            row.offsetMin = Vector2.zero;
+            row.offsetMax = Vector2.zero;
+
+            var label = CampUiRuntime.CreateText(row, "分辨率", 18, FontStyle.Normal, TextAnchor.MiddleLeft);
+            label.rectTransform.anchorMin = new Vector2(0f, 0f);
+            label.rectTransform.anchorMax = new Vector2(0.28f, 1f);
+            label.rectTransform.offsetMin = Vector2.zero;
+            label.rectTransform.offsetMax = Vector2.zero;
+
+            var prev = CampUiRuntime.CreateButton(row, "◀", new Color(0.22f, 0.26f, 0.34f, 1f),
+                new Vector2(48f, 36f));
+            var prevRt = prev.GetComponent<RectTransform>();
+            prevRt.anchorMin = new Vector2(0.3f, 0.5f);
+            prevRt.anchorMax = new Vector2(0.3f, 0.5f);
+            prevRt.pivot = new Vector2(0.5f, 0.5f);
+            prevRt.anchoredPosition = Vector2.zero;
+            prev.onClick.AddListener(() =>
+            {
+                _resolutionIndex = (_resolutionIndex - 1 + GameSettings.ResolutionPresets.Length)
+                                   % GameSettings.ResolutionPresets.Length;
+                GameSettings.SetResolutionPreset(_resolutionIndex);
+                RefreshResolutionLabel();
+            });
+
+            _resolutionLabel = CampUiRuntime.CreateText(row, "", 18, FontStyle.Bold, TextAnchor.MiddleCenter);
+            _resolutionLabel.rectTransform.anchorMin = new Vector2(0.4f, 0f);
+            _resolutionLabel.rectTransform.anchorMax = new Vector2(0.82f, 1f);
+            _resolutionLabel.rectTransform.offsetMin = Vector2.zero;
+            _resolutionLabel.rectTransform.offsetMax = Vector2.zero;
+            _resolutionLabel.color = new Color(0.92f, 0.88f, 0.72f, 1f);
+
+            var next = CampUiRuntime.CreateButton(row, "▶", new Color(0.22f, 0.26f, 0.34f, 1f),
+                new Vector2(48f, 36f));
+            var nextRt = next.GetComponent<RectTransform>();
+            nextRt.anchorMin = new Vector2(0.9f, 0.5f);
+            nextRt.anchorMax = new Vector2(0.9f, 0.5f);
+            nextRt.pivot = new Vector2(0.5f, 0.5f);
+            nextRt.anchoredPosition = Vector2.zero;
+            next.onClick.AddListener(() =>
+            {
+                _resolutionIndex = (_resolutionIndex + 1) % GameSettings.ResolutionPresets.Length;
+                GameSettings.SetResolutionPreset(_resolutionIndex);
+                RefreshResolutionLabel();
+            });
+        }
+
+        void BuildFullscreenRow(RectTransform panel)
+        {
+            var row = CampUiRuntime.CreateRect("FullscreenRow", panel).GetComponent<RectTransform>();
+            row.anchorMin = new Vector2(0.08f, 0.24f);
+            row.anchorMax = new Vector2(0.92f, 0.36f);
+            row.offsetMin = Vector2.zero;
+            row.offsetMax = Vector2.zero;
+
+            var label = CampUiRuntime.CreateText(row, "全屏", 18, FontStyle.Normal, TextAnchor.MiddleLeft);
+            label.rectTransform.anchorMin = new Vector2(0f, 0f);
+            label.rectTransform.anchorMax = new Vector2(0.28f, 1f);
+            label.rectTransform.offsetMin = Vector2.zero;
+            label.rectTransform.offsetMax = Vector2.zero;
+
+            var toggleGo = CampUiRuntime.CreateRect("FullscreenToggle", row);
+            var toggleRt = toggleGo.GetComponent<RectTransform>();
+            toggleRt.anchorMin = new Vector2(0.32f, 0.5f);
+            toggleRt.anchorMax = new Vector2(0.32f, 0.5f);
+            toggleRt.pivot = new Vector2(0.5f, 0.5f);
+            toggleRt.sizeDelta = new Vector2(36f, 36f);
+
+            var bg = CampUiRuntime.CreateImage("Background", toggleGo.transform, new Color(0.18f, 0.2f, 0.24f, 1f));
+            CampUiRuntime.StretchFull(bg.rectTransform);
+
+            var check = CampUiRuntime.CreateImage("Checkmark", toggleGo.transform, new Color(0.92f, 0.88f, 0.72f, 1f));
+            CampUiRuntime.Stretch(check.rectTransform, 6f, 6f, -6f, -6f);
+
+            _fullscreenToggle = toggleGo.AddComponent<Toggle>();
+            _fullscreenToggle.targetGraphic = bg;
+            _fullscreenToggle.graphic = check;
+            _fullscreenToggle.isOn = GameSettings.Fullscreen;
+            _fullscreenToggle.onValueChanged.AddListener(v =>
+            {
+                GameSettings.Fullscreen = v;
+                GameSettings.ApplyDisplaySettings();
+                GameSettings.Save();
+            });
+        }
+
+        void RefreshResolutionLabel()
+        {
+            if (_resolutionLabel == null)
+                return;
+
+            var preset = GameSettings.ResolutionPresets[
+                Mathf.Clamp(_resolutionIndex, 0, GameSettings.ResolutionPresets.Length - 1)];
+            _resolutionLabel.text = $"{preset.x} × {preset.y}";
+        }
+
         static Slider CreateVolumeRow(RectTransform panel, string label, float anchorY, float initial, Action<float> onChanged)
         {
             var row = CampUiRuntime.CreateRect(label + "Row", panel).GetComponent<RectTransform>();
             row.anchorMin = new Vector2(0.08f, anchorY);
-            row.anchorMax = new Vector2(0.92f, anchorY + 0.14f);
+            row.anchorMax = new Vector2(0.92f, anchorY + 0.12f);
             row.offsetMin = Vector2.zero;
             row.offsetMax = Vector2.zero;
 
             var labelText = CampUiRuntime.CreateText(row, label, 18, FontStyle.Normal, TextAnchor.MiddleLeft);
             labelText.rectTransform.anchorMin = new Vector2(0f, 0f);
-            labelText.rectTransform.anchorMax = new Vector2(0.32f, 1f);
+            labelText.rectTransform.anchorMax = new Vector2(0.28f, 1f);
             labelText.rectTransform.offsetMin = Vector2.zero;
             labelText.rectTransform.offsetMax = Vector2.zero;
 
             var sliderGo = CampUiRuntime.CreateRect("Slider", row);
             var sliderRt = sliderGo.GetComponent<RectTransform>();
-            sliderRt.anchorMin = new Vector2(0.34f, 0.2f);
+            sliderRt.anchorMin = new Vector2(0.3f, 0.2f);
             sliderRt.anchorMax = new Vector2(1f, 0.8f);
             sliderRt.offsetMin = Vector2.zero;
             sliderRt.offsetMax = Vector2.zero;

@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b940fa60feb2b94db675216cc295d58, type: 3}
+  m_Name: AudioCatalog_Demo
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.AudioCatalogSO
+  BgmCave: {fileID: 8300000, guid: def3ee7b44375b14e82d005cdd5d33df, type: 3}
+  BgmDungeon: {fileID: 8300000, guid: 08a03466434e31147940c88fb06825f6, type: 3}
+  BgmOceanRuin: {fileID: 8300000, guid: 8a6a0477872172c4487c594abc59c640, type: 3}
+  BgmCamp: {fileID: 8300000, guid: 3cc495ebea306e142a0bbfcd959b7767, type: 3}
+  BgmBattle: {fileID: 8300000, guid: 7cbf606a9194abf46b08f3b847a95441, type: 3}
+  BgmBattle2: {fileID: 8300000, guid: 6d132aeb859a2f94bb868b0139ff6bce, type: 3}
+  BgmBattle3: {fileID: 8300000, guid: fcbe903dc28af4d4893d7d6c29668b0f, type: 3}
+  UiMenuButtonPress: {fileID: 8300000, guid: fd60ec328eb41d3409f633816cf411ea, type: 3}
+  UiButtonHover: {fileID: 8300000, guid: 272901a2abc590f4987db3da2bfef992, type: 3}
+  UiButtonPress: {fileID: 8300000, guid: 1c87a5b2373af444ab35078b9629e817, type: 3}
+  UiButtonPress2: {fileID: 8300000, guid: 76aaf7ecb6f100d45a473dbcb138fa2b, type: 3}
+  UiButtonUpgradeCard: {fileID: 8300000, guid: fa9334ad3f1769848bc930447d4dcc3f, type: 3}
+  UiButtonUpgradeCard2: {fileID: 8300000, guid: 6623a1620d48df3428ef21d74e5535cf, type: 3}
+  UiButtonUpgradePower: {fileID: 8300000, guid: 35afcd03e9e9e094db3d81fdc087eac5, type: 3}
+  UiChestOpen: {fileID: 8300000, guid: da55067f47889db4eb24899ac21387c3, type: 3}
+  UiShopEnter: {fileID: 8300000, guid: 71d79f00acb6f4e49ba60eadbf6c481d, type: 3}
+  UiGoldAcquire: {fileID: 8300000, guid: 0e8cab275ad8a5440828437d156ed652, type: 3}
+  UiRelicsAcquire: {fileID: 8300000, guid: fd5a69e6c2bc0864b9f04fce63fe63b5, type: 3}
+  UiCardAcquire: {fileID: 8300000, guid: 48dd79606d465264986d0b9c7a15c602, type: 3}
+  UiCardPackOpen: {fileID: 8300000, guid: c23f9b6d7022f3446a446994fd2f8c60, type: 3}
+  UiInventoryOpen: {fileID: 8300000, guid: 0c111cbc0df42fd4e9b206a7311e2669, type: 3}
+  UiInventoryClose: {fileID: 8300000, guid: bd4f0c1ab791ce641b5c20ad989bd079, type: 3}
+  BattleUsePotion: {fileID: 8300000, guid: b982ee9f47340bd43b332cc7eccbb99e, type: 3}
+  BattleUseConsumable: {fileID: 8300000, guid: 7b15a11617df57443a31bf36151f62de, type: 3}
+  BattleAttackEnemy: {fileID: 8300000, guid: 723e0fceee2a23d4191e8d581014b685, type: 3}
+  BattleAttackSnakeQueen: {fileID: 8300000, guid: 1c2a0351368348c469d8662a63a7f70b, type: 3}
+  BattleAttackWarrior: {fileID: 8300000, guid: 2386711e1b46c78429ae53c14ec0a770, type: 3}
+  BattleAttackPharaoh: {fileID: 8300000, guid: 280e2e3620baac749b8de98524b63085, type: 3}
+  BattleAttackDevil: {fileID: 8300000, guid: 60929fc1a83cc4140aef72d5c8cc2234, type: 3}
+  BattleAttackLichQueen: {fileID: 8300000, guid: 91b59dc9ce2fa53478e5210a4d9ec302, type: 3}
+  BattleCast: {fileID: 8300000, guid: bf1badcb446712e409939b585a9be243, type: 3}
+  BattleBlocking: {fileID: 8300000, guid: b30b2b87400970c4ead1cee1208aa73c, type: 3}
+  BattleCardHover: {fileID: 8300000, guid: f043d59f0596f63438ff3ff4a1738e4c, type: 3}
+  BattleCardDraw: {fileID: 8300000, guid: 7fe0f51492131bd439f71060fd35f468, type: 3}
+  BattleCardSelect: {fileID: 8300000, guid: a4dbda85e15124d4ebb496b1db6b80ae, type: 3}
+  BattleEffectPoison: {fileID: 8300000, guid: 6640b9dea44d4044cb3d43f88ca6b823, type: 3}
+  BattleEffectBurn: {fileID: 8300000, guid: cfb493dcddaed954187329e975aba988, type: 3}
+  BattleGainArmor: {fileID: 8300000, guid: ff0df2df775156443b3df15b8f0442e5, type: 3}
+  BattleHealing: {fileID: 8300000, guid: 86557175ee3b85f439c837e993a2f300, type: 3}
+  BattleHitArmor: {fileID: 8300000, guid: db561d5deb770004fb092d9c7bda141a, type: 3}
+  BattleHit: {fileID: 8300000, guid: 7405571566ff1f04988d7d8677b734b5, type: 3}

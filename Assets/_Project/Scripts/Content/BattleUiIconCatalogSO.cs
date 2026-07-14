@@ -30,6 +30,8 @@ namespace Grimhand.Content
         public Sprite PortalBuilding;
         /// <summary>gamemenu.png 切片：0=START, 1=CONTINUE, 2=SETTINGS, 3=QUIT GAME</summary>
         public Sprite[] GameMenuButtons = System.Array.Empty<Sprite>();
+        /// <summary>escmenu.png 切片：0=RETURN TO GAME, 1=SETTINGS, 2=FORFEIT, 3=QUIT GAME</summary>
+        public Sprite[] EscMenuButtons = System.Array.Empty<Sprite>();
         /// <summary>Assets/The Grimhands Asset/path and background/talent_alter.png</summary>
         public Sprite TalentAltarBuilding;
         /// <summary>Assets/The Grimhands Asset/icon/talent_rune_plate.png</summary>

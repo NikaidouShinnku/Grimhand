@@ -1,5 +1,6 @@
 using System;
 using Grimhand.Content;
+using Grimhand.Presentation.Audio;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -216,6 +217,7 @@ namespace Grimhand.Presentation.Camp
             btn.targetGraphic = img;
             btn.transition = Selectable.Transition.None;
             btn.onClick.AddListener(() => onClick?.Invoke());
+            UiAudioHooks.WireButton(btn);
         }
 
         void BuildBottomBar(Transform parent)

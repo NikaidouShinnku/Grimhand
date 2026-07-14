@@ -22,12 +22,14 @@ namespace Grimhand.Editor
             EnsureCardVisualCatalog();
             AssignDemoCardRarities();
             Grimhand.Content.Editor.BattleEffectArtBinder.BindBattleEffectsSilent();
+            AudioCatalogBootstrap.EnsureAudioCatalog();
             AssetDatabase.SaveAssets();
             EditorUtility.DisplayDialog(
                 "UI 美术目录已刷新",
                 "已更新：\n" +
                 "• BattleUiIconCatalog_Demo.asset\n" +
-                "• CardVisualCatalog_Demo.asset（卡框按稀有度 + 类型）",
+                "• CardVisualCatalog_Demo.asset（卡框按稀有度 + 类型）\n" +
+                "• AudioCatalog_Demo.asset",
                 "好的");
         }
 
@@ -71,6 +73,13 @@ namespace Grimhand.Editor
                 LoadNamedSprite(IconRoot + "gamemenu.png", "gamemenu_1"),
                 LoadNamedSprite(IconRoot + "gamemenu.png", "gamemenu_2"),
                 LoadNamedSprite(IconRoot + "gamemenu.png", "gamemenu_3")
+            };
+            catalog.EscMenuButtons = new[]
+            {
+                LoadNamedSprite(IconRoot + "escmenu.png", "escmenu_0"),
+                LoadNamedSprite(IconRoot + "escmenu.png", "escmenu_1"),
+                LoadNamedSprite(IconRoot + "escmenu.png", "escmenu_2"),
+                LoadNamedSprite(IconRoot + "escmenu.png", "escmenu_3")
             };
             catalog.TalentAltarBuilding = LoadNamedSprite(CampArtRoot + "talent_alter.png", "talent_alter_0");
             catalog.TalentRunePlate = LoadNamedSprite(IconRoot + "talent_rune_plate.png", "talent_rune_plate_0");

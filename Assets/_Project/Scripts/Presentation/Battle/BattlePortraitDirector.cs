@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Content;
+using Grimhand.Presentation.Audio;
 using UnityEngine;
 
 namespace Grimhand.Presentation.Battle
@@ -280,8 +281,32 @@ namespace Grimhand.Presentation.Battle
             card.ActorAtCenter = true;
             yield return actor.MoveToCenter(center);
             actor.ShowPose(pose);
+            PlayCardCastSfx(card);
             if (pose == PortraitPoseKind.Attack)
                 yield return actor.HoldPose(AttackWindUpDuration);
+        }
+
+        void PlayCardCastSfx(CardPlayContext card)
+        {
+            if (card == null)
+                return;
+
+            var combatant = _session.Engine?.State?.GetCombatant(card.ActorId);
+            var characterId = combatant?.CharacterDefinitionId ?? "";
+            var isEnemy = combatant != null && combatant.Team == TeamSide.Enemy;
+
+            switch (card.CardType)
+            {
+                case CardType.Attack:
+                    GameAudioService.Instance.PlayBattleAttack(characterId, isEnemy);
+                    break;
+                case CardType.Status:
+                    GameAudioService.Instance.PlayBattleCast();
+                    break;
+                case CardType.Defense:
+                    GameAudioService.Instance.PlayBattleGainArmor();
+                    break;
+            }
         }
 
         IEnumerator EndCardPlay(CardPlayContext card)
@@ -337,6 +362,7 @@ namespace Grimhand.Presentation.Battle
             if (statusFx != null)
                 yield return target.PlayOverlayEffect(statusFx);
 
+            GameAudioService.Instance.PlayBattleStatusEffect(e.TargetId);
             yield return target.PlayHitReaction(e.Amount, useHitPose: false);
             ApplySnapshotAfterDamage(e.CombatantId, e.Amount);
             ApplyEventDisplayCheckpoint(e);
@@ -354,6 +380,7 @@ namespace Grimhand.Presentation.Battle
             if (statusFx != null)
                 yield return target.PlayOverlayEffect(statusFx);
 
+            GameAudioService.Instance.PlayBattleStatusEffect(e.TargetId);
             _session.PresentationSnapshot?.ApplyFootStatusApplied(e.CombatantId, e.TargetId, e.Amount);
             ApplyEventDisplayCheckpoint(e);
         }
@@ -379,6 +406,7 @@ namespace Grimhand.Presentation.Battle
                 yield break;
 
             yield return PlayHealEffect(healed, e.IsLifesteal);
+            GameAudioService.Instance.PlayBattleHealing();
             ApplySnapshotAfterHeal(e.CombatantId, e.Amount);
             healed.ShowHealNumber(e.Amount);
             ApplyEventDisplayCheckpoint(e);
@@ -404,6 +432,7 @@ namespace Grimhand.Presentation.Battle
                 && IsCombatantPresentationActive(e.CombatantId)
                 && _portraits.TryGetValue(e.CombatantId, out var target))
             {
+                GameAudioService.Instance.PlayBattleGainArmor();
                 yield return PlayBlockGainOverlay(target);
             }
 
@@ -515,6 +544,7 @@ namespace Grimhand.Presentation.Battle
 
             if (useDefensePose)
             {
+                GameAudioService.Instance.PlayBattleBlocking();
                 var blockingSprite = _effects?.Blocking;
                 if (blockingSprite != null)
                     target.StartCoroutine(target.PlayOverlayEffect(blockingSprite));
@@ -523,12 +553,16 @@ namespace Grimhand.Presentation.Battle
 
             if (blocked)
             {
+                GameAudioService.Instance.PlayBattleHit(absorbedByArmor: true);
                 ApplySnapshotAfterBlockConsumed(e.TargetId, e.BlockedAmount);
                 target.ShowBlockAbsorbedNumber(e.BlockedAmount);
             }
 
             if (hpDamage > 0)
             {
+                if (!blocked)
+                    GameAudioService.Instance.PlayBattleHit(absorbedByArmor: false);
+
                 if (useDefensePose)
                 {
                     target.ShowHpDamageNumber(hpDamage);

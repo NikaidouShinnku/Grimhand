@@ -4,6 +4,7 @@ using Grimhand.Battle.Model;
 using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
+using Grimhand.Presentation.Audio;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -504,6 +505,7 @@ namespace Grimhand.Presentation.Camp
 
             var btn = go.AddComponent<Button>();
             btn.targetGraphic = go.GetComponent<Image>();
+            UiAudioHooks.WireButton(btn);
 
             var portrait = CampUiRuntime.CreateImage("Portrait", go.transform, Color.white);
             portrait.preserveAspect = true;

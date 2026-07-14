@@ -39,6 +39,11 @@ MonoBehaviour:
   - {fileID: -7619838892229133767, guid: c1a8b4b2c884f314a83a5a74d9c12a0f, type: 3}
   - {fileID: -8782951037924688522, guid: c1a8b4b2c884f314a83a5a74d9c12a0f, type: 3}
   - {fileID: -351546187692099805, guid: c1a8b4b2c884f314a83a5a74d9c12a0f, type: 3}
+  EscMenuButtons:
+  - {fileID: 3287953928545913489, guid: 8eea5bbb263a8ff4aa420f493afa4e49, type: 3}
+  - {fileID: -877356653649752842, guid: 8eea5bbb263a8ff4aa420f493afa4e49, type: 3}
+  - {fileID: 3626979959010494828, guid: 8eea5bbb263a8ff4aa420f493afa4e49, type: 3}
+  - {fileID: -2851821248087912490, guid: 8eea5bbb263a8ff4aa420f493afa4e49, type: 3}
   TalentAltarBuilding: {fileID: -7883540776455437975, guid: 25365cd805f3d9845a027898103047dd, type: 3}
   TalentRunePlate: {fileID: 3640283115439223827, guid: 24a2f5fd444af0844b332a37a382e580, type: 3}
   TreasureChestClosed: {fileID: -7219296677170973702, guid: a869e9d4f75b44e40bd0a5bba6b0122e, type: 3}

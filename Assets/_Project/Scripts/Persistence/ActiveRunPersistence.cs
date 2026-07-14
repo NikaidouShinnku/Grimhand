@@ -1,4 +1,5 @@
 using Grimhand.Expedition;
+using Grimhand.Expedition.Model;
 
 namespace Grimhand.Persistence
 {
@@ -23,6 +24,33 @@ namespace Grimhand.Persistence
         }
 
         public static void Clear(PlayerProfileState profile) => profile.ActiveRun = null;
+
+        /// <summary>
+        /// 主菜单放弃未完成远征：结算局外经验（层数×5）并同步尚未入账的局外黄金，然后清除远征存档。
+        /// </summary>
+        public static bool TryAbandonAndSettle(
+            PlayerProfileState profile,
+            CampMetaState meta,
+            ExpeditionConfig config)
+        {
+            if (profile == null || !profile.HasActiveRun)
+                return false;
+
+            ExpeditionRunState run = null;
+            if (config != null
+                && ExpeditionRunSaveCodec.TryDeserialize(
+                    profile.ActiveRun.RunJson,
+                    config,
+                    out run,
+                    out _))
+            {
+                MetaEconomySync.SyncMetaGoldFromRun(profile, run);
+                RunSettlementRules.ApplyRunEndMetaRewards(run, meta ?? profile.Meta);
+            }
+
+            Clear(profile);
+            return true;
+        }
 
         static ActiveRunSnapshot CreateSnapshot(ExpeditionEngine engine, int mapStartLayer) =>
             new()

@@ -1,3 +1,4 @@
+using Grimhand.Battle.Model;
 using Grimhand.Expedition.Model;
 
 namespace Grimhand.Expedition
@@ -14,6 +15,18 @@ namespace Grimhand.Expedition
         /// <summary>收藏超出上限时禁止继续开包。</summary>
         public static bool BlocksShopCardPack(CampCollectionState collection, int capacity) =>
             IsOverCapacity(collection, capacity);
+
+        /// <summary>白20 / 绿50 / 蓝100 / 紫300 / 橙1000。</summary>
+        public static int GetSellGold(CardRarity rarity) =>
+            rarity switch
+            {
+                CardRarity.Common => 20,
+                CardRarity.Rare => 50,
+                CardRarity.SuperRare => 100,
+                CardRarity.Epic => 300,
+                CardRarity.Legendary => 1000,
+                _ => 20
+            };
 
         public static bool TryRemoveCollectionEntry(
             CampCollectionState collection,
@@ -40,6 +53,23 @@ namespace Grimhand.Expedition
             }
 
             message = "已从收藏中永久移除。";
+            return true;
+        }
+
+        public static bool TrySellCollectionEntry(
+            CampCollectionState collection,
+            int entryIndex,
+            CardRarity rarity,
+            out int goldGained,
+            out string message)
+        {
+            goldGained = 0;
+            message = "";
+            if (!TryRemoveCollectionEntry(collection, entryIndex, out message))
+                return false;
+
+            goldGained = GetSellGold(rarity);
+            message = $"已出售，获得 {goldGained} 黄金。";
             return true;
         }
     }

@@ -6,6 +6,7 @@ using Grimhand.Battle.Rules;
 using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
+using Grimhand.Presentation.Audio;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -120,6 +121,14 @@ namespace Grimhand.Presentation.Battle
             skipButton.onClick.AddListener(() => _session?.SkipTurn());
             restartButton.onClick.AddListener(() => _session?.RestartRunOrBattle());
             runRestartButton.onClick.AddListener(() => _session?.ReturnToCampOrRestart());
+            if (confirmButton != null)
+                UiAudioHooks.WireButton(confirmButton);
+            if (skipButton != null)
+                UiAudioHooks.WireButton(skipButton);
+            if (restartButton != null)
+                UiAudioHooks.WireButton(restartButton);
+            if (runRestartButton != null)
+                UiAudioHooks.WireButton(runRestartButton);
 
             foreach (var slot in playerSlots)
             {
@@ -868,7 +877,15 @@ namespace Grimhand.Presentation.Battle
         {
             var willOpen = _inventoryPanel == null || !_inventoryPanel.IsOpen;
             if (willOpen)
+            {
                 CloseOtherOverlays(_inventoryPanel);
+                GameAudioService.Instance.PlayUiInventoryOpen();
+            }
+            else
+            {
+                GameAudioService.Instance.PlayUiInventoryClose();
+            }
+
             _inventoryPanel?.Toggle();
             var open = _inventoryPanel != null && _inventoryPanel.IsOpen;
             if (open)
@@ -1440,6 +1457,7 @@ namespace Grimhand.Presentation.Battle
             var bg = ExpeditionPathArt.ResolveBackground(_uiIcons, layer);
             _backgroundView?.EnsureBuilt(transform, bg ?? _uiIcons?.CaveBackground);
             _backgroundView?.SetVisible(expedition);
+            UpdateExpeditionAudio(expedition, layer);
 
             if (_postBattleOverlay == null)
                 return;
@@ -1457,6 +1475,27 @@ namespace Grimhand.Presentation.Battle
             }
 
             _postBattleOverlay.Refresh();
+        }
+
+        void UpdateExpeditionAudio(bool expedition, int layer)
+        {
+            var audio = GameAudioService.Instance;
+            var inBattle = expedition
+                           && _session.Expedition?.Run != null
+                           && _session.Expedition.Run.Phase == ExpeditionPhase.InBattle;
+            var sandboxBattle = !expedition && _session.Engine?.State != null;
+
+            if (!expedition)
+            {
+                if (sandboxBattle)
+                    audio.PlayBattleBgm();
+                return;
+            }
+
+            if (inBattle)
+                audio.PlayBattleBgm();
+            else
+                audio.PlayMapBgm(Mathf.Max(1, layer));
         }
 
         void RefreshExpeditionOverlay()

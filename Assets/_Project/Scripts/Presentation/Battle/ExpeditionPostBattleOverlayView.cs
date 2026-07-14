@@ -5,6 +5,7 @@ using Grimhand.Battle.Model;
 using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
+using Grimhand.Presentation.Audio;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -352,6 +353,7 @@ namespace Grimhand.Presentation.Battle
             if (_session?.Expedition?.Run != null)
                 _session.Expedition.Run.ChestRewardRevealed = true;
             ShowChestOpenArt();
+            GameAudioService.Instance.PlayUiChestOpen();
 
             if (_chestClosedLayer != null)
                 _chestClosedLayer.gameObject.SetActive(false);
@@ -425,7 +427,11 @@ namespace Grimhand.Presentation.Battle
                     spacing,
                     BuildGoldLabel(rewards.Gold),
                     _icons?.GoldIcon,
-                    () => _session.ClaimRewardGold());
+                    () =>
+                    {
+                        GameAudioService.Instance.PlayUiGoldAcquire();
+                        _session.ClaimRewardGold();
+                    });
             }
 
             if (rewards.HasRelic && !rewards.RelicClaimed && !rewards.RelicSkipped)
@@ -437,7 +443,11 @@ namespace Grimhand.Presentation.Battle
                     spacing,
                     relic,
                     rewards.RelicId,
-                    () => _session.ClaimRewardRelic());
+                    () =>
+                    {
+                        GameAudioService.Instance.PlayUiRelicsAcquire();
+                        _session.ClaimRewardRelic();
+                    });
             }
 
             if (rewards.HasCard && !rewards.CardClaimed && !rewards.CardSkipped)
@@ -452,7 +462,11 @@ namespace Grimhand.Presentation.Battle
                     rewards.CardOwnerCharacterId,
                     rewards.CardDisplayName,
                     definition,
-                    () => _session.ClaimRewardCard());
+                    () =>
+                    {
+                        GameAudioService.Instance.PlayUiCardAcquire();
+                        _session.ClaimRewardCard();
+                    });
             }
 
             for (var packIndex = 0; packIndex < rewards.CardPacks.Count; packIndex++)
@@ -467,7 +481,11 @@ namespace Grimhand.Presentation.Battle
                     ref x,
                     spacing,
                     pack.PackId,
-                    () => _session.OpenRewardCardPack(localIndex));
+                    () =>
+                    {
+                        GameAudioService.Instance.PlayUiCardPackOpen();
+                        _session.OpenRewardCardPack(localIndex);
+                    });
             }
 
             if (rewards.HasConsumable && !rewards.ConsumableClaimed && !rewards.ConsumableSkipped)
@@ -480,7 +498,11 @@ namespace Grimhand.Presentation.Battle
                     consumable,
                     rewards.ConsumableId,
                     rewards.ConsumableCount,
-                    () => _session.ClaimRewardConsumable());
+                    () =>
+                    {
+                        GameAudioService.Instance.PlayUiConsumableAcquire();
+                        _session.ClaimRewardConsumable();
+                    });
             }
 
             if (rewards.HasStatBonus && !rewards.StatClaimed && !rewards.StatSkipped)

@@ -3,6 +3,7 @@ using Grimhand.Battle.Model;
 using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
+using Grimhand.Presentation.Audio;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -465,6 +466,7 @@ namespace Grimhand.Presentation.Battle
             };
             ui.Button.targetGraphic = go;
             ui.Button.onClick.AddListener(() => onClick?.Invoke());
+            UiAudioHooks.WireButton(ui.Button);
             SetRestOptionUiState(ref ui, canBuy, detail);
             return ui;
         }
@@ -975,6 +977,7 @@ namespace Grimhand.Presentation.Battle
                 onClick?.Invoke();
                 Refresh();
             });
+            UiAudioHooks.WireButton(btn);
         }
 
         void AddXpBadge(RectTransform parent, int amount, float minY, float maxY)
@@ -1077,6 +1080,7 @@ namespace Grimhand.Presentation.Battle
             btn.targetGraphic = go;
             btn.interactable = canBuy;
             btn.onClick.AddListener(() => onClick?.Invoke());
+            UiAudioHooks.WireButton(btn);
         }
 
         void CreateMemberTab(PartyMemberSnapshot member, bool active, System.Action onClick)
@@ -1088,6 +1092,7 @@ namespace Grimhand.Presentation.Battle
             var btn = go.gameObject.AddComponent<Button>();
             btn.targetGraphic = go;
             btn.onClick.AddListener(() => onClick?.Invoke());
+            UiAudioHooks.WireButton(btn);
             var label = CreateStaticText(go.transform, member.DisplayName, 22, FontStyle.Bold, TextAnchor.MiddleCenter);
             StretchFull(label.rectTransform);
             label.color = TextMain;
@@ -1099,6 +1104,7 @@ namespace Grimhand.Presentation.Battle
             var btn = holder.gameObject.AddComponent<Button>();
             btn.targetGraphic = holder;
             btn.onClick.AddListener(() => onClick?.Invoke());
+            UiAudioHooks.WireButton(btn);
             SpawnCardVisual(holder.transform, template, ownerId, UpgradeCardScale);
         }
 
@@ -1110,6 +1116,7 @@ namespace Grimhand.Presentation.Battle
                 var btn = holder.gameObject.AddComponent<Button>();
                 btn.targetGraphic = holder;
                 btn.onClick.AddListener(() => onClick.Invoke());
+                UiAudioHooks.WireButton(btn);
             }
 
             SpawnCardVisual(holder.transform, template, ownerId, SummonCardScale);
@@ -1609,6 +1616,7 @@ namespace Grimhand.Presentation.Battle
             btn.targetGraphic = go;
             btn.interactable = interactable;
             btn.onClick.AddListener(() => onClick?.Invoke());
+            UiAudioHooks.WireButton(btn);
             return btn;
         }
 

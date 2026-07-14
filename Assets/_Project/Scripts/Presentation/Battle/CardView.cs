@@ -4,6 +4,7 @@ using Grimhand.Battle.Model;
 using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Presentation;
+using Grimhand.Presentation.Audio;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -108,6 +109,13 @@ namespace Grimhand.Presentation.Battle
             _onHoverExit = onHoverExit;
             _statsBaseLine = statsLine ?? "";
             _isQuickStart = card != null && card.Keywords != null && card.Keywords.Contains("quick_start");
+
+            if (button != null)
+            {
+                button.onClick.RemoveAllListeners();
+                button.onClick.AddListener(HandlePrimaryClick);
+                button.interactable = interactable;
+            }
 
             if (frameImage != null)
             {
@@ -619,8 +627,15 @@ namespace Grimhand.Presentation.Battle
             if (button != null)
                 return;
 
+            HandlePrimaryClick();
+        }
+
+        void HandlePrimaryClick()
+        {
             if (!IsInteractable())
                 return;
+
+            GameAudioService.Instance.PlayBattleCardSelect();
 
             if (_isQuickStart && _onQuickStart != null)
                 _onQuickStart?.Invoke(_instanceId);
@@ -637,6 +652,7 @@ namespace Grimhand.Presentation.Battle
 
             _hovered = true;
             ApplyVisualState();
+            GameAudioService.Instance.PlayBattleCardHover();
 
             if (CurrentCard != null)
                 _onHoverEnter?.Invoke(CurrentCard, transform as RectTransform);

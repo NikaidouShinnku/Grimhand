@@ -5,6 +5,7 @@ using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 using Grimhand.Expedition.Shop;
+using Grimhand.Presentation.Audio;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -40,6 +41,7 @@ namespace Grimhand.Presentation.Battle
         Button _leaveButton;
         InventoryTooltipView _tooltip;
         bool _built;
+        bool _wasVisible;
 
         public void Initialize(
             BattleSession session,
@@ -73,6 +75,9 @@ namespace Grimhand.Presentation.Battle
 
             var show = _session.Expedition.Run.Phase == ExpeditionPhase.ShopVisit
                        && _session.Expedition.Run.PendingCardPackOffer == null;
+            if (show && !_wasVisible)
+                GameAudioService.Instance.PlayUiShopEnter();
+            _wasVisible = show;
             SetVisible(show);
             if (!show)
                 return;
@@ -174,7 +179,15 @@ namespace Grimhand.Presentation.Battle
                          && _session.Expedition.Run.PendingCardOffer == null;
             btn.interactable = canBuy;
             var slotIndex = index;
-            btn.onClick.AddListener(() => _session.BuyShopOffer(slotIndex));
+            var offerKind = offer.Kind;
+            btn.onClick.AddListener(() =>
+            {
+                if (!_session.BuyShopOffer(slotIndex))
+                    return;
+
+                PlayShopPurchaseSfx(offerKind);
+            });
+            UiAudioHooks.WireButton(btn);
 
             if (!canBuy)
             {
@@ -183,6 +196,22 @@ namespace Grimhand.Presentation.Battle
             }
 
             BindOfferTooltip(slotGo, offer);
+        }
+
+        static void PlayShopPurchaseSfx(ShopOfferKind kind)
+        {
+            switch (kind)
+            {
+                case ShopOfferKind.CardPack:
+                    GameAudioService.Instance.PlayUiCardPackOpen();
+                    break;
+                case ShopOfferKind.Relic:
+                    GameAudioService.Instance.PlayUiRelicsAcquire();
+                    break;
+                default:
+                    GameAudioService.Instance.PlayUiConsumableAcquire();
+                    break;
+            }
         }
 
         void BindOfferTooltip(GameObject slotGo, ShopOffer offer)
@@ -348,11 +377,13 @@ namespace Grimhand.Presentation.Battle
 
             _leaveButton = CreateFooterButton(panelGo.transform, "Leave", new Vector2(-320f, 36f), "离开", null);
             _leaveButton.onClick.AddListener(() => _session.LeaveShop());
+            UiAudioHooks.WireButton(_leaveButton);
 
             _refreshButton = CreateFooterButton(panelGo.transform, "Refresh", new Vector2(320f, 36f), "", _icons?.ShopRefreshIcon);
             _refreshLabel = CreateText(_refreshButton.transform, "Label", new Vector2(0.42f, 0.1f), new Vector2(0.94f, 0.9f), 22,
                 TextAnchor.MiddleLeft);
             _refreshButton.onClick.AddListener(() => _session.RefreshShop());
+            UiAudioHooks.WireButton(_refreshButton);
 
             overlayGo.SetActive(false);
 

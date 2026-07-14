@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Grimhand.Content;
 using Grimhand.Expedition.Model;
 using Grimhand.Persistence;
+using Grimhand.Presentation.Audio;
 using UnityEngine;
 
 namespace Grimhand.Presentation.Battle
@@ -14,6 +15,7 @@ namespace Grimhand.Presentation.Battle
         [SerializeField] CharacterVisualCatalogSO characterVisualCatalog;
         [SerializeField] BattleActionEffectCatalogSO actionEffectCatalog;
         [SerializeField] BattleUiIconCatalogSO uiIconCatalog;
+        [SerializeField] AudioCatalogSO audioCatalog;
         [SerializeField] RelicVisualCatalogSO relicVisualCatalog;
         [SerializeField] ConsumableVisualCatalogSO consumableVisualCatalog;
         [SerializeField] BattleScreenView screenView;
@@ -100,6 +102,17 @@ namespace Grimhand.Presentation.Battle
                 relicVisualCatalog = UnityEditor.AssetDatabase.LoadAssetAtPath<RelicVisualCatalogSO>(
                     dataRoot + "/RelicVisualCatalog_Demo.asset");
             }
+
+            if (audioCatalog == null)
+            {
+                audioCatalog = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioCatalogSO>(
+                    "Assets/_Project/Resources/AudioCatalog_Demo.asset");
+                if (audioCatalog == null)
+                {
+                    audioCatalog = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioCatalogSO>(
+                        dataRoot + "/AudioCatalog_Demo.asset");
+                }
+            }
 #endif
         }
 
@@ -115,6 +128,7 @@ namespace Grimhand.Presentation.Battle
         public void PrepareSession(bool startExpedition)
         {
             EnsureCatalogReferences();
+            GameAudioService.Ensure(audioCatalog);
 
             if (screenView == null)
             {

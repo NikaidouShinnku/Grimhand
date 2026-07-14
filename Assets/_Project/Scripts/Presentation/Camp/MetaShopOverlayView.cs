@@ -7,6 +7,7 @@ using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 using Grimhand.Persistence;
 using Grimhand.Presentation.Battle;
+using Grimhand.Presentation.Audio;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -231,6 +232,7 @@ namespace Grimhand.Presentation.Camp
 
             _profile.AccountGold = accountGold;
             _messageText.text = message;
+            GameAudioService.Instance.PlayUiCardPackOpen();
             _onProfileChanged?.Invoke();
             RefreshPickPanel();
         }
@@ -302,6 +304,7 @@ namespace Grimhand.Presentation.Camp
 
             _messageText.text = message;
             _pendingPack = null;
+            GameAudioService.Instance.PlayUiCardAcquire();
             _onProfileChanged?.Invoke();
             RefreshShopPanel();
             RefreshPickPanel();
@@ -369,8 +372,6 @@ namespace Grimhand.Presentation.Camp
 
             _overlayRoot = CampUiRuntime.CreateRect("MetaShopOverlay", transform).GetComponent<RectTransform>();
             CampUiRuntime.StretchFull(_overlayRoot);
-            var dim = _overlayRoot.gameObject.AddComponent<Image>();
-            dim.color = new Color(0f, 0f, 0f, 0.62f);
 
             BuildShopPanel();
             BuildPickPanel();
@@ -383,7 +384,7 @@ namespace Grimhand.Presentation.Camp
         void BuildShopPanel()
         {
             _shopPanel = CampUiRuntime.CreateRect("ShopPanel", _overlayRoot).GetComponent<RectTransform>();
-            CampUiRuntime.SetAnchored(_shopPanel, 0.06f, 0.04f, 0.94f, 0.96f);
+            CampUiRuntime.StretchFull(_shopPanel);
             var panelBg = _shopPanel.gameObject.AddComponent<Image>();
             ApplyPanelBackground(panelBg);
             panelBg.raycastTarget = true;

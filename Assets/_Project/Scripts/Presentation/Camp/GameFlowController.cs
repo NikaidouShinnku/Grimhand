@@ -3,8 +3,10 @@ using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 using Grimhand.Persistence;
+using Grimhand.Presentation.Audio;
 using Grimhand.Presentation.Battle;
 using UnityEngine;
+using UnityEngine.InputSystem;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -17,6 +19,7 @@ namespace Grimhand.Presentation.Camp
     {
         [SerializeField] BattleScreenController battleController;
         [SerializeField] GameMenuView gameMenu;
+        [SerializeField] ExpeditionEscMenuView escMenu;
         [SerializeField] GameSettingsOverlayView settingsOverlay;
         [SerializeField] CampScreenView campScreen;
         [SerializeField] ChampionCampOverlayView championCamp;
@@ -43,7 +46,9 @@ namespace Grimhand.Presentation.Camp
         void Start()
         {
             EnsureReferences();
+            InitializeAudio();
             GameSettings.ApplyAudioVolumes();
+            GameSettings.ApplyDisplaySettings();
 
             if (battleController == null)
             {
@@ -78,7 +83,20 @@ namespace Grimhand.Presentation.Camp
             var uiIcons = battleController.UiIconCatalog;
 
             gameMenu?.ConfigureArt(uiIcons);
-            gameMenu?.Initialize(EnterCampFromMenu, ContinueExpedition, OpenSettings, QuitGame, uiIcons);
+            escMenu?.ConfigureArt(uiIcons);
+            gameMenu?.Initialize(
+                EnterCampFromMenu,
+                AbandonActiveRunAndEnterCamp,
+                ContinueExpedition,
+                OpenSettings,
+                QuitGame,
+                uiIcons);
+            escMenu?.Initialize(
+                CloseEscMenu,
+                OpenSettings,
+                ForfeitExpeditionFromEsc,
+                QuitGame,
+                uiIcons);
             settingsOverlay?.Initialize(CloseSettings);
 
             campScreen?.ConfigureArt(uiIcons);
@@ -93,6 +111,7 @@ namespace Grimhand.Presentation.Camp
                 _definitions,
                 OnRosterSaved,
                 OnCollectionSaved,
+                OnAccountGoldChanged,
                 OnOverlayClosed);
             talentCamp?.Initialize(
                 battleSetup,
@@ -136,17 +155,42 @@ namespace Grimhand.Presentation.Camp
             metaShop?.Hide();
             settingsOverlay?.Hide();
             battleController.SetBattleScreenVisible(false);
+            GameAudioService.Instance.PlayCampBgm();
+            escMenu?.Hide();
             gameMenu?.Show(_profile.HasActiveRun);
         }
 
         void EnterCampFromMenu()
         {
             gameMenu?.Hide();
+            escMenu?.Hide();
             ShowCamp();
+        }
+
+        void AbandonActiveRunAndEnterCamp()
+        {
+            if (_profile != null && _profile.HasActiveRun)
+            {
+                var mapStart = _profile.ActiveRun.MapStartLayer > 0
+                    ? _profile.ActiveRun.MapStartLayer
+                    : 1;
+                var config = battleController?.Session?.BuildExpeditionConfig(mapStart);
+                ActiveRunPersistence.TryAbandonAndSettle(_profile, _meta, config);
+                SaveProfile();
+            }
+
+            _trackingExpedition = false;
+            _runEndHandled = false;
+            _lastCheckpointPhase = null;
+            gameMenu?.Hide();
+            ShowCamp();
+            campScreen?.RefreshAccountGold(_profile.AccountGold);
+            campScreen?.ShowToast("已放弃上次远征并完成结算。");
         }
 
         void ShowCamp()
         {
+            escMenu?.Hide();
             campScreen?.Show(_profile.AccountGold);
             championCamp?.Hide();
             talentCamp?.Hide();
@@ -154,11 +198,13 @@ namespace Grimhand.Presentation.Camp
             metaShop?.Hide();
             settingsOverlay?.Hide();
             battleController.SetBattleScreenVisible(false);
+            GameAudioService.Instance.PlayCampBgm();
         }
 
         void ReturnToCampFromRunEnd()
         {
             _trackingExpedition = false;
+            escMenu?.Hide();
             battleController.SetBattleScreenVisible(false);
             ShowCamp();
             campScreen?.RefreshAccountGold(_profile.AccountGold);
@@ -167,6 +213,7 @@ namespace Grimhand.Presentation.Camp
         void ShowBattle()
         {
             gameMenu?.Hide();
+            escMenu?.Hide();
             campScreen?.Hide();
             championCamp?.Hide();
             talentCamp?.Hide();
@@ -178,15 +225,61 @@ namespace Grimhand.Presentation.Camp
 
         void OpenSettings()
         {
-            settingsOverlay?.Show();
+            if (settingsOverlay == null)
+            {
+                Debug.LogWarning("[GameFlow] Settings overlay missing。");
+                return;
+            }
+
+            settingsOverlay.Show();
         }
 
         void CloseSettings()
         {
+            if (escMenu != null && escMenu.IsOpen)
+                return;
+
             if (campScreen != null && campScreen.gameObject.activeSelf)
                 return;
 
+            if (IsBattleUiVisible())
+                return;
+
             gameMenu?.Show(_profile.HasActiveRun);
+        }
+
+        void CloseEscMenu()
+        {
+            escMenu?.Hide();
+        }
+
+        void ForfeitExpeditionFromEsc()
+        {
+            settingsOverlay?.Hide();
+            escMenu?.Hide();
+
+            var liveRun = battleController?.Session?.Expedition?.Run;
+            if (_trackingExpedition && liveRun != null)
+            {
+                FinalizeExpeditionRun(liveRun);
+            }
+            else if (_profile != null && _profile.HasActiveRun)
+            {
+                var mapStart = _profile.ActiveRun.MapStartLayer > 0
+                    ? _profile.ActiveRun.MapStartLayer
+                    : 1;
+                var config = battleController?.Session?.BuildExpeditionConfig(mapStart);
+                ActiveRunPersistence.TryAbandonAndSettle(_profile, _meta, config);
+                SaveProfile();
+            }
+
+            _trackingExpedition = false;
+            _runEndHandled = true;
+            _lastCheckpointPhase = null;
+            battleController.SetBattleScreenVisible(false);
+            ShowCamp();
+            campScreen?.RefreshAccountGold(_profile.AccountGold);
+            campScreen?.ShowToast("已放弃远征并完成结算。");
         }
 
         void QuitGame()
@@ -197,6 +290,62 @@ namespace Grimhand.Presentation.Camp
 #else
             Application.Quit();
 #endif
+        }
+
+        void Update()
+        {
+            var keyboard = Keyboard.current;
+            if (keyboard == null || !keyboard.escapeKey.wasPressedThisFrame)
+                return;
+
+            HandleEscapePressed();
+        }
+
+        void HandleEscapePressed()
+        {
+            if (settingsOverlay != null && settingsOverlay.IsOpen)
+            {
+                settingsOverlay.Hide();
+                return;
+            }
+
+            if (escMenu != null && escMenu.IsOpen)
+            {
+                if (escMenu.IsForfeitConfirmOpen)
+                    escMenu.HideForfeitConfirm();
+                else
+                    escMenu.Hide();
+                return;
+            }
+
+            if (!CanOpenEscMenu())
+                return;
+
+            OpenEscMenu();
+        }
+
+        bool CanOpenEscMenu() =>
+            _trackingExpedition && battleController != null && IsBattleUiVisible();
+
+        bool IsBattleUiVisible()
+        {
+            var screen = FindAnyObjectByType<BattleScreenView>(FindObjectsInactive.Include);
+            return screen != null && screen.gameObject.activeInHierarchy;
+        }
+
+        void OpenEscMenu()
+        {
+            EnsureReferences();
+            if (escMenu == null)
+            {
+                Debug.LogWarning("[GameFlow] Esc menu missing。");
+                return;
+            }
+
+            var uiIcons = battleController?.UiIconCatalog;
+            var layer = battleController?.Session?.Expedition?.Run?.Map?.NodesCompleted + 1 ?? 1;
+            var bg = ExpeditionPathArt.ResolveBackground(uiIcons, layer);
+            escMenu.Show(bg ?? uiIcons?.CaveBackground);
         }
 
         void ContinueExpedition()
@@ -256,6 +405,7 @@ namespace Grimhand.Presentation.Camp
 
             campScreen?.Hide();
             metaShop.Show(_profile);
+            GameAudioService.Instance.PlayUiShopEnter();
         }
 
         void OnShopProfileChanged()
@@ -289,6 +439,9 @@ namespace Grimhand.Presentation.Camp
             if (settingsOverlay != null && settingsOverlay.IsOpen)
                 return;
 
+            if (escMenu != null && escMenu.IsOpen)
+                return;
+
             campScreen?.Show(_profile.AccountGold);
         }
 
@@ -305,6 +458,13 @@ namespace Grimhand.Presentation.Camp
             _collection = collection;
             _profile.Collection = collection;
             SaveProfile();
+        }
+
+        void OnAccountGoldChanged(int accountGold)
+        {
+            _profile.AccountGold = accountGold;
+            SaveProfile();
+            campScreen?.RefreshAccountGold(accountGold);
         }
 
         void OnMetaSaved(CampMetaState meta)
@@ -441,6 +601,9 @@ namespace Grimhand.Presentation.Camp
             if (gameMenu == null)
                 gameMenu = FindAnyObjectByType<GameMenuView>(FindObjectsInactive.Include);
 
+            if (escMenu == null)
+                escMenu = FindAnyObjectByType<ExpeditionEscMenuView>(FindObjectsInactive.Include);
+
             if (settingsOverlay == null)
                 settingsOverlay = FindAnyObjectByType<GameSettingsOverlayView>(FindObjectsInactive.Include);
 
@@ -453,6 +616,10 @@ namespace Grimhand.Presentation.Camp
 
             if (gameMenu == null && canvasRoot != null)
                 gameMenu = CampOverlayBootstrap.EnsureOverlay<GameMenuView>(canvasRoot, "GameMenu");
+
+            if (escMenu == null && canvasRoot != null)
+                escMenu = CampOverlayBootstrap.EnsureOverlay<ExpeditionEscMenuView>(
+                    canvasRoot, "ExpeditionEscMenu");
 
             if (settingsOverlay == null && canvasRoot != null)
                 settingsOverlay = CampOverlayBootstrap.EnsureOverlay<GameSettingsOverlayView>(
@@ -475,6 +642,19 @@ namespace Grimhand.Presentation.Camp
 
             if (metaShop == null)
                 metaShop = FindAnyObjectByType<MetaShopOverlayView>(FindObjectsInactive.Include);
+        }
+
+        void InitializeAudio()
+        {
+            AudioCatalogSO catalog = null;
+#if UNITY_EDITOR
+            catalog = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioCatalogSO>(
+                "Assets/_Project/Resources/AudioCatalog_Demo.asset");
+#endif
+            if (catalog == null)
+                catalog = Resources.Load<AudioCatalogSO>("AudioCatalog_Demo");
+
+            GameAudioService.Ensure(catalog);
         }
     }
 }

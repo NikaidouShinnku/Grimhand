@@ -4,6 +4,7 @@ using Grimhand.Battle.Model;
 using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
+using Grimhand.Presentation.Audio;
 using Grimhand.Presentation.Battle;
 using UnityEngine;
 using UnityEngine.UI;
@@ -36,6 +37,7 @@ namespace Grimhand.Presentation.Camp
         int _collectionCapacity;
         Action<CampRosterState> _onRosterChanged;
         Action<CampCollectionState> _onCollectionChanged;
+        Action<int> _onAccountGoldChanged;
         Action _onClose;
 
         RectTransform _overlayRoot;
@@ -71,6 +73,7 @@ namespace Grimhand.Presentation.Camp
             Dictionary<string, CardDefinitionSO> definitions,
             Action<CampRosterState> onRosterChanged,
             Action<CampCollectionState> onCollectionChanged,
+            Action<int> onAccountGoldChanged,
             Action onClose)
         {
             _battleSetup = battleSetup;
@@ -82,6 +85,7 @@ namespace Grimhand.Presentation.Camp
             _definitions = definitions ?? new Dictionary<string, CardDefinitionSO>();
             _onRosterChanged = onRosterChanged;
             _onCollectionChanged = onCollectionChanged;
+            _onAccountGoldChanged = onAccountGoldChanged;
             _onClose = onClose;
 
             _cardPool = CampRosterBuilder.BuildCardCatalog(expeditionSetup);
@@ -192,7 +196,18 @@ namespace Grimhand.Presentation.Camp
 
         void NotifyCollectionChanged()
         {
+            _onRosterChanged?.Invoke(_roster);
             _onCollectionChanged?.Invoke(_collection);
+        }
+
+        void OnCollectionCardSold(int goldGained)
+        {
+            if (goldGained <= 0)
+                return;
+
+            _accountGold += goldGained;
+            RefreshMetaSummary();
+            _onAccountGoldChanged?.Invoke(_accountGold);
         }
 
         public void Hide()
@@ -452,6 +467,7 @@ namespace Grimhand.Presentation.Camp
                 _uiIcons,
                 _definitions,
                 NotifyCollectionChanged,
+                OnCollectionCardSold,
                 ShowHub);
 
             _body.gameObject.SetActive(false);
@@ -507,7 +523,7 @@ namespace Grimhand.Presentation.Camp
                 new Color(0.18f, 0.28f, 0.42f, 0.98f),
                 ShowTeamPanel);
             CreateHubActionButton(buttonRow.transform, "管理卡牌",
-                "浏览收藏、筛选查看详情，或永久移除卡牌",
+                "浏览收藏、筛选查看详情，或出售卡牌换取黄金",
                 new Color(0.28f, 0.22f, 0.38f, 0.98f),
                 ShowCollectionPanel);
         }
@@ -530,6 +546,7 @@ namespace Grimhand.Presentation.Camp
             var btn = go.AddComponent<Button>();
             btn.targetGraphic = bgImage;
             btn.onClick.AddListener(() => onClick?.Invoke());
+            UiAudioHooks.WireButton(btn);
 
             var titleText = CampUiRuntime.CreateText(go.transform, title, 28, FontStyle.Bold, TextAnchor.UpperCenter);
             CampUiRuntime.SetAnchored(titleText.rectTransform, 0.08f, 0.58f, 0.92f, 0.88f);
@@ -646,6 +663,7 @@ namespace Grimhand.Presentation.Camp
 
             var btn = go.AddComponent<Button>();
             btn.targetGraphic = go.GetComponent<Image>();
+            UiAudioHooks.WireButton(btn);
 
             var portrait = CampUiRuntime.CreateImage("Portrait", go.transform, Color.white);
             portrait.preserveAspect = true;
@@ -842,6 +860,7 @@ namespace Grimhand.Presentation.Camp
                         _selectedDeckSlot = slotIndex;
                     Rebuild();
                 });
+                UiAudioHooks.WireButton(btn);
 
                 if (!string.IsNullOrEmpty(cardId) && _cardPrefab != null)
                 {

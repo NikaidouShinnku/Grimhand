@@ -68,6 +68,7 @@ namespace Grimhand.Editor
             EnsureOverlayHostOnTop(canvas.transform, overlayHost);
             var gameMenu = EnsureComponent<GameMenuView>(canvas.transform, "GameMenu");
             var settingsOverlay = EnsureComponent<GameSettingsOverlayView>(overlayHost, "GameSettingsOverlay");
+            var escMenu = EnsureComponent<ExpeditionEscMenuView>(overlayHost, "ExpeditionEscMenu");
             var champion = EnsureComponent<ChampionCampOverlayView>(overlayHost, "ChampionCampOverlay");
             var talent = EnsureComponent<TalentCampOverlayView>(overlayHost, "TalentCampOverlay");
             var portal = EnsureComponent<PortalOverlayView>(overlayHost, "PortalOverlay");
@@ -77,7 +78,7 @@ namespace Grimhand.Editor
                 GrimhandBattleSceneBootstrap.LoadFirstSprite(PortalBackgroundPath);
             soPortal.ApplyModifiedPropertiesWithoutUndo();
 
-            WireGameFlowController(campView, gameMenu, settingsOverlay, champion, talent, portal, metaShop);
+            WireGameFlowController(campView, gameMenu, settingsOverlay, escMenu, champion, talent, portal, metaShop);
 
             campGo.transform.SetSiblingIndex(canvas.transform.childCount - 3);
             gameMenu.transform.SetAsLastSibling();
@@ -98,6 +99,7 @@ namespace Grimhand.Editor
             CampScreenView campView,
             GameMenuView gameMenu,
             GameSettingsOverlayView settingsOverlay,
+            ExpeditionEscMenuView escMenu,
             ChampionCampOverlayView championCamp,
             TalentCampOverlayView talentCamp,
             PortalOverlayView portalOverlay,
@@ -129,6 +131,7 @@ namespace Grimhand.Editor
             var soFlow = new SerializedObject(flow);
             soFlow.FindProperty("battleController").objectReferenceValue = controller;
             soFlow.FindProperty("gameMenu").objectReferenceValue = gameMenu;
+            soFlow.FindProperty("escMenu").objectReferenceValue = escMenu;
             soFlow.FindProperty("settingsOverlay").objectReferenceValue = settingsOverlay;
             soFlow.FindProperty("campScreen").objectReferenceValue = campView;
             soFlow.FindProperty("championCamp").objectReferenceValue = championCamp;

@@ -5,6 +5,7 @@ using Grimhand.Battle.Model;
 using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
+using Grimhand.Presentation;
 using Grimhand.Presentation.Audio;
 using Grimhand.Presentation.Battle;
 using UnityEngine;
@@ -154,6 +155,7 @@ namespace Grimhand.Presentation.Camp
 
         void RebuildList()
         {
+            var scrollY = ScrollRectNavigation.CaptureVertical(_cardScroll);
             ClearDynamic();
             UpdateFilterLabels();
             if (_collection == null)
@@ -171,7 +173,7 @@ namespace Grimhand.Presentation.Camp
 
             LayoutRebuilder.ForceRebuildLayoutImmediate(_cardGrid);
             Canvas.ForceUpdateCanvases();
-            _cardScroll.verticalNormalizedPosition = 1f;
+            ScrollRectNavigation.RestoreVertical(_cardScroll, scrollY);
         }
 
         List<CollectionRow> BuildFilteredRows()

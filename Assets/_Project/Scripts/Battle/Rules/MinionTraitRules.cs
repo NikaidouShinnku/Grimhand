@@ -46,6 +46,7 @@ namespace Grimhand.Battle.Rules
                 combatant.RespondArmedThisTurn = false;
                 combatant.DodgeChanceBonus = 0f;
                 combatant.CardsResolvedThisTurn = 0;
+                combatant.FirstCardTypeThisTurn = null;
                 combatant.GargoyleStanceAttackBonus = 0;
                 combatant.GargoyleStanceDefenseBonus = 0;
 
@@ -192,6 +193,25 @@ namespace Grimhand.Battle.Rules
             if (actor.Team == TeamSide.Enemy && card.CardType == CardType.Attack)
                 state.EnemyAttackCardsPlayedThisTurn++;
 
+            // 沉睡之石：看本回合第一张牌类型 → 攻击得增伤 / 防御或状态得强固（各 25%，3 回合）。
+            if (card.DefinitionId == "m_gargoyle_sleep_stone")
+            {
+                var firstType = actor.CardsResolvedThisTurn == 0
+                    ? card.CardType
+                    : actor.FirstCardTypeThisTurn ?? card.CardType;
+
+                if (firstType == CardType.Attack)
+                {
+                    StatusRules.ApplyStatus(
+                        state, actor, StatusCatalog.AttackUpPercent, 25, 3, events);
+                }
+                else if (firstType is CardType.Defense or CardType.Status)
+                {
+                    StatusRules.ApplyStatus(
+                        state, actor, StatusCatalog.DefenseUpPercent, 25, 3, events);
+                }
+            }
+
             if (HasTrait(actor, MinionTraitCatalog.GargoyleFirstCardStance) && actor.CardsResolvedThisTurn == 0)
             {
                 if (card.CardType == CardType.Attack)
@@ -201,6 +221,9 @@ namespace Grimhand.Battle.Rules
 
                 RelicBattleRules.RefreshDerivedStats(state, actor, state.Config?.RunModifiers);
             }
+
+            if (actor.CardsResolvedThisTurn == 0)
+                actor.FirstCardTypeThisTurn = card.CardType;
 
             actor.CardsResolvedThisTurn++;
             actor.CardsResolvedCount++;

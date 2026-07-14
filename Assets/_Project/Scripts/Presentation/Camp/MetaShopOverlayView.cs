@@ -6,6 +6,7 @@ using Grimhand.Core;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 using Grimhand.Persistence;
+using Grimhand.Presentation;
 using Grimhand.Presentation.Battle;
 using Grimhand.Presentation.Audio;
 using UnityEngine;
@@ -129,12 +130,13 @@ namespace Grimhand.Presentation.Camp
             if (!showShop)
                 return;
 
+            var scrollY = ScrollRectNavigation.CaptureVertical(_offerScroll);
             ClearDynamic();
             foreach (var offer in MetaShopCatalog.DemoCardPacks)
                 BuildOfferRow(offer);
             Canvas.ForceUpdateCanvases();
             LayoutRebuilder.ForceRebuildLayoutImmediate(_offerContent);
-            _offerScroll.verticalNormalizedPosition = 1f;
+            ScrollRectNavigation.RestoreVertical(_offerScroll, scrollY);
         }
 
         void RefreshPickPanel()
@@ -206,6 +208,8 @@ namespace Grimhand.Presentation.Camp
             }
 
             _dynamicObjects.Add(rowGo);
+            ScrollRectNavigation.WireForwarding(rowGo, _offerScroll);
+            ScrollRectNavigation.WireForwarding(buyBtn.gameObject, _offerScroll);
         }
 
         void TryBuy(string packId)
@@ -388,7 +392,7 @@ namespace Grimhand.Presentation.Camp
             var panelBg = _shopPanel.gameObject.AddComponent<Image>();
             ApplyPanelBackground(panelBg);
             panelBg.raycastTarget = true;
-            panelBg.gameObject.AddComponent<ScrollRectDragForwarder>();
+            panelBg.gameObject.AddComponent<ScrollRectEventForwarder>();
 
             BuildShopScrollArea();
 
@@ -411,7 +415,7 @@ namespace Grimhand.Presentation.Camp
             _messageText.color = new Color(0.78f, 0.82f, 0.9f, 1f);
             DisableRaycast(_messageText);
 
-            var forwarder = panelBg.GetComponent<ScrollRectDragForwarder>();
+            var forwarder = panelBg.GetComponent<ScrollRectEventForwarder>();
             if (forwarder != null)
                 forwarder.Bind(_offerScroll);
 
@@ -570,18 +574,5 @@ namespace Grimhand.Presentation.Camp
         {
             return CreateGoldAmountRow(parent, amount, fontSize, out _, out _);
         }
-    }
-
-    /// <summary>将面板背景的拖拽/滚轮转发给 ScrollRect，便于在背景上滑动浏览。</summary>
-    sealed class ScrollRectDragForwarder : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IScrollHandler
-    {
-        ScrollRect _scroll;
-
-        public void Bind(ScrollRect scroll) => _scroll = scroll;
-
-        public void OnBeginDrag(PointerEventData eventData) => _scroll?.OnBeginDrag(eventData);
-        public void OnDrag(PointerEventData eventData) => _scroll?.OnDrag(eventData);
-        public void OnEndDrag(PointerEventData eventData) => _scroll?.OnEndDrag(eventData);
-        public void OnScroll(PointerEventData eventData) => _scroll?.OnScroll(eventData);
     }
 }

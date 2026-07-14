@@ -234,7 +234,10 @@ namespace Grimhand.Presentation.Battle
 
             var ok = Engine.ToggleCardSelection(instanceId);
             if (ok)
+            {
+                GameAudioService.Instance.PlayBattleCardSelect();
                 DrainEvents();
+            }
             else
                 NotifyChanged();
 
@@ -252,7 +255,10 @@ namespace Grimhand.Presentation.Battle
 
             var ok = Engine.TryResolveQuickStartCard(instanceId);
             if (ok)
+            {
+                GameAudioService.Instance.PlayBattleCardSelect();
                 DrainEvents();
+            }
             else
                 NotifyChanged();
 
@@ -395,6 +401,26 @@ namespace Grimhand.Presentation.Battle
             return true;
         }
 
+        public bool DiscardConsumableSlot(int slotIndex)
+        {
+            if (!IsExpeditionMode || Expedition == null)
+                return false;
+
+            ConsumableInventory.EnsureInitialized(Expedition.Run.ConsumableSlots);
+            if (slotIndex < 0 || slotIndex >= ConsumableInventory.MaxSlots)
+                return false;
+
+            var id = Expedition.Run.ConsumableSlots[slotIndex];
+            if (string.IsNullOrEmpty(id))
+                return false;
+
+            ConsumableDatabase.TryGet(id, out var def);
+            ConsumableInventory.RemoveAt(Expedition.Run.ConsumableSlots, slotIndex);
+            AddLog($"丢弃消耗品：{def?.DisplayName ?? id}");
+            NotifyChanged();
+            return true;
+        }
+
         public bool ReplaceConsumableSlot(int slotIndex)
         {
             if (Expedition?.TryReplaceConsumableSlot(slotIndex) != true)
@@ -421,16 +447,15 @@ namespace Grimhand.Presentation.Battle
             NotifyChanged();
         }
 
-        public bool ConfirmCardAltar()
+        public bool ConfirmCardAltar(string memberId = null)
         {
-            if (Expedition?.TryConfirmCardAltar() != true)
+            if (Expedition?.TryConfirmCardAltar(memberId) != true)
                 return false;
+
+            GameAudioService.Instance.PlayUiCardAcquire();
 
             if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
                 AddLog(Expedition.Run.LastEventMessage);
-
-            if (Expedition.Run.Phase == ExpeditionPhase.RouteSelect)
-                AddLog("请选择前进路线");
 
             NotifyChanged();
             return true;
@@ -530,6 +555,8 @@ namespace Grimhand.Presentation.Battle
             if (Expedition?.TryReplaceDeckCardForPendingOffer(deckCardKey) != true)
                 return false;
 
+            GameAudioService.Instance.PlayUiCardAcquire();
+
             if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
                 AddLog(Expedition.Run.LastEventMessage);
 
@@ -575,6 +602,8 @@ namespace Grimhand.Presentation.Battle
         {
             if (Expedition?.TryPickCardFromPack(choiceIndex) != true)
                 return false;
+
+            GameAudioService.Instance.PlayUiCardAcquire();
 
             if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))
                 AddLog(Expedition.Run.LastEventMessage);
@@ -806,6 +835,8 @@ namespace Grimhand.Presentation.Battle
             var cardName = Expedition?.Run.PendingRewardPickup?.CardDisplayName;
             if (Expedition?.TryClaimRewardCard() != true)
                 return false;
+
+            GameAudioService.Instance.PlayUiCardAcquire();
 
             if (!string.IsNullOrEmpty(Expedition.Run.PendingCardOffer?.Template?.DisplayName))
                 AddLog($"卡牌 {cardName} — 卡组已满，请选择要替换的卡牌");

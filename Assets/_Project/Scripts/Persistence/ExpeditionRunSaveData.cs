@@ -301,6 +301,7 @@ namespace Grimhand.Persistence
         public string memberId = "";
         public int collectionCardIndex = -1;
         public string replaceDeckCardKey = "";
+        public bool confirmed;
     }
 
     [Serializable]

@@ -85,6 +85,7 @@ namespace Grimhand.Expedition.Model
         public int TeamDefenseBonus { get; set; }
         public int EnergyCapBonus { get; set; }
         public int HandLimitBonus { get; set; }
+        /// <summary>祭坛「抽牌数量」升级档位（基础 5，+1×3 至 8）。</summary>
         public int DrawPerTurnBonus { get; set; }
         public int AltarHpPlus5Purchases { get; set; }
         public int AltarHpPlus10Purchases { get; set; }

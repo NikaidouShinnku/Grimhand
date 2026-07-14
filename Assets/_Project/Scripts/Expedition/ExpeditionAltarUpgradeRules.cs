@@ -24,9 +24,13 @@ namespace Grimhand.Expedition
         public static readonly int[] EnergyCapUpgradeCosts = { 100, 200 };
         public const int MaxEnergyCapUpgrades = 2;
 
-        /// <summary>手牌上限 +1×3 档 XP（Excel 手牌数升级表：50/100/200）。</summary>
+        /// <summary>抽牌数量 +1×3 档 XP（Excel：5→6/7/8，费用 50/100/200）。手牌上限固定 10。</summary>
         public static readonly int[] HandLimitUpgradeCosts = { 50, 100, 200 };
         public const int MaxHandLimitUpgrades = 3;
+
+        /// <summary>旧存档 HandLimitBonus 与 DrawPerTurnBonus 合并为抽牌升级档位。</summary>
+        public static int GetDrawCountUpgradeTier(ExpeditionRunModifiers modifiers) =>
+            (modifiers?.DrawPerTurnBonus ?? 0) + (modifiers?.HandLimitBonus ?? 0);
 
         public static bool TrySpendPool(ExpeditionRunState run, int cost)
         {
@@ -53,7 +57,7 @@ namespace Grimhand.Expedition
 
         public static int GetHandLimitUpgradeCost(ExpeditionRunModifiers modifiers)
         {
-            var tier = modifiers?.HandLimitBonus ?? 0;
+            var tier = GetDrawCountUpgradeTier(modifiers);
             return tier >= 0 && tier < HandLimitUpgradeCosts.Length
                 ? HandLimitUpgradeCosts[tier]
                 : 0;
@@ -69,7 +73,7 @@ namespace Grimhand.Expedition
             System.Math.Max(0, MaxEnergyCapUpgrades - (modifiers?.EnergyCapBonus ?? 0));
 
         public static int GetRemainingHandLimitUpgrades(ExpeditionRunModifiers modifiers) =>
-            System.Math.Max(0, MaxHandLimitUpgrades - (modifiers?.HandLimitBonus ?? 0));
+            System.Math.Max(0, MaxHandLimitUpgrades - GetDrawCountUpgradeTier(modifiers));
 
         public static bool CanUpgradeEnergyCap(ExpeditionRunModifiers modifiers) =>
             GetEnergyCapUpgradeCost(modifiers) > 0;
@@ -114,7 +118,7 @@ namespace Grimhand.Expedition
             if (!TrySpendPool(run, cost))
                 return false;
 
-            run.Modifiers.HandLimitBonus++;
+            run.Modifiers.DrawPerTurnBonus++;
             return true;
         }
 

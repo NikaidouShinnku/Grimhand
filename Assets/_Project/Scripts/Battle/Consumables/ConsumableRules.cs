@@ -3,6 +3,7 @@ using Grimhand.Battle.Effects;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
+using Grimhand.Battle.Status;
 using Grimhand.Core;
 
 namespace Grimhand.Battle.Consumables
@@ -111,14 +112,18 @@ namespace Grimhand.Battle.Consumables
                         break;
                     }
 
-                    DamageRules.ApplyHeal(state, target, definition.Value, events, healer);
+                    var healAmount = System.Math.Max(1, (int)System.Math.Round(target.MaxHp * (definition.Value / 100f)));
+                    DamageRules.ApplyHeal(state, target, healAmount, events, healer);
                     break;
                 }
                 case ConsumableEffectKind.HealTeam:
                     foreach (var ally in state.GetTeam(TeamSide.Player))
                     {
-                        if (ally.IsAlive)
-                            DamageRules.ApplyHeal(state, ally, definition.Value, events, ally);
+                        if (!ally.IsAlive)
+                            continue;
+
+                        var healAmount = System.Math.Max(1, (int)System.Math.Round(ally.MaxHp * (definition.Value / 100f)));
+                        DamageRules.ApplyHeal(state, ally, healAmount, events, ally);
                     }
 
                     break;
@@ -131,13 +136,14 @@ namespace Grimhand.Battle.Consumables
                         return false;
                     }
 
-                    target.TurnAttackBonusPercent = definition.Value;
-                    RelicBattleRules.RefreshDerivedStats(state, target, state.Config?.RunModifiers);
-                    events.Add(new BattleEvent(BattleEventKind.StatusApplied,
-                        $"{target.DisplayName} ATK+{definition.Value}%（本回合·消耗品）")
-                    {
-                        CombatantId = target.Id
-                    });
+                    // 使用关键词「增伤」状态：每层 +1% 伤害，持续 1 回合
+                    StatusRules.ApplyStatus(
+                        state,
+                        target,
+                        StatusCatalog.AttackUpPercent,
+                        definition.Value,
+                        1,
+                        events);
                     break;
                 }
                 case ConsumableEffectKind.TurnDefenseBonusPercent:
@@ -156,6 +162,18 @@ namespace Grimhand.Battle.Consumables
                     {
                         CombatantId = target.Id
                     });
+                    break;
+                }
+                case ConsumableEffectKind.GainBlock:
+                {
+                    var target = state.GetCombatant(targetCombatantId);
+                    if (target == null || !target.IsAlive)
+                    {
+                        errorMessage = "目标无效。";
+                        return false;
+                    }
+
+                    DamageRules.ApplyBlock(target, definition.Value, events, state);
                     break;
                 }
                 case ConsumableEffectKind.EnergyThisTurn:

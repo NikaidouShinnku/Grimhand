@@ -36,6 +36,8 @@ namespace Grimhand.Expedition.Model
     {
         public int CollectionCardIndex { get; set; } = -1;
         public string ReplaceDeckCardKey { get; set; } = "";
+        /// <summary>本角色本趟祭坛是否已确认取出过一张。</summary>
+        public bool Confirmed { get; set; }
         public bool HasSelection => CollectionCardIndex >= 0;
     }
 

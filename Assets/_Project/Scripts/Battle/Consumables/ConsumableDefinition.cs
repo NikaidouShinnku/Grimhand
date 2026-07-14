@@ -14,6 +14,8 @@ namespace Grimhand.Battle.Consumables
         HealTeam,
         TurnAttackBonusPercent,
         TurnDefenseBonusPercent,
+        /// <summary>给目标立即获得固定护甲。</summary>
+        GainBlock,
         EnergyThisTurn,
         DodgeAllThisTurn,
         MirrorLastAttack

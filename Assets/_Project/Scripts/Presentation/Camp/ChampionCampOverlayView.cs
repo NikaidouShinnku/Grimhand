@@ -4,6 +4,7 @@ using Grimhand.Battle.Model;
 using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
+using Grimhand.Presentation;
 using Grimhand.Presentation.Audio;
 using Grimhand.Presentation.Battle;
 using UnityEngine;
@@ -592,6 +593,7 @@ namespace Grimhand.Presentation.Camp
         void Rebuild()
         {
             _tooltip?.Hide();
+            var poolScrollY = ScrollRectNavigation.CaptureVertical(_poolScroll);
             ClearDynamic();
             RefreshMetaSummary();
             if (_roster == null)
@@ -600,7 +602,7 @@ namespace Grimhand.Presentation.Camp
             EnsureRosterSize();
             RebuildMemberRow();
             RebuildDeckSlots();
-            RebuildCardPool();
+            RebuildCardPool(poolScrollY);
             UpdateHint();
         }
 
@@ -892,13 +894,13 @@ namespace Grimhand.Presentation.Camp
             }
         }
 
-        void RebuildCardPool()
+        void RebuildCardPool(float scrollY = 1f)
         {
             var member = _roster.Members[_activeMemberIndex];
             if (_collection == null || _collection.Count == 0)
             {
                 LayoutRebuilder.ForceRebuildLayoutImmediate(_poolGrid);
-                _poolScroll.verticalNormalizedPosition = 1f;
+                ScrollRectNavigation.RestoreVertical(_poolScroll, scrollY);
                 UpdateHint();
                 return;
             }
@@ -942,12 +944,13 @@ namespace Grimhand.Presentation.Camp
                     null,
                     null);
                 BindCardTooltip(holder, preview);
+                ScrollRectNavigation.WireForwarding(holder, _poolScroll);
 
                 _dynamicObjects.Add(holder);
             }
 
             LayoutRebuilder.ForceRebuildLayoutImmediate(_poolGrid);
-            _poolScroll.verticalNormalizedPosition = 1f;
+            ScrollRectNavigation.RestoreVertical(_poolScroll, scrollY);
             UpdateHint();
         }
 

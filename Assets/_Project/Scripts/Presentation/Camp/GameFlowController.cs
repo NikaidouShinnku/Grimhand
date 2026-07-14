@@ -248,14 +248,16 @@ namespace Grimhand.Presentation.Camp
             gameMenu?.Show(_profile.HasActiveRun);
         }
 
-        void CloseEscMenu()
+            void CloseEscMenu()
         {
+            FindAnyObjectByType<BattleScreenView>(FindObjectsInactive.Include)?.SetEscUiSuppressed(false);
             escMenu?.Hide();
         }
 
         void ForfeitExpeditionFromEsc()
         {
             settingsOverlay?.Hide();
+            FindAnyObjectByType<BattleScreenView>(FindObjectsInactive.Include)?.SetEscUiSuppressed(false);
             escMenu?.Hide();
 
             var liveRun = battleController?.Session?.Expedition?.Run;
@@ -314,7 +316,10 @@ namespace Grimhand.Presentation.Camp
                 if (escMenu.IsForfeitConfirmOpen)
                     escMenu.HideForfeitConfirm();
                 else
+                {
+                    FindAnyObjectByType<BattleScreenView>(FindObjectsInactive.Include)?.SetEscUiSuppressed(false);
                     escMenu.Hide();
+                }
                 return;
             }
 
@@ -345,6 +350,7 @@ namespace Grimhand.Presentation.Camp
             var uiIcons = battleController?.UiIconCatalog;
             var layer = battleController?.Session?.Expedition?.Run?.Map?.NodesCompleted + 1 ?? 1;
             var bg = ExpeditionPathArt.ResolveBackground(uiIcons, layer);
+            FindAnyObjectByType<BattleScreenView>(FindObjectsInactive.Include)?.SetEscUiSuppressed(true);
             escMenu.Show(bg ?? uiIcons?.CaveBackground);
         }
 

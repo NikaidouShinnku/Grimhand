@@ -152,13 +152,13 @@ MonoBehaviour:
     AttackPortrait: {fileID: 5295359454719549343, guid: bc89064ee1ea8a14dba85a552906f774, type: 3}
     DefensePortrait: {fileID: 5295359454719549343, guid: bc89064ee1ea8a14dba85a552906f774, type: 3}
     HitPortrait: {fileID: 5295359454719549343, guid: bc89064ee1ea8a14dba85a552906f774, type: 3}
-    HitPortraitFacesRight: 1
+    HitPortraitFacesRight: 0
     DeathPortrait: {fileID: 5295359454719549343, guid: bc89064ee1ea8a14dba85a552906f774, type: 3}
     CardProfilePortrait: {fileID: 0}
     IdleAnimationFrames: []
     IdleAnimationGifPath: 
-    PreserveOriginalFacing: 0
-    PortraitScaleMultiplier: 1
+    PreserveOriginalFacing: 1
+    PortraitScaleMultiplier: 1.55
   - CharacterId: char_bat
     IdlePortrait: {fileID: 8788306959608117275, guid: fac730eeb53ce554fa7c8a9f88ac5bc4, type: 3}
     AttackPortrait: {fileID: 8788306959608117275, guid: fac730eeb53ce554fa7c8a9f88ac5bc4, type: 3}

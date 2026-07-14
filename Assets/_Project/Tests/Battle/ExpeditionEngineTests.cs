@@ -655,11 +655,14 @@ namespace Grimhand.Battle.Tests
             Assert.AreEqual(ExpeditionPhase.ShrineChoice, engine.Run.Phase);
 
             engine.SetCardAltarMemberDraft("char_knight", 0, "");
-            Assert.IsTrue(engine.TryConfirmCardAltar());
-            Assert.AreEqual(ExpeditionPhase.RouteSelect, engine.Run.Phase);
+            Assert.IsTrue(engine.TryConfirmCardAltar("char_knight"));
+            Assert.AreEqual(ExpeditionPhase.ShrineChoice, engine.Run.Phase);
             Assert.AreEqual(3, ExpeditionRunDeckRules.CountMemberDeck(config, engine.Run.Party[0]));
             Assert.IsTrue(engine.Run.Party[0].ExtractedCampCardIndices.Contains(0));
             Assert.IsTrue(CampCollectionProgress.IsExtracted(engine.Run, "char_knight", 0));
+            Assert.IsTrue(engine.Run.CardAltar.Drafts["char_knight"].Confirmed);
+            Assert.IsTrue(engine.TryLeaveAltar());
+            Assert.AreEqual(ExpeditionPhase.RouteSelect, engine.Run.Phase);
         }
 
         [Test]
@@ -693,7 +696,11 @@ namespace Grimhand.Battle.Tests
             engine.SetCardAltarMemberDraft("char_knight", 0, "");
             engine.SetCardAltarMemberDraft("char_mage", 0, "");
             engine.SetCardAltarMemberDraft("char_ranger", 0, "");
-            Assert.IsTrue(engine.TryConfirmCardAltar());
+            Assert.IsTrue(engine.TryConfirmCardAltar("char_knight"));
+            Assert.IsTrue(engine.TryConfirmCardAltar("char_mage"));
+            Assert.IsTrue(engine.TryConfirmCardAltar("char_ranger"));
+            Assert.AreEqual(ExpeditionPhase.ShrineChoice, engine.Run.Phase);
+            Assert.IsTrue(engine.TryLeaveAltar());
 
             foreach (var memberId in new[] { "char_knight", "char_mage", "char_ranger" })
             {
@@ -723,7 +730,8 @@ namespace Grimhand.Battle.Tests
             });
             engine.TrySelectRoute(0);
             engine.SetCardAltarMemberDraft("char_knight", 0, "");
-            engine.TryConfirmCardAltar();
+            engine.TryConfirmCardAltar("char_knight");
+            Assert.IsTrue(engine.TryLeaveAltar());
             Assert.AreEqual(3, ExpeditionRunDeckRules.CountMemberDeck(config, engine.Run.Party[0]));
 
             var state = new BattleState

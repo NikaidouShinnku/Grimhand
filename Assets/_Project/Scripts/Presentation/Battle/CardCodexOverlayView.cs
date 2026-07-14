@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
 using Grimhand.Content;
+using Grimhand.Presentation;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -74,6 +75,8 @@ namespace Grimhand.Presentation.Battle
             EnsureBuilt(transform.parent);
             _panel.gameObject.SetActive(true);
             Rebuild();
+            if (_scroll != null)
+                _scroll.verticalNormalizedPosition = 1f;
             CombatantTooltipLayer.MountToFront(_panel, transform.parent);
         }
 
@@ -162,11 +165,14 @@ namespace Grimhand.Presentation.Battle
             ForceLayoutRefresh();
         }
 
-        void ForceLayoutRefresh()
+        void ForceLayoutRefresh(bool resetScroll = false)
         {
             LayoutRebuilder.ForceRebuildLayoutImmediate(_content);
             Canvas.ForceUpdateCanvases();
-            if (_scroll != null)
+            if (_scroll == null)
+                return;
+
+            if (resetScroll)
                 _scroll.verticalNormalizedPosition = 1f;
         }
 

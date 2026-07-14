@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
 using Grimhand.Content;
@@ -10,9 +11,12 @@ namespace Grimhand.Presentation.Battle
 {
     public sealed class CardDeckReplaceOverlayView : MonoBehaviour
     {
-        const float CardScale = 0.74f;
-        const float CardHolderWidth = 188f;
-        const float CardHolderHeight = 272f;
+        const float CardBaseWidth = CardPortraitLayout.CardWidth;
+        const float CardBaseHeight = CardPortraitLayout.CardHeight;
+        const float OfferCardScale = 0.95f;
+        const float MinDeckGap = 14f;
+        const float DeckSidePad = 28f;
+        const int LayoutVersion = 3;
 
         BattleSession _session;
         CardView _cardPrefab;
@@ -24,12 +28,17 @@ namespace Grimhand.Presentation.Battle
         RectTransform _root;
         Text _headerText;
         Text _hintText;
+        Text _offerJoinLabel;
         RectTransform _offerCardAnchor;
         RectTransform _deckRow;
+        RectTransform _deckViewport;
         Button _abandonButton;
         InventoryTooltipView _tooltip;
         bool _built;
+        int _layoutVersion;
+        Coroutine _fitRoutine;
         readonly List<GameObject> _dynamicObjects = new();
+        readonly List<RectTransform> _deckHolders = new();
 
         public void Initialize(
             BattleSession session,
@@ -99,6 +108,20 @@ namespace Grimhand.Presentation.Battle
             var config = _session.Expedition.Config;
             foreach (var entry in ExpeditionRunDeckCatalog.CollectMemberDeckEntries(config, targetMember))
                 AddDeckCardButton(entry.Template, entry.Key, targetMember.CharacterDefinitionId);
+
+            // 立即排一次 + 下一帧再排，避免视口宽度未就绪时挤在中间叠卡
+            FitDeckCardsToRow();
+            if (_fitRoutine != null)
+                StopCoroutine(_fitRoutine);
+            _fitRoutine = StartCoroutine(FitDeckCardsNextFrame());
+        }
+
+        IEnumerator FitDeckCardsNextFrame()
+        {
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            FitDeckCardsToRow();
+            _fitRoutine = null;
         }
 
         void SpawnOfferCardPreview(CardTemplate template, string ownerCharacterId)
@@ -106,46 +129,126 @@ namespace Grimhand.Presentation.Battle
             if (_offerCardAnchor == null || _cardPrefab == null || template == null)
                 return;
 
-            var label = CreateStaticText(_offerCardAnchor, "即将加入", 18, FontStyle.Bold, TextAnchor.MiddleCenter);
-            var labelRt = label.rectTransform;
-            labelRt.anchorMin = new Vector2(0f, 1f);
-            labelRt.anchorMax = new Vector2(1f, 1f);
-            labelRt.pivot = new Vector2(0.5f, 1f);
-            labelRt.sizeDelta = new Vector2(0f, 28f);
-            labelRt.anchoredPosition = new Vector2(0f, 0f);
-            label.color = new Color(0.55f, 0.9f, 0.65f, 1f);
-            _dynamicObjects.Add(label.gameObject);
+            if (_offerJoinLabel != null)
+                _offerJoinLabel.gameObject.SetActive(true);
 
-            var holder = CreatePanelImage("OfferCard", _offerCardAnchor, new Color(0.18f, 0.34f, 0.24f, 0.55f));
+            var holder = CreatePanelImage("OfferCard", _offerCardAnchor, new Color(0.18f, 0.34f, 0.24f, 0.2f));
             var holderRt = holder.GetComponent<RectTransform>();
-            holderRt.anchorMin = new Vector2(0.5f, 0f);
-            holderRt.anchorMax = new Vector2(0.5f, 1f);
+            holderRt.anchorMin = new Vector2(0.5f, 0.5f);
+            holderRt.anchorMax = new Vector2(0.5f, 0.5f);
             holderRt.pivot = new Vector2(0.5f, 0.5f);
-            holderRt.sizeDelta = new Vector2(CardHolderWidth, 0f);
-            holderRt.offsetMin = new Vector2(-CardHolderWidth * 0.5f, 8f);
-            holderRt.offsetMax = new Vector2(CardHolderWidth * 0.5f, -32f);
+            holderRt.sizeDelta = new Vector2(CardBaseWidth * OfferCardScale, CardBaseHeight * OfferCardScale);
+            holderRt.anchoredPosition = Vector2.zero;
             _dynamicObjects.Add(holder);
 
-            SpawnReadOnlyCard(holder.transform, template, ownerCharacterId);
+            SpawnReadOnlyCard(holder.transform, template, ownerCharacterId, OfferCardScale);
         }
 
         void AddDeckCardButton(CardTemplate template, string deckKey, string ownerCharacterId)
         {
             var capturedKey = deckKey;
-            var holder = CreatePanelImage("DeckChoice", _deckRow, new Color(0.12f, 0.13f, 0.17f, 0.92f));
-            var le = holder.AddComponent<LayoutElement>();
-            le.preferredWidth = CardHolderWidth;
-            le.preferredHeight = CardHolderHeight;
+            var holder = CreatePanelImage("DeckChoice", _deckRow, new Color(0.1f, 0.11f, 0.14f, 0.35f));
+            var holderRt = holder.GetComponent<RectTransform>();
+            holderRt.localScale = Vector3.one;
+            holderRt.anchorMin = new Vector2(0.5f, 0.5f);
+            holderRt.anchorMax = new Vector2(0.5f, 0.5f);
+            holderRt.pivot = new Vector2(0.5f, 0.5f);
+            holderRt.sizeDelta = new Vector2(CardBaseWidth, CardBaseHeight);
+            _deckHolders.Add(holderRt);
             _dynamicObjects.Add(holder);
 
             var btn = holder.AddComponent<Button>();
             btn.targetGraphic = holder.GetComponent<Image>();
             btn.onClick.AddListener(() => _session.ReplaceDeckCardForOffer(capturedKey));
 
-            SpawnReadOnlyCard(holder.transform, template, ownerCharacterId);
+            SpawnReadOnlyCard(holder.transform, template, ownerCharacterId, 1f);
         }
 
-        void SpawnReadOnlyCard(Transform parent, CardTemplate template, string ownerCharacterId)
+        void FitDeckCardsToRow()
+        {
+            if (_deckRow == null || _deckViewport == null || _deckHolders.Count == 0)
+                return;
+
+            // 关掉自动布局，完全手动占位
+            var layout = _deckRow.GetComponent<HorizontalLayoutGroup>();
+            if (layout != null)
+                layout.enabled = false;
+            var fitter = _deckRow.GetComponent<ContentSizeFitter>();
+            if (fitter != null)
+                fitter.enabled = false;
+
+            _deckRow.anchorMin = Vector2.zero;
+            _deckRow.anchorMax = Vector2.one;
+            _deckRow.pivot = new Vector2(0.5f, 0.5f);
+            _deckRow.offsetMin = Vector2.zero;
+            _deckRow.offsetMax = Vector2.zero;
+            _deckRow.anchoredPosition = Vector2.zero;
+            _deckRow.localScale = Vector3.one;
+
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(_deckViewport);
+
+            var n = _deckHolders.Count;
+            var viewW = _deckViewport.rect.width;
+            var viewH = _deckViewport.rect.height;
+            if (viewW < 50f && _root != null)
+                viewW = Mathf.Max(viewW, _root.rect.width * 0.92f);
+            if (viewH < 50f && _root != null)
+                viewH = Mathf.Max(viewH, _root.rect.height * 0.35f);
+
+            var availW = Mathf.Max(200f, viewW - DeckSidePad * 2f);
+            var availH = Mathf.Max(180f, viewH - 8f);
+
+            // 卡宽按整行均分，保证互不重叠；高度不够再等比缩小，把多余宽度变成间隙
+            var scale = (availW - MinDeckGap * Mathf.Max(0, n - 1)) / (n * CardBaseWidth);
+            if (CardBaseHeight * scale > availH)
+                scale = availH / CardBaseHeight;
+            scale = Mathf.Clamp(scale, 0.7f, 2.4f);
+
+            var cardW = CardBaseWidth * scale;
+            var cardH = CardBaseHeight * scale;
+            var gap = n > 1
+                ? Mathf.Max(MinDeckGap, (availW - cardW * n) / (n - 1))
+                : 0f;
+
+            // 总宽度刚好铺满 availW
+            var totalW = cardW * n + gap * Mathf.Max(0, n - 1);
+            var startX = -totalW * 0.5f + cardW * 0.5f;
+
+            for (var i = 0; i < n; i++)
+            {
+                var holderRt = _deckHolders[i];
+                if (holderRt == null)
+                    continue;
+
+                holderRt.SetParent(_deckRow, false);
+                holderRt.localScale = Vector3.one;
+                holderRt.anchorMin = new Vector2(0.5f, 0.5f);
+                holderRt.anchorMax = new Vector2(0.5f, 0.5f);
+                holderRt.pivot = new Vector2(0.5f, 0.5f);
+                holderRt.sizeDelta = new Vector2(cardW, cardH);
+                holderRt.anchoredPosition = new Vector2(startX + i * (cardW + gap), 0f);
+
+                var cardView = holderRt.GetComponentInChildren<CardView>(true);
+                if (cardView == null)
+                    continue;
+
+                CardView.ApplyHandPresentationScaleCentered(cardView, scale);
+                var cvRt = cardView.transform as RectTransform;
+                if (cvRt != null)
+                {
+                    cvRt.sizeDelta = new Vector2(cardW, cardH);
+                    cvRt.anchoredPosition = Vector2.zero;
+                    cvRt.localScale = Vector3.one;
+                }
+
+                var scaleRoot = cardView.transform.Find("CardScaleRoot") as RectTransform;
+                if (scaleRoot != null)
+                    scaleRoot.localScale = Vector3.one;
+            }
+        }
+
+        void SpawnReadOnlyCard(Transform parent, CardTemplate template, string ownerCharacterId, float scale)
         {
             if (_cardPrefab == null || template == null)
                 return;
@@ -153,7 +256,7 @@ namespace Grimhand.Presentation.Battle
             _definitions.TryGetValue(template.DefinitionId, out var definition);
             var ownerId = string.IsNullOrEmpty(ownerCharacterId) ? template.OwnerCharacterId : ownerCharacterId;
             var cardView = Instantiate(_cardPrefab, parent);
-            CardView.ApplyHandPresentationScaleCentered(cardView, CardScale);
+            CardView.ApplyHandPresentationScaleCentered(cardView, scale);
             var preview = CardVisualResolver.CreatePreviewInstance(
                 template.DefinitionId,
                 ownerId,
@@ -185,6 +288,7 @@ namespace Grimhand.Presentation.Battle
                     graphic.raycastTarget = false;
             }
 
+            // 点击靠 holder 的 Button；悬停提示挂在 holder 上即可
             BindCardTooltip(parent.gameObject, preview);
         }
 
@@ -213,23 +317,34 @@ namespace Grimhand.Presentation.Battle
 
         void ClearDynamic()
         {
+            if (_fitRoutine != null)
+            {
+                StopCoroutine(_fitRoutine);
+                _fitRoutine = null;
+            }
+
             foreach (var go in _dynamicObjects)
             {
                 if (go != null)
-                    Destroy(go);
+                    DestroyImmediate(go);
             }
 
             _dynamicObjects.Clear();
-            ClearRow(_deckRow);
+            _deckHolders.Clear();
+            ClearRowImmediate(_deckRow);
         }
 
-        void ClearRow(RectTransform row)
+        static void ClearRowImmediate(RectTransform row)
         {
             if (row == null)
                 return;
 
-            foreach (Transform child in row)
-                Destroy(child.gameObject);
+            for (var i = row.childCount - 1; i >= 0; i--)
+            {
+                var child = row.GetChild(i);
+                if (child != null)
+                    DestroyImmediate(child.gameObject);
+            }
         }
 
         void SetVisible(bool visible)
@@ -243,10 +358,29 @@ namespace Grimhand.Presentation.Battle
 
         void EnsureBuilt(Transform parent)
         {
+            if (_built && (_layoutVersion != LayoutVersion
+                           || _offerJoinLabel == null
+                           || _offerCardAnchor == null
+                           || _deckViewport == null))
+            {
+                if (_root != null)
+                    DestroyImmediate(_root.gameObject);
+                _built = false;
+                _layoutVersion = 0;
+                _root = null;
+                _deckRow = null;
+                _deckViewport = null;
+                _offerCardAnchor = null;
+                _offerJoinLabel = null;
+                _dynamicObjects.Clear();
+                _deckHolders.Clear();
+            }
+
             if (_built)
                 return;
 
             _built = true;
+            _layoutVersion = LayoutVersion;
             var go = new GameObject("CardDeckReplaceOverlay", typeof(RectTransform), typeof(Image));
             go.transform.SetParent(parent, false);
             _root = go.GetComponent<RectTransform>();
@@ -268,23 +402,28 @@ namespace Grimhand.Presentation.Battle
             _tooltip.Initialize(panelRt);
 
             _headerText = CreateStaticText(panelGo.transform, "卡组替换", 30, FontStyle.Bold, TextAnchor.MiddleCenter);
-            AnchorBand(_headerText.rectTransform, 0.92f, 0.98f);
+            AnchorBand(_headerText.rectTransform, 0.925f, 0.985f);
             _headerText.color = new Color(0.95f, 0.85f, 0.55f, 1f);
 
             _hintText = CreateStaticText(panelGo.transform, "", 20, FontStyle.Normal, TextAnchor.MiddleCenter);
-            AnchorBand(_hintText.rectTransform, 0.84f, 0.91f);
+            AnchorBand(_hintText.rectTransform, 0.86f, 0.92f);
             _hintText.color = new Color(0.82f, 0.86f, 0.94f, 1f);
+
+            _offerJoinLabel = CreateStaticText(panelGo.transform, "即将加入", 18, FontStyle.Bold, TextAnchor.MiddleCenter);
+            AnchorBand(_offerJoinLabel.rectTransform, 0.815f, 0.855f);
+            _offerJoinLabel.color = new Color(0.55f, 0.9f, 0.65f, 1f);
 
             var offerGo = new GameObject("OfferAnchor", typeof(RectTransform));
             offerGo.transform.SetParent(panelGo.transform, false);
             _offerCardAnchor = offerGo.GetComponent<RectTransform>();
-            AnchorBand(_offerCardAnchor, 0.68f, 0.83f);
+            AnchorBand(_offerCardAnchor, 0.56f, 0.81f);
 
             var deckLabel = CreateStaticText(panelGo.transform, "选择要替换的卡牌", 20, FontStyle.Bold, TextAnchor.MiddleLeft);
-            AnchorBand(deckLabel.rectTransform, 0.62f, 0.66f);
+            AnchorBand(deckLabel.rectTransform, 0.505f, 0.55f);
             deckLabel.rectTransform.offsetMin = new Vector2(24f, 0f);
 
-            _deckRow = BuildScrollRow(panelGo.transform, 0.12f, 0.60f);
+            // 给卡组行更大高度，保证卡能放大
+            _deckRow = BuildDeckRow(panelGo.transform, 0.10f, 0.50f);
 
             _abandonButton = CreateFooterButton(
                 panelGo.transform,
@@ -297,39 +436,21 @@ namespace Grimhand.Presentation.Battle
             go.SetActive(false);
         }
 
-        RectTransform BuildScrollRow(Transform parent, float yMin, float yMax)
+        RectTransform BuildDeckRow(Transform parent, float yMin, float yMax)
         {
-            var scrollGo = new GameObject("Scroll", typeof(RectTransform), typeof(ScrollRect));
+            var scrollGo = new GameObject("DeckRowHost", typeof(RectTransform), typeof(Image));
             scrollGo.transform.SetParent(parent, false);
-            var scrollRt = scrollGo.GetComponent<RectTransform>();
-            AnchorBand(scrollRt, yMin, yMax);
+            var hostRt = scrollGo.GetComponent<RectTransform>();
+            AnchorBand(hostRt, yMin, yMax);
+            var hostImg = scrollGo.GetComponent<Image>();
+            hostImg.color = new Color(0.08f, 0.09f, 0.12f, 0.35f);
+            hostImg.raycastTarget = false;
+            _deckViewport = hostRt;
 
-            var viewportGo = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(Mask));
-            viewportGo.transform.SetParent(scrollGo.transform, false);
-            var viewportRt = viewportGo.GetComponent<RectTransform>();
-            StretchFull(viewportRt);
-            viewportGo.GetComponent<Image>().color = new Color(0.08f, 0.09f, 0.12f, 0.45f);
-            viewportGo.GetComponent<Mask>().showMaskGraphic = false;
-
-            var rowGo = new GameObject("Cards", typeof(RectTransform), typeof(HorizontalLayoutGroup), typeof(ContentSizeFitter));
-            rowGo.transform.SetParent(viewportGo.transform, false);
+            var rowGo = new GameObject("Cards", typeof(RectTransform));
+            rowGo.transform.SetParent(scrollGo.transform, false);
             var rowRt = rowGo.GetComponent<RectTransform>();
-            rowRt.anchorMin = new Vector2(0f, 0.5f);
-            rowRt.anchorMax = new Vector2(0f, 0.5f);
-            rowRt.pivot = new Vector2(0f, 0.5f);
-            var layout = rowGo.GetComponent<HorizontalLayoutGroup>();
-            layout.spacing = 14f;
-            layout.padding = new RectOffset(12, 12, 8, 8);
-            layout.childControlWidth = false;
-            layout.childControlHeight = false;
-            layout.childAlignment = TextAnchor.MiddleLeft;
-            rowGo.GetComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-            var scroll = scrollGo.GetComponent<ScrollRect>();
-            scroll.horizontal = true;
-            scroll.vertical = false;
-            scroll.viewport = viewportRt;
-            scroll.content = rowRt;
+            StretchFull(rowRt);
             return rowRt;
         }
 
@@ -347,20 +468,20 @@ namespace Grimhand.Presentation.Battle
             rt.anchorMin = new Vector2(0.5f, 0f);
             rt.anchorMax = new Vector2(0.5f, 0f);
             rt.pivot = new Vector2(0.5f, 0f);
-            rt.sizeDelta = size;
             rt.anchoredPosition = anchoredPos;
+            rt.sizeDelta = size;
             go.GetComponent<Image>().color = color;
-
-            var text = CreateStaticText(go.transform, label, 20, FontStyle.Bold, TextAnchor.MiddleCenter);
-            StretchFull(text.rectTransform);
-
             var btn = go.GetComponent<Button>();
             btn.targetGraphic = go.GetComponent<Image>();
             btn.onClick.AddListener(() => onClick?.Invoke());
+
+            var text = CreateStaticText(go.transform, label, 22, FontStyle.Bold, TextAnchor.MiddleCenter);
+            StretchFull(text.rectTransform);
+            text.color = Color.white;
             return btn;
         }
 
-        GameObject CreatePanelImage(string name, Transform parent, Color color)
+        static GameObject CreatePanelImage(string name, Transform parent, Color color)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image));
             go.transform.SetParent(parent, false);
@@ -368,34 +489,33 @@ namespace Grimhand.Presentation.Battle
             return go;
         }
 
-        Text CreateStaticText(Transform parent, string text, int size, FontStyle style, TextAnchor anchor)
+        static Text CreateStaticText(Transform parent, string value, int size, FontStyle style, TextAnchor align)
         {
             var go = new GameObject("Text", typeof(RectTransform), typeof(Text));
             go.transform.SetParent(parent, false);
-            var label = go.GetComponent<Text>();
-            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            label.fontSize = size;
-            label.fontStyle = style;
-            label.alignment = anchor;
-            label.color = Color.white;
-            label.text = text;
-            label.horizontalOverflow = HorizontalWrapMode.Wrap;
-            label.verticalOverflow = VerticalWrapMode.Truncate;
-            return label;
-        }
-
-        static void AnchorBand(RectTransform rt, float yMin, float yMax)
-        {
-            rt.anchorMin = new Vector2(0f, yMin);
-            rt.anchorMax = new Vector2(1f, yMax);
-            rt.offsetMin = new Vector2(24f, 0f);
-            rt.offsetMax = new Vector2(-24f, 0f);
+            var text = go.GetComponent<Text>();
+            text.text = value;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = size;
+            text.fontStyle = style;
+            text.alignment = align;
+            text.color = Color.white;
+            text.raycastTarget = false;
+            return text;
         }
 
         static void StretchFull(RectTransform rt)
         {
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+        }
+
+        static void AnchorBand(RectTransform rt, float yMin, float yMax)
+        {
+            rt.anchorMin = new Vector2(0f, yMin);
+            rt.anchorMax = new Vector2(1f, yMax);
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
         }

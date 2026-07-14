@@ -367,7 +367,8 @@ namespace Grimhand.Expedition
                 copy.Drafts[pair.Key] = new ExpeditionCardAltarMemberDraft
                 {
                     CollectionCardIndex = draft.CollectionCardIndex,
-                    ReplaceDeckCardKey = draft.ReplaceDeckCardKey
+                    ReplaceDeckCardKey = draft.ReplaceDeckCardKey,
+                    Confirmed = draft.Confirmed
                 };
             }
 

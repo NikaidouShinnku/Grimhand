@@ -125,11 +125,10 @@ namespace Grimhand.Presentation.Battle
             {
                 var rewardKey = BuildChestRewardKey(rewards);
                 if (_chestRewardKey != rewardKey)
-                {
                     _chestRewardKey = rewardKey;
-                    if (!_session.Expedition.Run.ChestRewardRevealed)
-                        _chestRevealed = false;
-                }
+
+                // 新宝箱或同局刷新：始终与跑局标志同步，避免沿用上一只宝箱的开启态。
+                _chestRevealed = _session.Expedition.Run.ChestRewardRevealed;
 
                 if (!_chestRevealed)
                     ResetChestOpenArt();
@@ -370,7 +369,9 @@ namespace Grimhand.Presentation.Battle
             if (rewards == null)
                 return "";
 
-            var key = $"{rewards.Gold}|{rewards.RelicId}|{rewards.CardDefinitionId}|{rewards.ConsumableId}";
+            // 含对象身份：两只宝箱可能滚出相同金币/卡包，不能只靠内容判“是否新宝箱”。
+            var key =
+                $"{System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(rewards)}|{rewards.Gold}|{rewards.GoldClaimed}|{rewards.RelicId}|{rewards.RelicClaimed}|{rewards.CardDefinitionId}|{rewards.ConsumableId}|{rewards.ConsumableClaimed}";
             foreach (var pack in rewards.CardPacks)
                 key += $"|{pack.PackId}:{pack.Claimed}:{pack.Skipped}";
             return key;
@@ -464,7 +465,6 @@ namespace Grimhand.Presentation.Battle
                     definition,
                     () =>
                     {
-                        GameAudioService.Instance.PlayUiCardAcquire();
                         _session.ClaimRewardCard();
                     });
             }

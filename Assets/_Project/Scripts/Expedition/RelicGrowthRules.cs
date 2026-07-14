@@ -35,6 +35,32 @@ namespace Grimhand.Expedition
             growthTiers[toRelicId] = tiers;
         }
 
+        /// <summary>事件进化：立即用目标遗物替换源遗物（不依赖奖励领取 UI）。</summary>
+        public static bool TryEvolveRelic(ExpeditionRunState run, string fromRelicId, string toRelicId)
+        {
+            if (run?.Relics == null
+                || string.IsNullOrEmpty(fromRelicId)
+                || string.IsNullOrEmpty(toRelicId)
+                || !RelicDatabase.TryGet(toRelicId, out _))
+                return false;
+
+            if (!run.Relics.Contains(fromRelicId))
+                return false;
+
+            run.Relics.Remove(fromRelicId);
+            TransferGrowthTiers(run.RelicGrowthTiers, fromRelicId, toRelicId);
+
+            if (!run.Relics.Contains(toRelicId))
+            {
+                run.Relics.Add(toRelicId);
+                var floor = System.Math.Max(1, run.Map?.NodesCompleted ?? 0);
+                OnRelicAcquired(run.RelicGrowthTiers, toRelicId, floor);
+            }
+
+            ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(run.Party, run.Relics, run.RelicGrowthTiers);
+            return true;
+        }
+
         public static void SyncFloorGrowth(IDictionary<string, int> growthTiers, IReadOnlyList<string> relicIds, int floor)
         {
             if (growthTiers == null || relicIds == null)

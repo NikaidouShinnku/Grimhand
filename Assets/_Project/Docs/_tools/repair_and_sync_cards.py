@@ -320,9 +320,7 @@ CARD_ID_OVERRIDES: dict[str, list[dict]] = {
     "m_gargoyle_empower": [
         {"Type": 3, "Target": T_SELF, "StatusId": "attack_up_pct", "Stacks": 50, "Duration": 2},
     ],
-    "m_gargoyle_sleep_stone": [
-        {"Type": 3, "Target": T_SELF, "StatusId": "slow", "Stacks": 99, "Duration": 1},
-    ],
+    "m_gargoyle_sleep_stone": [],
     "m_spider_trap": [
         {"Type": 43, "Target": T_DEFAULT_ENEMY, "Value": 1, "Duration": 1},
     ],

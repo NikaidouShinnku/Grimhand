@@ -63,7 +63,7 @@ namespace Grimhand.Presentation.Camp
                 else
                 {
                     _backgroundImage.sprite = null;
-                    _backgroundImage.color = new Color(0.04f, 0.05f, 0.08f, 0.94f);
+                    _backgroundImage.color = new Color(0.03f, 0.04f, 0.07f, 1f);
                 }
             }
 
@@ -98,11 +98,21 @@ namespace Grimhand.Presentation.Camp
             _root = CampUiRuntime.CreateRect("EscMenuRoot", transform).GetComponent<RectTransform>();
             CampUiRuntime.StretchFull(_root);
 
-            _backgroundImage = CampUiRuntime.CreateImage(
-                "Background", _root, new Color(0.04f, 0.05f, 0.08f, 0.94f));
-            CampUiRuntime.StretchFull(_backgroundImage.rectTransform);
+            // 独立排序层，压住战斗 HUD，只露出中间按钮。
+            var overlayCanvas = _root.gameObject.GetComponent<Canvas>();
+            if (overlayCanvas == null)
+                overlayCanvas = _root.gameObject.AddComponent<Canvas>();
+            overlayCanvas.overrideSorting = true;
+            overlayCanvas.sortingOrder = 5000;
+            if (_root.GetComponent<GraphicRaycaster>() == null)
+                _root.gameObject.AddComponent<GraphicRaycaster>();
 
-            var dim = CampUiRuntime.CreateImage("Dim", _root, new Color(0f, 0f, 0f, 0.35f));
+            _backgroundImage = CampUiRuntime.CreateImage(
+                "Background", _root, new Color(0.04f, 0.05f, 0.08f, 1f));
+            CampUiRuntime.StretchFull(_backgroundImage.rectTransform);
+            _backgroundImage.raycastTarget = true;
+
+            var dim = CampUiRuntime.CreateImage("Dim", _root, new Color(0f, 0f, 0f, 0.45f));
             CampUiRuntime.StretchFull(dim.rectTransform);
             dim.raycastTarget = true;
 

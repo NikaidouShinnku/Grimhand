@@ -13,6 +13,9 @@ namespace Grimhand.Presentation.Audio
         const float BattleSfxScale = 1.5f;
         const float RewardSfxScale = 1.5f;
         const float ChestOpenSfxScale = 3f;
+        // 点选卡 / 获取卡牌音效原本偏轻，按设计再放大。
+        const float CardRewardSfxScale = 10f;
+        const float BattleCardClickSfxScale = 10f;
 
         static GameAudioService _instance;
 
@@ -20,6 +23,7 @@ namespace Grimhand.Presentation.Audio
         AudioSource _bgmSource;
         AudioSource _sfxSource;
         string _bgmKey = "";
+        AudioClip _battleBgmClip;
 
         public static GameAudioService Instance
         {
@@ -121,7 +125,15 @@ namespace Grimhand.Presentation.Audio
 
             EnsureSources();
             ApplyVolumes();
-            _sfxSource.PlayOneShot(clip, Mathf.Clamp(volumeScale, 0f, 3f));
+            // PlayOneShot / AudioSource.volume 都被夹在 0–1；volumeScale>1 时叠播近似放大。
+            var baseVol = Mathf.Clamp01(GameSettings.MasterVolume * GameSettings.SfxVolume);
+            _sfxSource.spatialBlend = 0f;
+            _sfxSource.ignoreListenerPause = true;
+            _sfxSource.volume = baseVol;
+
+            var layers = Mathf.Clamp(Mathf.RoundToInt(Mathf.Max(1f, volumeScale)), 1, 12);
+            for (var i = 0; i < layers; i++)
+                _sfxSource.PlayOneShot(clip, 1f);
         }
 
         public void PlayBgm(AudioClip clip, string key, bool restartIfSame = false)
@@ -130,6 +142,8 @@ namespace Grimhand.Presentation.Audio
                 return;
 
             EnsureSources();
+            _bgmSource.loop = true;
+
             if (!restartIfSame && _bgmKey == key && _bgmSource.isPlaying && _bgmSource.clip == clip)
             {
                 ApplyVolumes();
@@ -150,12 +164,14 @@ namespace Grimhand.Presentation.Audio
             _bgmSource.Stop();
             _bgmSource.clip = null;
             _bgmKey = "";
+            _battleBgmClip = null;
         }
 
         public void PlayCampBgm()
         {
             if (_catalog == null)
                 return;
+            _battleBgmClip = null;
             PlayBgm(_catalog.BgmCamp, "camp");
         }
 
@@ -163,6 +179,8 @@ namespace Grimhand.Presentation.Audio
         {
             if (_catalog == null)
                 return;
+
+            _battleBgmClip = null;
 
             AudioClip clip;
             string key;
@@ -185,18 +203,33 @@ namespace Grimhand.Presentation.Audio
             PlayBgm(clip, key);
         }
 
-        public void PlayBattleBgm()
+        /// <summary>
+        /// 战斗 BGM：开战时随机一首并循环该曲；同场战斗内不换曲。
+        /// </summary>
+        /// <param name="reselect">true 表示新开一场战斗，重新抽曲。</param>
+        public void PlayBattleBgm(bool reselect = false)
         {
             if (_catalog == null)
                 return;
 
-            if (_bgmKey == "battle" && _bgmSource != null && _bgmSource.isPlaying)
+            EnsureSources();
+            _bgmSource.loop = true;
+
+            if (reselect || _battleBgmClip == null)
+                _battleBgmClip = _catalog.PickRandomBattleBgm();
+
+            if (_battleBgmClip == null)
+                return;
+
+            if (_bgmKey == "battle"
+                && _bgmSource.clip == _battleBgmClip
+                && _bgmSource.isPlaying)
             {
                 ApplyVolumes();
                 return;
             }
 
-            PlayBgm(_catalog.PickRandomBattleBgm(), "battle", restartIfSame: true);
+            PlayBgm(_battleBgmClip, "battle", restartIfSame: true);
         }
 
         public void PlayUiMenuPress() => PlaySfx(_catalog?.UiMenuButtonPress);
@@ -221,17 +254,38 @@ namespace Grimhand.Presentation.Audio
         /// <summary>获取消耗品（奖励/商店）暂与遗物相同。</summary>
         public void PlayUiConsumableAcquire() => PlayUiRelicsAcquire();
 
-        public void PlayUiCardAcquire() => PlaySfx(_catalog?.UiCardAcquire, RewardSfxScale);
+        public void PlayBattleCardSelect()
+        {
+            EnsureCatalogFallback();
+            var clip = _catalog?.BattleCardSelect ?? _catalog?.UiButtonPress ?? _catalog?.UiMenuButtonPress;
+            PlaySfx(clip, BattleCardClickSfxScale);
+        }
 
-        public void PlayUiCardPackOpen() => PlaySfx(_catalog?.UiCardPackOpen, RewardSfxScale);
+        public void PlayBattleCardHover()
+        {
+            EnsureCatalogFallback();
+            PlaySfx(_catalog?.BattleCardHover ?? _catalog?.UiButtonHover);
+        }
+
+        public void PlayUiCardAcquire()
+        {
+            EnsureCatalogFallback();
+            PlaySfx(_catalog?.UiCardAcquire ?? _catalog?.BattleCardSelect, CardRewardSfxScale);
+        }
+
+        public void PlayUiCardPackOpen() => PlaySfx(_catalog?.UiCardPackOpen, CardRewardSfxScale);
 
         public void PlayUiInventoryOpen() => PlaySfx(_catalog?.UiInventoryOpen);
 
         public void PlayUiInventoryClose() => PlaySfx(_catalog?.UiInventoryClose);
 
-        public void PlayBattleCardHover() => PlaySfx(_catalog?.BattleCardHover);
+        void EnsureCatalogFallback()
+        {
+            if (_catalog != null)
+                return;
 
-        public void PlayBattleCardSelect() => PlaySfx(_catalog?.BattleCardSelect);
+            _catalog = Resources.Load<AudioCatalogSO>("AudioCatalog_Demo");
+        }
 
         public void PlayBattleCardDraw() => PlaySfx(_catalog?.BattleCardDraw, BattleSfxScale);
 

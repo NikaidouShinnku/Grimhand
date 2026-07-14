@@ -145,6 +145,9 @@ namespace Grimhand.Battle.Model
         /// <summary>石像鬼本回合防御姿态加值。</summary>
         public int GargoyleStanceDefenseBonus { get; set; }
 
+        /// <summary>本回合已解析的第一张牌类型（沉睡之石等用）。</summary>
+        public CardType? FirstCardTypeThisTurn { get; set; }
+
         /// <summary>人鱼战士：每打出 0 费牌累计 +5% 攻击。</summary>
         public int MermaidZeroCostAttackBonusPercent { get; set; }
 

@@ -89,6 +89,13 @@ namespace Grimhand.Presentation.Battle
             }
         }
 
+        void OnDisable()
+        {
+            // SetActive(false) 会直接掐断协程，若不清理 flag，下一次 BeginPlanningIdle 会早退导致无站岗动画。
+            _idleLoopActive = false;
+            _idleRoutine = null;
+        }
+
         public void BeginPlanningIdle()
         {
             if (_isDead || _isAnimating || portraitImage == null || _visuals == null)
@@ -109,7 +116,7 @@ namespace Grimhand.Presentation.Battle
                 return;
             }
 
-            if (_idleLoopActive)
+            if (_idleLoopActive && _idleRoutine != null)
                 return;
 
             StopIdleLoop();

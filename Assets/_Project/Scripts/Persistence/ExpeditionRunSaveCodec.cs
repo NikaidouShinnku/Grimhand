@@ -805,7 +805,8 @@ namespace Grimhand.Persistence
                 {
                     memberId = pair.Key ?? "",
                     collectionCardIndex = draft?.CollectionCardIndex ?? -1,
-                    replaceDeckCardKey = draft?.ReplaceDeckCardKey ?? ""
+                    replaceDeckCardKey = draft?.ReplaceDeckCardKey ?? "",
+                    confirmed = draft?.Confirmed ?? false
                 };
             }
 
@@ -830,7 +831,8 @@ namespace Grimhand.Persistence
                 altar.Drafts[draftDto.memberId] = new ExpeditionCardAltarMemberDraft
                 {
                     CollectionCardIndex = draftDto.collectionCardIndex,
-                    ReplaceDeckCardKey = draftDto.replaceDeckCardKey ?? ""
+                    ReplaceDeckCardKey = draftDto.replaceDeckCardKey ?? "",
+                    Confirmed = draftDto.confirmed
                 };
             }
 

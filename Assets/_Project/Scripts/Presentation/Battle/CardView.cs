@@ -117,6 +117,9 @@ namespace Grimhand.Presentation.Battle
                 button.interactable = interactable;
             }
 
+            // 指针落在卡牌上时仍把滚轮/拖拽交给外层 ScrollRect
+            ScrollRectNavigation.WireForwarding(gameObject);
+
             if (frameImage != null)
             {
                 frameImage.enabled = true;
@@ -634,8 +637,6 @@ namespace Grimhand.Presentation.Battle
         {
             if (!IsInteractable())
                 return;
-
-            GameAudioService.Instance.PlayBattleCardSelect();
 
             if (_isQuickStart && _onQuickStart != null)
                 _onQuickStart?.Invoke(_instanceId);

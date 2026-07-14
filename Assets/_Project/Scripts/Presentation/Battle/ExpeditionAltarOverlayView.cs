@@ -3,6 +3,7 @@ using Grimhand.Battle.Model;
 using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
+using Grimhand.Presentation;
 using Grimhand.Presentation.Audio;
 using UnityEngine;
 using UnityEngine.UI;
@@ -38,13 +39,17 @@ namespace Grimhand.Presentation.Battle
         static readonly Color BtnNeutral = new(0.22f, 0.24f, 0.3f, 1f);
 
         const float SummonCardScale = 1.02f;
+        const float SummonReplaceCardScale = 0.78f;
         const float UpgradeCardScale = 0.74f;
         const float HubTileMinHeight = 280f;
         const float ActionButtonHeight = 56f;
         const float SummonCardWidth = 208f;
         const float SummonCardHeight = 292f;
+        const float SummonReplaceCardWidth = 156f;
+        const float SummonReplaceCardHeight = 220f;
         const int SummonCollectionColumns = 7;
         const float SummonCollectionGridSpacing = 10f;
+        const float SummonReplaceCardSpacing = 18f;
         const float UpgradeCardWidth = 188f;
         const float UpgradeCardHeight = 272f;
 
@@ -77,6 +82,8 @@ namespace Grimhand.Presentation.Battle
         Button _summonConfirmButton;
 
         RectTransform _upgradeCardGrid;
+        ScrollRect _upgradeCardScroll;
+        float _upgradeCardScrollY = 1f;
         RectTransform _upgradeCardDetail;
         Button _upgradeCardButton;
         Text _upgradeCardDetailTitle;
@@ -202,7 +209,13 @@ namespace Grimhand.Presentation.Battle
         {
             _tooltip?.Hide();
             ClearRestRecoveryRefs();
+
+            if (_screen == AltarScreen.UpgradeCards && _upgradeCardScroll != null)
+                _upgradeCardScrollY = ScrollRectNavigation.CaptureVertical(_upgradeCardScroll);
+
             ClearChildren(_contentHost);
+            _upgradeCardScroll = null;
+            _upgradeCardGrid = null;
 
             switch (_screen)
             {
@@ -229,6 +242,7 @@ namespace Grimhand.Presentation.Battle
                     break;
                 case AltarScreen.UpgradeCards:
                     BuildUpgradeCardsScreen(_contentHost, run);
+                    ScrollRectNavigation.RestoreVertical(_upgradeCardScroll, _upgradeCardScrollY);
                     break;
             }
         }
@@ -473,12 +487,23 @@ namespace Grimhand.Presentation.Battle
 
         void BuildDistributeXpScreen(RectTransform parent, ExpeditionRunState run)
         {
-            AddTitle(parent, "分配经验", "选择一项升级服务");
-            var grid = CreateGrid(parent, "XpGrid", 2, 2, 0.10f, 0.76f, 24f, new Vector2(480f, 280f));
+            AddTitle(
+                parent,
+                "分配经验",
+                "选择一项升级服务",
+                titleMinY: 0.90f,
+                titleMaxY: 0.995f,
+                subtitleMinY: 0.845f,
+                subtitleMaxY: 0.90f);
+            var grid = CreateGrid(parent, "XpGrid", 2, 2, 0.18f, 0.83f, 16f, new Vector2(420f, 230f));
             CreateHubTile(grid, "♥", "升级血量", "选择角色提升最大 HP", () => _screen = AltarScreen.UpgradeHp);
             CreateHubTile(grid, "⚡", "升级能量", $"提升能量上限（当前 {GetEffectiveEnergyCap()}）", () => _screen = AltarScreen.UpgradeEnergy);
-            CreateHubTile(grid, "▤", "升级手牌数", $"提升手牌上限（当前 {GetEffectiveHandLimit()}）", () => _screen = AltarScreen.UpgradeHand);
-            CreateHubTile(grid, "↑", "强化卡牌", "提升卡牌数值", () => _screen = AltarScreen.UpgradeCards);
+            CreateHubTile(grid, "▤", "抽牌数量", $"提升每回合抽牌数（当前 {GetEffectiveDrawCount()}）", () => _screen = AltarScreen.UpgradeHand);
+            CreateHubTile(grid, "↑", "强化卡牌", "提升卡牌数值", () =>
+            {
+                _upgradeCardScrollY = 1f;
+                _screen = AltarScreen.UpgradeCards;
+            });
         }
 
         void BuildUpgradeHpScreen(RectTransform parent, ExpeditionRunState run)
@@ -515,11 +540,11 @@ namespace Grimhand.Presentation.Battle
 
         void BuildUpgradeHandScreen(RectTransform parent, ExpeditionRunState run)
         {
-            var current = GetEffectiveHandLimit();
+            var current = GetEffectiveDrawCount();
             var next = current + 1;
             var cost = ExpeditionAltarUpgradeRules.GetHandLimitUpgradeCost(run.Modifiers);
             var remaining = ExpeditionAltarUpgradeRules.GetRemainingHandLimitUpgrades(run.Modifiers);
-            BuildStatUpgradeScreen(parent, "手牌上限", current, next, cost, remaining,
+            BuildStatUpgradeScreen(parent, "抽牌数量", current, next, cost, remaining,
                 ExpeditionAltarUpgradeRules.CanUpgradeHandLimit(run.Modifiers) && run.SharedXpPool >= cost,
                 () => { _session.UpgradeAltarHandLimit(); Refresh(); });
         }
@@ -547,7 +572,7 @@ namespace Grimhand.Presentation.Battle
                 new Vector2(0f, -190f), new Vector2(380f, ActionButtonHeight), canBuy, onBuy);
             btn.gameObject.SetActive(cost > 0);
 
-            var maxUpgrades = label.Contains("手牌")
+            var maxUpgrades = label.Contains("抽牌") || label.Contains("手牌")
                 ? ExpeditionAltarUpgradeRules.MaxHandLimitUpgrades
                 : ExpeditionAltarUpgradeRules.MaxEnergyCapUpgrades;
             CreateLabel(center, $"剩余可升级次数：{remaining} / {maxUpgrades}",
@@ -569,6 +594,9 @@ namespace Grimhand.Presentation.Battle
             gridHostRt.offsetMin = Vector2.zero;
             gridHostRt.offsetMax = Vector2.zero;
             _upgradeCardGrid = BuildScrollGrid(gridHost.transform, 3, new Vector2(UpgradeCardWidth, UpgradeCardHeight));
+            _upgradeCardScroll = _upgradeCardGrid != null
+                ? _upgradeCardGrid.GetComponentInParent<ScrollRect>()
+                : null;
 
             _upgradeCardDetail = CreatePanel("Detail", bodyRt, CardBg, Border).GetComponent<RectTransform>();
             var detailRt = _upgradeCardDetail;
@@ -684,7 +712,7 @@ namespace Grimhand.Presentation.Battle
             AddTitle(parent, "召唤卡牌", null, 0.90f, 0.98f);
             var intro = CreateBandText(
                 parent,
-                "从军营收藏中取出卡牌加入远征卡组，每个角色都能拿一张。确认取出后将直接离开祭坛。",
+                "从军营收藏中取出卡牌加入远征卡组。每个角色可单独确认取出一张；确认后该角色卡牌变暗不可再选。点「离开祭坛」才结束访问。",
                 17, 0.82f, 0.90f, TextMuted);
             intro.alignment = TextAnchor.UpperCenter;
             intro.horizontalOverflow = HorizontalWrapMode.Wrap;
@@ -709,13 +737,13 @@ namespace Grimhand.Presentation.Battle
                 new Vector2(SummonCardWidth, SummonCardHeight), SummonCollectionGridSpacing);
 
             _summonReplaceHost = CreateRect("ReplaceHost", parent);
-            SetAnchoredBand(_summonReplaceHost, 0.08f, 0.36f);
+            SetAnchoredBand(_summonReplaceHost, 0.04f, 0.44f);
             var replaceBg = CreatePanel("ReplaceBg", _summonReplaceHost, CardBg, Border);
             StretchFull(replaceBg.GetComponent<RectTransform>());
             _summonReplaceLabel = CreateStaticText(replaceBg.transform,
                 "卡组已满，请选择要替换的卡牌", 17, FontStyle.Bold, TextAnchor.UpperLeft);
             var replaceLabelRt = _summonReplaceLabel.rectTransform;
-            replaceLabelRt.anchorMin = new Vector2(0f, 0.72f);
+            replaceLabelRt.anchorMin = new Vector2(0f, 0.82f);
             replaceLabelRt.anchorMax = new Vector2(1f, 1f);
             replaceLabelRt.offsetMin = new Vector2(16f, 0f);
             replaceLabelRt.offsetMax = new Vector2(-16f, -4f);
@@ -725,10 +753,11 @@ namespace Grimhand.Presentation.Battle
             var replaceScrollHost = CreateRect("ReplaceScrollHost", replaceBg.transform);
             var replaceScrollRt = replaceScrollHost.GetComponent<RectTransform>();
             replaceScrollRt.anchorMin = Vector2.zero;
-            replaceScrollRt.anchorMax = new Vector2(1f, 0.72f);
-            replaceScrollRt.offsetMin = new Vector2(8f, 8f);
-            replaceScrollRt.offsetMax = new Vector2(-8f, 0f);
-            _summonReplaceRow = BuildScrollRowInternal(replaceScrollRt, 0f, 1f, horizontal: true);
+            replaceScrollRt.anchorMax = new Vector2(1f, 0.82f);
+            replaceScrollRt.offsetMin = new Vector2(10f, 12f);
+            replaceScrollRt.offsetMax = new Vector2(-10f, -4f);
+            _summonReplaceRow = BuildScrollRowInternal(replaceScrollRt, 0f, 1f, horizontal: true,
+                spacing: SummonReplaceCardSpacing, padding: new RectOffset(16, 16, 12, 12));
             _summonReplaceHost.gameObject.SetActive(false);
 
             var bottomHost = CreateRect("SummonBottom", parent);
@@ -747,7 +776,7 @@ namespace Grimhand.Presentation.Battle
             _summonConfirmButton = CreateAnchoredActionButton(
                 bottomHost, "确认取出", BtnGreen, AccentGreen,
                 new Vector2(1f, 0.5f), new Vector2(300f, ActionButtonHeight), false,
-                () => _session.ConfirmCardAltar());
+                ConfirmActiveMemberSummon);
             var confirmRt = _summonConfirmButton.GetComponent<RectTransform>();
             confirmRt.anchorMin = new Vector2(1f, 0.5f);
             confirmRt.anchorMax = new Vector2(1f, 0.5f);
@@ -790,6 +819,19 @@ namespace Grimhand.Presentation.Battle
             RefreshSummonStatus(activeMember);
         }
 
+        void ConfirmActiveMemberSummon()
+        {
+            var run = _session.Expedition?.Run;
+            if (run?.Party == null || _activeMemberIndex < 0 || _activeMemberIndex >= run.Party.Count)
+                return;
+
+            var member = run.Party[_activeMemberIndex];
+            if (!_session.ConfirmCardAltar(member.CharacterDefinitionId))
+                return;
+
+            RebuildSummonContent(run);
+        }
+
         void RebuildSummonReplace(PartyMemberSnapshot member)
         {
             if (_summonReplaceHost == null || _summonReplaceRow == null)
@@ -797,7 +839,8 @@ namespace Grimhand.Presentation.Battle
 
             var config = _session.Expedition.Config;
             var draft = GetDraft(member);
-            var needsReplace = ExpeditionRunDeckRules.NeedsReplace(config, member);
+            var locked = draft.Confirmed;
+            var needsReplace = !locked && ExpeditionRunDeckRules.NeedsReplace(config, member);
             var showReplace = needsReplace && draft.HasSelection;
             _summonReplaceHost.gameObject.SetActive(showReplace);
             UpdateSummonCollectionBand(showReplace);
@@ -817,11 +860,14 @@ namespace Grimhand.Presentation.Battle
                     () =>
                     {
                         var current = GetDraft(member);
+                        if (current.Confirmed)
+                            return;
                         var replaceKey = current.ReplaceDeckCardKey == capturedKey ? "" : capturedKey;
                         _session.SetCardAltarDraft(
                             member.CharacterDefinitionId, current.CollectionCardIndex, replaceKey);
                         RebuildSummonContent(_session.Expedition.Run);
-                    });
+                    },
+                    SummonReplaceCardWidth, SummonReplaceCardHeight, SummonReplaceCardScale);
             }
         }
 
@@ -830,7 +876,7 @@ namespace Grimhand.Presentation.Battle
             if (_summonCollectionHost == null)
                 return;
 
-            SetAnchoredBand(_summonCollectionHost, showReplace ? 0.38f : 0.10f, 0.68f);
+            SetAnchoredBand(_summonCollectionHost, showReplace ? 0.46f : 0.10f, 0.68f);
         }
 
         void RebuildSummonCollection(PartyMemberSnapshot member)
@@ -838,8 +884,35 @@ namespace Grimhand.Presentation.Battle
             var run = _session.Expedition.Run;
             var config = _session.Expedition.Config;
             var draft = GetDraft(member);
-            var needsReplace = ExpeditionRunDeckRules.NeedsReplace(config, member);
+            var locked = draft.Confirmed;
+            var needsReplace = !locked && ExpeditionRunDeckRules.NeedsReplace(config, member);
             var indices = ExpeditionRunDeckRules.GetAvailableCollectionIndices(run, member);
+
+            if (locked)
+            {
+                // 已取出的卡消失；剩余收藏变暗不可再选。
+                foreach (var index in indices)
+                {
+                    var template = ExpeditionRunDeckCatalog.TryResolveCampCollectionCard(config, run, member, index);
+                    if (template == null)
+                        continue;
+
+                    SpawnSummonCard(_summonCollectionGrid, template, member.CharacterDefinitionId,
+                        selected: false, onClick: null, dimmed: true);
+                }
+
+                if (_summonCollectionGrid.childCount == 0)
+                {
+                    var done = CreateStaticText(_summonCollectionGrid,
+                        $"{member.DisplayName} 本趟已取出卡牌，可切换其他角色继续，或离开祭坛。",
+                        18, FontStyle.Normal, TextAnchor.MiddleCenter);
+                    StretchFull(done.rectTransform);
+                    done.color = TextMuted;
+                }
+
+                return;
+            }
+
             if (indices.Count == 0)
             {
                 var empty = CreateStaticText(_summonCollectionGrid, "该角色军营收藏中已无可取出的卡牌。", 18,
@@ -861,6 +934,8 @@ namespace Grimhand.Presentation.Battle
                 SpawnSummonCard(_summonCollectionGrid, template, member.CharacterDefinitionId, selected, () =>
                 {
                     var current = GetDraft(member);
+                    if (current.Confirmed)
+                        return;
                     var collectionIndex = current.CollectionCardIndex == capturedIndex ? -1 : capturedIndex;
                     var replaceKey = needsReplace && collectionIndex >= 0 ? current.ReplaceDeckCardKey : "";
                     _session.SetCardAltarDraft(member.CharacterDefinitionId, collectionIndex, replaceKey);
@@ -875,7 +950,12 @@ namespace Grimhand.Presentation.Battle
             var draft = GetDraft(member);
             var needsReplace = ExpeditionRunDeckRules.NeedsReplace(config, member);
 
-            if (!draft.HasSelection)
+            if (draft.Confirmed)
+            {
+                _summonPreviewText.text =
+                    $"{member.DisplayName} 本趟已取出卡牌。可切换其他角色继续取出，或点「离开祭坛」。";
+            }
+            else if (!draft.HasSelection)
             {
                 _summonPreviewText.text = needsReplace
                     ? "从收藏中选择一张卡牌；卡组已满时将提示选择替换目标。"
@@ -907,28 +987,23 @@ namespace Grimhand.Presentation.Battle
             }
 
             if (_summonConfirmButton != null)
-                _summonConfirmButton.interactable = HasAnyValidDraft();
+                _summonConfirmButton.interactable = HasValidDraftForMember(member);
         }
 
-        bool HasAnyValidDraft()
+        bool HasValidDraftForMember(PartyMemberSnapshot member)
         {
-            var run = _session.Expedition.Run;
-            var config = _session.Expedition.Config;
-            if (run.CardAltar == null)
+            if (member == null)
                 return false;
 
-            var any = false;
-            foreach (var member in run.Party)
-            {
-                if (!run.CardAltar.Drafts.TryGetValue(member.CharacterDefinitionId, out var draft) || !draft.HasSelection)
-                    continue;
+            var config = _session.Expedition.Config;
+            var draft = GetDraft(member);
+            if (draft.Confirmed || !draft.HasSelection)
+                return false;
 
-                any = true;
-                if (ExpeditionRunDeckRules.NeedsReplace(config, member) && string.IsNullOrEmpty(draft.ReplaceDeckCardKey))
-                    return false;
-            }
+            if (ExpeditionRunDeckRules.NeedsReplace(config, member) && string.IsNullOrEmpty(draft.ReplaceDeckCardKey))
+                return false;
 
-            return any;
+            return true;
         }
 
         ExpeditionCardAltarMemberDraft GetDraft(PartyMemberSnapshot member)
@@ -1105,13 +1180,16 @@ namespace Grimhand.Presentation.Battle
             btn.targetGraphic = holder;
             btn.onClick.AddListener(() => onClick?.Invoke());
             UiAudioHooks.WireButton(btn);
+            ScrollRectNavigation.WireForwarding(holder.gameObject, _upgradeCardScroll);
             SpawnCardVisual(holder.transform, template, ownerId, UpgradeCardScale);
         }
 
-        void SpawnSummonCard(RectTransform parent, CardTemplate template, string ownerId, bool selected, System.Action onClick)
+        void SpawnSummonCard(RectTransform parent, CardTemplate template, string ownerId, bool selected, System.Action onClick,
+            float width = SummonCardWidth, float height = SummonCardHeight, float scale = SummonCardScale,
+            bool dimmed = false)
         {
-            var holder = CreateCardHolder(parent, selected, SummonCardWidth, SummonCardHeight);
-            if (onClick != null)
+            var holder = CreateCardHolder(parent, selected && !dimmed, width, height);
+            if (onClick != null && !dimmed)
             {
                 var btn = holder.gameObject.AddComponent<Button>();
                 btn.targetGraphic = holder;
@@ -1119,7 +1197,19 @@ namespace Grimhand.Presentation.Battle
                 UiAudioHooks.WireButton(btn);
             }
 
-            SpawnCardVisual(holder.transform, template, ownerId, SummonCardScale);
+            ScrollRectNavigation.WireForwarding(holder.gameObject);
+            SpawnCardVisual(holder.transform, template, ownerId, scale);
+
+            if (dimmed)
+            {
+                holder.color = new Color(0.12f, 0.13f, 0.16f, 0.92f);
+                var cg = holder.gameObject.GetComponent<CanvasGroup>();
+                if (cg == null)
+                    cg = holder.gameObject.AddComponent<CanvasGroup>();
+                cg.alpha = 0.42f;
+                cg.interactable = false;
+                cg.blocksRaycasts = false;
+            }
         }
 
         static Image CreateCardHolder(Transform parent, bool selected, float width, float height)
@@ -1188,8 +1278,13 @@ namespace Grimhand.Presentation.Battle
         int GetEffectiveEnergyCap() =>
             _session.Expedition.GetAltarBaseEnergyCap() + _session.Expedition.Run.Modifiers.EnergyCapBonus;
 
-        int GetEffectiveHandLimit() =>
-            _session.Expedition.GetAltarBaseHandLimit() + _session.Expedition.Run.Modifiers.HandLimitBonus;
+        int GetEffectiveDrawCount()
+        {
+            var mods = _session.Expedition.Run.Modifiers;
+            return _session.Expedition.GetAltarBaseDrawCount()
+                   + mods.DrawPerTurnBonus
+                   + mods.HandLimitBonus;
+        }
 
         static PartyMemberSnapshot FindMember(ExpeditionRunState run, string memberId)
         {
@@ -1468,7 +1563,8 @@ namespace Grimhand.Presentation.Battle
             return BuildScrollRowInternal(parent, minY, maxY, horizontal: true);
         }
 
-        RectTransform BuildScrollRowInternal(RectTransform parent, float minY, float maxY, bool horizontal)
+        RectTransform BuildScrollRowInternal(RectTransform parent, float minY, float maxY, bool horizontal,
+            float spacing = 14f, RectOffset padding = null)
         {
             var scrollGo = new GameObject("Scroll", typeof(RectTransform), typeof(ScrollRect));
             scrollGo.transform.SetParent(parent, false);
@@ -1491,10 +1587,12 @@ namespace Grimhand.Presentation.Battle
             rowRt.offsetMin = Vector2.zero;
             rowRt.offsetMax = Vector2.zero;
             var rowLayout = rowGo.GetComponent<HorizontalLayoutGroup>();
-            rowLayout.spacing = 14f;
-            rowLayout.padding = new RectOffset(12, 12, 8, 8);
+            rowLayout.spacing = spacing;
+            rowLayout.padding = padding ?? new RectOffset(12, 12, 8, 8);
             rowLayout.childControlWidth = false;
             rowLayout.childControlHeight = false;
+            rowLayout.childForceExpandWidth = false;
+            rowLayout.childForceExpandHeight = false;
             rowLayout.childAlignment = TextAnchor.MiddleLeft;
             rowGo.GetComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
             rowGo.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.Unconstrained;

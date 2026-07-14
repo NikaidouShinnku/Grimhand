@@ -529,12 +529,14 @@ namespace Grimhand.Expedition
 
             return choice switch
             {
-                0 => MessageThenReward(
+                0 => MessageThenEvolve(
                     "进化完成：翡翠戒指。",
-                    ExpeditionRewardPickupFactory.RelicEvolution(RelicIds.JadeStone, RelicIds.JadeRing, "玉匠工坊")),
-                1 => MessageThenReward(
+                    RelicIds.JadeStone,
+                    RelicIds.JadeRing),
+                1 => MessageThenEvolve(
                     "进化完成：翡翠短刀。",
-                    ExpeditionRewardPickupFactory.RelicEvolution(RelicIds.JadeStone, RelicIds.JadeDagger, "玉匠工坊")),
+                    RelicIds.JadeStone,
+                    RelicIds.JadeDagger),
                 _ => Leave("你离开了工坊。")
             };
         }
@@ -553,10 +555,15 @@ namespace Grimhand.Expedition
                     run,
                     -10,
                     "淬火完成：燃烬之靴进化为赤红烈焰靴。",
-                    ExpeditionRewardPickupFactory.RelicEvolution(
-                        RelicIds.BurningBoots,
-                        RelicIds.CrimsonBurningBoots,
-                        "古老熔炉")),
+                    null,
+                    state =>
+                    {
+                        if (!RelicGrowthRules.TryEvolveRelic(
+                                state,
+                                RelicIds.BurningBoots,
+                                RelicIds.CrimsonBurningBoots))
+                            state.LastEventMessage = "熔炉淬火未能完成：缺少燃烬之靴。";
+                    }),
                 _ => Leave("你保留了原样的靴子。")
             };
         }
@@ -840,6 +847,16 @@ namespace Grimhand.Expedition
             outcome.DeferredOutcome = BuildDeferredRewardOutcome(message, pickup, deferredAction);
             return outcome;
         }
+
+        static ExpeditionEventOutcome MessageThenEvolve(string message, string fromRelicId, string toRelicId) =>
+            MessageThenReward(
+                message,
+                null,
+                state =>
+                {
+                    if (!RelicGrowthRules.TryEvolveRelic(state, fromRelicId, toRelicId))
+                        state.LastEventMessage = "进化失败：缺少所需材料。";
+                });
 
         static ExpeditionRewardPickup RewardCardPickup(
             CardTemplate card,

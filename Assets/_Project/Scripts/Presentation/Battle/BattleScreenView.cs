@@ -88,6 +88,7 @@ namespace Grimhand.Presentation.Battle
         RelicVisualCatalogSO _relicCatalog;
         BattleUiIconCatalogSO _uiIcons;
         Dictionary<string, CardDefinitionSO> _definitions = new();
+        bool _battleBgmActive;
 
         static readonly FormationSlot[] SlotOrder =
         {
@@ -793,9 +794,31 @@ namespace Grimhand.Presentation.Battle
                 RefreshBattlefield(_session.Engine.State, _session.Engine.Draft);
         }
 
+        bool _escUiSuppressed;
+
+        public void SetEscUiSuppressed(bool suppressed)
+        {
+            if (_escUiSuppressed == suppressed)
+                return;
+
+            _escUiSuppressed = suppressed;
+            if (!suppressed)
+            {
+                Refresh();
+                if (_session?.Engine?.State?.Phase == TurnPhase.Planning && !_session.PresentationLocked)
+                    BeginPlanningIdleLoops();
+                return;
+            }
+
+            RefreshPlanningChromeVisibility();
+            handPanel?.gameObject.SetActive(false);
+            if (_session?.Engine?.State != null)
+                RefreshBattlefield(_session.Engine.State, _session.Engine.Draft);
+        }
+
         void RefreshPlanningChromeVisibility()
         {
-            var showBattleChrome = ShouldShowBattlePlanningChrome();
+            var showBattleChrome = ShouldShowBattlePlanningChrome() && !_escUiSuppressed;
 
             var intent = enemyIntentPanel != null
                 ? enemyIntentPanel.transform
@@ -821,10 +844,24 @@ namespace Grimhand.Presentation.Battle
                 skipButton?.gameObject.SetActive(false);
                 _activeCardBanner?.Hide();
             }
+
+            if (_escUiSuppressed)
+            {
+                handPanel?.gameObject.SetActive(false);
+                _actionOrderBar?.gameObject.SetActive(false);
+                _inventoryButton?.gameObject.SetActive(false);
+                _mapButton?.gameObject.SetActive(false);
+                _codexButton?.gameObject.SetActive(false);
+                _turnLogButton?.gameObject.SetActive(false);
+                SetBattlefieldVisible(false);
+            }
         }
 
         bool ShouldShowBattlePlanningChrome()
         {
+            if (_escUiSuppressed)
+                return false;
+
             if (_session == null || !_session.IsExpeditionMode)
                 return true;
 
@@ -961,6 +998,14 @@ namespace Grimhand.Presentation.Battle
             _altarOverlay?.Refresh();
 
             RefreshPlanningChromeVisibility();
+
+            if (_session.Engine?.State != null
+                && ShouldShowBattlePlanningChrome()
+                && _session.Engine.State.Phase == TurnPhase.Planning
+                && !_session.PresentationLocked)
+            {
+                BeginPlanningIdleLoops();
+            }
         }
 
         void RefreshHud(BattleState state)
@@ -1488,14 +1533,34 @@ namespace Grimhand.Presentation.Battle
             if (!expedition)
             {
                 if (sandboxBattle)
-                    audio.PlayBattleBgm();
+                {
+                    if (!_battleBgmActive)
+                        audio.PlayBattleBgm(reselect: true);
+                    else
+                        audio.PlayBattleBgm(reselect: false);
+                    _battleBgmActive = true;
+                }
+                else
+                {
+                    _battleBgmActive = false;
+                }
+
                 return;
             }
 
             if (inBattle)
-                audio.PlayBattleBgm();
+            {
+                if (!_battleBgmActive)
+                    audio.PlayBattleBgm(reselect: true);
+                else
+                    audio.PlayBattleBgm(reselect: false);
+                _battleBgmActive = true;
+            }
             else
+            {
+                _battleBgmActive = false;
                 audio.PlayMapBgm(Mathf.Max(1, layer));
+            }
         }
 
         void RefreshExpeditionOverlay()

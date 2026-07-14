@@ -117,6 +117,16 @@ namespace Grimhand.Content.Editor
             UpsertVisual(catalog, "char_wraith", $"{ArtRoot}/wraith_idle_1024.png");
             UpsertVisual(catalog, "char_wraith_elite", $"{ArtRoot}/wraith2_idle_1024.png");
             UpsertVisual(catalog, "char_ogre", $"{ArtRoot}/green_ogre.png");
+            // 原画朝左（面向场地中央），勿镜像；略放大
+            foreach (var e in catalog.Entries)
+            {
+                if (e == null || e.CharacterId != "char_ogre")
+                    continue;
+                e.PreserveOriginalFacing = true;
+                e.HitPortraitFacesRight = false;
+                e.PortraitScaleMultiplier = 1.55f;
+                break;
+            }
             UpsertVisual(catalog, "char_bat", $"{ArtRoot}/bat_girl.png");
 
             var kingArt = ArtRoot + "/skeleton king";

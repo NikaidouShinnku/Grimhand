@@ -6,6 +6,7 @@ using Grimhand.Battle.Rules;
 using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
+using Grimhand.Presentation;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -37,6 +38,11 @@ namespace Grimhand.Presentation.Battle
         RectTransform _panel;
         RectTransform _goldRow;
         Text _goldText;
+        RectTransform _consumableDetailRoot;
+        Text _consumableDetailTitle;
+        Text _consumableDetailBody;
+        Button _consumableDiscardButton;
+        int _consumableDetailSlot = -1;
         Image _goldIcon;
         Text _xpText;
         Image _xpIcon;
@@ -88,6 +94,7 @@ namespace Grimhand.Presentation.Battle
 
         public void Hide()
         {
+            HideConsumableDetail();
             _tooltip?.Hide();
             if (_panel != null)
                 _panel.gameObject.SetActive(false);
@@ -462,6 +469,7 @@ namespace Grimhand.Presentation.Battle
                     canvasGroup.alpha = 1f;
 
                 BindCardTooltip(view.gameObject, preview, null);
+                ScrollRectNavigation.WireForwarding(holder);
                 _dynamicObjects.Add(holder);
             }
         }
@@ -532,6 +540,7 @@ namespace Grimhand.Presentation.Battle
                     canvasGroup.alpha = 1f;
 
                 BindCardTooltip(view.gameObject, card, state);
+                ScrollRectNavigation.WireForwarding(holder);
                 _dynamicObjects.Add(holder);
             }
         }
@@ -569,6 +578,7 @@ namespace Grimhand.Presentation.Battle
             if (!_session.IsExpeditionMode)
                 return;
 
+            HideConsumableDetail();
             ConsumableInventory.EnsureInitialized(_session.Expedition.Run.ConsumableSlots);
             var slots = _session.Expedition.Run.ConsumableSlots;
             var inBattle = _session.Engine != null &&
@@ -594,16 +604,22 @@ namespace Grimhand.Presentation.Battle
 
                     _tooltip?.BindHover(slotGo, def.DisplayName, def.Description);
 
+                    var btn = slotGo.GetComponent<Button>() ?? slotGo.AddComponent<Button>();
+                    btn.onClick.RemoveAllListeners();
                     if (inBattle)
                     {
-                        var btn = slotGo.GetComponent<Button>() ?? slotGo.AddComponent<Button>();
-                        btn.onClick.RemoveAllListeners();
                         btn.onClick.AddListener(() =>
                         {
                             if (_session.TryUseConsumableFromSlot(slotIndex))
                                 OnConsumableUseStarted?.Invoke();
                         });
                     }
+                    else
+                    {
+                        btn.onClick.AddListener(() => ShowConsumableDetail(slotIndex, def));
+                    }
+
+                    ScrollRectNavigation.WireForwarding(slotGo);
                 }
                 else if (icon != null)
                 {
@@ -613,10 +629,46 @@ namespace Grimhand.Presentation.Battle
             }
         }
 
+        void ShowConsumableDetail(int slotIndex, ConsumableDefinition def)
+        {
+            if (_consumableDetailRoot == null || def == null)
+                return;
+
+            _consumableDetailSlot = slotIndex;
+            _consumableDetailTitle.text = def.DisplayName;
+            _consumableDetailBody.text = def.Description;
+            _consumableDetailRoot.gameObject.SetActive(true);
+            _consumableDetailRoot.SetAsLastSibling();
+            _tooltip?.Hide();
+        }
+
+        void HideConsumableDetail()
+        {
+            _consumableDetailSlot = -1;
+            if (_consumableDetailRoot != null)
+                _consumableDetailRoot.gameObject.SetActive(false);
+        }
+
+        void OnDiscardConsumableClicked()
+        {
+            if (_consumableDetailSlot < 0)
+                return;
+
+            if (_session.DiscardConsumableSlot(_consumableDetailSlot))
+            {
+                HideConsumableDetail();
+                Refresh();
+            }
+        }
+
         void EnsureBuilt(Transform root)
         {
             if (_panel != null)
+            {
+                if (_consumableDetailRoot == null)
+                    BuildConsumableDetailPopup(_panel);
                 return;
+            }
 
             var panelGo = new GameObject("InventoryPanel", typeof(RectTransform), typeof(Image));
             panelGo.transform.SetParent(root, false);
@@ -688,7 +740,99 @@ namespace Grimhand.Presentation.Battle
 
             _tooltip = panelGo.AddComponent<InventoryTooltipView>();
             _tooltip.Initialize(_panel);
+            BuildConsumableDetailPopup(panelGo.transform);
             panelGo.SetActive(false);
+        }
+
+        void BuildConsumableDetailPopup(Transform parent)
+        {
+            // 全面板透明点击层：点详情框外任意处关闭；详情框本体拦截点击以防穿透。
+            var rootGo = new GameObject("ConsumableDetailHost", typeof(RectTransform), typeof(Image), typeof(Button));
+            rootGo.transform.SetParent(parent, false);
+            _consumableDetailRoot = rootGo.GetComponent<RectTransform>();
+            _consumableDetailRoot.anchorMin = Vector2.zero;
+            _consumableDetailRoot.anchorMax = Vector2.one;
+            // 右侧消耗品栏留空，便于切换查看其它消耗品而不先关掉弹窗。
+            _consumableDetailRoot.offsetMin = Vector2.zero;
+            _consumableDetailRoot.offsetMax = new Vector2(-(ConsumableStripWidth + 12f), 0f);
+            var hostImage = rootGo.GetComponent<Image>();
+            hostImage.color = new Color(0f, 0f, 0f, 0.01f);
+            hostImage.raycastTarget = true;
+            var hostButton = rootGo.GetComponent<Button>();
+            hostButton.transition = Selectable.Transition.None;
+            hostButton.onClick.AddListener(HideConsumableDetail);
+
+            var boxGo = new GameObject("Box", typeof(RectTransform), typeof(Image));
+            boxGo.transform.SetParent(rootGo.transform, false);
+            var boxRt = boxGo.GetComponent<RectTransform>();
+            boxRt.anchorMin = new Vector2(0.5f, 0.5f);
+            boxRt.anchorMax = new Vector2(0.5f, 0.5f);
+            boxRt.sizeDelta = new Vector2(360f, 220f);
+            boxRt.anchoredPosition = new Vector2(180f, 40f);
+            boxGo.GetComponent<Image>().color = new Color(0.09f, 0.1f, 0.14f, 0.98f);
+            // 阻断点击落到宿主 Button，避免点框内文字区域也关闭。
+            boxGo.AddComponent<Button>().transition = Selectable.Transition.None;
+
+            var titleGo = new GameObject("Title", typeof(RectTransform), typeof(Text));
+            titleGo.transform.SetParent(boxGo.transform, false);
+            var titleRt = titleGo.GetComponent<RectTransform>();
+            titleRt.anchorMin = new Vector2(0.06f, 0.72f);
+            titleRt.anchorMax = new Vector2(0.94f, 0.94f);
+            titleRt.offsetMin = Vector2.zero;
+            titleRt.offsetMax = Vector2.zero;
+            _consumableDetailTitle = titleGo.GetComponent<Text>();
+            _consumableDetailTitle.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _consumableDetailTitle.fontSize = 22;
+            _consumableDetailTitle.fontStyle = FontStyle.Bold;
+            _consumableDetailTitle.alignment = TextAnchor.MiddleCenter;
+            _consumableDetailTitle.color = new Color(0.95f, 0.85f, 0.55f, 1f);
+            _consumableDetailTitle.raycastTarget = false;
+
+            var bodyGo = new GameObject("Body", typeof(RectTransform), typeof(Text));
+            bodyGo.transform.SetParent(boxGo.transform, false);
+            var bodyRt = bodyGo.GetComponent<RectTransform>();
+            bodyRt.anchorMin = new Vector2(0.08f, 0.32f);
+            bodyRt.anchorMax = new Vector2(0.92f, 0.70f);
+            bodyRt.offsetMin = Vector2.zero;
+            bodyRt.offsetMax = Vector2.zero;
+            _consumableDetailBody = bodyGo.GetComponent<Text>();
+            _consumableDetailBody.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _consumableDetailBody.fontSize = 16;
+            _consumableDetailBody.alignment = TextAnchor.UpperCenter;
+            _consumableDetailBody.color = Color.white;
+            _consumableDetailBody.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _consumableDetailBody.verticalOverflow = VerticalWrapMode.Overflow;
+            _consumableDetailBody.raycastTarget = false;
+
+            var discardGo = new GameObject("Discard", typeof(RectTransform), typeof(Image), typeof(Button));
+            discardGo.transform.SetParent(boxGo.transform, false);
+            var discardRt = discardGo.GetComponent<RectTransform>();
+            discardRt.anchorMin = new Vector2(0.5f, 0f);
+            discardRt.anchorMax = new Vector2(0.5f, 0f);
+            discardRt.pivot = new Vector2(0.5f, 0f);
+            discardRt.anchoredPosition = new Vector2(0f, 16f);
+            discardRt.sizeDelta = new Vector2(160f, 44f);
+            discardGo.GetComponent<Image>().color = new Color(0.55f, 0.14f, 0.14f, 1f);
+            _consumableDiscardButton = discardGo.GetComponent<Button>();
+            _consumableDiscardButton.onClick.AddListener(OnDiscardConsumableClicked);
+
+            var discardLabelGo = new GameObject("Text", typeof(RectTransform), typeof(Text));
+            discardLabelGo.transform.SetParent(discardGo.transform, false);
+            var discardLabelRt = discardLabelGo.GetComponent<RectTransform>();
+            discardLabelRt.anchorMin = Vector2.zero;
+            discardLabelRt.anchorMax = Vector2.one;
+            discardLabelRt.offsetMin = Vector2.zero;
+            discardLabelRt.offsetMax = Vector2.zero;
+            var discardLabel = discardLabelGo.GetComponent<Text>();
+            discardLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            discardLabel.fontSize = 18;
+            discardLabel.fontStyle = FontStyle.Bold;
+            discardLabel.alignment = TextAnchor.MiddleCenter;
+            discardLabel.color = Color.white;
+            discardLabel.text = "丢弃";
+            discardLabel.raycastTarget = false;
+
+            rootGo.SetActive(false);
         }
 
         RectTransform CreateTitleBar(Transform parent)
@@ -909,6 +1053,7 @@ namespace Grimhand.Presentation.Battle
 
         void ClearDynamic()
         {
+            HideConsumableDetail();
             _tooltip?.Hide();
 
             foreach (var go in _dynamicObjects)

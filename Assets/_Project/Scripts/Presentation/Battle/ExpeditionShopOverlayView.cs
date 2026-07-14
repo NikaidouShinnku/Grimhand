@@ -5,6 +5,7 @@ using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 using Grimhand.Expedition.Shop;
+using Grimhand.Presentation;
 using Grimhand.Presentation.Audio;
 using UnityEngine;
 using UnityEngine.UI;
@@ -188,6 +189,7 @@ namespace Grimhand.Presentation.Battle
                 PlayShopPurchaseSfx(offerKind);
             });
             UiAudioHooks.WireButton(btn);
+            ScrollRectNavigation.WireForwarding(slotGo);
 
             if (!canBuy)
             {

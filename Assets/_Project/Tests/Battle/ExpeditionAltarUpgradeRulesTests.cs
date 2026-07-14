@@ -69,7 +69,7 @@ namespace Grimhand.Battle.Tests
             Assert.IsTrue(ExpeditionAltarUpgradeRules.TryUpgradeEnergyCap(run));
             Assert.IsTrue(ExpeditionAltarUpgradeRules.TryUpgradeHandLimit(run));
             Assert.AreEqual(1, run.Modifiers.EnergyCapBonus);
-            Assert.AreEqual(1, run.Modifiers.HandLimitBonus);
+            Assert.AreEqual(1, run.Modifiers.DrawPerTurnBonus);
         }
 
         [Test]

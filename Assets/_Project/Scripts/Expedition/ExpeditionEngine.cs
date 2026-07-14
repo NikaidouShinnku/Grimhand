@@ -119,8 +119,38 @@ namespace Grimhand.Expedition
                 return;
             }
 
-            if (_run.PendingRewardPickup != null && !_run.PendingRewardPickup.IsFullyResolved)
+            if (_run.ChestRewardRevealed)
+                return;
+
+            // 仅在断线恢复且已有领取进度时跳过关闭态；
+            // 否则会把新宝箱直接标成已开启，导致点击 RevealChest / 开箱音效永不触发。
+            if (HasResolvedRewardProgress(_run.PendingRewardPickup))
                 _run.ChestRewardRevealed = true;
+        }
+
+        static bool HasResolvedRewardProgress(ExpeditionRewardPickup rewards)
+        {
+            if (rewards == null)
+                return false;
+
+            if (rewards.HasGold && (rewards.GoldClaimed || rewards.GoldSkipped))
+                return true;
+            if (rewards.HasRelic && (rewards.RelicClaimed || rewards.RelicSkipped))
+                return true;
+            if (rewards.HasCard && (rewards.CardClaimed || rewards.CardSkipped))
+                return true;
+            if (rewards.HasConsumable && (rewards.ConsumableClaimed || rewards.ConsumableSkipped))
+                return true;
+            if (rewards.HasStatBonus && (rewards.StatClaimed || rewards.StatSkipped))
+                return true;
+
+            foreach (var pack in rewards.CardPacks)
+            {
+                if (pack != null && pack.IsResolved)
+                    return true;
+            }
+
+            return false;
         }
 
         void ReconcileEventInteraction()
@@ -294,6 +324,7 @@ namespace Grimhand.Expedition
             _run.Modifiers.TeamDefenseBonus = 0;
             _run.Modifiers.EnergyCapBonus = 0;
             _run.Modifiers.HandLimitBonus = 0;
+            _run.Modifiers.DrawPerTurnBonus = 0;
             _run.Modifiers.AltarHpPlus5Purchases = 0;
             _run.Modifiers.AltarHpPlus10Purchases = 0;
             _run.Modifiers.NextCombatEnemyAttackBonus = false;
@@ -424,6 +455,7 @@ namespace Grimhand.Expedition
             _run.Modifiers.TeamDefenseBonus = 0;
             _run.Modifiers.EnergyCapBonus = 0;
             _run.Modifiers.HandLimitBonus = 0;
+            _run.Modifiers.DrawPerTurnBonus = 0;
             _run.Modifiers.AltarHpPlus5Purchases = 0;
             _run.Modifiers.AltarHpPlus10Purchases = 0;
             _run.Modifiers.NextCombatEnemyAttackBonus = false;
@@ -690,18 +722,22 @@ namespace Grimhand.Expedition
 
             if (rewards.HasRelicEvolution)
             {
-                if (!_run.Relics.Contains(rewards.RelicEvolveFromId))
+                if (!RelicGrowthRules.TryEvolveRelic(
+                        _run,
+                        rewards.RelicEvolveFromId,
+                        rewards.RelicEvolveToId))
                 {
                     rewards.RelicSkipped = true;
                     TryAdvanceFromRewardPickup();
                     return false;
                 }
 
-                _run.Relics.Remove(rewards.RelicEvolveFromId);
-                RelicGrowthRules.TransferGrowthTiers(
-                    _run.RelicGrowthTiers,
-                    rewards.RelicEvolveFromId,
-                    rewards.RelicEvolveToId);
+                if (RelicDatabase.TryGet(rewards.RelicEvolveToId, out var evolved))
+                    RecordRunAcquisition($"遗物进化：{evolved.DisplayName}");
+
+                rewards.RelicClaimed = true;
+                TryAdvanceFromRewardPickup();
+                return true;
             }
 
             if (!TryAddRelic(rewards.RelicId))
@@ -1077,8 +1113,14 @@ namespace Grimhand.Expedition
 
             if (rewards.HasGold && !rewards.GoldClaimed && !rewards.GoldSkipped)
                 TrySkipRewardGold();
+            // 遗物进化不可跳过：跳过奖励时仍自动完成替换，避免叙事已写「进化完成」却保留原遗物。
             if (rewards.HasRelic && !rewards.RelicClaimed && !rewards.RelicSkipped)
-                TrySkipRewardRelic();
+            {
+                if (rewards.HasRelicEvolution)
+                    TryClaimRewardRelic();
+                else
+                    TrySkipRewardRelic();
+            }
             if (rewards.HasCard && !rewards.CardClaimed && !rewards.CardSkipped)
                 TrySkipRewardCard();
             if (rewards.HasCardPacks)
@@ -1122,6 +1164,7 @@ namespace Grimhand.Expedition
                 case ExpeditionNodeType.Treasure:
                     _run.PendingRewardPickup = ExpeditionRewardRoller.RollChestReward(_config, _run, _rng);
                     _run.Phase = ExpeditionPhase.RewardPickup;
+                    _run.ChestRewardRevealed = false;
                     return true;
                 case ExpeditionNodeType.Event:
                     _run.PendingEvent = new ExpeditionPendingEvent
@@ -1270,6 +1313,9 @@ namespace Grimhand.Expedition
                 return;
 
             var draft = _run.CardAltar.GetOrCreateDraft(memberId);
+            if (draft.Confirmed)
+                return;
+
             draft.CollectionCardIndex = collectionIndex;
 
             if (TryFindPartyMember(memberId, out var member)
@@ -1327,7 +1373,7 @@ namespace Grimhand.Expedition
             if (!ExpeditionAltarUpgradeRules.TryUpgradeHandLimit(_run))
                 return false;
 
-            _run.LastEventMessage = "手牌上限 +1";
+            _run.LastEventMessage = "抽牌数量 +1";
             return true;
         }
 
@@ -1379,13 +1425,20 @@ namespace Grimhand.Expedition
             return 8;
         }
 
-        public int GetAltarBaseHandLimit()
+        public int GetAltarBaseDrawCount()
         {
             if (_config.CombatEncounters.Count > 0 && _config.CombatEncounters[0] != null)
-                return _config.CombatEncounters[0].HandLimit;
+            {
+                var drawn = _config.CombatEncounters[0].CardsDrawnPerTurn;
+                if (drawn > 0)
+                    return drawn;
+            }
 
-            return 8;
+            return 5;
         }
+
+        /// <summary>兼容旧调用名；实际返回抽牌基数。</summary>
+        public int GetAltarBaseHandLimit() => GetAltarBaseDrawCount();
 
         bool FinishAltarVisit(string message)
         {
@@ -1415,40 +1468,77 @@ namespace Grimhand.Expedition
             return null;
         }
 
-        public bool TryConfirmCardAltar()
+        public bool TryConfirmCardAltar(string memberId = null)
         {
             if (_run.Phase != ExpeditionPhase.ShrineChoice || _run.CardAltar == null)
                 return false;
 
-            var pending = new List<(PartyMemberSnapshot member, ExpeditionCardAltarMemberDraft draft)>();
-            foreach (var member in _run.Party)
+            PartyMemberSnapshot member;
+            if (!string.IsNullOrEmpty(memberId))
             {
-                if (member == null || string.IsNullOrEmpty(member.CharacterDefinitionId))
-                    continue;
-
-                if (!_run.CardAltar.Drafts.TryGetValue(member.CharacterDefinitionId, out var draft) || !draft.HasSelection)
-                    continue;
-
-                if (CampCollectionProgress.IsExtracted(_run, member.CharacterDefinitionId, draft.CollectionCardIndex))
+                member = FindPartyMember(memberId);
+            }
+            else
+            {
+                member = null;
+                foreach (var candidate in _run.Party)
                 {
-                    draft.CollectionCardIndex = -1;
-                    draft.ReplaceDeckCardKey = "";
-                    continue;
-                }
+                    if (candidate == null || string.IsNullOrEmpty(candidate.CharacterDefinitionId))
+                        continue;
 
-                if (!TryValidateCardAltarExtraction(member, draft, out var error))
-                {
-                    _run.LastEventMessage = error;
-                    return false;
-                }
+                    if (!_run.CardAltar.Drafts.TryGetValue(candidate.CharacterDefinitionId, out var d)
+                        || !d.HasSelection
+                        || d.Confirmed)
+                        continue;
 
-                pending.Add((member, draft));
+                    member = candidate;
+                    break;
+                }
             }
 
-            foreach (var (member, draft) in pending)
-                ApplyCardAltarExtraction(member, draft);
+            if (member == null)
+            {
+                _run.LastEventMessage = "请先为当前角色选择要取出的卡牌。";
+                return false;
+            }
 
-            return FinishAltarVisit("已完成祭坛召唤。");
+            if (!_run.CardAltar.Drafts.TryGetValue(member.CharacterDefinitionId, out var draft)
+                || !draft.HasSelection)
+            {
+                _run.LastEventMessage = $"{member.DisplayName} 尚未选择要取出的卡牌。";
+                return false;
+            }
+
+            if (draft.Confirmed)
+            {
+                _run.LastEventMessage = $"{member.DisplayName} 本趟祭坛已取出过卡牌。";
+                return false;
+            }
+
+            if (CampCollectionProgress.IsExtracted(_run, member.CharacterDefinitionId, draft.CollectionCardIndex))
+            {
+                draft.CollectionCardIndex = -1;
+                draft.ReplaceDeckCardKey = "";
+                _run.LastEventMessage = $"{member.DisplayName} 的该收藏牌已被取出。";
+                return false;
+            }
+
+            if (!TryValidateCardAltarExtraction(member, draft, out var error))
+            {
+                _run.LastEventMessage = error;
+                return false;
+            }
+
+            var template = ExpeditionRunDeckCatalog.TryResolveCampCollectionCard(
+                _config, _run, member, draft.CollectionCardIndex);
+            ApplyCardAltarExtraction(member, draft);
+            draft.Confirmed = true;
+            draft.CollectionCardIndex = -1;
+            draft.ReplaceDeckCardKey = "";
+            _run.LastEventMessage = template != null
+                ? $"已为 {member.DisplayName} 取出：{template.DisplayName}"
+                : $"已为 {member.DisplayName} 取出卡牌。";
+            return true;
         }
 
         bool TryValidateCardAltarExtraction(
@@ -2000,6 +2090,8 @@ namespace Grimhand.Expedition
 
             var kind = rewards?.Kind ?? RewardPickupKind.EventOrShrine;
             _run.PendingRewardPickup = null;
+            // 离开奖励阶段后必须清掉，否则下一只宝箱会沿用“已开启”状态。
+            _run.ChestRewardRevealed = false;
 
             if (kind == RewardPickupKind.Chest)
             {
@@ -2186,7 +2278,9 @@ namespace Grimhand.Expedition
             }
 
             config.EnergyCap += _run.Modifiers.EnergyCapBonus;
-            config.HandLimit += _run.Modifiers.HandLimitBonus;
+            // 手牌上限固定 10；旧 HandLimitBonus 与 DrawPerTurnBonus 均计入每回合抽牌。
+            config.HandLimit = 10;
+            config.CardsDrawnPerTurn += _run.Modifiers.DrawPerTurnBonus + _run.Modifiers.HandLimitBonus;
             config.TurnStartEnergyRegen = System.Math.Max(config.TurnStartEnergyRegen, 4);
             config.RunModifiers.EtherealEntryCount = _run.V09EtherealEntryCount;
             config.RunModifiers.ExpeditionRespondSuccessCount = _run.V09ExpeditionRespondSuccessCount;
@@ -2256,7 +2350,9 @@ namespace Grimhand.Expedition
                 _run.RunWideBonusCards);
 
             config.EnergyCap += _run.Modifiers.EnergyCapBonus;
-            config.HandLimit += _run.Modifiers.HandLimitBonus;
+            // 手牌上限固定 10；旧 HandLimitBonus 与 DrawPerTurnBonus 均计入每回合抽牌。
+            config.HandLimit = 10;
+            config.CardsDrawnPerTurn += _run.Modifiers.DrawPerTurnBonus + _run.Modifiers.HandLimitBonus;
             config.TurnStartEnergyRegen = System.Math.Max(config.TurnStartEnergyRegen, 4);
             config.RunModifiers.EtherealEntryCount = _run.V09EtherealEntryCount;
             config.RunModifiers.ExpeditionRespondSuccessCount = _run.V09ExpeditionRespondSuccessCount;

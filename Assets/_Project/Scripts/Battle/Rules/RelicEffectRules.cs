@@ -4,6 +4,7 @@ using Grimhand.Battle.Effects;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Status;
+using Grimhand.Battle.V091;
 using Grimhand.Core;
 
 namespace Grimhand.Battle.Rules
@@ -28,6 +29,7 @@ namespace Grimhand.Battle.Rules
             combatant.TurnAttackBonusPercent = 0;
             combatant.TurnDefenseBonusPercent = 0;
             combatant.HealedThisTurn = false;
+            V091MechanicsRules.ResetCombatantTurnFlags(combatant);
             TalentBattleRules.ResetTurnFlags(combatant);
         }
 
@@ -221,6 +223,8 @@ namespace Grimhand.Battle.Rules
             PassiveCardMechanicsRules.TryTriggerFinalBloodRitualOnSacrifice(
                 state, actor, card, events, rng);
 
+            V091MechanicsRules.OnSacrificeCardPlayed(state, card);
+
             var mods = state.Config?.RunModifiers;
             if (mods == null || mods.SacrificeStackAttackBonus <= 0)
                 return;
@@ -266,6 +270,8 @@ namespace Grimhand.Battle.Rules
             OnSacrificeCardResolved(state, actor, card, events, rng);
             if (card.DefinitionId == PassiveCardMechanicsRules.SandSpearReforgeCardId)
                 PassiveCardMechanicsRules.OnSandSpearReforgePlayed(state, actor, card, events, rng);
+            if (actor.Team == TeamSide.Enemy)
+                V091MechanicsRules.OnEnemyCardResolved(state, actor, events, rng);
             TalentBattleRules.OnCardResolved(state, actor, card, events);
             MinionTraitRules.OnCardResolved(state, actor, card, events);
             if (card.CardType == CardType.Attack)

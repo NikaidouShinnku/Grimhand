@@ -5,6 +5,7 @@ using Grimhand.Battle.Reactions;
 using Grimhand.Battle.Rules;
 using Grimhand.Battle.Status;
 using Grimhand.Battle.V09;
+using Grimhand.Battle.V091;
 using Grimhand.Core;
 
 namespace Grimhand.Battle.Effects
@@ -47,6 +48,11 @@ namespace Grimhand.Battle.Effects
 
             RelicEffectRules.AdjustRelicOutgoingDamage(
                 state, actor, recipient, cardType, ref outgoingPower, ref ignoreDefPercent);
+
+            if (actor != null)
+                ignoreDefPercent = System.Math.Max(
+                    ignoreDefPercent,
+                    V091MechanicsRules.GetIgnoreDefPercentForAttacker(actor));
 
             RelicBattleRules.MarkFirstAttackConsumed(state, actor, cardType);
 
@@ -159,6 +165,7 @@ namespace Grimhand.Battle.Effects
                 PassiveCardMechanicsRules.OnDamageTakenBattleWill(state, recipient, hpDamage, events);
                 // v0.9 两界行者：受击后获虚化
                 V09NewMechanicsRules.AfterDamageResolveEtherealOnNextHit(state, recipient, hpDamage, events);
+                V091MechanicsRules.OnDamageTaken(state, recipient, actor, hpDamage, events, rng);
                 // v0.9 蛇 s2_lv2：单次受到超过25%最大HP伤害后清负面
                 TalentBattleRules.OnDamageTakenV09(state, recipient, hpDamage, events);
             }
@@ -220,7 +227,10 @@ namespace Grimhand.Battle.Effects
             });
 
             if (state != null)
+            {
                 PassiveCardMechanicsRules.TryTriggerGodDescendsOnBlockGain(state, actor, amount, events, rng);
+                V091MechanicsRules.OnBlockGained(state, actor, amount, events);
+            }
         }
 
         public static void ApplyHeal(
@@ -254,6 +264,7 @@ namespace Grimhand.Battle.Effects
                 });
                 // v0.9 分血仪式：恶魔回复HP时治疗其他我方30%
                 PassiveCardMechanicsRules.TryTriggerBloodSharingOnHeal(state, actor, healed, events);
+                V091MechanicsRules.OnHealApplied(state, actor, healed, events, healer);
             }
 
             if (overflow > 0)

@@ -18,7 +18,9 @@ namespace Grimhand.Battle.Consumables
         GainBlock,
         EnergyThisTurn,
         DodgeAllThisTurn,
-        MirrorLastAttack
+        MirrorLastAttack,
+        /// <summary>抽取指定角色 N 张牌。</summary>
+        DrawCharacterCards
     }
 
     public sealed class ConsumableDefinition

@@ -5,6 +5,7 @@ using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Reactions;
 using Grimhand.Battle.Status;
+using Grimhand.Battle.V091;
 using Grimhand.Core;
 
 namespace Grimhand.Battle.Rules
@@ -379,6 +380,8 @@ namespace Grimhand.Battle.Rules
             {
                 cost = Math.Max(0, cost - 1);
             }
+
+            cost = V091MechanicsRules.AdjustPlayCost(state, owner, card, cost);
 
             return cost;
         }

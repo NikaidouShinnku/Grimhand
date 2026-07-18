@@ -3,6 +3,7 @@ using Grimhand.Battle.Effects;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Status;
+using Grimhand.Battle.V091;
 using Grimhand.Core;
 
 namespace Grimhand.Battle.Rules
@@ -23,7 +24,8 @@ namespace Grimhand.Battle.Rules
 
         public static bool IsSpecialCard(CardInstanceState card) =>
             card != null && (card.DefinitionId == CardPowerRules.SolarGodWrathCardId
-                             || card.DefinitionId == CardPowerRules.SolarBlessingCardId);
+                             || card.DefinitionId == CardPowerRules.SolarBlessingCardId
+                             || V091MechanicsRules.IsV091SpecialCard(card));
 
         public static bool TryResolve(
             BattleState state,
@@ -34,6 +36,9 @@ namespace Grimhand.Battle.Rules
         {
             if (state == null || actor == null || card == null || rng == null)
                 return false;
+
+            if (V091MechanicsRules.TryResolveSpecialCard(state, actor, card, events, rng))
+                return true;
 
             return card.DefinitionId switch
             {

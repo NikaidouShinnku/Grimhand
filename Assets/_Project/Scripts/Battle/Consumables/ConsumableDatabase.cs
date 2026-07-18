@@ -88,7 +88,14 @@ namespace Grimhand.Battle.Consumables
                     "本回合所有角色（含敌我）闪避率+50%",
                     ConsumableTargetKind.None,
                     ConsumableEffectKind.DodgeAllThisTurn,
-                    50)
+                    50),
+                [ConsumableIds.FocusPotion] = Def(
+                    ConsumableIds.FocusPotion,
+                    "专注药剂",
+                    "选择一名我方角色，立刻抽取5张该角色的卡牌",
+                    ConsumableTargetKind.SingleAlly,
+                    ConsumableEffectKind.DrawCharacterCards,
+                    5)
             };
         }
 

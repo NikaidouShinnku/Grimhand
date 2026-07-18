@@ -99,6 +99,21 @@ namespace Grimhand.Battle.Model
         /// <summary>巫妖女王 s2_lv5：本场战斗首张消耗牌 -1 费（待消耗）。</summary>
         public bool TalentLichFirstExhaustDiscountPending { get; set; }
 
+        /// <summary>v0.91：灵魂纽带伙伴映射（本回合有效，回合开始清空）。</summary>
+        public Dictionary<string, string> SoulBondPartnerByCombatantId { get; } = new();
+
+        /// <summary>v0.91：沙之预知剩余回合（每回合看破全部意图）。</summary>
+        public int RevealAllEnemyIntentsTurnsRemaining { get; set; }
+
+        /// <summary>v0.91：魔神回响当前减费层数（洗入牌库时重置）。</summary>
+        public Dictionary<string, int> DemonEchoCostReductionByCardId { get; } = new();
+
+        /// <summary>v0.91：灵质护盾延迟至下回合开始的护甲。</summary>
+        public Dictionary<string, int> PendingDelayedBlockByCombatantId { get; } = new();
+
+        /// <summary>v0.91：女王之吻待在下回合开始转化中毒为易伤。</summary>
+        public bool QueenKissConversionPending { get; set; }
+
         /// <summary>v0.9：本场战斗全队累计应对成功次数（战术大师的终结技按此计算伤害）。</summary>
         public int RespondSuccessCount { get; set; }
 

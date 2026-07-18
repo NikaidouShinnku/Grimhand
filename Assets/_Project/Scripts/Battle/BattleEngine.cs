@@ -10,6 +10,7 @@ using Grimhand.Battle.Reactions;
 using Grimhand.Battle.Rules;
 using Grimhand.Battle.Status;
 using Grimhand.Battle.V09;
+using Grimhand.Battle.V091;
 using Grimhand.Core;
 
 namespace Grimhand.Battle
@@ -715,6 +716,7 @@ namespace Grimhand.Battle
             PassiveCardMechanicsRules.TryTriggerRotAvatarOnTurnStart(_state, _events);
             // v0.9 毒蛇/巫妖新机制：缠绕/延迟伤害/永恒虚无/祈求远古蛇神
             V09NewMechanicsRules.ProcessTurnStart(_state, _events, _rng);
+            V091MechanicsRules.ProcessTurnStart(_state, _events, _rng);
             // v0.9 天赋：蛇 s1_lv4/s2_lv4、巫妖 s1_lv7
             TalentBattleRules.ProcessTurnStartV09Talents(_state, _events);
             foreach (var combatant in _state.Combatants)

@@ -10,5 +10,6 @@ namespace Grimhand.Battle.Consumables
         public const string MirrorShard = "mirror_shard";
         public const string ScrollPage = "scroll_page";
         public const string SmokeBomb = "smoke_bomb";
+        public const string FocusPotion = "focus_potion";
     }
 }

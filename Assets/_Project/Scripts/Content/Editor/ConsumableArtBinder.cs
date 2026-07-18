@@ -14,7 +14,8 @@ namespace Grimhand.Content.Editor
         static readonly (string Id, string File)[] Overrides =
         {
             (ConsumableIds.SpringBottle, "spring_water"),
-            (ConsumableIds.ScrollPage, "ancient_scroll")
+            (ConsumableIds.ScrollPage, "ancient_scroll"),
+            (ConsumableIds.FocusPotion, "focus_potion")
         };
 
         [MenuItem("Grimhand/Content/Bind Consumable Art")]

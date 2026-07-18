@@ -74,6 +74,9 @@ namespace Grimhand.Battle.Model
         /// <summary>本回合是否已被攻击命中（用于致命打击等条件加伤）。</summary>
         public bool HitThisTurn { get; set; }
 
+        /// <summary>v0.91：本回合受到攻击次数（报复打击、无畏冲锋等）。</summary>
+        public int HitsTakenThisTurn { get; set; }
+
         /// <summary>嗜血抓挠等：下次攻击额外固定伤害，出手后清零。</summary>
         public int NextAttackFlatBonus { get; set; }
 

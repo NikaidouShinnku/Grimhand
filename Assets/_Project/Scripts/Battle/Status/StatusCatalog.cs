@@ -65,6 +65,17 @@ namespace Grimhand.Battle.Status
         public const string SnakeGodChanneling = "snake_god_channeling";   // 蛇神回应链中继标记
         public const string SnakeSwiftness = "snake_swiftness";             // 蛇之疾速：+1SPD（天赋）
 
+        // v0.91 新增卡牌状态
+        public const string ThornArmor = "thorn_armor";
+        public const string BattleRoar = "battle_roar";
+        public const string DoomProphecy = "doom_prophecy";
+        public const string LifeSpring = "life_spring";
+        public const string PainConvert = "pain_convert";
+        public const string SnakeNest = "snake_nest";
+        public const string PsionicArrowRain = "psionic_arrow_rain";
+        public const string PsionicMastery = "psionic_mastery";
+        public const string SoulBond = "soul_bond";
+
         // v0.9 Boss：典狱长 / 腐化海洋女神
         public const string BrandMark = "brand_mark";
         public const string RisingTide = "rising_tide";
@@ -491,6 +502,64 @@ namespace Grimhand.Battle.Status
                 DisplayName = "女神之怒",
                 DurationKind = StatusDurationKind.Turns,
                 DefaultDuration = 2
+            };
+            map[ThornArmor] = new StatusDefinition
+            {
+                Id = ThornArmor,
+                DisplayName = "荆棘护甲",
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 1
+            };
+            map[BattleRoar] = new StatusDefinition
+            {
+                Id = BattleRoar,
+                DisplayName = "战斗咆哮",
+                DurationKind = StatusDurationKind.Permanent
+            };
+            map[DoomProphecy] = new StatusDefinition
+            {
+                Id = DoomProphecy,
+                DisplayName = "末日预言",
+                DurationKind = StatusDurationKind.Permanent
+            };
+            map[LifeSpring] = new StatusDefinition
+            {
+                Id = LifeSpring,
+                DisplayName = "生命之泉",
+                DurationKind = StatusDurationKind.Permanent
+            };
+            map[PainConvert] = new StatusDefinition
+            {
+                Id = PainConvert,
+                DisplayName = "苦痛转化",
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 1
+            };
+            map[SnakeNest] = new StatusDefinition
+            {
+                Id = SnakeNest,
+                DisplayName = "千蛇窟",
+                DurationKind = StatusDurationKind.Permanent
+            };
+            map[PsionicArrowRain] = new StatusDefinition
+            {
+                Id = PsionicArrowRain,
+                DisplayName = "灵能箭雨",
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 3
+            };
+            map[PsionicMastery] = new StatusDefinition
+            {
+                Id = PsionicMastery,
+                DisplayName = "灵能掌握",
+                DurationKind = StatusDurationKind.Permanent
+            };
+            map[SoulBond] = new StatusDefinition
+            {
+                Id = SoulBond,
+                DisplayName = "灵魂纽带",
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 1
             };
             return map;
         }

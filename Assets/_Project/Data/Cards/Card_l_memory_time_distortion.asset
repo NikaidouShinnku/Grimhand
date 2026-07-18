@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d1e8e1f9605a6fb4fa4e4fa5586de5ee, type: 3}
+  m_Name: Card_l_memory_time_distortion
+  m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
+  CardId: l_memory_time_distortion
+  DisplayName: "\u8BB0\u5FC6\u82CF\u9192\u00B7\u65F6\u7A7A\u7D0A\u4E71"
+  OwnerCharacterId: char_lich_queen
+  Cost: 2
+  CardType: 2
+  Rarity: 4
+  Keywords:
+  - exhaust
+  Actions:
+
+  CardArt: {fileID: 0}
+  CardFrame: {fileID: 0}
+  CardIcon: {fileID: 0}

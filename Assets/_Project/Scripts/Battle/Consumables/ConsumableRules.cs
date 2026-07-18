@@ -191,6 +191,29 @@ namespace Grimhand.Battle.Consumables
                     break;
                 case ConsumableEffectKind.MirrorLastAttack:
                     return TryApplyMirrorShard(state, targetCombatantId, events, rng, out errorMessage);
+                case ConsumableEffectKind.DrawCharacterCards:
+                {
+                    var target = state.GetCombatant(targetCombatantId);
+                    if (target == null || !target.IsAlive)
+                    {
+                        errorMessage = "目标无效。";
+                        return false;
+                    }
+
+                    DeckRules.DrawCharacterCards(
+                        state,
+                        target.CharacterDefinitionId,
+                        rng,
+                        definition.Value,
+                        events);
+                    events.Add(new BattleEvent(BattleEventKind.CardDrawn,
+                        $"{target.DisplayName} 专注药剂抽 {definition.Value} 张")
+                    {
+                        CombatantId = target.Id,
+                        Amount = definition.Value
+                    });
+                    break;
+                }
             }
 
             events.Add(new BattleEvent(BattleEventKind.ConsumableUsed, definition.DisplayName)

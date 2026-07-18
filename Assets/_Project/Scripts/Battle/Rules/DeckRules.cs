@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
+using Grimhand.Battle.V091;
 using Grimhand.Core;
 
 namespace Grimhand.Battle.Rules
@@ -54,6 +55,8 @@ namespace Grimhand.Battle.Rules
 
                 draw.Add(card);
                 discard.RemoveAt(i);
+                if (team == TeamSide.Player)
+                    V091MechanicsRules.OnCardShuffledToDrawPile(state, card);
             }
 
             if (draw.Count == 0)
@@ -71,6 +74,61 @@ namespace Grimhand.Battle.Rules
         {
             for (var i = 0; i < count; i++)
                 DrawOne(state, team, rng, events);
+        }
+
+        /// <summary>从玩家牌库抽取指定角色的卡牌（可触发洗回弃牌堆）。</summary>
+        public static void DrawCharacterCards(
+            BattleState state,
+            string characterDefinitionId,
+            BattleRng rng,
+            int count,
+            List<BattleEvent> events)
+        {
+            if (state == null || string.IsNullOrEmpty(characterDefinitionId) || count <= 0)
+                return;
+
+            for (var i = 0; i < count; i++)
+            {
+                if (!TryDrawCharacterCard(state, characterDefinitionId, rng, events, reshuffle: true))
+                    break;
+            }
+        }
+
+        static bool TryDrawCharacterCard(
+            BattleState state,
+            string characterDefinitionId,
+            BattleRng rng,
+            List<BattleEvent> events,
+            bool reshuffle)
+        {
+            if (TryTakeCharacterCardFromPile(state.PlayerDrawPile, characterDefinitionId, state, events))
+                return true;
+
+            if (!reshuffle)
+                return false;
+
+            ReshuffleDiscardIntoDraw(state, TeamSide.Player, rng, events);
+            return TryTakeCharacterCardFromPile(state.PlayerDrawPile, characterDefinitionId, state, events);
+        }
+
+        static bool TryTakeCharacterCardFromPile(
+            List<CardInstanceState> pile,
+            string characterDefinitionId,
+            BattleState state,
+            List<BattleEvent> events)
+        {
+            for (var i = 0; i < pile.Count; i++)
+            {
+                var card = pile[i];
+                if (card.OwnerCharacterId != characterDefinitionId)
+                    continue;
+
+                pile.RemoveAt(i);
+                TryAddToHand(state, TeamSide.Player, card, events);
+                return true;
+            }
+
+            return false;
         }
 
         static void DrawOne(

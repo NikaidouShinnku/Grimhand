@@ -86,6 +86,18 @@ namespace Grimhand.Core
             ["魔王降临"] = new() { MaxUpgrades = 5, DamagePerLevel = 4, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 20 },
             ["无尽血刃"] = new() { MaxUpgrades = 5, DamagePerLevel = 5, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 30 },
             ["最终鲜血仪式"] = new() { MaxUpgrades = 5, DamagePerLevel = 0, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 30 },
+            ["荆棘护甲"] = new() { MaxUpgrades = 5, DamagePerLevel = 0, BlockPerLevel = 1, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 10 },
+            ["报复打击"] = new() { MaxUpgrades = 5, DamagePerLevel = 2, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 15 },
+            ["战斗咆哮"] = new() { MaxUpgrades = 2, DamagePerLevel = 1, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 15 },
+            ["无畏冲锋"] = new() { MaxUpgrades = 5, DamagePerLevel = 3, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 20 },
+            ["重整旗鼓"] = new() { MaxUpgrades = 2, DamagePerLevel = 0, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 20 },
+            ["生命之泉"] = new() { MaxUpgrades = 2, DamagePerLevel = 0, BlockPerLevel = 0, HealPerLevel = 1, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 30 },
+            ["苦痛转化"] = new() { MaxUpgrades = 3, DamagePerLevel = 0, BlockPerLevel = 1, HealPerLevel = 1, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 10 },
+            ["魔神回响"] = new() { MaxUpgrades = 5, DamagePerLevel = 5, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 30 },
+            ["毒雾弥漫"] = new() { MaxUpgrades = 3, DamagePerLevel = 0, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 1, SlowStacksPerLevel = 0, XpCostPerLevel = 10 },
+            ["女王之吻"] = new() { MaxUpgrades = 5, DamagePerLevel = 0, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 3, SlowStacksPerLevel = 0, XpCostPerLevel = 30 },
+            ["灵质护盾"] = new() { MaxUpgrades = 5, DamagePerLevel = 0, BlockPerLevel = 1, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 8 },
+            ["灵能箭雨"] = new() { MaxUpgrades = 5, DamagePerLevel = 1, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 10 },
         };
     }
 }

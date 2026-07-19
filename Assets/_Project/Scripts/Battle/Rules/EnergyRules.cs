@@ -22,6 +22,12 @@ namespace Grimhand.Battle.Rules
             }
 
             Restore(state, regen);
+
+            if (state.PendingPlayerEnergyGainNextTurn > 0)
+            {
+                GainTemporary(state, state.PendingPlayerEnergyGainNextTurn);
+                state.PendingPlayerEnergyGainNextTurn = 0;
+            }
         }
 
         /// <summary>获得临时能量：可超过上限，不改变 EnergyMax。</summary>

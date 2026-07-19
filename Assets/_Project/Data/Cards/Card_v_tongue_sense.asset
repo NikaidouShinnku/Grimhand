@@ -20,6 +20,7 @@ MonoBehaviour:
   Rarity: 2
   Keywords:
   - respond_status
+  - usable_while_constricted
   Actions:
   - Type: 3
     Target: 4

@@ -15,15 +15,14 @@ MonoBehaviour:
   CardId: l_realm_seal
   DisplayName: "\u7075\u754C\u5C01\u5370"
   OwnerCharacterId: char_lich_queen
-  Cost: 0
+  Cost: 4
   CardType: 2
   Rarity: 2
   Keywords:
   - exhaust
-  - x_cost
   Actions:
   - Type: 37
-    Target: 0
+    Target: 1
     Value: 0
     StatusId: 
     Stacks: 1

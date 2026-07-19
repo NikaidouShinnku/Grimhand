@@ -551,9 +551,14 @@ namespace Grimhand.Battle
             }
 
             if (actor.Team == TeamSide.Enemy
-                && StatusRules.HasStatus(actor, StatusCatalog.SealedNextCard))
+                && (_state.PendingEnemyCardSeals > 0
+                    || StatusRules.HasStatus(actor, StatusCatalog.SealedNextCard)))
             {
-                StatusRules.RemoveStatus(actor, StatusCatalog.SealedNextCard, 1, _events);
+                if (_state.PendingEnemyCardSeals > 0)
+                    _state.PendingEnemyCardSeals--;
+                else
+                    StatusRules.RemoveStatus(actor, StatusCatalog.SealedNextCard, 1, _events);
+
                 _events.Add(new BattleEvent(BattleEventKind.ReactionTriggered,
                     $"{card.DisplayName} 被灵界封印，进入弃牌堆且不生效")
                 {
@@ -688,6 +693,9 @@ namespace Grimhand.Battle
             {
                 // v0.9 最终壁垒：回合末仅清除50%护甲，保留 GetFinalBulwarkRetainedBlock 返回的部分
                 var retained = PassiveCardMechanicsRules.GetFinalBulwarkRetainedBlock(c);
+                // 灵质护盾延迟护甲：发放当回合末不清理，保留至再下一回合
+                if (_state.RetainBlockOnceCombatantIds.Remove(c.Id))
+                    retained = System.Math.Max(retained, c.Block);
                 c.Block = retained;
             }
 
@@ -723,6 +731,12 @@ namespace Grimhand.Battle
                 AnubisAvatarRules.ProcessTurnStart(combatant);
             // 持续回合在跳伤/缠绕/延迟伤害之后结算：先生效，再扣减并到期移除
             StatusRules.ProcessTurnStartDurations(_state, _events);
+            // 蓄能等：持续扣减之后再挂状态，避免当回合立刻少 1 回合
+            V09NewMechanicsRules.ProcessPendingStatusesNextTurn(_state, _events);
+            // 绝望之魂：战斗中获虚化时延迟到下回合开始回收
+            V09NewMechanicsRules.ProcessPendingDespairSoulRecall(_state, _events);
+            // 启动状态到期后再发【蛇神的回应】，与禁出牌解除同一拍
+            V09NewMechanicsRules.ProcessSnakeGodResponseHand(_state, _events);
             EvaluateOutcome();
             _events.Add(new BattleEvent(BattleEventKind.EnergyChanged, "Turn start")
             {

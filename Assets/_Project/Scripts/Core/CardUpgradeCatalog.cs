@@ -96,8 +96,11 @@ namespace Grimhand.Core
             ["魔神回响"] = new() { MaxUpgrades = 5, DamagePerLevel = 5, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 30 },
             ["毒雾弥漫"] = new() { MaxUpgrades = 3, DamagePerLevel = 0, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 1, SlowStacksPerLevel = 0, XpCostPerLevel = 10 },
             ["女王之吻"] = new() { MaxUpgrades = 5, DamagePerLevel = 0, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 3, SlowStacksPerLevel = 0, XpCostPerLevel = 30 },
+            ["万蛇噬心"] = new() { MaxUpgrades = 6, DamagePerLevel = 5, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 30 },
             ["灵质护盾"] = new() { MaxUpgrades = 5, DamagePerLevel = 0, BlockPerLevel = 1, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 8 },
             ["灵能箭雨"] = new() { MaxUpgrades = 5, DamagePerLevel = 1, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 10 },
+            ["灵界封印"] = new() { MaxUpgrades = 1, DamagePerLevel = 0, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 1, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 15 },
+            ["灵魂强化"] = new() { MaxUpgrades = 5, DamagePerLevel = 0, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 15 },
         };
     }
 }

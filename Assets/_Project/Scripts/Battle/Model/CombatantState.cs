@@ -80,8 +80,11 @@ namespace Grimhand.Battle.Model
         /// <summary>嗜血抓挠等：下次攻击额外固定伤害，出手后清零。</summary>
         public int NextAttackFlatBonus { get; set; }
 
-        /// <summary>剩余无法出牌回合数（阿努比斯化身等）。</summary>
+        /// <summary>剩余无法出牌回合数（阿努比斯化身、祈求远古蛇神等硬锁）。</summary>
         public int CardsLockedTurnsRemaining { get; set; }
+
+        /// <summary>缠绕施法锁：仅缠绕期间；目标全灭可提前解除。白名单牌可在此锁下使用。</summary>
+        public int ConstrictLockTurnsRemaining { get; set; }
 
         /// <summary>剩余无法使用攻击牌回合数（蛛网包裹等）。</summary>
         public int AttackCardsLockedTurnsRemaining { get; set; }
@@ -162,7 +165,11 @@ namespace Grimhand.Battle.Model
 
         public bool IsAlive => Hp > 0;
 
-        public bool IsCardsLocked => CardsLockedTurnsRemaining > 0;
+        public bool IsHardCardsLocked => CardsLockedTurnsRemaining > 0;
+
+        public bool IsConstrictCardsLocked => ConstrictLockTurnsRemaining > 0;
+
+        public bool IsCardsLocked => IsHardCardsLocked || IsConstrictCardsLocked;
 
         public bool IsAttackCardsLocked => AttackCardsLockedTurnsRemaining > 0;
     }

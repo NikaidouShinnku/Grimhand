@@ -594,6 +594,20 @@ namespace Grimhand.Expedition
             }
         }
 
+        /// <summary>
+        /// 将本场战斗中的远征计数（虚化进入次数、消耗牌次数、应对成功等）写回 Run。
+        /// 战后与局中存档前都应调用，避免断线重连丢失本场增量。
+        /// </summary>
+        public void SyncV09BattleCountersFromBattleState(BattleState state)
+        {
+            if (state?.Config?.RunModifiers == null)
+                return;
+
+            _run.V09EtherealEntryCount = state.Config.RunModifiers.EtherealEntryCount;
+            _run.V09ExpeditionRespondSuccessCount = state.Config.RunModifiers.ExpeditionRespondSuccessCount;
+            _run.V09SandSpearExhaustCardsPlayed = state.Config.RunModifiers.SandSpearExhaustCardsPlayed;
+        }
+
         public void OnBattleFinished(BattleState state)
         {
             if (state == null)
@@ -612,12 +626,7 @@ namespace Grimhand.Expedition
             foreach (var member in _run.Party)
                 CampCollectionProgress.SyncMemberFromRun(_run, member);
             TalentDatabase.SyncRunStateFromBattle(state, _run.TalentRun);
-            if (state.Config?.RunModifiers != null)
-            {
-                _run.V09EtherealEntryCount = state.Config.RunModifiers.EtherealEntryCount;
-                _run.V09ExpeditionRespondSuccessCount = state.Config.RunModifiers.ExpeditionRespondSuccessCount;
-                _run.V09SandSpearExhaustCardsPlayed = state.Config.RunModifiers.SandSpearExhaustCardsPlayed;
-            }
+            SyncV09BattleCountersFromBattleState(state);
             ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
 
             if (state.Outcome == BattleOutcome.PlayerVictory)

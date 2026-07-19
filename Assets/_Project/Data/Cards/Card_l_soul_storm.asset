@@ -21,7 +21,7 @@ MonoBehaviour:
   Keywords:
   - aoe
   Actions:
-  - Type: 0
+  - Type: 32
     Target: 12
     Value: 10
     StatusId: 

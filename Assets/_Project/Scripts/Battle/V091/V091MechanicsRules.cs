@@ -101,7 +101,7 @@ namespace Grimhand.Battle.V091
                 EtherealShieldCardId => ResolveEtherealShield(state, actor, card, events, rng),
                 PsionicScryCardId => ResolvePsionicScry(state, actor, card, events, rng),
                 PsionicArrowRainCardId => ResolvePsionicArrowRain(state, actor, card, events),
-                MemoryEternalVoidCardId => ResolveApplyPermanentStatus(state, actor, card, StatusCatalog.EternalVoid, events),
+                MemoryEternalVoidCardId => ResolveEternalVoid(state, actor, card, events),
                 MemoryPsionicMasteryCardId => ResolveApplyPermanentStatus(state, actor, card, StatusCatalog.PsionicMastery, events),
                 MemoryTimeDistortionCardId => ResolveMemoryTimeDistortion(state, actor, card, events, rng),
                 _ => false
@@ -304,6 +304,7 @@ namespace Grimhand.Battle.V091
                 {
                     DamageRules.ApplyBlock(ally, pendingBlock, events, state, rng);
                     state.PendingDelayedBlockByCombatantId.Remove(ally.Id);
+                    state.RetainBlockOnceCombatantIds.Add(ally.Id);
                 }
 
                 if (StatusRules.HasStatus(ally, StatusCatalog.PsionicArrowRain))
@@ -363,6 +364,18 @@ namespace Grimhand.Battle.V091
             List<BattleEvent> events)
         {
             StatusRules.ApplyStatus(state, actor, statusId, 1, -1, events);
+            state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+            return true;
+        }
+
+        static bool ResolveEternalVoid(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState card,
+            List<BattleEvent> events)
+        {
+            StatusRules.ApplyStatus(state, actor, StatusCatalog.Ethereal, 1, -1, events);
+            StatusRules.ApplyStatus(state, actor, StatusCatalog.EternalVoid, 1, -1, events);
             state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
             return true;
         }
@@ -649,9 +662,8 @@ namespace Grimhand.Battle.V091
                 if (!enemy.IsAlive)
                     continue;
 
-                var hadPoison = StatusRules.HasStatus(enemy, StatusCatalog.Poison);
-                StatusRules.ApplyStatus(state, enemy, StatusCatalog.Poison, poisonStacks, -1, events);
-                if (hadPoison || StatusRules.HasStatus(enemy, StatusCatalog.Poison))
+                // 先按「使用前是否中毒」判定易伤，再施加本次中毒。
+                if (StatusRules.HasStatus(enemy, StatusCatalog.Poison))
                 {
                     StatusRules.ApplyStatus(
                         state,
@@ -661,6 +673,8 @@ namespace Grimhand.Battle.V091
                         2,
                         events);
                 }
+
+                StatusRules.ApplyStatus(state, enemy, StatusCatalog.Poison, poisonStacks, -1, events);
             }
 
             state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
@@ -693,23 +707,68 @@ namespace Grimhand.Battle.V091
             state.QueenKissConversionPending = false;
             foreach (var enemy in state.GetTeam(TeamSide.Enemy))
             {
-                if (!enemy.IsAlive)
+                if (enemy == null || !enemy.IsAlive)
                     continue;
 
-                var poison = StatusRules.FindStatus(enemy, StatusCatalog.Poison);
-                if (poison == null || poison.Stacks <= 0)
+                // 按桶转换：每段中毒保留各自层数与持续时间，转成等量易伤。
+                var buckets = new List<(int stacks, int duration)>();
+                foreach (var status in enemy.Statuses)
+                {
+                    if (status?.StatusId != StatusCatalog.Poison || status.Stacks <= 0)
+                        continue;
+
+                    buckets.Add((status.Stacks, status.RemainingTurns < 0 ? -1 : status.RemainingTurns));
+                }
+
+                if (buckets.Count == 0)
                     continue;
 
-                var duration = poison.RemainingTurns < 0 ? -1 : poison.RemainingTurns;
-                StatusRules.RemoveStatus(enemy, StatusCatalog.Poison, poison.Stacks, events);
-                StatusRules.ApplyStatus(
-                    state,
-                    enemy,
-                    StatusCatalog.Vulnerable,
-                    poison.Stacks,
-                    duration,
-                    events);
+                StatusRules.RemoveAllStatus(enemy, StatusCatalog.Poison, events);
+                foreach (var bucket in buckets)
+                    ApplyVulnerableBucket(state, enemy, bucket.stacks, bucket.duration, events);
             }
+        }
+
+        static void ApplyVulnerableBucket(
+            BattleState state,
+            CombatantState target,
+            int stacks,
+            int duration,
+            List<BattleEvent> events)
+        {
+            if (target == null || stacks <= 0)
+                return;
+
+            StatusInstance bucket = null;
+            foreach (var status in target.Statuses)
+            {
+                if (status?.StatusId == StatusCatalog.Vulnerable && status.RemainingTurns == duration)
+                {
+                    bucket = status;
+                    break;
+                }
+            }
+
+            if (bucket == null)
+            {
+                bucket = new StatusInstance
+                {
+                    StatusId = StatusCatalog.Vulnerable,
+                    Stacks = 0,
+                    RemainingTurns = duration
+                };
+                target.Statuses.Add(bucket);
+            }
+
+            bucket.Stacks += stacks;
+            events.Add(new BattleEvent(BattleEventKind.StatusApplied, "易伤")
+            {
+                CombatantId = target.Id,
+                Amount = StatusRules.GetStatusStacks(target, StatusCatalog.Vulnerable),
+                TargetId = StatusCatalog.Vulnerable
+            });
+            CombatantRules.RefreshDerivedStats(target);
+            RelicBattleRules.RefreshDerivedStats(state, target, state?.Config?.RunModifiers);
         }
 
         static bool ResolveEtherealShield(
@@ -726,7 +785,9 @@ namespace Grimhand.Battle.V091
                     state.PendingDelayedBlockByCombatantId.TryGetValue(actor.Id, out var existing)
                         ? existing + block
                         : block;
-                events.Add(new BattleEvent(BattleEventKind.BlockGained, $"{actor.DisplayName} 下回合获得{block}护甲")
+                // 禁止发 BlockGained：否则演出脚标会立刻假加甲
+                events.Add(new BattleEvent(BattleEventKind.StatusApplied,
+                    $"{actor.DisplayName} 下回合开始获得{block}护甲")
                 {
                     CombatantId = actor.Id,
                     Amount = block
@@ -750,36 +811,70 @@ namespace Grimhand.Battle.V091
         {
             var pile = state.PlayerDrawPile;
             var take = System.Math.Min(PsionicScryCount, pile.Count);
+            state.PendingPsionicScryCards.Clear();
+            state.AwaitingPsionicScry = false;
             if (take <= 0)
-                return true;
-
-            var top = new List<CardInstanceState>();
-            for (var i = 0; i < take; i++)
-                top.Add(pile[i]);
-
-            pile.RemoveRange(0, take);
-            if (top.Count > 1 && rng != null)
             {
-                var discardIndex = rng.NextIndex(top.Count);
-                var discarded = top[discardIndex];
-                top.RemoveAt(discardIndex);
-                state.PlayerDiscardPile.Add(discarded);
-                events.Add(new BattleEvent(BattleEventKind.CardDiscarded, discarded.DisplayName)
-                {
-                    CardInstanceId = discarded.InstanceId
-                });
+                state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                return true;
             }
 
-            for (var i = top.Count - 1; i >= 0; i--)
-                pile.Insert(0, top[i]);
+            for (var i = 0; i < take; i++)
+                state.PendingPsionicScryCards.Add(pile[i]);
+            pile.RemoveRange(0, take);
+            state.AwaitingPsionicScry = true;
 
-            events.Add(new BattleEvent(BattleEventKind.StatusApplied, "灵能预知：检视牌组顶")
+            events.Add(new BattleEvent(BattleEventKind.TargetSelectionRequired, "灵能预知：选择要弃置的牌")
             {
                 CombatantId = actor.Id,
                 Amount = take
             });
             state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
             return true;
+        }
+
+        /// <summary>
+        /// 确认灵能预知：selectedInstanceIds 进入弃牌堆，其余按原相对顺序压回牌库顶。
+        /// </summary>
+        public static void ApplyPsionicScryChoice(
+            BattleState state,
+            IReadOnlyList<int> selectedInstanceIds,
+            List<BattleEvent> events)
+        {
+            if (state == null || !state.AwaitingPsionicScry)
+                return;
+
+            var selected = new HashSet<int>();
+            if (selectedInstanceIds != null)
+            {
+                foreach (var id in selectedInstanceIds)
+                    selected.Add(id);
+            }
+
+            var remaining = new List<CardInstanceState>();
+            foreach (var scryCard in state.PendingPsionicScryCards)
+            {
+                if (scryCard == null)
+                    continue;
+
+                if (selected.Contains(scryCard.InstanceId))
+                {
+                    state.PlayerDiscardPile.Add(scryCard);
+                    events?.Add(new BattleEvent(BattleEventKind.CardDiscarded, scryCard.DisplayName)
+                    {
+                        CardInstanceId = scryCard.InstanceId
+                    });
+                }
+                else
+                    remaining.Add(scryCard);
+            }
+
+            var pile = state.PlayerDrawPile;
+            for (var i = remaining.Count - 1; i >= 0; i--)
+                pile.Insert(0, remaining[i]);
+
+            state.PendingPsionicScryCards.Clear();
+            state.AwaitingPsionicScry = false;
         }
 
         static bool ResolvePsionicArrowRain(
@@ -806,6 +901,39 @@ namespace Grimhand.Battle.V091
             List<BattleEvent> events,
             BattleRng rng)
         {
+            // 重新抽牌：当前敌方手牌洗入弃牌堆后重新抽取
+            var enemyHand = state.EnemyHand;
+            for (var i = enemyHand.Count - 1; i >= 0; i--)
+            {
+                var handCard = enemyHand[i];
+                enemyHand.RemoveAt(i);
+                if (handCard == null)
+                    continue;
+
+                if (handCard.IsBonusHandCard)
+                {
+                    handCard.IsUsable = false;
+                    events.Add(new BattleEvent(BattleEventKind.CardDiscarded, "时空紊乱清除额外手牌")
+                    {
+                        CardInstanceId = handCard.InstanceId
+                    });
+                    continue;
+                }
+
+                state.EnemyDiscardPile.Add(handCard);
+                events.Add(new BattleEvent(BattleEventKind.CardDiscarded, "时空紊乱重抽")
+                {
+                    CardInstanceId = handCard.InstanceId
+                });
+            }
+
+            var drawCount = state.Config?.EnemyCardsDrawnPerTurn ?? 0;
+            if (drawCount <= 0)
+                drawCount = state.Config?.CardsDrawnPerTurn ?? 0;
+            if (drawCount > 0)
+                DeckRules.DrawCards(state, TeamSide.Enemy, rng, drawCount, events);
+
+            // 重新选牌：按新手牌规划意图
             var enemyTurn = EnemyTurnPlanner.PrepareEnemyTurn(state, rng);
             state.EnemyPlan.PlayQueue.Clear();
             state.EnemyPlan.PlayQueue.AddRange(enemyTurn.Plan.PlayQueue);

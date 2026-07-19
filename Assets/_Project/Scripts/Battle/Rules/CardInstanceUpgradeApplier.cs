@@ -33,6 +33,9 @@ namespace Grimhand.Battle.Rules
                     case EffectActionType.DealDamage when dmg > 0:
                         action.Value += dmg;
                         break;
+                    case EffectActionType.ApplyConstrict when dmg > 0:
+                        action.Value += dmg;
+                        break;
                     case EffectActionType.GainBlock when block > 0:
                         action.Value += block;
                         break;

@@ -34,7 +34,12 @@ namespace Grimhand.Content.Editor
             {
                 var path = AssetDatabase.GUIDToAssetPath(guid);
                 var card = AssetDatabase.LoadAssetAtPath<CardDefinitionSO>(path);
-                if (card == null || !PlayerCardCatalogRules.IsAllowedPlayerCard(card.CardId, card.OwnerCharacterId))
+                if (card == null)
+                    continue;
+
+                // token 不进奖励池，但仍写入 catalog，供战斗手牌解析稀有度/描述。
+                if (!PlayerCardCatalogRules.IsAllowedPlayerCard(card.CardId, card.OwnerCharacterId)
+                    && !PlayerCardCatalogRules.IsTokenCardId(card.CardId))
                     continue;
 
                 setup.PlayerCardCatalog.Add(card);

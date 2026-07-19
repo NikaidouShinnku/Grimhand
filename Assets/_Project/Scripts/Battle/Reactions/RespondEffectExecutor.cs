@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Grimhand.Battle.Effects;
 using Grimhand.Battle.Events;
@@ -117,6 +118,21 @@ namespace Grimhand.Battle.Reactions
                     var target = ResolveRespondTarget(state, actor, card, context, action, rng);
                     if (target == null)
                         break;
+
+                    // 应对成功后立刻结算（如毒鳞上毒），不走 Reach 限制。
+                    if (action.Type == EffectActionType.ApplyStatus
+                        && action.Target == EffectTarget.LastActionActor
+                        && !string.IsNullOrEmpty(action.StatusId))
+                    {
+                        StatusRules.ApplyStatus(
+                            state,
+                            target,
+                            action.StatusId,
+                            Math.Max(1, action.Stacks),
+                            action.Duration,
+                            events);
+                        break;
+                    }
 
                     EffectActionExecutor.ExecuteOne(
                         state, actor, card, action, events, rng, card.InstanceId, targetOverride: target);

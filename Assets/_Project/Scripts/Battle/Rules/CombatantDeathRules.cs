@@ -15,6 +15,8 @@ namespace Grimhand.Battle.Rules
             MinionTraitRules.OnCharacterDied(state, combatant, events);
             V09BossMechanicsRules.OnCharacterDied(state, combatant, events, rng: null);
             TalentBattleRules.OnCharacterDied(state, combatant, events);
+            V09NewMechanicsRules.OnConstrictTargetDied(state, combatant, events);
+            V09NewMechanicsRules.OnConstrictCasterDied(state, combatant, events);
 
             var polluted = 0;
             foreach (var card in state.CardsById.Values)

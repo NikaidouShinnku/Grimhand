@@ -6,6 +6,7 @@ using Grimhand.Battle.Events;
 using Grimhand.Battle.Consumables;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
+using Grimhand.Battle.V091;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 using Grimhand.Content;
@@ -972,8 +973,8 @@ namespace Grimhand.Presentation.Battle
             {
                 if (ReturnToCampRequested != null)
                 {
+                    // ReturnToCampFromRunEnd 内会 ClearExpeditionAfterLeave。
                     ReturnToCampRequested.Invoke();
-                    ClearExpeditionSessionAfterLeave();
                     return;
                 }
 
@@ -984,14 +985,16 @@ namespace Grimhand.Presentation.Battle
             RestartRunOrBattle();
         }
 
-        /// <summary>回营后清掉局内远征/战斗引用，避免失败态 UI 残留或旧战果污染新局。</summary>
-        void ClearExpeditionSessionAfterLeave()
+        /// <summary>回营/放弃后清掉局内远征/战斗引用，避免失败态 UI 残留或旧战果污染新局。</summary>
+        public void ClearExpeditionSessionAfterLeave()
         {
+            EndPresentation();
             Expedition = null;
             Engine = null;
             _battleEndHandled = false;
             _log.Clear();
             _turnLog.Reset();
+            _consumablesUsedThisBattle.Clear();
             NotifyChanged();
         }
 
@@ -1000,6 +1003,7 @@ namespace Grimhand.Presentation.Battle
         public bool CanInteractWithBattle() =>
             Engine != null &&
             !Engine.State.AwaitingFelskullChoice &&
+            !Engine.State.AwaitingPsionicScry &&
             Engine.State.Phase == TurnPhase.Planning &&
             !PresentationLocked &&
             (Expedition == null || Expedition.Run.Phase == ExpeditionPhase.InBattle);
@@ -1015,6 +1019,20 @@ namespace Grimhand.Presentation.Battle
                 _log.Add(evt.Message);
 
             Engine.ResumeAfterFelskullChoice();
+            DrainEvents();
+            NotifyChanged();
+        }
+
+        public void ConfirmPsionicScry(IReadOnlyList<int> selectedInstanceIds)
+        {
+            if (Engine == null || !Engine.State.AwaitingPsionicScry)
+                return;
+
+            var events = new List<BattleEvent>();
+            V091MechanicsRules.ApplyPsionicScryChoice(Engine.State, selectedInstanceIds, events);
+            foreach (var evt in events)
+                _log.Add(evt.Message);
+
             DrainEvents();
             NotifyChanged();
         }

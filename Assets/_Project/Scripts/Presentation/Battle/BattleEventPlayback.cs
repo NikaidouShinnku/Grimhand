@@ -17,6 +17,8 @@ namespace Grimhand.Presentation.Battle
                 BattleEventKind.ParryTriggered => true,
                 BattleEventKind.HealApplied => true,
                 BattleEventKind.CharacterRevived => true,
+                BattleEventKind.StatusApplied => true,
+                BattleEventKind.StatusRemoved => true,
                 _ => false
             };
 
@@ -34,7 +36,10 @@ namespace Grimhand.Presentation.Battle
             return false;
         }
 
-        /// <summary>按「单次出牌 / 独立受击 / 独立治疗」拆成演出段落；段落内保留 BlockGained 等非立绘事件以便同步护甲 UI。</summary>
+        /// <summary>
+        /// 按「单次出牌 / 独立受击 / 独立治疗」拆成演出段落。
+        /// 出牌前孤立的 StatusApplied/Removed（如应对上毒）并入下一张牌动画，避免脚标早于/晚于卡牌演出。
+        /// </summary>
         public static List<List<BattleEvent>> SplitIntoSegments(IReadOnlyList<BattleEvent> events)
         {
             var segments = new List<List<BattleEvent>>();
@@ -42,6 +47,7 @@ namespace Grimhand.Presentation.Battle
                 return segments;
 
             List<BattleEvent> current = null;
+            List<BattleEvent> pendingStatus = null;
 
             foreach (var e in events)
             {
@@ -51,6 +57,12 @@ namespace Grimhand.Presentation.Battle
                         segments.Add(current);
 
                     current = new List<BattleEvent> { e };
+                    if (pendingStatus != null && pendingStatus.Count > 0)
+                    {
+                        current.AddRange(pendingStatus);
+                        pendingStatus.Clear();
+                    }
+
                     continue;
                 }
 
@@ -66,6 +78,14 @@ namespace Grimhand.Presentation.Battle
                     continue;
                 }
 
+                // 尚无出牌段：状态挂起，等下一张牌 Pose 再播（时机对齐卡牌动画）。
+                if (e.Kind is BattleEventKind.StatusApplied or BattleEventKind.StatusRemoved)
+                {
+                    pendingStatus ??= new List<BattleEvent>();
+                    pendingStatus.Add(e);
+                    continue;
+                }
+
                 if (!IsPresentationKind(e.Kind))
                     continue;
 
@@ -78,6 +98,10 @@ namespace Grimhand.Presentation.Battle
                     current = null;
                 }
             }
+
+            // 无后续出牌时，独立播出挂起的状态（如仅状态跳字回合）。
+            if (pendingStatus != null && pendingStatus.Count > 0)
+                segments.Add(pendingStatus);
 
             if (current != null && current.Count > 0)
                 segments.Add(current);

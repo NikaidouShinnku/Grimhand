@@ -1,6 +1,8 @@
+using System.Collections.Generic;
 using Grimhand.Battle;
 using Grimhand.Battle.Demo;
 using Grimhand.Battle.Effects;
+using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
 using NUnit.Framework;
@@ -181,6 +183,29 @@ namespace Grimhand.Battle.Tests
 
             Assert.AreEqual(6, state.PlayerHand.Count, "1 张继承 + 下回合抽 5 张");
             Assert.IsTrue(state.PlayerHand.Exists(CardRules.HasInheritKeyword));
+        }
+
+        [Test]
+        public void PollutedInheritCard_DoesNotRetain_AndCyclesToDiscard()
+        {
+            var state = new BattleState();
+            var inherit = new CardInstanceState
+            {
+                InstanceId = 1,
+                DefinitionId = "test_inherit",
+                DisplayName = "继承牌",
+                IsUsable = false,
+                Keywords = { "inherit" }
+            };
+            state.PlayerHand.Add(inherit);
+            state.CardsById[1] = inherit;
+
+            Assert.IsFalse(CardRules.HasInheritKeyword(inherit));
+            DeckRules.DiscardHandAtEndOfTurn(state, TeamSide.Player, new List<BattleEvent>());
+
+            Assert.AreEqual(0, state.PlayerHand.Count);
+            Assert.AreEqual(1, state.PlayerDiscardPile.Count);
+            Assert.AreEqual(1, state.PlayerDiscardPile[0].InstanceId);
         }
     }
 }

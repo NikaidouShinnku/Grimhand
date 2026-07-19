@@ -182,6 +182,7 @@ namespace Grimhand.Presentation.Camp
             _trackingExpedition = false;
             _runEndHandled = false;
             _lastCheckpointPhase = null;
+            battleController?.ClearExpeditionAfterLeave();
             gameMenu?.Hide();
             ShowCamp();
             campScreen?.RefreshAccountGold(_profile.AccountGold);
@@ -205,6 +206,7 @@ namespace Grimhand.Presentation.Camp
         {
             _trackingExpedition = false;
             escMenu?.Hide();
+            battleController?.ClearExpeditionAfterLeave();
             battleController.SetBattleScreenVisible(false);
             ShowCamp();
             campScreen?.RefreshAccountGold(_profile.AccountGold);
@@ -257,7 +259,6 @@ namespace Grimhand.Presentation.Camp
         void ForfeitExpeditionFromEsc()
         {
             settingsOverlay?.Hide();
-            FindAnyObjectByType<BattleScreenView>(FindObjectsInactive.Include)?.SetEscUiSuppressed(false);
             escMenu?.Hide();
 
             var liveRun = battleController?.Session?.Expedition?.Run;
@@ -278,6 +279,7 @@ namespace Grimhand.Presentation.Camp
             _trackingExpedition = false;
             _runEndHandled = true;
             _lastCheckpointPhase = null;
+            battleController?.ClearExpeditionAfterLeave();
             battleController.SetBattleScreenVisible(false);
             ShowCamp();
             campScreen?.RefreshAccountGold(_profile.AccountGold);
@@ -568,6 +570,11 @@ namespace Grimhand.Presentation.Camp
             var engine = battleController.Session.Expedition;
             if (engine == null || engine.Run.Phase is ExpeditionPhase.RunComplete or ExpeditionPhase.RunFailed)
                 return;
+
+            // 局中断线前：把当前战斗里的虚化/消耗等计数写回远征 Run，再落盘
+            var battleState = battleController.Session.Engine?.State;
+            if (battleState != null)
+                engine.SyncV09BattleCountersFromBattleState(battleState);
 
             ActiveRunPersistence.UpdateCheckpoint(_profile, engine);
             SaveProfile();

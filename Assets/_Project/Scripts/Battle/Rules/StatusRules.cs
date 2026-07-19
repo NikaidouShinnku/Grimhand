@@ -50,8 +50,15 @@ namespace Grimhand.Battle.Rules
             bool mirrorChainWraith)
         {
             var def = StatusCatalog.Get(statusId);
-            if (def == null || target == null || !target.IsAlive)
+            if (def == null || target == null || !target.IsAlive || stacks <= 0)
                 return;
+
+            // 中毒按「持续时间」分桶叠层：同回合数合在一起，不同回合数分开（引爆时分别结算）。
+            if (statusId == StatusCatalog.Poison)
+            {
+                ApplyPoisonBucket(state, target, stacks, durationOverride, events, mirrorChainWraith);
+                return;
+            }
 
             var existing = FindStatus(target, statusId);
             var isNew = existing == null;
@@ -86,10 +93,7 @@ namespace Grimhand.Battle.Rules
             CombatantRules.RefreshDerivedStats(target);
             RelicBattleRules.RefreshDerivedStats(state, target, state?.Config?.RunModifiers);
 
-            // v0.9 钩子：获得中毒（不朽蛇蜕增伤）/ 获得虚化（绝望之魔回收、巫妖天赋、虚化计数）
-            if (statusId == StatusCatalog.Poison)
-                V09NewMechanicsRules.OnPoisonAppliedToSelf(state, target, statusId, events);
-            else if (statusId == StatusCatalog.Ethereal)
+            if (statusId == StatusCatalog.Ethereal)
             {
                 V09NewMechanicsRules.IncrementEtherealEntryCount(state);
                 V09NewMechanicsRules.OnEtherealGained(state, target, events);
@@ -105,32 +109,127 @@ namespace Grimhand.Battle.Rules
                 TargetRules.RefreshEnemyResolutionTargetsForTaunt(state);
         }
 
-        public static int GetStatusStacks(CombatantState target, string statusId)
+        static void ApplyPoisonBucket(
+            BattleState state,
+            CombatantState target,
+            int stacks,
+            int durationOverride,
+            List<BattleEvent> events,
+            bool mirrorChainWraith)
         {
-            var existing = FindStatus(target, statusId);
-            return existing?.Stacks ?? 0;
-        }
-
-        public static bool HasStatus(CombatantState target, string statusId) =>
-            FindStatus(target, statusId) != null;
-
-        public static void RemoveStatus(CombatantState target, string statusId, int stacks, List<BattleEvent> events)
-        {
-            var existing = FindStatus(target, statusId);
-            if (existing == null)
+            var def = StatusCatalog.Get(StatusCatalog.Poison);
+            if (def == null)
                 return;
 
-            existing.Stacks -= stacks;
-            if (existing.Stacks <= 0)
-                target.Statuses.Remove(existing);
+            var turns = ResolveAppliedDurationTurns(state, durationOverride);
+            StatusInstance bucket = null;
+            foreach (var status in target.Statuses)
+            {
+                if (status?.StatusId == StatusCatalog.Poison && status.RemainingTurns == turns)
+                {
+                    bucket = status;
+                    break;
+                }
+            }
 
-            events.Add(new BattleEvent(BattleEventKind.StatusRemoved, statusId)
+            if (bucket == null)
+            {
+                bucket = new StatusInstance
+                {
+                    StatusId = StatusCatalog.Poison,
+                    Stacks = 0,
+                    RemainingTurns = turns
+                };
+                target.Statuses.Add(bucket);
+            }
+
+            bucket.Stacks += stacks;
+
+            events.Add(new BattleEvent(BattleEventKind.StatusApplied, def.DisplayName)
             {
                 CombatantId = target.Id,
-                Amount = stacks
+                Amount = GetStatusStacks(target, StatusCatalog.Poison),
+                TargetId = StatusCatalog.Poison
             });
 
             CombatantRules.RefreshDerivedStats(target);
+            RelicBattleRules.RefreshDerivedStats(state, target, state?.Config?.RunModifiers);
+            V09NewMechanicsRules.OnPoisonAppliedToSelf(state, target, StatusCatalog.Poison, events);
+
+            if (mirrorChainWraith)
+                MinionTraitRules.ShareChainWraithDebuff(
+                    state, target, StatusCatalog.Poison, stacks, durationOverride, events);
+        }
+
+        static int ResolveAppliedDurationTurns(BattleState state, int durationOverride)
+        {
+            if (durationOverride < 0)
+                return -1;
+
+            var turns = durationOverride;
+            var bonus = state?.Config?.RunModifiers?.StatusDurationBonusTurns ?? 0;
+            if (bonus > 0)
+                turns += bonus;
+            return turns;
+        }
+
+        public static int GetStatusStacks(CombatantState target, string statusId)
+        {
+            if (target == null || string.IsNullOrEmpty(statusId))
+                return 0;
+
+            var total = 0;
+            foreach (var status in target.Statuses)
+            {
+                if (status?.StatusId == statusId)
+                    total += status.Stacks;
+            }
+
+            return total;
+        }
+
+        public static bool HasStatus(CombatantState target, string statusId) =>
+            GetStatusStacks(target, statusId) > 0;
+
+        public static void RemoveStatus(CombatantState target, string statusId, int stacks, List<BattleEvent> events)
+        {
+            if (target == null || string.IsNullOrEmpty(statusId) || stacks <= 0)
+                return;
+
+            var remaining = stacks;
+            for (var i = target.Statuses.Count - 1; i >= 0 && remaining > 0; i--)
+            {
+                var existing = target.Statuses[i];
+                if (existing?.StatusId != statusId || existing.Stacks <= 0)
+                    continue;
+
+                var take = System.Math.Min(existing.Stacks, remaining);
+                existing.Stacks -= take;
+                remaining -= take;
+                if (existing.Stacks <= 0)
+                    target.Statuses.RemoveAt(i);
+            }
+
+            var removed = stacks - remaining;
+            if (removed <= 0)
+                return;
+
+            events?.Add(new BattleEvent(BattleEventKind.StatusRemoved, statusId)
+            {
+                CombatantId = target.Id,
+                TargetId = statusId,
+                Amount = removed
+            });
+
+            CombatantRules.RefreshDerivedStats(target);
+        }
+
+        public static void RemoveAllStatus(CombatantState target, string statusId, List<BattleEvent> events)
+        {
+            if (target == null || string.IsNullOrEmpty(statusId))
+                return;
+
+            RemoveStatus(target, statusId, GetStatusStacks(target, statusId), events);
         }
 
         public static void ProcessTurnStartStatuses(BattleState state, List<BattleEvent> events, BattleRng rng = null)
@@ -268,7 +367,8 @@ namespace Grimhand.Battle.Rules
                 || statusId == StatusCatalog.NecroticPoison
                 || statusId == StatusCatalog.Burn
                 || statusId == StatusCatalog.Constrict
-                || statusId == StatusCatalog.DelayedDamage)
+                || statusId == StatusCatalog.DelayedDamage
+                || statusId == StatusCatalog.SnakeGodChanneling)
                 return true;
 
             var def = StatusCatalog.Get(statusId);

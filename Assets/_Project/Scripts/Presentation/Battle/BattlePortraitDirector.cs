@@ -47,6 +47,30 @@ namespace Grimhand.Presentation.Battle
             _session.EventsProduced += OnEventsProduced;
         }
 
+        /// <summary>放弃远征/回营时中止未播完的立绘演出，避免锁定态带到新局。</summary>
+        public void AbortPlayback()
+        {
+            if (_playback != null)
+            {
+                StopCoroutine(_playback);
+                _playback = null;
+            }
+
+            _segmentQueue.Clear();
+            _playing = false;
+            _screen?.HideActiveCard();
+            _screen?.StopAllPortraitIdleLoops();
+
+            if (_screen != null)
+            {
+                foreach (var view in _screen.AllPortraitViews())
+                    view?.ResetInterruptedPresentationState();
+            }
+
+            if (_session != null)
+                _session.EndPresentation();
+        }
+
         void OnDestroy()
         {
             if (_session != null)
@@ -149,6 +173,9 @@ namespace Grimhand.Presentation.Battle
                             break;
                         case BattleEventKind.StatusApplied:
                             yield return HandleStatusApplied(e);
+                            break;
+                        case BattleEventKind.StatusRemoved:
+                            HandleStatusRemoved(e);
                             break;
                         case BattleEventKind.DamageApplied:
                             card?.MarkDamage();
@@ -370,19 +397,50 @@ namespace Grimhand.Presentation.Battle
 
         IEnumerator HandleStatusApplied(BattleEvent e)
         {
-            if (!IsTargetPresentationActive(e.CombatantId))
-                yield break;
+            // 先播状态特效，再按事件增量刷新脚标（禁止 Sync 实况，否则会提前显示本回合后续状态）。
+            if (IsTargetPresentationActive(e.CombatantId)
+                && _portraits.TryGetValue(e.CombatantId, out var target))
+            {
+                var statusFx = BattleActionEffectResolver.ResolveStatus(_effects, e.TargetId);
+                if (statusFx != null)
+                    yield return target.PlayOverlayEffect(statusFx);
 
-            if (!_portraits.TryGetValue(e.CombatantId, out var target))
-                yield break;
+                GameAudioService.Instance.PlayBattleStatusEffect(e.TargetId);
+            }
 
-            var statusFx = BattleActionEffectResolver.ResolveStatus(_effects, e.TargetId);
-            if (statusFx != null)
-                yield return target.PlayOverlayEffect(statusFx);
-
-            GameAudioService.Instance.PlayBattleStatusEffect(e.TargetId);
-            _session.PresentationSnapshot?.ApplyFootStatusApplied(e.CombatantId, e.TargetId, e.Amount);
+            RevealFootStatusApplied(e);
             ApplyEventDisplayCheckpoint(e);
+        }
+
+        void HandleStatusRemoved(BattleEvent e)
+        {
+            RevealFootStatusRemoved(e);
+            ApplyEventDisplayCheckpoint(e);
+        }
+
+        void RevealFootStatusApplied(BattleEvent e)
+        {
+            if (_session.PresentationSnapshot == null
+                || string.IsNullOrEmpty(e.CombatantId)
+                || string.IsNullOrEmpty(e.TargetId)
+                || e.Amount <= 0)
+                return;
+
+            _session.PresentationSnapshot.ApplyFootStatusApplied(e.CombatantId, e.TargetId, e.Amount);
+            _screen?.Refresh();
+        }
+
+        void RevealFootStatusRemoved(BattleEvent e)
+        {
+            if (_session.PresentationSnapshot == null || string.IsNullOrEmpty(e.CombatantId))
+                return;
+
+            var statusId = !string.IsNullOrEmpty(e.TargetId) ? e.TargetId : e.Message;
+            if (string.IsNullOrEmpty(statusId) || e.Amount <= 0)
+                return;
+
+            _session.PresentationSnapshot.ApplyFootStatusRemoved(e.CombatantId, statusId, e.Amount);
+            _screen?.Refresh();
         }
 
         IEnumerator PlayHealEffect(CombatantPortraitView target, bool isLifesteal = false)
@@ -611,6 +669,9 @@ namespace Grimhand.Presentation.Battle
                 case BattleEventKind.StatusApplied:
                     yield return HandleStatusApplied(e);
                     break;
+                case BattleEventKind.StatusRemoved:
+                    HandleStatusRemoved(e);
+                    break;
                 default:
                     yield break;
             }
@@ -658,6 +719,7 @@ namespace Grimhand.Presentation.Battle
                 or BattleEventKind.IronWallConverted
                 or BattleEventKind.HealApplied
                 or BattleEventKind.StatusApplied
+                or BattleEventKind.StatusRemoved
                 or BattleEventKind.DeckPolluted
                 or BattleEventKind.CardDrawn
                 or BattleEventKind.EnergyChanged

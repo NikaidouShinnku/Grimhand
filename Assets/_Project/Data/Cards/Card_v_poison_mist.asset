@@ -18,7 +18,8 @@ MonoBehaviour:
   Cost: 2
   CardType: 2
   Rarity: 1
-  Keywords: []
+  Keywords:
+  - aoe
   Actions:
 
   CardArt: {fileID: 0}

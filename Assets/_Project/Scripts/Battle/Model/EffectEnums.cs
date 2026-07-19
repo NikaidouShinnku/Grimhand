@@ -97,7 +97,11 @@ namespace Grimhand.Battle.Model
         /// <summary>按自身 RepeatPerStatusId 层数重复施加 AttackUpPercent。</summary>
         ApplyAttackUpPerSelfStatusStack,
         /// <summary>锁定涨潮为 Stacks 层并施加 TideLocked。</summary>
-        LockRisingTideStacks
+        LockRisingTideStacks,
+        /// <summary>下回合开始时对目标施加 StatusId（Stacks/Duration）。</summary>
+        ApplyStatusNextTurn,
+        /// <summary>下回合开始时获得 Value 点临时能量（可超过 EnergyMax）。</summary>
+        GainEnergyNextTurn
     }
 
     public enum EffectTarget

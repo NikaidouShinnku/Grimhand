@@ -70,6 +70,7 @@ namespace Grimhand.Presentation.Battle
         ExpeditionPostBattleOverlayView _postBattleOverlay;
         ExpeditionShopOverlayView _shopOverlay;
         FelskullBattleChoiceView _felskullChoice;
+        PsionicScryOverlayView _psionicScryOverlay;
         Button _inventoryButton;
         Button _turnLogButton;
         Button _mapButton;
@@ -853,14 +854,17 @@ namespace Grimhand.Presentation.Battle
                 _activeCardBanner?.Hide();
             }
 
+            // Esc 会把图鉴/背包等 SetActive(false)；关闭后必须显式恢复，否则会永久消失。
+            var showUtilityHud = showBattleChrome;
+            _inventoryButton?.gameObject.SetActive(showUtilityHud);
+            _mapButton?.gameObject.SetActive(showUtilityHud);
+            _codexButton?.gameObject.SetActive(showUtilityHud);
+            _turnLogButton?.gameObject.SetActive(showUtilityHud);
+
             if (_escUiSuppressed)
             {
                 handPanel?.gameObject.SetActive(false);
                 _actionOrderBar?.gameObject.SetActive(false);
-                _inventoryButton?.gameObject.SetActive(false);
-                _mapButton?.gameObject.SetActive(false);
-                _codexButton?.gameObject.SetActive(false);
-                _turnLogButton?.gameObject.SetActive(false);
                 SetBattlefieldVisible(false);
             }
         }
@@ -985,6 +989,7 @@ namespace Grimhand.Presentation.Battle
                 RefreshTargetCancelBackdrop(draft);
                 RefreshActions(state, expeditionBlocks);
                 RefreshFelskullChoice(state);
+                RefreshPsionicScry(state);
             }
 
             RefreshHand(_session.Engine?.State);
@@ -1420,7 +1425,9 @@ namespace Grimhand.Presentation.Battle
             if (handPanel == null)
                 return;
 
-            var showHand = state != null && ShouldShowBattlePlanningChrome();
+            var showHand = state != null
+                           && ShouldShowBattlePlanningChrome()
+                           && !state.AwaitingPsionicScry;
             handPanel.gameObject.SetActive(showHand);
             if (!showHand)
                 return;
@@ -1790,6 +1797,24 @@ namespace Grimhand.Presentation.Battle
             }
 
             _felskullChoice.Hide();
+        }
+
+        void RefreshPsionicScry(BattleState state)
+        {
+            if (_psionicScryOverlay == null)
+            {
+                _psionicScryOverlay = gameObject.AddComponent<PsionicScryOverlayView>();
+                _psionicScryOverlay.Initialize(
+                    _session,
+                    transform,
+                    _uiIcons,
+                    HandCardPrefab,
+                    _catalog,
+                    _characterVisuals,
+                    _definitions);
+            }
+
+            _psionicScryOverlay.Refresh();
         }
 
         public System.Collections.Generic.IEnumerable<CombatantPortraitView> AllPortraitViews()

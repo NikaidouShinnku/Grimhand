@@ -677,6 +677,7 @@ namespace Grimhand.Presentation.Battle
             BattleSession session = null)
         {
             var unit = FindCombatant(state);
+            var previousCharacterId = _displayedCharacterDefinitionId;
             if (unit?.Id != _hpBarLayoutCombatantId
                 || (unit != null
                     && unit.IsAlive
@@ -687,6 +688,10 @@ namespace Grimhand.Presentation.Battle
                 _displayedCharacterDefinitionId = unit.CharacterDefinitionId;
             else if (unit == null)
                 _displayedCharacterDefinitionId = null;
+
+            var characterChanged = unit != null
+                && unit.IsAlive
+                && previousCharacterId != unit.CharacterDefinitionId;
 
             _currentUnit = unit;
             _currentIcons = uiIcons;
@@ -702,7 +707,8 @@ namespace Grimhand.Presentation.Battle
             if (!allowHoverDetail)
                 DismissHoverDetail();
 
-            var preservePortraitLayout = _portraitView != null
+            var preservePortraitLayout = !characterChanged
+                && _portraitView != null
                 && (_portraitView.IsAwayFromHome || _portraitView.IsAnimating);
             if (!preservePortraitLayout)
             {
@@ -766,8 +772,13 @@ namespace Grimhand.Presentation.Battle
                     if (_portraitView == null || (!_portraitView.IsIdleLoopActive && !_portraitView.IsAwayFromHome))
                         _portraitView?.RecaptureHomeIfIdle();
 
-                    var preservePortraitSprite = _portraitView != null
-                        && (_portraitView.IsAnimating || _portraitView.IsAwayFromHome || _portraitView.IsIdleLoopActive || _portraitView.IsDeadDisplay);
+                    // 角色已更换时强制刷立绘；仅在同角色演出中才保留当前帧以免闪烁。
+                    var preservePortraitSprite = !characterChanged
+                        && _portraitView != null
+                        && (_portraitView.IsAnimating
+                            || _portraitView.IsAwayFromHome
+                            || _portraitView.IsIdleLoopActive
+                            || _portraitView.IsDeadDisplay);
 
                     if (!preservePortraitSprite)
                     {
@@ -777,6 +788,8 @@ namespace Grimhand.Presentation.Battle
                         portraitImage.sprite = sprite;
                         portraitImage.preserveAspect = true;
                         portraitImage.enabled = sprite != null;
+                        if (characterChanged && displayAlive)
+                            _portraitView?.StopIdleLoop();
                     }
 
                     ApplyPortraitColor(unit);

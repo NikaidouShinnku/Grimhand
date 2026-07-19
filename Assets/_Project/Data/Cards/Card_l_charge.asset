@@ -20,12 +20,12 @@ MonoBehaviour:
   Rarity: 0
   Keywords: []
   Actions:
-  - Type: 31
+  - Type: 49
     Target: 1
-    Value: 1
-    StatusId: 
-    Stacks: 1
-    Duration: -1
+    Value: 0
+    StatusId: attack_up_pct
+    Stacks: 20
+    Duration: 3
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100

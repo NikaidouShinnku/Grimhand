@@ -87,6 +87,12 @@ namespace Grimhand.Battle.Model
         /// <summary>下回合玩家能量回复惩罚（摄魂等）。</summary>
         public int PendingPlayerEnergyRegenPenaltyNextTurn { get; set; }
 
+        /// <summary>下回合开始时获得的临时能量（灵魂吞噬等，可超过 EnergyMax）。</summary>
+        public int PendingPlayerEnergyGainNextTurn { get; set; }
+
+        /// <summary>绝望之魂：战斗中获虚化时，下回合开始再从弃牌堆回收。</summary>
+        public bool PendingDespairSoulRecallNextTurn { get; set; }
+
         /// <summary>本回合被应对状态压制的敌方牌（如剑柄猛击），结算时跳过效果。</summary>
         public HashSet<int> SuppressedEnemyCardInstanceIds { get; } = new();
 
@@ -120,8 +126,25 @@ namespace Grimhand.Battle.Model
         /// <summary>v0.91：灵质护盾延迟至下回合开始的护甲。</summary>
         public Dictionary<string, int> PendingDelayedBlockByCombatantId { get; } = new();
 
+        /// <summary>
+        /// 灵质护盾延迟护甲：发放当回合末跳过一次清甲，保留到再下一回合末。
+        /// </summary>
+        public HashSet<string> RetainBlockOnceCombatantIds { get; } = new();
+
+        /// <summary>灵界封印：接下来失效的敌方出牌次数（无需指定目标）。</summary>
+        public int PendingEnemyCardSeals { get; set; }
+
+        /// <summary>灵能预知：等待玩家选择牌库顶检视结果。</summary>
+        public bool AwaitingPsionicScry { get; set; }
+
+        /// <summary>灵能预知：已从牌库顶取出、待玩家处理的牌（顺序=顶→下）。</summary>
+        public List<CardInstanceState> PendingPsionicScryCards { get; } = new();
+
         /// <summary>v0.91：女王之吻待在下回合开始转化中毒为易伤。</summary>
         public bool QueenKissConversionPending { get; set; }
+
+        /// <summary>下回合开始时施加的状态（蓄能等）。</summary>
+        public List<PendingNextTurnStatus> PendingStatusesNextTurn { get; } = new();
 
         /// <summary>v0.9：本场战斗全队累计应对成功次数（战术大师的终结技按此计算伤害）。</summary>
         public int RespondSuccessCount { get; set; }

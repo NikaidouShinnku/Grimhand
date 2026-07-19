@@ -60,7 +60,7 @@ MonoBehaviour:
     SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
-  - Type: 31
+  - Type: 24
     Target: 1
     Value: 2
     StatusId: 

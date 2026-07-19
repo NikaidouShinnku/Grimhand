@@ -76,6 +76,9 @@ namespace Grimhand.Expedition
                     case EffectActionType.DealDamage when dmg > 0:
                         action.Value += dmg;
                         break;
+                    case EffectActionType.ApplyConstrict when dmg > 0:
+                        action.Value += dmg;
+                        break;
                     case EffectActionType.GainBlock when block > 0:
                         action.Value += block;
                         break;
@@ -118,7 +121,8 @@ namespace Grimhand.Expedition
 
             foreach (var action in template.Actions)
             {
-                if (action.Type == EffectActionType.DealDamage)
+                if (action.Type == EffectActionType.DealDamage
+                    || action.Type == EffectActionType.ApplyConstrict)
                     action.Value += bonus;
             }
         }

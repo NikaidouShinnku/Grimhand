@@ -37,7 +37,7 @@ CARDS = [
     ("l_psionic_arrow_rain", "灵能箭雨", "char_lich_queen", 2, 0, 1, [], []),
     ("l_memory_eternal_void", "记忆苏醒·永恒虚无", "char_lich_queen", 5, 2, 4, ["exhaust"], []),
     ("l_memory_psionic_mastery", "记忆苏醒·灵能掌握", "char_lich_queen", 4, 2, 4, ["exhaust"], []),
-    ("l_memory_time_distortion", "记忆苏醒·时空紊乱", "char_lich_queen", 2, 2, 4, ["exhaust"], []),
+    ("l_memory_time_distortion", "记忆苏醒·时空紊乱", "char_lich_queen", 2, 2, 4, ["exhaust", "quick_start"], []),
 ]
 
 ACTION_TEMPLATE = """  - Type: {type}

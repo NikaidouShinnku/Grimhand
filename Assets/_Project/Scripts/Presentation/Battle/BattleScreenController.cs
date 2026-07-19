@@ -167,8 +167,30 @@ namespace Grimhand.Presentation.Battle
 
         public void SetBattleScreenVisible(bool visible)
         {
+            if (!visible)
+                ResetPresentationForLeave();
+
             if (screenView != null)
                 screenView.gameObject.SetActive(visible);
+        }
+
+        /// <summary>离开战斗界面前清掉演出锁与局内远征引用。</summary>
+        public void ResetPresentationForLeave()
+        {
+            _portraitDirector?.AbortPlayback();
+            screenView?.SetEscUiSuppressed(false);
+            screenView?.StopAllPortraitIdleLoops();
+            if (screenView == null)
+                return;
+
+            foreach (var view in screenView.AllPortraitViews())
+                view?.ResetInterruptedPresentationState();
+        }
+
+        public void ClearExpeditionAfterLeave()
+        {
+            ResetPresentationForLeave();
+            _session.ClearExpeditionSessionAfterLeave();
         }
 
         public void BeginExpeditionFromCamp(CampRosterState roster, int mapStartLayer = 1)

@@ -182,17 +182,19 @@ namespace Grimhand.Battle.Effects
                         ExecuteStatusToAllEnemies(state, actor, card, action, events);
                     else if (action.Target == EffectTarget.RandomEnemies)
                         ExecuteStatusToRandomEnemies(state, actor, action, events, rng, card);
-                    else if (action.Target == EffectTarget.RandomEnemy)
+                    else if (action.Target == EffectTarget.RandomEnemy
+                             || action.Target == EffectTarget.RandomAlly)
                     {
-                        var randomTarget = TargetRules.ResolveTarget(
-                            state, actor, EffectTarget.RandomEnemy, card.InstanceId, rng, action);
-                        if (randomTarget != null)
-                            ApplyStatusWithTalents(state, actor, randomTarget, action, events, card);
+                        // ExecuteOne 入口已 Resolve / targetOverride，勿二次重抽随机目标
+                        if (target != null)
+                            ApplyStatusWithTalents(state, actor, target, action, events, card);
                     }
                     else if (target != null
-                             && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
+                             && (action.Target is EffectTarget.Self or EffectTarget.LastActionActor
+                                 || TargetRules.IsTargetValidForAction(state, target, action.Reach, action)))
                         ApplyStatusWithTalents(state, actor, target, action, events, card);
-                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    state.LastAction = new LastActionSnapshot(
+                        actor.Id, ActionKind.Status, target?.Id ?? actor.Id, false, 0);
                     break;
                 case EffectActionType.ApplyAnubisAvatar:
                     AnubisAvatarRules.Apply(state, actor, events);
@@ -425,6 +427,22 @@ namespace Grimhand.Battle.Effects
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
                 }
+                case EffectActionType.GainEnergyNextTurn:
+                {
+                    if (action.Value > 0)
+                    {
+                        state.PendingPlayerEnergyGainNextTurn += action.Value;
+                        events.Add(new BattleEvent(BattleEventKind.CardResolvedEnded,
+                            $"下回合开始获得 {action.Value} 能量")
+                        {
+                            CombatantId = actor.Id,
+                            CardInstanceId = card?.InstanceId ?? 0,
+                            Amount = action.Value
+                        });
+                    }
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    break;
+                }
                 case EffectActionType.DrawToHandLimit:
                 {
                     var hand = state.GetHand(actor.Team);
@@ -436,13 +454,14 @@ namespace Grimhand.Battle.Effects
                 }
                 case EffectActionType.GainBlockBonusIfSelfPoisoned:
                 {
-                    var totalBlock = value;
+                    // 始终给自己叠甲，不受 Target 解析影响；有中毒时额外 +Stacks。
+                    var totalBlock = Math.Max(0, action.Value);
                     if (StatusRules.HasStatus(actor, StatusCatalog.Poison))
                         totalBlock += Math.Max(0, action.Stacks);
                     totalBlock += RelicBattleRules.GetOutgoingDefenseFlatBonus(state.Config?.RunModifiers, actor);
                     totalBlock = RelicBattleRules.ApplyPharaohBlockBonus(state.Config?.RunModifiers, actor, totalBlock);
-                    DamageRules.ApplyBlock(beneficiary, totalBlock, events, state, rng);
-                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Defense, beneficiary.Id, false, 0);
+                    DamageRules.ApplyBlock(actor, totalBlock, events, state, rng);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Defense, actor.Id, false, 0);
                     break;
                 }
                 case EffectActionType.ApplyPoisonBySpeedCompare:
@@ -457,12 +476,17 @@ namespace Grimhand.Battle.Effects
                             ignoreDefPercent: action.IgnoreDefPercent,
                             sourceCardInstanceId: sourceCardInstanceId);
                     }
-                    if (target != null)
+                    if (target != null
+                        && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
                     {
                         var actorSpeed = StatusRules.GetEffectiveSpeed(state, actor);
                         var targetSpeed = StatusRules.GetEffectiveSpeed(state, target);
-                        var stacks = targetSpeed < actorSpeed ? Math.Max(1, action.Stacks) : 1;
-                        var duration = targetSpeed < actorSpeed ? Math.Max(1, action.Duration) : Math.Max(1, action.Duration);
+                        var targetSlower = targetSpeed < actorSpeed;
+                        // 慢于施法者：Stacks 层 / Duration 回合；否则 1 层 / AlternateValue 回合（默认 3）。
+                        var stacks = targetSlower ? Math.Max(1, action.Stacks) : 1;
+                        var duration = targetSlower
+                            ? (action.Duration < 0 ? -1 : Math.Max(1, action.Duration))
+                            : (action.AlternateValue > 0 ? action.AlternateValue : 3);
                         StatusRules.ApplyStatus(state, target, StatusCatalog.Poison, stacks, duration, events);
                     }
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Attack, target?.Id, false, 0);
@@ -482,9 +506,37 @@ namespace Grimhand.Battle.Effects
                 }
                 case EffectActionType.ApplyConstrict:
                 {
-                    if (target != null && target.Team != actor.Team)
-                        V09NewMechanicsRules.ApplyConstrict(state, actor, target, action.Value, action.Duration, events);
-                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Attack, target?.Id, false, 0);
+                    if (action.Target == EffectTarget.AllEnemies)
+                    {
+                        var enemyTeam = actor.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
+                        var any = false;
+                        foreach (var targetId in PositionRules.SnapshotAliveCombatantIds(state, enemyTeam))
+                        {
+                            var t = state.GetCombatant(targetId);
+                            if (t == null || !t.IsAlive)
+                                continue;
+
+                            V09NewMechanicsRules.ApplyConstrict(
+                                state, actor, t, action.Value, action.Duration, events, applyCasterLock: false);
+                            any = true;
+                        }
+
+                        if (any)
+                            V09NewMechanicsRules.ApplyConstrictCasterLock(state, actor, action.Duration, events);
+
+                        state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Attack, actor.Id, false, 0);
+                    }
+                    else if (target != null && target.Team != actor.Team)
+                    {
+                        V09NewMechanicsRules.ApplyConstrict(
+                            state, actor, target, action.Value, action.Duration, events);
+                        state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Attack, target.Id, false, 0);
+                    }
+                    else
+                    {
+                        state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Attack, actor.Id, false, 0);
+                    }
+
                     break;
                 }
                 case EffectActionType.SettlePoisonAndClear:
@@ -498,17 +550,77 @@ namespace Grimhand.Battle.Effects
                             if (t != null && t.IsAlive)
                                 V09NewMechanicsRules.SettlePoisonAndClear(state, actor, t, events);
                         }
+
+                        state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     }
-                    else if (target != null)
+                    else if (target != null
+                             && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
+                    {
                         V09NewMechanicsRules.SettlePoisonAndClear(state, actor, target, events);
-                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, target?.Id ?? actor.Id, false, 0);
+                        state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, target.Id, false, 0);
+                    }
+                    else
+                    {
+                        state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    }
+
                     break;
                 }
                 case EffectActionType.ApplyDelayedDamage:
                 {
-                    if (target != null)
-                        StatusRules.ApplyStatus(state, target, StatusCatalog.DelayedDamage, action.Value, 1, events);
-                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, target?.Id ?? actor.Id, false, 0);
+                    if (action.Target == EffectTarget.AllEnemies)
+                    {
+                        var enemyTeam = actor.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
+                        foreach (var targetId in PositionRules.SnapshotAliveCombatantIds(state, enemyTeam))
+                        {
+                            var t = state.GetCombatant(targetId);
+                            if (t != null && t.IsAlive)
+                                StatusRules.ApplyStatus(
+                                    state, t, StatusCatalog.DelayedDamage, Math.Max(1, action.Value), 1, events);
+                        }
+
+                        state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    }
+                    else if (target != null
+                             && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
+                    {
+                        StatusRules.ApplyStatus(
+                            state, target, StatusCatalog.DelayedDamage, Math.Max(1, action.Value), 1, events);
+                        state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, target.Id, false, 0);
+                    }
+                    else
+                    {
+                        state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    }
+
+                    break;
+                }
+                case EffectActionType.ApplyStatusNextTurn:
+                {
+                    if (beneficiary != null
+                        && !string.IsNullOrEmpty(action.StatusId)
+                        && action.Stacks > 0)
+                    {
+                        state.PendingStatusesNextTurn.Add(new PendingNextTurnStatus
+                        {
+                            CombatantId = beneficiary.Id,
+                            StatusId = action.StatusId,
+                            Stacks = action.Stacks,
+                            Duration = action.Duration,
+                            SourceLabel = card?.DisplayName ?? action.StatusId
+                        });
+                        // 禁止发 StatusApplied：演出脚标会当成已挂上 attack_up_pct 等状态
+                        events.Add(new BattleEvent(BattleEventKind.CardResolvedEnded,
+                            $"下回合开始获得{action.StatusId}×{action.Stacks}")
+                        {
+                            CombatantId = beneficiary.Id,
+                            CardInstanceId = card?.InstanceId ?? 0,
+                            Amount = action.Stacks
+                        });
+                    }
+
+                    state.LastAction = new LastActionSnapshot(
+                        actor.Id, ActionKind.Status, beneficiary?.Id ?? actor.Id, false, 0);
                     break;
                 }
                 case EffectActionType.EtherealCountBonusDamage:
@@ -554,9 +666,13 @@ namespace Grimhand.Battle.Effects
                 }
                 case EffectActionType.SealNextEnemyCard:
                 {
-                    if (target != null && target.Team != actor.Team)
-                        StatusRules.ApplyStatus(state, target, StatusCatalog.SealedNextCard, 1, 2, events);
-                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, target?.Id ?? actor.Id, false, 0);
+                    state.PendingEnemyCardSeals = Math.Max(0, state.PendingEnemyCardSeals) + 1;
+                    events.Add(new BattleEvent(BattleEventKind.StatusApplied, "灵界封印：敌方下一张牌将失效")
+                    {
+                        CombatantId = actor.Id,
+                        Amount = state.PendingEnemyCardSeals
+                    });
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
                 }
                 case EffectActionType.LockSelfCards:
@@ -887,8 +1003,6 @@ namespace Grimhand.Battle.Effects
             if (target == null)
                 return;
 
-            value = V09NewMechanicsRules.AdjustRealmBurstDamage(state, actor, card, value, events);
-
             PassiveCardMechanicsRules.PrepareGargoyleSunderTarget(state, target, card, events);
 
             var hitCount = System.Math.Max(1, action.HitCount);
@@ -949,6 +1063,9 @@ namespace Grimhand.Battle.Effects
             primaryPower = CombatMechanicsRules.ComputeConditionalDamageBonus(
                 state, action, target, primaryPower, actor);
             primaryPower = PassiveCardMechanicsRules.ApplyEndlessBladeMultiplier(state, card, primaryPower);
+            // 须在最终算伤之后：虚化加成/祛除不能被上面的重算覆盖
+            primaryPower = V09NewMechanicsRules.AdjustRealmBurstDamage(
+                state, actor, card, primaryPower, events);
 
             if (card.Keywords.Contains("respond_status") && state.PlayerRespondStatusUsedThisTurn)
                 primaryPower = System.Math.Max(1, primaryPower * 3);

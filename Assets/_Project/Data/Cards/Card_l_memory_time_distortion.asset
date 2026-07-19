@@ -20,6 +20,7 @@ MonoBehaviour:
   Rarity: 4
   Keywords:
   - exhaust
+  - quick_start
   Actions:
 
   CardArt: {fileID: 0}

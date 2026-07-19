@@ -7,8 +7,11 @@ namespace Grimhand.Expedition
     {
         static readonly HashSet<string> AllowedPrefixes = new() { "w_", "p_", "d_", "v_", "l_" };
 
-        /// <summary>衍生 token 卡（如蛇神的回应）：不计入奖励/商店卡池。</summary>
+        /// <summary>衍生 token 卡（如蛇神的回应）：不计入奖励/商店卡池，但仍需进入定义表供手牌描边/描述。</summary>
         static readonly HashSet<string> ExcludedTokenIds = new() { "v_snake_god_response" };
+
+        public static bool IsTokenCardId(string definitionId) =>
+            !string.IsNullOrEmpty(definitionId) && ExcludedTokenIds.Contains(definitionId);
 
         public static bool IsAllowedPlayerCard(string cardId, string ownerCharacterId)
         {

@@ -20,6 +20,7 @@ MonoBehaviour:
   Rarity: 2
   Keywords:
   - parry
+  - usable_while_constricted
   Actions:
   - Type: 9
     Target: 1

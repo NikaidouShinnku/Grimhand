@@ -25,9 +25,11 @@ namespace Grimhand.Battle.Rules
             return !string.IsNullOrEmpty(card.DefinitionId) && card.DefinitionId.StartsWith("curse_");
         }
 
-        /// <summary>继承牌：回合结束时保留在手牌中，不占用下回合抽牌数。</summary>
+        /// <summary>继承牌：回合结束时保留在手牌中，不占用下回合抽牌数。被污染时继承失效。</summary>
         public static bool HasInheritKeyword(CardInstanceState card) =>
-            card?.Keywords != null && card.Keywords.Contains("inherit");
+            card?.Keywords != null
+            && card.Keywords.Contains("inherit")
+            && !IsPolluted(card);
 
         /// <summary>
         /// 规划阶段是否需要玩家点选具体角色。
@@ -118,8 +120,8 @@ namespace Grimhand.Battle.Rules
                 case EffectActionType.ApplyPoisonBySpeedCompare:
                 case EffectActionType.ApplyConstrict:
                 case EffectActionType.ApplyDelayedDamage:
+                case EffectActionType.SettlePoisonAndClear:
                 case EffectActionType.DoubleStatusStacks:
-                case EffectActionType.SealNextEnemyCard:
                     return true;
                 default:
                     return false;
@@ -204,6 +206,9 @@ namespace Grimhand.Battle.Rules
                 case EffectActionType.DealDamageScaledByActorHpLoss:
                 case EffectActionType.DealDamageAlternateIfHealedThisTurn:
                 case EffectActionType.DealDamageBonusPerTargetDebuffStack:
+                case EffectActionType.ApplyPoisonBySpeedCompare:
+                case EffectActionType.SettlePoisonAndClear:
+                case EffectActionType.ApplyConstrict:
                     break;
                 default:
                     return false;

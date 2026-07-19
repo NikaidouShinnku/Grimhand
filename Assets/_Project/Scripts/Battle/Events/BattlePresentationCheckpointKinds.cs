@@ -6,6 +6,7 @@ namespace Grimhand.Battle.Events
             kind switch
             {
                 BattleEventKind.StatusApplied => true,
+                BattleEventKind.StatusRemoved => true,
                 BattleEventKind.DamageApplied => true,
                 BattleEventKind.BlockGained => true,
                 BattleEventKind.HealApplied => true,

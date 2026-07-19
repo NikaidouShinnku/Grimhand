@@ -1038,6 +1038,8 @@ namespace Grimhand.Presentation.Battle
             var sb = new StringBuilder();
             AppendStatusTooltipEntry(sb, unit.CardsLockedTurnsRemaining > 0,
                 "禁出牌", $"剩余 {unit.CardsLockedTurnsRemaining} 回合无法出牌");
+            AppendStatusTooltipEntry(sb, unit.ConstrictLockTurnsRemaining > 0,
+                "缠绕禁牌", $"剩余 {unit.ConstrictLockTurnsRemaining} 回合无法出牌（部分牌可例外）");
             AppendStatusTooltipEntry(sb, unit.AttackCardsLockedTurnsRemaining > 0,
                 "禁攻击牌", $"剩余 {unit.AttackCardsLockedTurnsRemaining} 回合无法使用攻击牌");
             AppendStatusTooltipEntry(sb, unit.BloodRageStacks > 0,
@@ -1747,14 +1749,17 @@ namespace Grimhand.Presentation.Battle
             if (card == null || string.IsNullOrEmpty(card.DisplayName))
                 return false;
 
-            if (definitions != null
+            // 目录按 CardId 命中则直接采用（蛇神回应等 token 与 SO 默认 Reach 等可能不一致）。
+            var hasIdEntry = CardDescriptionCatalog.TryGetByCardId(card.DefinitionId, out var excelText);
+            if (!hasIdEntry
+                && !CardDescriptionCatalog.TryGetByDisplayName(card.DisplayName, out excelText))
+                return false;
+
+            if (!hasIdEntry
+                && definitions != null
                 && definitions.TryGetValue(card.DefinitionId, out var def)
                 && def != null
                 && !CardVisualResolver.MatchesDefinitionBaseline(card, def))
-                return false;
-
-            if (!CardDescriptionCatalog.TryGetByCardId(card.DefinitionId, out var excelText)
-                && !CardDescriptionCatalog.TryGetByDisplayName(card.DisplayName, out excelText))
                 return false;
 
             if (string.IsNullOrWhiteSpace(excelText))

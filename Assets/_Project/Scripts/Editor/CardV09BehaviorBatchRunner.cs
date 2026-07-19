@@ -411,6 +411,7 @@ namespace Grimhand.Editor
                 case EffectActionType.ShuffleHandCosts:
                 case EffectActionType.RecycleExhaustCardsFromDiscard:
                 case EffectActionType.GainEnergy:
+                case EffectActionType.GainEnergyNextTurn:
                 case EffectActionType.LockAttackCards:
                 case EffectActionType.ApplyDelayedDamage:
                     break;

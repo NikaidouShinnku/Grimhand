@@ -20,18 +20,18 @@ MonoBehaviour:
   Rarity: 0
   Keywords: []
   Actions:
-  - Type: 1
+  - Type: 26
     Target: 1
     Value: 8
     StatusId: 
-    Stacks: 1
+    Stacks: 6
     Duration: -1
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 1
+    Reach: 0
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100

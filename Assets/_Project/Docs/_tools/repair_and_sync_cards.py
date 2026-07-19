@@ -294,16 +294,47 @@ CARD_ID_OVERRIDES: dict[str, list[dict]] = {
         {"Type": 27, "Target": T_SELF, "Value": 3},
     ],
     "l_charge": [
-        {"Type": 31, "Target": T_SELF, "Value": 1},
+        {"Type": 49, "Target": T_SELF, "StatusId": "attack_up_pct", "Stacks": 20, "Duration": 3},
+    ],
+    "l_soul_storm": [
+        {"Type": 32, "Target": 12, "Value": 10},
+    ],
+    "l_psionic_cannon": [
+        {"Type": 32, "Target": T_DEFAULT_ENEMY, "Value": 13},
+    ],
+    "l_psionic_focus": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "attack_up_pct", "Stacks": 20, "Duration": 2},
+        {"Type": 32, "Target": T_DEFAULT_ENEMY, "Value": 12, "Reach": 1},
+    ],
+    "l_realm_seal": [
+        {"Type": 37, "Target": T_SELF},
+    ],
+    "l_soul_devour": [
+        {"Type": 0, "Target": 2, "Value": 10, "Reach": 0},
+        {"Type": 50, "Target": T_SELF, "Value": 3},
+    ],
+    "l_soul_reinforce": [
+        {"Type": 0, "Target": T_SELF, "Value": 10},
+        {"Type": 40, "Target": T_SELF, "StatusId": "attack_up_pct", "Stacks": 25, "Duration": 2},
     ],
     "l_two_realms_walker": [
         {"Type": 3, "Target": T_SELF, "StatusId": "ethereal_on_next_hit", "Stacks": 1, "Duration": -1},
     ],
-    "l_soul_devour": [
-        {"Type": 3, "Target": T_SELF, "StatusId": "ethereal", "Stacks": 1, "Duration": 2},
-    ],
     "l_eternal_void": [
+        {"Type": 3, "Target": T_SELF, "StatusId": "ethereal", "Stacks": 1, "Duration": -1},
         {"Type": 3, "Target": T_SELF, "StatusId": "eternal_void", "Stacks": 1, "Duration": -1},
+    ],
+    "l_spirit_walk": [
+        {"Type": 0, "Target": T_SELF, "Value": 8},
+        {"Type": 3, "Target": T_SELF, "StatusId": "ethereal", "Stacks": 1, "Duration": 1},
+    ],
+    "l_wall_of_sighs": [
+        {"Type": 9, "Target": T_SELF, "Value": 80, "Condition": 1},
+        {"Type": 3, "Target": 15, "StatusId": "ethereal", "Stacks": 1, "Duration": 1, "Condition": 1},
+    ],
+    "l_despair_soul": [
+        {"Type": 0, "Target": T_DEFAULT_ENEMY, "Value": 10, "Reach": 0},
+        {"Type": 3, "Target": T_SELF, "StatusId": "despair_soul_recall", "Stacks": 1, "Duration": -1},
     ],
     "m_raise_bones": [
         {"Type": 3, "Target": T_SELF, "StatusId": "bone_workshop", "Stacks": 1, "Duration": -1},

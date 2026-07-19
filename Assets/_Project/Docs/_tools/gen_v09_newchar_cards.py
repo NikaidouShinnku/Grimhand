@@ -64,7 +64,7 @@ LICH = "char_lich_queen"
 # CardRarity: Common=0 Rare=1 SuperRare=2 Epic=3 Legendary=4
 # EffectActionType ints (see EffectEnums.cs)
 T_DealDamage=0; T_GainBlock=1; T_Heal=2; T_ApplyStatus=3; T_RemoveStatus=4
-T_DrawCards=7; T_DrawCardsIfEthereal=39
+T_DrawCards=7; T_GainBlockFromLastDamagePercent=9; T_DrawCardsIfEthereal=39
 T_GainEnergy=24; T_DrawToHandLimit=25; T_GainBlockBonusIfSelfPoisoned=26
 T_ApplyPoisonBySpeedCompare=27; T_RemovePoisonHealPerStack=28
 T_TransferHalfPoisonToRandomEnemy=29; T_ApplyConstrict=30
@@ -72,9 +72,11 @@ T_SettlePoisonAndClear=31; T_ApplyDelayedDamage=32
 T_EtherealCountBonusDamage=33; T_AddTokenCardToHand=34
 T_ShuffleHandCosts=35; T_RandomSnakeGodEffect=36; T_SealNextEnemyCard=37
 T_LockSelfCards=38; T_BuffAllOtherAllies=40; T_RevealEnemyIntent=41
+T_ApplyStatusNextTurn=49
+T_GainEnergyNextTurn=50
 # EffectTarget ints
 TG_DefaultEnemy=0; TG_Self=1; TG_FrontAlly=2; TG_BackAlly=3; TG_LastActionActor=4
-TG_AllEnemies=12; TG_RandomEnemy=13
+TG_AllEnemies=12; TG_RandomEnemy=13; TG_RandomAlly=15
 # ReactionConditionType
 C_None=0; C_AttackOnSelf=1; C_DefenseOnTarget=2; C_StatusOnTarget=3
 # TargetReach
@@ -141,25 +143,25 @@ CARDS = [
  # ---- 巫妖女王 ----
  ("l_ethereal_form","虚化形态",LICH,1,2,0,[],[A(Type=T_ApplyStatus,Target=TG_Self,StatusId="ethereal",Stacks=1,Duration=1),A(Type=T_LockSelfCards,Target=TG_Self,Value=1)]),
  ("l_void_gaze","空洞凝视",LICH,1,2,0,[],[A(Type=T_DrawCardsIfEthereal,Target=TG_Self,Value=1,AlternateValue=2)]),
- ("l_charge","蓄能",LICH,1,2,0,[],[A(Type=T_ApplyStatus,Target=TG_Self,StatusId="attack_up_pct",Stacks=20,Duration=3)]),
+ ("l_charge","蓄能",LICH,1,2,0,[],[A(Type=T_ApplyStatusNextTurn,Target=TG_Self,StatusId="attack_up_pct",Stacks=20,Duration=3)]),
  ("l_ghost_claw","幽灵爪击",LICH,1,0,0,[],[A(Type=T_DealDamage,Target=TG_DefaultEnemy,Value=7,Reach=R_FrontAndMiddle)]),
  ("l_gather_energy","聚能",LICH,0,2,0,["quick_start","sacrifice"],[A(Type=T_DealDamage,Target=TG_Self,Value=10),A(Type=T_GainEnergy,Target=TG_Self,Value=2)]),
- ("l_spirit_walk","灵体漫步",LICH,1,0,1,["sacrifice"],[A(Type=T_DealDamage,Target=TG_Self,Value=8),A(Type=T_ApplyStatus,Target=TG_Self,StatusId="ethereal",Stacks=1,Duration=1)]),
+ ("l_spirit_walk","灵体漫步",LICH,2,1,1,[],[A(Type=T_DealDamage,Target=TG_Self,Value=8),A(Type=T_ApplyStatus,Target=TG_Self,StatusId="ethereal",Stacks=1,Duration=1)]),
  ("l_psionic_cannon","灵能炮",LICH,2,0,1,[],[A(Type=T_ApplyDelayedDamage,Target=TG_DefaultEnemy,Value=13)]),
  ("l_dread_whisper","恐惧低语",LICH,1,2,1,[],[A(Type=T_RevealEnemyIntent,Target=TG_Self)]),
  ("l_soul_storm","灵魂风暴",LICH,2,0,1,[],[A(Type=T_ApplyDelayedDamage,Target=TG_AllEnemies,Value=10)]),
  ("l_two_realms_walker","两界行者",LICH,2,2,2,["exhaust"],[A(Type=T_ApplyStatus,Target=TG_Self,StatusId="ethereal_on_next_hit",Stacks=1,Duration=-1)]),
- ("l_soul_devour","灵魂吞噬",LICH,2,0,2,[],[A(Type=T_DealDamage,Target=TG_FrontAlly,Value=10),A(Type=T_GainEnergy,Target=TG_Self,Value=3)]),
+ ("l_soul_devour","灵魂吞噬",LICH,1,2,2,[],[A(Type=T_DealDamage,Target=TG_FrontAlly,Value=10,Reach=R_Any),A(Type=T_GainEnergyNextTurn,Target=TG_Self,Value=3)]),
  ("l_psionic_body","灵能体",LICH,2,2,2,["exhaust"],[A(Type=T_ApplyStatus,Target=TG_Self,StatusId="psionic_body",Stacks=1,Duration=-1)]),
  ("l_soul_reinforce","灵魂强化",LICH,1,2,2,["sacrifice"],[A(Type=T_DealDamage,Target=TG_Self,Value=10),A(Type=T_BuffAllOtherAllies,Target=TG_Self,StatusId="attack_up_pct",Stacks=25,Duration=2)]),
  ("l_realm_burst","灵界爆发",LICH,2,0,2,[],[A(Type=T_DealDamage,Target=TG_DefaultEnemy,Value=15,Reach=R_Any),A(Type=T_RemoveStatus,Target=TG_Self,StatusId="ethereal",Stacks=1)]),
- ("l_psionic_focus","灵能聚集",LICH,1,0,2,[],[A(Type=T_ApplyStatus,Target=TG_Self,StatusId="attack_up_pct",Stacks=20,Duration=3),A(Type=T_ApplyDelayedDamage,Target=TG_DefaultEnemy,Value=12)]),
- ("l_realm_seal","灵界封印",LICH,1,0,3,["exhaust"],[A(Type=T_SealNextEnemyCard,Target=TG_DefaultEnemy)]),
+ ("l_psionic_focus","灵能聚集",LICH,1,0,2,[],[A(Type=T_ApplyStatus,Target=TG_Self,StatusId="attack_up_pct",Stacks=20,Duration=2),A(Type=T_ApplyDelayedDamage,Target=TG_DefaultEnemy,Value=12,Reach=R_FrontAndMiddle)]),
+ ("l_realm_seal","灵界封印",LICH,4,2,3,["exhaust"],[A(Type=T_SealNextEnemyCard,Target=TG_Self)]),
  ("l_soul_elegy","灵魂挽歌",LICH,2,0,3,[],[A(Type=T_EtherealCountBonusDamage,Target=TG_AllEnemies,Value=8,Stacks=3)]),
  ("l_summon_card_spirit","召唤卡牌之灵",LICH,1,2,3,[],[A(Type=T_DrawCards,Target=TG_Self,Value=2)]),
  ("l_summon_chaos_spirit","召唤混乱之灵",LICH,1,2,3,["exhaust","quick_start"],[A(Type=T_DrawToHandLimit,Target=TG_Self),A(Type=T_ShuffleHandCosts,Target=TG_Self)]),
- ("l_wall_of_sighs","叹息之墙",LICH,1,1,3,["respond_attack"],[A(Type=T_ApplyStatus,Target=TG_Self,StatusId="damage_reduction",Stacks=80,Duration=1,Condition=C_AttackOnSelf),A(Type=T_ApplyStatus,Target=TG_FrontAlly,StatusId="ethereal",Stacks=1,Duration=1)]),
- ("l_despair_soul","绝望之魂",LICH,2,0,3,[],[A(Type=T_DealDamage,Target=TG_DefaultEnemy,Value=10,Reach=R_FrontAndMiddle),A(Type=T_ApplyStatus,Target=TG_Self,StatusId="despair_soul_recall",Stacks=1,Duration=-1)]),
+ ("l_wall_of_sighs","叹息之墙",LICH,2,1,3,["parry"],[A(Type=T_GainBlockFromLastDamagePercent,Target=TG_Self,Value=80,Condition=C_AttackOnSelf),A(Type=T_ApplyStatus,Target=TG_RandomAlly,StatusId="ethereal",Stacks=1,Duration=1,Condition=C_AttackOnSelf)]),
+ ("l_despair_soul","绝望之魂",LICH,0,0,3,[],[A(Type=T_DealDamage,Target=TG_DefaultEnemy,Value=10,Reach=R_Any),A(Type=T_ApplyStatus,Target=TG_Self,StatusId="despair_soul_recall",Stacks=1,Duration=-1)]),
  ("l_realm_descent","灵界降临",LICH,8,2,4,["exhaust","quick_start"],[A(Type=T_ApplyStatus,Target=TG_Self,StatusId="hand_cost_zero",Stacks=1,Duration=1)]),
  ("l_super_psionic_cannon","超级·无敌·灵能·巨炮",LICH,10,0,4,["inherit"],[A(Type=T_DealDamage,Target=TG_DefaultEnemy,Value=100,Reach=R_Any)]),
  ("l_eternal_void","永恒虚无",LICH,2,2,4,["exhaust"],[A(Type=T_ApplyStatus,Target=TG_Self,StatusId="ethereal",Stacks=1,Duration=-1),A(Type=T_ApplyStatus,Target=TG_Self,StatusId="eternal_void",Stacks=1,Duration=-1)]),

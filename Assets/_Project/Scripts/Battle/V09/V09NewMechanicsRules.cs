@@ -29,10 +29,34 @@ namespace Grimhand.Battle.V09
                 if (combatant == null || !combatant.IsAlive)
                     continue;
 
-                // 缠绕：每回合开始受到 Stacks 伤害
-                var constrict = StatusRules.FindStatus(combatant, StatusCatalog.Constrict);
-                if (constrict != null && constrict.Stacks > 0)
-                    ApplyTickDamage(state, combatant, constrict.Stacks, "缠绕", events);
+                // 缠绕：每回合开始受到 Stacks 伤害（施法者自身 Stacks=0 仅锁牌展示；施法者死亡则失效）
+                for (var i = combatant.Statuses.Count - 1; i >= 0; i--)
+                {
+                    var constrict = combatant.Statuses[i];
+                    if (constrict?.StatusId != StatusCatalog.Constrict)
+                        continue;
+
+                    if (!string.IsNullOrEmpty(constrict.SourceCombatantId))
+                    {
+                        var source = state.GetCombatant(constrict.SourceCombatantId);
+                        if (source == null || !source.IsAlive)
+                        {
+                            combatant.Statuses.RemoveAt(i);
+                            events.Add(new BattleEvent(BattleEventKind.StatusRemoved, StatusCatalog.Constrict)
+                            {
+                                CombatantId = combatant.Id,
+                                TargetId = StatusCatalog.Constrict,
+                                Amount = System.Math.Max(1, constrict.Stacks)
+                            });
+                            continue;
+                        }
+                    }
+
+                    if (constrict.Stacks > 0
+                        && (string.IsNullOrEmpty(constrict.SourceCombatantId)
+                            || constrict.SourceCombatantId != combatant.Id))
+                        ApplyTickDamage(state, combatant, constrict.Stacks, "缠绕", events);
+                }
 
                 // 延迟伤害：下回合开始受到 Stacks 伤害（持续在跳伤后由 ProcessTurnStartDurations 扣减）
                 var delayed = StatusRules.FindStatus(combatant, StatusCatalog.DelayedDamage);
@@ -48,13 +72,55 @@ namespace Grimhand.Battle.V09
                     if (!StatusRules.HasStatus(combatant, StatusCatalog.Ethereal))
                         StatusRules.ApplyStatus(state, combatant, StatusCatalog.Ethereal, 1, 1, events);
                 }
+            }
+        }
 
-                // 祈求远古蛇神：每回合开始将【蛇神的回应】置入玩家手牌
-                if (StatusRules.HasStatus(combatant, StatusCatalog.PrayAncientSnakeGod)
-                    && combatant.Team == TeamSide.Player)
-                {
-                    AddSnakeGodResponseToHand(state, combatant, events);
-                }
+        /// <summary>
+        /// 须在 ProcessTurnStartDurations 之后调用，避免当回合立刻扣减持续回合。
+        /// 处理蓄能等「下回合开始获得状态」。
+        /// </summary>
+        public static void ProcessPendingStatusesNextTurn(BattleState state, List<BattleEvent> events)
+        {
+            if (state == null || state.PendingStatusesNextTurn.Count == 0)
+                return;
+
+            var pending = new List<PendingNextTurnStatus>(state.PendingStatusesNextTurn);
+            state.PendingStatusesNextTurn.Clear();
+            foreach (var entry in pending)
+            {
+                if (entry == null || string.IsNullOrEmpty(entry.StatusId) || entry.Stacks <= 0)
+                    continue;
+
+                var combatant = state.GetCombatant(entry.CombatantId);
+                if (combatant == null || !combatant.IsAlive)
+                    continue;
+
+                StatusRules.ApplyStatus(
+                    state, combatant, entry.StatusId, entry.Stacks, entry.Duration, events);
+            }
+        }
+
+        /// <summary>
+        /// 须在 ProcessTurnStartDurations 之后调用：
+        /// 启动（蛇神降临）本回合到期后，与硬锁解除同一拍将【蛇神的回应】置入手牌。
+        /// </summary>
+        public static void ProcessSnakeGodResponseHand(BattleState state, List<BattleEvent> events)
+        {
+            if (state == null)
+                return;
+
+            foreach (var combatant in state.Combatants)
+            {
+                if (combatant == null || !combatant.IsAlive || combatant.Team != TeamSide.Player)
+                    continue;
+
+                if (!StatusRules.HasStatus(combatant, StatusCatalog.PrayAncientSnakeGod))
+                    continue;
+
+                if (StatusRules.HasStatus(combatant, StatusCatalog.SnakeGodChanneling))
+                    continue;
+
+                AddSnakeGodResponseToHand(state, combatant, events);
             }
         }
 
@@ -96,46 +162,234 @@ namespace Grimhand.Battle.V09
             CombatantState target,
             int damage,
             int duration,
-            List<BattleEvent> events)
+            List<BattleEvent> events,
+            bool applyCasterLock = true)
         {
             if (target == null || !target.IsAlive)
                 return;
 
             StatusRules.ApplyStatus(state, target, StatusCatalog.Constrict, damage, duration, events);
+            TagConstrictSource(target, actor?.Id);
 
-            // 施法者在此期间无法出牌（与持续时间一致）
-            if (actor != null && actor.IsAlive)
+            if (applyCasterLock)
+                ApplyConstrictCasterLock(state, actor, duration, events);
+        }
+
+        public static void ApplyConstrictCasterLock(
+            BattleState state,
+            CombatantState actor,
+            int duration,
+            List<BattleEvent> events)
+        {
+            if (actor == null || !actor.IsAlive)
+                return;
+
+            var lockTurns = System.Math.Max(1, duration);
+            ApplyCasterConstrictStatus(state, actor, lockTurns, events);
+            CardLockRules.ApplyConstrictLock(actor, lockTurns);
+        }
+
+        static void TagConstrictSource(CombatantState target, string sourceId)
+        {
+            if (target == null || string.IsNullOrEmpty(sourceId))
+                return;
+
+            for (var i = target.Statuses.Count - 1; i >= 0; i--)
             {
-                var lockTurns = System.Math.Max(1, duration);
-                CardLockRules.ApplyLock(actor, lockTurns);
-                events.Add(new BattleEvent(BattleEventKind.StatusApplied, "缠绕施法者锁出牌")
+                var status = target.Statuses[i];
+                if (status?.StatusId == StatusCatalog.Constrict && status.Stacks > 0)
+                    status.SourceCombatantId = sourceId;
+            }
+        }
+
+        /// <summary>施法者缠绕展示：不跳伤，仅表示缠绕期间无法出牌。</summary>
+        static void ApplyCasterConstrictStatus(
+            BattleState state,
+            CombatantState actor,
+            int duration,
+            List<BattleEvent> events)
+        {
+            var def = StatusCatalog.Get(StatusCatalog.Constrict);
+            if (def == null || actor == null)
+                return;
+
+            StatusInstance existing = null;
+            foreach (var status in actor.Statuses)
+            {
+                // 自身来源的缠绕标记（与敌人身上的伤害缠绕区分）
+                if (status?.StatusId == StatusCatalog.Constrict
+                    && status.SourceCombatantId == actor.Id)
                 {
-                    CombatantId = actor.Id,
-                    Amount = lockTurns
+                    existing = status;
+                    break;
+                }
+            }
+
+            if (existing == null)
+            {
+                existing = new StatusInstance
+                {
+                    StatusId = StatusCatalog.Constrict,
+                    Stacks = 1,
+                    RemainingTurns = 0,
+                    SourceCombatantId = actor.Id
+                };
+                actor.Statuses.Add(existing);
+            }
+
+            existing.SourceCombatantId = actor.Id;
+            existing.Stacks = System.Math.Max(1, existing.Stacks);
+            if (existing.RemainingTurns >= 0)
+            {
+                var turns = System.Math.Max(1, duration);
+                if (existing.RemainingTurns < turns)
+                    existing.RemainingTurns = turns;
+            }
+
+            events.Add(new BattleEvent(BattleEventKind.StatusApplied, "缠绕期间无法出牌")
+            {
+                CombatantId = actor.Id,
+                Amount = existing.Stacks,
+                TargetId = StatusCatalog.Constrict
+            });
+        }
+
+        /// <summary>施法者死亡：清除其施加的全部缠绕，并解除其自身锁牌展示。</summary>
+        public static void OnConstrictCasterDied(BattleState state, CombatantState caster, List<BattleEvent> events)
+        {
+            if (state == null || caster == null)
+                return;
+
+            foreach (var combatant in state.Combatants)
+            {
+                if (combatant == null)
+                    continue;
+
+                for (var i = combatant.Statuses.Count - 1; i >= 0; i--)
+                {
+                    var status = combatant.Statuses[i];
+                    if (status?.StatusId != StatusCatalog.Constrict)
+                        continue;
+
+                    if (status.SourceCombatantId != caster.Id && combatant.Id != caster.Id)
+                        continue;
+
+                    var removed = System.Math.Max(1, status.Stacks);
+                    combatant.Statuses.RemoveAt(i);
+                    events.Add(new BattleEvent(BattleEventKind.StatusRemoved, StatusCatalog.Constrict)
+                    {
+                        CombatantId = combatant.Id,
+                        TargetId = StatusCatalog.Constrict,
+                        Amount = removed
+                    });
+                }
+            }
+
+            if (caster.ConstrictLockTurnsRemaining > 0)
+                CardLockRules.ClearConstrictLock(caster);
+        }
+
+        /// <summary>缠绕目标死亡：若施法者已无存活缠绕目标，解除缠绕锁牌。</summary>
+        public static void OnConstrictTargetDied(BattleState state, CombatantState dead, List<BattleEvent> events)
+        {
+            if (state == null || dead == null)
+                return;
+
+            var sourceIds = new HashSet<string>();
+            foreach (var status in dead.Statuses)
+            {
+                if (status?.StatusId != StatusCatalog.Constrict)
+                    continue;
+                if (string.IsNullOrEmpty(status.SourceCombatantId))
+                    continue;
+                if (status.SourceCombatantId == dead.Id)
+                    continue;
+
+                sourceIds.Add(status.SourceCombatantId);
+            }
+
+            foreach (var sourceId in sourceIds)
+                TryReleaseConstrictCasterIfNoLivingTargets(state, sourceId, events);
+        }
+
+        public static void TryReleaseConstrictCasterIfNoLivingTargets(
+            BattleState state,
+            string casterId,
+            List<BattleEvent> events)
+        {
+            if (state == null || string.IsNullOrEmpty(casterId))
+                return;
+
+            foreach (var combatant in state.Combatants)
+            {
+                if (combatant == null || !combatant.IsAlive || combatant.Id == casterId)
+                    continue;
+
+                foreach (var status in combatant.Statuses)
+                {
+                    if (status?.StatusId == StatusCatalog.Constrict
+                        && status.SourceCombatantId == casterId
+                        && status.Stacks > 0)
+                        return;
+                }
+            }
+
+            var caster = state.GetCombatant(casterId);
+            if (caster == null)
+                return;
+
+            // 清除施法者自身缠绕标记与缠绕锁（不影响祈求等硬锁）。
+            for (var i = caster.Statuses.Count - 1; i >= 0; i--)
+            {
+                var status = caster.Statuses[i];
+                if (status?.StatusId != StatusCatalog.Constrict)
+                    continue;
+                if (status.SourceCombatantId != casterId)
+                    continue;
+
+                caster.Statuses.RemoveAt(i);
+                events?.Add(new BattleEvent(BattleEventKind.StatusRemoved, StatusCatalog.Constrict)
+                {
+                    CombatantId = caster.Id,
+                    TargetId = StatusCatalog.Constrict,
+                    Amount = System.Math.Max(1, status.Stacks)
+                });
+            }
+
+            if (caster.ConstrictLockTurnsRemaining > 0)
+            {
+                CardLockRules.ClearConstrictLock(caster);
+                events?.Add(new BattleEvent(BattleEventKind.StatusRemoved, "缠绕解除，可再次出牌")
+                {
+                    CombatantId = caster.Id,
+                    Amount = 0
                 });
             }
         }
 
-        // ----- 中毒即时结算并清除 -----
+        // ----- 中毒即时结算并清除（不同持续时间分桶：Σ 层数×持续，永久按 3）-----
         public static void SettlePoisonAndClear(
             BattleState state,
             CombatantState actor,
             CombatantState target,
             List<BattleEvent> events)
         {
-            if (target == null)
+            if (target == null || !StatusRules.HasStatus(target, StatusCatalog.Poison))
                 return;
 
-            var poison = StatusRules.FindStatus(target, StatusCatalog.Poison);
-            if (poison == null || poison.Stacks <= 0)
-                return;
+            var damage = 0;
+            foreach (var status in target.Statuses)
+            {
+                if (status?.StatusId != StatusCatalog.Poison || status.Stacks <= 0)
+                    continue;
 
-            // 永久视为 3 回合；否则按剩余回合
-            var effectiveDuration = poison.RemainingTurns < 0 ? 3 : System.Math.Max(1, poison.RemainingTurns);
-            var damage = poison.Stacks * effectiveDuration;
+                var effectiveDuration = status.RemainingTurns < 0
+                    ? 3
+                    : System.Math.Max(1, status.RemainingTurns);
+                damage += status.Stacks * effectiveDuration;
+            }
 
-            // 清除中毒
-            StatusRules.RemoveStatus(target, StatusCatalog.Poison, poison.Stacks, events);
+            StatusRules.RemoveAllStatus(target, StatusCatalog.Poison, events);
 
             if (damage > 0)
                 ApplyTickDamage(state, target, damage, "引爆毒囊", events);
@@ -151,12 +405,11 @@ namespace Grimhand.Battle.V09
             if (actor == null)
                 return;
 
-            var poison = StatusRules.FindStatus(actor, StatusCatalog.Poison);
-            if (poison == null || poison.Stacks <= 0)
+            var stacks = StatusRules.GetStatusStacks(actor, StatusCatalog.Poison);
+            if (stacks <= 0)
                 return;
 
-            var stacks = poison.Stacks;
-            StatusRules.RemoveStatus(actor, StatusCatalog.Poison, stacks, events);
+            StatusRules.RemoveAllStatus(actor, StatusCatalog.Poison, events);
             var heal = stacks * System.Math.Max(0, healPerStack);
             if (heal > 0)
                 DamageRules.ApplyHeal(state, actor, heal, events, actor);
@@ -172,11 +425,11 @@ namespace Grimhand.Battle.V09
             if (actor == null || rng == null)
                 return;
 
-            var poison = StatusRules.FindStatus(actor, StatusCatalog.Poison);
-            if (poison == null || poison.Stacks <= 1)
+            var total = StatusRules.GetStatusStacks(actor, StatusCatalog.Poison);
+            if (total <= 1)
                 return;
 
-            var transfer = poison.Stacks / 2;
+            var transfer = total / 2;
             if (transfer <= 0)
                 return;
 
@@ -223,15 +476,41 @@ namespace Grimhand.Battle.V09
             if (state == null || target == null || events == null)
                 return;
 
-            // 绝望之魂：巫妖女王获虚化时，从弃牌堆直接加入手牌
+            // 绝望之魂：巫妖女王获虚化时，从弃牌堆直接加入手牌；
+            // 若处于战斗结算中，则改为下回合开始时加入手牌。
             if (StatusRules.HasStatus(target, StatusCatalog.DespairSoulRecall)
                 && target.Team == TeamSide.Player)
             {
-                TryRecallDespairSoulFromDiscard(state, target, events);
+                if (IsNonCombatPhase(state))
+                    TryRecallDespairSoulFromDiscard(state, target, events);
+                else
+                    state.PendingDespairSoulRecallNextTurn = true;
             }
 
             // 巫妖女王天赋 s1_lv1：获得虚化时回 3HP
             TalentBattleRules.OnEtherealGained(state, target, events);
+        }
+
+        /// <summary>下回合开始：处理战斗中获虚化而延迟的绝望之魂回收。</summary>
+        public static void ProcessPendingDespairSoulRecall(BattleState state, List<BattleEvent> events)
+        {
+            if (state == null || !state.PendingDespairSoulRecallNextTurn)
+                return;
+
+            state.PendingDespairSoulRecallNextTurn = false;
+            CombatantState owner = null;
+            foreach (var combatant in state.Combatants)
+            {
+                if (combatant == null || !combatant.IsAlive || combatant.Team != TeamSide.Player)
+                    continue;
+                if (!StatusRules.HasStatus(combatant, StatusCatalog.DespairSoulRecall))
+                    continue;
+                owner = combatant;
+                break;
+            }
+
+            if (owner != null)
+                TryRecallDespairSoulFromDiscard(state, owner, events);
         }
 
         static void TryRecallDespairSoulFromDiscard(BattleState state, CombatantState owner, List<BattleEvent> events)
@@ -249,7 +528,7 @@ namespace Grimhand.Battle.V09
 
                 discard.RemoveAt(i);
                 card.OwnerCombatantId = owner.Id;
-                card.IsBonusHandCard = true;
+                card.IsBonusHandCard = false;
                 hand.Add(card);
                 events.Add(new BattleEvent(BattleEventKind.CardDrawn, "绝望之魂回收")
                 {
@@ -352,8 +631,13 @@ namespace Grimhand.Battle.V09
                 Target = EffectTarget.AllEnemies,
                 Value = 25,
                 Stacks = 10,
-                AlternateValue = 75
+                Duration = -1,
+                AlternateValue = 75,
+                Reach = TargetReach.Any
             });
+
+            // token 不进玩家卡池，需手动注册稀有度，否则手牌会落到白色 Common 框。
+            CardRarityTable.Register(SnakeGodResponseCardId, CardRarity.Legendary);
 
             state.CardsById[id] = card;
             hand.Add(card);

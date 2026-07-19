@@ -68,14 +68,21 @@ namespace Grimhand.Presentation.Battle
 
         public void SetIdentity(string combatantId, string characterDefinitionId, bool isAlive, TeamSide team)
         {
+            var characterChanged = _characterDefinitionId != characterDefinitionId
+                                   || CombatantId != combatantId;
+
             CombatantId = combatantId;
             _characterDefinitionId = characterDefinitionId;
             _team = team;
             RefreshReferenceSprite();
 
+            // 换角/新开局时必须打断上一局残留演出，否则会一直保留旧立绘。
+            if (characterChanged)
+                ResetInterruptedPresentationState();
+
             if (isAlive)
             {
-                if (_isDead)
+                if (_isDead || characterChanged)
                 {
                     _isDead = false;
                     if (!_isAnimating && !_idleLoopActive)
@@ -89,11 +96,40 @@ namespace Grimhand.Presentation.Battle
             }
         }
 
+        /// <summary>
+        /// 放弃远征 / 隐藏战斗 UI 时协程会被掐断，必须同步清掉演出 flag，
+        /// 否则 IsAnimating/IsAwayFromHome 会永久为 true，立绘与 idle 卡死在旧角色。
+        /// </summary>
+        public void ResetInterruptedPresentationState()
+        {
+            if (_idleRoutine != null)
+            {
+                StopCoroutine(_idleRoutine);
+                _idleRoutine = null;
+            }
+
+            if (_flashRoutine != null)
+            {
+                StopCoroutine(_flashRoutine);
+                _flashRoutine = null;
+            }
+
+            if (_damageHideRoutine != null)
+            {
+                StopCoroutine(_damageHideRoutine);
+                _damageHideRoutine = null;
+            }
+
+            _idleLoopActive = false;
+            _isAnimating = false;
+            _awayFromHome = false;
+            _poseFlipX = false;
+            RestoreHomePosition();
+        }
+
         void OnDisable()
         {
-            // SetActive(false) 会直接掐断协程，若不清理 flag，下一次 BeginPlanningIdle 会早退导致无站岗动画。
-            _idleLoopActive = false;
-            _idleRoutine = null;
+            ResetInterruptedPresentationState();
         }
 
         public void BeginPlanningIdle()

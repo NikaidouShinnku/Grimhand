@@ -369,6 +369,7 @@ def build_document():
         ("DoubleStatusStacks", "中毒与灼烧层数翻倍"),
         ("RecycleExhaustCardsFromDiscard", "洗回消耗牌并移除 exhaust 标签"),
         ("GainEnergy", "获得临时能量（可超上限）"),
+        ("GainEnergyNextTurn", "下回合开始获得临时能量（可超上限）"),
         ("ApplyConstrict", "缠绕+锁施法者出牌"),
         ("SettlePoisonAndClear", "即时结算中毒并清除"),
         ("LockSelfCards", "锁定出牌 Value 回合"),

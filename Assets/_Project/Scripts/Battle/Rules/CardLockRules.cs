@@ -6,6 +6,8 @@ namespace Grimhand.Battle.Rules
 {
     public static class CardLockRules
     {
+        public const string UsableWhileConstrictedKeyword = "usable_while_constricted";
+
         public static void ApplyLock(CombatantState actor, int turnsRemaining)
         {
             if (actor == null)
@@ -14,6 +16,24 @@ namespace Grimhand.Battle.Rules
             actor.CardsLockedTurnsRemaining = System.Math.Max(
                 actor.CardsLockedTurnsRemaining,
                 System.Math.Max(1, turnsRemaining));
+        }
+
+        public static void ApplyConstrictLock(CombatantState actor, int turnsRemaining)
+        {
+            if (actor == null)
+                return;
+
+            actor.ConstrictLockTurnsRemaining = System.Math.Max(
+                actor.ConstrictLockTurnsRemaining,
+                System.Math.Max(1, turnsRemaining));
+        }
+
+        public static void ClearConstrictLock(CombatantState actor)
+        {
+            if (actor == null)
+                return;
+
+            actor.ConstrictLockTurnsRemaining = 0;
         }
 
         public static void ApplyAttackLock(CombatantState actor, int turnsRemaining)
@@ -34,11 +54,14 @@ namespace Grimhand.Battle.Rules
             if (combatant.CardsLockedTurnsRemaining > 0)
                 combatant.CardsLockedTurnsRemaining--;
 
+            if (combatant.ConstrictLockTurnsRemaining > 0)
+                combatant.ConstrictLockTurnsRemaining--;
+
             if (combatant.AttackCardsLockedTurnsRemaining > 0)
                 combatant.AttackCardsLockedTurnsRemaining--;
         }
 
-        public static bool AppliesSelfLock(CardInstanceState card)
+        public static bool AppliesHardSelfLock(CardInstanceState card)
         {
             if (card?.Actions == null)
                 return false;
@@ -52,12 +75,37 @@ namespace Grimhand.Battle.Rules
             return false;
         }
 
+        public static bool AppliesConstrictSelfLock(CardInstanceState card)
+        {
+            if (card?.Actions == null)
+                return false;
+
+            foreach (var action in card.Actions)
+            {
+                if (action?.Type == EffectActionType.ApplyConstrict)
+                    return true;
+            }
+
+            return false;
+        }
+
+        public static bool AppliesSelfLock(CardInstanceState card) =>
+            AppliesHardSelfLock(card) || AppliesConstrictSelfLock(card);
+
+        public static bool CanPlayWhileConstricted(CardInstanceState card) =>
+            card?.Keywords != null && card.Keywords.Contains(UsableWhileConstrictedKeyword);
+
         public static bool ShouldBlockPlayerCardPlanning(CombatantState actor, CardInstanceState card)
         {
             if (actor == null || card == null || actor.Team != TeamSide.Player)
                 return false;
 
-            if (actor.IsCardsLocked)
+            // 祈求等硬锁：任何牌都不能用（不受缠绕白名单影响）。
+            if (actor.IsHardCardsLocked)
+                return true;
+
+            // 缠绕锁：白名单牌可出。
+            if (actor.IsConstrictCardsLocked && !CanPlayWhileConstricted(card))
                 return true;
 
             return actor.IsAttackCardsLocked && card.CardType == CardType.Attack;
@@ -75,9 +123,11 @@ namespace Grimhand.Battle.Rules
             List<BattleEvent> events)
         {
             RefundEnergy(state, card, events);
-            var reason = actor.IsCardsLocked
+            var reason = actor.IsHardCardsLocked
                 ? "出牌被锁定"
-                : "攻击牌被锁定";
+                : actor.IsConstrictCardsLocked
+                    ? "缠绕期间无法出牌"
+                    : "攻击牌被锁定";
             events.Add(new BattleEvent(
                 BattleEventKind.ReactionTriggered,
                 $"{actor.DisplayName} {reason}，{card.DisplayName} 未生效")
@@ -135,7 +185,60 @@ namespace Grimhand.Battle.Rules
             if (state == null || owner == null || candidate == null || selectedQueue == null)
                 return false;
 
-            if (AppliesSelfLock(candidate))
+            var queueHasHardLock = false;
+            var queueHasConstrictLock = false;
+            foreach (var cardId in selectedQueue)
+            {
+                var queued = state.GetCard(cardId);
+                if (queued == null)
+                    continue;
+
+                var queuedOwnerId = PositionRules.GetOwnerCombatantId(state, queued);
+                if (queuedOwnerId != owner.Id)
+                    continue;
+
+                if (AppliesHardSelfLock(queued))
+                    queueHasHardLock = true;
+                if (AppliesConstrictSelfLock(queued))
+                    queueHasConstrictLock = true;
+            }
+
+            // 祈求等硬锁在队列中：同角色其他牌一律不能再选。
+            if (queueHasHardLock || AppliesHardSelfLock(candidate))
+            {
+                if (AppliesHardSelfLock(candidate))
+                {
+                    foreach (var cardId in selectedQueue)
+                    {
+                        if (cardId == candidate.InstanceId)
+                            continue;
+
+                        var queued = state.GetCard(cardId);
+                        if (queued == null)
+                            continue;
+
+                        if (PositionRules.GetOwnerCombatantId(state, queued) == owner.Id)
+                            return true;
+                    }
+                }
+
+                foreach (var cardId in selectedQueue)
+                {
+                    var queued = state.GetCard(cardId);
+                    if (queued == null || !AppliesHardSelfLock(queued))
+                        continue;
+
+                    if (PositionRules.GetOwnerCombatantId(state, queued) == owner.Id
+                        && cardId != candidate.InstanceId)
+                        return true;
+                }
+            }
+
+            // 缠绕锁：白名单仍可同队列。
+            if (CanPlayWhileConstricted(candidate) && !queueHasHardLock)
+                return false;
+
+            if (AppliesConstrictSelfLock(candidate))
             {
                 foreach (var cardId in selectedQueue)
                 {
@@ -146,21 +249,26 @@ namespace Grimhand.Battle.Rules
                     if (queued == null)
                         continue;
 
-                    var queuedOwnerId = PositionRules.GetOwnerCombatantId(state, queued);
-                    if (queuedOwnerId == owner.Id)
+                    if (CanPlayWhileConstricted(queued))
+                        continue;
+
+                    if (PositionRules.GetOwnerCombatantId(state, queued) == owner.Id)
                         return true;
                 }
             }
 
-            foreach (var cardId in selectedQueue)
+            if (queueHasConstrictLock && !CanPlayWhileConstricted(candidate) && !AppliesConstrictSelfLock(candidate))
             {
-                var queued = state.GetCard(cardId);
-                if (queued == null || !AppliesSelfLock(queued))
-                    continue;
+                foreach (var cardId in selectedQueue)
+                {
+                    var queued = state.GetCard(cardId);
+                    if (queued == null || !AppliesConstrictSelfLock(queued))
+                        continue;
 
-                var queuedOwnerId = PositionRules.GetOwnerCombatantId(state, queued);
-                if (queuedOwnerId == owner.Id && cardId != candidate.InstanceId)
-                    return true;
+                    if (PositionRules.GetOwnerCombatantId(state, queued) == owner.Id
+                        && cardId != candidate.InstanceId)
+                        return true;
+                }
             }
 
             return false;

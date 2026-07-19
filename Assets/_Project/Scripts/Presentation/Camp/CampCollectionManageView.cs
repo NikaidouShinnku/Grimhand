@@ -52,6 +52,7 @@ namespace Grimhand.Presentation.Camp
         RectTransform _detailPanel;
         RectTransform _cardGrid;
         ScrollRect _cardScroll;
+        ScrollRect _keywordScroll;
         GridLayoutGroup _gridLayout;
         float _gridCardScale = 0.55f;
         GameObject _confirmPanel;
@@ -202,7 +203,41 @@ namespace Grimhand.Presentation.Camp
                 });
             }
 
+            // 角色分类 → 稀有度升序 → 名称，方便浏览与测试
+            rows.Sort(CompareCollectionRows);
             return rows;
+        }
+
+        int CompareCollectionRows(CollectionRow a, CollectionRow b)
+        {
+            var ownerCmp = OwnerSortKey(a.OwnerCharacterId).CompareTo(OwnerSortKey(b.OwnerCharacterId));
+            if (ownerCmp != 0)
+                return ownerCmp;
+
+            var rarityA = a.Definition != null ? a.Definition.Rarity : CardRarityTable.GetOrDefault(a.CardId);
+            var rarityB = b.Definition != null ? b.Definition.Rarity : CardRarityTable.GetOrDefault(b.CardId);
+            var rarityCmp = rarityA.CompareTo(rarityB);
+            if (rarityCmp != 0)
+                return rarityCmp;
+
+            var nameA = a.Definition != null ? a.Definition.DisplayName : a.CardId;
+            var nameB = b.Definition != null ? b.Definition.DisplayName : b.CardId;
+            var nameCmp = string.CompareOrdinal(nameA, nameB);
+            return nameCmp != 0 ? nameCmp : a.Index.CompareTo(b.Index);
+        }
+
+        int OwnerSortKey(string ownerId)
+        {
+            if (string.IsNullOrEmpty(ownerId))
+                return int.MaxValue;
+
+            for (var i = 0; i < _characters.Count; i++)
+            {
+                if (_characters[i] != null && _characters[i].CharacterId == ownerId)
+                    return i;
+            }
+
+            return int.MaxValue - 1;
         }
 
         bool PassesFilter(string cardId, CardDefinitionSO definition, string ownerId)
@@ -374,10 +409,26 @@ namespace Grimhand.Presentation.Camp
 
             Canvas.ForceUpdateCanvases();
             var textRt = _detailKeywordText.rectTransform;
-            LayoutRebuilder.ForceRebuildLayoutImmediate(textRt);
             var content = textRt.parent as RectTransform;
+            var viewport = content != null ? content.parent as RectTransform : null;
+
+            // 先固定宽度，再按换行后的 preferredHeight 撑开内容；否则 ContentSizeFitter
+            // 在高度为 0 时算不出滚动区，表现为拖一下立刻回弹。
+            var width = viewport != null ? Mathf.Max(40f, viewport.rect.width - 16f) : 400f;
+            textRt.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(textRt);
+
+            var preferred = Mathf.Max(_detailKeywordText.preferredHeight + 8f, 1f);
+            textRt.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, preferred);
             if (content != null)
+            {
+                content.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, viewport != null ? viewport.rect.width : width);
+                content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, preferred);
                 LayoutRebuilder.ForceRebuildLayoutImmediate(content);
+            }
+
+            if (_keywordScroll != null)
+                _keywordScroll.verticalNormalizedPosition = 1f;
         }
 
         void ClearDetailCard()
@@ -696,11 +747,13 @@ namespace Grimhand.Presentation.Camp
             var keywordScrollRt = keywordScrollGo.GetComponent<RectTransform>();
             CampUiRuntime.SetAnchored(keywordScrollRt, 0.04f, 0.04f, 0.96f, 0.64f);
             keywordScrollGo.AddComponent<Image>().color = new Color(0.08f, 0.09f, 0.12f, 0.55f);
-            var keywordScroll = keywordScrollGo.AddComponent<ScrollRect>();
-            keywordScroll.horizontal = false;
-            keywordScroll.vertical = true;
-            keywordScroll.movementType = ScrollRect.MovementType.Clamped;
-            keywordScroll.scrollSensitivity = 28f;
+            _keywordScroll = keywordScrollGo.AddComponent<ScrollRect>();
+            _keywordScroll.horizontal = false;
+            _keywordScroll.vertical = true;
+            _keywordScroll.movementType = ScrollRect.MovementType.Clamped;
+            _keywordScroll.scrollSensitivity = 28f;
+            _keywordScroll.inertia = true;
+            var keywordScroll = _keywordScroll;
 
             var keywordViewport = CampUiRuntime.CreateRect("Viewport", keywordScrollGo.transform);
             var keywordViewportRt = keywordViewport.GetComponent<RectTransform>();

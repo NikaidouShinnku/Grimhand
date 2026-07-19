@@ -10,7 +10,7 @@ namespace Grimhand.Battle.Tests
     public class DrawCardsTests
     {
         [Test]
-        public void DrawCardsEffect_DrawsImmediately()
+        public void DrawCardsEffect_WithoutQuickStart_QueuesNextTurn()
         {
             var config = DemoBattleFactory.CreateDefault3v3();
             var engine = new BattleEngine(config);
@@ -38,10 +38,42 @@ namespace Grimhand.Battle.Tests
             var handBefore = state.PlayerHand.Count;
             EffectActionExecutor.ExecuteAll(state, actor, card, events, null);
 
+            Assert.AreEqual(handBefore, state.PlayerHand.Count);
+            Assert.AreEqual(2, state.PendingDrawNextTurn);
+        }
+
+        [Test]
+        public void DrawCardsEffect_WithQuickStart_DrawsImmediately()
+        {
+            var config = DemoBattleFactory.CreateDefault3v3();
+            var engine = new BattleEngine(config);
+            engine.StartBattle();
+
+            var state = engine.State;
+            var actor = state.Combatants[0];
+            var card = new CardInstanceState
+            {
+                InstanceId = 9998,
+                DisplayName = "快速抽牌",
+                OwnerCharacterId = actor.CharacterDefinitionId,
+                CardType = CardType.Status,
+                Cost = 0,
+                IsUsable = true
+            };
+            card.Keywords.Add("quick_start");
+            card.Actions.Add(new EffectActionSpec
+            {
+                Type = EffectActionType.DrawCards,
+                Target = EffectTarget.Self,
+                Value = 2
+            });
+
+            var events = new System.Collections.Generic.List<Events.BattleEvent>();
+            var handBefore = state.PlayerHand.Count;
+            EffectActionExecutor.ExecuteAll(state, actor, card, events, null);
+
             Assert.AreEqual(handBefore + 2, state.PlayerHand.Count);
             Assert.AreEqual(0, state.PendingDrawNextTurn);
-            foreach (var drawn in state.PlayerHand)
-                Assert.IsFalse(drawn.RetainInHandOverTurnEnd, "即时抽牌不应标记回合末保留");
         }
 
         [Test]

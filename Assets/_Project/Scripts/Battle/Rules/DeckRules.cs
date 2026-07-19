@@ -253,9 +253,17 @@ namespace Grimhand.Battle.Rules
             CardInstanceState card,
             List<BattleEvent> events)
         {
+            if (state == null || card == null)
+                return;
+
             state.GetHand(team).Remove(card);
             state.GetDrawPile(team).Remove(card);
             state.GetDiscardPile(team).Remove(card);
+            var exhaust = state.GetExhaustPile(team);
+            if (!exhaust.Contains(card))
+                exhaust.Add(card);
+
+            // 保留 exhaust 关键词，供神圣轮回识别；本场不可再打出
             card.IsUsable = false;
 
             events.Add(new BattleEvent(BattleEventKind.CardDiscarded, "Exhausted card")

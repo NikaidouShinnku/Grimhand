@@ -114,7 +114,7 @@ namespace Grimhand.Battle.V091
                 return cost;
 
             if (card.DefinitionId == FearlessChargeCardId
-                && owner.HitsTakenThisTurn > 0)
+                && owner.TookDamagePreviousTurn)
                 cost = System.Math.Max(0, cost - FearlessChargeCostReduction);
 
             if (card.DefinitionId == DemonEchoCardId)
@@ -131,22 +131,10 @@ namespace Grimhand.Battle.V091
             if (state == null || card == null)
                 return;
 
-            foreach (var handCard in state.PlayerHand)
-            {
-                if (handCard?.DefinitionId != DemonEchoCardId)
-                    continue;
+            if (!state.DemonEchoCostReductionByCardId.ContainsKey(DemonEchoCardId))
+                state.DemonEchoCostReductionByCardId[DemonEchoCardId] = 0;
 
-                if (!state.DemonEchoCostReductionByCardId.ContainsKey(DemonEchoCardId))
-                    state.DemonEchoCostReductionByCardId[DemonEchoCardId] = 0;
-
-                state.DemonEchoCostReductionByCardId[DemonEchoCardId] += DemonEchoCostReductionPerSacrifice;
-            }
-
-            foreach (var drawCard in state.PlayerDrawPile)
-            {
-                if (drawCard?.DefinitionId == DemonEchoCardId)
-                    state.DemonEchoCostReductionByCardId.Remove(DemonEchoCardId);
-            }
+            state.DemonEchoCostReductionByCardId[DemonEchoCardId] += DemonEchoCostReductionPerSacrifice;
         }
 
         public static void OnCardShuffledToDrawPile(BattleState state, CardInstanceState card)
@@ -157,34 +145,52 @@ namespace Grimhand.Battle.V091
             state.DemonEchoCostReductionByCardId.Remove(DemonEchoCardId);
         }
 
-        public static void OnDamageTaken(
+        /// <summary>受到攻击时触发（含护甲全额吸收）；用于荆棘护甲与受击计数。</summary>
+        public static void OnAttacked(
             BattleState state,
             CombatantState recipient,
             CombatantState attacker,
-            int hpDamage,
             List<BattleEvent> events,
             BattleRng rng)
         {
-            if (state == null || recipient == null || hpDamage <= 0)
+            if (state == null || recipient == null)
                 return;
 
             recipient.HitsTakenThisTurn++;
 
             if (attacker != null
+                && attacker.IsAlive
                 && attacker.Team != recipient.Team
                 && StatusRules.HasStatus(recipient, StatusCatalog.ThornArmor))
             {
-                DamageRules.ApplyDamage(
-                    state,
-                    recipient,
-                    attacker,
-                    ThornReflectDamage,
-                    CardType.Attack,
-                    events,
-                    canTriggerParry: false,
-                    rng: rng,
-                    logSuffix: "（荆棘护甲）");
+                var reflect = StatusRules.FindStatus(recipient, StatusCatalog.ThornArmor)?.Stacks
+                              ?? ThornReflectDamage;
+                if (reflect > 0)
+                {
+                    // Status：避免反伤再触发「受到攻击」钩子导致荆棘互反死循环
+                    DamageRules.ApplyDamage(
+                        state,
+                        recipient,
+                        attacker,
+                        reflect,
+                        CardType.Status,
+                        events,
+                        canTriggerParry: false,
+                        rng: rng,
+                        logSuffix: "（荆棘护甲）");
+                }
             }
+        }
+
+        /// <summary>实际掉血时触发（苦痛转化等）。</summary>
+        public static void OnHpDamageTaken(
+            BattleState state,
+            CombatantState recipient,
+            int hpDamage,
+            List<BattleEvent> events)
+        {
+            if (state == null || recipient == null || hpDamage <= 0)
+                return;
 
             if (StatusRules.HasStatus(recipient, StatusCatalog.PainConvert))
             {
@@ -394,7 +400,13 @@ namespace Grimhand.Battle.V091
             List<BattleEvent> events)
         {
             var heal = LifeSpringHeal + card.UpgradeLevel;
-            StatusRules.ApplyStatus(state, actor, StatusCatalog.LifeSpring, heal, -1, events);
+            foreach (var ally in state.GetTeam(TeamSide.Player))
+            {
+                if (ally == null || !ally.IsAlive)
+                    continue;
+                StatusRules.ApplyStatus(state, ally, StatusCatalog.LifeSpring, heal, -1, events);
+            }
+
             state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
             return true;
         }
@@ -406,9 +418,16 @@ namespace Grimhand.Battle.V091
             List<BattleEvent> events,
             BattleRng rng)
         {
+            var reachAction = new EffectActionSpec
+            {
+                Type = EffectActionType.DealDamage,
+                Target = EffectTarget.DefaultEnemy,
+                Reach = TargetReach.FrontAndMiddle
+            };
             var target = TargetRules.ResolveTarget(
-                state, actor, EffectTarget.DefaultEnemy, card.InstanceId, rng, null);
-            if (target == null || !TargetRules.IsTargetValidForAction(state, target, TargetReach.FrontAndMiddle, null))
+                state, actor, EffectTarget.DefaultEnemy, card.InstanceId, rng, reachAction);
+            if (target == null
+                || !TargetRules.IsTargetValidForAction(state, target, TargetReach.FrontAndMiddle, reachAction))
                 return true;
 
             var power = RetaliatoryBaseDamage
@@ -427,13 +446,20 @@ namespace Grimhand.Battle.V091
             List<BattleEvent> events,
             BattleRng rng)
         {
+            var reachAction = new EffectActionSpec
+            {
+                Type = EffectActionType.DealDamage,
+                Target = EffectTarget.DefaultEnemy,
+                Reach = TargetReach.FrontAndMiddle
+            };
             var target = TargetRules.ResolveTarget(
-                state, actor, EffectTarget.DefaultEnemy, card.InstanceId, rng, null);
-            if (target == null)
+                state, actor, EffectTarget.DefaultEnemy, card.InstanceId, rng, reachAction);
+            if (target == null
+                || !TargetRules.IsTargetValidForAction(state, target, TargetReach.FrontAndMiddle, reachAction))
                 return true;
 
             var power = FearlessChargeBaseDamage + card.UpgradeLevel * 3;
-            if (actor.HitsTakenThisTurn > 0)
+            if (actor.TookDamagePreviousTurn)
                 power *= 2;
 
             DamageRules.ApplyDamage(
@@ -478,8 +504,8 @@ namespace Grimhand.Battle.V091
             List<BattleEvent> events)
         {
             var ally = TargetRules.ResolveTarget(
-                state, actor, EffectTarget.ManualSelected, card.InstanceId, null, null);
-            if (ally == null)
+                state, actor, EffectTarget.FrontAlly, card.InstanceId, null, null);
+            if (ally == null || ally.Team != actor.Team)
                 ally = actor;
 
             state.SoulBondPartnerByCombatantId[actor.Id] = ally.Id;
@@ -591,9 +617,17 @@ namespace Grimhand.Battle.V091
             List<BattleEvent> events,
             BattleRng rng)
         {
+            var reachAction = new EffectActionSpec
+            {
+                Type = EffectActionType.DealDamage,
+                Target = EffectTarget.DefaultEnemy,
+                Reach = TargetReach.Any,
+                Value = DemonEchoBaseDamage
+            };
             var target = TargetRules.ResolveTarget(
-                state, actor, EffectTarget.DefaultEnemy, card.InstanceId, rng, null);
-            if (target == null)
+                state, actor, EffectTarget.DefaultEnemy, card.InstanceId, rng, reachAction);
+            if (target == null
+                || !TargetRules.IsTargetValidForAction(state, target, TargetReach.Any, reachAction))
                 return true;
 
             var power = DemonEchoBaseDamage + card.UpgradeLevel * 5;

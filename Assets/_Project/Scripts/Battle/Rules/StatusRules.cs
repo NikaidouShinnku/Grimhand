@@ -54,24 +54,16 @@ namespace Grimhand.Battle.Rules
                 return;
 
             var existing = FindStatus(target, statusId);
-            if (existing == null)
+            var isNew = existing == null;
+            if (isNew)
             {
-                existing = new StatusInstance { StatusId = statusId, Stacks = 0 };
+                // RemainingTurns=0：避免默认 -1 被误判为永久，再由下方规则写入真实持续。
+                existing = new StatusInstance { StatusId = statusId, Stacks = 0, RemainingTurns = 0 };
                 target.Statuses.Add(existing);
             }
 
             existing.Stacks += stacks;
-            if (def.DurationKind == StatusDurationKind.Permanent)
-                existing.RemainingTurns = -1;
-            else
-            {
-                var turns = durationOverride >= 0 ? durationOverride : def.DefaultDuration;
-                var bonus = state?.Config?.RunModifiers?.StatusDurationBonusTurns ?? 0;
-                if (bonus > 0 && def.DurationKind == StatusDurationKind.Turns)
-                    turns += bonus;
-                if (turns > existing.RemainingTurns)
-                    existing.RemainingTurns = turns;
-            }
+            ApplyDuration(state, existing, isNew, durationOverride);
 
             if (def.MaxHpPercentBonusPerStack > 0 && stacks > 0)
             {
@@ -231,42 +223,135 @@ namespace Grimhand.Battle.Rules
             }
         }
 
-        public static void ProcessEndOfTurnDurations(BattleState state, List<BattleEvent> events)
+        /// <summary>
+        /// 回合开始：扣减「回合开始跳伤类」状态的持续（中毒/灼烧/亡灵毒/缠绕/延迟伤害）。
+        /// 须在对应跳伤结算之后调用，保证持续 1 回合也能先跳伤再消失。
+        /// </summary>
+        public static void ProcessTurnStartDurations(BattleState state, List<BattleEvent> events)
         {
+            if (state == null)
+                return;
+
             foreach (var combatant in state.Combatants)
             {
-                for (var i = combatant.Statuses.Count - 1; i >= 0; i--)
+                if (combatant == null || !combatant.IsAlive)
+                    continue;
+
+                TickDurationsOnCombatant(state, combatant, events, turnStartDotOnly: true);
+            }
+        }
+
+        /// <summary>
+        /// 回合结束：扣减非跳伤类状态的持续（易伤/强固/减速/虚化等「本回合」效果）。
+        /// </summary>
+        public static void ProcessEndOfTurnDurations(BattleState state, List<BattleEvent> events)
+        {
+            if (state == null)
+                return;
+
+            foreach (var combatant in state.Combatants)
+            {
+                if (combatant == null)
+                    continue;
+
+                TickDurationsOnCombatant(state, combatant, events, turnStartDotOnly: false);
+            }
+        }
+
+        /// <summary>回合开始跳伤类：持续在跳伤后结算；其余状态在回合结束结算。</summary>
+        public static bool UsesTurnStartDuration(string statusId)
+        {
+            if (string.IsNullOrEmpty(statusId))
+                return false;
+
+            if (statusId == StatusCatalog.Poison
+                || statusId == StatusCatalog.NecroticPoison
+                || statusId == StatusCatalog.Burn
+                || statusId == StatusCatalog.Constrict
+                || statusId == StatusCatalog.DelayedDamage)
+                return true;
+
+            var def = StatusCatalog.Get(statusId);
+            return def != null && def.TurnStartDamagePerStack > 0;
+        }
+
+        /// <summary>
+        /// 层数与持续时间正交：
+        /// - durationOverride &lt; 0（卡面「永久」）→ RemainingTurns = -1
+        /// - durationOverride &gt;= 0 → 有限持续；叠层取更长；已永久不被缩短
+        /// </summary>
+        static void ApplyDuration(
+            BattleState state,
+            StatusInstance existing,
+            bool isNew,
+            int durationOverride)
+        {
+            // 卡面 Duration:-1 → 永久。战斗被动（天神下凡等）也以 -1 施加。
+            if (durationOverride < 0)
+            {
+                existing.RemainingTurns = -1;
+                return;
+            }
+
+            // durationOverride >= 0：有限持续（尊重卡面回合数，不再被目录 Permanent 吞掉）
+            var turns = durationOverride;
+            var bonus = state?.Config?.RunModifiers?.StatusDurationBonusTurns ?? 0;
+            if (bonus > 0)
+                turns += bonus;
+
+            // 已是永久：叠有限持续不降级
+            if (!isNew && existing.RemainingTurns < 0)
+                return;
+
+            if (isNew || turns > existing.RemainingTurns)
+                existing.RemainingTurns = turns;
+        }
+
+        static void TickDurationsOnCombatant(
+            BattleState state,
+            CombatantState combatant,
+            List<BattleEvent> events,
+            bool turnStartDotOnly)
+        {
+            for (var i = combatant.Statuses.Count - 1; i >= 0; i--)
+            {
+                var status = combatant.Statuses[i];
+                var def = StatusCatalog.Get(status.StatusId);
+                if (def == null)
+                    continue;
+
+                var isTurnStartDot = UsesTurnStartDuration(status.StatusId);
+                if (turnStartDotOnly != isTurnStartDot)
+                    continue;
+
+                // 永久实例：RemainingTurns < 0
+                if (status.RemainingTurns < 0)
+                    continue;
+
+                status.RemainingTurns--;
+                if (status.RemainingTurns > 0)
+                    continue;
+
+                if (status.StatusId == StatusCatalog.FinalSummonPending)
+                    PassiveCardMechanicsRules.OnFinalSummonPendingExpired(state, combatant, events);
+
+                // v0.9 蛇 s2_lv10：中毒到期层数减半续存而非清除
+                if (status.StatusId == StatusCatalog.Poison
+                    && TalentBattleRules.TryHandlePoisonExpiry(state, combatant, status, events))
                 {
-                    var status = combatant.Statuses[i];
-                    var def = StatusCatalog.Get(status.StatusId);
-                    if (def == null || def.DurationKind == StatusDurationKind.Permanent)
-                        continue;
-
-                    status.RemainingTurns--;
-                    if (status.RemainingTurns <= 0)
-                    {
-                        if (status.StatusId == StatusCatalog.FinalSummonPending)
-                            PassiveCardMechanicsRules.OnFinalSummonPendingExpired(state, combatant, events);
-
-                        // v0.9 蛇 s2_lv10：中毒到期层数减半续存而非清除
-                        if (status.StatusId == StatusCatalog.Poison
-                            && TalentBattleRules.TryHandlePoisonExpiry(state, combatant, status, events))
-                        {
-                            CombatantRules.RefreshDerivedStats(combatant);
-                            RelicBattleRules.RefreshDerivedStats(state, combatant, state?.Config?.RunModifiers);
-                            continue;
-                        }
-
-                        combatant.Statuses.RemoveAt(i);
-                        events.Add(new BattleEvent(BattleEventKind.StatusExpired, def.DisplayName)
-                        {
-                            CombatantId = combatant.Id,
-                            TargetId = status.StatusId
-                        });
-                        CombatantRules.RefreshDerivedStats(combatant);
-                        RelicBattleRules.RefreshDerivedStats(state, combatant, state?.Config?.RunModifiers);
-                    }
+                    CombatantRules.RefreshDerivedStats(combatant);
+                    RelicBattleRules.RefreshDerivedStats(state, combatant, state?.Config?.RunModifiers);
+                    continue;
                 }
+
+                combatant.Statuses.RemoveAt(i);
+                events.Add(new BattleEvent(BattleEventKind.StatusExpired, def.DisplayName)
+                {
+                    CombatantId = combatant.Id,
+                    TargetId = status.StatusId
+                });
+                CombatantRules.RefreshDerivedStats(combatant);
+                RelicBattleRules.RefreshDerivedStats(state, combatant, state?.Config?.RunModifiers);
             }
         }
 

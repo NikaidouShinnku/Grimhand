@@ -34,7 +34,7 @@ namespace Grimhand.Battle.V09
                 if (constrict != null && constrict.Stacks > 0)
                     ApplyTickDamage(state, combatant, constrict.Stacks, "缠绕", events);
 
-                // 延迟伤害：下回合开始受到 Stacks 伤害（Duration=1，本回合末到期，故此处结算）
+                // 延迟伤害：下回合开始受到 Stacks 伤害（持续在跳伤后由 ProcessTurnStartDurations 扣减）
                 var delayed = StatusRules.FindStatus(combatant, StatusCatalog.DelayedDamage);
                 if (delayed != null && delayed.Stacks > 0)
                     ApplyTickDamage(state, combatant, delayed.Stacks, "延迟伤害", events);

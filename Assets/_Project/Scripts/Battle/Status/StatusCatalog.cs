@@ -98,7 +98,9 @@ namespace Grimhand.Battle.Status
             {
                 Id = Poison,
                 DisplayName = "中毒",
-                DurationKind = StatusDurationKind.Permanent,
+                // 层数=每回合跳伤强度；持续时间由卡面 Duration 决定（-1=永久，N=N回合）
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 2,
                 TurnStartDamagePerStack = 1,
                 TickIgnoresBlock = true
             };
@@ -133,7 +135,8 @@ namespace Grimhand.Battle.Status
                 DisplayName = "虚弱",
                 DurationKind = StatusDurationKind.Turns,
                 DefaultDuration = 2,
-                OutgoingDamageReductionFlatPerStack = 1
+                // 每层 -1% 造成的伤害
+                OutgoingDamagePercentPerStack = -1
             };
             map[DefenseUp] = new StatusDefinition
             {
@@ -180,7 +183,8 @@ namespace Grimhand.Battle.Status
             {
                 Id = NecroticPoison,
                 DisplayName = "亡灵毒",
-                DurationKind = StatusDurationKind.Permanent,
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 2,
                 TurnStartDamagePerStack = 1,
                 TickIgnoresBlock = true
             };
@@ -275,7 +279,8 @@ namespace Grimhand.Battle.Status
                 DisplayName = "虚弱",
                 DurationKind = StatusDurationKind.Turns,
                 DefaultDuration = 2,
-                OutgoingDamageReductionFlatPerStack = 1
+                // 每层 -1% 造成的伤害（20 层 = 20% 虚弱）
+                OutgoingDamagePercentPerStack = -1
             };
             map[ArmorUp] = new StatusDefinition
             {

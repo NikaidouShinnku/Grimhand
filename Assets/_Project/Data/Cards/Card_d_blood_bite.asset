@@ -20,7 +20,7 @@ MonoBehaviour:
   Rarity: 1
   Keywords: []
   Actions:
-  - Type: 0
+  - Type: 22
     Target: 0
     Value: 7
     StatusId: 
@@ -58,6 +58,11 @@ MonoBehaviour:
     SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
+    HpLossStepPercent: 0
+    HpLossStepValue: 0
+    AlternateValueIfHealed: 14
+    TokenCardId: 
+    CostReduction: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

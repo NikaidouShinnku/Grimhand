@@ -21,7 +21,7 @@ MonoBehaviour:
   Keywords:
   - exhaust
   Actions:
-  - Type: 22
+  - Type: 20
     Target: 1
     Value: 0
     StatusId: 

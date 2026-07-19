@@ -20,7 +20,7 @@ MonoBehaviour:
   Rarity: 0
   Keywords: []
   Actions:
-  - Type: 7
+  - Type: 39
     Target: 1
     Value: 1
     StatusId: 
@@ -31,7 +31,7 @@ MonoBehaviour:
     AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 1
+    Reach: 0
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100
@@ -46,7 +46,7 @@ MonoBehaviour:
     OnKillHealAmount: 0
     HitCount: 1
     AlternateAttackScalePercent: 0
-    AlternateValue: 0
+    AlternateValue: 2
     UseAlternateIfTargetHasDebuff: 0
     AlternateAttackScaleIfActorUsedAttack: 0
     AlternateValueIfActorUsedAttack: 0

@@ -174,7 +174,7 @@ namespace Grimhand.Editor
             SetCardRarity("Card_w_fatal_strike", CardRarity.Rare);
             SetCardRarity("Card_p_sand_ray", CardRarity.Common);
             SetCardRarity("Card_p_bless", CardRarity.Rare);
-            SetCardRarity("Card_p_solar_wrath", CardRarity.Epic);
+            SetCardRarity("Card_p_solar_wrath", CardRarity.Rare);
             SetCardRarity("Card_d_shadow_claw", CardRarity.Common);
             SetCardRarity("Card_d_blood_flame", CardRarity.Rare);
         }

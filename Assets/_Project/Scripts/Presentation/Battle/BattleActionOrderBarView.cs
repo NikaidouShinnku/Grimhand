@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
 using Grimhand.Content;
@@ -20,6 +21,8 @@ namespace Grimhand.Presentation.Battle
         CharacterVisualCatalogSO _characterVisuals;
         BattleUiIconCatalogSO _uiIcons;
         Dictionary<string, CardDefinitionSO> _definitions = new();
+        Action<CardInstanceState, RectTransform> _onHoverEnter;
+        Action _onHoverExit;
 
         RectTransform _panel;
         RectTransform _content;
@@ -40,14 +43,26 @@ namespace Grimhand.Presentation.Battle
             CardVisualCatalogSO catalog,
             CharacterVisualCatalogSO characterVisuals,
             BattleUiIconCatalogSO uiIcons,
-            Dictionary<string, CardDefinitionSO> definitions)
+            Dictionary<string, CardDefinitionSO> definitions,
+            Action<CardInstanceState, RectTransform> onHoverEnter = null,
+            Action onHoverExit = null)
         {
             _cardPrefab = cardPrefab;
             _catalog = catalog;
             _characterVisuals = characterVisuals;
             _uiIcons = uiIcons;
             _definitions = definitions ?? new Dictionary<string, CardDefinitionSO>();
+            _onHoverEnter = onHoverEnter;
+            _onHoverExit = onHoverExit;
             EnsureBuilt(chromeRoot);
+        }
+
+        public void SetHoverHandlers(
+            Action<CardInstanceState, RectTransform> onHoverEnter,
+            Action onHoverExit)
+        {
+            _onHoverEnter = onHoverEnter;
+            _onHoverExit = onHoverExit;
         }
 
         public void SetVisible(bool visible)
@@ -229,6 +244,10 @@ namespace Grimhand.Presentation.Battle
                 ? entry.DisplayName
                 : (entry.IsHidden ? "?" : card.DisplayName);
 
+            // 未看破（?）不显示效果；已揭示的敌/我卡均可悬停查看
+            var hoverEnter = entry.IsHidden ? null : _onHoverEnter;
+            var hoverExit = entry.IsHidden ? null : _onHoverExit;
+
             slot.Card.BindWithCard(
                 card,
                 visual,
@@ -240,8 +259,8 @@ namespace Grimhand.Presentation.Battle
                 _uiIcons,
                 _characterVisuals,
                 onClick: null,
-                onHoverEnter: null,
-                onHoverExit: null);
+                onHoverEnter: hoverEnter,
+                onHoverExit: hoverExit);
             slot.Card.SetOrderBarPresentation(compact: true, hiddenIntent: entry.IsHidden);
 
             ApplyNameLabelStyle(slot.NameLabel);

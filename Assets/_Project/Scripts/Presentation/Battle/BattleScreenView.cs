@@ -197,7 +197,15 @@ namespace Grimhand.Presentation.Battle
 
             var chromeRoot = BattleUiLayoutRuntimeFix.GetHudChromeRoot(transform) ?? transform;
             _actionOrderBar = gameObject.AddComponent<BattleActionOrderBarView>();
-            _actionOrderBar.Initialize(chromeRoot, prefab, _catalog, _characterVisuals, _uiIcons, _definitions);
+            _actionOrderBar.Initialize(
+                chromeRoot,
+                prefab,
+                _catalog,
+                _characterVisuals,
+                _uiIcons,
+                _definitions,
+                ShowKeywordTooltip,
+                HideKeywordTooltip);
         }
 
         public void ShowActiveCard(int cardInstanceId) =>
@@ -1599,7 +1607,7 @@ namespace Grimhand.Presentation.Battle
                         runEndBodyText.text = string.IsNullOrEmpty(_session.Expedition.Run.LastEventMessage)
                             ? "队伍已无法继续作战。"
                             : _session.Expedition.Run.LastEventMessage;
-                        SetRunEndButtonLabel("撤退回营地");
+                        SetRunEndButtonLabel("传送回营地");
                     }
                 }
             }

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
+using Grimhand.Battle.Status;
 using Grimhand.Core;
 
 namespace Grimhand.Battle.Effects
@@ -30,6 +31,8 @@ namespace Grimhand.Battle.Effects
                 case EffectTarget.Self:
                     return actor;
                 case EffectTarget.RandomEnemy:
+                    if (TryGetTauntForcedTarget(state, actor, action, TargetReach.Any, out var randomTaunt))
+                        return randomTaunt;
                     return PickRandomEnemy(state, actor.Team, rng);
                 case EffectTarget.RandomAlly:
                     return PickRandomAlly(state, actor.Team, rng);
@@ -70,11 +73,19 @@ namespace Grimhand.Battle.Effects
                         ? PickAllyBySlotOffset(state, actor, -1)
                         : PickAllyBySlotOffset(state, actor, 1);
                 case EffectTarget.EnemyFrontSlot:
-                    return PositionRules.PickCombatantInSlot(state, OppositeTeam(actor.Team), FormationSlot.Front);
                 case EffectTarget.EnemyMiddleSlot:
-                    return PositionRules.PickCombatantInSlot(state, OppositeTeam(actor.Team), FormationSlot.Middle);
                 case EffectTarget.EnemyBackSlot:
-                    return PositionRules.PickCombatantInSlot(state, OppositeTeam(actor.Team), FormationSlot.Back);
+                    if (TryGetTauntForcedTarget(state, actor, action, TargetReach.Any, out var slotTaunt))
+                        return slotTaunt;
+                    return targetKind switch
+                    {
+                        EffectTarget.EnemyFrontSlot => PositionRules.PickCombatantInSlot(
+                            state, OppositeTeam(actor.Team), FormationSlot.Front),
+                        EffectTarget.EnemyMiddleSlot => PositionRules.PickCombatantInSlot(
+                            state, OppositeTeam(actor.Team), FormationSlot.Middle),
+                        _ => PositionRules.PickCombatantInSlot(
+                            state, OppositeTeam(actor.Team), FormationSlot.Back)
+                    };
                 case EffectTarget.AllyFrontSlot:
                     return PositionRules.PickCombatantInSlot(state, actor.Team, FormationSlot.Front);
                 case EffectTarget.AllyMiddleSlot:
@@ -107,7 +118,12 @@ namespace Grimhand.Battle.Effects
                 return true;
 
             var slot = PositionRules.GetEffectiveSlot(state, target);
-            return TargetReachRules.IsSlotAllowed(reach, slot);
+            if (TargetReachRules.IsSlotAllowed(reach, slot))
+                return true;
+
+            // 嘲讽强制目标：即使不在 Reach 范围内也视为合法
+            return target.Team == TeamSide.Player
+                   && StatusRules.HasStatus(target, StatusCatalog.Taunt);
         }
 
         public static bool UsesExplicitSlotTarget(EffectTarget targetKind) =>
@@ -152,8 +168,7 @@ namespace Grimhand.Battle.Effects
 
             var targetTeam = OppositeTeam(attackerTeam);
             var taunt = CombatMechanicsRules.FindTauntHolder(state, targetTeam);
-            if (taunt != null
-                && TargetReachRules.IsSlotAllowed(reach, PositionRules.GetEffectiveSlot(state, taunt)))
+            if (taunt != null && taunt.IsAlive)
             {
                 result.Add(taunt);
                 return result;
@@ -328,9 +343,7 @@ namespace Grimhand.Battle.Effects
             if (taunt == null || !taunt.IsAlive)
                 return false;
 
-            if (!TargetReachRules.IsSlotAllowed(reach, PositionRules.GetEffectiveSlot(state, taunt)))
-                return false;
-
+            // 嘲讽：强制指向持有者（不因 Reach 前/中/后限制失效）
             tauntTarget = taunt;
             return true;
         }

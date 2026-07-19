@@ -448,9 +448,16 @@ namespace Grimhand.Presentation.Battle
                     return prefix + reachTag + PrefixTarget(target, body);
                 }
                 case EffectActionType.DrawCards:
-                    return prefix + $"抽 {action.Value} 张牌";
-                case EffectActionType.DrawCardsNextTurn:
+                    if (card?.Keywords != null && card.Keywords.Contains("quick_start"))
+                        return prefix + $"抽 {action.Value} 张牌";
                     return prefix + $"下回合抽 {action.Value} 张牌";
+                case EffectActionType.DrawCardsNextTurn:
+                {
+                    var drawText = $"下回合抽 {action.Value} 张牌";
+                    if (action.CostReduction > 0)
+                        drawText += $"（费用-{action.CostReduction}）";
+                    return prefix + drawText;
+                }
                 case EffectActionType.ApplyStatus:
                     if (action.Target == EffectTarget.RandomEnemies)
                     {
@@ -658,9 +665,9 @@ namespace Grimhand.Presentation.Battle
                     return PrefixTarget(usesPick ? "" : target, $"护甲获取 +{action.Stacks}（本回合）");
                 case StatusCatalog.AttackDown:
                 case StatusCatalog.Weaken:
-                    return PrefixTarget(usesPick ? "" : target, $"攻击伤害 -{action.Stacks}（{FormatDuration(action)}）");
+                    return PrefixTarget(usesPick ? "" : target, $"施加 {action.Stacks}% 虚弱（造成的伤害减少）{FormatDurationSuffix(action)}");
                 case StatusCatalog.Vulnerable:
-                    return PrefixTarget(usesPick ? "" : target, $"易伤 +{action.Stacks}（{FormatDuration(action)}）");
+                    return PrefixTarget(usesPick ? "" : target, $"施加 {action.Stacks}% 易伤{FormatDurationSuffix(action)}");
                 case StatusCatalog.Taunt:
                     return "所有敌人下一行动强制攻击自身";
                 case StatusCatalog.Guard:
@@ -672,7 +679,7 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.Unyielding:
                     return "HP 低于 25% 时恢复 20 HP（每场 1 次，使用后移出牌组）";
                 case StatusCatalog.FinalBloodRitual:
-                    return "本场战斗中，每当触发【献祭】，抽 1 张牌并回复 5 点生命";
+                    return "本场战斗中，每当触发【献祭】，回复 5 点生命并在下回合开始时抽 1 张牌";
                 case StatusCatalog.GodDescends:
                     return "本场战斗中，获得护甲时对全体敌人造成 8 伤害";
                 case StatusCatalog.NecroticPoison:
@@ -1090,9 +1097,13 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.Burn:
                     return "回合结束每层 2 伤害";
                 case StatusCatalog.Weaken:
-                    return "出站伤害每层 -1%";
+                    return AppendStatusDurationLine(
+                        $"造成的伤害减少 {status.Stacks}%（每层 -1%）",
+                        status, def);
                 case StatusCatalog.Vulnerable:
-                    return "受到的伤害每层 +1%";
+                    return AppendStatusDurationLine(
+                        $"受到的伤害增加 {status.Stacks}%（每层 +1%）",
+                        status, def);
                 case StatusCatalog.LastStand:
                     return "出站伤害 +20%；HP 将降至 0 以下时保留 1 HP";
                 case StatusCatalog.Taunt:
@@ -1102,7 +1113,7 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.GodDescends:
                     return "获得护甲时对全体敌人造成 8 伤害";
                 case StatusCatalog.FinalBloodRitual:
-                    return "触发【献祭】时抽 1 张并回复 5 HP";
+                    return "触发【献祭】时回复 5 HP，并在下回合开始时抽 1 张牌";
                 case StatusCatalog.VampAura:
                     return $"攻击吸血 {status.Stacks}%";
                 case StatusCatalog.AttackUp:
@@ -1115,7 +1126,9 @@ namespace Grimhand.Presentation.Battle
                         $"所有攻击牌伤害 +{status.Stacks * (def?.AttackPercentBonusPerStack ?? 1)}%（每层 +{def?.AttackPercentBonusPerStack ?? 1}%）",
                         status, def);
                 case StatusCatalog.AttackDown:
-                    return $"出站伤害每层 -{def?.OutgoingDamageReductionFlatPerStack ?? 1}";
+                    return AppendStatusDurationLine(
+                        $"造成的伤害减少 {status.Stacks}%（每层 -1%）",
+                        status, def);
                 case StatusCatalog.DefenseUp:
                     return AppendStatusDurationLine(
                         $"获得护甲 +{status.Stacks * (def?.BlockGainFlatPerStack ?? 1)}（每层 +{def?.BlockGainFlatPerStack ?? 1}）",
@@ -1199,8 +1212,8 @@ namespace Grimhand.Presentation.Battle
             if (status == null)
                 return "";
 
-            definition ??= StatusCatalog.Get(status.StatusId);
-            if (definition?.DurationKind == StatusDurationKind.Permanent || status.RemainingTurns < 0)
+            // 以实例 RemainingTurns 为准：<0 永久；>0 剩余回合；0 即将在回合开始结算后消失
+            if (status.RemainingTurns < 0)
                 return "永久";
 
             if (status.RemainingTurns <= 0)

@@ -17,14 +17,20 @@ namespace Grimhand.Battle.Model
 
         public int PendingDrawNextTurn { get; set; }
 
+        /// <summary>下回合额外抽到的牌费用减免（召唤卡牌之灵等，仅作用于 PendingDrawNextTurn 那几张）。</summary>
+        public int PendingDrawNextTurnCostReduction { get; set; }
+
         public List<CombatantState> Combatants { get; } = new();
         public List<CardInstanceState> PlayerDrawPile { get; } = new();
         public List<CardInstanceState> PlayerHand { get; } = new();
         public List<CardInstanceState> PlayerDiscardPile { get; } = new();
+        /// <summary>已打出的消耗牌堆（本场战斗不再进入抽牌，除非神圣轮回等回收）。</summary>
+        public List<CardInstanceState> PlayerExhaustPile { get; } = new();
 
         public List<CardInstanceState> EnemyDrawPile { get; } = new();
         public List<CardInstanceState> EnemyHand { get; } = new();
         public List<CardInstanceState> EnemyDiscardPile { get; } = new();
+        public List<CardInstanceState> EnemyExhaustPile { get; } = new();
 
         public List<CardInstanceState> GetDrawPile(TeamSide team) =>
             team == TeamSide.Player ? PlayerDrawPile : EnemyDrawPile;
@@ -34,6 +40,9 @@ namespace Grimhand.Battle.Model
 
         public List<CardInstanceState> GetDiscardPile(TeamSide team) =>
             team == TeamSide.Player ? PlayerDiscardPile : EnemyDiscardPile;
+
+        public List<CardInstanceState> GetExhaustPile(TeamSide team) =>
+            team == TeamSide.Player ? PlayerExhaustPile : EnemyExhaustPile;
 
         public Dictionary<int, CardInstanceState> CardsById { get; } = new();
         public Dictionary<string, string> CharacterOwnerByCombatantId { get; } = new();

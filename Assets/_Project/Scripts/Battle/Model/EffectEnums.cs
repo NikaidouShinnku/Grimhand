@@ -39,7 +39,7 @@ namespace Grimhand.Battle.Model
         DamagePerRespondCount,
         /// <summary>诅咒加深：使目标身上所有中毒与灼烧层数翻倍。</summary>
         DoubleStatusStacks,
-        /// <summary>神圣轮回：将弃牌堆中所有带消耗标签的牌洗回抽牌堆，并祛除其消耗标签。</summary>
+        /// <summary>神圣轮回：将消耗堆中所有已使用消耗牌洗回抽牌堆，并祛除其消耗关键词。</summary>
         RecycleExhaustCardsFromDiscard,
         /// <summary>怒火焚身：造成 Value 伤害，施法者每损失 HpLossStepPercent% 最大HP，额外 +HpLossStepValue 伤害。</summary>
         DealDamageScaledByActorHpLoss,

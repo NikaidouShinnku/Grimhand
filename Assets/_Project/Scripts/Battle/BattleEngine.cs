@@ -721,6 +721,8 @@ namespace Grimhand.Battle
             TalentBattleRules.ProcessTurnStartV09Talents(_state, _events);
             foreach (var combatant in _state.Combatants)
                 AnubisAvatarRules.ProcessTurnStart(combatant);
+            // 持续回合在跳伤/缠绕/延迟伤害之后结算：先生效，再扣减并到期移除
+            StatusRules.ProcessTurnStartDurations(_state, _events);
             EvaluateOutcome();
             _events.Add(new BattleEvent(BattleEventKind.EnergyChanged, "Turn start")
             {
@@ -730,7 +732,9 @@ namespace Grimhand.Battle
             });
 
             var bonusDraw = _state.PendingDrawNextTurn;
+            var bonusCostReduce = _state.PendingDrawNextTurnCostReduction;
             _state.PendingDrawNextTurn = 0;
+            _state.PendingDrawNextTurnCostReduction = 0;
 
             var backRowDraw = 0;
             var mods = _state.Config?.RunModifiers;
@@ -760,9 +764,26 @@ namespace Grimhand.Battle
                 _events.Add(new BattleEvent(BattleEventKind.CardDrawn, $"深渊之眼：即将抽到 {names}"));
             }
 
+            // 常规抽牌与「下回合额外抽」分开，便于对额外抽到的牌施加费用减免
             DeckRules.DrawCards(_state, TeamSide.Player, _rng,
-                _state.Config.CardsDrawnPerTurn + bonusDraw + backRowDraw +
+                _state.Config.CardsDrawnPerTurn + backRowDraw +
                 (_state.TurnNumber == 1 ? mods?.ExtraDrawOnBattleStart ?? 0 : 0), _events);
+            if (bonusDraw > 0)
+            {
+                var handBeforeBonus = _state.PlayerHand.Count;
+                DeckRules.DrawCards(_state, TeamSide.Player, _rng, bonusDraw, _events);
+                if (bonusCostReduce > 0)
+                {
+                    for (var i = handBeforeBonus; i < _state.PlayerHand.Count; i++)
+                    {
+                        var drawn = _state.PlayerHand[i];
+                        if (drawn == null)
+                            continue;
+                        drawn.Cost = System.Math.Max(0, drawn.Cost - bonusCostReduce);
+                    }
+                }
+            }
+
             DeckRules.DrawCards(_state, TeamSide.Enemy, _rng, ResolveEnemyDrawCount(), _events);
             SummonRules.GrantSkullSelfDestructHands(_state, _events);
             BossBonusHandRules.GrantPendingBonusHands(_state, _events);

@@ -20,7 +20,7 @@ MonoBehaviour:
   Rarity: 0
   Keywords: []
   Actions:
-  - Type: 7
+  - Type: 6
     Target: 1
     Value: 1
     StatusId: 

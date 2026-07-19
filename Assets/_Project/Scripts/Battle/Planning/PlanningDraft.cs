@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
@@ -274,6 +275,19 @@ namespace Grimhand.Battle.Planning
                 return true;
             }
 
+            if (!_selectedQueue.Contains(instanceId))
+                return false;
+
+            // 先取消本牌，再清理因此失效的神圣灌注（避免 GetPlayCost 在空队列时返回 int.MaxValue 导致能量溢出）
+            if (!DeselectSingleCard(instanceId))
+                return false;
+
+            CascadeDeselectInvalidHolyInfusions();
+            return true;
+        }
+
+        bool DeselectSingleCard(int instanceId)
+        {
             var index = _selectedQueue.IndexOf(instanceId);
             if (index < 0)
                 return false;
@@ -284,16 +298,49 @@ namespace Grimhand.Battle.Planning
 
             _selectedQueue.RemoveAt(index);
             _targetByCard.Remove(instanceId);
+
+            var refund = 0;
             if (_state.EnergySpentByCardInstanceId.TryGetValue(instanceId, out var spentCost))
             {
-                _state.EnergyCurrent += spentCost;
+                refund = spentCost;
                 _state.EnergySpentByCardInstanceId.Remove(instanceId);
             }
-            else
-                _state.EnergyCurrent += GetPlayCost(card);
+            else if (card.DefinitionId != PassiveCardMechanicsRules.HolyInfusionCardId)
+            {
+                // 非灌注牌的兜底；灌注必须走记录值，禁止用 GetPlayCost 回算（会 int.MaxValue 溢出）
+                var ownerId = PositionRules.GetOwnerCombatantId(_state, card);
+                var owner = ownerId != null ? _state.GetCombatant(ownerId) : null;
+                refund = Math.Max(0, TalentBattleRules.GetEffectivePlayCost(_state, owner, card));
+            }
 
+            _state.EnergyCurrent += refund;
             EmitEnergyEvent(BattleEventKind.CardDeselectedFromPlay, card.DisplayName, instanceId);
             return true;
+        }
+
+        /// <summary>复制目标被取消后，连带取消已失效的神圣灌注并正确返还能量。</summary>
+        void CascadeDeselectInvalidHolyInfusions()
+        {
+            bool removed;
+            do
+            {
+                removed = false;
+                for (var i = 0; i < _selectedQueue.Count; i++)
+                {
+                    var cardId = _selectedQueue[i];
+                    var card = _state.GetCard(cardId);
+                    if (card?.DefinitionId != PassiveCardMechanicsRules.HolyInfusionCardId)
+                        continue;
+
+                    if (PassiveCardMechanicsRules.TryGetHolyInfusionRepeatTargetFromQueue(
+                            _state, _selectedQueue, cardId, out _))
+                        continue;
+
+                    DeselectSingleCard(cardId);
+                    removed = true;
+                    break;
+                }
+            } while (removed);
         }
 
         public bool ToggleCard(int instanceId) =>
@@ -350,8 +397,8 @@ namespace Grimhand.Battle.Planning
 
             _selectedQueue.Add(instanceId);
             _state.EnergyCurrent -= cost;
-            if (CardPowerRules.UsesRemainingEnergyCost(card))
-                _state.EnergySpentByCardInstanceId[instanceId] = cost;
+            // 记录实耗，取消选择时按此返还（神圣灌注费用依赖队列，不能事后回算）
+            _state.EnergySpentByCardInstanceId[instanceId] = cost;
             ConsumeTalentDiscountIfApplied(owner, card, cost);
             EmitEnergyEvent(BattleEventKind.CardSelectedForPlay, card.DisplayName, instanceId);
         }

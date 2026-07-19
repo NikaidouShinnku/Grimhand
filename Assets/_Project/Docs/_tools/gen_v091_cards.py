@@ -20,7 +20,7 @@ CARDS = [
     ("p_sand_prophecy", "沙之预言", "char_mage", 0, 2, 0, ["quick_start"],
      [(41, 1, 1, "", 1, -1)]),
     ("p_soul_bond", "灵魂纽带", "char_mage", 1, 2, 1, ["quick_start"],
-     [(3, 5, 0, "soul_bond", 50, 1)]),
+     [(3, 2, 0, "soul_bond", 50, 1)]),
     ("p_doom_prophecy", "末日预言", "char_mage", 2, 2, 3, [], []),
     ("p_sand_foresight", "沙之预知", "char_mage", 1, 2, 3, ["quick_start"], []),
     ("p_life_spring", "生命之泉", "char_mage", 4, 2, 4, ["exhaust"], []),

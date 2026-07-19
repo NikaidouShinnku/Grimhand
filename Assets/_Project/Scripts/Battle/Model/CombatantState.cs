@@ -98,8 +98,11 @@ namespace Grimhand.Battle.Model
         /// <summary>本回合剩余时间无敌（幽灵隐身应对）。</summary>
         public bool InvulnerableRestOfTurn { get; set; }
 
-        /// <summary>上一完整回合是否受过 HP 伤害（史莱姆再生）。</summary>
+        /// <summary>上一完整回合是否受过 HP 伤害（史莱姆再生；回合开始读取后清零）。</summary>
         public bool TookDamageLastTurn { get; set; }
+
+        /// <summary>上一完整回合是否受过 HP 伤害（供本回合规划/结算使用，如无畏冲锋）。</summary>
+        public bool TookDamagePreviousTurn { get; set; }
 
         /// <summary>本场已结算卡牌数（骷髅特性）。</summary>
         public int CardsResolvedCount { get; set; }

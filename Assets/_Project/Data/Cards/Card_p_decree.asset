@@ -20,7 +20,7 @@ MonoBehaviour:
   Rarity: 2
   Keywords: []
   Actions:
-  - Type: 7
+  - Type: 6
     Target: 1
     Value: 2
     StatusId: 
@@ -61,8 +61,8 @@ MonoBehaviour:
   - Type: 3
     Target: 2
     Value: 0
-    StatusId: attack_up
-    Stacks: 3
+    StatusId: attack_up_pct
+    Stacks: 10
     Duration: 1
     ScaleWithAttack: 0
     ScaleWithDefense: 0
@@ -99,8 +99,8 @@ MonoBehaviour:
   - Type: 3
     Target: 2
     Value: 0
-    StatusId: defense_up
-    Stacks: 3
+    StatusId: defense_up_pct
+    Stacks: 10
     Duration: 1
     ScaleWithAttack: 0
     ScaleWithDefense: 0

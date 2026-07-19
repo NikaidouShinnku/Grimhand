@@ -60,11 +60,29 @@ namespace Grimhand.Presentation.Battle
                 if (buckets[label].Count == 0)
                     continue;
 
-                buckets[label].Sort((a, b) => string.CompareOrdinal(a.DisplayName, b.DisplayName));
+                // 同角色内：稀有度升序（白→绿→蓝→紫→橙），再按名称
+                buckets[label].Sort(CompareByRarityThenName);
                 groups.Add(new CategoryGroup(label, buckets[label]));
             }
 
             return groups;
+        }
+
+        static int CompareByRarityThenName(CardDefinitionSO a, CardDefinitionSO b)
+        {
+            if (a == null && b == null)
+                return 0;
+            if (a == null)
+                return 1;
+            if (b == null)
+                return -1;
+
+            var rarityCmp = a.Rarity.CompareTo(b.Rarity);
+            if (rarityCmp != 0)
+                return rarityCmp;
+
+            var nameCmp = string.CompareOrdinal(a.DisplayName, b.DisplayName);
+            return nameCmp != 0 ? nameCmp : string.CompareOrdinal(a.CardId, b.CardId);
         }
 
         public static string ResolveCategory(CardDefinitionSO card)

@@ -49,6 +49,8 @@ namespace Grimhand.Presentation.Battle
         bool _selected;
         bool _hovered;
         bool _interactable = true;
+        /// <summary>行动条等：不可点击，但允许悬停显示效果。</summary>
+        bool _orderBarHoverOnly;
         Coroutine _scaleRoutine;
         RectTransform _scaleRoot;
         Action<int> _onClick;
@@ -103,6 +105,7 @@ namespace Grimhand.Presentation.Battle
             _instanceId = card.InstanceId;
             _selected = selected;
             _interactable = interactable;
+            _orderBarHoverOnly = false;
             _onClick = onClick;
             _onQuickStart = onQuickStart;
             _onHoverEnter = onHoverEnter;
@@ -472,11 +475,13 @@ namespace Grimhand.Presentation.Battle
 
             if (canvasGroup != null)
             {
-                canvasGroup.blocksRaycasts = false;
+                // 允许悬停读效果（未看破意图由调用方不挂 hover）；不响应点击
+                canvasGroup.blocksRaycasts = true;
                 canvasGroup.alpha = 1f;
             }
 
             _interactable = false;
+            _orderBarHoverOnly = true;
 
             if (!hiddenIntent || artImage == null)
                 return;
@@ -648,12 +653,19 @@ namespace Grimhand.Presentation.Battle
 
         public void OnPointerEnter(PointerEventData eventData)
         {
-            if (!IsInteractable() || _hovered)
+            if (_hovered)
+                return;
+
+            var allowHover = IsInteractable() || (_orderBarHoverOnly && _onHoverEnter != null);
+            if (!allowHover)
                 return;
 
             _hovered = true;
-            ApplyVisualState();
-            GameAudioService.Instance.PlayBattleCardHover();
+            if (IsInteractable())
+            {
+                ApplyVisualState();
+                GameAudioService.Instance.PlayBattleCardHover();
+            }
 
             if (CurrentCard != null)
                 _onHoverEnter?.Invoke(CurrentCard, transform as RectTransform);
@@ -665,7 +677,8 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             _hovered = false;
-            ApplyVisualState();
+            if (IsInteractable())
+                ApplyVisualState();
             _onHoverExit?.Invoke();
         }
     }

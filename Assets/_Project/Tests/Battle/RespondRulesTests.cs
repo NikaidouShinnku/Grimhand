@@ -4,6 +4,7 @@ using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Reactions;
 using Grimhand.Battle.Rules;
+using Grimhand.Battle.Status;
 using Grimhand.Core;
 using NUnit.Framework;
 
@@ -79,6 +80,57 @@ namespace Grimhand.Battle.Tests
 
             Assert.Less(goblin.Hp, 50, "敌方攻击归位后应结算弹反反击");
             Assert.Greater(knight.Hp, 0, "减伤后应仍能存活（相对无应对）");
+        }
+
+        [Test]
+        public void DarkTear_OnRespondSuccess_AppliesPermanentArmorDownToAttacker()
+        {
+            var state = new BattleState();
+            var ranger = Unit("ranger", TeamSide.Player, FormationSlot.Front, hp: 40);
+            var goblin = Unit("goblin", TeamSide.Enemy, FormationSlot.Front, hp: 50);
+            state.Combatants.Add(ranger);
+            state.Combatants.Add(goblin);
+
+            var tearId = 1;
+            var tear = new CardInstanceState
+            {
+                InstanceId = tearId,
+                DefinitionId = "d_dark_tear",
+                DisplayName = "黑暗撕裂",
+                CardType = CardType.Defense,
+                OwnerCharacterId = ranger.CharacterDefinitionId
+            };
+            tear.Keywords.Add("parry");
+            tear.Actions.Add(new EffectActionSpec
+            {
+                Type = EffectActionType.GainBlockFromLastDamagePercent,
+                Target = EffectTarget.Self,
+                Value = 50,
+                Condition = ReactionConditionType.LastActionAttackOnSelf
+            });
+            tear.Actions.Add(new EffectActionSpec
+            {
+                Type = EffectActionType.ApplyStatus,
+                Target = EffectTarget.LastActionActor,
+                StatusId = StatusCatalog.ArmorDown,
+                Stacks = 20,
+                Duration = -1,
+                Condition = ReactionConditionType.LastActionAttackOnSelf
+            });
+            state.CardsById[tearId] = tear;
+
+            var attackId = 2;
+            state.CardsById[attackId] = EnemyAttackCard(attackId, goblin.CharacterDefinitionId);
+
+            var events = new List<BattleEvent>();
+            RespondEffectExecutor.Execute(
+                state, ranger, tear, new RespondTriggerContext(goblin.Id, attackId), events, new BattleRng(1));
+
+            Assert.IsTrue(state.RespondMitigationByEnemyCard.ContainsKey(attackId));
+            Assert.IsTrue(StatusRules.HasStatus(goblin, StatusCatalog.ArmorDown));
+            var armorDown = StatusRules.FindStatus(goblin, StatusCatalog.ArmorDown);
+            Assert.AreEqual(20, armorDown.Stacks);
+            Assert.AreEqual(-1, armorDown.RemainingTurns);
         }
 
         [Test]

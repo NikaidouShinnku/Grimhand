@@ -37,6 +37,9 @@ namespace Grimhand.Battle.Rules
                 if (!combatant.IsAlive)
                     continue;
 
+                // 先归档「上回合受伤」供本回合卡牌（无畏冲锋等）使用，再给史莱姆再生判定。
+                combatant.TookDamagePreviousTurn = combatant.TookDamageLastTurn;
+
                 if (HasTrait(combatant, MinionTraitCatalog.SlimeRegen) && !combatant.TookDamageLastTurn)
                     DamageRules.ApplyHeal(state, combatant, MinionTraitCatalog.SlimeRegenAmount, events);
 

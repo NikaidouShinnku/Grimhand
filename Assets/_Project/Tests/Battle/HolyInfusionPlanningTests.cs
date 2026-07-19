@@ -36,6 +36,26 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
+        public void HolyInfusion_DeselectCopiedCardAlsoDeselectsInfusionAndRefundsEnergy()
+        {
+            var state = BuildPlanningState();
+            state.EnergyCurrent = 10;
+            state.EnergyMax = 10;
+            var events = new List<BattleEvent>();
+            var draft = new PlanningDraft(state, events);
+            var first = AddHandCard(state, 1, "p_sand_ray", cost: 2, ownerCharacterId: "char_knight");
+            var holy = AddHandCard(state, 2, PassiveCardMechanicsRules.HolyInfusionCardId, cost: 0);
+
+            Assert.True(draft.TrySelectCard(first.InstanceId));
+            Assert.True(draft.TrySelectCard(holy.InstanceId));
+            Assert.AreEqual(5, state.EnergyCurrent); // 10 - 2 - 3
+
+            Assert.True(draft.TryDeselectCard(first.InstanceId));
+            Assert.AreEqual(0, draft.SelectedQueue.Count);
+            Assert.AreEqual(10, state.EnergyCurrent);
+        }
+
+        [Test]
         public void HolyInfusion_RepeatTargetIsPreviousCard()
         {
             var state = BuildPlanningState();

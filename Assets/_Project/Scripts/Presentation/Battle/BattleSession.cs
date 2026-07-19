@@ -109,6 +109,8 @@ namespace Grimhand.Presentation.Battle
             _log.Clear();
             _turnLog.Reset();
             _battleEndHandled = false;
+            // 避免沿用上一局已失败的 BattleEngine，否则选路线阶段会被旧战果立刻判负。
+            Engine = null;
 
             if (Expedition.Run.Phase == ExpeditionPhase.InBattle)
             {
@@ -139,6 +141,7 @@ namespace Grimhand.Presentation.Battle
             _log.Clear();
             _turnLog.Reset();
             _battleEndHandled = false;
+            Engine = null;
 
             if (Expedition.Run.Phase == ExpeditionPhase.InBattle)
             {
@@ -967,11 +970,29 @@ namespace Grimhand.Presentation.Battle
             if (IsExpeditionMode
                 && Expedition.Run.Phase is ExpeditionPhase.RunComplete or ExpeditionPhase.RunFailed)
             {
-                ReturnToCampRequested?.Invoke();
+                if (ReturnToCampRequested != null)
+                {
+                    ReturnToCampRequested.Invoke();
+                    ClearExpeditionSessionAfterLeave();
+                    return;
+                }
+
+                RestartRunOrBattle();
                 return;
             }
 
             RestartRunOrBattle();
+        }
+
+        /// <summary>回营后清掉局内远征/战斗引用，避免失败态 UI 残留或旧战果污染新局。</summary>
+        void ClearExpeditionSessionAfterLeave()
+        {
+            Expedition = null;
+            Engine = null;
+            _battleEndHandled = false;
+            _log.Clear();
+            _turnLog.Reset();
+            NotifyChanged();
         }
 
         public Action ReturnToCampRequested;
@@ -1040,6 +1061,10 @@ namespace Grimhand.Presentation.Battle
         void CheckExpeditionBattleEnd()
         {
             if (Expedition == null || Engine == null || _battleEndHandled)
+                return;
+
+            // 仅在真正进行中的战斗里结算；选路线/事件等阶段若残留旧 Engine 战果则忽略。
+            if (Expedition.Run.Phase != ExpeditionPhase.InBattle)
                 return;
 
             var state = Engine.State;

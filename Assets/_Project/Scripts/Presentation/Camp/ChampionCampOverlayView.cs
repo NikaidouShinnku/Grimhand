@@ -906,6 +906,7 @@ namespace Grimhand.Presentation.Camp
             }
 
             var assigned = CampRosterLoadoutRules.CollectAssignedCollectionIndices(_roster);
+            var poolEntries = new List<(int EntryIndex, string CardId, CardDefinitionSO Card)>();
             for (var entryIndex = 0; entryIndex < _collection.Count; entryIndex++)
             {
                 if (assigned.Contains(entryIndex))
@@ -920,6 +921,24 @@ namespace Grimhand.Presentation.Camp
 
                 if (!CampRosterBuilder.IsCardOwnedByCharacter(card, member.CharacterDefinitionId))
                     continue;
+
+                poolEntries.Add((entryIndex, cardId, card));
+            }
+
+            poolEntries.Sort((a, b) =>
+            {
+                var rarityCmp = a.Card.Rarity.CompareTo(b.Card.Rarity);
+                if (rarityCmp != 0)
+                    return rarityCmp;
+                var nameCmp = string.CompareOrdinal(a.Card.DisplayName, b.Card.DisplayName);
+                return nameCmp != 0 ? nameCmp : a.EntryIndex.CompareTo(b.EntryIndex);
+            });
+
+            foreach (var entry in poolEntries)
+            {
+                var entryIndex = entry.EntryIndex;
+                var cardId = entry.CardId;
+                var card = entry.Card;
 
                 var holder = CampUiRuntime.CreateRect($"{cardId}_{entryIndex}", _poolGrid);
                 var holderRt = holder.GetComponent<RectTransform>();

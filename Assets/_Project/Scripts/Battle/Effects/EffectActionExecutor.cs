@@ -207,22 +207,22 @@ namespace Grimhand.Battle.Effects
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
                 case EffectActionType.DrawCardsNextTurn:
-                    state.PendingDrawNextTurn += value;
-                    events.Add(new BattleEvent(BattleEventKind.CardDrawn, $"下回合额外抽 {value} 张")
-                    {
-                        CombatantId = actor.Id
-                    });
-                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    QueueDrawNextTurn(state, actor, card, value, action.CostReduction, events);
                     break;
                 case EffectActionType.DrawCards:
-                    // v0.9：抽牌效果当回合立即抽到手中（配合 quick_start 可在本回合规划阶段直接使用）。
-                    DeckRules.DrawCards(state, actor.Team, rng, value, events);
-                    events.Add(new BattleEvent(BattleEventKind.CardDrawn, $"立即抽 {value} 张牌")
+                    // 无【快速启动】：一律下回合抽；有快速启动：当回合立即抽到手中
+                    if (HasQuickStart(card))
                     {
-                        CombatantId = actor.Id,
-                        CardInstanceId = card.InstanceId
-                    });
-                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                        DeckRules.DrawCards(state, actor.Team, rng, value, events);
+                        events.Add(new BattleEvent(BattleEventKind.CardDrawn, $"立即抽 {value} 张牌")
+                        {
+                            CombatantId = actor.Id,
+                            CardInstanceId = card.InstanceId
+                        });
+                        state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    }
+                    else
+                        QueueDrawNextTurn(state, actor, card, value, action.CostReduction, events);
                     break;
                 case EffectActionType.ReflectLastDamageToAttacker:
                     var attacker = TargetRules.ResolveTarget(state, actor, EffectTarget.LastActionActor, card.InstanceId);
@@ -337,8 +337,10 @@ namespace Grimhand.Battle.Effects
                 }
                 case EffectActionType.DoubleStatusStacks:
                 {
-                    if (target == null)
+                    if (target == null
+                        || !TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
                         break;
+                    // 仅翻倍层数，RemainingTurns/Duration 不变
                     DoubleTargetStatusStacks(target, StatusCatalog.Poison, events);
                     DoubleTargetStatusStacks(target, StatusCatalog.Burn, events);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, target.Id, false, 0);
@@ -346,7 +348,7 @@ namespace Grimhand.Battle.Effects
                 }
                 case EffectActionType.RecycleExhaustCardsFromDiscard:
                 {
-                    RecycleExhaustCardsInDiscard(state, actor.Team, events);
+                    RecycleExhaustedCardsToDraw(state, actor.Team, events, rng);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
                 }
@@ -576,9 +578,16 @@ namespace Grimhand.Battle.Effects
                     var draw = StatusRules.HasStatus(actor, StatusCatalog.Ethereal) && action.AlternateValue > 0
                         ? action.AlternateValue
                         : Math.Max(0, action.Value);
-                    if (draw > 0)
+                    if (draw <= 0)
+                        break;
+
+                    if (HasQuickStart(card))
+                    {
                         DeckRules.DrawCards(state, actor.Team, rng, draw, events);
-                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                        state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    }
+                    else
+                        QueueDrawNextTurn(state, actor, card, draw, action.CostReduction, events);
                     break;
                 }
                 case EffectActionType.BuffAllOtherAllies:
@@ -1080,6 +1089,35 @@ namespace Grimhand.Battle.Effects
             });
         }
 
+        static bool HasQuickStart(CardInstanceState card) =>
+            card?.Keywords != null && card.Keywords.Contains("quick_start");
+
+        static void QueueDrawNextTurn(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState card,
+            int count,
+            int costReduction,
+            List<BattleEvent> events)
+        {
+            if (state == null || count <= 0)
+                return;
+
+            state.PendingDrawNextTurn += count;
+            if (costReduction > 0)
+                state.PendingDrawNextTurnCostReduction = Math.Max(
+                    state.PendingDrawNextTurnCostReduction, costReduction);
+
+            events.Add(new BattleEvent(BattleEventKind.CardDrawn, $"下回合额外抽 {count} 张")
+            {
+                CombatantId = actor?.Id,
+                CardInstanceId = card?.InstanceId ?? 0,
+                Amount = count
+            });
+            if (actor != null)
+                state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+        }
+
         static void DoubleTargetStatusStacks(CombatantState target, string statusId, List<BattleEvent> events)
         {
             var existing = StatusRules.FindStatus(target, statusId);
@@ -1121,30 +1159,55 @@ namespace Grimhand.Battle.Effects
             return total;
         }
 
-        static void RecycleExhaustCardsInDiscard(BattleState state, TeamSide team, List<BattleEvent> events)
+        /// <summary>将消耗堆中已使用的消耗牌祛除 exhaust 后洗回抽牌堆。</summary>
+        static void RecycleExhaustedCardsToDraw(
+            BattleState state,
+            TeamSide team,
+            List<BattleEvent> events,
+            BattleRng rng)
         {
-            var discard = state.GetDiscardPile(team);
+            var exhaust = state.GetExhaustPile(team);
             var draw = state.GetDrawPile(team);
             var moved = 0;
+            for (var i = exhaust.Count - 1; i >= 0; i--)
+            {
+                var card = exhaust[i];
+                if (card == null)
+                    continue;
+
+                // 使用过的消耗牌：在消耗堆中；兼容旧逻辑误进弃牌堆且仍带 exhaust 的牌
+                card.Keywords.Remove("exhaust");
+                card.IsUsable = true;
+                exhaust.RemoveAt(i);
+                draw.Add(card);
+                moved++;
+            }
+
+            // 兼容：若此前消耗牌误留在弃牌堆且仍带关键词，一并回收
+            var discard = state.GetDiscardPile(team);
             for (var i = discard.Count - 1; i >= 0; i--)
             {
                 var card = discard[i];
-                if (card == null || !card.Keywords.Contains("exhaust"))
+                if (card == null || card.Keywords == null || !card.Keywords.Contains("exhaust"))
                     continue;
                 card.Keywords.Remove("exhaust");
+                card.IsUsable = true;
                 discard.RemoveAt(i);
                 draw.Add(card);
                 moved++;
             }
 
-            if (moved > 0)
+            if (moved <= 0)
+                return;
+
+            if (rng != null)
+                DeckRules.ShuffleDrawPile(state, team, rng, events);
+
+            events.Add(new BattleEvent(BattleEventKind.CardDrawn,
+                $"神圣轮回：将 {moved} 张消耗牌洗回抽牌堆并祛除消耗")
             {
-                events.Add(new BattleEvent(BattleEventKind.CardDrawn,
-                    $"神圣轮回：将 {moved} 张消耗牌洗回抽牌堆并祛除消耗")
-                {
-                    Amount = moved
-                });
-            }
+                Amount = moved
+            });
         }
     }
 }

@@ -67,6 +67,17 @@ namespace Grimhand.Battle.Effects
             recipient.Block = Math.Max(0, recipient.Block - blocked);
             if (raw > 0)
                 MinionTraitRules.OnIncomingDamageHit(state, actor, recipient, events);
+
+            // 攻击命中（含全额被护甲吸收）：荆棘/受击计数等按「受到攻击」结算，不要求掉血
+            if (raw > 0
+                && !isSacrificeDamage
+                && actor != null
+                && actor.Team != recipient.Team
+                && cardType == CardType.Attack)
+            {
+                V091MechanicsRules.OnAttacked(state, recipient, actor, events, rng);
+            }
+
             var afterBlock = raw - blocked;
 
             var hpDamage = CombatModifierRules.ApplyIncomingDamageModifiers(
@@ -165,7 +176,7 @@ namespace Grimhand.Battle.Effects
                 PassiveCardMechanicsRules.OnDamageTakenBattleWill(state, recipient, hpDamage, events);
                 // v0.9 两界行者：受击后获虚化
                 V09NewMechanicsRules.AfterDamageResolveEtherealOnNextHit(state, recipient, hpDamage, events);
-                V091MechanicsRules.OnDamageTaken(state, recipient, actor, hpDamage, events, rng);
+                V091MechanicsRules.OnHpDamageTaken(state, recipient, hpDamage, events);
                 // v0.9 蛇 s2_lv2：单次受到超过25%最大HP伤害后清负面
                 TalentBattleRules.OnDamageTakenV09(state, recipient, hpDamage, events);
             }

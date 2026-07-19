@@ -113,8 +113,14 @@ namespace Grimhand.Battle.Rules
             if (!StatusRules.HasStatus(actor, StatusCatalog.FinalBloodRitual))
                 return;
 
-            DeckRules.DrawCards(state, actor.Team, rng, FinalBloodRitualDraw, events);
             DamageRules.ApplyHeal(state, actor, FinalBloodRitualHeal, events, actor);
+            state.PendingDrawNextTurn += FinalBloodRitualDraw;
+            events.Add(new BattleEvent(BattleEventKind.CardDrawn,
+                $"{actor.DisplayName} 最终鲜血仪式：下回合额外抽 {FinalBloodRitualDraw} 张")
+            {
+                CombatantId = actor.Id,
+                Amount = FinalBloodRitualDraw
+            });
         }
 
         public static void TryTriggerGodDescendsOnBlockGain(
@@ -502,15 +508,37 @@ namespace Grimhand.Battle.Rules
             if (state == null || holyInfusionInstanceId <= 0)
                 return false;
 
-            var idx = state.PlayerPlan.PlayQueue.IndexOf(holyInfusionInstanceId);
+            return TryGetHolyInfusionRepeatTargetFromQueue(
+                state, state.PlayerPlan.PlayQueue, holyInfusionInstanceId, out repeatCardInstanceId);
+        }
+
+        /// <summary>规划草稿队列版本：用于取消选择时判断灌注是否仍有效。</summary>
+        public static bool TryGetHolyInfusionRepeatTargetFromQueue(
+            BattleState state,
+            IList<int> playQueue,
+            int holyInfusionInstanceId,
+            out int repeatCardInstanceId)
+        {
+            repeatCardInstanceId = 0;
+            if (state == null || playQueue == null || holyInfusionInstanceId <= 0)
+                return false;
+
+            var idx = IndexOfQueue(playQueue, holyInfusionInstanceId);
             if (idx <= 0)
                 return false;
 
-            repeatCardInstanceId = ResolveHolyInfusionRepeatTarget(state, state.PlayerPlan.PlayQueue[idx - 1]);
+            repeatCardInstanceId = ResolveHolyInfusionRepeatTargetFromQueue(
+                state, playQueue, playQueue[idx - 1]);
             return repeatCardInstanceId > 0;
         }
 
-        static int ResolveHolyInfusionRepeatTarget(BattleState state, int cardInstanceId)
+        static int ResolveHolyInfusionRepeatTarget(BattleState state, int cardInstanceId) =>
+            ResolveHolyInfusionRepeatTargetFromQueue(state, state.PlayerPlan.PlayQueue, cardInstanceId);
+
+        static int ResolveHolyInfusionRepeatTargetFromQueue(
+            BattleState state,
+            IList<int> playQueue,
+            int cardInstanceId)
         {
             var card = state.GetCard(cardInstanceId);
             if (card == null)
@@ -518,10 +546,10 @@ namespace Grimhand.Battle.Rules
 
             if (card.DefinitionId == HolyInfusionCardId)
             {
-                var idx = state.PlayerPlan.PlayQueue.IndexOf(cardInstanceId);
+                var idx = IndexOfQueue(playQueue, cardInstanceId);
                 if (idx <= 0)
                     return 0;
-                return ResolveHolyInfusionRepeatTarget(state, state.PlayerPlan.PlayQueue[idx - 1]);
+                return ResolveHolyInfusionRepeatTargetFromQueue(state, playQueue, playQueue[idx - 1]);
             }
 
             var ownerId = PositionRules.GetOwnerCombatantId(state, card);
@@ -532,22 +560,34 @@ namespace Grimhand.Battle.Rules
             return cardInstanceId;
         }
 
+        static int IndexOfQueue(IList<int> queue, int value)
+        {
+            for (var i = 0; i < queue.Count; i++)
+            {
+                if (queue[i] == value)
+                    return i;
+            }
+
+            return -1;
+        }
+
         public static bool CanSelectHolyInfusion(Planning.PlanningDraft draft) =>
             draft != null && draft.SelectedQueue.Count > 0;
 
         public static int GetHolyInfusionPlayCost(BattleState state, Planning.PlanningDraft draft)
         {
+            // 不可选时返回极大费用（供 CanAfford）；禁止用于退费回算
             if (state == null || draft == null || draft.SelectedQueue.Count == 0)
-                return int.MaxValue;
+                return 999;
 
             var prev = state.GetCard(draft.SelectedQueue[draft.SelectedQueue.Count - 1]);
             if (prev == null)
-                return int.MaxValue;
+                return 999;
 
             var prevOwnerId = PositionRules.GetOwnerCombatantId(state, prev);
             var prevOwner = prevOwnerId != null ? state.GetCombatant(prevOwnerId) : null;
             var baseCost = TalentBattleRules.GetEffectivePlayCost(state, prevOwner, prev);
-            return baseCost + 1;
+            return Math.Max(0, baseCost + 1);
         }
 
         static CombatantState FindAliveWithStatus(BattleState state, TeamSide team, string statusId)

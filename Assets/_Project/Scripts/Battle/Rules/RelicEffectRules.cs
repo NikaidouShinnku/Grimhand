@@ -222,6 +222,7 @@ namespace Grimhand.Battle.Rules
 
             PassiveCardMechanicsRules.TryTriggerFinalBloodRitualOnSacrifice(
                 state, actor, card, events, rng);
+            PassiveCardMechanicsRules.TryTriggerBloodFrenzyOnSacrifice(state, actor, events);
 
             V091MechanicsRules.OnSacrificeCardPlayed(state, card);
 

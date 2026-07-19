@@ -23,8 +23,8 @@ MonoBehaviour:
   - Type: 3
     Target: 0
     Value: 0
-    StatusId: vulnerable
-    Stacks: 3
+    StatusId: weaken
+    Stacks: 10
     Duration: 3
     ScaleWithAttack: 0
     ScaleWithDefense: 0

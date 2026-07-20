@@ -259,6 +259,9 @@ namespace Grimhand.Battle.Rules
             };
 
             combatant.Traits.Add(MinionTraitCatalog.RatPackAttackOnAllyDeath);
+            // 继承本场已累计的鼠群狂怒
+            combatant.RatPackAttackBonusPercent =
+                state.RatDeathsThisBattle * MinionTraitCatalog.RatPackAttackBonusPercentPerDeath;
             state.Combatants.Add(combatant);
             RelicBattleRules.RefreshDerivedStats(state, combatant, state.Config?.RunModifiers);
 

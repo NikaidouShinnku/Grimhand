@@ -154,6 +154,32 @@ namespace Grimhand.Battle.Rules
                 CombatantId = actor.Id,
                 TargetId = partner.Id
             });
+            MinionTraitRules.OnPositionsSwapped(state, actor, partner, events);
+        }
+
+        /// <summary>目标与其身后同队存活单位交换站位（麻痹之电等）。</summary>
+        public static void SwapTargetWithBehind(
+            BattleState state,
+            CombatantState target,
+            List<BattleEvent> events)
+        {
+            if (state == null || target == null || !target.IsAlive || events == null)
+                return;
+
+            var behind = GetCombatantBehind(state, target);
+            if (behind == null || !behind.IsAlive)
+                return;
+
+            var temp = target.Slot;
+            target.Slot = behind.Slot;
+            behind.Slot = temp;
+
+            events.Add(new BattleEvent(BattleEventKind.PositionSwapped, "与身后交换站位")
+            {
+                CombatantId = target.Id,
+                TargetId = behind.Id
+            });
+            MinionTraitRules.OnPositionsSwapped(state, target, behind, events);
         }
 
         /// <summary>有效阵型中，比 target 更深的一格（Front→Middle→Back）。</summary>

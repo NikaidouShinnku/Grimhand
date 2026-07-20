@@ -13,7 +13,7 @@ namespace Grimhand.Battle.Tests
     public class RespondRulesTests
     {
         [Test]
-        public void Respond_InterceptsBeforeFirstMatchingEnemyAttack()
+        public void Respond_AttackThenPairedRespond()
         {
             var state = BuildStateWithCards(out var knight, out var goblin, out var parryId, out var attackId);
 
@@ -26,10 +26,11 @@ namespace Grimhand.Battle.Tests
             var schedule = RespondResolutionPlanner.BuildSchedule(state, baseline);
 
             Assert.AreEqual(2, schedule.Count);
-            Assert.AreEqual(parryId, schedule[0].Step.CardInstanceId);
-            Assert.IsTrue(schedule[0].RespondContext.HasValue);
-            Assert.AreEqual(attackId, schedule[0].RespondContext.Value.EnemyCardInstanceId);
-            Assert.AreEqual(attackId, schedule[1].Step.CardInstanceId);
+            Assert.AreEqual(attackId, schedule[0].Step.CardInstanceId);
+            Assert.AreEqual(parryId, schedule[1].Step.CardInstanceId);
+            Assert.IsTrue(schedule[1].RespondContext.HasValue);
+            Assert.AreEqual(attackId, schedule[1].RespondContext.Value.EnemyCardInstanceId);
+            Assert.AreEqual(parryId, schedule[0].PairedRespondCardInstanceId);
         }
 
         [Test]
@@ -57,7 +58,12 @@ namespace Grimhand.Battle.Tests
                 state,
                 SpeedResolver.BuildResolutionOrder(state, playerPlan, enemyPlan, new BattleRng(1)));
 
-            Assert.AreEqual(knight.Id, schedule[0].Step.CombatantId);
+            // 无论速度快慢：先攻击，再应对
+            Assert.AreEqual(2, schedule.Count);
+            Assert.AreEqual(attackId, schedule[0].Step.CardInstanceId);
+            Assert.AreEqual(parryId, schedule[1].Step.CardInstanceId);
+            Assert.AreEqual(knight.Id, schedule[1].Step.CombatantId);
+            Assert.IsTrue(schedule[1].RespondContext.HasValue);
         }
 
         [Test]
@@ -267,7 +273,47 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
-        public void MultipleResponds_OrderedBeforeSameTrigger()
+        public void TwoResponds_OneAttack_OnlyFirstPairs()
+        {
+            var state = new BattleState();
+            var knight = Unit("knight", TeamSide.Player, FormationSlot.Front, hp: 40);
+            var goblin = Unit("goblin", TeamSide.Enemy, FormationSlot.Front, hp: 80);
+            state.Combatants.Add(knight);
+            state.Combatants.Add(goblin);
+
+            var parry1 = 1;
+            var parry2 = 2;
+            var attackId = 3;
+            var p1 = ParryCard();
+            p1.InstanceId = parry1;
+            p1.OwnerCharacterId = knight.CharacterDefinitionId;
+            var p2 = ParryCard();
+            p2.InstanceId = parry2;
+            p2.OwnerCharacterId = knight.CharacterDefinitionId;
+            state.CardsById[parry1] = p1;
+            state.CardsById[parry2] = p2;
+            state.CardsById[attackId] = EnemyAttackCard(attackId, goblin.CharacterDefinitionId);
+            state.ResolutionTargets[attackId] = knight.Id;
+            state.PlayerPlan.PlayQueue.Add(parry1);
+            state.PlayerPlan.PlayQueue.Add(parry2);
+            state.EnemyPlan.PlayQueue.Add(attackId);
+
+            var schedule = RespondResolutionPlanner.BuildSchedule(
+                state,
+                SpeedResolver.BuildResolutionOrder(
+                    state, state.PlayerPlan, state.EnemyPlan, new BattleRng(1)));
+
+            Assert.AreEqual(3, schedule.Count);
+            Assert.AreEqual(attackId, schedule[0].Step.CardInstanceId);
+            Assert.AreEqual(parry1, schedule[0].PairedRespondCardInstanceId);
+            Assert.AreEqual(parry1, schedule[1].Step.CardInstanceId);
+            Assert.IsTrue(schedule[1].ApplyConditionalEffects);
+            Assert.AreEqual(parry2, schedule[2].Step.CardInstanceId);
+            Assert.IsFalse(schedule[2].ApplyConditionalEffects, "第二张应对无攻击可配，必须失败");
+        }
+
+        [Test]
+        public void MultipleResponds_SameAoe_OnlyFirstPairs()
         {
             var state = new BattleState();
             var knight = Unit("knight", TeamSide.Player, FormationSlot.Front, hp: 40);
@@ -311,16 +357,18 @@ namespace Grimhand.Battle.Tests
                 state,
                 SpeedResolver.BuildResolutionOrder(state, playerPlan, enemyPlan, new BattleRng(1)));
 
-            Assert.GreaterOrEqual(schedule.Count, 3);
-            Assert.IsTrue(schedule[0].RespondContext.HasValue);
-            Assert.IsTrue(schedule[1].RespondContext.HasValue);
-            Assert.AreEqual(parry1, schedule[0].Step.CardInstanceId);
-            Assert.AreEqual(parry2, schedule[1].Step.CardInstanceId);
-            Assert.AreEqual(aoeId, schedule[2].Step.CardInstanceId);
+            // 严格 1:1：一张 AoE 攻击只配第一张应对，第二张失败
+            Assert.AreEqual(3, schedule.Count);
+            Assert.AreEqual(aoeId, schedule[0].Step.CardInstanceId);
+            Assert.AreEqual(parry1, schedule[0].PairedRespondCardInstanceId);
+            Assert.AreEqual(parry1, schedule[1].Step.CardInstanceId);
+            Assert.IsTrue(schedule[1].ApplyConditionalEffects);
+            Assert.AreEqual(parry2, schedule[2].Step.CardInstanceId);
+            Assert.IsFalse(schedule[2].ApplyConditionalEffects);
         }
 
         [Test]
-        public void EnemyRespond_InterceptsBeforeMatchingPlayerAttack()
+        public void EnemyRespond_AttackThenPairedRespond()
         {
             var state = new BattleState();
             var knight = Unit("knight", TeamSide.Player, FormationSlot.Front, hp: 40, speed: 8);
@@ -374,10 +422,11 @@ namespace Grimhand.Battle.Tests
                     state, state.PlayerPlan, state.EnemyPlan, new BattleRng(1)));
 
             Assert.AreEqual(2, schedule.Count);
-            Assert.AreEqual(phaseId, schedule[0].Step.CardInstanceId);
-            Assert.IsTrue(schedule[0].RespondContext.HasValue);
-            Assert.AreEqual(attackId, schedule[0].RespondContext.Value.EnemyCardInstanceId);
-            Assert.AreEqual(attackId, schedule[1].Step.CardInstanceId);
+            Assert.AreEqual(attackId, schedule[0].Step.CardInstanceId);
+            Assert.AreEqual(phaseId, schedule[1].Step.CardInstanceId);
+            Assert.IsTrue(schedule[1].RespondContext.HasValue);
+            Assert.AreEqual(attackId, schedule[1].RespondContext.Value.EnemyCardInstanceId);
+            Assert.AreEqual(phaseId, schedule[0].PairedRespondCardInstanceId);
         }
 
         static BattleState BuildStateWithCards(

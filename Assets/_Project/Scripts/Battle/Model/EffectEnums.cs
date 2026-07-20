@@ -111,7 +111,9 @@ namespace Grimhand.Battle.Model
         /// <summary>清除自身全部减益状态。</summary>
         ClearAllDebuffs,
         /// <summary>使目标全部减益的层数与剩余回合翻倍（永久保持 -1）。</summary>
-        DoubleAllDebuffStacksAndDuration
+        DoubleAllDebuffStacksAndDuration,
+        /// <summary>使目标与其身后同队存活单位交换站位。</summary>
+        SwapTargetWithBehind
     }
 
     public enum EffectTarget

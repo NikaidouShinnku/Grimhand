@@ -5,11 +5,14 @@ namespace Grimhand.Battle.Rules
         /// <summary>回合内未受伤时，下回合开始时回复 2 HP。</summary>
         public const string SlimeRegen = "minion_slime_regen";
 
-        /// <summary>每打出 3 张牌 +1 DEF。</summary>
+        /// <summary>每打出 3 张牌，获得 +5 护甲。</summary>
         public const string SkeletonCardDef = "minion_skeleton_card_def";
+        public const int SkeletonArmorPerThreshold = 5;
 
-        /// <summary>每打出 3 张牌 +1 DEF 与 +1 ATK。</summary>
+        /// <summary>每打出 3 张牌，获得 +8 护甲和 10% 增伤（永久）。</summary>
         public const string SkeletonEliteCardStats = "minion_skeleton_elite_card_stats";
+        public const int SkeletonEliteArmorPerThreshold = 8;
+        public const int SkeletonEliteAttackPercentPerThreshold = 10;
 
         /// <summary>HP 低于 50% 时 +2 速度。</summary>
         public const string WraithLowHpSpeed = "minion_wraith_low_hp_speed";
@@ -22,6 +25,8 @@ namespace Grimhand.Battle.Rules
 
         /// <summary>每回合首次受击 50% 完全闪避（无论成败均消耗）。</summary>
         public const string BatFirstHitDodge = "minion_bat_first_hit_dodge";
+        /// <summary>首击闪避成功概率（百分数，50 = 50%）。</summary>
+        public const int BatFirstHitDodgeChancePercent = 50;
 
         public const string SkeletonCharacterId = "char_skeleton";
         public const int SlimeRegenAmount = 2;
@@ -29,15 +34,16 @@ namespace Grimhand.Battle.Rules
         public const int WraithLowHpSpeedBonus = 2;
         public const int OgreBloodRageMaxStacks = 5;
         public const int OgreBloodRageDamagePercentPerStack = 15;
-        public const float BatFirstHitDodgeChance = 0.5f;
+        public const float BatFirstHitDodgeChance = BatFirstHitDodgeChancePercent / 100f;
 
-        /// <summary>本场每有一只鼠人死亡，存活鼠人 +20% ATK。</summary>
+        /// <summary>本场战斗中每有一只鼠人死亡，存活鼠人获得 20% 增伤（按死亡总数叠加，永久）。</summary>
         public const string RatPackAttackOnAllyDeath = "minion_rat_pack_attack";
         public const string RatCharacterId = "char_rat";
         public const int RatPackAttackBonusPercentPerDeath = 20;
 
-        /// <summary>自身负面状态同步至敌对阵营全体；消失时同步清除。</summary>
+        /// <summary>自身负面状态同步至敌对阵营全体；镜像持续固定 2 回合。</summary>
         public const string ChainWraithDebuffShare = "minion_chain_wraith_debuff_share";
+        public const int ChainWraithMirrorDebuffDurationTurns = 2;
 
         /// <summary>
         /// 每回合开始时，根据上回合第一张牌类型获得增益：
@@ -47,7 +53,9 @@ namespace Grimhand.Battle.Rules
         public const int GargoyleTraitPercentBonus = 25;
         public const int GargoyleTraitDurationTurns = 1;
 
-        /// <summary>场上有蜘蛛贵妇时，敌人每 5 层中毒额外 +10% 受伤。</summary>
+        /// <summary>
+        /// 敌人（玩家角色）每有 5 层中毒，受击时额外 +10% 伤害（易伤）；中毒层数下降/消失则加成同步减少/消失。
+        /// </summary>
         public const string SpiderLadyPoisonVulnerability = "minion_spider_poison_vuln";
         public const int SpiderPoisonVulnPercentPerFiveStacks = 10;
 
@@ -57,8 +65,9 @@ namespace Grimhand.Battle.Rules
         /// <summary>比同排敌人每多 1 点速度 +10% 攻击（最多 50%）。</summary>
         public const string SeahorseGuardSpeedAttack = "minion_seahorse_speed_attack";
 
-        /// <summary>敌人换位时 +10 最大生命（占位，后续接 PositionRules）。</summary>
+        /// <summary>敌人换位时 +10 最大生命。</summary>
         public const string JellyfishCasterSwapMaxHp = "minion_jellyfish_swap_max_hp";
+        public const int JellyfishCasterSwapMaxHpBonus = 10;
 
         /// <summary>每使用一张 0 费牌 +5% 攻击。</summary>
         public const string MermaidZeroCostAttack = "minion_mermaid_zero_cost_attack";

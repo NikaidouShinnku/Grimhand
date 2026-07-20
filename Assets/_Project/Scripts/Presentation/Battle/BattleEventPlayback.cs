@@ -19,6 +19,8 @@ namespace Grimhand.Presentation.Battle
                 BattleEventKind.CharacterRevived => true,
                 BattleEventKind.StatusApplied => true,
                 BattleEventKind.StatusRemoved => true,
+                BattleEventKind.BlockGained => true,
+                BattleEventKind.PositionSwapped => true,
                 _ => false
             };
 

@@ -674,6 +674,9 @@ namespace Grimhand.Presentation.Battle
             _damageFloater.color = new Color(1f, 0.35f, 0.35f, 1f);
             _damageFloater.text = $"-{damage}";
             _damageFloater.gameObject.SetActive(true);
+            if (!isActiveAndEnabled || !gameObject.activeInHierarchy)
+                return;
+
             if (_damageHideRoutine != null)
                 StopCoroutine(_damageHideRoutine);
             _damageHideRoutine = StartCoroutine(HideDamageFloaterAfterDelay());
@@ -687,6 +690,9 @@ namespace Grimhand.Presentation.Battle
             _damageFloater.color = new Color(0.55f, 0.85f, 1f, 1f);
             _damageFloater.text = $"护甲 -{blocked}";
             _damageFloater.gameObject.SetActive(true);
+            if (!isActiveAndEnabled || !gameObject.activeInHierarchy)
+                return;
+
             if (_damageHideRoutine != null)
                 StopCoroutine(_damageHideRoutine);
             _damageHideRoutine = StartCoroutine(HideDamageFloaterAfterDelay());
@@ -700,6 +706,9 @@ namespace Grimhand.Presentation.Battle
             _damageFloater.color = new Color(0.45f, 1f, 0.55f, 1f);
             _damageFloater.text = $"+{amount}";
             _damageFloater.gameObject.SetActive(true);
+            if (!isActiveAndEnabled || !gameObject.activeInHierarchy)
+                return;
+
             if (_damageHideRoutine != null)
                 StopCoroutine(_damageHideRoutine);
             _damageHideRoutine = StartCoroutine(HideDamageFloaterAfterDelay());
@@ -713,6 +722,9 @@ namespace Grimhand.Presentation.Battle
             _damageFloater.color = new Color(1f, 0.92f, 0.35f, 1f);
             _damageFloater.text = "闪避！";
             _damageFloater.gameObject.SetActive(true);
+            if (!isActiveAndEnabled || !gameObject.activeInHierarchy)
+                return;
+
             if (_damageHideRoutine != null)
                 StopCoroutine(_damageHideRoutine);
             _damageHideRoutine = StartCoroutine(HideDamageFloaterAfterDelay());

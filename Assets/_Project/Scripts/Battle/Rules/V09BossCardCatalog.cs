@@ -114,7 +114,7 @@ namespace Grimhand.Battle.Rules
 
         static CardTemplate BuildBrandMark()
         {
-            var card = Base(CharacterTraitCatalog.WardenCharacterId, "m_warden_brand", "刻上烙印", 1, CardType.Status);
+            var card = Base(CharacterTraitCatalog.WardenCharacterId, "m_warden_brand", "刻上烙印", 1, CardType.Status, "brand");
             card.Actions.Add(new EffectActionSpec
             {
                 Type = EffectActionType.ApplyStatus,
@@ -216,7 +216,7 @@ namespace Grimhand.Battle.Rules
 
         static CardTemplate BuildJudgment()
         {
-            var card = Base(CharacterTraitCatalog.WardenCharacterId, "m_warden_judgment", "审判裁决", 3, CardType.Status, "aoe");
+            var card = Base(CharacterTraitCatalog.WardenCharacterId, "m_warden_judgment", "审判裁决", 3, CardType.Status, "aoe", "brand");
             card.Actions.Add(new EffectActionSpec
             {
                 Type = EffectActionType.ApplyStatus,

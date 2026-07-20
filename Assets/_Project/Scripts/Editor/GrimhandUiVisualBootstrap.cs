@@ -135,6 +135,7 @@ namespace Grimhand.Editor
                 "Assets/The Grimhands Asset/effects/poisoning_effect.png", "poisoning_effect_0");
             catalog.StatusBurning = LoadNamedSprite(
                 "Assets/The Grimhands Asset/effects/burning_effect.png", "burning_effect_1");
+            catalog.StatusBrandMark = LoadFirstSprite(IconRoot + "warden_brand.png");
 
             EditorUtility.SetDirty(catalog);
         }

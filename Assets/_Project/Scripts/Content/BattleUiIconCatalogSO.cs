@@ -66,5 +66,7 @@ namespace Grimhand.Content
         public Sprite StatusPoisoning;
         /// <summary>灼烧状态图标（复用 effects/burning_effect.png，缩小尺寸）。</summary>
         public Sprite StatusBurning;
+        /// <summary>烙印（Assets/The Grimhands Asset/icon/warden_brand.png）</summary>
+        public Sprite StatusBrandMark;
     }
 }

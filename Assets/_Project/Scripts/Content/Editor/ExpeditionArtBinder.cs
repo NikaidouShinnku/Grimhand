@@ -80,6 +80,7 @@ namespace Grimhand.Content.Editor
             catalog.StatusSpdUp = LoadSprite("Assets/The Grimhands Asset/icon/spd_up.png");
             catalog.StatusPoisoning = LoadSprite("Assets/The Grimhands Asset/effects/poisoning_effect.png");
             catalog.StatusBurning = LoadSprite("Assets/The Grimhands Asset/effects/burning_effect.png");
+            catalog.StatusBrandMark = LoadSprite("Assets/The Grimhands Asset/icon/warden_brand.png");
             EditorUtility.SetDirty(catalog);
             return true;
         }

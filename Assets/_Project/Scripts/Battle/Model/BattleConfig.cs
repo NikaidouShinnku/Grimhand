@@ -31,7 +31,7 @@ namespace Grimhand.Battle.Model
         public int Seed { get; set; } = 1;
         public int EnergyCap { get; set; } = 8;
         public int TurnStartEnergyRegen { get; set; } = 4;
-        public int HandLimit { get; set; } = 8;
+        public int HandLimit { get; set; } = 10;
         public int CardsDrawnPerTurn { get; set; } = 5;
         /// <summary>敌方每回合抽牌数；0 表示与 <see cref="CardsDrawnPerTurn"/> 相同。</summary>
         public int EnemyCardsDrawnPerTurn { get; set; }

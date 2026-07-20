@@ -437,7 +437,12 @@ namespace Grimhand.Battle
                     if (RespondRules.IsRespondCard(card))
                         ResolveRespondStep(entry);
                     else
+                    {
+                        // 攻击先演、应对后演：伤害前预武装/注册减伤
+                        if (entry.PairedRespondCardInstanceId > 0)
+                            PreparePairedRespondMitigation(entry);
                         ResolveStep(entry.Step);
+                    }
                 }
 
                 if (_state.Outcome != BattleOutcome.Ongoing)
@@ -474,6 +479,18 @@ namespace Grimhand.Battle
             card = HolysunSpellbookRules.ApplyForResolution(_state.Config?.RunModifiers, actor, card);
 
             var eventStart = _events.Count;
+            // 成功应对：禁止中间 Defense 出场（规范：原位 blocking + 可选反击 Attack）
+            var successfulRespond = entry.ApplyConditionalEffects && entry.RespondContext.HasValue;
+
+            if (!successfulRespond)
+            {
+                _events.Add(new BattleEvent(BattleEventKind.PortraitPoseChanged, actor.DisplayName)
+                {
+                    CombatantId = actor.Id,
+                    CardType = card.CardType,
+                    CardInstanceId = card.InstanceId
+                });
+            }
 
             _events.Add(new BattleEvent(BattleEventKind.CardResolvedStarted, card.DisplayName)
             {
@@ -482,22 +499,31 @@ namespace Grimhand.Battle
                 CardType = card.CardType
             });
 
-            if (entry.ApplyConditionalEffects && entry.RespondContext.HasValue)
+            // 敌方应对牌：减伤已在攻击前预武装；此处只播应对成功，勿重复武装
+            if (actor.Team == TeamSide.Enemy && RespondRules.IsRespondCard(card))
             {
-                if (actor.Team == TeamSide.Enemy)
+                if (successfulRespond)
                 {
-                    DefenderRespondArmRules.TryArmFromEnemyCardResolve(_state, actor, card);
+                    if (!entry.MitigationWasPreArmed)
+                    {
+                        DefenderRespondArmRules.TryArmFromEnemyCardResolve(
+                            _state, actor, card, entry.RespondContext.Value.EnemyCardInstanceId);
+                    }
+
                     _events.Add(new BattleEvent(BattleEventKind.ReactionTriggered, card.DisplayName)
                     {
                         CombatantId = actor.Id,
                         CardInstanceId = card.InstanceId
                     });
                 }
-                else
-                {
-                    RespondEffectExecutor.Execute(
-                        _state, actor, card, entry.RespondContext.Value, _events, _rng);
-                }
+            }
+            else if (successfulRespond)
+            {
+                RespondEffectExecutor.Execute(
+                    _state, actor, card, entry.RespondContext.Value, _events, _rng);
+                // 攻击已先结算并归位：此处再打出反击（Attack 出场）
+                RespondEffectExecutor.ResolvePendingParriesForEnemyCard(
+                    _state, entry.RespondContext.Value.EnemyCardInstanceId, _events, _rng);
             }
 
             PassiveCardMechanicsRules.ApplyEndlessBladeSacrifice(_state, actor, card, _events, _rng);
@@ -505,6 +531,10 @@ namespace Grimhand.Battle
             if (entry.ApplyConditionalEffects
                 || (!card.Keywords.Contains("respond_status") && !card.Keywords.Contains("respond_defense")))
                 EffectActionExecutor.ExecuteUnconditionalActions(_state, actor, card, _events, _rng);
+
+            // 终焉守护：权威发放 8 护甲（卡面无条件护甲由此统一落地，避免漏执行）
+            if (card.DefinitionId == PassiveCardMechanicsRules.FinalGuardCardId)
+                PassiveCardMechanicsRules.ApplyFinalGuardBlock(_state, actor, _events, _rng);
 
             if (!entry.ApplyConditionalEffects && RespondRules.IsRespondCard(card))
                 EffectActionExecutor.ExecuteFailedRespondActions(_state, actor, card, _events, _rng);
@@ -531,11 +561,50 @@ namespace Grimhand.Battle
                 CombatantId = actor.Id,
                 CardInstanceId = card.InstanceId
             });
+            if (!successfulRespond)
+            {
+                _events.Add(new BattleEvent(BattleEventKind.PortraitIdleRestored, actor.DisplayName)
+                {
+                    CombatantId = actor.Id
+                });
+            }
 
             MaybeResolveHolyInfusionFollowUp(card);
 
             RecordPresentationCheckpoints(eventStart);
             EvaluateOutcome();
+        }
+
+        /// <summary>
+        /// 配对攻击结算前：注册玩家减伤层 / 武装敌方应对，保证伤害数值正确。
+        /// 演出仍是攻击先到中间，再播应对牌。
+        /// </summary>
+        void PreparePairedRespondMitigation(ScheduledResolution attackEntry)
+        {
+            if (attackEntry == null || attackEntry.PairedRespondCardInstanceId <= 0)
+                return;
+
+            var respondCard = _state.GetCard(attackEntry.PairedRespondCardInstanceId);
+            if (respondCard == null || !RespondRules.IsRespondCard(respondCard))
+                return;
+
+            var ownerId = PositionRules.GetOwnerCombatantId(_state, respondCard);
+            var owner = _state.GetCombatant(ownerId);
+            if (owner == null || !owner.IsAlive)
+                return;
+
+            var attackCardId = attackEntry.Step.CardInstanceId;
+            if (owner.Team == TeamSide.Enemy)
+            {
+                DefenderRespondArmRules.TryArmFromEnemyCardResolve(
+                    _state, owner, respondCard, attackCardId);
+            }
+            else
+            {
+                var context = RespondTriggerContext.FromStep(_state, attackEntry.Step);
+                RespondEffectExecutor.PrepareMitigation(
+                    _state, owner, respondCard, context, _events, _rng);
+            }
         }
 
         void RevealIntentIfHidden(int cardInstanceId)
@@ -1107,7 +1176,10 @@ namespace Grimhand.Battle
         CardInstanceState CreateCardInstance(CardTemplate template, string ownerCombatantId = "")
         {
             if (template != null)
+            {
                 GhostQueenCardCatalog.TryApplyCanonical(template);
+                AbyssMonsterCardCatalog.TryApplyCanonical(template);
+            }
 
             var id = _state.NextCardInstanceId++;
             var card = new CardInstanceState
@@ -1154,26 +1226,37 @@ namespace Grimhand.Battle
             return instance;
         }
 
-        /// <summary>训练场：将卡牌追加到假人（或首个存活敌人）本回合意图队列，可多次调用。</summary>
+        /// <summary>训练场：将卡牌追加到本回合意图队列。优先绑定卡牌所属角色，其次非假人存活敌人，最后假人。</summary>
         public CardInstanceState EnqueueEnemyIntentCard(CardTemplate template)
         {
             if (_state == null || template == null || _state.Phase != TurnPhase.Planning)
                 return null;
 
             CombatantState owner = null;
+            CombatantState fallbackNonDummy = null;
+            CombatantState dummy = null;
             foreach (var c in _state.Combatants)
             {
                 if (c.Team != TeamSide.Enemy || !c.IsAlive)
                     continue;
+
                 if (c.CharacterDefinitionId == "char_dummy")
+                {
+                    dummy = c;
+                    continue;
+                }
+
+                if (!string.IsNullOrEmpty(template.OwnerCharacterId)
+                    && c.CharacterDefinitionId == template.OwnerCharacterId)
                 {
                     owner = c;
                     break;
                 }
 
-                owner ??= c;
+                fallbackNonDummy ??= c;
             }
 
+            owner ??= fallbackNonDummy ?? dummy;
             if (owner == null)
                 return null;
 
@@ -1195,7 +1278,7 @@ namespace Grimhand.Battle
             TargetRules.PrerollEnemyAutoTargets(_state, _state.EnemyPlan, _rng);
 
             _events.Add(new BattleEvent(BattleEventKind.EnemyIntentPrepared,
-                $"手动加入意图：{instance.DisplayName}")
+                $"手动加入意图：{instance.DisplayName}（{owner.DisplayName}）")
             {
                 CombatantId = owner.Id,
                 CardInstanceId = instance.InstanceId

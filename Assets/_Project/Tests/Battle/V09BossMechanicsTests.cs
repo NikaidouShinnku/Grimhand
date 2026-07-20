@@ -289,6 +289,18 @@ namespace Grimhand.Battle.Tests
 
             Assert.IsTrue(triggered);
             Assert.AreEqual(12, hpDamage); // 40 * 30%
+            // 副作用延后到 ApplyConsumedSideEffects
+            Assert.AreEqual(150, cage.Hp);
+
+            Reactions.DefenderRespondArmRules.ApplyConsumedSideEffects(
+                state, warden,
+                new Reactions.DefenderRespondArm
+                {
+                    SideEffectAllyDamage = 30,
+                    SideEffectAllyCharacterId = CharacterTraitCatalog.PrisonCageCharacterId
+                },
+                events, new BattleRng(3));
+
             Assert.AreEqual(120, cage.Hp); // 150 - 30
         }
 

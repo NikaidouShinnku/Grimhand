@@ -178,6 +178,12 @@ namespace Grimhand.Presentation.Battle
                         case BattleEventKind.StatusRemoved:
                             HandleStatusRemoved(e);
                             break;
+                        case BattleEventKind.PositionSwapped:
+                            RebuildLookup();
+                            _screen?.InvalidateAllEnemyHpBarLayouts();
+                            _screen?.Refresh();
+                            yield return null;
+                            break;
                         case BattleEventKind.DamageApplied:
                             card?.MarkDamage();
                             var (damageWave, waveGaps, waveEnd) = CollectActorDamageWave(events, i);
@@ -637,7 +643,7 @@ namespace Grimhand.Presentation.Battle
             {
                 GameAudioService.Instance.PlayBattleBlocking();
                 var blockingSprite = _effects?.Blocking;
-                if (blockingSprite != null)
+                if (blockingSprite != null && target.isActiveAndEnabled && target.gameObject.activeInHierarchy)
                     target.StartCoroutine(target.PlayOverlayEffect(blockingSprite));
                 yield return target.PlayInPlacePose(PortraitPoseKind.Defense, DefenseReactDuration);
             }
@@ -692,7 +698,7 @@ namespace Grimhand.Presentation.Battle
 
             GameAudioService.Instance.PlayBattleBlocking();
             var blockingSprite = _effects?.Blocking;
-            if (blockingSprite != null)
+            if (blockingSprite != null && blocker.isActiveAndEnabled && blocker.gameObject.activeInHierarchy)
                 blocker.StartCoroutine(blocker.PlayOverlayEffect(blockingSprite));
             yield return blocker.PlayInPlacePose(PortraitPoseKind.Defense, DefenseReactDuration);
         }

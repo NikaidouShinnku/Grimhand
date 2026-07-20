@@ -15,7 +15,7 @@ MonoBehaviour:
   Seed: 0
   EnergyCap: 8
   TurnStartEnergyRegen: 4
-  HandLimit: 8
+  HandLimit: 10
   CardsDrawnPerTurn: 5
   EnemyCardsDrawnPerTurn: 0
   EnemyTurnEnergyBudget: 0

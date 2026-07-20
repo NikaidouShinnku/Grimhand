@@ -58,6 +58,9 @@ namespace Grimhand.Battle.Model
         public int NextCardInstanceId { get; set; } = 1;
         public int NextSummonInstanceId { get; set; } = 1;
 
+        /// <summary>本场战斗中已死亡的鼠人数量（含召唤鼠）；用于鼠群狂怒全局叠层。</summary>
+        public int RatDeathsThisBattle { get; set; }
+
         public int MiracleLeafRevivesRemaining { get; set; }
         public bool JadeDaggerFirstKillConsumed { get; set; }
         public bool TeamFirstHitReductionPending { get; set; } = true;

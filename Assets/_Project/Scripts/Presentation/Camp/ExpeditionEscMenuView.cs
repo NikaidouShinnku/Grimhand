@@ -135,7 +135,7 @@ namespace Grimhand.Presentation.Camp
 
             CreateSpriteButton(buttonColumn, sprites[0], primaryWidth, () =>
             {
-                Hide();
+                // 先恢复战斗 HUD，再关菜单，避免出现空战场
                 _onReturnToGame?.Invoke();
             });
             CreateSpriteButton(buttonColumn, sprites[1], primaryWidth, () => _onSettings?.Invoke());

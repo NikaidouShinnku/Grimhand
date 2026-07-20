@@ -62,11 +62,13 @@ namespace Grimhand.Battle.Effects
             var defenderMitigated = 0;
             var hadDefenderArm = false;
             var originalRecipientId = recipient.Id;
+            DefenderRespondArm consumedArm = null;
             if (raw > 0 && !isSacrificeDamage)
             {
                 var redirectHp = raw;
                 hadDefenderArm = DefenderRespondArmRules.TryConsumeForIncomingPlayerAttack(
-                    state, actor, ref recipient, ref redirectHp, events, out defenderMitigated, rng);
+                    state, actor, ref recipient, ref redirectHp, events, out defenderMitigated,
+                    out consumedArm, rng, sourceCardInstanceId);
                 if (hadDefenderArm)
                     raw = redirectHp;
             }
@@ -182,6 +184,13 @@ namespace Grimhand.Battle.Effects
                 CardType = cardType,
                 CardInstanceId = sourceCardInstanceId
             });
+
+            // 铁壁牢门等：主伤害事件之后再打副作用，保证演出顺序
+            if (consumedArm != null)
+            {
+                var armOwner = state.GetCombatant(originalRecipientId) ?? recipient;
+                DefenderRespondArmRules.ApplyConsumedSideEffects(state, armOwner, consumedArm, events, rng);
+            }
 
             state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Attack, recipient.Id, killed, hpDamage);
 

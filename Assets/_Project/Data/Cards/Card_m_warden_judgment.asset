@@ -20,6 +20,7 @@ MonoBehaviour:
   Rarity: 3
   Keywords: 
   - aoe
+  - brand
   Actions: 
   - Type: 3
     Target: 12

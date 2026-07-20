@@ -168,6 +168,7 @@ namespace Grimhand.Battle.Rules
             CombatantRules.RefreshDerivedStats(target);
             RelicBattleRules.RefreshDerivedStats(state, target, state?.Config?.RunModifiers);
             V09NewMechanicsRules.OnPoisonAppliedToSelf(state, target, StatusCatalog.Poison, events);
+            MinionTraitRules.SyncSpiderPoisonVulnerability(state, target, events);
 
             if (mirrorChainWraith)
                 MinionTraitRules.ShareChainWraithDebuff(
@@ -238,6 +239,9 @@ namespace Grimhand.Battle.Rules
             });
 
             CombatantRules.RefreshDerivedStats(target);
+
+            if (statusId == StatusCatalog.Poison)
+                MinionTraitRules.SyncSpiderPoisonVulnerability(null, target, events);
         }
 
         public static void RemoveAllStatus(CombatantState target, string statusId, List<BattleEvent> events)
@@ -246,6 +250,17 @@ namespace Grimhand.Battle.Rules
                 return;
 
             RemoveStatus(target, statusId, GetStatusStacks(target, statusId), events);
+        }
+
+        public static void RemoveAllStatus(
+            CombatantState target,
+            string statusId,
+            List<BattleEvent> events,
+            BattleState state)
+        {
+            RemoveAllStatus(target, statusId, events);
+            if (statusId == StatusCatalog.Poison)
+                MinionTraitRules.SyncSpiderPoisonVulnerability(state, target, events);
         }
 
         public static void ProcessTurnStartStatuses(BattleState state, List<BattleEvent> events, BattleRng rng = null)
@@ -341,13 +356,15 @@ namespace Grimhand.Battle.Rules
         /// <summary>
         /// 回合开始：扣减「回合开始跳伤类」状态的持续（中毒/灼烧/亡灵毒/缠绕/延迟伤害）。
         /// 须在对应跳伤结算之后调用，保证持续 1 回合也能先跳伤再消失。
+        /// 用快照遍历：到期回调可能 SelfDestruct/召唤，会改 Combatants。
         /// </summary>
         public static void ProcessTurnStartDurations(BattleState state, List<BattleEvent> events)
         {
             if (state == null)
                 return;
 
-            foreach (var combatant in state.Combatants)
+            var snapshot = new List<CombatantState>(state.Combatants);
+            foreach (var combatant in snapshot)
             {
                 if (combatant == null || !combatant.IsAlive)
                     continue;
@@ -364,7 +381,8 @@ namespace Grimhand.Battle.Rules
             if (state == null)
                 return;
 
-            foreach (var combatant in state.Combatants)
+            var snapshot = new List<CombatantState>(state.Combatants);
+            foreach (var combatant in snapshot)
             {
                 if (combatant == null)
                     continue;
@@ -384,7 +402,8 @@ namespace Grimhand.Battle.Rules
                 || statusId == StatusCatalog.Burn
                 || statusId == StatusCatalog.Constrict
                 || statusId == StatusCatalog.DelayedDamage
-                || statusId == StatusCatalog.SnakeGodChanneling)
+                || statusId == StatusCatalog.SnakeGodChanneling
+                || statusId == StatusCatalog.FinalSummonPending)
                 return true;
 
             var def = StatusCatalog.Get(statusId);
@@ -414,6 +433,11 @@ namespace Grimhand.Battle.Rules
             var bonus = state?.Config?.RunModifiers?.StatusDurationBonusTurns ?? 0;
             if (bonus > 0)
                 turns += bonus;
+
+            // 终焉召唤「N回合后」：回合开始扣持续；需再经过 N 个完整回合才触发
+            // → RemainingTurns = N+1（例：卡面 3 → 挂 4，第 4 次回合初到期）
+            if (existing.StatusId == StatusCatalog.FinalSummonPending && turns > 0)
+                turns += 1;
 
             // 已是永久：叠有限持续不降级
             if (!isNew && existing.RemainingTurns < 0)
@@ -457,18 +481,22 @@ namespace Grimhand.Battle.Rules
                 {
                     CombatantRules.RefreshDerivedStats(combatant);
                     RelicBattleRules.RefreshDerivedStats(state, combatant, state?.Config?.RunModifiers);
+                    MinionTraitRules.SyncSpiderPoisonVulnerability(state, combatant, events);
                     continue;
                 }
 
+                var expiredStatusId = status.StatusId;
                 combatant.Statuses.RemoveAt(i);
                 events.Add(new BattleEvent(BattleEventKind.StatusExpired, def.DisplayName)
                 {
                     CombatantId = combatant.Id,
-                    TargetId = status.StatusId
+                    TargetId = expiredStatusId
                 });
-                MinionTraitRules.ClearSharedChainWraithDebuff(state, combatant, status.StatusId, events);
+                MinionTraitRules.ClearSharedChainWraithDebuff(state, combatant, expiredStatusId, events);
                 CombatantRules.RefreshDerivedStats(combatant);
                 RelicBattleRules.RefreshDerivedStats(state, combatant, state?.Config?.RunModifiers);
+                if (expiredStatusId == StatusCatalog.Poison)
+                    MinionTraitRules.SyncSpiderPoisonVulnerability(state, combatant, events);
             }
         }
 
@@ -550,6 +578,7 @@ namespace Grimhand.Battle.Rules
                 or StatusCatalog.RatSwarmCall
                 or StatusCatalog.BrandMark
                 or StatusCatalog.RisingTide
+                or StatusCatalog.WaveSurge
                 or StatusCatalog.EbbingTide
                 or StatusCatalog.TideLocked
                 or StatusCatalog.TideEmpower)

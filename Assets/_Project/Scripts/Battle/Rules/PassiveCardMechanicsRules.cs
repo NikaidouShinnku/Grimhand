@@ -249,6 +249,19 @@ namespace Grimhand.Battle.Rules
             }
         }
 
+        /// <summary>终焉守护无条件 +8 护甲（应对步统一入口）。</summary>
+        public static void ApplyFinalGuardBlock(
+            BattleState state,
+            CombatantState actor,
+            List<BattleEvent> events,
+            BattleRng rng = null)
+        {
+            if (actor == null || !actor.IsAlive)
+                return;
+
+            DamageRules.ApplyBlock(actor, 8, events, state, rng);
+        }
+
         public static void OnFinalSummonPendingExpired(
             BattleState state,
             CombatantState caster,
@@ -257,15 +270,22 @@ namespace Grimhand.Battle.Rules
             if (state == null || caster == null || !caster.IsAlive)
                 return;
 
-            if (caster.CharacterDefinitionId != "char_jellyfish_caster")
-                return;
-
-            var bonusHp = Math.Max(1, caster.MaxHp / 2);
+            // 谁挂了终焉召唤状态谁到期触发（被玩家打死则不召唤）
+            // 召唤 HP = 深渊怪物模板 MaxHp + 施法者 MaxHp/2（例：95 + 80/2 = 135）
+            var casterMaxHp = caster.MaxHp;
+            var bonusHp = Math.Max(0, casterMaxHp / 2);
             var slot = caster.Slot;
+            var abyssId = MinionTraitCatalog.AbyssCreatureCharacterId;
 
-            if (!state.Config.SummonTemplates.TryGetValue(
-                    MinionTraitCatalog.AbyssCreatureCharacterId, out var template))
+            if (state.Config?.SummonTemplates == null
+                || !state.Config.SummonTemplates.TryGetValue(abyssId, out var template)
+                || template == null)
             {
+                events?.Add(new BattleEvent(BattleEventKind.StatusExpired, "终焉召唤失败：缺少深渊怪物模板")
+                {
+                    CombatantId = caster.Id,
+                    TargetId = StatusCatalog.FinalSummonPending
+                });
                 SummonRules.SelfDestruct(state, caster, events);
                 return;
             }
@@ -276,15 +296,46 @@ namespace Grimhand.Battle.Rules
 
         public static void OnFinalGuardResponded(BattleState state, List<BattleEvent> events)
         {
-            if (state == null || state.EnergyCurrent <= 0)
+            if (state == null)
                 return;
 
-            state.EnergyCurrent = 0;
-            events.Add(new BattleEvent(BattleEventKind.EnergyChanged, "终焉守护：能量被清空")
+            if (state.EnergyCurrent > 0)
             {
-                Energy = 0,
-                EnergyMax = state.EnergyMax,
-                EnergyRemaining = 0
+                state.EnergyCurrent = 0;
+                events?.Add(new BattleEvent(BattleEventKind.EnergyChanged, "终焉守护：能量被清空")
+                {
+                    Energy = 0,
+                    EnergyMax = state.EnergyMax,
+                    EnergyRemaining = 0
+                });
+            }
+
+            // 禁止下回合回复（覆盖整回合基础回复）
+            var regenBlock = System.Math.Max(
+                state.Config?.TurnStartEnergyRegen ?? EnergyRules.DefaultTurnRegen,
+                state.EnergyMax);
+            if (regenBlock <= 0)
+                regenBlock = 99;
+
+            state.PendingPlayerEnergyRegenPenaltyNextTurn += regenBlock;
+            foreach (var unit in state.GetTeam(TeamSide.Player))
+            {
+                if (unit == null || !unit.IsAlive)
+                    continue;
+
+                StatusRules.ApplyStatus(
+                    state,
+                    unit,
+                    StatusCatalog.SoulDrain,
+                    System.Math.Max(1, regenBlock),
+                    -1,
+                    events);
+            }
+
+            events?.Add(new BattleEvent(BattleEventKind.StatusApplied, "终焉守护：下回合无法回复能量")
+            {
+                Amount = regenBlock,
+                TargetId = StatusCatalog.SoulDrain
             });
         }
 

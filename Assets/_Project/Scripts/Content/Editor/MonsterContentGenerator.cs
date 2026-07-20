@@ -765,7 +765,8 @@ namespace Grimhand.Content.Editor
             int chancePercent = 0,
             bool useAlternateIfActorNotHitThisTurn = false,
             int selfBlockAboveThreshold = 0,
-            int alternateValueIfSelfBlockAbove = 0) =>
+            int alternateValueIfSelfBlockAbove = 0,
+            bool splashBehind = false) =>
             new()
             {
                 Type = type,
@@ -799,7 +800,8 @@ namespace Grimhand.Content.Editor
                 ChancePercent = chancePercent,
                 UseAlternateIfActorNotHitThisTurn = useAlternateIfActorNotHitThisTurn,
                 SelfBlockAboveThreshold = selfBlockAboveThreshold,
-                AlternateValueIfSelfBlockAbove = alternateValueIfSelfBlockAbove
+                AlternateValueIfSelfBlockAbove = alternateValueIfSelfBlockAbove,
+                SplashBehindTarget = splashBehind
             };
 
         static string[] Kw(params string[] ids) => ids;

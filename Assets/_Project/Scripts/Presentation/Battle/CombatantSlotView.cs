@@ -93,7 +93,7 @@ namespace Grimhand.Presentation.Battle
         {
             _enemyLayoutLocked = false;
             _hpBarLayoutCombatantId = null;
-            _displayedCharacterDefinitionId = null;
+            // 不要清 _displayedCharacterDefinitionId：召唤刷新时否则会误判角色更换并 ApplyStatusAnchorLayout 把中央立绘瞬移回槽
             _unifiedHpBarWorldY = 0f;
             _footWorldOffsetFromPortraitFoot = Vector3.zero;
         }
@@ -102,6 +102,13 @@ namespace Grimhand.Presentation.Battle
         {
             if (team != TeamSide.Enemy || string.IsNullOrEmpty(_combatantId))
                 return;
+
+            // 立绘在中央演出时不要改位置/重录 home（召唤刷新等会触发）
+            if (_portraitView != null && (_portraitView.IsAwayFromHome || _portraitView.IsAnimating))
+            {
+                ApplyFootFollowPortrait();
+                return;
+            }
 
             if (_enemyLayoutLocked && _hpBarLayoutCombatantId == _combatantId)
             {
@@ -675,28 +682,33 @@ namespace Grimhand.Presentation.Battle
             bool showExpBar = false,
             BattleSession session = null)
         {
+            // 先写入本帧快照，FindCombatant 才能按演出进度选单位（召唤/囚笼替换）
+            _presentation = presentation;
+            _session = session;
+
             var unit = FindCombatant(state);
             var previousCharacterId = _displayedCharacterDefinitionId;
+            var displayAlivePreview = unit != null
+                && (presentation != null ? presentation.IsAlive(unit.Id) : unit.IsAlive);
+
             if (unit?.Id != _hpBarLayoutCombatantId
                 || (unit != null
-                    && unit.IsAlive
+                    && displayAlivePreview
                     && unit.CharacterDefinitionId != _displayedCharacterDefinitionId))
                 InvalidateEnemyHpBarLayout();
 
-            if (unit != null && unit.IsAlive)
+            if (unit != null && displayAlivePreview)
                 _displayedCharacterDefinitionId = unit.CharacterDefinitionId;
             else if (unit == null)
                 _displayedCharacterDefinitionId = null;
 
             var characterChanged = unit != null
-                && unit.IsAlive
+                && displayAlivePreview
                 && previousCharacterId != unit.CharacterDefinitionId;
 
             _currentUnit = unit;
             _currentIcons = uiIcons;
             _currentVisuals = visuals;
-            _session = session;
-            _presentation = presentation;
             _combatantId = unit?.Id;
             _targetMode = targetMode;
 
@@ -706,8 +718,8 @@ namespace Grimhand.Presentation.Battle
             if (!allowHoverDetail)
                 DismissHoverDetail();
 
-            var preservePortraitLayout = !characterChanged
-                && _portraitView != null
+            // 中央演出中绝不重置锚点/home，即使 Invalidate 导致 characterChanged 误判
+            var preservePortraitLayout = _portraitView != null
                 && (_portraitView.IsAwayFromHome || _portraitView.IsAnimating);
             if (!preservePortraitLayout)
             {
@@ -1048,19 +1060,42 @@ namespace Grimhand.Presentation.Battle
 
         CombatantState FindCombatant(BattleState state)
         {
-            CombatantState dead = null;
+            if (state == null)
+                return null;
+
+            CombatantState liveAlive = null;
+            CombatantState liveDead = null;
+            CombatantState trackedAlive = null;
+            CombatantState trackedDead = null;
+
             foreach (var c in state.Combatants)
             {
-                if (c.Team != team || c.Slot != formationSlot)
+                if (c == null || c.Team != team || c.Slot != formationSlot)
                     continue;
 
-                if (c.IsAlive)
-                    return c;
+                // 演出锁定期：只显示快照已登记单位，避免召唤物/替换精英在点出牌瞬间刷出
+                if (_presentation != null)
+                {
+                    if (!_presentation.IsTracked(c.Id))
+                        continue;
 
-                dead = c;
+                    if (_presentation.IsAlive(c.Id))
+                        trackedAlive ??= c;
+                    else
+                        trackedDead ??= c;
+                    continue;
+                }
+
+                if (c.IsAlive)
+                    liveAlive ??= c;
+                else
+                    liveDead ??= c;
             }
 
-            return dead;
+            if (_presentation != null)
+                return trackedAlive ?? trackedDead;
+
+            return liveAlive ?? liveDead;
         }
     }
 }

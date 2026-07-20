@@ -293,7 +293,10 @@ namespace Grimhand.Battle.V09
             TeamSide enemyTeam,
             int pairCount,
             BattleRng rng,
-            List<BattleEvent> events)
+            List<BattleEvent> events,
+            string applyStatusId = null,
+            int applyStacks = 0,
+            int applyDuration = 0)
         {
             if (state == null || pairCount <= 0)
                 return;
@@ -326,6 +329,13 @@ namespace Grimhand.Battle.V09
                     CombatantId = a.Id,
                     TargetId = b.Id
                 });
+                MinionTraitRules.OnPositionsSwapped(state, a, b, events);
+
+                if (!string.IsNullOrEmpty(applyStatusId) && applyStacks > 0)
+                {
+                    StatusRules.ApplyStatus(state, a, applyStatusId, applyStacks, applyDuration, events);
+                    StatusRules.ApplyStatus(state, b, applyStatusId, applyStacks, applyDuration, events);
+                }
             }
         }
 

@@ -3,7 +3,7 @@ using Grimhand.Battle.Model;
 namespace Grimhand.Battle.Reactions
 {
     /// <summary>
-    /// 应对卡：绑定敌人本回合首张满足条件的出牌，在其结算前按队列顺序依次生效。
+    /// 应对卡识别：带 parry / respond_* 关键词，或带条件效果（Condition != None）。
     /// </summary>
     public static class RespondRules
     {

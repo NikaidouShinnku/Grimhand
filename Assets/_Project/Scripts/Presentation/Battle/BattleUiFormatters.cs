@@ -1161,6 +1161,8 @@ namespace Grimhand.Presentation.Battle
                     return AppendStatusDurationLine(
                         $"减伤 +{status.Stacks * (def?.IncomingDamageReductionPercentPerStack ?? 15)}%，增伤 +{status.Stacks * (def?.AttackPercentBonusPerStack ?? 10)}%（每层 15% 减伤 / 10% 增伤）；达到 {V09BossMechanicsRules.RisingTideEbbThreshold} 层时消耗全部涨潮并获得退潮",
                         status, def);
+                case StatusCatalog.WaveSurge:
+                    return $"攻击伤害 +{status.Stacks}%（同位置速度优势；无同位置敌人时为 50%）";
                 case StatusCatalog.EbbingTide:
                     return AppendStatusDurationLine(
                         $"无法获得涨潮；受到的伤害 +{def?.IncomingDamagePercentPerStack ?? 50}%",
@@ -1171,6 +1173,8 @@ namespace Grimhand.Presentation.Battle
                         status, def);
                 case StatusCatalog.TideEmpower:
                     return "魔化潮汐：每层涨潮额外提供 5% 减伤";
+                case StatusCatalog.BrandMark:
+                    return "累计三层时该角色会即死（引爆并造成等同最大生命的伤害）";
                 default:
                     break;
             }

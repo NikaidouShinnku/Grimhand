@@ -79,3 +79,4 @@ MonoBehaviour:
   StatusSpdUp: {fileID: 3183829849005898193, guid: ce559f412407acc4f80ffd2af95d67a6, type: 3}
   StatusPoisoning: {fileID: 2342332266118351040, guid: 8d473d75aa365124c9f9909406a0f2ee, type: 3}
   StatusBurning: {fileID: 4247683407508846134, guid: 619a1dac6cf5d8c42b90cef4cda03fe6, type: 3}
+  StatusBrandMark: {fileID: 5541937304964931132, guid: d36167ab2e6963646b7d3d87b532b5bc, type: 3}

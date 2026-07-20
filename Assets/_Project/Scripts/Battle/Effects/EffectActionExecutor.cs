@@ -35,6 +35,11 @@ namespace Grimhand.Battle.Effects
                 if (action.Condition != ReactionConditionType.None)
                     continue;
 
+                // 终焉守护护甲由 ApplyFinalGuardBlock 统一发放，避免重复
+                if (card.DefinitionId == PassiveCardMechanicsRules.FinalGuardCardId
+                    && action.Type == EffectActionType.GainBlock)
+                    continue;
+
                 ExecuteOne(state, actor, card, action, events, rng, sourceCardInstanceId: card.InstanceId);
             }
 
@@ -210,6 +215,29 @@ namespace Grimhand.Battle.Effects
                     PositionRules.SwapWithAdjacentAlly(state, actor, -1, events);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
+                case EffectActionType.SwapTargetWithBehind:
+                {
+                    // 先伤后换：优先用上一动作的目标（伤害目标），勿重新抽 DefaultEnemy
+                    var swapTarget = targetOverride;
+                    if (swapTarget == null
+                        && !string.IsNullOrEmpty(state.LastAction.TargetId)
+                        && state.LastAction.ActionKind == ActionKind.Attack)
+                    {
+                        swapTarget = state.GetCombatant(state.LastAction.TargetId);
+                    }
+
+                    if (swapTarget == null || !swapTarget.IsAlive)
+                    {
+                        swapTarget = TargetRules.ResolveTarget(
+                            state, actor, action.Target, card.InstanceId, rng, action);
+                    }
+
+                    if (swapTarget != null && swapTarget.IsAlive)
+                        PositionRules.SwapTargetWithBehind(state, swapTarget, events);
+                    state.LastAction = new LastActionSnapshot(
+                        actor.Id, ActionKind.Status, swapTarget?.Id ?? actor.Id, false, 0);
+                    break;
+                }
                 case EffectActionType.DrawCardsNextTurn:
                     QueueDrawNextTurn(state, actor, card, value, action.CostReduction, events);
                     break;
@@ -387,6 +415,7 @@ namespace Grimhand.Battle.Effects
                     // 仅翻倍层数，RemainingTurns/Duration 不变
                     DoubleTargetStatusStacks(target, StatusCatalog.Poison, events);
                     DoubleTargetStatusStacks(target, StatusCatalog.Burn, events);
+                    MinionTraitRules.SyncSpiderPoisonVulnerability(state, target, events);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, target.Id, false, 0);
                     break;
                 }
@@ -848,7 +877,14 @@ namespace Grimhand.Battle.Effects
                 {
                     var enemyTeam = actor.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
                     V09BossMechanicsRules.SwapRandomEnemies(
-                        state, enemyTeam, System.Math.Max(1, action.Value), rng, events);
+                        state,
+                        enemyTeam,
+                        System.Math.Max(1, action.Value),
+                        rng,
+                        events,
+                        action.StatusId,
+                        action.Stacks,
+                        action.Duration);
                     break;
                 }
                 case EffectActionType.AdjustSelfStatusRandom:

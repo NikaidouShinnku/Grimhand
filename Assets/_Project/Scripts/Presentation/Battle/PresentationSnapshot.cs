@@ -131,6 +131,10 @@ namespace Grimhand.Presentation.Battle
             return !_dead.Contains(combatantId) && _hp.TryGetValue(combatantId, out var hp) && hp > 0;
         }
 
+        /// <summary>单位是否已进入本段演出快照（含开场捕获与中途 RegisterSpawned）。</summary>
+        public bool IsTracked(string combatantId) =>
+            !string.IsNullOrEmpty(combatantId) && _hp.ContainsKey(combatantId);
+
         public int GetHp(string combatantId) =>
             _hp.TryGetValue(combatantId, out var hp) ? hp : 0;
 

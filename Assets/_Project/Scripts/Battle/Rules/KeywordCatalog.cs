@@ -63,6 +63,7 @@ namespace Grimhand.Battle.Rules
             ["armor_down"] = new("armor_down", "破损×层数", "减少防御卡给予的护甲，每层减1%"),
             ["ethereal"] = new("ethereal", "虚化", "本回合最多只受到1点伤害"),
             ["weaken"] = new("weaken", "虚弱×层数", "造成的伤害减少，每层减1%"),
+            ["brand"] = new("brand", "烙印", "累计三层时该角色会即死"),
         };
     }
 }

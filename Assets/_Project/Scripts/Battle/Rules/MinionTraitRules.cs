@@ -9,16 +9,6 @@ namespace Grimhand.Battle.Rules
 {
     public static class MinionTraitRules
     {
-        static readonly HashSet<string> ChainWraithSharedDebuffs = new()
-        {
-            StatusCatalog.Poison,
-            StatusCatalog.Slow,
-            StatusCatalog.Burn,
-            StatusCatalog.AttackDown,
-            StatusCatalog.DefenseDownPercent,
-            StatusCatalog.NecroticPoison
-        };
-
         public static bool HasTrait(CombatantState combatant, string traitId)
         {
             if (combatant == null || string.IsNullOrEmpty(traitId))
@@ -31,6 +21,8 @@ namespace Grimhand.Battle.Rules
         {
             if (state == null)
                 return;
+
+            SyncAllSpiderPoisonVulnerability(state, events);
 
             foreach (var combatant in state.Combatants)
             {
@@ -70,9 +62,53 @@ namespace Grimhand.Battle.Rules
                     combatant.Block += combatant.CarryOverBlock;
                     combatant.CarryOverBlock = 0;
                 }
+
+                RefreshSeahorseWaveSurge(state, combatant, events);
             }
 
             state.EnemyAttackCardsPlayedThisTurn = 0;
+        }
+
+        /// <summary>
+        /// 踏潮守卫被动：回合开始检测同位置对手速度差，挂「浪潮」增伤 buff（层数=增伤%）。
+        /// </summary>
+        static void RefreshSeahorseWaveSurge(
+            BattleState state,
+            CombatantState combatant,
+            List<BattleEvent> events)
+        {
+            if (state == null || combatant == null || !combatant.IsAlive
+                || !HasTrait(combatant, MinionTraitCatalog.SeahorseGuardSpeedAttack))
+                return;
+
+            var bonusPercent = ComputeSeahorseWaveSurgePercent(state, combatant);
+            var current = StatusRules.GetStatusStacks(combatant, StatusCatalog.WaveSurge);
+            if (bonusPercent <= 0)
+            {
+                if (current > 0)
+                    StatusRules.RemoveStatus(combatant, StatusCatalog.WaveSurge, current, events);
+                return;
+            }
+
+            if (current == bonusPercent)
+                return;
+
+            if (current > 0)
+                StatusRules.RemoveStatus(combatant, StatusCatalog.WaveSurge, current, events);
+
+            StatusRules.ApplyStatus(
+                state, combatant, StatusCatalog.WaveSurge, bonusPercent, -1, events);
+        }
+
+        static int ComputeSeahorseWaveSurgePercent(BattleState state, CombatantState actor)
+        {
+            var sameSlotEnemy = FindAliveOpposingInSlot(state, actor);
+            if (sameSlotEnemy == null)
+                return 50;
+
+            var actorSpeed = StatusRules.GetEffectiveSpeed(state, actor);
+            var enemySpeed = StatusRules.GetEffectiveSpeed(state, sameSlotEnemy);
+            return System.Math.Min(50, System.Math.Max(0, actorSpeed - enemySpeed) * 10);
         }
 
         static void ApplyGargoyleTraitFromPriorTurn(
@@ -85,8 +121,8 @@ namespace Grimhand.Battle.Rules
                 || !priorFirstCardType.HasValue)
                 return;
 
-            // 回合初 ProcessTurnStartDurations 会立刻 -1，故挂 2 回合保本回合内有效
-            const int applyDuration = 2;
+            // AttackUpPercent / DefenseUpPercent 在回合末扣持续；挂 1 回合 = 本回合内有效
+            var applyDuration = MinionTraitCatalog.GargoyleTraitDurationTurns;
             if (priorFirstCardType.Value == CardType.Attack)
             {
                 StatusRules.ApplyStatus(
@@ -121,26 +157,50 @@ namespace Grimhand.Battle.Rules
             if (state == null || combatant == null)
                 return;
 
-            if (StatusRules.HasStatus(combatant, StatusCatalog.RatSwarmCall))
+            if (HasTrait(combatant, MinionTraitCatalog.SpiderLadyPoisonVulnerability))
+                SyncAllSpiderPoisonVulnerability(state, events);
+
+            var isRat = combatant.CharacterDefinitionId == MinionTraitCatalog.RatCharacterId;
+            var spawnSwarm = StatusRules.HasStatus(combatant, StatusCatalog.RatSwarmCall);
+
+            // 先计入死亡数，再召唤克隆，克隆才能带上最新鼠群狂怒
+            if (isRat)
+                state.RatDeathsThisBattle++;
+
+            if (spawnSwarm)
                 SummonRules.SpawnRatSwarmClone(state, combatant, events);
 
-            if (combatant.CharacterDefinitionId != MinionTraitCatalog.RatCharacterId)
+            if (!isRat)
                 return;
 
-            foreach (var ally in state.Combatants)
+            RefreshRatPackAttackBonuses(state, events);
+        }
+
+        /// <summary>按本场鼠人死亡数刷新所有存活鼠人的永久增伤。</summary>
+        public static void RefreshRatPackAttackBonuses(BattleState state, List<BattleEvent> events)
+        {
+            if (state == null)
+                return;
+
+            var bonus = state.RatDeathsThisBattle * MinionTraitCatalog.RatPackAttackBonusPercentPerDeath;
+            foreach (var unit in state.Combatants)
             {
-                if (!ally.IsAlive || ally.Team != combatant.Team || ally.Id == combatant.Id)
+                if (unit == null || !unit.IsAlive)
+                    continue;
+                if (unit.CharacterDefinitionId != MinionTraitCatalog.RatCharacterId
+                    && !HasTrait(unit, MinionTraitCatalog.RatPackAttackOnAllyDeath))
                     continue;
 
-                if (ally.CharacterDefinitionId != MinionTraitCatalog.RatCharacterId)
+                if (unit.RatPackAttackBonusPercent == bonus)
                     continue;
 
-                ally.RatPackAttackBonusPercent += MinionTraitCatalog.RatPackAttackBonusPercentPerDeath;
-                RelicBattleRules.RefreshDerivedStats(state, ally, state.Config?.RunModifiers);
+                unit.RatPackAttackBonusPercent = bonus;
+                RelicBattleRules.RefreshDerivedStats(state, unit, state.Config?.RunModifiers);
                 events?.Add(new BattleEvent(BattleEventKind.StatusApplied,
-                    $"{ally.DisplayName} 鼠群狂怒 +{MinionTraitCatalog.RatPackAttackBonusPercentPerDeath}% 攻击")
+                    $"{unit.DisplayName} 鼠群狂怒 +{bonus}% 攻击（本场死亡 {state.RatDeathsThisBattle}）")
                 {
-                    CombatantId = ally.Id
+                    CombatantId = unit.Id,
+                    Amount = bonus
                 });
             }
         }
@@ -153,14 +213,18 @@ namespace Grimhand.Battle.Rules
             int durationOverride,
             List<BattleEvent> events)
         {
-            if (state == null || target == null || stacks <= 0)
+            if (state == null || target == null || stacks <= 0 || string.IsNullOrEmpty(statusId))
                 return;
 
-            if (!HasTrait(target, MinionTraitCatalog.ChainWraithDebuffShare)
-                || !ChainWraithSharedDebuffs.Contains(statusId))
+            if (!HasTrait(target, MinionTraitCatalog.ChainWraithDebuffShare))
                 return;
 
-            // 自身 debuff 同步给敌对阵营全体（对玩家来说就是全体玩家角色）
+            var def = StatusCatalog.Get(statusId);
+            if (!StatusRules.IsDebuffDefinition(def))
+                return;
+
+            // 镜像到敌对全体，持续时间固定 2 回合（与自身原持续无关）
+            var mirrorDuration = MinionTraitCatalog.ChainWraithMirrorDebuffDurationTurns;
             var mirrorTeam = target.Team == TeamSide.Enemy ? TeamSide.Player : TeamSide.Enemy;
             foreach (var unit in state.GetTeam(mirrorTeam))
             {
@@ -168,7 +232,7 @@ namespace Grimhand.Battle.Rules
                     continue;
 
                 StatusRules.ApplyStatusInternal(
-                    state, unit, statusId, stacks, durationOverride, events, mirrorChainWraith: false);
+                    state, unit, statusId, stacks, mirrorDuration, events, mirrorChainWraith: false);
             }
         }
 
@@ -182,8 +246,11 @@ namespace Grimhand.Battle.Rules
             if (state == null || source == null || string.IsNullOrEmpty(statusId))
                 return;
 
-            if (!HasTrait(source, MinionTraitCatalog.ChainWraithDebuffShare)
-                || !ChainWraithSharedDebuffs.Contains(statusId))
+            if (!HasTrait(source, MinionTraitCatalog.ChainWraithDebuffShare))
+                return;
+
+            var def = StatusCatalog.Get(statusId);
+            if (!StatusRules.IsDebuffDefinition(def))
                 return;
 
             var mirrorTeam = source.Team == TeamSide.Enemy ? TeamSide.Player : TeamSide.Enemy;
@@ -196,25 +263,87 @@ namespace Grimhand.Battle.Rules
             }
         }
 
-        public static int ApplySpiderPoisonVulnerability(BattleState state, CombatantState recipient, int hpDamage)
+        /// <summary>
+        /// 伤害已由 <see cref="StatusCatalog.SpiderPoisonVulnerable"/> 经 CombatModifierRules 结算，
+        /// 此处保留入口避免旧调用双重乘伤。
+        /// </summary>
+        public static int ApplySpiderPoisonVulnerability(BattleState state, CombatantState recipient, int hpDamage) =>
+            hpDamage;
+
+        /// <summary>
+        /// 场上有蜘蛛贵妇时，按玩家中毒层数同步可见易伤：每 5 层中毒 = 10 层易伤（+10% 受伤）。
+        /// </summary>
+        public static void SyncSpiderPoisonVulnerability(
+            BattleState state,
+            CombatantState target,
+            List<BattleEvent> events)
         {
-            if (state == null || recipient == null || hpDamage <= 0 || recipient.Team != TeamSide.Enemy)
-                return hpDamage;
+            if (target == null || target.Team != TeamSide.Player)
+                return;
 
-            if (!HasAliveSpiderLady(state))
-                return hpDamage;
+            var poisonStacks = StatusRules.GetStatusStacks(target, StatusCatalog.Poison);
+            var desired = 0;
+            if (target.IsAlive)
+            {
+                if (state != null)
+                {
+                    if (HasAliveSpiderLady(state))
+                        desired = poisonStacks / 5 * MinionTraitCatalog.SpiderPoisonVulnPercentPerFiveStacks;
+                }
+                else
+                {
+                    // 无 BattleState 时按中毒推算；蜘蛛死亡/回合初会再校正
+                    desired = poisonStacks / 5 * MinionTraitCatalog.SpiderPoisonVulnPercentPerFiveStacks;
+                }
+            }
 
-            var poisonStacks = StatusRules.GetStatusStacks(recipient, StatusCatalog.Poison);
-            if (poisonStacks < 5)
-                return hpDamage;
+            var current = StatusRules.GetStatusStacks(target, StatusCatalog.SpiderPoisonVulnerable);
+            if (desired == current)
+                return;
 
-            var bonusPercent = poisonStacks / 5 * MinionTraitCatalog.SpiderPoisonVulnPercentPerFiveStacks;
-            return System.Math.Max(1,
-                (int)System.Math.Round(hpDamage * (100 + bonusPercent) / 100f));
+            if (desired <= 0)
+            {
+                StatusRules.RemoveAllStatus(target, StatusCatalog.SpiderPoisonVulnerable, events);
+                CombatantRules.RefreshDerivedStats(target);
+                RelicBattleRules.RefreshDerivedStats(state, target, state?.Config?.RunModifiers);
+                return;
+            }
+
+            var existing = StatusRules.FindStatus(target, StatusCatalog.SpiderPoisonVulnerable);
+            if (existing == null)
+            {
+                StatusRules.ApplyStatusInternal(
+                    state, target, StatusCatalog.SpiderPoisonVulnerable, desired, -1, events,
+                    mirrorChainWraith: false);
+                return;
+            }
+
+            existing.Stacks = desired;
+            existing.RemainingTurns = -1;
+            events?.Add(new BattleEvent(BattleEventKind.StatusApplied, "易伤")
+            {
+                CombatantId = target.Id,
+                Amount = desired,
+                TargetId = StatusCatalog.SpiderPoisonVulnerable
+            });
+            CombatantRules.RefreshDerivedStats(target);
+            RelicBattleRules.RefreshDerivedStats(state, target, state?.Config?.RunModifiers);
+        }
+
+        public static void SyncAllSpiderPoisonVulnerability(BattleState state, List<BattleEvent> events)
+        {
+            if (state == null)
+                return;
+
+            foreach (var unit in state.GetTeam(TeamSide.Player))
+                SyncSpiderPoisonVulnerability(state, unit, events);
         }
 
         static bool HasAliveSpiderLady(BattleState state)
         {
+            if (state == null)
+                return false;
+
             foreach (var combatant in state.Combatants)
             {
                 if (!combatant.IsAlive || combatant.Team != TeamSide.Enemy)
@@ -292,28 +421,28 @@ namespace Grimhand.Battle.Rules
                     100, actor.MermaidZeroCostAttackBonusPercent + 5);
             }
 
-            if (actor.CardsResolvedCount % MinionTraitCatalog.CardsPerStatBonus != 0)
+            // 骷髅 / 精英：跨回合累计出牌数，每满 3 的倍数触发一次
+            if (actor.CardsResolvedCount <= 0
+                || actor.CardsResolvedCount % MinionTraitCatalog.CardsPerStatBonus != 0)
                 return;
 
             if (HasTrait(actor, MinionTraitCatalog.SkeletonCardDef))
             {
-                actor.PersistentBlockGainFlatBonus += 1;
-                RelicBattleRules.RefreshDerivedStats(state, actor, state.Config?.RunModifiers);
-                events.Add(new BattleEvent(BattleEventKind.StatusApplied, $"{actor.DisplayName} +1 护甲获取")
-                {
-                    CombatantId = actor.Id
-                });
+                DamageRules.ApplyBlock(
+                    actor, MinionTraitCatalog.SkeletonArmorPerThreshold, events, state);
             }
 
             if (HasTrait(actor, MinionTraitCatalog.SkeletonEliteCardStats))
             {
-                actor.PersistentBlockGainFlatBonus += 1;
-                actor.PersistentOutgoingDamageFlatBonus += 1;
-                RelicBattleRules.RefreshDerivedStats(state, actor, state.Config?.RunModifiers);
-                events.Add(new BattleEvent(BattleEventKind.StatusApplied, $"{actor.DisplayName} +1 增伤 +1 护甲获取")
-                {
-                    CombatantId = actor.Id
-                });
+                DamageRules.ApplyBlock(
+                    actor, MinionTraitCatalog.SkeletonEliteArmorPerThreshold, events, state);
+                StatusRules.ApplyStatus(
+                    state,
+                    actor,
+                    StatusCatalog.AttackUpPercent,
+                    MinionTraitCatalog.SkeletonEliteAttackPercentPerThreshold,
+                    -1,
+                    events);
             }
         }
 
@@ -328,7 +457,7 @@ namespace Grimhand.Battle.Rules
                 return power;
 
             power = ApplyBloodRageOutgoingBonus(actor, cardType, power);
-            power = ApplySeahorseSpeedAttackBonus(state, actor, target, power);
+            // 踏潮「浪潮」增伤由回合开始挂的 WaveSurge 状态经 CombatModifierRules 结算
             power = ApplyPhantomCaptainFrenzyBonus(state, actor, power);
 
             if (HasTrait(actor, MinionTraitCatalog.MermaidZeroCostAttack)
@@ -388,6 +517,42 @@ namespace Grimhand.Battle.Rules
                 events);
         }
 
+        /// <summary>
+        /// 水母海巫被动：每当敌人（玩家方）换位时，自身 +10 最大 HP。
+        /// </summary>
+        public static void OnPositionsSwapped(
+            BattleState state,
+            CombatantState a,
+            CombatantState b,
+            List<BattleEvent> events)
+        {
+            if (state == null || a == null || b == null)
+                return;
+
+            // 至少一方是玩家阵营（对海巫而言的敌人）才触发
+            if (a.Team != TeamSide.Player && b.Team != TeamSide.Player)
+                return;
+
+            foreach (var unit in state.GetTeam(TeamSide.Enemy))
+            {
+                if (unit == null || !unit.IsAlive)
+                    continue;
+                if (!HasTrait(unit, MinionTraitCatalog.JellyfishCasterSwapMaxHp))
+                    continue;
+
+                var bonus = MinionTraitCatalog.JellyfishCasterSwapMaxHpBonus;
+                unit.MaxHp += bonus;
+                unit.Hp = System.Math.Min(unit.MaxHp, unit.Hp + bonus);
+                RelicBattleRules.RefreshDerivedStats(state, unit, state.Config?.RunModifiers);
+                events?.Add(new BattleEvent(BattleEventKind.StatusApplied,
+                    $"{unit.DisplayName} 换位共鸣 +{bonus} 最大生命")
+                {
+                    CombatantId = unit.Id,
+                    Amount = bonus
+                });
+            }
+        }
+
         static CombatantState PickRandomAlivePlayer(BattleState state)
         {
             CombatantState first = null;
@@ -403,26 +568,6 @@ namespace Grimhand.Battle.Rules
             }
 
             return first;
-        }
-
-        static int ApplySeahorseSpeedAttackBonus(
-            BattleState state,
-            CombatantState actor,
-            CombatantState target,
-            int power)
-        {
-            if (state == null || actor == null || !HasTrait(actor, MinionTraitCatalog.SeahorseGuardSpeedAttack))
-                return power;
-
-            var sameSlotEnemy = FindAliveEnemyInSlot(state, actor.Slot);
-            var bonusPercent = sameSlotEnemy == null
-                ? 50
-                : System.Math.Min(50, System.Math.Max(0, actor.Speed - sameSlotEnemy.Speed) * 10);
-
-            if (bonusPercent <= 0)
-                return power;
-
-            return System.Math.Max(1, (int)System.Math.Round(power * (100 + bonusPercent) / 100f));
         }
 
         static int ApplyPhantomCaptainFrenzyBonus(BattleState state, CombatantState actor, int power)
@@ -454,11 +599,15 @@ namespace Grimhand.Battle.Rules
             return false;
         }
 
-        static CombatantState FindAliveEnemyInSlot(BattleState state, FormationSlot slot)
+        static CombatantState FindAliveOpposingInSlot(BattleState state, CombatantState actor)
         {
+            if (state == null || actor == null)
+                return null;
+
+            var opposing = actor.Team == TeamSide.Enemy ? TeamSide.Player : TeamSide.Enemy;
             foreach (var unit in state.Combatants)
             {
-                if (unit.IsAlive && unit.Team == TeamSide.Enemy && unit.Slot == slot)
+                if (unit != null && unit.IsAlive && unit.Team == opposing && unit.Slot == actor.Slot)
                     return unit;
             }
 
@@ -502,8 +651,9 @@ namespace Grimhand.Battle.Rules
                 return false;
 
             target.FirstHitDodgePending = false;
-            var roll = rng.NextUInt() % 1000u / 1000f;
-            if (roll >= MinionTraitCatalog.BatFirstHitDodgeChance)
+            // 严格 50%：0..99 中 <50 成功
+            var roll = (int)(rng.NextUInt() % 100u);
+            if (roll >= MinionTraitCatalog.BatFirstHitDodgeChancePercent)
                 return false;
 
             events?.Add(new BattleEvent(BattleEventKind.DamageApplied, $"{target.DisplayName} 闪避")

@@ -26,7 +26,16 @@ namespace Grimhand.Presentation.Battle
                 lines.Add($"低血迅捷 +{combatant.LowHpSpeedBonusApplied} 速度");
 
             if (HasTrait(combatant, MinionTraitCatalog.BatFirstHitDodge) && combatant.FirstHitDodgePending)
-                lines.Add("首击50%闪避");
+                lines.Add($"首击{MinionTraitCatalog.BatFirstHitDodgeChancePercent}%闪避");
+
+            if (HasTrait(combatant, MinionTraitCatalog.SkeletonCardDef)
+                || HasTrait(combatant, MinionTraitCatalog.SkeletonEliteCardStats))
+            {
+                var n = combatant.CardsResolvedCount;
+                var mod = n % MinionTraitCatalog.CardsPerStatBonus;
+                var need = mod == 0 ? MinionTraitCatalog.CardsPerStatBonus : MinionTraitCatalog.CardsPerStatBonus - mod;
+                lines.Add($"出牌 {n}（再{need}张触发）");
+            }
 
             if (HasTrait(combatant, MinionTraitCatalog.PhantomCaptainFrenzy) && IsPhantomCaptainFrenzyActive(state))
                 lines.Add($"狂怒 +{MinionTraitCatalog.PhantomCaptainFrenzyAttackPercent}% 攻击");

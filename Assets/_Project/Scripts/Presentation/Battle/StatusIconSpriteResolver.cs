@@ -16,6 +16,7 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.AttackUpPercent:
                 case StatusCatalog.AttackUp:
                 case StatusCatalog.DamageUp:
+                case StatusCatalog.WaveSurge:
                 case StatusCatalog.BloodFrenzy:
                 case StatusCatalog.ImmortalShed:
                 case StatusCatalog.HandCostZero:
@@ -35,6 +36,7 @@ namespace Grimhand.Presentation.Battle
                     return icons.StatusDamageDown;
 
                 case StatusCatalog.Vulnerable:
+                case StatusCatalog.SpiderPoisonVulnerable:
                     return icons.StatusDefenseDown;
 
                 case StatusCatalog.DamageReduction:
@@ -73,6 +75,9 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.Burn:
                     return icons.StatusBurning;
 
+                case StatusCatalog.BrandMark:
+                    return icons.StatusBrandMark != null ? icons.StatusBrandMark : icons.NoteIcon;
+
                 case StatusCatalog.Taunt:
                 case StatusCatalog.VampAura:
                 case StatusCatalog.ReviveBlessing:
@@ -92,7 +97,7 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.EternalVoid:
                 case StatusCatalog.SnakeGodChanneling:
                 case StatusCatalog.FinalSummonPending:
-                    return icons.NoteIcon;
+                    return icons.NoteIcon != null ? icons.NoteIcon : icons.StatusDefenseUp;
 
                 default:
                     return icons.NoteIcon != null ? icons.NoteIcon : icons.StatusDefenseUp;

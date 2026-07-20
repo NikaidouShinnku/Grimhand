@@ -250,20 +250,24 @@ namespace Grimhand.Presentation.Camp
 
         void CloseSettings()
         {
+            // 从 ESC 菜单打开的设置：关掉设置后留在 ESC 菜单，不要跳到主菜单
             if (escMenu != null && escMenu.IsOpen)
                 return;
 
             if (campScreen != null && campScreen.gameObject.activeSelf)
                 return;
 
-            if (IsBattleUiVisible())
+            // 战斗中（含 ESC 遮罩下）一律不弹主菜单
+            if (_trackingExpedition || _trackingTrainingGround || IsBattleUiVisible())
                 return;
 
             gameMenu?.Show(_profile.HasActiveRun);
         }
 
-            void CloseEscMenu()
+        void CloseEscMenu()
         {
+            // 先确保战斗屏激活（开 ESC 曾误关根节点时的兜底），再恢复 HUD
+            battleController?.SetBattleScreenVisible(true);
             FindAnyObjectByType<BattleScreenView>(FindObjectsInactive.Include)?.SetEscUiSuppressed(false);
             escMenu?.Hide();
         }
@@ -343,10 +347,7 @@ namespace Grimhand.Presentation.Camp
                 if (escMenu.IsForfeitConfirmOpen)
                     escMenu.HideForfeitConfirm();
                 else
-                {
-                    FindAnyObjectByType<BattleScreenView>(FindObjectsInactive.Include)?.SetEscUiSuppressed(false);
-                    escMenu.Hide();
-                }
+                    CloseEscMenu(); // 与「返回游戏」一致
                 return;
             }
 

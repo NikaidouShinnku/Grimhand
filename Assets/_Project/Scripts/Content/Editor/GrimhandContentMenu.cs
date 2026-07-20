@@ -512,7 +512,7 @@ namespace Grimhand.Content.Editor
             setup.Seed = 0;
             setup.EnergyCap = 8;
             setup.TurnStartEnergyRegen = 4;
-            setup.HandLimit = 8;
+            setup.HandLimit = 10;
             setup.CardsDrawnPerTurn = 5;
             setup.EnemyCardsDrawnPerTurn = enemyDrawPerTurn;
             setup.EnemyTurnEnergyBudget = enemyEnergyBudget;

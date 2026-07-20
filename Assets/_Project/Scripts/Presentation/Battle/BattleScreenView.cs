@@ -1000,6 +1000,9 @@ namespace Grimhand.Presentation.Battle
             _escUiSuppressed = suppressed;
             if (!suppressed)
             {
+                // 兜底：若曾误把 BattleScreen 根关掉，先恢复再 Refresh
+                if (!gameObject.activeSelf)
+                    gameObject.SetActive(true);
                 Refresh();
                 if (_session?.Engine?.State?.Phase == TurnPhase.Planning && !_session.PresentationLocked)
                     BeginPlanningIdleLoops();
@@ -1064,8 +1067,9 @@ namespace Grimhand.Presentation.Battle
             if (_escUiSuppressed)
             {
                 handPanel?.gameObject.SetActive(false);
-                _actionOrderBar?.gameObject.SetActive(false);
-                SetBattlefieldVisible(false);
+                // 绝不能 _actionOrderBar.gameObject.SetActive(false)：
+                // ActionOrderBar 组件挂在 BattleScreen 根上，会把整棵战斗 UI 关掉导致蓝屏。
+                _actionOrderBar?.SetVisible(false);
             }
         }
 
@@ -1074,6 +1078,12 @@ namespace Grimhand.Presentation.Battle
             if (_escUiSuppressed)
                 return false;
 
+            return ShouldShowBattleSlots();
+        }
+
+        /// <summary>战场立绘/背景是否应显示（不受 ESC HUD 抑制影响）。</summary>
+        bool ShouldShowBattleSlots()
+        {
             if (_session == null || !_session.IsExpeditionMode)
                 return true;
 
@@ -1260,7 +1270,8 @@ namespace Grimhand.Presentation.Battle
 
         void RefreshBattlefield(BattleState state, PlanningDraft draft)
         {
-            if (!ShouldShowBattlePlanningChrome())
+            // ESC 只隐藏 HUD，不隐藏立绘槽；否则关菜单后会出现空战场/蓝屏感
+            if (!ShouldShowBattleSlots())
             {
                 SetBattlefieldVisible(false);
                 ClearCombatantHoverDetails();

@@ -12,7 +12,7 @@ namespace Grimhand.Content
         public int Seed = 0;
         public int EnergyCap = 8;
         public int TurnStartEnergyRegen = 4;
-        public int HandLimit = 8;
+        public int HandLimit = 10;
         public int CardsDrawnPerTurn = 5;
         [Tooltip("敌方每回合抽牌数；0 表示与 CardsDrawnPerTurn 相同。")]
         public int EnemyCardsDrawnPerTurn;

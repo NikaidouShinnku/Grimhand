@@ -32,6 +32,7 @@ namespace Grimhand.Presentation.Battle
             StatusCatalog.DefenseDownPercent,
             StatusCatalog.DamageReduction,
             StatusCatalog.Vulnerable,
+            StatusCatalog.SpiderPoisonVulnerable,
             StatusCatalog.AttackUpPercent,
             StatusCatalog.AttackUp,
             StatusCatalog.DamageUp,

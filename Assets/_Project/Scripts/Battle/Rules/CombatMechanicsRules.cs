@@ -181,11 +181,12 @@ namespace Grimhand.Battle.Rules
             if (state == null || actor == null || !actor.IsAlive)
                 return false;
 
+            var opposing = actor.Team == TeamSide.Enemy ? TeamSide.Player : TeamSide.Enemy;
             var actorSpeed = StatusRules.GetEffectiveSpeed(state, actor);
             var foundEnemy = false;
-            foreach (var enemy in state.GetTeam(TeamSide.Enemy))
+            foreach (var enemy in state.GetTeam(opposing))
             {
-                if (!enemy.IsAlive)
+                if (enemy == null || !enemy.IsAlive)
                     continue;
 
                 foundEnemy = true;

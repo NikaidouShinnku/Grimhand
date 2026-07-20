@@ -26,6 +26,7 @@ namespace Grimhand.Expedition
             config.SkipFloorScaling = true;
             config.ManualEnemyIntentsOnly = true;
             config.VictoryOnCharacterDeathId = DummyCharacterId;
+            config.HandLimit = 10;
 
             config.Combatants.Add(new CombatantConfig
             {
@@ -105,8 +106,39 @@ namespace Grimhand.Expedition
             EnsureReplacement("char_skeleton_elite", "骷髅精英", 45, 5, MinionTraitCatalog.SkeletonEliteCardStats);
             EnsureReplacement("char_wraith_elite", "幽灵精英", 35, 8);
             EnsureReplacement("char_bat", "巨翼蝙蝠", 55, 9);
+            // 终焉召唤：强制 1 层基础 MaxHp=95（召唤 HP = 95 + 海巫MaxHp/2）
+            ForceAbyssCreatureSummonTemplate(config, 95, 4);
 
             return config;
+        }
+
+        static void ForceAbyssCreatureSummonTemplate(BattleConfig config, int maxHp, int speed)
+        {
+            var id = MinionTraitCatalog.AbyssCreatureCharacterId;
+            if (config.SummonTemplates.TryGetValue(id, out var existing) && existing != null)
+            {
+                existing.MaxHp = maxHp;
+                existing.Speed = speed;
+                existing.DisplayName = "深渊怪物";
+                existing.CharacterDefinitionId = id;
+                existing.Team = TeamSide.Enemy;
+                if (!existing.Traits.Contains(MinionTraitCatalog.AbyssCreaturePoisonOnDamage))
+                    existing.Traits.Add(MinionTraitCatalog.AbyssCreaturePoisonOnDamage);
+                return;
+            }
+
+            var unit = new CombatantConfig
+            {
+                DisplayName = "深渊怪物",
+                Team = TeamSide.Enemy,
+                Slot = FormationSlot.Middle,
+                CharacterDefinitionId = id,
+                MaxHp = maxHp,
+                Speed = speed,
+                UseSkillPool = true
+            };
+            unit.Traits.Add(MinionTraitCatalog.AbyssCreaturePoisonOnDamage);
+            config.SummonTemplates[id] = unit;
         }
     }
 }

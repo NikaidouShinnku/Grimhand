@@ -40,6 +40,7 @@ namespace Grimhand.Content
             // 女王关键卡曾出现空 Actions / 错 Type；运行时强制用代码权威定义，避免 SO 脏数据导致「完全没效果」
             GhostQueenCardCatalog.TryApplyCanonical(template);
             V09BossCardCatalog.TryApplyCanonical(template);
+            AbyssMonsterCardCatalog.TryApplyCanonical(template);
 
             return template;
         }

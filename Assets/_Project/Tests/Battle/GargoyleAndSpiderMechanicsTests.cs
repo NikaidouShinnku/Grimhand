@@ -126,10 +126,108 @@ namespace Grimhand.Battle.Tests
         {
             var state = BuildState(out var spider, out var warrior);
             spider.Traits.Add(MinionTraitCatalog.SpiderLadyPoisonVulnerability);
-            StatusRules.ApplyStatus(state, warrior, StatusCatalog.Poison, 10, -1, new List<BattleEvent>());
+            var events = new List<BattleEvent>();
 
-            var adjusted = MinionTraitRules.ApplySpiderPoisonVulnerability(state, warrior, 100);
-            Assert.AreEqual(120, adjusted);
+            StatusRules.ApplyStatus(state, warrior, StatusCatalog.Poison, 5, -1, events);
+            Assert.AreEqual(10, StatusRules.GetStatusStacks(warrior, StatusCatalog.SpiderPoisonVulnerable),
+                "5层中毒应显示10层易伤icon");
+            Assert.AreEqual(110, CombatModifierRules.ApplyIncomingDamageModifiers(warrior, 100, 0));
+
+            StatusRules.ApplyStatus(state, warrior, StatusCatalog.Poison, 5, -1, events);
+            Assert.AreEqual(20, StatusRules.GetStatusStacks(warrior, StatusCatalog.SpiderPoisonVulnerable));
+            Assert.AreEqual(120, CombatModifierRules.ApplyIncomingDamageModifiers(warrior, 100, 0));
+
+            StatusRules.RemoveAllStatus(warrior, StatusCatalog.Poison, events, state);
+            Assert.AreEqual(0, StatusRules.GetStatusStacks(warrior, StatusCatalog.SpiderPoisonVulnerable),
+                "中毒消失后易伤icon应立即消失");
+            Assert.AreEqual(100, CombatModifierRules.ApplyIncomingDamageModifiers(warrior, 100, 0));
+            Assert.AreEqual(100, MinionTraitRules.ApplySpiderPoisonVulnerability(state, warrior, 100),
+                "勿与状态易伤双重乘伤");
+        }
+
+        [Test]
+        public void ChainWraith_MirrorsDebuffToPlayersWithTwoTurnDuration()
+        {
+            var state = BuildState(out var wraith, out var warrior);
+            wraith.Id = "wraith";
+            wraith.DisplayName = "锁链怨灵";
+            wraith.CharacterDefinitionId = "char_chain_wraith";
+            wraith.Traits.Clear();
+            wraith.Traits.Add(MinionTraitCatalog.ChainWraithDebuffShare);
+
+            StatusRules.ApplyStatus(state, wraith, StatusCatalog.Slow, 3, -1, new List<BattleEvent>());
+            Assert.AreEqual(3, StatusRules.GetStatusStacks(warrior, StatusCatalog.Slow));
+            Assert.AreEqual(
+                MinionTraitCatalog.ChainWraithMirrorDebuffDurationTurns,
+                StatusRules.FindStatus(warrior, StatusCatalog.Slow)?.RemainingTurns);
+            Assert.AreEqual(-1, StatusRules.FindStatus(wraith, StatusCatalog.Slow)?.RemainingTurns);
+        }
+
+        [Test]
+        public void RatPack_BonusUsesBattleDeathCountNotAliveWindow()
+        {
+            var state = new BattleState { Config = new BattleConfig() };
+            CombatantState MakeRat(string id)
+            {
+                var rat = new CombatantState
+                {
+                    Id = id,
+                    DisplayName = id,
+                    Team = TeamSide.Enemy,
+                    CharacterDefinitionId = MinionTraitCatalog.RatCharacterId,
+                    Hp = 10,
+                    MaxHp = 10
+                };
+                rat.Traits.Add(MinionTraitCatalog.RatPackAttackOnAllyDeath);
+                StatusRules.ApplyStatus(state, rat, StatusCatalog.RatSwarmCall, 1, -1, new List<BattleEvent>());
+                state.Combatants.Add(rat);
+                return rat;
+            }
+
+            var a = MakeRat("rat_a");
+            var b = MakeRat("rat_b");
+            var c = MakeRat("rat_c");
+
+            a.Hp = 0;
+            MinionTraitRules.OnCharacterDied(state, a, new List<BattleEvent>());
+            b.Hp = 0;
+            MinionTraitRules.OnCharacterDied(state, b, new List<BattleEvent>());
+            c.Hp = 0;
+            MinionTraitRules.OnCharacterDied(state, c, new List<BattleEvent>());
+
+            Assert.AreEqual(3, state.RatDeathsThisBattle);
+            CombatantState survivor = null;
+            var cloneCount = 0;
+            foreach (var unit in state.Combatants)
+            {
+                if (!unit.IsAlive || unit.CharacterDefinitionId != MinionTraitCatalog.RatCharacterId)
+                    continue;
+                cloneCount++;
+                Assert.AreEqual(60, unit.RatPackAttackBonusPercent);
+                survivor = unit;
+            }
+
+            Assert.AreEqual(3, cloneCount);
+
+            var toKill = new List<CombatantState>();
+            foreach (var unit in state.Combatants)
+            {
+                if (unit.IsAlive
+                    && unit.CharacterDefinitionId == MinionTraitCatalog.RatCharacterId
+                    && unit.Id != survivor.Id)
+                    toKill.Add(unit);
+            }
+
+            Assert.AreEqual(2, toKill.Count);
+            foreach (var unit in toKill)
+            {
+                unit.Hp = 0;
+                MinionTraitRules.OnCharacterDied(state, unit, new List<BattleEvent>());
+            }
+
+            Assert.AreEqual(5, state.RatDeathsThisBattle);
+            Assert.IsTrue(survivor.IsAlive);
+            Assert.AreEqual(100, survivor.RatPackAttackBonusPercent);
         }
 
         [Test]
@@ -156,7 +254,87 @@ namespace Grimhand.Battle.Tests
             Assert.AreEqual(
                 MinionTraitCatalog.GargoyleTraitPercentBonus,
                 StatusRules.GetStatusStacks(gargoyle, StatusCatalog.AttackUpPercent));
+            Assert.AreEqual(1, StatusRules.FindStatus(gargoyle, StatusCatalog.AttackUpPercent)?.RemainingTurns);
             Assert.IsNull(gargoyle.FirstCardTypeThisTurn);
+
+            StatusRules.ProcessEndOfTurnDurations(state, new List<BattleEvent>());
+            Assert.AreEqual(0, StatusRules.GetStatusStacks(gargoyle, StatusCatalog.AttackUpPercent),
+                "石像鬼特性应仅持续 1 回合，回合末到期");
+        }
+
+        [Test]
+        public void SkeletonTrait_GainsArmorEveryThreeCards()
+        {
+            var state = BuildState(out var skeleton, out _);
+            skeleton.Traits.Clear();
+            skeleton.Traits.Add(MinionTraitCatalog.SkeletonCardDef);
+            skeleton.Block = 0;
+
+            for (var i = 0; i < 2; i++)
+            {
+                MinionTraitRules.OnCardResolved(state, skeleton, new CardInstanceState
+                {
+                    InstanceId = i + 1,
+                    CardType = CardType.Attack
+                }, new List<BattleEvent>());
+            }
+
+            Assert.AreEqual(0, skeleton.Block);
+            MinionTraitRules.OnCardResolved(state, skeleton, new CardInstanceState
+            {
+                InstanceId = 3,
+                CardType = CardType.Defense
+            }, new List<BattleEvent>());
+            Assert.AreEqual(MinionTraitCatalog.SkeletonArmorPerThreshold, skeleton.Block);
+            Assert.AreEqual(3, skeleton.CardsResolvedCount);
+        }
+
+        [Test]
+        public void SkeletonEliteTrait_GainsArmorAndPermanentAttackPercent()
+        {
+            var state = BuildState(out var elite, out _);
+            elite.Traits.Clear();
+            elite.Traits.Add(MinionTraitCatalog.SkeletonEliteCardStats);
+            elite.Block = 0;
+
+            for (var i = 0; i < 3; i++)
+            {
+                MinionTraitRules.OnCardResolved(state, elite, new CardInstanceState
+                {
+                    InstanceId = i + 1,
+                    CardType = CardType.Attack
+                }, new List<BattleEvent>());
+            }
+
+            Assert.AreEqual(MinionTraitCatalog.SkeletonEliteArmorPerThreshold, elite.Block);
+            Assert.AreEqual(
+                MinionTraitCatalog.SkeletonEliteAttackPercentPerThreshold,
+                StatusRules.GetStatusStacks(elite, StatusCatalog.AttackUpPercent));
+            Assert.AreEqual(-1, StatusRules.FindStatus(elite, StatusCatalog.AttackUpPercent)?.RemainingTurns);
+        }
+
+        [Test]
+        public void BatFirstHitDodge_IsFiftyPercentNotGuaranteed()
+        {
+            var state = BuildState(out var bat, out var warrior);
+            bat.Traits.Clear();
+            bat.Traits.Add(MinionTraitCatalog.BatFirstHitDodge);
+            bat.Team = TeamSide.Enemy;
+            bat.FirstHitDodgePending = true;
+            warrior.Team = TeamSide.Player;
+
+            var dodges = 0;
+            const int trials = 200;
+            for (var i = 0; i < trials; i++)
+            {
+                bat.FirstHitDodgePending = true;
+                if (MinionTraitRules.TryFirstHitDodge(state, bat, new BattleRng(i * 97 + 13), new List<BattleEvent>()))
+                    dodges++;
+            }
+
+            var rate = dodges / (float)trials;
+            Assert.Greater(rate, 0.35f, $"闪避率过低: {rate}");
+            Assert.Less(rate, 0.65f, $"闪避率过高(疑似100%): {rate}");
         }
 
         [Test]

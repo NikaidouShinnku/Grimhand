@@ -18,11 +18,12 @@ MonoBehaviour:
   Cost: 2
   CardType: 2
   Rarity: 2
-  Keywords: []
+  Keywords:
+  - slow
   Actions:
-  - Type: 3
+  - Type: 45
     Target: 0
-    Value: 0
+    Value: 1
     StatusId: slow
     Stacks: 1
     Duration: 2

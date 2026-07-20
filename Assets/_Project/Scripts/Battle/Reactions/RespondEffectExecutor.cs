@@ -11,6 +11,42 @@ namespace Grimhand.Battle.Reactions
 {
     public static class RespondEffectExecutor
     {
+        /// <summary>
+        /// 攻击结算前预注册减伤（见招拆招免疫等），保证伤害数值正确。
+        /// 反击 / 反弹等副作用仍在 Execute 中于攻击后再结算。
+        /// </summary>
+        public static void PrepareMitigation(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState card,
+            RespondTriggerContext context,
+            List<BattleEvent> events,
+            BattleRng rng)
+        {
+            if (state == null || actor == null || card == null)
+                return;
+
+            var attacker = state.GetCombatant(context.EnemyCombatantId);
+            var enemyCard = state.GetCard(context.EnemyCardInstanceId);
+            var incomingPower = RespondTriggerMatcher.EstimateIncomingPower(state, attacker, enemyCard, actor);
+
+            foreach (var action in card.Actions)
+            {
+                if (action.Condition == ReactionConditionType.None)
+                    continue;
+
+                if (!ReactionRules.MeetsRespondCondition(state, action.Condition, actor.Id,
+                        new ResolutionStep(context.EnemyCombatantId, context.EnemyCardInstanceId, 0)))
+                    continue;
+
+                if (action.Type is EffectActionType.GainBlockFromLastDamagePercent
+                    or EffectActionType.ParryImmuneAndSlowAttacker)
+                {
+                    ExecuteAction(state, actor, card, action, context, incomingPower, events, rng);
+                }
+            }
+        }
+
         public static void Execute(
             BattleState state,
             CombatantState actor,
@@ -34,6 +70,15 @@ namespace Grimhand.Battle.Reactions
                     continue;
 
                 triggered = true;
+
+                // 减伤已在攻击前 PrepareMitigation；此处跳过避免叠层
+                if (action.Type is EffectActionType.GainBlockFromLastDamagePercent
+                    or EffectActionType.ParryImmuneAndSlowAttacker)
+                {
+                    if (HasMitigationLayer(state, context.EnemyCardInstanceId, actor.Id))
+                        continue;
+                }
+
                 ExecuteAction(state, actor, card, action, context, incomingPower, events, rng);
             }
 
@@ -60,6 +105,24 @@ namespace Grimhand.Battle.Reactions
                     state.SuppressedEnemyCardInstanceIds.Add(context.EnemyCardInstanceId);
                 }
             }
+        }
+
+        static bool HasMitigationLayer(BattleState state, int enemyCardInstanceId, string targetCombatantId)
+        {
+            if (state == null
+                || enemyCardInstanceId <= 0
+                || string.IsNullOrEmpty(targetCombatantId)
+                || !state.RespondMitigationByEnemyCard.TryGetValue(enemyCardInstanceId, out var layers)
+                || layers == null)
+                return false;
+
+            foreach (var layer in layers)
+            {
+                if (layer != null && layer.TargetCombatantId == targetCombatantId)
+                    return true;
+            }
+
+            return false;
         }
 
         static void ExecuteAction(

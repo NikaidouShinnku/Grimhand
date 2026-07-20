@@ -24,6 +24,10 @@ namespace Grimhand.Battle.Reactions
         public int SlowAttackerDuration { get; set; } = 2;
         /// <summary>应对成功时锁定攻击者攻击牌的回合数（蛛网包裹等）。</summary>
         public int LockAttackerTurns { get; set; }
+        /// <summary>应对成功时清空玩家能量并禁止下回合回复（终焉守护）。</summary>
+        public bool DrainPlayerEnergyOnConsume { get; set; }
+        /// <summary>配对的攻击牌 InstanceId；0 表示任意下次受击。</summary>
+        public int PairedAttackCardInstanceId { get; set; }
     }
 
     /// <summary>敌方防御牌【应对攻击】：出牌后武装，下次受到玩家攻击时生效。</summary>
@@ -38,7 +42,9 @@ namespace Grimhand.Battle.Reactions
             string sideEffectAllyCharacterId = "",
             int slowAttackerStacks = 0,
             int slowAttackerDuration = 2,
-            int lockAttackerTurns = 0)
+            int lockAttackerTurns = 0,
+            bool drainPlayerEnergyOnConsume = false,
+            int pairedAttackCardInstanceId = 0)
         {
             if (state == null || string.IsNullOrEmpty(defenderId))
                 return;
@@ -53,7 +59,9 @@ namespace Grimhand.Battle.Reactions
                 ArmedOnTurn = state.TurnNumber,
                 SlowAttackerStacks = System.Math.Max(0, slowAttackerStacks),
                 SlowAttackerDuration = slowAttackerDuration,
-                LockAttackerTurns = System.Math.Max(0, lockAttackerTurns)
+                LockAttackerTurns = System.Math.Max(0, lockAttackerTurns),
+                DrainPlayerEnergyOnConsume = drainPlayerEnergyOnConsume,
+                PairedAttackCardInstanceId = pairedAttackCardInstanceId
             });
         }
 
@@ -90,7 +98,8 @@ namespace Grimhand.Battle.Reactions
         public static void TryArmFromEnemyCardResolve(
             BattleState state,
             CombatantState actor,
-            CardInstanceState card)
+            CardInstanceState card,
+            int pairedAttackCardInstanceId = 0)
         {
             if (state == null || actor == null || card == null || actor.Team != TeamSide.Enemy)
                 return;
@@ -112,7 +121,9 @@ namespace Grimhand.Battle.Reactions
                         action.RespondSideEffectAllyCharacterId,
                         slowStacks,
                         slowDuration,
-                        lockTurns);
+                        lockTurns,
+                        drainPlayerEnergyOnConsume: card.DefinitionId == PassiveCardMechanicsRules.FinalGuardCardId,
+                        pairedAttackCardInstanceId: pairedAttackCardInstanceId);
                     actor.RespondArmedThisTurn = true;
                     return;
                 }
@@ -185,17 +196,34 @@ namespace Grimhand.Battle.Reactions
             ref int hpDamage,
             List<BattleEvent> events,
             out int mitigatedAmount,
-            BattleRng rng = null)
+            BattleRng rng = null,
+            int sourceCardInstanceId = 0) =>
+            TryConsumeForIncomingPlayerAttack(
+                state, attacker, ref recipient, ref hpDamage, events, out mitigatedAmount, out _, rng,
+                sourceCardInstanceId);
+
+        public static bool TryConsumeForIncomingPlayerAttack(
+            BattleState state,
+            CombatantState attacker,
+            ref CombatantState recipient,
+            ref int hpDamage,
+            List<BattleEvent> events,
+            out int mitigatedAmount,
+            out DefenderRespondArm consumedArm,
+            BattleRng rng = null,
+            int sourceCardInstanceId = 0)
         {
             mitigatedAmount = 0;
+            consumedArm = null;
             if (state == null || attacker == null || recipient == null || attacker.Team != TeamSide.Player)
                 return false;
 
-            var arm = FindActiveArm(state, recipient.Id);
+            var arm = FindActiveArm(state, recipient.Id, sourceCardInstanceId);
             if (arm == null)
                 return false;
 
             arm.Consumed = true;
+            consumedArm = arm;
 
             if (arm.RedirectDoubleToRandomAlly)
             {
@@ -242,27 +270,54 @@ namespace Grimhand.Battle.Reactions
                 StatusRules.ApplyStatus(state, recipient, StatusCatalog.Invulnerable, 1, -1, events);
             }
 
+            // 铁壁牢门等副作用伤害延后到主伤害事件之后，保证演出顺序：
+            // blocking → 应对者掉血 → 囚笼掉血
+            return true;
+        }
+
+        /// <summary>主伤害事件发出后再结算应对副作用（如铁壁牢门伤囚笼）。</summary>
+        public static void ApplyConsumedSideEffects(
+            BattleState state,
+            CombatantState armOwner,
+            DefenderRespondArm arm,
+            List<BattleEvent> events,
+            BattleRng rng = null)
+        {
+            if (state == null || armOwner == null || arm == null)
+                return;
+
             if (arm.SideEffectAllyDamage > 0 && !string.IsNullOrEmpty(arm.SideEffectAllyCharacterId))
             {
-                // 必须以应对方（典狱长）为参照，才能找到同队囚笼；勿用攻击者（玩家）
                 V09BossMechanicsRules.DamageRandomAllyByCharacterId(
                     state,
-                    recipient,
+                    armOwner,
                     arm.SideEffectAllyCharacterId,
                     arm.SideEffectAllyDamage,
                     events,
                     rng);
             }
 
-            return true;
+            if (arm.DrainPlayerEnergyOnConsume)
+                PassiveCardMechanicsRules.OnFinalGuardResponded(state, events);
         }
 
-        static DefenderRespondArm FindActiveArm(BattleState state, string defenderId)
+        static DefenderRespondArm FindActiveArm(
+            BattleState state,
+            string defenderId,
+            int sourceCardInstanceId = 0)
         {
             foreach (var arm in state.DefenderRespondArms)
             {
-                if (!arm.Consumed && arm.DefenderId == defenderId)
-                    return arm;
+                if (arm == null || arm.Consumed || arm.DefenderId != defenderId)
+                    continue;
+
+                // 有配对攻击牌时，只应对该牌
+                if (arm.PairedAttackCardInstanceId > 0
+                    && sourceCardInstanceId > 0
+                    && arm.PairedAttackCardInstanceId != sourceCardInstanceId)
+                    continue;
+
+                return arm;
             }
 
             return null;

@@ -38,6 +38,8 @@ namespace Grimhand.Battle.Status
         public const string ArmorUp = "armor_up";
         public const string ArmorDown = "armor_down";
         public const string Vulnerable = "vulnerable";
+        /// <summary>蜘蛛贵妇：按玩家中毒层数同步的易伤展示/结算（每层 +1% 受伤）。</summary>
+        public const string SpiderPoisonVulnerable = "spider_poison_vulnerable";
         public const string DamageReduction = "damage_reduction";
         public const string FinalSummonPending = "final_summon_pending";
 
@@ -86,6 +88,8 @@ namespace Grimhand.Battle.Status
         // v0.9 Boss：典狱长 / 腐化海洋女神
         public const string BrandMark = "brand_mark";
         public const string RisingTide = "rising_tide";
+        /// <summary>踏潮守卫被动「浪潮」：同位置速度优势带来的攻击增伤（层数=增伤百分比）。</summary>
+        public const string WaveSurge = "wave_surge";
         public const string EbbingTide = "ebbing_tide";
         public const string TideEmpower = "tide_empower";
         public const string TideLocked = "tide_locked";
@@ -333,6 +337,13 @@ namespace Grimhand.Battle.Status
                 DefaultDuration = 2,
                 IncomingDamagePercentPerStack = 1
             };
+            map[SpiderPoisonVulnerable] = new StatusDefinition
+            {
+                Id = SpiderPoisonVulnerable,
+                DisplayName = "易伤",
+                DurationKind = StatusDurationKind.Permanent,
+                IncomingDamagePercentPerStack = 1
+            };
             map[DamageReduction] = new StatusDefinition
             {
                 Id = DamageReduction,
@@ -346,7 +357,7 @@ namespace Grimhand.Battle.Status
                 Id = FinalSummonPending,
                 DisplayName = "终焉召唤",
                 DurationKind = StatusDurationKind.Turns,
-                DefaultDuration = 2
+                DefaultDuration = 3
             };
             map[RespondStance] = new StatusDefinition
             {
@@ -523,7 +534,8 @@ namespace Grimhand.Battle.Status
             {
                 Id = BrandMark,
                 DisplayName = "烙印",
-                DurationKind = StatusDurationKind.Permanent
+                DurationKind = StatusDurationKind.Permanent,
+                // 文案见 BattleUiFormatters / KeywordCatalog：累计三层即死
             };
             map[RisingTide] = new StatusDefinition
             {
@@ -532,6 +544,13 @@ namespace Grimhand.Battle.Status
                 DurationKind = StatusDurationKind.Permanent,
                 IncomingDamageReductionPercentPerStack = 15,
                 AttackPercentBonusPerStack = 10
+            };
+            map[WaveSurge] = new StatusDefinition
+            {
+                Id = WaveSurge,
+                DisplayName = "浪潮",
+                DurationKind = StatusDurationKind.Permanent,
+                AttackPercentBonusPerStack = 1
             };
             map[EbbingTide] = new StatusDefinition
             {

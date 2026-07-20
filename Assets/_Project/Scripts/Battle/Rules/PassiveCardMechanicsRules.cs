@@ -239,7 +239,7 @@ namespace Grimhand.Battle.Rules
                 if (poisonStacks > 0)
                 {
                     StatusRules.ApplyStatus(
-                        state, target, StatusCatalog.Burn, poisonStacks, 2, events);
+                        state, target, StatusCatalog.Burn, poisonStacks, -1, events);
                 }
             }
 

@@ -1018,6 +1018,7 @@ namespace Grimhand.Battle.V091
                 OwnerCharacterId = source.OwnerCharacterId,
                 OwnerCombatantId = source.OwnerCombatantId,
                 Cost = source.Cost,
+                BaseCost = source.BaseCost != 0 || source.Cost == 0 ? source.BaseCost : source.Cost,
                 CardType = source.CardType,
                 IsUsable = source.IsUsable,
                 DisplayName = source.DisplayName,

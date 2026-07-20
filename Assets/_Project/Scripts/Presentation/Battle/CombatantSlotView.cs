@@ -160,7 +160,8 @@ namespace Grimhand.Presentation.Battle
         {
             formationSlot = slot;
             team = teamSide;
-            mirrorPortrait = mirror;
+            // 忽略 mirror 参数：原画已朝向场地中央，不镜像
+            mirrorPortrait = false;
             ApplyPortraitMirror();
             ApplyDrawOrder();
             ApplyStatusAnchorLayout();
@@ -172,6 +173,8 @@ namespace Grimhand.Presentation.Battle
         {
             if (formationSlot == 0)
                 TryInferSlotFromName();
+            // 不再按阵营默认镜像：原画已面向场地中央
+            mirrorPortrait = false;
             ApplyStatusAnchorLayout();
             ApplyPortraitMirror();
             EnsurePortraitInteraction();
@@ -208,7 +211,7 @@ namespace Grimhand.Presentation.Battle
                 else if (parent.name.Contains("Player")) team = TeamSide.Player;
             }
 
-            mirrorPortrait = team == TeamSide.Enemy;
+            mirrorPortrait = false;
         }
 
         void EnsurePortraitInteraction()
@@ -464,12 +467,8 @@ namespace Grimhand.Presentation.Battle
 
         bool ResolveMirrorPortrait()
         {
-            if (_currentUnit != null
-                && _currentVisuals != null
-                && _currentVisuals.GetPreserveOriginalFacing(_currentUnit.CharacterDefinitionId))
-                return false;
-
-            return mirrorPortrait;
+            // 立绘朝向由原画保证：玩家朝右、敌人朝左，一律不镜像。
+            return false;
         }
 
         void ApplyPortraitMirror()

@@ -82,6 +82,28 @@ namespace Grimhand.Editor
                 "好的");
         }
 
+        [MenuItem("Grimhand/Content/Bind Card Profiles")]
+        public static void BindCardProfilesMenu()
+        {
+            var catalog = AssetDatabase.LoadAssetAtPath<CharacterVisualCatalogSO>(CharCatalogPath);
+            if (catalog == null)
+            {
+                EditorUtility.DisplayDialog("卡面绑定", "未找到 CharacterVisualCatalog_Demo.asset", "好的");
+                return;
+            }
+
+            AssetDatabase.ImportAsset(
+                CardProfileArt.ProfileFolder,
+                ImportAssetOptions.ImportRecursive | ImportAssetOptions.ForceUpdate);
+            CardProfileArt.BindAllProfiles(catalog);
+            EditorUtility.SetDirty(catalog);
+            AssetDatabase.SaveAssets();
+            EditorUtility.DisplayDialog(
+                "卡面绑定",
+                "已将 card/card_profile 下全部卡面按角色绑定到视觉目录。",
+                "好的");
+        }
+
         public static void EnsureCharacterVisualCatalog()
         {
             EnsureFolder("Assets/_Project/Data");
@@ -111,6 +133,7 @@ namespace Grimhand.Editor
 
             // Boss / 特殊敌人（含 idle GIF 动画）；Upsert 不会覆盖已有玩家条目。
             MonsterContentGenerator.UpdateVisualCatalog(catalog);
+            CardProfileArt.BindAllProfiles(catalog);
 
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();
@@ -129,12 +152,13 @@ namespace Grimhand.Editor
                 IdlePortrait = LoadPortraitSprite($"{folder}/{prefix}_idle_1024.png")
             };
 
-            entry.CardProfilePortrait = LoadPortraitSprite($"card/card_profile_{prefix}.png");
+            entry.CardProfilePortrait = CardProfileArt.LoadSprite(characterId);
             entry.AttackPortrait = LoadPortraitSprite($"{folder}/{prefix}_attack_1024.png");
             entry.DefensePortrait = LoadPortraitSprite($"{folder}/{prefix}_defend_1024.png");
             entry.HitPortrait = LoadPortraitSprite($"{folder}/{prefix}_hit_1024.png");
             entry.DeathPortrait = LoadPortraitSprite($"{folder}/{prefix}_defeat_1024.png");
             entry.HitPortraitFacesRight = hitPortraitFacesRight;
+            entry.PreserveOriginalFacing = true;
             entry.IdleAnimationGifPath = $"The Grimhands Asset/{folder}/{prefix}_idle_anime.gif";
 
             if (entry.IdlePortrait == null)
@@ -176,7 +200,8 @@ namespace Grimhand.Editor
                 DefensePortrait = sprite,
                 HitPortrait = sprite,
                 DeathPortrait = sprite,
-                HitPortraitFacesRight = true
+                HitPortraitFacesRight = false,
+                PreserveOriginalFacing = true
             });
         }
 

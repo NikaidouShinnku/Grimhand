@@ -37,6 +37,7 @@ namespace Grimhand.Presentation.Camp
         Dictionary<string, CardDefinitionSO> _definitions;
 
         bool _trackingExpedition;
+        bool _trackingTrainingGround;
         bool _runEndHandled;
         ExpeditionPhase? _lastCheckpointPhase;
         int _activeMapStartLayer = 1;
@@ -100,7 +101,14 @@ namespace Grimhand.Presentation.Camp
             settingsOverlay?.Initialize(CloseSettings);
 
             campScreen?.ConfigureArt(uiIcons);
-            campScreen?.Initialize(OpenChampionCamp, OpenPortal, OpenTalentCamp, OpenMetaShop, uiIcons, ShowComingSoon);
+            campScreen?.Initialize(
+                OpenChampionCamp,
+                OpenPortal,
+                OpenTalentCamp,
+                OpenMetaShop,
+                OpenTrainingGround,
+                uiIcons,
+                ShowComingSoon);
             championCamp?.Initialize(
                 battleSetup,
                 expeditionSetup,
@@ -204,12 +212,16 @@ namespace Grimhand.Presentation.Camp
 
         void ReturnToCampFromRunEnd()
         {
+            var wasTraining = _trackingTrainingGround;
             _trackingExpedition = false;
+            _trackingTrainingGround = false;
             escMenu?.Hide();
             battleController?.ClearExpeditionAfterLeave();
             battleController.SetBattleScreenVisible(false);
             ShowCamp();
             campScreen?.RefreshAccountGold(_profile.AccountGold);
+            if (wasTraining)
+                campScreen?.ShowToast("已返回营地。");
         }
 
         void ShowBattle()
@@ -260,6 +272,19 @@ namespace Grimhand.Presentation.Camp
         {
             settingsOverlay?.Hide();
             escMenu?.Hide();
+
+            if (_trackingTrainingGround)
+            {
+                _trackingTrainingGround = false;
+                _trackingExpedition = false;
+                _runEndHandled = true;
+                _lastCheckpointPhase = null;
+                battleController?.ClearExpeditionAfterLeave();
+                battleController.SetBattleScreenVisible(false);
+                ShowCamp();
+                campScreen?.ShowToast("已离开训练场。");
+                return;
+            }
 
             var liveRun = battleController?.Session?.Expedition?.Run;
             if (_trackingExpedition && liveRun != null)
@@ -332,7 +357,9 @@ namespace Grimhand.Presentation.Camp
         }
 
         bool CanOpenEscMenu() =>
-            _trackingExpedition && battleController != null && IsBattleUiVisible();
+            (_trackingExpedition || _trackingTrainingGround)
+            && battleController != null
+            && IsBattleUiVisible();
 
         bool IsBattleUiVisible()
         {
@@ -350,8 +377,17 @@ namespace Grimhand.Presentation.Camp
             }
 
             var uiIcons = battleController?.UiIconCatalog;
-            var layer = battleController?.Session?.Expedition?.Run?.Map?.NodesCompleted + 1 ?? 1;
-            var bg = ExpeditionPathArt.ResolveBackground(uiIcons, layer);
+            Sprite bg;
+            if (_trackingTrainingGround)
+            {
+                bg = uiIcons?.TrainingGroundBackground ?? uiIcons?.CaveBackground;
+            }
+            else
+            {
+                var layer = battleController?.Session?.Expedition?.Run?.Map?.NodesCompleted + 1 ?? 1;
+                bg = ExpeditionPathArt.ResolveBackground(uiIcons, layer);
+            }
+
             FindAnyObjectByType<BattleScreenView>(FindObjectsInactive.Include)?.SetEscUiSuppressed(true);
             escMenu.Show(bg ?? uiIcons?.CaveBackground);
         }
@@ -428,6 +464,25 @@ namespace Grimhand.Presentation.Camp
             CampRosterLoadoutRules.EnsureRosterStructure(_roster);
             campScreen?.Hide();
             portalOverlay?.Show(_roster);
+        }
+
+        void OpenTrainingGround()
+        {
+            CampRosterLoadoutRules.EnsureRosterStructure(_roster);
+            if (_roster == null || !_roster.IsReadyForExpedition)
+            {
+                campScreen?.ShowToast("请先在军营配置 3 名不同角色。");
+                return;
+            }
+
+            battleController.SetCampRoster(_roster);
+            battleController.SetCampMeta(_meta);
+            ShowBattle();
+            battleController.BeginTrainingGroundFromCamp(_roster, _meta);
+            _trackingTrainingGround = true;
+            _trackingExpedition = false;
+            _runEndHandled = false;
+            _lastCheckpointPhase = ExpeditionPhase.InBattle;
         }
 
         void OnOverlayClosed()
@@ -524,6 +579,12 @@ namespace Grimhand.Presentation.Camp
 
         void OnSessionChanged()
         {
+            if (_trackingTrainingGround)
+            {
+                // 训练场结束由 BattleSession.ReturnToCampRequested 回调处理
+                return;
+            }
+
             if (!_trackingExpedition)
                 return;
 

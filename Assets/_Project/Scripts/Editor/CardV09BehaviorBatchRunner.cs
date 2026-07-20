@@ -39,12 +39,11 @@ namespace Grimhand.Editor
             "p_solar_god_wrath",
             "p_solar_blessing",
             "w_guardian",
-            "m_bat_shadow_dodge",
-            "m_queen_command",
             "l_ethereal_form",
             "l_spirit_walk",
             "v_snake_king_blessing",
             "p_sand_spear_reforge",
+            "m_gargoyle_sleep_stone",
         };
 
         public struct CardVerifyResult

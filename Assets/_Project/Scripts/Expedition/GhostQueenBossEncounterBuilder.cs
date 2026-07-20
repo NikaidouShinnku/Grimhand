@@ -76,55 +76,13 @@ namespace Grimhand.Expedition
         static CardTemplate QueenClaw() =>
             Dmg("m_queen_claw", "幽灵爪击", 1, 20, TargetReach.Any);
 
-        static CardTemplate QueenDeterrence()
-        {
-            var card = BaseCard("m_queen_deterrence", "女王的威慑", 1, CardType.Status, "slow");
-            card.Actions.Add(new EffectActionSpec
-            {
-                Type = EffectActionType.LockRandomPlayerPlaysThisTurn,
-                Target = EffectTarget.DefaultEnemy
-            });
-            return card;
-        }
+        static CardTemplate QueenDeterrence() => Grimhand.Battle.Rules.GhostQueenCardCatalog.BuildDeterrence();
 
-        static CardTemplate QueenSoulDrain()
-        {
-            var card = BaseCard("m_queen_soul_drain", "摄魂", 1, CardType.Status, "slow");
-            card.Actions.Add(new EffectActionSpec
-            {
-                Type = EffectActionType.ReducePlayerEnergyRegenNextTurn,
-                Target = EffectTarget.AllEnemies,
-                Value = 2
-            });
-            return card;
-        }
+        static CardTemplate QueenSoulDrain() => Grimhand.Battle.Rules.GhostQueenCardCatalog.BuildSoulDrain();
 
-        static CardTemplate QueenCurse()
-        {
-            var card = BaseCard("m_queen_curse", "女王的诅咒", 2, CardType.Status, "poison", "aoe");
-            card.Actions.Add(new EffectActionSpec
-            {
-                Type = EffectActionType.ApplyStatus,
-                Target = EffectTarget.AllEnemies,
-                StatusId = StatusCatalog.Poison,
-                Stacks = 3,
-                Duration = -1,
-                Reach = TargetReach.Any
-            });
-            return card;
-        }
+        static CardTemplate QueenCurse() => Grimhand.Battle.Rules.GhostQueenCardCatalog.BuildCurse();
 
-        static CardTemplate QueenCommand()
-        {
-            var card = BaseCard("m_queen_command", "女王的命令", 2, CardType.Defense, "parry");
-            card.Actions.Add(new EffectActionSpec
-            {
-                Type = EffectActionType.ArmRespondDamageRedirect,
-                Target = EffectTarget.Self,
-                Condition = ReactionConditionType.LastActionAttackOnSelf
-            });
-            return card;
-        }
+        static CardTemplate QueenCommand() => Grimhand.Battle.Rules.GhostQueenCardCatalog.BuildCommand();
 
         static CardTemplate QueenSpiritGuard()
         {

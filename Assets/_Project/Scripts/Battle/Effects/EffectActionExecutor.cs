@@ -179,7 +179,9 @@ namespace Grimhand.Battle.Effects
                 }
                 case EffectActionType.ApplyStatus:
                     if (action.Target == EffectTarget.AllEnemies)
-                        ExecuteStatusToAllEnemies(state, actor, card, action, events);
+                        ExecuteStatusToAllEnemies(state, actor, card, action, events, rng);
+                    else if (action.Target == EffectTarget.AllAllies)
+                        ExecuteStatusToAllAllies(state, actor, card, action, events, rng);
                     else if (action.Target == EffectTarget.RandomEnemies)
                         ExecuteStatusToRandomEnemies(state, actor, action, events, rng, card);
                     else if (action.Target == EffectTarget.RandomEnemy
@@ -187,12 +189,12 @@ namespace Grimhand.Battle.Effects
                     {
                         // ExecuteOne 入口已 Resolve / targetOverride，勿二次重抽随机目标
                         if (target != null)
-                            ApplyStatusWithTalents(state, actor, target, action, events, card);
+                            ApplyStatusWithTalents(state, actor, target, action, events, card, rng);
                     }
                     else if (target != null
                              && (action.Target is EffectTarget.Self or EffectTarget.LastActionActor
                                  || TargetRules.IsTargetValidForAction(state, target, action.Reach, action)))
-                        ApplyStatusWithTalents(state, actor, target, action, events, card);
+                        ApplyStatusWithTalents(state, actor, target, action, events, card, rng);
                     state.LastAction = new LastActionSnapshot(
                         actor.Id, ActionKind.Status, target?.Id ?? actor.Id, false, 0);
                     break;
@@ -256,19 +258,59 @@ namespace Grimhand.Battle.Effects
                 case EffectActionType.ReducePlayerEnergyRegenNextTurn:
                     if (action.Value > 0)
                     {
-                        state.PendingPlayerEnergyRegenPenaltyNextTurn += action.Value;
-                        events.Add(new BattleEvent(BattleEventKind.StatusApplied,
-                            $"下回合能量回复 -{action.Value}")
+                        // 扣施法者己方队伍能量：敌方怪物扣敌方预算，玩家扣玩家回复
+                        if (actor.Team == TeamSide.Enemy)
                         {
-                            CombatantId = actor.Id,
-                            Amount = action.Value
-                        });
+                            state.PendingEnemyEnergyRegenPenaltyNextTurn += action.Value;
+                            events.Add(new BattleEvent(BattleEventKind.StatusApplied,
+                                $"敌方下回合能量 -{action.Value}")
+                            {
+                                CombatantId = actor.Id,
+                                Amount = action.Value
+                            });
+                        }
+                        else
+                        {
+                            state.PendingPlayerEnergyRegenPenaltyNextTurn += action.Value;
+                            foreach (var unit in state.GetTeam(TeamSide.Player))
+                            {
+                                if (unit == null || !unit.IsAlive)
+                                    continue;
+
+                                StatusRules.ApplyStatus(
+                                    state,
+                                    unit,
+                                    StatusCatalog.SoulDrain,
+                                    Math.Max(1, action.Value),
+                                    -1,
+                                    events);
+                            }
+
+                            events.Add(new BattleEvent(BattleEventKind.StatusApplied,
+                                $"下回合能量回复 -{action.Value}")
+                            {
+                                CombatantId = actor.Id,
+                                Amount = action.Value,
+                                TargetId = StatusCatalog.SoulDrain
+                            });
+                        }
                     }
 
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
                 case EffectActionType.ArmRespondDamageRedirect:
-                    DefenderRespondArmRules.ArmRedirectDouble(state, actor.Id);
+                    // 无条件时立即武装；有应对条件时由应对结算 / TryArmFromEnemyCardResolve 武装
+                    if (action.Condition == ReactionConditionType.None)
+                    {
+                        DefenderRespondArmRules.ArmRedirectDouble(state, actor.Id);
+                        actor.RespondArmedThisTurn = true;
+                        events.Add(new BattleEvent(BattleEventKind.ReactionTriggered,
+                            $"{actor.DisplayName} 武装「伤害转嫁×2」")
+                        {
+                            CombatantId = actor.Id
+                        });
+                    }
+
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Defense, actor.Id, false, 0);
                     break;
                 case EffectActionType.SummonOrGainBlock:
@@ -440,6 +482,40 @@ namespace Grimhand.Battle.Effects
                             Amount = action.Value
                         });
                     }
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.IncreaseRandomPlayerHandCosts:
+                {
+                    var pickCount = Math.Max(0, action.Value);
+                    var bump = Math.Max(1, action.Stacks);
+                    if (pickCount > 0 && state.PlayerHand.Count > 0)
+                    {
+                        var indices = new List<int>(state.PlayerHand.Count);
+                        for (var i = 0; i < state.PlayerHand.Count; i++)
+                        {
+                            if (state.PlayerHand[i] != null && state.PlayerHand[i].IsUsable)
+                                indices.Add(i);
+                        }
+
+                        for (var n = 0; n < pickCount && indices.Count > 0; n++)
+                        {
+                            var pick = rng.NextIndex(indices.Count);
+                            var handIndex = indices[pick];
+                            indices.RemoveAt(pick);
+                            var handCard = state.PlayerHand[handIndex];
+                            if (handCard == null)
+                                continue;
+                            handCard.Cost += bump;
+                            events.Add(new BattleEvent(BattleEventKind.CardResolvedEnded,
+                                $"{handCard.DisplayName} 费用+{bump}")
+                            {
+                                CardInstanceId = handCard.InstanceId,
+                                Amount = bump
+                            });
+                        }
+                    }
+
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
                 }
@@ -684,9 +760,11 @@ namespace Grimhand.Battle.Effects
                 }
                 case EffectActionType.LockAttackCards:
                 {
-                    if (actor != null && actor.IsAlive)
-                        CardLockRules.ApplyAttackLock(actor, action.Value);
-                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    var lockTarget = target ?? actor;
+                    if (lockTarget != null && lockTarget.IsAlive)
+                        CardLockRules.ApplyAttackLock(lockTarget, Math.Max(1, action.Value));
+                    state.LastAction = new LastActionSnapshot(
+                        actor.Id, ActionKind.Status, lockTarget?.Id ?? actor.Id, false, 0);
                     break;
                 }
                 case EffectActionType.DrawCardsIfEthereal:
@@ -793,12 +871,62 @@ namespace Grimhand.Battle.Effects
                         state, actor, action.Duration >= 0 ? action.Duration : 2, events);
                     break;
                 }
+                case EffectActionType.StealAllBlockFromRandomEnemyPreferArmored:
+                {
+                    StealAllBlockFromRandomEnemyPreferArmored(state, actor, events, rng);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.StealAllBuffs:
+                {
+                    if (action.Target == EffectTarget.AllEnemies)
+                    {
+                        var enemyTeam = actor.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
+                        foreach (var enemy in state.GetTeam(enemyTeam))
+                        {
+                            if (enemy != null && enemy.IsAlive)
+                                StealAllBuffsFromTarget(state, actor, enemy, events);
+                        }
+                    }
+                    else if (target != null)
+                    {
+                        StealAllBuffsFromTarget(state, actor, target, events);
+                    }
+
+                    state.LastAction = new LastActionSnapshot(
+                        actor.Id, ActionKind.Status, target?.Id ?? actor.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.ClearAllDebuffs:
+                {
+                    StatusRules.ClearAllDebuffs(actor, events);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.DoubleAllDebuffStacksAndDuration:
+                {
+                    if (target != null)
+                        DoubleAllDebuffStacksAndDuration(target, events);
+                    state.LastAction = new LastActionSnapshot(
+                        actor.Id, ActionKind.Status, target?.Id ?? actor.Id, false, 0);
+                    break;
+                }
             }
 
             if (action.SelfDamageFlat > 0 && actor.IsAlive && !sacrificeSelfDamageAppliedEarly)
             {
-                ApplySacrificeFlatSelfDamage(
-                    state, actor, card, action, events, rng, sourceCardInstanceId);
+                if (card.Keywords.Contains("sacrifice"))
+                {
+                    ApplySacrificeFlatSelfDamage(
+                        state, actor, card, action, events, rng, sourceCardInstanceId);
+                }
+                else
+                {
+                    DamageRules.ApplyDamage(
+                        state, actor, actor, action.SelfDamageFlat, CardType.Status, events,
+                        canTriggerParry: false, isSacrificeDamage: false, rng: rng,
+                        sourceCardInstanceId: sourceCardInstanceId);
+                }
             }
         }
 
@@ -842,12 +970,15 @@ namespace Grimhand.Battle.Effects
 
             var index = rng != null ? rng.NextIndex(pool.Count) : 0;
             var victim = pool[index];
-            victim.SkipRemainingPlaysThisTurn = true;
-            events.Add(new BattleEvent(BattleEventKind.StatusApplied,
-                $"{victim.DisplayName} 被威慑，本回合后续出牌被打断")
+            // 仅锁下回合：本回合不打断已排队出牌。ApplyLock(2) 经回合开始扣减后，下回合规划/结算仍锁定。
+            StatusRules.ApplyStatus(state, victim, StatusCatalog.Deterrence, 1, 2, events);
+            CardLockRules.ApplyLock(victim, 2);
+            events.Add(new BattleEvent(BattleEventKind.ReactionTriggered,
+                $"{victim.DisplayName} 被威慑：下回合无法使用卡牌")
             {
                 CombatantId = victim.Id,
-                TargetId = actor.Id
+                TargetId = StatusCatalog.Deterrence,
+                Amount = 1
             });
         }
 
@@ -917,7 +1048,8 @@ namespace Grimhand.Battle.Effects
             CombatantState actor,
             CardInstanceState card,
             EffectActionSpec action,
-            List<BattleEvent> events)
+            List<BattleEvent> events,
+            BattleRng rng = null)
         {
             var enemyTeam = actor.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
             foreach (var targetId in PositionRules.SnapshotAliveCombatantIds(state, enemyTeam))
@@ -926,7 +1058,28 @@ namespace Grimhand.Battle.Effects
                 if (target == null || !target.IsAlive)
                     continue;
 
-                ApplyStatusWithTalents(state, actor, target, action, events, card);
+                ApplyStatusWithTalents(state, actor, target, action, events, card, rng);
+            }
+        }
+
+        static void ExecuteStatusToAllAllies(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState card,
+            EffectActionSpec action,
+            List<BattleEvent> events,
+            BattleRng rng = null)
+        {
+            if (actor == null)
+                return;
+
+            foreach (var targetId in PositionRules.SnapshotAliveCombatantIds(state, actor.Team))
+            {
+                var target = state.GetCombatant(targetId);
+                if (target == null || !target.IsAlive)
+                    continue;
+
+                ApplyStatusWithTalents(state, actor, target, action, events, card, rng);
             }
         }
 
@@ -936,8 +1089,15 @@ namespace Grimhand.Battle.Effects
             CombatantState target,
             EffectActionSpec action,
             List<BattleEvent> events,
-            CardInstanceState card = null)
+            CardInstanceState card = null,
+            BattleRng rng = null)
         {
+            if (action.ChancePercent > 0 && action.ChancePercent < 100)
+            {
+                if (rng != null && rng.NextInt(1, 100) > action.ChancePercent)
+                    return;
+            }
+
             var stacks = action.Stacks;
             if (card?.DefinitionId == PassiveCardMechanicsRules.FinalBindCardId
                 && action.StatusId == StatusCatalog.Poison)
@@ -985,7 +1145,7 @@ namespace Grimhand.Battle.Effects
         {
             var count = action.Value > 0 ? action.Value : 1;
             foreach (var target in TargetRules.PickRandomEnemies(state, actor.Team, count, rng))
-                ApplyStatusWithTalents(state, actor, target, action, events, card);
+                ApplyStatusWithTalents(state, actor, target, action, events, card, rng);
         }
 
         static void ExecuteDamage(
@@ -1009,9 +1169,8 @@ namespace Grimhand.Battle.Effects
             var repeatTimes = 1;
             if (action.RepeatPerEnemyAttackCardThisTurn > 0)
             {
-                repeatTimes = state.EnemyAttackCardsPlayedThisTurn;
-                if (card.CardType == CardType.Attack)
-                    repeatTimes += 1;
+                // 基础 1 次 + 对立队伍本回合计划中的每张攻击牌（含尚未结算）各额外 1 次
+                repeatTimes = 1 + CountOpponentAttackCardsInPlan(state, actor.Team);
                 repeatTimes = System.Math.Max(1, repeatTimes);
             }
 
@@ -1041,6 +1200,26 @@ namespace Grimhand.Battle.Effects
                         sourceCardInstanceId, isSacrificeSelfDamage);
                 }
             }
+        }
+
+        static int CountOpponentAttackCardsInPlan(BattleState state, TeamSide actorTeam)
+        {
+            if (state == null)
+                return 0;
+
+            var plan = actorTeam == TeamSide.Enemy ? state.PlayerPlan : state.EnemyPlan;
+            if (plan?.PlayQueue == null)
+                return 0;
+
+            var count = 0;
+            foreach (var cardId in plan.PlayQueue)
+            {
+                var planned = state.GetCard(cardId);
+                if (planned != null && planned.CardType == CardType.Attack)
+                    count++;
+            }
+
+            return count;
         }
 
         static void ApplySingleHit(
@@ -1137,18 +1316,85 @@ namespace Grimhand.Battle.Effects
                 return;
 
             var slot = SummonRules.FindEmptyTeamSlot(state, actor.Team);
-            if (slot.HasValue
-                && !string.IsNullOrEmpty(action.SummonCharacterId)
-                && state.Config.SummonTemplates.TryGetValue(action.SummonCharacterId, out var template))
+            if (slot.HasValue && !string.IsNullOrEmpty(action.SummonCharacterId))
             {
-                SummonRules.SpawnFromTemplate(state, template, slot.Value, events);
-                SummonRules.MergeSummonedSkillPoolIntoTeamDeck(state, template, actor.Team, rng, events);
-                return;
+                if (!state.Config.SummonTemplates.TryGetValue(action.SummonCharacterId, out var template))
+                    template = BuildSummonTemplateFallback(state, actor, action.SummonCharacterId);
+
+                if (template != null)
+                {
+                    if (!state.Config.SummonTemplates.ContainsKey(action.SummonCharacterId))
+                        state.Config.SummonTemplates[action.SummonCharacterId] = template;
+
+                    SummonRules.SpawnFromTemplate(state, template, slot.Value, events);
+                    SummonRules.MergeSummonedSkillPoolIntoTeamDeck(state, template, actor.Team, rng, events);
+                    return;
+                }
             }
 
             var blockValue = action.FallbackBlockValue;
             if (blockValue > 0)
                 DamageRules.ApplyBlock(actor, blockValue, events, state, rng);
+        }
+
+        static CombatantConfig BuildSummonTemplateFallback(
+            BattleState state,
+            CombatantState actor,
+            string characterDefinitionId)
+        {
+            if (state == null || string.IsNullOrEmpty(characterDefinitionId))
+                return null;
+
+            foreach (var unit in state.GetTeam(actor.Team))
+            {
+                if (unit == null || unit.CharacterDefinitionId != characterDefinitionId)
+                    continue;
+
+                return new CombatantConfig
+                {
+                    Id = $"template_{characterDefinitionId}",
+                    DisplayName = unit.DisplayName,
+                    Team = actor.Team,
+                    Slot = FormationSlot.Front,
+                    CharacterDefinitionId = characterDefinitionId,
+                    Level = unit.Level,
+                    MaxHp = unit.MaxHp,
+                    StartHp = unit.MaxHp,
+                    BaseAttack = unit.BaseAttack,
+                    BaseDefense = unit.BaseDefense,
+                    Speed = unit.Speed,
+                    UseSkillPool = true
+                };
+            }
+
+            foreach (var pair in state.Config.SummonTemplates)
+            {
+                if (pair.Key == characterDefinitionId && pair.Value != null)
+                    return pair.Value;
+            }
+
+            // 骷髅兵等标准召唤物：即使战斗配置未注册模板，也提供可用底稿
+            if (characterDefinitionId == MinionTraitCatalog.SkeletonCharacterId)
+            {
+                return new CombatantConfig
+                {
+                    Id = "template_char_skeleton",
+                    DisplayName = "骷髅兵",
+                    Team = actor.Team,
+                    Slot = FormationSlot.Front,
+                    CharacterDefinitionId = MinionTraitCatalog.SkeletonCharacterId,
+                    Level = 1,
+                    MaxHp = 25,
+                    StartHp = 25,
+                    BaseAttack = 0,
+                    BaseDefense = 0,
+                    Speed = 4,
+                    UseSkillPool = true,
+                    Traits = { MinionTraitCatalog.SkeletonCardDef }
+                };
+            }
+
+            return null;
         }
 
         // ===== v0.9 新增动作类型的辅助方法 =====
@@ -1248,6 +1494,114 @@ namespace Grimhand.Battle.Effects
                 Amount = existing.Stacks,
                 TargetId = statusId
             });
+        }
+
+        static void DoubleAllDebuffStacksAndDuration(CombatantState target, List<BattleEvent> events)
+        {
+            if (target == null)
+                return;
+
+            foreach (var status in target.Statuses)
+            {
+                if (status == null || status.Stacks <= 0)
+                    continue;
+                var def = StatusCatalog.Get(status.StatusId);
+                if (!StatusRules.IsDebuffDefinition(def))
+                    continue;
+
+                status.Stacks *= 2;
+                if (status.RemainingTurns > 0)
+                    status.RemainingTurns *= 2;
+
+                events.Add(new BattleEvent(BattleEventKind.StatusApplied,
+                    $"{target.DisplayName} {def.DisplayName} 层数与持续时间翻倍")
+                {
+                    CombatantId = target.Id,
+                    Amount = status.Stacks,
+                    TargetId = status.StatusId
+                });
+            }
+
+            CombatantRules.RefreshDerivedStats(target);
+        }
+
+        static void StealAllBlockFromRandomEnemyPreferArmored(
+            BattleState state,
+            CombatantState actor,
+            List<BattleEvent> events,
+            BattleRng rng)
+        {
+            if (state == null || actor == null || !actor.IsAlive)
+                return;
+
+            var enemyTeam = actor.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
+            var armored = new List<CombatantState>();
+            var all = new List<CombatantState>();
+            foreach (var enemy in state.GetTeam(enemyTeam))
+            {
+                if (enemy == null || !enemy.IsAlive)
+                    continue;
+                all.Add(enemy);
+                if (enemy.Block > 0)
+                    armored.Add(enemy);
+            }
+
+            var pool = armored.Count > 0 ? armored : all;
+            if (pool.Count == 0 || rng == null)
+                return;
+
+            var victim = pool[rng.NextIndex(pool.Count)];
+            var stolen = victim.Block;
+            if (stolen <= 0)
+                return;
+
+            victim.Block = 0;
+            DamageRules.ApplyBlock(actor, stolen, events, state, rng);
+            events.Add(new BattleEvent(BattleEventKind.StatusApplied,
+                $"{actor.DisplayName} 劫掠了 {victim.DisplayName} 的 {stolen} 护甲")
+            {
+                CombatantId = actor.Id,
+                TargetId = victim.Id,
+                Amount = stolen
+            });
+        }
+
+        static void StealAllBuffsFromTarget(
+            BattleState state,
+            CombatantState actor,
+            CombatantState victim,
+            List<BattleEvent> events)
+        {
+            if (state == null || actor == null || victim == null || !actor.IsAlive || !victim.IsAlive)
+                return;
+
+            var toSteal = new List<(string id, int stacks, int turns)>();
+            foreach (var status in victim.Statuses)
+            {
+                if (status == null || status.Stacks <= 0)
+                    continue;
+                var def = StatusCatalog.Get(status.StatusId);
+                if (!StatusRules.IsBuffDefinition(def))
+                    continue;
+                toSteal.Add((status.StatusId, status.Stacks, status.RemainingTurns));
+            }
+
+            foreach (var (id, stacks, turns) in toSteal)
+            {
+                StatusRules.RemoveAllStatus(victim, id, events);
+                StatusRules.ApplyStatus(state, actor, id, stacks, turns, events);
+            }
+
+            if (toSteal.Count > 0)
+            {
+                events.Add(new BattleEvent(BattleEventKind.StatusApplied,
+                    $"{actor.DisplayName} 偷取了 {victim.DisplayName} 的增益")
+                {
+                    CombatantId = actor.Id,
+                    TargetId = victim.Id,
+                    Amount = toSteal.Count
+                });
+            }
         }
 
         static int CountDebuffStacks(CombatantState target)

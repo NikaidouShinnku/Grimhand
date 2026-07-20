@@ -11,7 +11,35 @@ namespace Grimhand.Battle.Tests
     public sealed class BossMechanicsTests
     {
         [Test]
-        public void FindNextSummonSlot_PrefersMiddleThenBack()
+        public void FindSlotBehindSummoner_PrefersBehindKing()
+        {
+            var state = new BattleState();
+            var king = new CombatantState
+            {
+                Id = "king",
+                Team = TeamSide.Enemy,
+                Slot = FormationSlot.Front,
+                Hp = 100,
+                MaxHp = 100
+            };
+            state.Combatants.Add(king);
+
+            Assert.AreEqual(FormationSlot.Middle, SummonRules.FindSlotBehindSummoner(state, king));
+
+            state.Combatants.Add(new CombatantState
+            {
+                Id = "skull1",
+                Team = TeamSide.Enemy,
+                Slot = FormationSlot.Middle,
+                Hp = 50,
+                MaxHp = 50
+            });
+
+            Assert.AreEqual(FormationSlot.Back, SummonRules.FindSlotBehindSummoner(state, king));
+        }
+
+        [Test]
+        public void FindNextSummonSlot_PrefersFrontThenMiddleThenBack()
         {
             var state = new BattleState();
             state.Combatants.Add(new CombatantState
@@ -78,10 +106,8 @@ namespace Grimhand.Battle.Tests
         {
             var state = BuildBossBattleState();
             var king = state.GetCombatant("king");
-            StatusRules.ApplyStatus(state, king, StatusCatalog.BoneWorkshop, 1, -1, new List<BattleEvent>());
-
             var events = new List<BattleEvent>();
-            Assert.IsTrue(SummonRules.TrySummonExplosiveSkull(state, king, events));
+            StatusRules.ApplyStatus(state, king, StatusCatalog.BoneWorkshop, 1, -1, events);
 
             var skullCount = 0;
             foreach (var unit in state.Combatants)
@@ -90,8 +116,19 @@ namespace Grimhand.Battle.Tests
                     skullCount++;
             }
 
-            Assert.AreEqual(1, skullCount);
+            Assert.AreEqual(1, skullCount, "获得骨之王座时应立即召唤");
             Assert.AreEqual(FormationSlot.Middle, state.Combatants[1].Slot);
+
+            Assert.IsTrue(SummonRules.TrySummonExplosiveSkull(state, king, events));
+            skullCount = 0;
+            foreach (var unit in state.Combatants)
+            {
+                if (unit.CharacterDefinitionId == SummonRules.ExplosiveSkullCharacterId && unit.IsAlive)
+                    skullCount++;
+            }
+
+            Assert.AreEqual(2, skullCount);
+            Assert.AreEqual(FormationSlot.Back, state.Combatants[2].Slot);
         }
 
         [Test]
@@ -140,7 +177,7 @@ namespace Grimhand.Battle.Tests
                 CharacterDefinitionId = SummonRules.ExplosiveSkullCharacterId,
                 DisplayName = "易爆骷髅头",
                 Team = TeamSide.Enemy,
-                MaxHp = 50,
+                MaxHp = 20,
                 BaseAttack = 0,
                 BaseDefense = 5,
                 Speed = 2
@@ -175,7 +212,7 @@ namespace Grimhand.Battle.Tests
                 {
                     Type = EffectActionType.DealDamage,
                     Target = EffectTarget.RandomEnemy,
-                    Value = 40
+                    Value = 24
                 });
     }
 }

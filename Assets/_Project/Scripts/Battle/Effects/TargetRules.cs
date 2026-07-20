@@ -55,6 +55,9 @@ namespace Grimhand.Battle.Effects
                     if (UsesAutoReachRoll(action))
                     {
                         var rolled = PickRandomTargetForReach(state, actor.Team, reach, action, rng);
+                        if (rolled == null && reach == TargetReach.BackOnly)
+                            rolled = PickRandomTargetForReach(
+                                state, actor.Team, TargetReach.FrontAndMiddle, action, rng);
                         if (rolled != null)
                         {
                             state.ResolutionTargets[cardInstanceId] = rolled.Id;

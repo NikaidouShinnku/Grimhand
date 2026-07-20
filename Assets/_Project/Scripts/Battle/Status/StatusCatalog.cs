@@ -29,6 +29,10 @@ namespace Grimhand.Battle.Status
         public const string AttackUpPercent = "attack_up_pct";
         public const string DefenseUpPercent = "defense_up_pct";
         public const string DefenseDownPercent = "defense_down_pct";
+        public const string Invulnerable = "invulnerable";
+        public const string Deterrence = "deterrence";
+        /// <summary>摄魂：下回合玩家能量回复减少（展示用，实际扣减由 PendingPlayerEnergyRegenPenaltyNextTurn）。</summary>
+        public const string SoulDrain = "soul_drain";
         public const string DamageUp = "damage_up";
         public const string Weaken = "weaken";
         public const string ArmorUp = "armor_up";
@@ -59,11 +63,14 @@ namespace Grimhand.Battle.Status
         public const string EtherealOnNextHit = "ethereal_on_next_hit";    // 两界行者：下次受击后获虚化
         public const string PsionicBody = "psionic_body";                  // 灵能体：非战斗回合+20%增伤（占位）
         public const string SealedNextCard = "sealed_next_card";           // 灵界封印：敌方下张牌失效（占位）
+        public const string SealNextStatusCard = "seal_next_status";       // 禁用目标下一张状态牌
         public const string DespairSoulRecall = "despair_soul_recall";     // 绝望之魂：获虚化时从弃牌堆加入手牌
         public const string HandCostZero = "hand_cost_zero";               // 灵界降临：本回合手牌0费
         public const string EternalVoid = "eternal_void";                  // 永恒虚无：永久虚化，每回合受25%最大HP真伤
         public const string SnakeGodChanneling = "snake_god_channeling";   // 蛇神回应链中继标记
         public const string SnakeSwiftness = "snake_swiftness";             // 蛇之疾速：+1SPD（天赋）
+        public const string SpeedUp = "spd_up";                             // 加速：每层 +1SPD
+        public const string DebuffImmune = "debuff_immune";                 // 减益免疫（永久）
 
         // v0.91 新增卡牌状态
         public const string ThornArmor = "thorn_armor";
@@ -265,6 +272,26 @@ namespace Grimhand.Battle.Status
                 DefaultDuration = 2,
                 BlockGainReductionPercentPerStack = 1
             };
+            map[Invulnerable] = new StatusDefinition
+            {
+                Id = Invulnerable,
+                DisplayName = "隐身",
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 1
+            };
+            map[Deterrence] = new StatusDefinition
+            {
+                Id = Deterrence,
+                DisplayName = "威慑",
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 2
+            };
+            map[SoulDrain] = new StatusDefinition
+            {
+                Id = SoulDrain,
+                DisplayName = "摄魂",
+                DurationKind = StatusDurationKind.Permanent
+            };
             map[DamageUp] = new StatusDefinition
             {
                 Id = DamageUp,
@@ -441,6 +468,12 @@ namespace Grimhand.Battle.Status
                 DurationKind = StatusDurationKind.Turns,
                 DefaultDuration = 2
             };
+            map[SealNextStatusCard] = new StatusDefinition
+            {
+                Id = SealNextStatusCard,
+                DisplayName = "状态封印",
+                DurationKind = StatusDurationKind.Permanent
+            };
             map[DespairSoulRecall] = new StatusDefinition
             {
                 Id = DespairSoulRecall,
@@ -472,6 +505,19 @@ namespace Grimhand.Battle.Status
                 DisplayName = "蛇之疾速",
                 DurationKind = StatusDurationKind.Permanent,
                 SpeedModifierPerStack = 1
+            };
+            map[SpeedUp] = new StatusDefinition
+            {
+                Id = SpeedUp,
+                DisplayName = "加速",
+                DurationKind = StatusDurationKind.Permanent,
+                SpeedModifierPerStack = 1
+            };
+            map[DebuffImmune] = new StatusDefinition
+            {
+                Id = DebuffImmune,
+                DisplayName = "减益免疫",
+                DurationKind = StatusDurationKind.Permanent
             };
             map[BrandMark] = new StatusDefinition
             {

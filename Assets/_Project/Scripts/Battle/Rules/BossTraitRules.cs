@@ -26,7 +26,7 @@ namespace Grimhand.Battle.Rules
                     ApplyTurnDefenseGrowth(combatant, events);
             }
 
-            V09BossMechanicsRules.ProcessTurnStart(state, events, null);
+            V09BossMechanicsRules.ProcessTurnStart(state, events, rng);
 
             var skullSummoners = new List<CombatantState>();
             foreach (var combatant in state.Combatants)
@@ -39,7 +39,10 @@ namespace Grimhand.Battle.Rules
             }
 
             foreach (var combatant in skullSummoners)
-                SummonRules.TrySummonExplosiveSkull(state, combatant, events);
+            {
+                if (SummonRules.TrySummonExplosiveSkull(state, combatant, events))
+                    SummonRules.GrantSkullSelfDestructHands(state, events);
+            }
         }
 
         public static void TryTriggerGhostQueenEnrage(

@@ -24,13 +24,13 @@ namespace Grimhand.Content
         [Tooltip("受击图原始朝向是否朝右；展示时会按阵营翻转，使角色始终面向战场中央。")]
         public bool HitPortraitFacesRight = true;
         public Sprite DeathPortrait;
-        [Tooltip("卡面预绘半身（card/card_profile_*.png），直接覆盖椭圆区。")]
+        [Tooltip("卡面预绘半身（card/card_profile/card_profile_*.png），直接覆盖椭圆区。")]
         public Sprite CardProfilePortrait;
         public List<Sprite> IdleAnimationFrames = new();
         [Tooltip("相对 Assets/ 的 idle GIF 路径；若填写则优先于 IdleAnimationFrames 播放。")]
         public string IdleAnimationGifPath = "";
-        [Tooltip("为 true 时不镜像立绘，受击 pose 也不自动翻转。")]
-        public bool PreserveOriginalFacing;
+        [Tooltip("为 true 时不镜像立绘，受击 pose 也不自动翻转。玩家朝右、敌人朝左的原画应始终为 true。")]
+        public bool PreserveOriginalFacing = true;
         [Tooltip("相对 Boss/敌人默认缩放的额外倍率；用于立绘留白较多的 Boss。")]
         public float PortraitScaleMultiplier = 1f;
     }
@@ -39,7 +39,7 @@ namespace Grimhand.Content
     public class CharacterVisualCatalogSO : ScriptableObject
     {
         public Sprite DefaultPortrait;
-        [Tooltip("非 Boss 怪物卡面椭圆预绘图（card/card_profile_monsters.png）。")]
+        [Tooltip("已废弃：各角色请使用 Entries[].CardProfilePortrait（card/card_profile/）。")]
         public Sprite MonsterCardProfilePortrait;
         public List<CharacterVisualEntry> Entries = new();
 
@@ -71,24 +71,14 @@ namespace Grimhand.Content
             return DefaultPortrait;
         }
 
-        /// <summary>卡面立绘：玩家/Boss 用 card_profile_*；普通怪物统一用 MonsterCardProfilePortrait。</summary>
+        /// <summary>卡面立绘：优先角色专属 card_profile；否则 Idle / Default。</summary>
         public Sprite GetCardPortrait(string characterDefinitionId)
         {
             var entry = GetEntry(characterDefinitionId);
-
-            if (BossCharacterRules.IsBoss(characterDefinitionId))
-            {
-                if (entry?.CardProfilePortrait != null)
-                    return entry.CardProfilePortrait;
-                if (entry?.IdlePortrait != null)
-                    return entry.IdlePortrait;
-                return DefaultPortrait;
-            }
-
             if (entry?.CardProfilePortrait != null)
                 return entry.CardProfilePortrait;
 
-            if (MonsterCardProfilePortrait != null)
+            if (MonsterCardProfilePortrait != null && !BossCharacterRules.IsBoss(characterDefinitionId))
                 return MonsterCardProfilePortrait;
 
             if (entry?.IdlePortrait != null)
@@ -121,7 +111,8 @@ namespace Grimhand.Content
                 _ => entry.IdlePortrait
             };
 
-            if (sprite != null && !IsValidAnimationFrame(sprite))
+            // 战斗立绘：128×128 完整图可用；过小碎切片才回退 idle
+            if (sprite != null && !IsValidCombatPortrait(sprite))
                 sprite = entry.IdlePortrait;
 
             if (sprite != null && entry.IdlePortrait != null && pose != PortraitPoseKind.Idle)
@@ -145,6 +136,12 @@ namespace Grimhand.Content
             sprite != null
             && sprite.rect.width >= MinFrameWidth
             && sprite.rect.height >= MinFrameHeight;
+
+        /// <summary>战斗立绘：允许正好 128×128 的完整贴图；过小裁切片仍拒绝以免误用碎图。</summary>
+        public static bool IsValidCombatPortrait(Sprite sprite) =>
+            sprite != null
+            && sprite.rect.width >= 64f
+            && sprite.rect.height >= 64f;
 
         public static List<Sprite> FilterAnimationFrames(IEnumerable<Sprite> frames)
         {

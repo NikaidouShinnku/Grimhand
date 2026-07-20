@@ -51,7 +51,7 @@ namespace Grimhand.Content.Editor
                     FormationSlot.Middle, 45, 9, 5, 5,
                     new[] { MinionTraitCatalog.SkeletonEliteCardStats },
                     Pool(cards.EliteBoneWall, 2, cards.EliteBoneCrush, 2, cards.EliteBoneSpear, 2,
-                        cards.EliteShatterRush, 1, cards.EliteRaiseBones, 1)),
+                        cards.EliteShatterRush, 1, cards.EliteRaiseBones, 2)),
                 Wraith = SaveMonster("Character_Wraith", "char_wraith", "幽灵",
                     FormationSlot.Back, 20, 7, 1, 7,
                     new[] { MinionTraitCatalog.WraithLowHpSpeed },
@@ -59,7 +59,7 @@ namespace Grimhand.Content.Editor
                 WraithElite = SaveMonster("Character_Wraith_Elite", "char_wraith_elite", "幽灵精英",
                     FormationSlot.Back, 35, 10, 2, 8,
                     new[] { MinionTraitCatalog.WraithEliteLowHpEthereal },
-                    Pool(cards.WraithSoulStrike, 2, cards.WraithPhase, 1, cards.WraithAdvancedHex, 2,
+                    Pool(cards.EliteWraithSoulStrike, 2, cards.EliteWraithPhase, 1, cards.WraithAdvancedHex, 2,
                         cards.WraithSoulStorm, 1, cards.WraithSoulBind, 1)),
                 Ogre = SaveMonster("Character_Ogre", "char_ogre", "绿皮巨魔",
                     FormationSlot.Front, 75, 12, 8, 3,
@@ -86,7 +86,7 @@ namespace Grimhand.Content.Editor
                         (cards.KingBoneShield, 2),
                         (cards.KingWhiteStorm, 1))),
                 ExplosiveSkull = SaveBoss("Character_Explosive_Skull", "char_explosive_skull", "易爆骷髅头",
-                    FormationSlot.Middle, 50, 0, 5, 2,
+                    FormationSlot.Middle, 20, 0, 5, 2,
                     CharacterTraitCatalog.SkullSelfDestructHand,
                     BuildFixedDeck((cards.SkullExplode, 1))),
                 GhostQueen = SaveBoss("Character_Ghost_Queen", GhostQueenBossEncounterBuilder.CharacterId, "幽灵女王",
@@ -117,17 +117,23 @@ namespace Grimhand.Content.Editor
             UpsertVisual(catalog, "char_wraith", $"{ArtRoot}/wraith_idle_1024.png");
             UpsertVisual(catalog, "char_wraith_elite", $"{ArtRoot}/wraith2_idle_1024.png");
             UpsertVisual(catalog, "char_ogre", $"{ArtRoot}/green_ogre.png");
-            // 原画朝左（面向场地中央），勿镜像；略放大
+            // 略放大；朝向由原画保证，一律不翻转
             foreach (var e in catalog.Entries)
             {
                 if (e == null || e.CharacterId != "char_ogre")
                     continue;
                 e.PreserveOriginalFacing = true;
-                e.HitPortraitFacesRight = false;
                 e.PortraitScaleMultiplier = 1.55f;
                 break;
             }
             UpsertVisual(catalog, "char_bat", $"{ArtRoot}/bat_girl.png");
+            UpsertVisualFull(catalog, TrainingGroundEncounterBuilder.DummyCharacterId,
+                idle: $"{ArtRoot}/dummy/dummy_idle.png",
+                attack: $"{ArtRoot}/dummy/dummy_idle.png",
+                hit: $"{ArtRoot}/dummy/dummy_hit.png",
+                death: $"{ArtRoot}/dummy/dummy_idle.png",
+                preserveOriginalFacing: true,
+                portraitScaleMultiplier: 1.8f);
 
             var kingArt = ArtRoot + "/skeleton king";
             UpsertVisualFull(catalog, "char_skeleton_king",
@@ -138,7 +144,12 @@ namespace Grimhand.Content.Editor
                 profile: kingArt + "/skeletonking_profile.png",
                 gifPath: "The Grimhands Asset/monsters/skeleton king/skeletonking_idle_anime.gif",
                 defendUsesHit: true);
-            UpsertVisual(catalog, "char_explosive_skull", ArtRoot + "/skeletonhead_idle_1024.png");
+            UpsertVisualFull(catalog, "char_explosive_skull",
+                idle: ArtRoot + "/skeletonhead_idle_1024.png",
+                attack: ArtRoot + "/skeletonhead_idle_1024.png",
+                hit: ArtRoot + "/skeletonhead_idle_1024.png",
+                death: ArtRoot + "/skeletonhead_idle_1024.png",
+                portraitScaleMultiplier: 1f);
 
             var queenArt = ArtRoot + "/ghost queen";
             UpsertVisualFull(catalog, GhostQueenBossEncounterBuilder.CharacterId,
@@ -154,19 +165,14 @@ namespace Grimhand.Content.Editor
             UpdateDungeonVisualCatalog(catalog);
             UpdateAbyssVisualCatalog(catalog);
             UpdateBossVisualCatalog(catalog);
+            CardProfileArt.BindAllProfiles(catalog);
 
             EditorUtility.SetDirty(catalog);
         }
 
         static Sprite LoadMonsterCardProfilePortrait()
         {
-            const string path = "Assets/The Grimhands Asset/card/card_profile_monsters.png";
-            foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(path))
-            {
-                if (asset is Sprite sprite)
-                    return sprite;
-            }
-
+            // 已改为按角色单独绑定 card/card_profile/*；保留方法避免旧菜单调用报错。
             return null;
         }
 
@@ -192,6 +198,8 @@ namespace Grimhand.Content.Editor
             public CardDefinitionSO WraithPhase;
             public CardDefinitionSO WraithSoulStrike;
             public CardDefinitionSO WraithHex;
+            public CardDefinitionSO EliteWraithPhase;
+            public CardDefinitionSO EliteWraithSoulStrike;
             public CardDefinitionSO WraithAdvancedHex;
             public CardDefinitionSO WraithSoulStorm;
             public CardDefinitionSO WraithSoulBind;
@@ -229,122 +237,126 @@ namespace Grimhand.Content.Editor
             return new MonsterCards
             {
                 GoblinBite = SaveCard("g_bite", "撕咬", "char_goblin", 1, CardType.Attack, null,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 7, scaleAttack: true)),
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 7)),
                 GoblinBloodScratch = SaveCard("g_blood_scratch", "嗜血抓挠", "char_goblin", 1, CardType.Attack, null,
                     Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 4),
                     Action(EffectActionType.ApplyStatus, EffectTarget.Self, 0,
                         statusId: StatusCatalog.AttackUp, stacks: 3, duration: 1)),
                 GoblinThrow = SaveCard("g_throw", "投石", "char_goblin", 1, CardType.Attack, null,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 4, scaleAttack: true,
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 5,
                         reach: TargetReach.MiddleAndBack)),
                 SlimeShield = SaveCard("m_slime_shield", "凝胶护盾", "char_slime", 1, CardType.Defense, null,
-                    Action(EffectActionType.GainBlock, EffectTarget.Self, 0, scaleDefense: true, defenseScalePercent: 80)),
+                    Action(EffectActionType.GainBlock, EffectTarget.Self, 2)),
                 SlimeSlam = SaveCard("m_slime_slam", "黏糊撞击", "char_slime", 1, CardType.Attack, null,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 4, scaleAttack: true)),
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 4)),
                 SlimeAbsorb = SaveCard("m_slime_absorb", "吸收", "char_slime", 2, CardType.Attack, null,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 5, scaleAttack: true),
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 5),
                     Action(EffectActionType.Heal, EffectTarget.Self, 4)),
                 SlimeWrap = SaveCard("m_slime_wrap", "粘液缠绕", "char_slime", 2, CardType.Status, Kw("slow"),
                     Action(EffectActionType.ApplyStatus, EffectTarget.RandomEnemy, 0,
                         statusId: StatusCatalog.Slow, stacks: 1, duration: 2)),
                 SkeletonShield = SaveCard("m_bone_shield", "举盾", "char_skeleton", 1, CardType.Defense, null,
-                    Action(EffectActionType.GainBlock, EffectTarget.Self, 0, scaleDefense: true, defenseScalePercent: 80)),
+                    Action(EffectActionType.GainBlock, EffectTarget.Self, 2)),
                 SkeletonSlash = SaveCard("m_bone_slash", "骨剑斩", "char_skeleton", 1, CardType.Attack, null,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 6, scaleAttack: true)),
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 7)),
                 SkeletonToss = SaveCard("m_bone_toss", "投骨", "char_skeleton", 2, CardType.Attack, null,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 8, scaleAttack: true,
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 8,
                         reach: TargetReach.MiddleAndBack)),
                 SkeletonMaim = SaveCard("m_maim", "致残", "char_skeleton", 2, CardType.Status, Kw("slow"), CardRarity.Rare,
                     Action(EffectActionType.ApplyStatus, EffectTarget.RandomEnemy, 0,
                         statusId: StatusCatalog.Slow, stacks: 1, duration: 2)),
                 EliteBoneWall = SaveCard("m_bone_wall", "骨墙", "char_skeleton_elite", 1, CardType.Defense, null,
-                    Action(EffectActionType.GainBlock, EffectTarget.Self, 0, scaleDefense: true)),
+                    Action(EffectActionType.GainBlock, EffectTarget.Self, 3)),
                 EliteBoneCrush = SaveCard("m_bone_crush", "骨碎斩", "char_skeleton_elite", 1, CardType.Attack, null,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 10, scaleAttack: true)),
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 11)),
                 EliteBoneSpear = SaveCard("m_bone_spear", "投掷骨矛", "char_skeleton_elite", 1, CardType.Attack, null,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 10, scaleAttack: true,
-                        reach: TargetReach.MiddleAndBack, selfDamageFlat: 2)),
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 11,
+                        reach: TargetReach.MiddleAndBack, selfDamageFlat: 1)),
                 EliteShatterRush = SaveCard("m_shatter_rush", "碎骨突袭", "char_skeleton_elite", 2, CardType.Attack,
                     null, CardRarity.Rare,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 10, scaleAttack: true,
-                        attackScalePercent: 80, useAlternateIfTargetHasDebuff: true,
-                        alternateAttackScalePercent: 180, alternateValue: 10)),
-                EliteRaiseBones = SaveCard("m_raise_bones", "唤骨", "char_skeleton_elite", 3, CardType.Status, Kw("summon"),
-                    CardRarity.Rare,
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 10,
+                        useAlternateIfTargetHasDebuff: true, alternateValue: 16)),
+                EliteRaiseBones = SaveCard("m_raise_bones", "唤骨", "char_skeleton_elite", 3, CardType.Status,
+                    Kw("exhaust", "summon"), CardRarity.Rare,
                     Action(EffectActionType.SummonOrGainBlock, EffectTarget.Self, 0,
                         summonCharacterId: MinionTraitCatalog.SkeletonCharacterId,
-                        fallbackBlockDefenseScalePercent: 200)),
+                        fallbackBlockValue: 6)),
                 WraithArrow = SaveCard("g_arrow", "箭矢", "char_wraith", 2, CardType.Attack, null,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 8, scaleAttack: true,
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 9,
                         reach: TargetReach.Any, backRowPowerPercent: 130)),
-                WraithPhase = SaveCard("m_phase", "隐身", "char_wraith", 1, CardType.Defense, Kw("parry"),
+                WraithPhase = SaveCard("m_wraith_phase", "隐身", "char_wraith", 1, CardType.Defense, Kw("parry"),
                     Action(EffectActionType.GainBlockFromLastDamagePercent, EffectTarget.Self, 20,
                         condition: ReactionConditionType.LastActionAttackOnSelf, grantInvulnerableOnRespondArm: true)),
-                WraithSoulStrike = SaveCard("m_soul_strike", "灵魂打击", "char_wraith", 1, CardType.Attack, null,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 7, scaleAttack: true)),
+                WraithSoulStrike = SaveCard("m_wraith_soul_strike", "灵魂打击", "char_wraith", 1, CardType.Attack, null,
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 8)),
                 WraithHex = SaveCard("g_hex", "邪咒", "char_wraith", 2, CardType.Status, Kw("poison"), CardRarity.Rare,
                     Action(EffectActionType.ApplyStatus, EffectTarget.RandomEnemy, 0,
                         statusId: StatusCatalog.Poison, stacks: 5)),
+                EliteWraithPhase = SaveCard("m_phase", "隐身", "char_wraith_elite", 1, CardType.Defense, Kw("parry"),
+                    Action(EffectActionType.GainBlockFromLastDamagePercent, EffectTarget.Self, 20,
+                        condition: ReactionConditionType.LastActionAttackOnSelf, grantInvulnerableOnRespondArm: true)),
+                EliteWraithSoulStrike = SaveCard("m_soul_strike", "灵魂打击", "char_wraith_elite", 1, CardType.Attack, null,
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 10)),
                 WraithAdvancedHex = SaveCard("m_advanced_hex", "高级邪咒", "char_wraith_elite", 2, CardType.Status,
                     Kw("poison"), CardRarity.Rare,
                     Action(EffectActionType.ApplyStatus, EffectTarget.RandomEnemy, 0,
                         statusId: StatusCatalog.Poison, stacks: 10)),
                 WraithSoulStorm = SaveCard("m_soul_storm", "灵魂风暴", "char_wraith_elite", 3, CardType.Attack, Kw("aoe"),
                     CardRarity.Rare,
-                    Action(EffectActionType.DealDamage, EffectTarget.AllEnemies, 8, scaleAttack: true,
+                    Action(EffectActionType.DealDamage, EffectTarget.AllEnemies, 11,
                         reach: TargetReach.Any)),
-                WraithSoulBind = SaveCard("m_soul_bind", "灵魂束缚", "char_wraith_elite", 2, CardType.Status, Kw("slow"),
+                WraithSoulBind = SaveCard("m_soul_bind", "灵魂束缚", "char_wraith_elite", 2, CardType.Status, Kw("aoe"),
                     CardRarity.Rare,
                     Action(EffectActionType.ApplyStatus, EffectTarget.AllEnemies, 0,
                         statusId: StatusCatalog.DefenseDownPercent, stacks: 25, duration: 2, reach: TargetReach.Any)),
                 OgreHeavyPunch = SaveCard("m_ogre_heavy_punch", "重拳", "char_ogre", 1, CardType.Attack, null,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 5, scaleAttack: true, hitCount: 2)),
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 10, hitCount: 2)),
                 OgreStomp = SaveCard("m_ogre_stomp", "践踏", "char_ogre", 2, CardType.Attack, Kw("aoe"),
-                    Action(EffectActionType.DealDamage, EffectTarget.AllEnemies, 8, scaleAttack: true,
-                        attackScalePercent: 80, reach: TargetReach.Any)),
-                OgreWarCry = SaveCard("m_ogre_war_cry", "战争怒吼", "char_ogre", 2, CardType.Status, Kw("slow"), CardRarity.Rare,
+                    Action(EffectActionType.DealDamage, EffectTarget.AllEnemies, 11,
+                        reach: TargetReach.Any)),
+                OgreWarCry = SaveCard("m_ogre_war_cry", "战争怒吼", "char_ogre", 2, CardType.Status, null, CardRarity.Rare,
                     Action(EffectActionType.ApplyStatus, EffectTarget.Self, 0,
                         statusId: StatusCatalog.AttackUpPercent, stacks: 30, duration: 3)),
                 OgreComboSmash = SaveCard("m_ogre_combo_smash", "连环猛击", "char_ogre", 2, CardType.Attack, null,
                     CardRarity.Rare,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 10, scaleAttack: true,
-                        attackScalePercent: 120, alternateAttackScaleIfActorUsedAttack: 200,
-                        alternateValueIfActorUsedAttack: 15)),
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 14,
+                        alternateAttackScaleIfActorUsedAttack: 100,
+                        alternateValueIfActorUsedAttack: 23)),
                 OgreThickHide = SaveCard("m_ogre_thick_hide", "厚皮护甲", "char_ogre", 1, CardType.Defense, null,
                     CardRarity.Rare,
                     Action(EffectActionType.ApplyStatus, EffectTarget.Self, 0,
                         statusId: StatusCatalog.DefenseUpPercent, stacks: 25, duration: 2),
-                    Action(EffectActionType.GainBlock, EffectTarget.Self, 5, scaleDefense: true, defenseScalePercent: 120)),
+                    Action(EffectActionType.GainBlock, EffectTarget.Self, 9)),
                 BatClaw = SaveCard("m_bat_claw", "蝙蝠爪击", "char_bat", 1, CardType.Attack, null,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 6, scaleAttack: true)),
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 10)),
                 BatDive = SaveCard("m_bat_dive", "俯冲撕咬", "char_bat", 2, CardType.Attack, null,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 10, scaleAttack: true,
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 12,
                         reach: TargetReach.Any, lifestealUnblockedOnly: true)),
-                BatAmbush = SaveCard("m_bat_ambush", "偷袭", "char_bat", 2, CardType.Attack, Kw("parry"), CardRarity.Rare,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 10, scaleAttack: true,
-                        damageMultiplierPercentIfRespondArmed: 300)),
+                BatAmbush = SaveCard("m_bat_ambush", "偷袭", "char_bat", 2, CardType.Attack, null, CardRarity.Rare,
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 12,
+                        useAlternateIfTargetHasAnyStatus: true, alternateValue: 24)),
                 BatShadowDodge = SaveCard("m_bat_shadow_dodge", "暗影闪避", "char_bat", 2, CardType.Defense, null,
                     CardRarity.Rare,
                     Action(EffectActionType.GrantDodgeChance, EffectTarget.Self, 60)),
                 BatPoisonWing = SaveCard("m_bat_poison_wing", "淬毒翼击", "char_bat", 2, CardType.Attack, null,
                     CardRarity.Rare,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 6, scaleAttack: true),
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 10),
                     Action(EffectActionType.ApplyStatus, EffectTarget.DefaultEnemy, 0,
                         statusId: StatusCatalog.Poison, stacks: 8)),
                 BatNightSlash = SaveCard("m_bat_night_slash", "夜袭连斩", "char_bat", 3, CardType.Attack, null,
                     CardRarity.Rare,
-                    Action(EffectActionType.DealDamage, EffectTarget.RandomEnemy, 8, scaleAttack: true,
-                        attackScalePercent: 150, repeatPerEnemyAttackCardThisTurn: 1)),
+                    Action(EffectActionType.DealDamage, EffectTarget.RandomEnemy, 14,
+                        repeatPerEnemyAttackCardThisTurn: 1)),
                 KingBoneSlash = SaveCard("m_king_bone_slash", "骨王斩击", "char_skeleton_king", 1,
                     CardType.Attack, null, CardRarity.Common,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 15, scaleAttack: true)),
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 27)),
                 KingBoneRoar = SaveCard("m_king_bone_roar", "骨王怒吼", "char_skeleton_king", 1,
                     CardType.Status, Kw("slow"), CardRarity.Common,
                     Action(EffectActionType.ApplyStatus, EffectTarget.RandomEnemies, 2,
-                        statusId: StatusCatalog.Slow, stacks: 2, duration: 2)),
+                        statusId: StatusCatalog.Slow, stacks: 2, duration: 4)),
                 KingBoneSpear = SaveCard("m_king_bone_spear", "投掷骨矛", "char_skeleton_king", 1,
                     CardType.Attack, null, CardRarity.Common,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 15, scaleAttack: true,
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 27,
                         reach: TargetReach.MiddleAndBack)),
                 KingSummonWorkshop = SaveCard("m_king_summon_workshop", "召唤骨之王座", "char_skeleton_king", 3,
                     CardType.Status, Kw("exhaust", "summon"), CardRarity.Epic,
@@ -355,17 +367,17 @@ namespace Grimhand.Content.Editor
                     RespondBlock(80)),
                 KingBoneShield = SaveCard("m_king_bone_shield", "召唤骨盾", "char_skeleton_king", 2,
                     CardType.Defense, null, CardRarity.Common,
-                    DefBlockScaled(200)),
+                    Action(EffectActionType.GainBlock, EffectTarget.Self, 12)),
                 KingWhiteStorm = SaveCard("m_king_white_storm", "白骨风暴", "char_skeleton_king", 3,
                     CardType.Attack, Kw("aoe"), CardRarity.Epic,
-                    Action(EffectActionType.DealDamage, EffectTarget.AllEnemies, 12, scaleAttack: true,
+                    Action(EffectActionType.DealDamage, EffectTarget.AllEnemies, 25,
                         reach: TargetReach.Any)),
                 SkullExplode = SaveCard("m_skull_explode", "骷髅自爆", "char_explosive_skull", 0,
                     CardType.Attack, Kw("self_destruct", "bonus_hand"), CardRarity.Common,
-                    Action(EffectActionType.DealDamage, EffectTarget.RandomEnemy, 40)),
+                    Action(EffectActionType.DealDamage, EffectTarget.RandomEnemy, 24)),
                 QueenClaw = SaveCard("m_queen_claw", "幽灵爪击", GhostQueenBossEncounterBuilder.CharacterId, 1,
                     CardType.Attack, null, CardRarity.Common,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 20, scaleAttack: true,
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 23,
                         reach: TargetReach.Any)),
                 QueenDeterrence = SaveCard("m_queen_deterrence", "女王的威慑", GhostQueenBossEncounterBuilder.CharacterId, 1,
                     CardType.Status, Kw("slow"), CardRarity.Common,
@@ -376,17 +388,17 @@ namespace Grimhand.Content.Editor
                 QueenCurse = SaveCard("m_queen_curse", "女王的诅咒", GhostQueenBossEncounterBuilder.CharacterId, 2,
                     CardType.Status, Kw("poison", "aoe"), CardRarity.Common,
                     Action(EffectActionType.ApplyStatus, EffectTarget.AllEnemies, 0,
-                        statusId: StatusCatalog.Poison, stacks: 3, duration: -1, reach: TargetReach.Any)),
+                        statusId: StatusCatalog.Poison, stacks: 6, duration: -1, reach: TargetReach.Any)),
                 QueenCommand = SaveCard("m_queen_command", "女王的命令", GhostQueenBossEncounterBuilder.CharacterId, 2,
                     CardType.Defense, Kw("parry"), CardRarity.Epic,
                     Action(EffectActionType.ArmRespondDamageRedirect, EffectTarget.Self, 0,
-                        condition: ReactionConditionType.LastActionAttackOnSelf)),
+                        condition: ReactionConditionType.None)),
                 QueenSpiritGuard = SaveCard("m_queen_spirit_guard", "灵气护体", GhostQueenBossEncounterBuilder.CharacterId, 1,
                     CardType.Defense, null, CardRarity.Common,
-                    DefBlockScaled(200)),
+                    Action(EffectActionType.GainBlock, EffectTarget.Self, 10)),
                 QueenBurst = SaveCard("m_queen_burst", "幽灵爆发", GhostQueenBossEncounterBuilder.CharacterId, 4,
                     CardType.Attack, Kw("aoe"), CardRarity.Common,
-                    Action(EffectActionType.DealDamage, EffectTarget.AllEnemies, 20, scaleAttack: true,
+                    Action(EffectActionType.DealDamage, EffectTarget.AllEnemies, 27,
                         reach: TargetReach.Any)),
                 QueenWrath = SaveCard("m_queen_wrath", "幽灵女王之怒", GhostQueenBossEncounterBuilder.CharacterId, 0,
                     CardType.Status, Kw("bonus_hand"), CardRarity.Epic,
@@ -543,7 +555,7 @@ namespace Grimhand.Content.Editor
             string gifPath = null,
             string defend = null,
             bool defendUsesHit = false,
-            bool preserveOriginalFacing = false,
+            bool preserveOriginalFacing = true,
             float portraitScaleMultiplier = 1f)
         {
             var idleSprite = LoadPoseSprite(idle);
@@ -573,11 +585,11 @@ namespace Grimhand.Content.Editor
                 ? entry.HitPortrait
                 : LoadPoseSprite(defend) ?? entry.HitPortrait ?? idleSprite;
             entry.DeathPortrait = LoadPoseSprite(death) ?? idleSprite;
-            entry.CardProfilePortrait = string.IsNullOrEmpty(profile)
-                ? null
-                : LoadPoseSprite(profile);
+            // 优先统一卡面目录；无则回退到调用方传入的 profile 路径
+            entry.CardProfilePortrait = CardProfileArt.LoadSprite(characterId)
+                ?? (string.IsNullOrEmpty(profile) ? null : LoadPoseSprite(profile));
             entry.IdleAnimationGifPath = gifPath ?? "";
-            entry.PreserveOriginalFacing = preserveOriginalFacing;
+            entry.PreserveOriginalFacing = true;
             entry.PortraitScaleMultiplier = portraitScaleMultiplier <= 0f ? 1f : portraitScaleMultiplier;
         }
 
@@ -630,6 +642,10 @@ namespace Grimhand.Content.Editor
             entry.DefensePortrait = sprite;
             entry.HitPortrait = sprite;
             entry.DeathPortrait = sprite;
+            entry.PreserveOriginalFacing = true;
+            var profile = CardProfileArt.LoadSprite(characterId);
+            if (profile != null)
+                entry.CardProfilePortrait = profile;
         }
 
         /// <summary>多 Sprite 图集时取面积最大的子图（仅海渊怪绑定使用）。</summary>
@@ -732,6 +748,7 @@ namespace Grimhand.Content.Editor
             int attackScalePercent = 100,
             int defenseScalePercent = 100,
             bool useAlternateIfTargetHasDebuff = false,
+            bool useAlternateIfTargetHasAnyStatus = false,
             int alternateAttackScalePercent = 0,
             int alternateValue = 0,
             int alternateAttackScaleIfActorUsedAttack = 0,
@@ -744,7 +761,11 @@ namespace Grimhand.Content.Editor
             int fallbackBlockDefenseScalePercent = 100,
             int fallbackBlockValue = 0,
             bool grantInvulnerableOnRespondArm = false,
-            bool lifestealUnblockedOnly = false) =>
+            bool lifestealUnblockedOnly = false,
+            int chancePercent = 0,
+            bool useAlternateIfActorNotHitThisTurn = false,
+            int selfBlockAboveThreshold = 0,
+            int alternateValueIfSelfBlockAbove = 0) =>
             new()
             {
                 Type = type,
@@ -761,6 +782,7 @@ namespace Grimhand.Content.Editor
                 AttackScalePercent = attackScalePercent,
                 DefenseScalePercent = defenseScalePercent,
                 UseAlternateIfTargetHasDebuff = useAlternateIfTargetHasDebuff,
+                UseAlternateIfTargetHasAnyStatus = useAlternateIfTargetHasAnyStatus,
                 AlternateAttackScalePercent = alternateAttackScalePercent,
                 AlternateValue = alternateValue,
                 AlternateAttackScaleIfActorUsedAttack = alternateAttackScaleIfActorUsedAttack,
@@ -773,7 +795,11 @@ namespace Grimhand.Content.Editor
                 FallbackBlockDefenseScalePercent = fallbackBlockDefenseScalePercent,
                 FallbackBlockValue = fallbackBlockValue,
                 GrantInvulnerableOnRespondArm = grantInvulnerableOnRespondArm,
-                LifestealUnblockedOnly = lifestealUnblockedOnly
+                LifestealUnblockedOnly = lifestealUnblockedOnly,
+                ChancePercent = chancePercent,
+                UseAlternateIfActorNotHitThisTurn = useAlternateIfActorNotHitThisTurn,
+                SelfBlockAboveThreshold = selfBlockAboveThreshold,
+                AlternateValueIfSelfBlockAbove = alternateValueIfSelfBlockAbove
             };
 
         static string[] Kw(params string[] ids) => ids;

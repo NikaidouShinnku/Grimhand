@@ -186,6 +186,41 @@ namespace Grimhand.Presentation.Battle
             StartExpeditionBattle();
         }
 
+        public void BeginTrainingGround(CampRosterState roster, CampMetaState meta = null)
+        {
+            if (ExpeditionSetup == null)
+            {
+                Debug.LogError("训练场需要 Expedition Setup（卡牌池）。");
+                RestartBattle();
+                return;
+            }
+
+            if (roster == null || !roster.IsReadyForExpedition)
+            {
+                Debug.LogError("训练场需要军营配置 3 名角色。");
+                RestartBattle();
+                return;
+            }
+
+            _campRoster = roster;
+            if (meta != null)
+                _campMeta = meta;
+
+            var config = BuildExpeditionConfig();
+            var baseline = config.CombatEncounters.Count > 0 ? config.CombatEncounters[0] : null;
+            Expedition = new ExpeditionEngine(config);
+            Expedition.StartTrainingGround(
+                _campRoster,
+                _campMeta ?? CampMetaState.CreateDefaultDemo(),
+                baseline);
+            _log.Clear();
+            _turnLog.Reset();
+            _battleEndHandled = false;
+            Engine = null;
+            AddLog("训练场 — 使用军营携带卡组对战假人");
+            StartExpeditionBattle();
+        }
+
         public void RestartBattle()
         {
             Expedition = null;
@@ -281,6 +316,142 @@ namespace Grimhand.Presentation.Battle
 
             DrainEvents();
             return true;
+        }
+
+        /// <summary>训练场：将卡牌按序追加到假人意图队列。</summary>
+        public bool TryEnqueueDummyIntent(CardTemplate template)
+        {
+            if (Engine == null || template == null || !CanInteractWithBattle())
+                return false;
+
+            if (Expedition?.Run?.IsTrainingGround != true)
+                return false;
+
+            var instance = Engine.EnqueueEnemyIntentCard(template);
+            if (instance == null)
+                return false;
+
+            DrainEvents();
+            return true;
+        }
+
+        /// <summary>训练场：向前/中/后空位追加一只敌方怪物；三排已满则失败。</summary>
+        public bool TrySpawnTrainingMonster(CombatantConfig template, out string failReason)
+        {
+            failReason = null;
+            if (Engine == null || template == null || !CanInteractWithBattle())
+            {
+                failReason = "当前无法操作";
+                return false;
+            }
+
+            if (Expedition?.Run?.IsTrainingGround != true)
+            {
+                failReason = "仅训练场可用";
+                return false;
+            }
+
+            var state = Engine.State;
+            var slot = SummonRules.FindEmptyTeamSlot(state, TeamSide.Enemy);
+            if (slot == null)
+            {
+                failReason = "敌方队伍已满（前/中/后）";
+                return false;
+            }
+
+            var clone = ExpeditionBattleConfigBuilder.CloneCombatantConfigPublic(template);
+            clone.Team = TeamSide.Enemy;
+            clone.Slot = slot.Value;
+
+            // 召唤类卡所需模板一并挂上
+            if (!string.IsNullOrEmpty(clone.CharacterDefinitionId)
+                && !state.Config.SummonTemplates.ContainsKey(clone.CharacterDefinitionId))
+                state.Config.SummonTemplates[clone.CharacterDefinitionId] = clone;
+
+            EnsureTrainingSummonTemplates(state.Config);
+
+            var events = new System.Collections.Generic.List<BattleEvent>();
+            SummonRules.SpawnFromTemplate(state, clone, slot.Value, events);
+            Engine.EmitExternalEvents(events);
+
+            DrainEvents();
+            AddLog($"训练场加入敌方：{clone.DisplayName}（{slot.Value}）");
+            return true;
+        }
+
+        static void EnsureTrainingSummonTemplates(BattleConfig config)
+        {
+            if (config == null)
+                return;
+
+            if (!config.SummonTemplates.ContainsKey("char_spider_lady"))
+            {
+                var spider = new CombatantConfig
+                {
+                    DisplayName = "蜘蛛贵妇",
+                    Team = TeamSide.Enemy,
+                    Slot = FormationSlot.Back,
+                    CharacterDefinitionId = "char_spider_lady",
+                    MaxHp = 60,
+                    BaseAttack = 9,
+                    BaseDefense = 4,
+                    Speed = 7,
+                    UseSkillPool = true
+                };
+                spider.Traits.Add(MinionTraitCatalog.SpiderLadyPoisonVulnerability);
+                config.SummonTemplates["char_spider_lady"] = spider;
+            }
+
+            if (!config.SummonTemplates.ContainsKey(CharacterTraitCatalog.PrisonCageCharacterId))
+            {
+                var cage = new CombatantConfig
+                {
+                    DisplayName = "囚笼",
+                    Team = TeamSide.Enemy,
+                    Slot = FormationSlot.Middle,
+                    CharacterDefinitionId = CharacterTraitCatalog.PrisonCageCharacterId,
+                    MaxHp = 150,
+                    BaseAttack = 0,
+                    BaseDefense = 5,
+                    Speed = 5
+                };
+                cage.Traits.Add(CharacterTraitCatalog.PrisonCage);
+                config.SummonTemplates[CharacterTraitCatalog.PrisonCageCharacterId] = cage;
+            }
+
+            if (!config.SummonTemplates.ContainsKey(SummonRules.ExplosiveSkullCharacterId))
+                config.SummonTemplates[SummonRules.ExplosiveSkullCharacterId] =
+                    SummonRules.CreateDefaultExplosiveSkullTemplate();
+
+            EnsureCageReplacementTemplates(config);
+        }
+
+        /// <summary>囚笼死亡替换：骷髅精英 / 幽灵精英 / 巨翼蝙蝠（等概率）。</summary>
+        static void EnsureCageReplacementTemplates(BattleConfig config)
+        {
+            void Ensure(string id, string name, int hp, int spd, string trait = null)
+            {
+                if (config.SummonTemplates.ContainsKey(id))
+                    return;
+
+                var unit = new CombatantConfig
+                {
+                    DisplayName = name,
+                    Team = TeamSide.Enemy,
+                    Slot = FormationSlot.Middle,
+                    CharacterDefinitionId = id,
+                    MaxHp = hp,
+                    Speed = spd,
+                    UseSkillPool = true
+                };
+                if (!string.IsNullOrEmpty(trait))
+                    unit.Traits.Add(trait);
+                config.SummonTemplates[id] = unit;
+            }
+
+            Ensure("char_skeleton_elite", "骷髅精英", 45, 5, MinionTraitCatalog.SkeletonEliteCardStats);
+            Ensure("char_wraith_elite", "幽灵精英", 35, 8);
+            Ensure("char_bat", "巨翼蝙蝠", 55, 9);
         }
 
         public bool CommitPlan()
@@ -1090,6 +1261,16 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             _battleEndHandled = true;
+
+            if (Expedition.Run.IsTrainingGround)
+            {
+                var won = state.Outcome == BattleOutcome.PlayerVictory;
+                AddLog(won ? "训练结束 — 假人已被击破" : "训练结束");
+                NotifyChanged();
+                ReturnToCampRequested?.Invoke();
+                return;
+            }
+
             Expedition.OnBattleFinished(state);
 
             switch (Expedition.Run.Phase)

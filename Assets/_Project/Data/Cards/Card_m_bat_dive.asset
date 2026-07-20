@@ -57,7 +57,8 @@ MonoBehaviour:
     FallbackBlockValue: 0
     SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
-    LifestealUnblockedOnly: 0
+    LifestealUnblockedOnly: 1
+
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

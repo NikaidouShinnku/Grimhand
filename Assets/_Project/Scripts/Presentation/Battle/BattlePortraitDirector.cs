@@ -17,6 +17,7 @@ namespace Grimhand.Presentation.Battle
         const float PostActionPause = 0.15f;
         const float AttackWindUpDuration = 0.18f;
         const float ParryCounterDuration = 0.85f;
+        const float SameTargetMultiHitGap = 0.28f;
 
         BattleSession _session;
         BattleScreenView _screen;
@@ -180,7 +181,16 @@ namespace Grimhand.Presentation.Battle
                         case BattleEventKind.DamageApplied:
                             card?.MarkDamage();
                             var (damageWave, waveGaps, waveEnd) = CollectActorDamageWave(events, i);
-                            if (damageWave.Count > 1)
+                            if (damageWave.Count > 1 && IsSameTargetMultiHit(damageWave))
+                            {
+                                for (var hit = 0; hit < damageWave.Count; hit++)
+                                {
+                                    yield return HandleDamage(damageWave[hit], card);
+                                    if (hit < damageWave.Count - 1)
+                                        yield return new WaitForSeconds(SameTargetMultiHitGap);
+                                }
+                            }
+                            else if (damageWave.Count > 1)
                                 yield return HandleDamageBatch(damageWave, card);
                             else
                                 yield return HandleDamage(damageWave[0], card);
@@ -200,6 +210,9 @@ namespace Grimhand.Presentation.Battle
                             break;
                         case BattleEventKind.CharacterRevived:
                             yield return HandleRevive(e);
+                            break;
+                        case BattleEventKind.CombatantSpawned:
+                            yield return HandleCombatantSpawned(e);
                             break;
                         case BattleEventKind.PortraitIdleRestored:
                             if (card != null && card.ActorId == e.CombatantId)
@@ -412,6 +425,21 @@ namespace Grimhand.Presentation.Battle
             ApplyEventDisplayCheckpoint(e);
         }
 
+        IEnumerator HandleCombatantSpawned(BattleEvent e)
+        {
+            var state = _session?.Engine?.State;
+            var unit = state != null && !string.IsNullOrEmpty(e.CombatantId)
+                ? state.GetCombatant(e.CombatantId)
+                : null;
+            if (unit != null)
+                _session.PresentationSnapshot?.RegisterSpawnedCombatant(unit, state);
+
+            _screen?.InvalidateAllEnemyHpBarLayouts();
+            _screen?.Refresh();
+            RebuildLookup();
+            yield return null;
+        }
+
         void HandleStatusRemoved(BattleEvent e)
         {
             RevealFootStatusRemoved(e);
@@ -593,9 +621,14 @@ namespace Grimhand.Presentation.Battle
             var retainCardPose = card != null && card.ActorId == e.TargetId;
             var blocked = e.BlockedAmount > 0;
             var hpDamage = e.Amount;
-            var respondDefense = e.HadRespondDefense || e.RespondMitigatedAmount > 0;
-            var useDefensePose = respondDefense && !retainCardPose;
+            var hasDedicatedBlocker = !string.IsNullOrEmpty(e.RespondBlockerId);
+            var respondDefenseOnTarget = !hasDedicatedBlocker
+                                         && (e.HadRespondDefense || e.RespondMitigatedAmount > 0);
+            var useDefensePose = respondDefenseOnTarget && !retainCardPose;
             var useHitPose = !retainCardPose && !useDefensePose;
+
+            if (hasDedicatedBlocker)
+                yield return PlayRespondBlockPresentation(e.RespondBlockerId);
 
             if (hpDamage <= 0 && IsDodgeEvent(e))
                 target.ShowDodgeNumber();
@@ -649,6 +682,21 @@ namespace Grimhand.Presentation.Battle
             ApplyEventDisplayCheckpoint(e);
         }
 
+        IEnumerator PlayRespondBlockPresentation(string blockerId)
+        {
+            if (string.IsNullOrEmpty(blockerId) || !IsCombatantPresentationActive(blockerId))
+                yield break;
+
+            if (!_portraits.TryGetValue(blockerId, out var blocker) || blocker == null)
+                yield break;
+
+            GameAudioService.Instance.PlayBattleBlocking();
+            var blockingSprite = _effects?.Blocking;
+            if (blockingSprite != null)
+                blocker.StartCoroutine(blocker.PlayOverlayEffect(blockingSprite));
+            yield return blocker.PlayInPlacePose(PortraitPoseKind.Defense, DefenseReactDuration);
+        }
+
         IEnumerator HandleDamageWaveGap(BattleEvent e)
         {
             switch (e.Kind)
@@ -668,6 +716,9 @@ namespace Grimhand.Presentation.Battle
                     break;
                 case BattleEventKind.StatusApplied:
                     yield return HandleStatusApplied(e);
+                    break;
+                case BattleEventKind.CombatantSpawned:
+                    yield return HandleCombatantSpawned(e);
                     break;
                 case BattleEventKind.StatusRemoved:
                     HandleStatusRemoved(e);
@@ -710,6 +761,24 @@ namespace Grimhand.Presentation.Battle
             }
 
             return (batch, gaps, lastConsumed);
+        }
+
+        static bool IsSameTargetMultiHit(IReadOnlyList<BattleEvent> batch)
+        {
+            if (batch == null || batch.Count < 2)
+                return false;
+
+            var targetId = batch[0].TargetId;
+            if (string.IsNullOrEmpty(targetId))
+                return false;
+
+            for (var i = 1; i < batch.Count; i++)
+            {
+                if (batch[i].TargetId != targetId)
+                    return false;
+            }
+
+            return true;
         }
 
         static bool IsDamageWaveGapEvent(BattleEventKind kind, bool aoeWave)

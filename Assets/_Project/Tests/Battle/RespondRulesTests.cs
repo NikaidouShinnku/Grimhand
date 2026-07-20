@@ -319,6 +319,67 @@ namespace Grimhand.Battle.Tests
             Assert.AreEqual(aoeId, schedule[2].Step.CardInstanceId);
         }
 
+        [Test]
+        public void EnemyRespond_InterceptsBeforeMatchingPlayerAttack()
+        {
+            var state = new BattleState();
+            var knight = Unit("knight", TeamSide.Player, FormationSlot.Front, hp: 40, speed: 8);
+            var wraith = Unit("wraith", TeamSide.Enemy, FormationSlot.Front, hp: 50, speed: 3);
+            state.Combatants.Add(knight);
+            state.Combatants.Add(wraith);
+
+            var phaseId = 1;
+            var phase = new CardInstanceState
+            {
+                InstanceId = phaseId,
+                DefinitionId = "m_wraith_phase",
+                DisplayName = "隐身",
+                CardType = CardType.Defense,
+                OwnerCharacterId = wraith.CharacterDefinitionId
+            };
+            phase.Keywords.Add("parry");
+            phase.Actions.Add(new EffectActionSpec
+            {
+                Type = EffectActionType.GainBlockFromLastDamagePercent,
+                Target = EffectTarget.Self,
+                Value = 20,
+                Condition = ReactionConditionType.LastActionAttackOnSelf,
+                GrantInvulnerableOnRespondArm = true
+            });
+            state.CardsById[phaseId] = phase;
+
+            var attackId = 2;
+            var attack = new CardInstanceState
+            {
+                InstanceId = attackId,
+                DisplayName = "斩击",
+                CardType = CardType.Attack,
+                OwnerCharacterId = knight.CharacterDefinitionId
+            };
+            attack.Actions.Add(new EffectActionSpec
+            {
+                Type = EffectActionType.DealDamage,
+                Target = EffectTarget.DefaultEnemy,
+                Value = 10
+            });
+            state.CardsById[attackId] = attack;
+            state.ResolutionTargets[attackId] = wraith.Id;
+
+            state.PlayerPlan.PlayQueue.Add(attackId);
+            state.EnemyPlan.PlayQueue.Add(phaseId);
+
+            var schedule = RespondResolutionPlanner.BuildSchedule(
+                state,
+                SpeedResolver.BuildResolutionOrder(
+                    state, state.PlayerPlan, state.EnemyPlan, new BattleRng(1)));
+
+            Assert.AreEqual(2, schedule.Count);
+            Assert.AreEqual(phaseId, schedule[0].Step.CardInstanceId);
+            Assert.IsTrue(schedule[0].RespondContext.HasValue);
+            Assert.AreEqual(attackId, schedule[0].RespondContext.Value.EnemyCardInstanceId);
+            Assert.AreEqual(attackId, schedule[1].Step.CardInstanceId);
+        }
+
         static BattleState BuildStateWithCards(
             out CombatantState knight,
             out CombatantState goblin,

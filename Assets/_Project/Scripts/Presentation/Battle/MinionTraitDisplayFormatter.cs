@@ -16,12 +16,6 @@ namespace Grimhand.Presentation.Battle
             if (!string.IsNullOrEmpty(bloodRage))
                 lines.Add(bloodRage);
 
-            if (combatant.GargoyleStanceAttackBonus > 0)
-                lines.Add($"石像鬼 +{combatant.GargoyleStanceAttackBonus} 攻击");
-
-            if (combatant.GargoyleStanceDefenseBonus > 0)
-                lines.Add($"石像鬼 +{combatant.GargoyleStanceDefenseBonus} 防御");
-
             if (combatant.RatPackAttackBonusPercent > 0)
                 lines.Add($"鼠群狂怒 +{combatant.RatPackAttackBonusPercent}% 攻击");
 

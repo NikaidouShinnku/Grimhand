@@ -478,11 +478,11 @@ namespace Grimhand.Presentation.Battle
                 case EffectActionType.ApplyAnubisAvatar:
                     return prefix + "本场战斗生命上限、攻击、防御 +50%\n接下来 2 回合无法出牌";
                 case EffectActionType.LockRandomPlayerPlaysThisTurn:
-                    return prefix + "随机使一名敌人本回合无法继续出牌";
+                    return prefix + "使随机一名敌人下回合无法使用卡牌";
                 case EffectActionType.ReducePlayerEnergyRegenNextTurn:
                     return prefix + $"下回合玩家能量回复 -{action.Value}";
                 case EffectActionType.ArmRespondDamageRedirect:
-                    return prefix + "将所受伤害×2并转嫁给随机一名队友";
+                    return prefix + "应对成功时格挡，并将所受伤害×2转嫁给随机一名队友";
                 default:
                     return "";
             }
@@ -516,6 +516,10 @@ namespace Grimhand.Presentation.Battle
                     return "后排队友";
                 case EffectTarget.RandomEnemy:
                     return "随机敌人";
+                case EffectTarget.AllEnemies:
+                    return type == EffectActionType.DealDamage ? "全体敌人" : "所有敌人";
+                case EffectTarget.AllAllies:
+                    return "所有友方";
                 default:
                     return "";
             }
@@ -900,11 +904,11 @@ namespace Grimhand.Presentation.Battle
                 case EffectActionType.SwapPositionWithFrontAlly:
                     return prefix + "与前排队友换位";
                 case EffectActionType.LockRandomPlayerPlaysThisTurn:
-                    return prefix + "随机打断一名敌人";
+                    return prefix + "下回合无法出牌";
                 case EffectActionType.ReducePlayerEnergyRegenNextTurn:
                     return prefix + $"下回合能量-{action.Value}";
                 case EffectActionType.ArmRespondDamageRedirect:
-                    return prefix + "伤害×2转嫁";
+                    return prefix + "格挡并转嫁×2";
                 default:
                     return "";
             }
@@ -1132,23 +1136,26 @@ namespace Grimhand.Presentation.Battle
                         $"造成的伤害减少 {status.Stacks}%（每层 -1%）",
                         status, def);
                 case StatusCatalog.DefenseUp:
+                case StatusCatalog.ArmorUp:
                     return AppendStatusDurationLine(
-                        $"获得护甲 +{status.Stacks * (def?.BlockGainFlatPerStack ?? 1)}（每层 +{def?.BlockGainFlatPerStack ?? 1}）",
+                        $"强固：获得护甲每层 +{def?.BlockGainFlatPerStack ?? 1}",
                         status, def);
                 case StatusCatalog.DefenseUpPercent:
                     return AppendStatusDurationLine(
-                        $"防御属性 +{status.Stacks * (def?.DefensePercentBonusPerStack ?? 1)}%（每层 +{def?.DefensePercentBonusPerStack ?? 1}%）",
+                        $"强固：获得护甲 +{status.Stacks * (def?.DefensePercentBonusPerStack ?? 1)}%（每层 +{def?.DefensePercentBonusPerStack ?? 1}%）",
                         status, def);
-                case StatusCatalog.ArmorUp:
-                    return $"获得护甲每层 +{def?.BlockGainFlatPerStack ?? 1}";
                 case StatusCatalog.Guard:
                     return "本回合队友受到的伤害转移给自身，并减伤 50%";
                 case StatusCatalog.Ethereal:
                     return "受到的攻击伤害最多造成 1 点";
+                case StatusCatalog.Invulnerable:
+                    return "本回合剩余时间内不会受到伤害";
+                case StatusCatalog.Deterrence:
+                    return "下回合无法使用卡牌";
                 case StatusCatalog.DefenseDownPercent:
                 case StatusCatalog.ArmorDown:
                     return AppendStatusDurationLine(
-                        $"获得护甲减少 {status.Stacks * (def?.BlockGainReductionPercentPerStack ?? 1)}%（每层 -{def?.BlockGainReductionPercentPerStack ?? 1}%）",
+                        $"破损：获得护甲减少 {status.Stacks * (def?.BlockGainReductionPercentPerStack ?? 1)}%（每层 -{def?.BlockGainReductionPercentPerStack ?? 1}%）",
                         status, def);
                 case StatusCatalog.RisingTide:
                     return AppendStatusDurationLine(

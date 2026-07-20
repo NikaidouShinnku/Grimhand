@@ -44,7 +44,7 @@ MonoBehaviour:
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0
-    HitCount: 1
+    HitCount: 2
     AlternateAttackScalePercent: 0
     AlternateValue: 0
     UseAlternateIfTargetHasDebuff: 0

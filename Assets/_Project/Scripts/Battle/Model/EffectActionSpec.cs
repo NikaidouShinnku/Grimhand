@@ -71,6 +71,9 @@ namespace Grimhand.Battle.Model
         /// <summary>为 true 时，目标有负面状态则改用 Alternate* 字段计算威力。</summary>
         public bool UseAlternateIfTargetHasDebuff { get; set; }
 
+        /// <summary>为 true 时，目标拥有任意状态则改用 Alternate* 字段计算威力。</summary>
+        public bool UseAlternateIfTargetHasAnyStatus { get; set; }
+
         /// <summary>本回合已出过攻击牌时改用的 ATK 缩放。</summary>
         public int AlternateAttackScaleIfActorUsedAttack { get; set; }
 
@@ -121,6 +124,18 @@ namespace Grimhand.Battle.Model
         public int RespondSideEffectAllyDamage { get; set; }
         public string RespondSideEffectAllyCharacterId { get; set; } = "";
 
+        /// <summary>施加状态成功概率（1-100）。≤0 视为 100%。</summary>
+        public int ChancePercent { get; set; }
+
+        /// <summary>施法者本回合未受击时改用 AlternateValue（山崩地裂）。</summary>
+        public bool UseAlternateIfActorNotHitThisTurn { get; set; }
+
+        /// <summary>自身护甲大于此阈值时改用 AlternateValueIfSelfBlockAbove；0 表示禁用。</summary>
+        public int SelfBlockAboveThreshold { get; set; }
+
+        /// <summary>自身护甲高于阈值时的固定伤害。</summary>
+        public int AlternateValueIfSelfBlockAbove { get; set; }
+
         public static EffectActionSpec Clone(EffectActionSpec source)
         {
             if (source == null)
@@ -157,6 +172,7 @@ namespace Grimhand.Battle.Model
                 AlternateAttackScalePercent = source.AlternateAttackScalePercent,
                 AlternateValue = source.AlternateValue,
                 UseAlternateIfTargetHasDebuff = source.UseAlternateIfTargetHasDebuff,
+                UseAlternateIfTargetHasAnyStatus = source.UseAlternateIfTargetHasAnyStatus,
                 AlternateAttackScaleIfActorUsedAttack = source.AlternateAttackScaleIfActorUsedAttack,
                 AlternateValueIfActorUsedAttack = source.AlternateValueIfActorUsedAttack,
                 DamageMultiplierPercentIfRespondArmed = source.DamageMultiplierPercentIfRespondArmed,
@@ -174,7 +190,11 @@ namespace Grimhand.Battle.Model
                 CostReduction = source.CostReduction,
                 RepeatPerStatusId = source.RepeatPerStatusId,
                 RespondSideEffectAllyDamage = source.RespondSideEffectAllyDamage,
-                RespondSideEffectAllyCharacterId = source.RespondSideEffectAllyCharacterId
+                RespondSideEffectAllyCharacterId = source.RespondSideEffectAllyCharacterId,
+                ChancePercent = source.ChancePercent,
+                UseAlternateIfActorNotHitThisTurn = source.UseAlternateIfActorNotHitThisTurn,
+                SelfBlockAboveThreshold = source.SelfBlockAboveThreshold,
+                AlternateValueIfSelfBlockAbove = source.AlternateValueIfSelfBlockAbove
             };
         }
     }

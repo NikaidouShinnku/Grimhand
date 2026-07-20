@@ -473,17 +473,8 @@ namespace Grimhand.Presentation.Battle
             if (portraitImage == null || _visuals == null)
                 return;
 
+            // 玩家朝右、敌人朝左由原画决定，受击等 pose 也不再水平翻转
             _poseFlipX = false;
-            if (pose == PortraitPoseKind.Hit
-                && faceCenter
-                && _visuals != null
-                && !_visuals.GetPreserveOriginalFacing(_characterDefinitionId))
-            {
-                var facesRight = _visuals.GetHitPortraitFacesRight(_characterDefinitionId);
-                var shouldFaceCenterFromRight = _team == TeamSide.Player;
-                _poseFlipX = facesRight != shouldFaceCenterFromRight;
-            }
-
             ApplyPortraitSprite(_visuals.GetPoseSprite(_characterDefinitionId, pose));
             portraitImage.color = _isDead ? DeadTint : Color.white;
         }

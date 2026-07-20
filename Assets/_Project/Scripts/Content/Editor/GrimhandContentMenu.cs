@@ -17,6 +17,21 @@ namespace Grimhand.Content.Editor
         const string Root = "Assets/_Project/Data";
         const string SetupPath = Root + "/Setups/BattleSetup_Demo.asset";
 
+        [MenuItem("Grimhand/Content/Generate V09 Boss Cards (Warden/DarkKnight/Ocean)")]
+        public static void GenerateV09BossCards()
+        {
+            EnsureFolder(Root + "/Cards");
+            EnsureFolder(Root + "/Characters");
+            MonsterContentGenerator.GenerateV09BossCards();
+            var visualCatalog = AssetDatabase.LoadAssetAtPath<CharacterVisualCatalogSO>(
+                Root + "/CharacterVisualCatalog_Demo.asset");
+            MonsterContentGenerator.UpdateBossVisualCatalog(visualCatalog);
+            if (!Application.isBatchMode)
+                EditorUtility.DisplayDialog("Grimhand", "已生成典狱长/黑暗骑士/腐化海洋女神卡牌与角色。", "OK");
+            else
+                Debug.Log("[Grimhand] Generated V09 Boss cards/characters.");
+        }
+
         [MenuItem("Grimhand/Content/Generate Demo ScriptableObjects")]
         public static void GenerateDemoAssets()
         {
@@ -249,32 +264,33 @@ namespace Grimhand.Content.Editor
 
         static EnemyCardSet CreateEnemyCards()
         {
+            // Demo 占位卡：使用 demo_ 前缀，避免覆盖/污染总览表正式小怪卡牌。
             return new EnemyCardSet
             {
-                Bite = SaveCard("g_bite", "撕咬", "char_goblin_brute", 1, CardType.Attack,
+                Bite = SaveCard("demo_g_bite", "撕咬", "char_goblin_brute", 1, CardType.Attack,
                     null,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 6, scaleAttack: true)),
-                Scratch = SaveCard("g_scratch", "抓挠", "char_goblin_brute", 1, CardType.Attack,
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 7)),
+                Scratch = SaveCard("demo_g_scratch", "抓挠", "char_goblin_brute", 1, CardType.Attack,
                     null,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 5, scaleAttack: true)),
-                Lunge = SaveCard("g_lunge", "猛扑", "char_goblin_brute", 2, CardType.Attack,
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 5)),
+                Lunge = SaveCard("demo_g_lunge", "猛扑", "char_goblin_brute", 2, CardType.Attack,
                     null,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 10, scaleAttack: true)),
-                Hex = SaveCard("g_hex", "邪咒", "char_goblin_shaman", 2, CardType.Status,
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 10)),
+                Hex = SaveCard("demo_g_hex", "邪咒", "char_goblin_shaman", 2, CardType.Status,
                     Kw("poison"),
                     Action(EffectActionType.ApplyStatus, EffectTarget.DefaultEnemy, 0,
                         statusId: StatusCatalog.Poison, stacks: 5)),
-                Wither = SaveCard("g_wither", "虚弱", "char_goblin_shaman", 1, CardType.Status,
+                Wither = SaveCard("demo_g_wither", "虚弱", "char_goblin_shaman", 1, CardType.Status,
                     Kw("slow"),
                     Action(EffectActionType.ApplyStatus, EffectTarget.DefaultEnemy, 0,
                         statusId: StatusCatalog.Slow, stacks: 1, duration: 2)),
-                Arrow = SaveCard("g_arrow", "箭矢", "char_goblin_archer", 1, CardType.Attack,
+                Arrow = SaveCard("demo_g_arrow", "箭矢", "char_goblin_archer", 1, CardType.Attack,
                     null,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 8, scaleAttack: true,
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 8,
                         reach: TargetReach.Any, backRowPowerPercent: 80)),
-                Aim = SaveCard("g_aim", "瞄准", "char_goblin_archer", 2, CardType.Attack,
+                Aim = SaveCard("demo_g_aim", "瞄准", "char_goblin_archer", 2, CardType.Attack,
                     null,
-                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 14, scaleAttack: true,
+                    Action(EffectActionType.DealDamage, EffectTarget.DefaultEnemy, 14,
                         reach: TargetReach.Any))
             };
         }

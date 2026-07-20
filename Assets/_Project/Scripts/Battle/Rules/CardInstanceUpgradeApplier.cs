@@ -24,7 +24,10 @@ namespace Grimhand.Battle.Rules
             var costReduce = spec.CostReductionPerLevel * bonusLevels;
 
             if (costReduce > 0)
+            {
                 clone.Cost = Math.Max(0, clone.Cost - costReduce);
+                clone.BaseCost = Math.Max(0, clone.BaseCost - costReduce);
+            }
 
             foreach (var action in clone.Actions)
             {
@@ -63,6 +66,7 @@ namespace Grimhand.Battle.Rules
                 OwnerCharacterId = source.OwnerCharacterId,
                 OwnerCombatantId = source.OwnerCombatantId,
                 Cost = source.Cost,
+                BaseCost = source.BaseCost != 0 || source.Cost == 0 ? source.BaseCost : source.Cost,
                 CardType = source.CardType,
                 IsUsable = source.IsUsable,
                 IsBonusHandCard = source.IsBonusHandCard,

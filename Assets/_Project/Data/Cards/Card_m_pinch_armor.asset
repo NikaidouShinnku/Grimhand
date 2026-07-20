@@ -20,12 +20,12 @@ MonoBehaviour:
   Rarity: 2
   Keywords: []
   Actions:
-  - Type: 3
+  - Type: 44
     Target: 0
     Value: 0
-    StatusId: defense_down_pct
-    Stacks: 100
-    Duration: 1
+    StatusId: 
+    Stacks: 0
+    Duration: -1
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100
@@ -58,6 +58,7 @@ MonoBehaviour:
     SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
+
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

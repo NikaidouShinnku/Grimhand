@@ -20,7 +20,7 @@ namespace Grimhand.Battle.Model
         GainBlockFromLastDamagePercent,
         /// <summary>阿努比斯化身：本场 +50% 生命上限/攻击/防御，并禁出牌 2 回合。</summary>
         ApplyAnubisAvatar,
-        /// <summary>使随机一名玩家本回合后续出牌被跳过。</summary>
+        /// <summary>使随机一名玩家下回合无法使用卡牌。</summary>
         LockRandomPlayerPlaysThisTurn,
         /// <summary>下回合玩家能量回复减少 Value 点。</summary>
         ReducePlayerEnergyRegenNextTurn,
@@ -101,7 +101,17 @@ namespace Grimhand.Battle.Model
         /// <summary>下回合开始时对目标施加 StatusId（Stacks/Duration）。</summary>
         ApplyStatusNextTurn,
         /// <summary>下回合开始时获得 Value 点临时能量（可超过 EnergyMax）。</summary>
-        GainEnergyNextTurn
+        GainEnergyNextTurn,
+        /// <summary>使玩家随机 Value 张手牌费用永久 +Stacks（默认 +1）。</summary>
+        IncreaseRandomPlayerHandCosts,
+        /// <summary>偷取随机一名敌人全部护甲（优先有护甲者），转给自身。</summary>
+        StealAllBlockFromRandomEnemyPreferArmored,
+        /// <summary>偷取目标全部增益状态到自身；目标为 AllEnemies 时对全体生效。</summary>
+        StealAllBuffs,
+        /// <summary>清除自身全部减益状态。</summary>
+        ClearAllDebuffs,
+        /// <summary>使目标全部减益的层数与剩余回合翻倍（永久保持 -1）。</summary>
+        DoubleAllDebuffStacksAndDuration
     }
 
     public enum EffectTarget
@@ -127,7 +137,9 @@ namespace Grimhand.Battle.Model
         /// <summary>随机一名存活友方（含自身）。</summary>
         RandomAlly,
         /// <summary>随机一名匹配 SummonCharacterId 的友方。</summary>
-        RandomAllyByCharacterId
+        RandomAllyByCharacterId,
+        /// <summary>施法者同队所有存活单位（含自身）。</summary>
+        AllAllies
     }
 
     public enum ReactionConditionType

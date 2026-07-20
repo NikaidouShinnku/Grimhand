@@ -60,10 +60,10 @@ MonoBehaviour:
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
   - Type: 3
-    Target: 0
+    Target: 12
     Value: 0
     StatusId: poison
-    Stacks: 10
+    Stacks: 7
     Duration: -1
     ScaleWithAttack: 0
     ScaleWithDefense: 0

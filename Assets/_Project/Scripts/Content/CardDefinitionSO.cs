@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
+using Grimhand.Battle.Rules;
 using UnityEngine;
 
 namespace Grimhand.Content
@@ -35,6 +36,10 @@ namespace Grimhand.Content
             template.Keywords.AddRange(Keywords);
             foreach (var action in Actions)
                 template.Actions.Add(action.ToSpec());
+
+            // 女王关键卡曾出现空 Actions / 错 Type；运行时强制用代码权威定义，避免 SO 脏数据导致「完全没效果」
+            GhostQueenCardCatalog.TryApplyCanonical(template);
+            V09BossCardCatalog.TryApplyCanonical(template);
 
             return template;
         }

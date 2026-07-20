@@ -123,6 +123,7 @@ namespace Grimhand.Presentation.Battle
                 template.DisplayName,
                 definition);
             card.Cost = template.Cost;
+            card.BaseCost = template.Cost;
             card.CardType = template.CardType;
             card.UpgradeLevel = template.UpgradeLevel;
             card.Actions.Clear();
@@ -196,6 +197,7 @@ namespace Grimhand.Presentation.Battle
                     ? displayName
                     : definition?.DisplayName ?? definitionId ?? "",
                 Cost = definition?.Cost ?? 1,
+                BaseCost = definition?.Cost ?? 1,
                 CardType = definition?.CardType ?? CardType.Attack,
                 IsUsable = false
             };

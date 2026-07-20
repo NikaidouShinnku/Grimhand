@@ -5,6 +5,7 @@ namespace Grimhand.Content
     {
         public const string SkeletonKing = "char_skeleton_king";
         public const string GhostQueen = "char_ghost_queen";
+        /// <summary>召唤物，非 Boss；保留常量供召唤逻辑引用。</summary>
         public const string ExplosiveSkull = "char_explosive_skull";
         public const string Warden = "char_warden";
         public const string PrisonCage = "char_prison_cage";
@@ -18,7 +19,6 @@ namespace Grimhand.Content
 
             return characterDefinitionId == SkeletonKing
                 || characterDefinitionId == GhostQueen
-                || characterDefinitionId == ExplosiveSkull
                 || characterDefinitionId == Warden
                 || characterDefinitionId == PrisonCage
                 || characterDefinitionId == DarkKnight

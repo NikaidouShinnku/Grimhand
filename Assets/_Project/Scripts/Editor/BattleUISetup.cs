@@ -301,7 +301,8 @@ namespace Grimhand.Editor
         {
             var slots = new CombatantSlotView[3];
             var formation = new[] { FormationSlot.Front, FormationSlot.Middle, FormationSlot.Back };
-            var mirror = team == TeamSide.Enemy;
+            // 原画已朝向场地中央：玩家朝右、敌人朝左，创建槽位时不镜像
+            const bool mirror = false;
 
             Vector2[] anchorMins;
             Vector2[] anchorMaxs;

@@ -201,6 +201,15 @@ namespace Grimhand.Presentation.Battle
             screenView.BeginPlanningIdleLoops();
         }
 
+        public void BeginTrainingGroundFromCamp(CampRosterState roster, CampMetaState meta)
+        {
+            _session.SetCampRoster(roster);
+            _session.SetCampMeta(meta);
+            _session.BeginTrainingGround(roster, meta);
+            screenView.Refresh();
+            screenView.BeginPlanningIdleLoops();
+        }
+
         public bool ResumeExpeditionFromCamp(ActiveRunSnapshot snapshot)
         {
             if (!_session.ResumeExpedition(snapshot))

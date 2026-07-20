@@ -76,6 +76,9 @@ namespace Grimhand.Presentation.Battle
         Button _mapButton;
         Button _codexButton;
         CardCodexOverlayView _codexOverlay;
+        Button _dummyPlayButton;
+        Button _monsterSpawnButton;
+        MonsterSpawnOverlayView _monsterSpawnOverlay;
         BattleActionOrderBarView _actionOrderBar;
         BattlePresentationSpeedToggleView _presentationSpeedToggle;
         Button _targetCancelBackdrop;
@@ -154,6 +157,7 @@ namespace Grimhand.Presentation.Battle
             EnsureTurnLogHud();
             EnsureMapHud();
             EnsureCodexHud();
+            EnsureDummyPlayHud();
             EnsurePresentationSpeedHud();
             EnsureExpeditionPresentation();
             ApplyPlanningButtonIcons();
@@ -554,7 +558,8 @@ namespace Grimhand.Presentation.Battle
             _codexButton.targetGraphic = img;
             _codexButton.onClick.AddListener(ToggleCodexPanel);
 
-            _codexOverlay = gameObject.AddComponent<CardCodexOverlayView>();
+            _codexOverlay = gameObject.GetComponent<CardCodexOverlayView>()
+                            ?? gameObject.AddComponent<CardCodexOverlayView>();
             _codexOverlay.Initialize(
                 transform,
                 handPanel?.CardPrefab,
@@ -562,9 +567,128 @@ namespace Grimhand.Presentation.Battle
                 _characterVisuals,
                 _uiIcons,
                 _definitions,
-                OnCodexCardAddToHand);
+                OnCodexCardAddToHand,
+                titleHint: null,
+                closeOnSelect: true);
 
             ApplyCodexButtonLayout();
+        }
+
+        void EnsureDummyPlayHud()
+        {
+            if (_dummyPlayButton != null)
+            {
+                EnsureMonsterSpawnHud();
+                return;
+            }
+
+            EnsureCodexHud();
+
+            var parent = _codexButton != null ? _codexButton.transform.parent : HudRoot;
+            var go = new GameObject("DummyPlayButton", typeof(RectTransform), typeof(Image), typeof(Button));
+            go.transform.SetParent(parent, false);
+
+            var img = go.GetComponent<Image>();
+            img.color = new Color(0.22f, 0.14f, 0.1f, 0.96f);
+            img.raycastTarget = true;
+
+            var labelGo = new GameObject("Label", typeof(RectTransform), typeof(Text));
+            labelGo.transform.SetParent(go.transform, false);
+            var label = labelGo.GetComponent<Text>();
+            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            label.fontSize = 15;
+            label.fontStyle = FontStyle.Bold;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.color = new Color(1f, 0.9f, 0.75f, 1f);
+            label.text = "假人出牌";
+            label.raycastTarget = false;
+            var labelRt = labelGo.GetComponent<RectTransform>();
+            labelRt.anchorMin = Vector2.zero;
+            labelRt.anchorMax = Vector2.one;
+            labelRt.offsetMin = Vector2.zero;
+            labelRt.offsetMax = Vector2.zero;
+
+            _dummyPlayButton = go.GetComponent<Button>();
+            _dummyPlayButton.targetGraphic = img;
+            _dummyPlayButton.onClick.AddListener(ToggleDummyPlayPanel);
+
+            ApplyDummyPlayButtonLayout();
+            go.SetActive(false);
+
+            EnsureMonsterSpawnHud();
+        }
+
+        void EnsureMonsterSpawnHud()
+        {
+            if (_monsterSpawnButton != null)
+                return;
+
+            var parent = _dummyPlayButton != null ? _dummyPlayButton.transform.parent : HudRoot;
+            var go = new GameObject("MonsterSpawnButton", typeof(RectTransform), typeof(Image), typeof(Button));
+            go.transform.SetParent(parent, false);
+
+            var img = go.GetComponent<Image>();
+            img.color = new Color(0.12f, 0.2f, 0.18f, 0.96f);
+            img.raycastTarget = true;
+
+            var labelGo = new GameObject("Label", typeof(RectTransform), typeof(Text));
+            labelGo.transform.SetParent(go.transform, false);
+            var label = labelGo.GetComponent<Text>();
+            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            label.fontSize = 15;
+            label.fontStyle = FontStyle.Bold;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.color = new Color(0.8f, 1f, 0.85f, 1f);
+            label.text = "测试怪物";
+            label.raycastTarget = false;
+            var labelRt = labelGo.GetComponent<RectTransform>();
+            labelRt.anchorMin = Vector2.zero;
+            labelRt.anchorMax = Vector2.one;
+            labelRt.offsetMin = Vector2.zero;
+            labelRt.offsetMax = Vector2.zero;
+
+            _monsterSpawnButton = go.GetComponent<Button>();
+            _monsterSpawnButton.targetGraphic = img;
+            _monsterSpawnButton.onClick.AddListener(ToggleMonsterSpawnPanel);
+
+            if (_monsterSpawnOverlay == null)
+            {
+                var overlayGo = new GameObject("MonsterSpawnOverlay", typeof(RectTransform));
+                overlayGo.transform.SetParent(transform, false);
+                _monsterSpawnOverlay = overlayGo.AddComponent<MonsterSpawnOverlayView>();
+                _monsterSpawnOverlay.Initialize(transform);
+            }
+
+            ApplyMonsterSpawnButtonLayout();
+            go.SetActive(false);
+        }
+
+        void ToggleMonsterSpawnPanel()
+        {
+            if (_monsterSpawnOverlay == null)
+                EnsureMonsterSpawnHud();
+            if (_monsterSpawnOverlay == null)
+                return;
+
+            if (!_monsterSpawnOverlay.IsOpen)
+                CloseOtherOverlays(_monsterSpawnOverlay);
+
+            _monsterSpawnOverlay.Toggle(OnMonsterSpawnSelected);
+        }
+
+        void OnMonsterSpawnSelected(TrainingMonsterCatalog.Entry entry)
+        {
+            if (entry?.Template == null || _session == null)
+                return;
+
+            if (!_session.TrySpawnTrainingMonster(entry.Template, out var failReason))
+            {
+                if (!string.IsNullOrEmpty(failReason))
+                    Debug.LogWarning("[训练场] " + failReason);
+                return;
+            }
+
+            Refresh();
         }
 
         void OnCodexCardAddToHand(CardDefinitionSO def)
@@ -577,10 +701,20 @@ namespace Grimhand.Presentation.Battle
 
             var template = def.ToTemplate();
             if (_session.TryAddCardToHand(template))
-            {
-                _codexOverlay?.Hide();
                 Refresh();
-            }
+        }
+
+        void OnDummyPlayCardSelected(CardDefinitionSO def)
+        {
+            if (def == null || _session == null)
+                return;
+
+            if (!_session.CanInteractWithBattle())
+                return;
+
+            var template = def.ToTemplate();
+            if (_session.TryEnqueueDummyIntent(template))
+                Refresh();
         }
 
         void EnsurePresentationSpeedHud()
@@ -595,9 +729,36 @@ namespace Grimhand.Presentation.Battle
         {
             var willOpen = _codexOverlay == null || !_codexOverlay.IsOpen;
             if (willOpen)
+            {
                 CloseOtherOverlays(_codexOverlay);
+                _codexOverlay?.ConfigureSelection(OnCodexCardAddToHand, titleHint: null, closeOnSelect: true);
+            }
+
             _codexOverlay?.RefreshCardPrefab(handPanel?.CardPrefab);
             _codexOverlay?.Toggle();
+        }
+
+        void ToggleDummyPlayPanel()
+        {
+            if (_codexOverlay == null)
+                EnsureCodexHud();
+            if (_codexOverlay == null)
+                return;
+
+            var opening = !_codexOverlay.IsOpen;
+            if (opening)
+                CloseOtherOverlays(_codexOverlay);
+
+            _codexOverlay.ConfigureSelection(
+                OnDummyPlayCardSelected,
+                titleHint: "假人出牌 — 点击按序加入意图　",
+                closeOnSelect: false);
+            _codexOverlay.RefreshCardPrefab(handPanel?.CardPrefab);
+
+            if (opening)
+                _codexOverlay.Show();
+            else
+                _codexOverlay.Hide();
         }
 
         // 任意 UI 浮层（背包/图鉴/地图/明细）打开时，关闭其余已打开的浮层，避免叠层信息过载。
@@ -607,6 +768,8 @@ namespace Grimhand.Presentation.Battle
                 _turnDetailPanel.Hide();
             if (!ReferenceEquals(keepOpen, _codexOverlay) && _codexOverlay != null && _codexOverlay.IsOpen)
                 _codexOverlay.Hide();
+            if (!ReferenceEquals(keepOpen, _monsterSpawnOverlay) && _monsterSpawnOverlay != null && _monsterSpawnOverlay.IsOpen)
+                _monsterSpawnOverlay.Hide();
             if (!ReferenceEquals(keepOpen, _mapPanel) && _mapPanel != null && _mapPanel.IsOpen)
                 _mapPanel.Hide();
             if (!ReferenceEquals(keepOpen, _inventoryPanel) && _inventoryPanel != null && _inventoryPanel.IsOpen)
@@ -622,6 +785,28 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             BattleUiLayoutRuntimeFix.LayoutCodexButton(_codexButton.transform as RectTransform);
+        }
+
+        void ApplyDummyPlayButtonLayout()
+        {
+            if (_dummyPlayButton == null)
+                return;
+
+            var codexRt = _codexButton != null ? _codexButton.transform as RectTransform : null;
+            BattleUiLayoutRuntimeFix.LayoutDummyPlayButton(
+                _dummyPlayButton.transform as RectTransform,
+                codexRt);
+            ApplyMonsterSpawnButtonLayout();
+        }
+
+        void ApplyMonsterSpawnButtonLayout()
+        {
+            if (_monsterSpawnButton == null)
+                return;
+
+            BattleUiLayoutRuntimeFix.LayoutMonsterSpawnButton(
+                _monsterSpawnButton.transform as RectTransform,
+                _dummyPlayButton != null ? _dummyPlayButton.transform as RectTransform : null);
         }
 
         void EnsureMapHud()
@@ -779,6 +964,8 @@ namespace Grimhand.Presentation.Battle
             EnsurePlanningEnergyHud();
             ApplyInventoryButtonLayout();
             ApplyTurnLogButtonLayout();
+            ApplyCodexButtonLayout();
+            ApplyDummyPlayButtonLayout();
             BattleUiLayoutRuntimeFix.RefreshBottomHud(transform);
             if (ShouldShowBattlePlanningChrome())
                 ApplyPlanningButtonIcons();
@@ -859,6 +1046,19 @@ namespace Grimhand.Presentation.Battle
             _inventoryButton?.gameObject.SetActive(showUtilityHud);
             _mapButton?.gameObject.SetActive(showUtilityHud);
             _codexButton?.gameObject.SetActive(showUtilityHud);
+            var showDummyPlay = showUtilityHud && _session?.Expedition?.Run?.IsTrainingGround == true;
+            if (showDummyPlay)
+            {
+                ApplyDummyPlayButtonLayout();
+                _dummyPlayButton?.gameObject.SetActive(true);
+                _monsterSpawnButton?.gameObject.SetActive(true);
+            }
+            else
+            {
+                _dummyPlayButton?.gameObject.SetActive(false);
+                _monsterSpawnButton?.gameObject.SetActive(false);
+                _monsterSpawnOverlay?.Hide();
+            }
             _turnLogButton?.gameObject.SetActive(showUtilityHud);
 
             if (_escUiSuppressed)
@@ -959,7 +1159,8 @@ namespace Grimhand.Presentation.Battle
             for (var i = 0; i < playerSlots.Length && i < SlotOrder.Length; i++)
                 playerSlots[i]?.Configure(SlotOrder[i], TeamSide.Player, "我方", mirror: false);
             for (var i = 0; i < enemySlots.Length && i < SlotOrder.Length; i++)
-                enemySlots[i]?.Configure(SlotOrder[i], TeamSide.Enemy, "敌方", mirror: true);
+                // 玩家原画朝右、敌人原画朝左（均面向场地中央），禁止水平翻转
+                enemySlots[i]?.Configure(SlotOrder[i], TeamSide.Enemy, "敌方", mirror: false);
         }
 
         void ConfigureKeywordTooltipRaycast()
@@ -1513,8 +1714,11 @@ namespace Grimhand.Presentation.Battle
         void RefreshExpeditionPresentation()
         {
             var expedition = _session.IsExpeditionMode;
+            var training = _session.Expedition?.Run?.IsTrainingGround == true;
             var layer = _session.Expedition?.Run?.Map?.NodesCompleted + 1 ?? 1;
-            var bg = ExpeditionPathArt.ResolveBackground(_uiIcons, layer);
+            var bg = training
+                ? _uiIcons?.TrainingGroundBackground
+                : ExpeditionPathArt.ResolveBackground(_uiIcons, layer);
             _backgroundView?.EnsureBuilt(transform, bg ?? _uiIcons?.CaveBackground);
             _backgroundView?.SetVisible(expedition);
             UpdateExpeditionAudio(expedition, layer);

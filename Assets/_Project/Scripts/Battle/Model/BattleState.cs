@@ -87,6 +87,9 @@ namespace Grimhand.Battle.Model
         /// <summary>下回合玩家能量回复惩罚（摄魂等）。</summary>
         public int PendingPlayerEnergyRegenPenaltyNextTurn { get; set; }
 
+        /// <summary>下回合敌方出牌能量预算惩罚（活体强化等，扣己方队伍）。</summary>
+        public int PendingEnemyEnergyRegenPenaltyNextTurn { get; set; }
+
         /// <summary>下回合开始时获得的临时能量（灵魂吞噬等，可超过 EnergyMax）。</summary>
         public int PendingPlayerEnergyGainNextTurn { get; set; }
 

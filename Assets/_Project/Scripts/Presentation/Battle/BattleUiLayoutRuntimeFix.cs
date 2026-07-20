@@ -146,6 +146,9 @@ namespace Grimhand.Presentation.Battle
             ReparentIfFound(battleScreenRoot, chromeRoot, "InventoryButton");
             ReparentIfFound(battleScreenRoot, chromeRoot, "TurnLogButton");
             ReparentIfFound(battleScreenRoot, chromeRoot, "MapButton");
+            ReparentIfFound(battleScreenRoot, chromeRoot, "CodexButton");
+            ReparentIfFound(battleScreenRoot, chromeRoot, "DummyPlayButton");
+            ReparentIfFound(battleScreenRoot, chromeRoot, "PresentationSpeedButton");
         }
 
         static void ReparentIfFound(Transform battleScreenRoot, RectTransform chromeRoot, string name)
@@ -393,6 +396,43 @@ namespace Grimhand.Presentation.Battle
             PinTopLeft(codexButton, CodexButtonGap, CodexButtonGap, InventoryButtonSize + 16f, InventoryButtonSize);
         }
 
+        public static void LayoutDummyPlayButton(RectTransform dummyPlayButton, RectTransform codexButton = null)
+        {
+            if (dummyPlayButton == null)
+                return;
+
+            if (codexButton != null && codexButton.parent != null)
+                dummyPlayButton.SetParent(codexButton.parent, false);
+
+            var codexWidth = InventoryButtonSize + 16f;
+            var dummyWidth = InventoryButtonSize + 40f;
+            var left = CodexButtonGap + codexWidth + CodexButtonGap;
+            if (codexButton != null)
+            {
+                // 紧贴图鉴右侧，避免绝对坐标漂移
+                left = codexButton.anchorMax.x * RefWidth + CodexButtonGap;
+            }
+
+            PinTopLeft(dummyPlayButton, left, CodexButtonGap, dummyWidth, InventoryButtonSize);
+        }
+
+        public static void LayoutMonsterSpawnButton(RectTransform monsterButton, RectTransform dummyPlayButton = null)
+        {
+            if (monsterButton == null)
+                return;
+
+            if (dummyPlayButton != null && dummyPlayButton.parent != null)
+                monsterButton.SetParent(dummyPlayButton.parent, false);
+
+            var dummyWidth = InventoryButtonSize + 40f;
+            var monsterWidth = InventoryButtonSize + 40f;
+            var left = CodexButtonGap + (InventoryButtonSize + 16f) + CodexButtonGap + dummyWidth + CodexButtonGap;
+            if (dummyPlayButton != null)
+                left = dummyPlayButton.anchorMax.x * RefWidth + CodexButtonGap;
+
+            PinTopLeft(monsterButton, left, CodexButtonGap, monsterWidth, InventoryButtonSize);
+        }
+
         public static void LayoutPresentationSpeedButton(RectTransform speedButton)
         {
             if (speedButton == null)
@@ -426,6 +466,9 @@ namespace Grimhand.Presentation.Battle
             LayoutTurnLogButton(chromeRoot.Find("TurnLogButton") as RectTransform);
             LayoutMapButton(chromeRoot.Find("MapButton") as RectTransform);
             LayoutCodexButton(chromeRoot.Find("CodexButton") as RectTransform);
+            LayoutDummyPlayButton(
+                chromeRoot.Find("DummyPlayButton") as RectTransform,
+                chromeRoot.Find("CodexButton") as RectTransform);
             LayoutPresentationSpeedButton(chromeRoot.Find("PresentationSpeedButton") as RectTransform);
             FixHandArea(chromeRoot.Find("HandArea"));
             ApplyBottomRowLayout(chromeRoot);

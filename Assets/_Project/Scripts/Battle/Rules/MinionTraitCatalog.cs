@@ -36,12 +36,16 @@ namespace Grimhand.Battle.Rules
         public const string RatCharacterId = "char_rat";
         public const int RatPackAttackBonusPercentPerDeath = 20;
 
-        /// <summary>自身负面状态同步至所有敌人。</summary>
+        /// <summary>自身负面状态同步至敌对阵营全体；消失时同步清除。</summary>
         public const string ChainWraithDebuffShare = "minion_chain_wraith_debuff_share";
 
-        /// <summary>每回合首张牌：攻击 +3 ATK，否则 +3 DEF。</summary>
+        /// <summary>
+        /// 每回合开始时，根据上回合第一张牌类型获得增益：
+        /// 攻击→25%增伤（1回合）；防御/状态→25%强固（1回合）。
+        /// </summary>
         public const string GargoyleFirstCardStance = "minion_gargoyle_first_card";
-        public const int GargoyleStanceBonus = 3;
+        public const int GargoyleTraitPercentBonus = 25;
+        public const int GargoyleTraitDurationTurns = 1;
 
         /// <summary>场上有蜘蛛贵妇时，敌人每 5 层中毒额外 +10% 受伤。</summary>
         public const string SpiderLadyPoisonVulnerability = "minion_spider_poison_vuln";

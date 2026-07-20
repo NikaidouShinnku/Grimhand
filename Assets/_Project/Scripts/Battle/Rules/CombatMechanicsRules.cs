@@ -34,7 +34,16 @@ namespace Grimhand.Battle.Rules
             foreach (var combatant in state.Combatants)
                 combatant.SkipRemainingPlaysThisTurn = false;
 
-            state.DefenderRespondArms.Clear();
+            // 只清已消耗的武装；未消耗的「下次受击」可跨回合保留到回合末再过期
+            if (state.DefenderRespondArms != null)
+            {
+                for (var i = state.DefenderRespondArms.Count - 1; i >= 0; i--)
+                {
+                    if (state.DefenderRespondArms[i] == null || state.DefenderRespondArms[i].Consumed)
+                        state.DefenderRespondArms.RemoveAt(i);
+                }
+            }
+
             state.SuppressedEnemyCardInstanceIds.Clear();
             state.PlayerRespondStatusUsedThisTurn = false;
         }
@@ -199,17 +208,36 @@ namespace Grimhand.Battle.Rules
             var useAlternateDebuff = action.UseAlternateIfTargetHasDebuff
                                      && target != null
                                      && StatusRules.HasDebuff(target);
+            var useAlternateAnyStatus = action.UseAlternateIfTargetHasAnyStatus
+                                        && target != null
+                                        && StatusRules.HasAnyStatus(target);
             var useAlternateAttack = action.AlternateAttackScaleIfActorUsedAttack > 0
                                      && owner != null
                                      && owner.UsedAttackThisTurn;
+            var useAlternateNotHit = action.UseAlternateIfActorNotHitThisTurn
+                                     && owner != null
+                                     && !owner.HitThisTurn
+                                     && action.AlternateValue > 0;
+            var useAlternateSelfBlock = action.SelfBlockAboveThreshold > 0
+                                        && owner != null
+                                        && owner.Block > action.SelfBlockAboveThreshold
+                                        && action.AlternateValueIfSelfBlockAbove > 0;
 
             var working = EffectActionSpec.Clone(action);
-            if (useAlternateDebuff)
+            if (useAlternateDebuff || useAlternateAnyStatus)
             {
                 working.Value = action.AlternateValue;
                 working.AttackScalePercent = action.AlternateAttackScalePercent > 0
                     ? action.AlternateAttackScalePercent
                     : action.AttackScalePercent;
+            }
+            else if (useAlternateNotHit)
+            {
+                working.Value = action.AlternateValue;
+            }
+            else if (useAlternateSelfBlock)
+            {
+                working.Value = action.AlternateValueIfSelfBlockAbove;
             }
             else if (useAlternateAttack)
             {

@@ -60,6 +60,8 @@ namespace Grimhand.Battle.Events
         public int BlockedAmount { get; set; }
         public int RespondMitigatedAmount { get; set; }
         public bool HadRespondDefense { get; set; }
+        /// <summary>应对格挡演出目标（转嫁时为原防御者，与 TargetId 伤害落点可不同）。</summary>
+        public string RespondBlockerId { get; set; } = "";
         public bool IsSacrificeDamage { get; set; }
         public bool IsAoEWave { get; set; }
         /// <summary>吸血回复（用于播放专属治疗特效）。</summary>

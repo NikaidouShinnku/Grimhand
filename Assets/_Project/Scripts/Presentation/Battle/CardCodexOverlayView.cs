@@ -24,6 +24,8 @@ namespace Grimhand.Presentation.Battle
         BattleUiIconCatalogSO _uiIcons;
         Dictionary<string, CardDefinitionSO> _definitions = new();
         Action<CardDefinitionSO> _onAddToHand;
+        string _titleHint;
+        bool _closeOnSelect;
 
         RectTransform _panel;
         RectTransform _content;
@@ -42,15 +44,28 @@ namespace Grimhand.Presentation.Battle
             CharacterVisualCatalogSO characterVisuals,
             BattleUiIconCatalogSO uiIcons,
             Dictionary<string, CardDefinitionSO> definitions,
-            Action<CardDefinitionSO> onAddToHand = null)
+            Action<CardDefinitionSO> onAddToHand = null,
+            string titleHint = null,
+            bool closeOnSelect = true)
         {
             _cardPrefab = cardPrefab;
             _cardCatalog = cardCatalog;
             _characterVisuals = characterVisuals;
             _uiIcons = uiIcons;
             _definitions = definitions ?? new Dictionary<string, CardDefinitionSO>();
-            _onAddToHand = onAddToHand;
+            ConfigureSelection(onAddToHand, titleHint, closeOnSelect);
             EnsureBuilt(root);
+        }
+
+        /// <summary>切换点选行为（图鉴加手牌 / 假人出牌排队），不重建面板。</summary>
+        public void ConfigureSelection(
+            Action<CardDefinitionSO> onSelect,
+            string titleHint = null,
+            bool closeOnSelect = true)
+        {
+            _onAddToHand = onSelect;
+            _titleHint = titleHint;
+            _closeOnSelect = closeOnSelect;
         }
 
         public void RefreshCardPrefab(CardView cardPrefab)
@@ -152,9 +167,11 @@ namespace Grimhand.Presentation.Battle
             foreach (var group in groups)
                 totalCards += group.Cards.Count;
 
-            _titleText.text = _onAddToHand != null
-                ? $"卡牌图鉴（测试）— 共 {totalCards} 张　点击卡牌直接置入手牌"
-                : $"卡牌图鉴（测试）— 共 {totalCards} 张";
+            _titleText.text = !string.IsNullOrEmpty(_titleHint)
+                ? $"{_titleHint}共 {totalCards} 张"
+                : _onAddToHand != null
+                    ? $"卡牌图鉴（测试）— 共 {totalCards} 张　点击卡牌直接置入手牌"
+                    : $"卡牌图鉴（测试）— 共 {totalCards} 张";
 
             foreach (var group in groups)
             {
@@ -397,6 +414,8 @@ namespace Grimhand.Presentation.Battle
                 return;
             _onAddToHand?.Invoke(def);
             _tooltip?.Hide();
+            if (_closeOnSelect)
+                Hide();
         }
 
         void BindCardTooltip(GameObject target, CardInstanceState card)

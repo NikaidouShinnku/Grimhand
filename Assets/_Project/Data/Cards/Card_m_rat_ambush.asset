@@ -13,17 +13,16 @@ MonoBehaviour:
   m_Name: Card_m_rat_ambush
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardDefinitionSO
   CardId: m_rat_ambush
-  DisplayName: "\u5077\u88AD"
+  DisplayName: "偷袭"
   OwnerCharacterId: char_rat
   Cost: 2
   CardType: 0
   Rarity: 2
-  Keywords:
-  - respond_status
+  Keywords: []
   Actions:
   - Type: 0
-    Target: 4
-    Value: 11
+    Target: 0
+    Value: 12
     StatusId: 
     Stacks: 1
     Duration: -1
@@ -31,7 +30,7 @@ MonoBehaviour:
     ScaleWithDefense: 0
     AttackScalePercent: 100
     DefenseScalePercent: 100
-    Condition: 3
+    Condition: 0
     Reach: 1
     SplashBehindTarget: 0
     SplashPowerPercent: 100
@@ -42,16 +41,18 @@ MonoBehaviour:
     BonusIfTargetHitThisTurnPercent: 0
     BonusIfTargetHasStatusId: 
     BonusIfTargetHasStatusFlat: 0
+    BonusIfActorFasterThanAllEnemiesFlat: 0
     LifestealPercent: 0
     HealMaxHpPercent: 0
     OnKillHealAmount: 0
     HitCount: 1
     AlternateAttackScalePercent: 0
-    AlternateValue: 0
+    AlternateValue: 24
     UseAlternateIfTargetHasDebuff: 0
+    UseAlternateIfTargetHasAnyStatus: 1
     AlternateAttackScaleIfActorUsedAttack: 0
     AlternateValueIfActorUsedAttack: 0
-    DamageMultiplierPercentIfRespondArmed: 300
+    DamageMultiplierPercentIfRespondArmed: 100
     SelfDamageFlat: 0
     RepeatPerEnemyAttackCardThisTurn: 0
     FallbackBlockDefenseScalePercent: 100
@@ -59,6 +60,11 @@ MonoBehaviour:
     SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
+    HpLossStepPercent: 0
+    HpLossStepValue: 0
+    AlternateValueIfHealed: 0
+    TokenCardId: 
+    CostReduction: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

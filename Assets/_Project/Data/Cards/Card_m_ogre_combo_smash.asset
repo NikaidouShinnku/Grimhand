@@ -48,8 +48,8 @@ MonoBehaviour:
     AlternateAttackScalePercent: 0
     AlternateValue: 0
     UseAlternateIfTargetHasDebuff: 0
-    AlternateAttackScaleIfActorUsedAttack: 0
-    AlternateValueIfActorUsedAttack: 0
+    AlternateAttackScaleIfActorUsedAttack: 100
+    AlternateValueIfActorUsedAttack: 23
     DamageMultiplierPercentIfRespondArmed: 100
     SelfDamageFlat: 0
     RepeatPerEnemyAttackCardThisTurn: 0

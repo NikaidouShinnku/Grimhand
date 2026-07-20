@@ -20,12 +20,12 @@ MonoBehaviour:
   Rarity: 1
   Keywords: []
   Actions:
-  - Type: 43
+  - Type: 51
     Target: 0
-    Value: 1
+    Value: 2
     StatusId: 
     Stacks: 1
-    Duration: 1
+    Duration: -1
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100
@@ -58,6 +58,7 @@ MonoBehaviour:
     SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
+
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

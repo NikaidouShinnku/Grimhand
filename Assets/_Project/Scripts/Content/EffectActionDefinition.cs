@@ -35,6 +35,7 @@ namespace Grimhand.Content
         public int AlternateAttackScalePercent;
         public int AlternateValue;
         public bool UseAlternateIfTargetHasDebuff;
+        public bool UseAlternateIfTargetHasAnyStatus;
         public int AlternateAttackScaleIfActorUsedAttack;
         public int AlternateValueIfActorUsedAttack;
         public int DamageMultiplierPercentIfRespondArmed = 100;
@@ -56,6 +57,19 @@ namespace Grimhand.Content
         public string TokenCardId = "";
         /// <summary>召唤卡牌之灵：抽到的牌费用减免值（占位）。</summary>
         public int CostReduction;
+        /// <summary>施加状态成功概率（1-100）。≤0 视为 100%。</summary>
+        public int ChancePercent;
+        /// <summary>施法者本回合未受击时改用 AlternateValue。</summary>
+        public bool UseAlternateIfActorNotHitThisTurn;
+        /// <summary>自身护甲大于此阈值时改用 AlternateValueIfSelfBlockAbove；0 表示禁用。</summary>
+        public int SelfBlockAboveThreshold;
+        /// <summary>自身护甲高于阈值时的固定伤害。</summary>
+        public int AlternateValueIfSelfBlockAbove;
+        /// <summary>按 RepeatPerStatusId 层数重复执行。</summary>
+        public string RepeatPerStatusId = "";
+        /// <summary>应对触发时对随机匹配 CharacterId 的友方造成额外伤害。</summary>
+        public int RespondSideEffectAllyDamage;
+        public string RespondSideEffectAllyCharacterId = "";
 
         public EffectActionSpec ToSpec()
         {
@@ -90,6 +104,7 @@ namespace Grimhand.Content
                 AlternateAttackScalePercent = AlternateAttackScalePercent,
                 AlternateValue = AlternateValue,
                 UseAlternateIfTargetHasDebuff = UseAlternateIfTargetHasDebuff,
+                UseAlternateIfTargetHasAnyStatus = UseAlternateIfTargetHasAnyStatus,
                 AlternateAttackScaleIfActorUsedAttack = AlternateAttackScaleIfActorUsedAttack,
                 AlternateValueIfActorUsedAttack = AlternateValueIfActorUsedAttack,
                 DamageMultiplierPercentIfRespondArmed = DamageMultiplierPercentIfRespondArmed,
@@ -104,7 +119,14 @@ namespace Grimhand.Content
                 HpLossStepValue = HpLossStepValue,
                 AlternateValueIfHealed = AlternateValueIfHealed,
                 TokenCardId = TokenCardId,
-                CostReduction = CostReduction
+                CostReduction = CostReduction,
+                ChancePercent = ChancePercent,
+                UseAlternateIfActorNotHitThisTurn = UseAlternateIfActorNotHitThisTurn,
+                SelfBlockAboveThreshold = SelfBlockAboveThreshold,
+                AlternateValueIfSelfBlockAbove = AlternateValueIfSelfBlockAbove,
+                RepeatPerStatusId = RepeatPerStatusId,
+                RespondSideEffectAllyDamage = RespondSideEffectAllyDamage,
+                RespondSideEffectAllyCharacterId = RespondSideEffectAllyCharacterId
             };
         }
 
@@ -141,6 +163,7 @@ namespace Grimhand.Content
                 AlternateAttackScalePercent = spec.AlternateAttackScalePercent,
                 AlternateValue = spec.AlternateValue,
                 UseAlternateIfTargetHasDebuff = spec.UseAlternateIfTargetHasDebuff,
+                UseAlternateIfTargetHasAnyStatus = spec.UseAlternateIfTargetHasAnyStatus,
                 AlternateAttackScaleIfActorUsedAttack = spec.AlternateAttackScaleIfActorUsedAttack,
                 AlternateValueIfActorUsedAttack = spec.AlternateValueIfActorUsedAttack,
                 DamageMultiplierPercentIfRespondArmed = spec.DamageMultiplierPercentIfRespondArmed,
@@ -155,7 +178,14 @@ namespace Grimhand.Content
                 HpLossStepValue = spec.HpLossStepValue,
                 AlternateValueIfHealed = spec.AlternateValueIfHealed,
                 TokenCardId = spec.TokenCardId,
-                CostReduction = spec.CostReduction
+                CostReduction = spec.CostReduction,
+                ChancePercent = spec.ChancePercent,
+                UseAlternateIfActorNotHitThisTurn = spec.UseAlternateIfActorNotHitThisTurn,
+                SelfBlockAboveThreshold = spec.SelfBlockAboveThreshold,
+                AlternateValueIfSelfBlockAbove = spec.AlternateValueIfSelfBlockAbove,
+                RepeatPerStatusId = spec.RepeatPerStatusId,
+                RespondSideEffectAllyDamage = spec.RespondSideEffectAllyDamage,
+                RespondSideEffectAllyCharacterId = spec.RespondSideEffectAllyCharacterId
             };
         }
     }

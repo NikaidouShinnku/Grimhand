@@ -19,11 +19,10 @@ MonoBehaviour:
   CardType: 2
   Rarity: 2
   Keywords:
-  - respond_status
   - usable_while_constricted
   Actions:
   - Type: 3
-    Target: 4
+    Target: 0
     Value: 0
     StatusId: poison
     Stacks: 3
@@ -32,7 +31,7 @@ MonoBehaviour:
     ScaleWithDefense: 0
     AttackScalePercent: 100
     DefenseScalePercent: 100
-    Condition: 3
+    Condition: 0
     Reach: 1
     SplashBehindTarget: 0
     SplashPowerPercent: 100

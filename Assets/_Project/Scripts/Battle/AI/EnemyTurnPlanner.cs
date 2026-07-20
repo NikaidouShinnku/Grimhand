@@ -109,15 +109,18 @@ namespace Grimhand.Battle.AI
         static int ResolveEnemyEnergyBudget(BattleState state)
         {
             var config = state.Config;
-            if (config == null)
-                return EnergyRules.DefaultTurnRegen;
+            var budget = EnergyRules.DefaultTurnRegen;
+            if (config != null)
+            {
+                if (config.EnemyTurnEnergyBudget > 0)
+                    budget = config.EnemyTurnEnergyBudget;
+                else if (config.TurnStartEnergyRegen > 0)
+                    budget = config.TurnStartEnergyRegen;
+            }
 
-            if (config.EnemyTurnEnergyBudget > 0)
-                return config.EnemyTurnEnergyBudget;
-
-            return config.TurnStartEnergyRegen > 0
-                ? config.TurnStartEnergyRegen
-                : EnergyRules.DefaultTurnRegen;
+            var penalty = state.PendingEnemyEnergyRegenPenaltyNextTurn;
+            state.PendingEnemyEnergyRegenPenaltyNextTurn = 0;
+            return System.Math.Max(0, budget - penalty);
         }
 
         static bool ShouldHideIntent(int totalCards, int index, BattleRng rng)

@@ -20,13 +20,15 @@ MonoBehaviour:
   Rarity: 3
   Keywords:
   - exhaust
+  - summon
+
   Actions:
   - Type: 3
     Target: 1
     Value: 0
     StatusId: final_summon_pending
     Stacks: 1
-    Duration: -1
+    Duration: 2
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100
@@ -59,6 +61,7 @@ MonoBehaviour:
     SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
+
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

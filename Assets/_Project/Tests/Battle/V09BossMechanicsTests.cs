@@ -235,5 +235,153 @@ namespace Grimhand.Battle.Tests
             Assert.IsFalse(StatusRules.HasStatus(goddess, StatusCatalog.RisingTide));
             Assert.IsTrue(StatusRules.HasStatus(goddess, StatusCatalog.EbbingTide));
         }
+
+        [Test]
+        public void IronGate_RespondSideEffect_DamagesRandomCage()
+        {
+            var state = new BattleState { Config = new BattleConfig() };
+            var player = new CombatantState
+            {
+                Id = "p1",
+                Team = TeamSide.Player,
+                MaxHp = 100,
+                Hp = 100,
+                DisplayName = "骑士"
+            };
+            var warden = new CombatantState
+            {
+                Id = "warden",
+                Team = TeamSide.Enemy,
+                Slot = FormationSlot.Back,
+                CharacterDefinitionId = CharacterTraitCatalog.WardenCharacterId,
+                MaxHp = 250,
+                Hp = 250,
+                DisplayName = "典狱长"
+            };
+            warden.Traits.Add(CharacterTraitCatalog.WardenCageMaster);
+            var cage = new CombatantState
+            {
+                Id = "cage",
+                Team = TeamSide.Enemy,
+                Slot = FormationSlot.Front,
+                CharacterDefinitionId = CharacterTraitCatalog.PrisonCageCharacterId,
+                MaxHp = 150,
+                Hp = 150,
+                DisplayName = "囚笼"
+            };
+            cage.Traits.Add(CharacterTraitCatalog.PrisonCage);
+            state.Combatants.Add(player);
+            state.Combatants.Add(warden);
+            state.Combatants.Add(cage);
+
+            Reactions.DefenderRespondArmRules.ArmMitigation(
+                state,
+                warden.Id,
+                mitigationPercent: 70,
+                sideEffectAllyDamage: 30,
+                sideEffectAllyCharacterId: CharacterTraitCatalog.PrisonCageCharacterId);
+
+            var events = new List<Events.BattleEvent>();
+            var hpDamage = 40;
+            CombatantState recipient = warden;
+            var triggered = Reactions.DefenderRespondArmRules.TryConsumeForIncomingPlayerAttack(
+                state, player, ref recipient, ref hpDamage, events, out _, new BattleRng(3));
+
+            Assert.IsTrue(triggered);
+            Assert.AreEqual(12, hpDamage); // 40 * 30%
+            Assert.AreEqual(120, cage.Hp); // 150 - 30
+        }
+
+        [Test]
+        public void Warden_NoCage_GainsPermanentAttackUp()
+        {
+            var state = new BattleState { Config = new BattleConfig() };
+            var warden = new CombatantState
+            {
+                Id = "warden",
+                Team = TeamSide.Enemy,
+                MaxHp = 250,
+                Hp = 250,
+                DisplayName = "典狱长"
+            };
+            warden.Traits.Add(CharacterTraitCatalog.WardenCageMaster);
+            state.Combatants.Add(warden);
+
+            var events = new List<Events.BattleEvent>();
+            V09BossMechanicsRules.ProcessTurnStart(state, events, new BattleRng(1));
+
+            Assert.AreEqual(
+                V09BossMechanicsRules.WardenNoCageAttackBonusPercent,
+                StatusRules.GetStatusStacks(warden, StatusCatalog.AttackUpPercent));
+        }
+
+        [Test]
+        public void PrisonCage_Death_SpawnsReplacementAndClearsBrand()
+        {
+            var config = new BattleConfig();
+            config.SummonTemplates["char_bat"] = new CombatantConfig
+            {
+                DisplayName = "巨翼蝙蝠",
+                Team = TeamSide.Enemy,
+                CharacterDefinitionId = "char_bat",
+                MaxHp = 55,
+                Speed = 9
+            };
+            var state = new BattleState { Config = config };
+            var player = new CombatantState
+            {
+                Id = "p1",
+                Team = TeamSide.Player,
+                MaxHp = 100,
+                Hp = 100
+            };
+            StatusRules.ApplyStatus(state, player, StatusCatalog.BrandMark, 2, -1, new List<Events.BattleEvent>());
+            var cage = new CombatantState
+            {
+                Id = "cage",
+                Team = TeamSide.Enemy,
+                Slot = FormationSlot.Middle,
+                CharacterDefinitionId = CharacterTraitCatalog.PrisonCageCharacterId,
+                MaxHp = 10,
+                Hp = 10,
+                DisplayName = "囚笼"
+            };
+            cage.Traits.Add(CharacterTraitCatalog.PrisonCage);
+            state.Combatants.Add(player);
+            state.Combatants.Add(cage);
+
+            // Force hash path to pick bat (depends on id hash) — register all three so any pick works
+            config.SummonTemplates["char_skeleton_elite"] = new CombatantConfig
+            {
+                DisplayName = "骷髅精英",
+                Team = TeamSide.Enemy,
+                CharacterDefinitionId = "char_skeleton_elite",
+                MaxHp = 45
+            };
+            config.SummonTemplates["char_wraith_elite"] = new CombatantConfig
+            {
+                DisplayName = "幽灵精英",
+                Team = TeamSide.Enemy,
+                CharacterDefinitionId = "char_wraith_elite",
+                MaxHp = 35
+            };
+
+            cage.Hp = 0;
+            var events = new List<Events.BattleEvent>();
+            CombatantDeathRules.OnCharacterDied(state, cage, events, new BattleRng(0));
+
+            Assert.IsFalse(StatusRules.HasStatus(player, StatusCatalog.BrandMark));
+            var spawned = 0;
+            foreach (var unit in state.Combatants)
+            {
+                if (unit.IsAlive
+                    && unit.Id != cage.Id
+                    && unit.Team == TeamSide.Enemy
+                    && unit.Slot == FormationSlot.Middle)
+                    spawned++;
+            }
+
+            Assert.AreEqual(1, spawned);
+        }
     }
 }

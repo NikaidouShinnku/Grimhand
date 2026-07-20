@@ -115,6 +115,7 @@ namespace Grimhand.Battle.Reactions
                 case EffectActionType.ApplyStatus:
                 case EffectActionType.LockSelfCards:
                 case EffectActionType.LockAttackCards:
+                case EffectActionType.DoubleAllDebuffStacksAndDuration:
                     var target = ResolveRespondTarget(state, actor, card, context, action, rng);
                     if (target == null)
                         break;
@@ -124,6 +125,12 @@ namespace Grimhand.Battle.Reactions
                         && action.Target == EffectTarget.LastActionActor
                         && !string.IsNullOrEmpty(action.StatusId))
                     {
+                        if (action.ChancePercent > 0 && action.ChancePercent < 100)
+                        {
+                            if (rng != null && rng.NextInt(1, 100) > action.ChancePercent)
+                                break;
+                        }
+
                         StatusRules.ApplyStatus(
                             state,
                             target,

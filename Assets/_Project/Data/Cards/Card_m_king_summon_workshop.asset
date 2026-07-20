@@ -20,6 +20,7 @@ MonoBehaviour:
   Rarity: 4
   Keywords:
   - exhaust
+  - summon
   Actions:
   - Type: 3
     Target: 1

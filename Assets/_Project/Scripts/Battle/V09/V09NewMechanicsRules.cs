@@ -619,6 +619,7 @@ namespace Grimhand.Battle.V09
                 OwnerCharacterId = owner.CharacterDefinitionId,
                 OwnerCombatantId = owner.Id,
                 Cost = SnakeGodResponseTokenCost,
+                BaseCost = SnakeGodResponseTokenCost,
                 CardType = CardType.Status,
                 IsUsable = true,
                 IsBonusHandCard = true

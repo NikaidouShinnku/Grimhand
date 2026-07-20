@@ -18,11 +18,10 @@ MonoBehaviour:
   Cost: 2
   CardType: 0
   Rarity: 1
-  Keywords:
-  - respond_status
+  Keywords: []
   Actions:
   - Type: 0
-    Target: 4
+    Target: 0
     Value: 10
     StatusId: 
     Stacks: 1
@@ -31,7 +30,7 @@ MonoBehaviour:
     ScaleWithDefense: 0
     AttackScalePercent: 100
     DefenseScalePercent: 100
-    Condition: 1
+    Condition: 0
     Reach: 1
     SplashBehindTarget: 0
     SplashPowerPercent: 100
@@ -51,7 +50,7 @@ MonoBehaviour:
     UseAlternateIfTargetHasDebuff: 0
     AlternateAttackScaleIfActorUsedAttack: 0
     AlternateValueIfActorUsedAttack: 0
-    DamageMultiplierPercentIfRespondArmed: 200
+    DamageMultiplierPercentIfRespondArmed: 100
     SelfDamageFlat: 0
     RepeatPerEnemyAttackCardThisTurn: 0
     FallbackBlockDefenseScalePercent: 100
@@ -59,6 +58,9 @@ MonoBehaviour:
     SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
+    UseAlternateIfActorNotHitThisTurn: 0
+    SelfBlockAboveThreshold: 20
+    AlternateValueIfSelfBlockAbove: 20
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

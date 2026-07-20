@@ -26,7 +26,14 @@ namespace Grimhand.Battle.Rules
             if (RelicEffectRules.ShouldExpandBackRowReach(state, owner, card))
                 return TargetReach.Any;
 
-            return GetPickReach(card);
+            var reach = GetPickReach(card);
+            if (card != null
+                && card.DefinitionId == "m_musket_shot"
+                && reach == TargetReach.BackOnly
+                && !HasAliveEnemyInBack(state, owner))
+                return TargetReach.FrontAndMiddle;
+
+            return reach;
         }
 
         public static TargetReach GetPickReach(CardInstanceState card)
@@ -72,6 +79,11 @@ namespace Grimhand.Battle.Rules
                     continue;
 
                 var reach = expandReach ? TargetReach.Any : action.Reach;
+                if (card.DefinitionId == "m_musket_shot"
+                    && reach == TargetReach.BackOnly
+                    && !HasAliveEnemyInBack(state, owner))
+                    reach = TargetReach.FrontAndMiddle;
+
                 var effective = PositionRules.GetEffectiveSlot(state, target);
                 if (!IsSlotAllowed(reach, effective))
                     return false;
@@ -80,13 +92,30 @@ namespace Grimhand.Battle.Rules
             return true;
         }
 
+        static bool HasAliveEnemyInBack(BattleState state, CombatantState owner)
+        {
+            if (state == null || owner == null)
+                return false;
+
+            var enemyTeam = owner.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
+            foreach (var unit in state.GetTeam(enemyTeam))
+            {
+                if (unit != null
+                    && unit.IsAlive
+                    && PositionRules.GetEffectiveSlot(state, unit) == FormationSlot.Back)
+                    return true;
+            }
+
+            return false;
+        }
+
         public static int AdjustPowerForTarget(
             BattleState state,
             EffectActionSpec action,
             CombatantState target,
             int power)
         {
-            if (target == null || action.BackRowPowerPercent >= 100)
+            if (target == null || action.BackRowPowerPercent == 100)
                 return power;
 
             if (PositionRules.GetEffectiveSlot(state, target) != FormationSlot.Back)

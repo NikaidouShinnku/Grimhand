@@ -65,5 +65,7 @@ namespace Grimhand.Expedition
         public string PendingTravelerGiftCurseOwnerId { get; set; } = "";
         /// <summary>宝箱奖励 UI 已开启（Continue 后恢复用）。</summary>
         public bool ChestRewardRevealed { get; set; }
+        /// <summary>营地训练场：不走远征结算/存档，仅用于卡组测试。</summary>
+        public bool IsTrainingGround { get; set; }
     }
 }

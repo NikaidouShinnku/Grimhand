@@ -349,6 +349,7 @@ namespace Grimhand.Expedition
             _run.PendingTravelerGiftRelicId = "";
             _run.PendingTravelerGiftCurseOwnerId = "";
             _run.CurrentBattleConfig = null;
+            _run.IsTrainingGround = false;
 
             _run.Map = ExpeditionMapGenerator.Generate(_config, _run, _rng);
             if (_config.MapStartLayer > 1 && _run.Map != null)
@@ -430,6 +431,54 @@ namespace Grimhand.Expedition
                 _run.CurrentBattleConfig.TurnStartEnergyRegen, 4);
         }
 
+        /// <summary>营地训练场：军营携带牌为战斗基组，对战不出牌的假人。</summary>
+        public void StartTrainingGround(CampRosterState roster, CampMetaState meta, BattleConfig playerBaseline)
+        {
+            ResetRunState(skipMap: true);
+            _run.IsTrainingGround = true;
+            _run.Phase = ExpeditionPhase.InBattle;
+            _run.CurrentBossDisplayName = TrainingGroundEncounterBuilder.DummyDisplayName;
+            _run.TargetBattleCount = 1;
+
+            CampRunPartyApplier.Apply(roster, _run, meta);
+            foreach (var member in _run.Party)
+                member.UsesCampDeckAsBattleBase = true;
+
+            ExpeditionDeckInstanceRules.EnsurePartyBaseDeckInstances(_config, _run.Party);
+            CampDeckOwnershipRules.SyncRunStartCampDecks(_run);
+
+            var template = TrainingGroundEncounterBuilder.BuildTemplate(
+                playerBaseline
+                ?? (_config.CombatEncounters.Count > 0 ? _config.CombatEncounters[0] : null));
+
+            var seed = _rng.NextInt(1, int.MaxValue);
+            _run.CurrentBattleConfig = ExpeditionBattleConfigBuilder.BuildEncounter(
+                template,
+                _run.Party,
+                _run.Relics,
+                seed,
+                applyPartyHp: true,
+                _run.MiracleLeafUsesRemaining,
+                floor: 1,
+                _run.Modifiers,
+                _config.PlayerCardCatalog,
+                _config,
+                _run.TalentRun,
+                isBossBattle: false,
+                _run.RelicGrowthTiers,
+                _run.RunWideBonusCards);
+
+            _run.CurrentBattleConfig.EnemyCardsDrawnPerTurn = 0;
+            _run.CurrentBattleConfig.EnemyTurnEnergyBudget = 0;
+            _run.CurrentBattleConfig.SkipFloorScaling = true;
+            _run.CurrentBattleConfig.ManualEnemyIntentsOnly = true;
+            _run.CurrentBattleConfig.VictoryOnCharacterDeathId =
+                TrainingGroundEncounterBuilder.DummyCharacterId;
+            _run.CurrentBattleConfig.EnergyCap += _run.Modifiers.EnergyCapBonus;
+            _run.CurrentBattleConfig.TurnStartEnergyRegen = System.Math.Max(
+                _run.CurrentBattleConfig.TurnStartEnergyRegen, 4);
+        }
+
         void ResetRunState(bool skipMap)
         {
             _run.BattlesWon = 0;
@@ -482,6 +531,7 @@ namespace Grimhand.Expedition
             _run.CurrentBattleConfig = null;
             _run.TalentRun.Reset();
             _run.RunAcquisitionLog.Clear();
+            _run.IsTrainingGround = false;
             _run.Map = skipMap ? null : ExpeditionMapGenerator.Generate(_config, _run, _rng);
         }
 

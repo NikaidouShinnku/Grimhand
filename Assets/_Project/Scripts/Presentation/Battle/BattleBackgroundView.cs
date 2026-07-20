@@ -11,7 +11,9 @@ namespace Grimhand.Presentation.Battle
         const float ExpeditionAlpha = 0.88f;
 
         Image _image;
+        Sprite _lastSprite;
         bool _bound;
+        bool _visible = true;
 
         public void EnsureBuilt(Transform parent, Sprite backgroundSprite)
         {
@@ -45,16 +47,22 @@ namespace Grimhand.Presentation.Battle
                 _image.type = Image.Type.Simple;
             }
 
-            ApplyExpeditionSprite(backgroundSprite);
+            _lastSprite = backgroundSprite;
+            if (_visible)
+                ApplyExpeditionSprite(_lastSprite);
         }
 
         public void SetVisible(bool visible)
         {
+            _visible = visible;
             if (_image == null)
                 return;
 
             if (visible)
+            {
+                ApplyExpeditionSprite(_lastSprite);
                 return;
+            }
 
             _image.sprite = null;
             _image.color = FallbackColor;
@@ -69,6 +77,8 @@ namespace Grimhand.Presentation.Battle
             {
                 _image.sprite = sprite;
                 _image.color = new Color(1f, 1f, 1f, ExpeditionAlpha);
+                _image.enabled = true;
+                _image.gameObject.SetActive(true);
                 return;
             }
 

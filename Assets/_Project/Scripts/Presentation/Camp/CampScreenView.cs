@@ -14,6 +14,7 @@ namespace Grimhand.Presentation.Camp
         const float PortalHeight = 360f;
         const float MerchantHeight = 400f;
         const float TalentAltarHeight = 340f;
+        const float TrainingGroundHeight = 340f;
 
         [SerializeField] BattleUiIconCatalogSO uiIcons;
 
@@ -25,6 +26,7 @@ namespace Grimhand.Presentation.Camp
         Action _onPortal;
         Action _onTalentAltar;
         Action _onMetaShop;
+        Action _onTrainingGround;
         Action<string> _onFeatureComingSoon;
 
         public void ConfigureArt(BattleUiIconCatalogSO icons) => uiIcons = icons;
@@ -34,6 +36,7 @@ namespace Grimhand.Presentation.Camp
             Action onPortal,
             Action onTalentAltar,
             Action onMetaShop,
+            Action onTrainingGround,
             BattleUiIconCatalogSO icons = null,
             Action<string> onFeatureComingSoon = null)
         {
@@ -44,6 +47,7 @@ namespace Grimhand.Presentation.Camp
             _onPortal = onPortal;
             _onTalentAltar = onTalentAltar;
             _onMetaShop = onMetaShop;
+            _onTrainingGround = onTrainingGround;
             _onFeatureComingSoon = onFeatureComingSoon;
             EnsureBuilt();
             HideToast();
@@ -170,6 +174,9 @@ namespace Grimhand.Presentation.Camp
 
             CreateBuilding(zone.transform, "MerchantCamp", uiIcons?.MerchantCampBuilding,
                 new Vector2(0.79f, 0.06f), MerchantHeight, _onMetaShop);
+
+            CreateBuilding(zone.transform, "TrainingGround", uiIcons?.TrainingGroundBuilding,
+                new Vector2(0.62f, 0.06f), TrainingGroundHeight, _onTrainingGround);
         }
 
         void CreateBuilding(

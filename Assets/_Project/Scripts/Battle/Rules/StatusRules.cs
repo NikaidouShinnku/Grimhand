@@ -53,6 +53,12 @@ namespace Grimhand.Battle.Rules
             if (def == null || target == null || !target.IsAlive || stacks <= 0)
                 return;
 
+            // 减益免疫：拦截新减益（免疫自身不算减益）
+            if (statusId != StatusCatalog.DebuffImmune
+                && HasStatus(target, StatusCatalog.DebuffImmune)
+                && IsDebuffDefinition(def))
+                return;
+
             // 中毒按「持续时间」分桶叠层：同回合数合在一起，不同回合数分开（引爆时分别结算）。
             if (statusId == StatusCatalog.Poison)
             {
@@ -92,6 +98,13 @@ namespace Grimhand.Battle.Rules
 
             CombatantRules.RefreshDerivedStats(target);
             RelicBattleRules.RefreshDerivedStats(state, target, state?.Config?.RunModifiers);
+
+            // 骨之王座：获得状态时立即召唤一只易爆骷髅头（之后每回合开始仍会再召唤）
+            if (statusId == StatusCatalog.BoneWorkshop && isNew && state != null)
+            {
+                if (SummonRules.TrySummonExplosiveSkull(state, target, events))
+                    SummonRules.GrantSkullSelfDestructHands(state, events);
+            }
 
             if (statusId == StatusCatalog.Ethereal)
             {
@@ -194,6 +207,9 @@ namespace Grimhand.Battle.Rules
         public static void RemoveStatus(CombatantState target, string statusId, int stacks, List<BattleEvent> events)
         {
             if (target == null || string.IsNullOrEmpty(statusId) || stacks <= 0)
+                return;
+
+            if (IsUnclearedBuff(statusId))
                 return;
 
             var remaining = stacks;
@@ -450,6 +466,7 @@ namespace Grimhand.Battle.Rules
                     CombatantId = combatant.Id,
                     TargetId = status.StatusId
                 });
+                MinionTraitRules.ClearSharedChainWraithDebuff(state, combatant, status.StatusId, events);
                 CombatantRules.RefreshDerivedStats(combatant);
                 RelicBattleRules.RefreshDerivedStats(state, combatant, state?.Config?.RunModifiers);
             }
@@ -477,20 +494,112 @@ namespace Grimhand.Battle.Rules
                     continue;
 
                 var def = StatusCatalog.Get(status.StatusId);
-                if (def == null)
-                    continue;
-
-                if (def.TurnStartDamagePerStack > 0
-                    || def.TurnEndDamagePerStack > 0
-                    || def.SpeedModifierPerStack < 0
-                    || def.AttackModifierPerStack < 0
-                    || def.DefenseModifierPerStack < 0
-                    || def.AttackPercentBonusPerStack < 0
-                    || def.DefensePercentBonusPerStack < 0)
+                if (def != null && IsDebuffDefinition(def))
                     return true;
             }
 
             return false;
+        }
+
+        public static bool HasAnyStatus(CombatantState target)
+        {
+            if (target == null)
+                return false;
+
+            foreach (var status in target.Statuses)
+            {
+                if (status.Stacks > 0)
+                    return true;
+            }
+
+            return false;
+        }
+
+        public static bool IsDebuffDefinition(StatusDefinition def)
+        {
+            if (def == null)
+                return false;
+
+            return def.TurnStartDamagePerStack > 0
+                   || def.TurnEndDamagePerStack > 0
+                   || def.SpeedModifierPerStack < 0
+                   || def.AttackModifierPerStack < 0
+                   || def.DefenseModifierPerStack < 0
+                   || def.AttackPercentBonusPerStack < 0
+                   || def.DefensePercentBonusPerStack < 0
+                   || def.OutgoingDamageReductionFlatPerStack > 0
+                   || def.BlockGainReductionPercentPerStack > 0
+                   || def.IncomingDamagePercentPerStack > 0
+                   || def.Id == StatusCatalog.Deterrence
+                   || def.Id == StatusCatalog.SoulDrain;
+        }
+
+        public static bool IsBuffDefinition(StatusDefinition def)
+        {
+            if (def == null || IsDebuffDefinition(def))
+                return false;
+
+            // 标记类/机制状态不算可偷取增益
+            if (def.Id is StatusCatalog.DebuffImmune
+                or StatusCatalog.SealNextStatusCard
+                or StatusCatalog.SealedNextCard
+                or StatusCatalog.Taunt
+                or StatusCatalog.BoneWorkshop
+                or StatusCatalog.GhostQueenWrath
+                or StatusCatalog.FinalSummonPending
+                or StatusCatalog.RatSwarmCall
+                or StatusCatalog.BrandMark
+                or StatusCatalog.RisingTide
+                or StatusCatalog.EbbingTide
+                or StatusCatalog.TideLocked
+                or StatusCatalog.TideEmpower)
+                return false;
+
+            return def.SpeedModifierPerStack > 0
+                   || def.AttackModifierPerStack > 0
+                   || def.DefenseModifierPerStack > 0
+                   || def.AttackPercentBonusPerStack > 0
+                   || def.DefensePercentBonusPerStack > 0
+                   || def.IncomingDamageReductionPercentPerStack > 0
+                   || def.BlockGainPercentPerStack > 0
+                   || def.BlockGainFlatPerStack > 0
+                   || def.MaxHpPercentBonusPerStack > 0
+                   || def.Id is StatusCatalog.AttackUp
+                       or StatusCatalog.DefenseUp
+                       or StatusCatalog.AttackUpPercent
+                       or StatusCatalog.DefenseUpPercent
+                       or StatusCatalog.ArmorUp
+                       or StatusCatalog.DamageUp
+                       or StatusCatalog.Guard
+                       or StatusCatalog.VampAura
+                       or StatusCatalog.SpeedUp
+                       or StatusCatalog.SnakeSwiftness
+                       or StatusCatalog.DamageReduction
+                       or StatusCatalog.Unyielding;
+        }
+
+        /// <summary>不可被驱散/偷取的机制增益（幽灵女王之怒等）。</summary>
+        public static bool IsUnclearedBuff(string statusId) =>
+            statusId == StatusCatalog.GhostQueenWrath
+            || statusId == StatusCatalog.BoneWorkshop;
+
+        public static void ClearAllDebuffs(CombatantState target, List<BattleEvent> events)
+        {
+            if (target == null)
+                return;
+
+            for (var i = target.Statuses.Count - 1; i >= 0; i--)
+            {
+                var existing = target.Statuses[i];
+                if (existing == null || existing.Stacks <= 0)
+                    continue;
+                var def = StatusCatalog.Get(existing.StatusId);
+                if (!IsDebuffDefinition(def))
+                    continue;
+                RemoveAllStatus(target, existing.StatusId, events);
+            }
+
+            CombatantRules.RefreshDerivedStats(target);
         }
     }
 }

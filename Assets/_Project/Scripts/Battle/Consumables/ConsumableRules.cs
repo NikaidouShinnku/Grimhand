@@ -332,6 +332,7 @@ namespace Grimhand.Battle.Consumables
                 DefinitionId = source.DefinitionId,
                 OwnerCharacterId = source.OwnerCharacterId,
                 Cost = source.Cost,
+                BaseCost = source.BaseCost != 0 || source.Cost == 0 ? source.BaseCost : source.Cost,
                 CardType = source.CardType,
                 IsUsable = source.IsUsable,
                 DisplayName = source.DisplayName

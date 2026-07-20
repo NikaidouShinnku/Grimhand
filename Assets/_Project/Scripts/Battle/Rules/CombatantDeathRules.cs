@@ -2,18 +2,23 @@ using System.Collections.Generic;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.V09;
+using Grimhand.Core;
 
 namespace Grimhand.Battle.Rules
 {
     public static class CombatantDeathRules
     {
-        public static void OnCharacterDied(BattleState state, CombatantState combatant, List<BattleEvent> events)
+        public static void OnCharacterDied(
+            BattleState state,
+            CombatantState combatant,
+            List<BattleEvent> events,
+            BattleRng rng = null)
         {
             if (combatant == null)
                 return;
 
             MinionTraitRules.OnCharacterDied(state, combatant, events);
-            V09BossMechanicsRules.OnCharacterDied(state, combatant, events, rng: null);
+            V09BossMechanicsRules.OnCharacterDied(state, combatant, events, rng);
             TalentBattleRules.OnCharacterDied(state, combatant, events);
             V09NewMechanicsRules.OnConstrictTargetDied(state, combatant, events);
             V09NewMechanicsRules.OnConstrictCasterDied(state, combatant, events);

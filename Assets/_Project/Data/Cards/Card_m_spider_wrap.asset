@@ -61,7 +61,7 @@ MonoBehaviour:
     LifestealUnblockedOnly: 0
   - Type: 42
     Target: 4
-    Value: 1
+    Value: 2
     StatusId: 
     Stacks: 1
     Duration: -1

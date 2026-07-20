@@ -46,7 +46,7 @@ MonoBehaviour:
     OnKillHealAmount: 0
     HitCount: 1
     AlternateAttackScalePercent: 0
-    AlternateValue: 0
+    AlternateValue: 40
     UseAlternateIfTargetHasDebuff: 0
     AlternateAttackScaleIfActorUsedAttack: 0
     AlternateValueIfActorUsedAttack: 0
@@ -58,6 +58,9 @@ MonoBehaviour:
     SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
+    UseAlternateIfActorNotHitThisTurn: 1
+    SelfBlockAboveThreshold: 0
+    AlternateValueIfSelfBlockAbove: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

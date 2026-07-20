@@ -160,12 +160,24 @@ namespace Grimhand.Presentation.Battle
 
             if (costText != null)
             {
+                var shownCost = displayCost ?? (card != null ? card.Cost : 0);
                 if (displayCost.HasValue)
                     costText.text = displayCost.Value.ToString();
                 else if (card != null && card.Keywords != null && card.Keywords.Contains("x_cost"))
                     costText.text = "X";
                 else
                     costText.text = card.Cost.ToString();
+
+                var baseCost = card?.BaseCost ?? shownCost;
+                if (card != null && card.BaseCost == 0 && card.Cost > 0)
+                    baseCost = card.Cost;
+
+                if (shownCost < baseCost)
+                    costText.color = new Color(0.12f, 0.62f, 0.22f, 1f);
+                else if (shownCost > baseCost)
+                    costText.color = new Color(0.82f, 0.18f, 0.18f, 1f);
+                else
+                    costText.color = Color.black;
             }
 
             if (nameText != null)

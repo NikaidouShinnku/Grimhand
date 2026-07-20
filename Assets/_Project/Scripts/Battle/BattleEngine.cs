@@ -34,6 +34,18 @@ namespace Grimhand.Battle
         public BattleState State => _state;
         public IReadOnlyList<BattleEvent> Events => _events;
 
+        public void EmitExternalEvents(System.Collections.Generic.IEnumerable<BattleEvent> events)
+        {
+            if (events == null)
+                return;
+
+            foreach (var e in events)
+            {
+                if (e != null)
+                    _events.Add(e);
+            }
+        }
+
         /// <summary>测试：在手动修改 State 后重新判定胜负。</summary>
         public void EvaluateOutcomeForTests() => EvaluateOutcome();
 
@@ -422,7 +434,7 @@ namespace Grimhand.Battle
                 {
                     RevealIntentIfHidden(entry.Step.CardInstanceId);
                     var card = _state.GetCard(entry.Step.CardInstanceId);
-                    if (actor?.Team == TeamSide.Player && RespondRules.IsRespondCard(card))
+                    if (RespondRules.IsRespondCard(card))
                         ResolveRespondStep(entry);
                     else
                         ResolveStep(entry.Step);
@@ -471,8 +483,22 @@ namespace Grimhand.Battle
             });
 
             if (entry.ApplyConditionalEffects && entry.RespondContext.HasValue)
-                RespondEffectExecutor.Execute(
-                    _state, actor, card, entry.RespondContext.Value, _events, _rng);
+            {
+                if (actor.Team == TeamSide.Enemy)
+                {
+                    DefenderRespondArmRules.TryArmFromEnemyCardResolve(_state, actor, card);
+                    _events.Add(new BattleEvent(BattleEventKind.ReactionTriggered, card.DisplayName)
+                    {
+                        CombatantId = actor.Id,
+                        CardInstanceId = card.InstanceId
+                    });
+                }
+                else
+                {
+                    RespondEffectExecutor.Execute(
+                        _state, actor, card, entry.RespondContext.Value, _events, _rng);
+                }
+            }
 
             PassiveCardMechanicsRules.ApplyEndlessBladeSacrifice(_state, actor, card, _events, _rng);
 
@@ -552,15 +578,19 @@ namespace Grimhand.Battle
 
             if (actor.Team == TeamSide.Enemy
                 && (_state.PendingEnemyCardSeals > 0
-                    || StatusRules.HasStatus(actor, StatusCatalog.SealedNextCard)))
+                    || StatusRules.HasStatus(actor, StatusCatalog.SealedNextCard)
+                    || (card.CardType == CardType.Status
+                        && StatusRules.HasStatus(actor, StatusCatalog.SealNextStatusCard))))
             {
                 if (_state.PendingEnemyCardSeals > 0)
                     _state.PendingEnemyCardSeals--;
-                else
+                else if (StatusRules.HasStatus(actor, StatusCatalog.SealedNextCard))
                     StatusRules.RemoveStatus(actor, StatusCatalog.SealedNextCard, 1, _events);
+                else
+                    StatusRules.RemoveStatus(actor, StatusCatalog.SealNextStatusCard, 1, _events);
 
                 _events.Add(new BattleEvent(BattleEventKind.ReactionTriggered,
-                    $"{card.DisplayName} 被灵界封印，进入弃牌堆且不生效")
+                    $"{card.DisplayName} 被封印，进入弃牌堆且不生效")
                 {
                     CombatantId = actor.Id,
                     CardInstanceId = card.InstanceId
@@ -705,6 +735,7 @@ namespace Grimhand.Battle
             StatusRules.ProcessTurnEndStatuses(_state, _events, _rng);
             StatusRules.ProcessEndOfTurnDurations(_state, _events);
             RelicEffectRules.ProcessEndOfTurn(_state, _events);
+            DefenderRespondArmRules.ExpireArmsAtEndOfTurn(_state);
             _state.ConsumableDodgeBonusThisTurn = 0f;
 
             _state.TurnNumber++;
@@ -816,12 +847,30 @@ namespace Grimhand.Battle
         {
             SetPhase(TurnPhase.Planning);
 
-            var enemyTurn = EnemyTurnPlanner.PrepareEnemyTurn(_state, _rng);
-            _state.EnemyPlan.PlayQueue.Clear();
-            _state.EnemyPlan.PlayQueue.AddRange(enemyTurn.Plan.PlayQueue);
-            _state.EnemyPlan.EnergySpent = enemyTurn.Plan.EnergySpent;
-            _state.EnemyIntents.Clear();
-            _state.EnemyIntents.AddRange(enemyTurn.Intents);
+            if (_state.Config != null && _state.Config.ManualEnemyIntentsOnly)
+            {
+                // 训练场：清空残留敌方手牌，本回合意图仅由外部手动排队。
+                for (var i = _state.EnemyHand.Count - 1; i >= 0; i--)
+                {
+                    var leftover = _state.EnemyHand[i];
+                    _state.EnemyHand.RemoveAt(i);
+                    if (leftover != null)
+                        _state.EnemyDiscardPile.Add(leftover);
+                }
+
+                _state.EnemyPlan.PlayQueue.Clear();
+                _state.EnemyPlan.EnergySpent = 0;
+                _state.EnemyIntents.Clear();
+            }
+            else
+            {
+                var enemyTurn = EnemyTurnPlanner.PrepareEnemyTurn(_state, _rng);
+                _state.EnemyPlan.PlayQueue.Clear();
+                _state.EnemyPlan.PlayQueue.AddRange(enemyTurn.Plan.PlayQueue);
+                _state.EnemyPlan.EnergySpent = enemyTurn.Plan.EnergySpent;
+                _state.EnemyIntents.Clear();
+                _state.EnemyIntents.AddRange(enemyTurn.Intents);
+            }
 
             TargetRules.PrerollEnemyAutoTargets(_state, _state.EnemyPlan, _rng);
 
@@ -829,7 +878,7 @@ namespace Grimhand.Battle
             _state.PlayerPlan.EnergySpentPerCard.Clear();
 
             _events.Add(new BattleEvent(BattleEventKind.EnemyIntentPrepared,
-                $"Enemy intends {enemyTurn.Intents.Count} card(s)"));
+                $"Enemy intends {_state.EnemyIntents.Count} card(s)"));
 
             Draft.Reset();
             _draft = new PlanningDraft(_state, _events);
@@ -977,7 +1026,7 @@ namespace Grimhand.Battle
             {
                 RelicEffectRules.ResetTurnFlags(combatant);
                 if (!combatant.IsAlive)
-                    CombatantDeathRules.OnCharacterDied(_state, combatant, _events);
+                    CombatantDeathRules.OnCharacterDied(_state, combatant, _events, _rng);
             }
 
             DeckRules.ShuffleDrawPile(_state, TeamSide.Player, _rng, _events);
@@ -1057,6 +1106,9 @@ namespace Grimhand.Battle
 
         CardInstanceState CreateCardInstance(CardTemplate template, string ownerCombatantId = "")
         {
+            if (template != null)
+                GhostQueenCardCatalog.TryApplyCanonical(template);
+
             var id = _state.NextCardInstanceId++;
             var card = new CardInstanceState
             {
@@ -1065,6 +1117,7 @@ namespace Grimhand.Battle
                 OwnerCharacterId = template.OwnerCharacterId,
                 OwnerCombatantId = ownerCombatantId ?? "",
                 Cost = template.Cost,
+                BaseCost = template.Cost,
                 CardType = template.CardType,
                 DisplayName = template.DisplayName,
                 UpgradeLevel = template.UpgradeLevel,
@@ -1096,6 +1149,55 @@ namespace Grimhand.Battle
             _events.Add(new BattleEvent(BattleEventKind.CardDrawn, instance.DisplayName)
             {
                 CombatantId = owner?.Id,
+                CardInstanceId = instance.InstanceId
+            });
+            return instance;
+        }
+
+        /// <summary>训练场：将卡牌追加到假人（或首个存活敌人）本回合意图队列，可多次调用。</summary>
+        public CardInstanceState EnqueueEnemyIntentCard(CardTemplate template)
+        {
+            if (_state == null || template == null || _state.Phase != TurnPhase.Planning)
+                return null;
+
+            CombatantState owner = null;
+            foreach (var c in _state.Combatants)
+            {
+                if (c.Team != TeamSide.Enemy || !c.IsAlive)
+                    continue;
+                if (c.CharacterDefinitionId == "char_dummy")
+                {
+                    owner = c;
+                    break;
+                }
+
+                owner ??= c;
+            }
+
+            if (owner == null)
+                return null;
+
+            var instance = CreateCardInstance(template, owner.Id);
+            instance.IsUsable = true;
+            _state.EnemyHand.Add(instance);
+            _state.EnemyPlan.PlayQueue.Add(instance.InstanceId);
+            _state.EnemyPlan.EnergySpent += Math.Max(0, instance.Cost);
+
+            var order = _state.EnemyIntents.Count;
+            _state.EnemyIntents.Add(new EnemyIntentSlot
+            {
+                CardInstanceId = instance.InstanceId,
+                OwnerCombatantId = owner.Id,
+                IsHidden = false,
+                OrderIndex = order
+            });
+
+            TargetRules.PrerollEnemyAutoTargets(_state, _state.EnemyPlan, _rng);
+
+            _events.Add(new BattleEvent(BattleEventKind.EnemyIntentPrepared,
+                $"手动加入意图：{instance.DisplayName}")
+            {
+                CombatantId = owner.Id,
                 CardInstanceId = instance.InstanceId
             });
             return instance;

@@ -28,6 +28,10 @@ namespace Grimhand.Content
         public Sprite ChampionCampBuilding;
         public Sprite MerchantCampBuilding;
         public Sprite PortalBuilding;
+        /// <summary>Assets/The Grimhands Asset/path and background/training_ground.png</summary>
+        public Sprite TrainingGroundBuilding;
+        /// <summary>Assets/The Grimhands Asset/path and background/training_ground_background.png</summary>
+        public Sprite TrainingGroundBackground;
         /// <summary>gamemenu.png 切片：0=START, 1=CONTINUE, 2=SETTINGS, 3=QUIT GAME</summary>
         public Sprite[] GameMenuButtons = System.Array.Empty<Sprite>();
         /// <summary>escmenu.png 切片：0=RETURN TO GAME, 1=SETTINGS, 2=FORFEIT, 3=QUIT GAME</summary>

@@ -23,15 +23,105 @@ namespace Grimhand.Battle.Rules
             if (!StatusRules.HasStatus(summoner, StatusCatalog.BoneWorkshop))
                 return false;
 
-            var slot = FindNextEnemySummonSlot(state, summoner.Team);
+            var slot = FindSlotBehindSummoner(state, summoner);
             if (slot == null)
                 return false;
 
-            if (!state.Config.SummonTemplates.TryGetValue(ExplosiveSkullCharacterId, out var template))
+            var template = EnsureExplosiveSkullTemplate(state);
+            if (template == null)
                 return false;
 
             SpawnFromTemplate(state, template, slot.Value, events);
             return true;
+        }
+
+        /// <summary>
+        /// 训练场/缺 SummonTemplates 的战斗也能召唤：写入默认易爆骷髅头模板（含自爆牌）。
+        /// </summary>
+        public static CombatantConfig EnsureExplosiveSkullTemplate(BattleState state)
+        {
+            if (state?.Config == null)
+                return null;
+
+            if (state.Config.SummonTemplates.TryGetValue(ExplosiveSkullCharacterId, out var existing)
+                && existing != null)
+                return existing;
+
+            var template = CreateDefaultExplosiveSkullTemplate();
+            state.Config.SummonTemplates[ExplosiveSkullCharacterId] = template;
+            return template;
+        }
+
+        public static CombatantConfig CreateDefaultExplosiveSkullTemplate()
+        {
+            var skull = new CombatantConfig
+            {
+                Id = "Character_Explosive_Skull",
+                DisplayName = "易爆骷髅头",
+                Team = TeamSide.Enemy,
+                Slot = FormationSlot.Middle,
+                CharacterDefinitionId = ExplosiveSkullCharacterId,
+                MaxHp = 20,
+                StartHp = 20,
+                BaseAttack = 0,
+                BaseDefense = 5,
+                Speed = 2
+            };
+
+            skull.Traits.Add(CharacterTraitCatalog.SkullSelfDestructHand);
+            skull.DeckTemplates.Add(CreateSkullExplodeTemplate());
+            return skull;
+        }
+
+        static CardTemplate CreateSkullExplodeTemplate()
+        {
+            var card = new CardTemplate
+            {
+                DefinitionId = CharacterTraitCatalog.SkullExplodeCardId,
+                DisplayName = "骷髅自爆",
+                OwnerCharacterId = ExplosiveSkullCharacterId,
+                Cost = 0,
+                CardType = CardType.Attack
+            };
+            card.Keywords.Add("self_destruct");
+            card.Keywords.Add("bonus_hand");
+            card.Actions.Add(new EffectActionSpec
+            {
+                Type = EffectActionType.DealDamage,
+                Target = EffectTarget.RandomEnemy,
+                Value = 24,
+                Reach = TargetReach.Any
+            });
+            return card;
+        }
+
+        /// <summary>优先在召唤者身后（更后排）空位生成；无身后空位时回退任意空位。</summary>
+        public static FormationSlot? FindSlotBehindSummoner(BattleState state, CombatantState summoner)
+        {
+            if (state == null || summoner == null)
+                return null;
+
+            var occupied = new HashSet<FormationSlot>();
+            foreach (var unit in state.GetTeam(summoner.Team))
+            {
+                if (unit.IsAlive)
+                    occupied.Add(unit.Slot);
+            }
+
+            FormationSlot[] preferred = summoner.Slot switch
+            {
+                FormationSlot.Front => new[] { FormationSlot.Middle, FormationSlot.Back },
+                FormationSlot.Middle => new[] { FormationSlot.Back },
+                _ => System.Array.Empty<FormationSlot>()
+            };
+
+            foreach (var slot in preferred)
+            {
+                if (!occupied.Contains(slot))
+                    return slot;
+            }
+
+            return FindEmptyTeamSlot(state, summoner.Team);
         }
 
         public static void GrantSkullSelfDestructHands(BattleState state, List<BattleEvent> events)
@@ -146,28 +236,29 @@ namespace Grimhand.Battle.Rules
             CombatantState dead,
             List<BattleEvent> events)
         {
-            if (state == null || dead == null || dead.CharacterDefinitionId != MinionTraitCatalog.RatCharacterId)
+            if (state == null || dead == null)
                 return;
 
+            // 持有鼠群呼唤的单位死亡时，在原位召唤 50% 血量的鼠人（不要求死者本身是鼠人，便于假人测试）
             var maxHp = System.Math.Max(1, dead.MaxHp / 2);
             var id = $"summon_{MinionTraitCatalog.RatCharacterId}_{state.NextSummonInstanceId++}";
             var combatant = new CombatantState
             {
                 Id = id,
-                DisplayName = dead.DisplayName,
+                DisplayName = "鼠人",
                 Team = dead.Team,
                 Slot = dead.Slot,
                 CharacterDefinitionId = MinionTraitCatalog.RatCharacterId,
                 Level = dead.Level,
                 Xp = dead.Xp,
                 MaxHp = maxHp,
-                BaseAttack = dead.BaseAttack,
-                BaseDefense = dead.BaseDefense,
-                Speed = dead.Speed,
+                BaseAttack = System.Math.Max(1, dead.BaseAttack),
+                BaseDefense = System.Math.Max(0, dead.BaseDefense),
+                Speed = System.Math.Max(1, dead.Speed),
                 Hp = maxHp
             };
 
-            combatant.Traits.AddRange(dead.Traits);
+            combatant.Traits.Add(MinionTraitCatalog.RatPackAttackOnAllyDeath);
             state.Combatants.Add(combatant);
             RelicBattleRules.RefreshDerivedStats(state, combatant, state.Config?.RunModifiers);
 
@@ -209,6 +300,7 @@ namespace Grimhand.Battle.Rules
                 DefinitionId = template.DefinitionId,
                 OwnerCharacterId = template.OwnerCharacterId,
                 Cost = template.Cost,
+                BaseCost = template.Cost,
                 CardType = template.CardType,
                 DisplayName = template.DisplayName,
                 UpgradeLevel = template.UpgradeLevel,
@@ -249,6 +341,7 @@ namespace Grimhand.Battle.Rules
                 OwnerCharacterId = template.OwnerCharacterId,
                 OwnerCombatantId = ownerCombatantId,
                 Cost = template.Cost,
+                BaseCost = template.Cost,
                 CardType = template.CardType,
                 DisplayName = template.DisplayName,
                 UpgradeLevel = template.UpgradeLevel,
@@ -261,35 +354,7 @@ namespace Grimhand.Battle.Rules
                 card.Keywords.Add("bonus_hand");
 
             foreach (var action in template.Actions)
-            {
-                card.Actions.Add(new EffectActionSpec
-                {
-                    Type = action.Type,
-                    Target = action.Target,
-                    Value = action.Value,
-                    StatusId = action.StatusId,
-                    Stacks = action.Stacks,
-                    Duration = action.Duration,
-                    ScaleWithAttack = action.ScaleWithAttack,
-                    ScaleWithDefense = action.ScaleWithDefense,
-                    AttackScalePercent = action.AttackScalePercent,
-                    DefenseScalePercent = action.DefenseScalePercent,
-                    Condition = action.Condition,
-                    Reach = action.Reach,
-                    SplashBehindTarget = action.SplashBehindTarget,
-                    SplashPowerPercent = action.SplashPowerPercent,
-                    BackRowPowerPercent = action.BackRowPowerPercent,
-                    IgnoreDefPercent = action.IgnoreDefPercent,
-                    BonusIfTargetHpBelowPercent = action.BonusIfTargetHpBelowPercent,
-                    BonusIfTargetHpBelowFlat = action.BonusIfTargetHpBelowFlat,
-                    BonusIfTargetHitThisTurnPercent = action.BonusIfTargetHitThisTurnPercent,
-                    BonusIfTargetHasStatusId = action.BonusIfTargetHasStatusId,
-                    BonusIfTargetHasStatusFlat = action.BonusIfTargetHasStatusFlat,
-                    LifestealPercent = action.LifestealPercent,
-                    HealMaxHpPercent = action.HealMaxHpPercent,
-                    OnKillHealAmount = action.OnKillHealAmount
-                });
-            }
+                card.Actions.Add(EffectActionSpec.Clone(action));
 
             state.CardsById[id] = card;
             return card;

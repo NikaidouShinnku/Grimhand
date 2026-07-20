@@ -18,14 +18,16 @@ MonoBehaviour:
   Cost: 1
   CardType: 2
   Rarity: 0
-  Keywords: []
+  Keywords:
+  - slow
+
   Actions:
-  - Type: 3
-    Target: 1
+  - Type: 11
+    Target: 0
     Value: 0
-    StatusId: taunt
+    StatusId: 
     Stacks: 1
-    Duration: 2
+    Duration: -1
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100
@@ -58,6 +60,7 @@ MonoBehaviour:
     SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
+
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

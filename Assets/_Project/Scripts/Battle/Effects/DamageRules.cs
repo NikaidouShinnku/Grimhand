@@ -58,6 +58,21 @@ namespace Grimhand.Battle.Effects
 
             var raw = outgoingPower;
 
+            // 女王的命令等：在扣护甲前转嫁，避免原目标吞掉护甲后 hpDamage=0 导致转伤失效
+            var defenderMitigated = 0;
+            var hadDefenderArm = false;
+            var originalRecipientId = recipient.Id;
+            if (raw > 0 && !isSacrificeDamage)
+            {
+                var redirectHp = raw;
+                hadDefenderArm = DefenderRespondArmRules.TryConsumeForIncomingPlayerAttack(
+                    state, actor, ref recipient, ref redirectHp, events, out defenderMitigated, rng);
+                if (hadDefenderArm)
+                    raw = redirectHp;
+            }
+
+            var respondBlockerId = hadDefenderArm ? originalRecipientId : "";
+
             if (raw > 0)
                 BossTraitRules.TryApplyFirstHitBlock(state, recipient, events);
 
@@ -88,10 +103,6 @@ namespace Grimhand.Battle.Effects
 
             hpDamage = RelicBattleRules.ApplyIncomingDamageRelics(
                 state, actor, recipient, hpDamage, rng, events);
-
-            var defenderMitigated = 0;
-            var hadDefenderArm = DefenderRespondArmRules.TryConsumeForIncomingPlayerAttack(
-                state, actor, ref recipient, ref hpDamage, events, out defenderMitigated);
 
             var beforeRespondMitigation = hpDamage;
             hpDamage = RespondEffectExecutor.ApplyMitigation(
@@ -124,6 +135,9 @@ namespace Grimhand.Battle.Effects
                     });
                 }
             }
+
+            if (!isSacrificeDamage && cardType == CardType.Attack && actor != null && actor.Id != recipient.Id)
+                recipient.HitThisTurn = true;
 
             if (hpDamage > 0)
                 recipient.HitThisTurn = true;
@@ -162,6 +176,7 @@ namespace Grimhand.Battle.Effects
                 BlockedAmount = blocked,
                 RespondMitigatedAmount = respondMitigated,
                 HadRespondDefense = hadRespondDefense,
+                RespondBlockerId = respondBlockerId,
                 IsSacrificeDamage = isSacrificeDamage,
                 IsAoEWave = isAoEWave,
                 CardType = cardType,
@@ -187,7 +202,7 @@ namespace Grimhand.Battle.Effects
                 {
                     CombatantId = recipient.Id
                 });
-                CombatantDeathRules.OnCharacterDied(state, recipient, events);
+                CombatantDeathRules.OnCharacterDied(state, recipient, events, rng);
 
                 if (recipient.Team == TeamSide.Enemy && actor != null)
                     RelicEffectRules.OnEnemyKilled(state, actor, events, rng);

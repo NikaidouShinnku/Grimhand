@@ -30,15 +30,14 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.AttackDown:
                 case StatusCatalog.Constrict:
                 case StatusCatalog.DelayedDamage:
+                case StatusCatalog.Deterrence:
+                case StatusCatalog.SoulDrain:
                     return icons.StatusDamageDown;
 
                 case StatusCatalog.Vulnerable:
-                case StatusCatalog.DefenseDownPercent:
                     return icons.StatusDefenseDown;
 
                 case StatusCatalog.DamageReduction:
-                case StatusCatalog.DefenseUp:
-                case StatusCatalog.DefenseUpPercent:
                 case StatusCatalog.HeavyArmor:
                 case StatusCatalog.FinalBulwark:
                 case StatusCatalog.RespondStance:
@@ -47,15 +46,20 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.LastStand:
                     return icons.StatusDefenseUp;
 
+                // 强固 / 破损：护甲获取增减（armoracq），勿与减伤/易伤混淆
                 case StatusCatalog.ArmorUp:
+                case StatusCatalog.DefenseUp:
+                case StatusCatalog.DefenseUpPercent:
                     return icons.StatusArmorAcqUp;
 
                 case StatusCatalog.ArmorDown:
+                case StatusCatalog.DefenseDownPercent:
                     return icons.StatusArmorAcqDown;
 
                 case StatusCatalog.Slow:
                     return icons.StatusSpdDown;
 
+                case StatusCatalog.SpeedUp:
                 case StatusCatalog.SnakeSwiftness:
                     return icons.StatusSpdUp != null ? icons.StatusSpdUp : icons.StatusSpdDown;
 
@@ -76,6 +80,7 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.AnubisAvatar:
                 case StatusCatalog.Ethereal:
                 case StatusCatalog.EtherealOnNextHit:
+                case StatusCatalog.Invulnerable:
                 case StatusCatalog.RatSwarmCall:
                 case StatusCatalog.BloodlineLegacy:
                 case StatusCatalog.BloodSharing:

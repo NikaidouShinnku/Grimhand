@@ -67,6 +67,9 @@ namespace Grimhand.Editor
             catalog.ChampionCampBuilding = LoadNamedSprite(CampArtRoot + "champion_camp.png", "champion_camp_0");
             catalog.MerchantCampBuilding = LoadNamedSprite(CampArtRoot + "merchant_camp.png", "merchant_camp_0");
             catalog.PortalBuilding = LoadNamedSprite(CampArtRoot + "portal.png", "portal_0");
+            catalog.TrainingGroundBuilding = LoadNamedSprite(CampArtRoot + "training_ground.png", "training_ground_0")
+                ?? LoadFirstSprite(CampArtRoot + "training_ground.png");
+            catalog.TrainingGroundBackground = LoadFirstSprite(CampArtRoot + "training_ground_background.png");
             catalog.GameMenuButtons = new[]
             {
                 LoadNamedSprite(IconRoot + "gamemenu.png", "gamemenu_0"),

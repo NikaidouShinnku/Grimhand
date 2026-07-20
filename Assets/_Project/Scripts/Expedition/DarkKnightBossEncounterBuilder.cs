@@ -1,6 +1,5 @@
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
-using Grimhand.Battle.Status;
 
 namespace Grimhand.Expedition
 {
@@ -53,12 +52,12 @@ namespace Grimhand.Expedition
             };
             knight.Traits.Add(CharacterTraitCatalog.DarkKnightPoisonAura);
 
-            AddDeck(knight, WitherStrike(), 3);
-            AddDeck(knight, SoulDrain(), 3);
-            AddDeck(knight, DarkShield(), 2);
-            AddDeck(knight, PlagueTide(), 2);
-            AddDeck(knight, CommandDead(), 1);
-            AddDeck(knight, Snowball(), 2);
+            AddDeck(knight, V09BossCardCatalog.WitherStrike(), 3);
+            AddDeck(knight, V09BossCardCatalog.SoulDrain(), 3);
+            AddDeck(knight, V09BossCardCatalog.DarkShield(), 2);
+            AddDeck(knight, V09BossCardCatalog.PlagueTide(), 2);
+            AddDeck(knight, V09BossCardCatalog.CommandDead(), 1);
+            AddDeck(knight, V09BossCardCatalog.Snowball(), 2);
             return knight;
         }
 
@@ -80,105 +79,6 @@ namespace Grimhand.Expedition
         {
             for (var i = 0; i < count; i++)
                 cc.DeckTemplates.Add(ExpeditionBattleConfigBuilder.CloneTemplate(card));
-        }
-
-        static CardTemplate WitherStrike()
-        {
-            var card = BaseCard("m_dark_knight_wither", "凋零刺击", 1, CardType.Attack);
-            card.Actions.Add(new EffectActionSpec
-            {
-                Type = EffectActionType.DealDamage,
-                Target = EffectTarget.DefaultEnemy,
-                Value = 25,
-                Reach = TargetReach.FrontAndMiddle,
-                BonusIfTargetHasStatusId = StatusCatalog.Poison,
-                BonusIfTargetHasStatusFlat = 15
-            });
-            return card;
-        }
-
-        static CardTemplate SoulDrain()
-        {
-            var card = BaseCard("m_dark_knight_soul_drain", "灵魂吸取", 1, CardType.Attack);
-            card.Actions.Add(new EffectActionSpec
-            {
-                Type = EffectActionType.DealDamage,
-                Target = EffectTarget.DefaultEnemy,
-                Value = 15,
-                Reach = TargetReach.FrontAndMiddle,
-                LifestealPercent = 100
-            });
-            return card;
-        }
-
-        static CardTemplate DarkShield()
-        {
-            var card = BaseCard("m_dark_knight_shield", "黑暗护盾", 1, CardType.Defense);
-            card.Actions.Add(new EffectActionSpec
-            {
-                Type = EffectActionType.GainBlock,
-                Target = EffectTarget.Self,
-                Value = 20
-            });
-            return card;
-        }
-
-        static CardTemplate PlagueTide()
-        {
-            var card = BaseCard("m_dark_knight_plague", "瘟疫之潮", 2, CardType.Status, "aoe", "poison");
-            card.Actions.Add(new EffectActionSpec
-            {
-                Type = EffectActionType.ApplyStatus,
-                Target = EffectTarget.AllEnemies,
-                StatusId = StatusCatalog.Poison,
-                Stacks = 5,
-                Duration = -1,
-                Reach = TargetReach.Any
-            });
-            return card;
-        }
-
-        static CardTemplate CommandDead()
-        {
-            var card = BaseCard("m_dark_knight_command_dead", "号令亡者", 2, CardType.Status, "exhaust", "summon");
-            card.Actions.Add(new EffectActionSpec
-            {
-                Type = EffectActionType.SummonOrGainBlock,
-                Target = EffectTarget.Self,
-                SummonCharacterId = "char_spider_lady",
-                FallbackBlockValue = 15
-            });
-            return card;
-        }
-
-        static CardTemplate Snowball()
-        {
-            var card = BaseCard("m_dark_knight_snowball", "雪上加霜", 2, CardType.Attack, "aoe");
-            card.Actions.Add(new EffectActionSpec
-            {
-                Type = EffectActionType.DealDamage,
-                Target = EffectTarget.AllEnemies,
-                Value = 10,
-                Reach = TargetReach.Any,
-                BonusIfTargetHasStatusId = StatusCatalog.Poison,
-                BonusIfTargetHasStatusFlat = 10
-            });
-            return card;
-        }
-
-        static CardTemplate BaseCard(string id, string name, int cost, CardType type, params string[] keywords)
-        {
-            var card = new CardTemplate
-            {
-                DefinitionId = id,
-                DisplayName = name,
-                OwnerCharacterId = CharacterId,
-                Cost = cost,
-                CardType = type
-            };
-            foreach (var keyword in keywords)
-                card.Keywords.Add(keyword);
-            return card;
         }
     }
 }

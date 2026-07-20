@@ -49,7 +49,7 @@ namespace Grimhand.Battle.V09
                     ProcessOceanGoddessTurnStart(state, combatant, events);
 
                 if (BossTraitRules.HasTrait(combatant, CharacterTraitCatalog.PrisonCage))
-                    ApplyTickDamage(state, combatant, CageTurnStartSelfDamage, "囚笼损耗", events);
+                    ApplyTickDamage(state, combatant, CageTurnStartSelfDamage, "囚笼损耗", events, rng);
 
                 if (BossTraitRules.HasTrait(combatant, CharacterTraitCatalog.WardenCageMaster))
                     TryApplyWardenNoCageRage(state, combatant, events);
@@ -228,7 +228,8 @@ namespace Grimhand.Battle.V09
             CombatantState actor,
             string characterDefinitionId,
             int damage,
-            List<BattleEvent> events)
+            List<BattleEvent> events,
+            BattleRng rng = null)
         {
             if (state == null || actor == null || damage <= 0 || string.IsNullOrEmpty(characterDefinitionId))
                 return;
@@ -243,7 +244,9 @@ namespace Grimhand.Battle.V09
             if (pool.Count == 0)
                 return;
 
-            var target = pool[0];
+            var target = pool.Count == 1 || rng == null
+                ? pool[0]
+                : pool[rng.NextIndex(pool.Count)];
             DamageRules.ApplyDamage(
                 state,
                 actor,
@@ -251,7 +254,8 @@ namespace Grimhand.Battle.V09
                 damage,
                 CardType.Status,
                 events,
-                canTriggerParry: false);
+                canTriggerParry: false,
+                rng: rng);
         }
 
         public static void StripBlockThenDealDamage(
@@ -416,7 +420,11 @@ namespace Grimhand.Battle.V09
         {
             foreach (var enemy in state.GetTeam(TeamSide.Enemy))
             {
-                if (enemy.IsAlive && enemy.CharacterDefinitionId == CharacterTraitCatalog.PrisonCageCharacterId)
+                if (!enemy.IsAlive)
+                    continue;
+
+                if (enemy.CharacterDefinitionId == CharacterTraitCatalog.PrisonCageCharacterId
+                    || BossTraitRules.HasTrait(enemy, CharacterTraitCatalog.PrisonCage))
                     return true;
             }
 
@@ -509,7 +517,8 @@ namespace Grimhand.Battle.V09
             CombatantState combatant,
             int damage,
             string label,
-            List<BattleEvent> events)
+            List<BattleEvent> events,
+            BattleRng rng = null)
         {
             if (combatant == null || damage <= 0)
                 return;
@@ -527,7 +536,7 @@ namespace Grimhand.Battle.V09
                 {
                     CombatantId = combatant.Id
                 });
-                CombatantDeathRules.OnCharacterDied(state, combatant, events);
+                CombatantDeathRules.OnCharacterDied(state, combatant, events, rng);
             }
         }
     }

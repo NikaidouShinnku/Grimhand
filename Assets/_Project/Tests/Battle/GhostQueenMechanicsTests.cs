@@ -88,6 +88,7 @@ namespace Grimhand.Battle.Tests
 
             DefenderRespondArmRules.ArmRedirectDouble(state, queen.Id);
             queen.Hp = 200;
+            queen.Block = 50;
 
             DamageRules.ApplyDamage(
                 state,
@@ -98,8 +99,67 @@ namespace Grimhand.Battle.Tests
                 new List<BattleEvent>(),
                 rng: new BattleRng(1));
 
+            Assert.AreEqual(200, queen.Hp, "转伤后女王不应掉血");
+            Assert.AreEqual(50, queen.Block, "转伤应在扣护甲前，女王护甲不应被消耗");
             var mage = state.GetCombatant("mage");
-            Assert.Less(mage.Hp, 40, "伤害应转嫁给队友并翻倍");
+            var warrior = state.GetCombatant("warrior");
+            Assert.IsTrue(mage.Hp < 40 || warrior.Hp < 50, "伤害应转嫁给随机玩家并翻倍");
+        }
+
+        [Test]
+        public void QueenDeterrence_LocksPlayerAndAppliesStatus()
+        {
+            var state = BuildQueenState(out var queen);
+            var warrior = BuildPlayerAttacker(state);
+            var events = new List<BattleEvent>();
+
+            EffectActionExecutor.ExecuteUnconditionalActions(
+                state,
+                queen,
+                BuildSimpleCard(EffectActionType.LockRandomPlayerPlaysThisTurn, 0),
+                events,
+                new BattleRng(1));
+
+            Assert.IsFalse(warrior.SkipRemainingPlaysThisTurn, "威慑不应打断本回合");
+            Assert.IsTrue(StatusRules.HasStatus(warrior, StatusCatalog.Deterrence));
+            Assert.GreaterOrEqual(warrior.CardsLockedTurnsRemaining, 2, "应锁定下回合出牌");
+        }
+
+        [Test]
+        public void QueenCurse_AppliesPoisonToAllPlayers()
+        {
+            var state = BuildQueenState(out var queen);
+            var warrior = BuildPlayerAttacker(state);
+            state.Combatants.Add(new CombatantState
+            {
+                Id = "mage",
+                Team = TeamSide.Player,
+                Slot = FormationSlot.Middle,
+                Hp = 40,
+                MaxHp = 40
+            });
+
+            var card = new CardInstanceState
+            {
+                InstanceId = 1,
+                DisplayName = "诅咒",
+                CardType = CardType.Status
+            };
+            card.Actions.Add(new EffectActionSpec
+            {
+                Type = EffectActionType.ApplyStatus,
+                Target = EffectTarget.AllEnemies,
+                StatusId = StatusCatalog.Poison,
+                Stacks = 6,
+                Duration = -1,
+                Reach = TargetReach.Any
+            });
+
+            EffectActionExecutor.ExecuteUnconditionalActions(
+                state, queen, card, new List<BattleEvent>(), new BattleRng(1));
+
+            Assert.IsTrue(StatusRules.HasStatus(warrior, StatusCatalog.Poison));
+            Assert.IsTrue(StatusRules.HasStatus(state.GetCombatant("mage"), StatusCatalog.Poison));
         }
 
         [Test]
@@ -113,8 +173,17 @@ namespace Grimhand.Battle.Tests
                     EnergyCap = 8
                 },
                 EnergyCurrent = 0,
+                EnergyMax = 8,
                 IsFirstPlayerTurn = false
             };
+            var player = new CombatantState
+            {
+                Id = "warrior",
+                Team = TeamSide.Player,
+                Hp = 50,
+                MaxHp = 50
+            };
+            state.Combatants.Add(player);
 
             EffectActionExecutor.ExecuteUnconditionalActions(
                 state,
@@ -123,8 +192,57 @@ namespace Grimhand.Battle.Tests
                 new List<BattleEvent>(),
                 new BattleRng(1));
 
+            Assert.IsTrue(StatusRules.HasStatus(player, StatusCatalog.SoulDrain));
             EnergyRules.ApplyTurnStartRegen(state);
             Assert.AreEqual(2, state.EnergyCurrent);
+            Assert.IsFalse(StatusRules.HasStatus(player, StatusCatalog.SoulDrain));
+        }
+
+        [Test]
+        public void BoneWorkshop_SummonsImmediatelyOnApply()
+        {
+            var state = BuildBossBattleStateForQueenTest();
+            var king = state.GetCombatant("king");
+            var events = new List<BattleEvent>();
+
+            StatusRules.ApplyStatus(state, king, StatusCatalog.BoneWorkshop, 1, -1, events);
+
+            var skull = 0;
+            foreach (var unit in state.Combatants)
+            {
+                if (unit.CharacterDefinitionId == SummonRules.ExplosiveSkullCharacterId && unit.IsAlive)
+                    skull++;
+            }
+
+            Assert.AreEqual(1, skull);
+            Assert.AreEqual(FormationSlot.Middle, state.Combatants[state.Combatants.Count - 1].Slot);
+        }
+
+        static BattleState BuildBossBattleStateForQueenTest()
+        {
+            var state = new BattleState
+            {
+                Config = new BattleConfig()
+            };
+            state.Config.SummonTemplates[SummonRules.ExplosiveSkullCharacterId] = new CombatantConfig
+            {
+                CharacterDefinitionId = SummonRules.ExplosiveSkullCharacterId,
+                DisplayName = "易爆骷髅头",
+                Team = TeamSide.Enemy,
+                MaxHp = 20,
+                BaseDefense = 5,
+                Speed = 2
+            };
+            state.Combatants.Add(new CombatantState
+            {
+                Id = "king",
+                DisplayName = "骷髅王",
+                Team = TeamSide.Enemy,
+                Slot = FormationSlot.Front,
+                Hp = 100,
+                MaxHp = 100
+            });
+            return state;
         }
 
         static BattleState BuildQueenState(out CombatantState queen)

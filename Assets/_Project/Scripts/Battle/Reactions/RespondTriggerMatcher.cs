@@ -67,16 +67,34 @@ namespace Grimhand.Battle.Reactions
             return targetId == enemyStep.CombatantId;
         }
 
+        public static bool PlayerStepHasAttack(BattleState state, ResolutionStep playerStep) =>
+            EnemyStepHasAttack(state, playerStep);
+
+        public static bool PlayerStepTriggersEnemyRespond(BattleState state, ResolutionStep playerStep) =>
+            PlayerStepHasAttack(state, playerStep);
+
         public static bool WouldEnemyStepAttackCombatant(
             BattleState state,
             ResolutionStep enemyStep,
+            string defenderId) =>
+            WouldStepAttackCombatant(state, enemyStep, defenderId);
+
+        public static bool WouldPlayerStepAttackCombatant(
+            BattleState state,
+            ResolutionStep playerStep,
+            string defenderId) =>
+            WouldStepAttackCombatant(state, playerStep, defenderId);
+
+        public static bool WouldStepAttackCombatant(
+            BattleState state,
+            ResolutionStep attackStep,
             string defenderId)
         {
-            if (!EnemyStepHasAttack(state, enemyStep))
+            if (!EnemyStepHasAttack(state, attackStep))
                 return false;
 
-            var attacker = state.GetCombatant(enemyStep.CombatantId);
-            var card = state.GetCard(enemyStep.CardInstanceId);
+            var attacker = state.GetCombatant(attackStep.CombatantId);
+            var card = state.GetCard(attackStep.CardInstanceId);
             var defender = state.GetCombatant(defenderId);
             if (attacker == null || card == null || defender == null || !defender.IsAlive)
                 return false;
@@ -88,7 +106,7 @@ namespace Grimhand.Battle.Reactions
 
                 if (action.Target == EffectTarget.AllEnemies)
                 {
-                    if (defender.Team == TeamSide.Player)
+                    if (defender.Team != attacker.Team)
                         return true;
                     continue;
                 }
@@ -122,7 +140,23 @@ namespace Grimhand.Battle.Reactions
                        && respondCard.Actions.Count > 0;
             }
 
-            if (!WouldEnemyStepAttackCombatant(state, enemyStep, respondOwner.Id))
+            return RespondCardMatchesAttackStep(state, respondOwner, respondCard, enemyStep);
+        }
+
+        public static bool RespondCardMatchesPlayerStep(
+            BattleState state,
+            CombatantState respondOwner,
+            CardInstanceState respondCard,
+            ResolutionStep playerStep) =>
+            RespondCardMatchesAttackStep(state, respondOwner, respondCard, playerStep);
+
+        static bool RespondCardMatchesAttackStep(
+            BattleState state,
+            CombatantState respondOwner,
+            CardInstanceState respondCard,
+            ResolutionStep attackStep)
+        {
+            if (!WouldStepAttackCombatant(state, attackStep, respondOwner.Id))
                 return false;
 
             foreach (var action in respondCard.Actions)
@@ -130,7 +164,7 @@ namespace Grimhand.Battle.Reactions
                 if (action.Condition == ReactionConditionType.None)
                     continue;
 
-                if (ReactionRules.MeetsRespondCondition(state, action.Condition, respondOwner.Id, enemyStep))
+                if (ReactionRules.MeetsRespondCondition(state, action.Condition, respondOwner.Id, attackStep))
                     return true;
             }
 
@@ -141,7 +175,7 @@ namespace Grimhand.Battle.Reactions
                        state,
                        ReactionConditionType.LastActionAttackOnSelf,
                        respondOwner.Id,
-                       enemyStep);
+                       attackStep);
         }
 
         static bool HasConditionalAction(CardInstanceState card)
@@ -168,6 +202,25 @@ namespace Grimhand.Battle.Reactions
                     continue;
 
                 if (RespondCardMatchesEnemyStep(state, respondOwner, respondCard, step))
+                    return true;
+            }
+
+            return false;
+        }
+
+        public static bool AnyMatchingPlayerStep(
+            BattleState state,
+            CombatantState respondOwner,
+            CardInstanceState respondCard,
+            IReadOnlyList<ResolutionStep> baseline)
+        {
+            foreach (var step in baseline)
+            {
+                var actor = state.GetCombatant(step.CombatantId);
+                if (actor == null || actor.Team != TeamSide.Player)
+                    continue;
+
+                if (RespondCardMatchesPlayerStep(state, respondOwner, respondCard, step))
                     return true;
             }
 

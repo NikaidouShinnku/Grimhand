@@ -75,7 +75,7 @@ namespace Grimhand.Expedition
                 Team = TeamSide.Enemy,
                 Slot = FormationSlot.Middle,
                 CharacterDefinitionId = SummonRules.ExplosiveSkullCharacterId,
-                MaxHp = 50,
+                MaxHp = 20,
                 BaseAttack = 0,
                 BaseDefense = 5,
                 Speed = 2
@@ -105,7 +105,7 @@ namespace Grimhand.Expedition
                 Value = 2,
                 StatusId = StatusCatalog.Slow,
                 Stacks = 2,
-                Duration = 2
+                Duration = 4
             });
             return card;
         }
@@ -174,7 +174,7 @@ namespace Grimhand.Expedition
             {
                 Type = EffectActionType.DealDamage,
                 Target = EffectTarget.RandomEnemy,
-                Value = 40
+                Value = 24
             });
             return card;
         }

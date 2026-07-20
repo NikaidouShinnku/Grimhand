@@ -18,10 +18,12 @@ MonoBehaviour:
   Cost: 0
   CardType: 0
   Rarity: 0
-  Keywords: []
+  Keywords:
+  - self_destruct
+  - bonus_hand
   Actions:
   - Type: 0
-    Target: 12
+    Target: 13
     Value: 24
     StatusId: 
     Stacks: 1
@@ -31,7 +33,7 @@ MonoBehaviour:
     AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 1
+    Reach: 0
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100
@@ -48,6 +50,7 @@ MonoBehaviour:
     AlternateAttackScalePercent: 0
     AlternateValue: 0
     UseAlternateIfTargetHasDebuff: 0
+    UseAlternateIfTargetHasAnyStatus: 0
     AlternateAttackScaleIfActorUsedAttack: 0
     AlternateValueIfActorUsedAttack: 0
     DamageMultiplierPercentIfRespondArmed: 100

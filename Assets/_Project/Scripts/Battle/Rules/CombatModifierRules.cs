@@ -26,9 +26,7 @@ namespace Grimhand.Battle.Rules
             combatant.BlockGainPercentBonus = 0;
             combatant.BlockGainReductionPercent = 0;
 
-            var expeditionFlatBonus = combatant.BaseAttack;
-            var battleOutgoingPercentBonus = combatant.BaseDefense;
-
+            // 新版无 ATK/DEF：属性字段不参与伤害/护甲结算
             combatant.BaseAttack = 0;
             combatant.BaseDefense = 0;
             combatant.Attack = 0;
@@ -57,9 +55,6 @@ namespace Grimhand.Battle.Rules
                 combatant.BlockGainFlatBonus += def.DefenseModifierPerStack * stacks;
                 combatant.BlockGainPercentBonus += def.DefensePercentBonusPerStack * stacks;
             }
-
-            combatant.OutgoingDamageFlatBonus += combatant.GargoyleStanceAttackBonus;
-            combatant.BlockGainFlatBonus += combatant.GargoyleStanceDefenseBonus;
 
             if (combatant.RatPackAttackBonusPercent > 0)
                 combatant.OutgoingDamagePercentBonus += combatant.RatPackAttackBonusPercent;
@@ -94,8 +89,6 @@ namespace Grimhand.Battle.Rules
                 }
             }
 
-            combatant.OutgoingDamageFlatBonus += expeditionFlatBonus;
-            combatant.OutgoingDamagePercentBonus += battleOutgoingPercentBonus;
             combatant.OutgoingDamageFlatBonus += combatant.PersistentOutgoingDamageFlatBonus;
             combatant.BlockGainFlatBonus += combatant.PersistentBlockGainFlatBonus;
 

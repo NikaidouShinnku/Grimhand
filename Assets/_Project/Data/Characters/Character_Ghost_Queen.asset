@@ -12,25 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 84c30176d181a5747a85983cdd126a0c, type: 3}
   m_Name: Character_Ghost_Queen
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CharacterDefinitionSO
-  SkillPool:
-  - {fileID: 11400000, guid: 7f6c0e089e12455eb390462c5decbdab, type: 2}
-  - {fileID: 11400000, guid: 7f6c0e089e12455eb390462c5decbdab, type: 2}
-  - {fileID: 11400000, guid: 7f6c0e089e12455eb390462c5decbdab, type: 2}
-  - {fileID: 11400000, guid: 7f6c0e089e12455eb390462c5decbdab, type: 2}
-  - {fileID: 11400000, guid: 3b931d89f08c61b42981ab40a7af1fb3, type: 2}
-  - {fileID: 11400000, guid: 3b931d89f08c61b42981ab40a7af1fb3, type: 2}
-  - {fileID: 11400000, guid: 3b931d89f08c61b42981ab40a7af1fb3, type: 2}
-  - {fileID: 11400000, guid: 3b931d89f08c61b42981ab40a7af1fb3, type: 2}
-  - {fileID: 11400000, guid: 752436e5a508a02459b31c60d06a9aa1, type: 2}
-  - {fileID: 11400000, guid: 4f2840fee271ca94c8036636b6d925bd, type: 2}
-  - {fileID: 11400000, guid: 4f2840fee271ca94c8036636b6d925bd, type: 2}
-  - {fileID: 11400000, guid: 34dfc0bd7df226a4991661fde3608b99, type: 2}
-  - {fileID: 11400000, guid: 34dfc0bd7df226a4991661fde3608b99, type: 2}
-  - {fileID: 11400000, guid: 1a468c74b40732c4db604147bef61221, type: 2}
-  - {fileID: 11400000, guid: f903aa87f112ff442be04a96f72c3908, type: 2}
-  - {fileID: 11400000, guid: f903aa87f112ff442be04a96f72c3908, type: 2}
-  - {fileID: 11400000, guid: 58131e60747cc8c448191e4e43650864, type: 2}
-  - {fileID: 11400000, guid: a2badacbd4eb8da4885e38bc745d55b1, type: 2}
   CharacterId: char_ghost_queen
   DisplayName: "\u5E7D\u7075\u5973\u738B"
   Team: 1

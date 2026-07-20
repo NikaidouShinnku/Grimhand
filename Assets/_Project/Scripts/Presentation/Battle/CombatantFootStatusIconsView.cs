@@ -23,6 +23,8 @@ namespace Grimhand.Presentation.Battle
             StatusCatalog.NecroticPoison,
             StatusCatalog.Burn,
             StatusCatalog.Slow,
+            StatusCatalog.SpeedUp,
+            StatusCatalog.SnakeSwiftness,
             StatusCatalog.ArmorUp,
             StatusCatalog.ArmorDown,
             StatusCatalog.DefenseUp,
@@ -39,6 +41,9 @@ namespace Grimhand.Presentation.Battle
             StatusCatalog.Guard,
             StatusCatalog.Ethereal,
             StatusCatalog.EtherealOnNextHit,
+            StatusCatalog.Invulnerable,
+            StatusCatalog.Deterrence,
+            StatusCatalog.SoulDrain,
             StatusCatalog.ReviveBlessing,
             StatusCatalog.RisingTide,
             StatusCatalog.EbbingTide,
@@ -307,6 +312,9 @@ namespace Grimhand.Presentation.Battle
                 || statusId == StatusCatalog.DamageReduction
                 || statusId == StatusCatalog.ArmorDown)
                 return $"{stacks}%";
+
+            if (statusId == StatusCatalog.Invulnerable)
+                return "";
 
             return $"×{stacks}";
         }

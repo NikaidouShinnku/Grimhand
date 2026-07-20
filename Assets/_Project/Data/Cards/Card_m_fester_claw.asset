@@ -20,9 +20,10 @@ MonoBehaviour:
   Rarity: 2
   Keywords:
   - respond_status
+  - respond_defense
   Actions:
   - Type: 0
-    Target: 4
+    Target: 0
     Value: 9
     StatusId: 
     Stacks: 1
@@ -31,7 +32,7 @@ MonoBehaviour:
     ScaleWithDefense: 0
     AttackScalePercent: 100
     DefenseScalePercent: 100
-    Condition: 1
+    Condition: 2
     Reach: 1
     SplashBehindTarget: 0
     SplashPowerPercent: 100
@@ -51,7 +52,121 @@ MonoBehaviour:
     UseAlternateIfTargetHasDebuff: 0
     AlternateAttackScaleIfActorUsedAttack: 0
     AlternateValueIfActorUsedAttack: 0
-    DamageMultiplierPercentIfRespondArmed: 200
+    DamageMultiplierPercentIfRespondArmed: 100
+    SelfDamageFlat: 0
+    RepeatPerEnemyAttackCardThisTurn: 0
+    FallbackBlockDefenseScalePercent: 100
+    FallbackBlockValue: 0
+    SummonCharacterId: 
+    GrantInvulnerableOnRespondArm: 0
+    LifestealUnblockedOnly: 0
+  - Type: 0
+    Target: 0
+    Value: 9
+    StatusId: 
+    Stacks: 1
+    Duration: -1
+    ScaleWithAttack: 0
+    ScaleWithDefense: 0
+    AttackScalePercent: 100
+    DefenseScalePercent: 100
+    Condition: 3
+    Reach: 1
+    SplashBehindTarget: 0
+    SplashPowerPercent: 100
+    BackRowPowerPercent: 100
+    IgnoreDefPercent: 0
+    BonusIfTargetHpBelowPercent: 0
+    BonusIfTargetHpBelowFlat: 0
+    BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
+    LifestealPercent: 0
+    HealMaxHpPercent: 0
+    OnKillHealAmount: 0
+    HitCount: 1
+    AlternateAttackScalePercent: 0
+    AlternateValue: 0
+    UseAlternateIfTargetHasDebuff: 0
+    AlternateAttackScaleIfActorUsedAttack: 0
+    AlternateValueIfActorUsedAttack: 0
+    DamageMultiplierPercentIfRespondArmed: 100
+    SelfDamageFlat: 0
+    RepeatPerEnemyAttackCardThisTurn: 0
+    FallbackBlockDefenseScalePercent: 100
+    FallbackBlockValue: 0
+    SummonCharacterId: 
+    GrantInvulnerableOnRespondArm: 0
+    LifestealUnblockedOnly: 0
+  - Type: 55
+    Target: 0
+    Value: 0
+    StatusId: 
+    Stacks: 1
+    Duration: -1
+    ScaleWithAttack: 0
+    ScaleWithDefense: 0
+    AttackScalePercent: 100
+    DefenseScalePercent: 100
+    Condition: 2
+    Reach: 1
+    SplashBehindTarget: 0
+    SplashPowerPercent: 100
+    BackRowPowerPercent: 100
+    IgnoreDefPercent: 0
+    BonusIfTargetHpBelowPercent: 0
+    BonusIfTargetHpBelowFlat: 0
+    BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
+    LifestealPercent: 0
+    HealMaxHpPercent: 0
+    OnKillHealAmount: 0
+    HitCount: 1
+    AlternateAttackScalePercent: 0
+    AlternateValue: 0
+    UseAlternateIfTargetHasDebuff: 0
+    AlternateAttackScaleIfActorUsedAttack: 0
+    AlternateValueIfActorUsedAttack: 0
+    DamageMultiplierPercentIfRespondArmed: 100
+    SelfDamageFlat: 0
+    RepeatPerEnemyAttackCardThisTurn: 0
+    FallbackBlockDefenseScalePercent: 100
+    FallbackBlockValue: 0
+    SummonCharacterId: 
+    GrantInvulnerableOnRespondArm: 0
+    LifestealUnblockedOnly: 0
+  - Type: 55
+    Target: 0
+    Value: 0
+    StatusId: 
+    Stacks: 1
+    Duration: -1
+    ScaleWithAttack: 0
+    ScaleWithDefense: 0
+    AttackScalePercent: 100
+    DefenseScalePercent: 100
+    Condition: 3
+    Reach: 1
+    SplashBehindTarget: 0
+    SplashPowerPercent: 100
+    BackRowPowerPercent: 100
+    IgnoreDefPercent: 0
+    BonusIfTargetHpBelowPercent: 0
+    BonusIfTargetHpBelowFlat: 0
+    BonusIfTargetHitThisTurnPercent: 0
+    BonusIfTargetHasStatusId: 
+    BonusIfTargetHasStatusFlat: 0
+    LifestealPercent: 0
+    HealMaxHpPercent: 0
+    OnKillHealAmount: 0
+    HitCount: 1
+    AlternateAttackScalePercent: 0
+    AlternateValue: 0
+    UseAlternateIfTargetHasDebuff: 0
+    AlternateAttackScaleIfActorUsedAttack: 0
+    AlternateValueIfActorUsedAttack: 0
+    DamageMultiplierPercentIfRespondArmed: 100
     SelfDamageFlat: 0
     RepeatPerEnemyAttackCardThisTurn: 0
     FallbackBlockDefenseScalePercent: 100

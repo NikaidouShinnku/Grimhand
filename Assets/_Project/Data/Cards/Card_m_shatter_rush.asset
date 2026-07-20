@@ -16,7 +16,7 @@ MonoBehaviour:
   DisplayName: "\u788E\u9AA8\u7A81\u88AD"
   OwnerCharacterId: char_skeleton_elite
   Cost: 2
-  CardType: 1
+  CardType: 0
   Rarity: 1
   Keywords: []
   Actions:
@@ -46,8 +46,8 @@ MonoBehaviour:
     OnKillHealAmount: 0
     HitCount: 1
     AlternateAttackScalePercent: 0
-    AlternateValue: 0
-    UseAlternateIfTargetHasDebuff: 0
+    AlternateValue: 16
+    UseAlternateIfTargetHasDebuff: 1
     AlternateAttackScaleIfActorUsedAttack: 0
     AlternateValueIfActorUsedAttack: 0
     DamageMultiplierPercentIfRespondArmed: 100

@@ -7,7 +7,7 @@ using UnityEditor;
 
 namespace Grimhand.Presentation.Battle
 {
-    /// <summary>测试用图鉴：加载项目中全部 CardDefinitionSO 并按策划分类。</summary>
+    /// <summary>测试图鉴 / 假人出牌：按总览表角色分类展示全部卡牌。</summary>
     public static class CardCodexCatalog
     {
         public readonly struct CategoryGroup
@@ -22,6 +22,7 @@ namespace Grimhand.Presentation.Battle
             public IReadOnlyList<CardDefinitionSO> Cards { get; }
         }
 
+        /// <summary>与总览表「卡牌 / Boss设计 / 小怪设计」一致的分类顺序。</summary>
         static readonly string[] CategoryOrder =
         {
             "战士",
@@ -29,12 +30,77 @@ namespace Grimhand.Presentation.Battle
             "恶魔",
             "毒蛇女王",
             "巫妖女王",
-            "Boss",
-            "敌人",
-            "哥布林",
+            "Boss·骷髅王",
+            "Boss·易爆骷髅头",
+            "Boss·幽灵女王",
+            "Boss·典狱长",
+            "Boss·囚笼",
+            "Boss·黑暗骑士",
+            "Boss·腐化海洋女神",
+            "小怪·哥布林",
+            "小怪·史莱姆",
+            "小怪·骷髅兵",
+            "小怪·骷髅精英",
+            "小怪·幽灵",
+            "小怪·幽灵精英",
+            "小怪·绿皮巨魔",
+            "小怪·巨翼蝙蝠",
+            "小怪·鼠人",
+            "小怪·锁链怨灵",
+            "小怪·石像鬼",
+            "小怪·蜘蛛贵妇",
+            "小怪·石傀儡",
+            "小怪·踏潮守卫",
+            "小怪·水母海巫",
+            "小怪·人鱼战士",
+            "小怪·深渊怪物",
+            "小怪·腐蚀蟹",
+            "小怪·鬼灵海盗船长",
             "其他",
             "未分类"
         };
+
+        static readonly Dictionary<string, string> OwnerToCategory = new()
+        {
+            ["char_knight"] = "战士",
+            ["char_mage"] = "法老",
+            ["char_ranger"] = "恶魔",
+            ["char_snake_queen"] = "毒蛇女王",
+            ["char_lich_queen"] = "巫妖女王",
+            ["char_skeleton_king"] = "Boss·骷髅王",
+            ["char_explosive_skull"] = "Boss·易爆骷髅头",
+            ["char_ghost_queen"] = "Boss·幽灵女王",
+            ["char_warden"] = "Boss·典狱长",
+            ["char_prison_cage"] = "Boss·囚笼",
+            ["char_dark_knight"] = "Boss·黑暗骑士",
+            ["char_corrupted_ocean_goddess"] = "Boss·腐化海洋女神",
+            ["char_goblin"] = "小怪·哥布林",
+            ["char_slime"] = "小怪·史莱姆",
+            ["char_skeleton"] = "小怪·骷髅兵",
+            ["char_skeleton_elite"] = "小怪·骷髅精英",
+            ["char_wraith"] = "小怪·幽灵",
+            ["char_wraith_elite"] = "小怪·幽灵精英",
+            ["char_ogre"] = "小怪·绿皮巨魔",
+            ["char_bat"] = "小怪·巨翼蝙蝠",
+            ["char_rat"] = "小怪·鼠人",
+            ["char_chain_wraith"] = "小怪·锁链怨灵",
+            ["char_gargoyle"] = "小怪·石像鬼",
+            ["char_spider_lady"] = "小怪·蜘蛛贵妇",
+            ["char_stone_golem"] = "小怪·石傀儡",
+            ["char_seahorse_guard"] = "小怪·踏潮守卫",
+            ["char_jellyfish_caster"] = "小怪·水母海巫",
+            ["char_mermaid_warrior"] = "小怪·人鱼战士",
+            ["char_abyss_creature"] = "小怪·深渊怪物",
+            ["char_corrupted_crab"] = "小怪·腐蚀蟹",
+            ["char_phantom_captain"] = "小怪·鬼灵海盗船长",
+            ["char_dummy"] = "其他",
+        };
+
+        public static string ResolveOwnerCategory(string ownerCharacterId) =>
+            !string.IsNullOrEmpty(ownerCharacterId)
+            && OwnerToCategory.TryGetValue(ownerCharacterId, out var label)
+                ? label
+                : "其他";
 
         public static IReadOnlyList<CategoryGroup> BuildGroupedCatalog()
         {
@@ -60,7 +126,6 @@ namespace Grimhand.Presentation.Battle
                 if (buckets[label].Count == 0)
                     continue;
 
-                // 同角色内：稀有度升序（白→绿→蓝→紫→橙），再按名称
                 buckets[label].Sort(CompareByRarityThenName);
                 groups.Add(new CategoryGroup(label, buckets[label]));
             }
@@ -87,7 +152,15 @@ namespace Grimhand.Presentation.Battle
 
         public static string ResolveCategory(CardDefinitionSO card)
         {
-            var id = card?.CardId ?? "";
+            if (card == null)
+                return "未分类";
+
+            if (!string.IsNullOrEmpty(card.OwnerCharacterId)
+                && OwnerToCategory.TryGetValue(card.OwnerCharacterId, out var byOwner))
+                return byOwner;
+
+            // 兜底：旧前缀（Owner 缺失时）
+            var id = card.CardId ?? "";
             if (id.StartsWith("w_"))
                 return "战士";
             if (id.StartsWith("p_"))
@@ -98,13 +171,13 @@ namespace Grimhand.Presentation.Battle
                 return "毒蛇女王";
             if (id.StartsWith("l_"))
                 return "巫妖女王";
-            if (id.StartsWith("m_king_") || id.StartsWith("m_queen_"))
-                return "Boss";
-            if (id.StartsWith("m_"))
-                return "敌人";
-            if (id.StartsWith("g_"))
-                return "哥布林";
-            if (id.StartsWith("r_") || id.StartsWith("k_"))
+            if (id.StartsWith("m_king_") || id.StartsWith("m_skull_"))
+                return id.StartsWith("m_skull_") ? "Boss·易爆骷髅头" : "Boss·骷髅王";
+            if (id.StartsWith("m_queen_"))
+                return "Boss·幽灵女王";
+            if (id.StartsWith("g_") || id.StartsWith("m_") || id.StartsWith("r_") || id.StartsWith("k_"))
+                return "其他";
+            if (id.StartsWith("curse"))
                 return "其他";
             return "未分类";
         }
@@ -120,8 +193,6 @@ namespace Grimhand.Presentation.Battle
                 if (card != null)
                     list.Add(card);
             }
-#else
-            // 非 Editor 构建：Resources 未挂载全量卡库时，图鉴仅展示运行时已知定义。
 #endif
             return list
                 .GroupBy(c => c.CardId)

@@ -244,6 +244,24 @@ namespace Grimhand.Presentation.Battle
             _displayStats[combatantId] = BuildDisplayStats(combatant, state);
         }
 
+        /// <summary>中途召唤的单位写入演出快照，避免 IsAlive 因缺 HP 记录而显示为死亡。</summary>
+        public void RegisterSpawnedCombatant(CombatantState combatant, BattleState state = null)
+        {
+            if (combatant == null || string.IsNullOrEmpty(combatant.Id))
+                return;
+
+            _hp[combatant.Id] = combatant.Hp;
+            _maxHp[combatant.Id] = combatant.MaxHp;
+            _block[combatant.Id] = combatant.Block;
+            _ironWallPendingAttackBonus[combatant.Id] = combatant.TalentIronWallPendingDamageBonus;
+            _displayStats[combatant.Id] = BuildDisplayStats(combatant, state);
+            _footStatuses[combatant.Id] = CaptureFootStatuses(combatant);
+            if (combatant.IsAlive)
+                _dead.Remove(combatant.Id);
+            else
+                _dead.Add(combatant.Id);
+        }
+
         static Dictionary<string, CombatantDisplayStats> CaptureAllDisplayStats(BattleState state)
         {
             var dict = new Dictionary<string, CombatantDisplayStats>();

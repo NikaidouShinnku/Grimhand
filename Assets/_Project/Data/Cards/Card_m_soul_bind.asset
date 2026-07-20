@@ -21,18 +21,18 @@ MonoBehaviour:
   Keywords:
   - aoe
   Actions:
-  - Type: 25
-    Target: 0
+  - Type: 3
+    Target: 12
     Value: 0
-    StatusId: 
-    Stacks: 1
+    StatusId: defense_down_pct
+    Stacks: 25
     Duration: 2
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100
     DefenseScalePercent: 100
     Condition: 0
-    Reach: 1
+    Reach: 0
     SplashBehindTarget: 0
     SplashPowerPercent: 100
     BackRowPowerPercent: 100
@@ -49,6 +49,7 @@ MonoBehaviour:
     AlternateAttackScalePercent: 0
     AlternateValue: 0
     UseAlternateIfTargetHasDebuff: 0
+    UseAlternateIfTargetHasAnyStatus: 0
     AlternateAttackScaleIfActorUsedAttack: 0
     AlternateValueIfActorUsedAttack: 0
     DamageMultiplierPercentIfRespondArmed: 100

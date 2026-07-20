@@ -18,14 +18,17 @@ MonoBehaviour:
   Cost: 2
   CardType: 2
   Rarity: 0
-  Keywords: []
+  Keywords:
+  - poison
+  - aoe
+
   Actions:
   - Type: 3
-    Target: 0
+    Target: 12
     Value: 0
     StatusId: poison
-    Stacks: 3
-    Duration: 2
+    Stacks: 6
+    Duration: -1
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100
@@ -58,6 +61,7 @@ MonoBehaviour:
     SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
+
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

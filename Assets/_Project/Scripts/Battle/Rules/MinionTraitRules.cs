@@ -45,13 +45,25 @@ namespace Grimhand.Battle.Rules
 
                 combatant.TookDamageLastTurn = false;
                 combatant.FirstHitDodgePending = HasTrait(combatant, MinionTraitCatalog.BatFirstHitDodge);
-                combatant.InvulnerableRestOfTurn = false;
+                if (combatant.InvulnerableRestOfTurn
+                    || StatusRules.HasStatus(combatant, StatusCatalog.Invulnerable))
+                {
+                    combatant.InvulnerableRestOfTurn = false;
+                    StatusRules.RemoveAllStatus(combatant, StatusCatalog.Invulnerable, events);
+                }
+                else
+                    combatant.InvulnerableRestOfTurn = false;
                 combatant.RespondArmedThisTurn = false;
                 combatant.DodgeChanceBonus = 0f;
                 combatant.CardsResolvedThisTurn = 0;
+
+                var priorFirstCardType = combatant.FirstCardTypeThisTurn;
                 combatant.FirstCardTypeThisTurn = null;
                 combatant.GargoyleStanceAttackBonus = 0;
                 combatant.GargoyleStanceDefenseBonus = 0;
+
+                // 石像鬼：用上回合首牌类型挂本回合增益（duration=2，抵消随后回合初 tick）
+                ApplyGargoyleTraitFromPriorTurn(state, combatant, priorFirstCardType, events);
 
                 if (combatant.CarryOverBlock > 0)
                 {
@@ -61,6 +73,32 @@ namespace Grimhand.Battle.Rules
             }
 
             state.EnemyAttackCardsPlayedThisTurn = 0;
+        }
+
+        static void ApplyGargoyleTraitFromPriorTurn(
+            BattleState state,
+            CombatantState combatant,
+            CardType? priorFirstCardType,
+            List<BattleEvent> events)
+        {
+            if (!HasTrait(combatant, MinionTraitCatalog.GargoyleFirstCardStance)
+                || !priorFirstCardType.HasValue)
+                return;
+
+            // 回合初 ProcessTurnStartDurations 会立刻 -1，故挂 2 回合保本回合内有效
+            const int applyDuration = 2;
+            if (priorFirstCardType.Value == CardType.Attack)
+            {
+                StatusRules.ApplyStatus(
+                    state, combatant, StatusCatalog.AttackUpPercent,
+                    MinionTraitCatalog.GargoyleTraitPercentBonus, applyDuration, events);
+            }
+            else if (priorFirstCardType.Value is CardType.Defense or CardType.Status)
+            {
+                StatusRules.ApplyStatus(
+                    state, combatant, StatusCatalog.DefenseUpPercent,
+                    MinionTraitCatalog.GargoyleTraitPercentBonus, applyDuration, events);
+            }
         }
 
         public static void PrepareTurnEndArmorRetain(BattleState state)
@@ -91,7 +129,7 @@ namespace Grimhand.Battle.Rules
 
             foreach (var ally in state.Combatants)
             {
-                if (!ally.IsAlive || ally.Team != TeamSide.Enemy)
+                if (!ally.IsAlive || ally.Team != combatant.Team || ally.Id == combatant.Id)
                     continue;
 
                 if (ally.CharacterDefinitionId != MinionTraitCatalog.RatCharacterId)
@@ -122,12 +160,39 @@ namespace Grimhand.Battle.Rules
                 || !ChainWraithSharedDebuffs.Contains(statusId))
                 return;
 
-            foreach (var enemy in state.Combatants)
+            // 自身 debuff 同步给敌对阵营全体（对玩家来说就是全体玩家角色）
+            var mirrorTeam = target.Team == TeamSide.Enemy ? TeamSide.Player : TeamSide.Enemy;
+            foreach (var unit in state.GetTeam(mirrorTeam))
             {
-                if (!enemy.IsAlive || enemy.Team != TeamSide.Enemy || enemy.Id == target.Id)
+                if (unit == null || !unit.IsAlive)
                     continue;
 
-                StatusRules.ApplyStatusInternal(state, enemy, statusId, stacks, durationOverride, events, mirrorChainWraith: false);
+                StatusRules.ApplyStatusInternal(
+                    state, unit, statusId, stacks, durationOverride, events, mirrorChainWraith: false);
+            }
+        }
+
+        /// <summary>锁链怨灵身上的同步 debuff 消失时，敌对阵营对应状态一并清除。</summary>
+        public static void ClearSharedChainWraithDebuff(
+            BattleState state,
+            CombatantState source,
+            string statusId,
+            List<BattleEvent> events)
+        {
+            if (state == null || source == null || string.IsNullOrEmpty(statusId))
+                return;
+
+            if (!HasTrait(source, MinionTraitCatalog.ChainWraithDebuffShare)
+                || !ChainWraithSharedDebuffs.Contains(statusId))
+                return;
+
+            var mirrorTeam = source.Team == TeamSide.Enemy ? TeamSide.Player : TeamSide.Enemy;
+            foreach (var unit in state.GetTeam(mirrorTeam))
+            {
+                if (unit == null || !unit.IsAlive)
+                    continue;
+
+                StatusRules.RemoveAllStatus(unit, statusId, events);
             }
         }
 
@@ -213,16 +278,6 @@ namespace Grimhand.Battle.Rules
                     StatusRules.ApplyStatus(
                         state, actor, StatusCatalog.DefenseUpPercent, 25, 3, events);
                 }
-            }
-
-            if (HasTrait(actor, MinionTraitCatalog.GargoyleFirstCardStance) && actor.CardsResolvedThisTurn == 0)
-            {
-                if (card.CardType == CardType.Attack)
-                    actor.GargoyleStanceAttackBonus = MinionTraitCatalog.GargoyleStanceBonus;
-                else if (card.CardType is CardType.Defense or CardType.Status)
-                    actor.GargoyleStanceDefenseBonus = MinionTraitCatalog.GargoyleStanceBonus;
-
-                RelicBattleRules.RefreshDerivedStats(state, actor, state.Config?.RunModifiers);
             }
 
             if (actor.CardsResolvedThisTurn == 0)

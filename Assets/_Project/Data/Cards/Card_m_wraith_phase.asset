@@ -57,7 +57,7 @@ MonoBehaviour:
     FallbackBlockDefenseScalePercent: 100
     FallbackBlockValue: 0
     SummonCharacterId: 
-    GrantInvulnerableOnRespondArm: 0
+    GrantInvulnerableOnRespondArm: 1
     LifestealUnblockedOnly: 0
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}

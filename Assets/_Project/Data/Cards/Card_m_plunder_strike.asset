@@ -20,9 +20,9 @@ MonoBehaviour:
   Rarity: 2
   Keywords: []
   Actions:
-  - Type: 0
+  - Type: 53
     Target: 0
-    Value: 12
+    Value: 0
     StatusId: 
     Stacks: 1
     Duration: -1
@@ -58,9 +58,9 @@ MonoBehaviour:
     SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
-  - Type: 53
+  - Type: 0
     Target: 0
-    Value: 0
+    Value: 12
     StatusId: 
     Stacks: 1
     Duration: -1

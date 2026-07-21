@@ -22,9 +22,9 @@ MonoBehaviour:
   - exhaust
   - aoe
   Actions:
-  - Type: 0
+  - Type: 53
     Target: 12
-    Value: 22
+    Value: 0
     StatusId: 
     Stacks: 1
     Duration: -1
@@ -60,9 +60,9 @@ MonoBehaviour:
     SummonCharacterId: 
     GrantInvulnerableOnRespondArm: 0
     LifestealUnblockedOnly: 0
-  - Type: 53
+  - Type: 0
     Target: 12
-    Value: 0
+    Value: 22
     StatusId: 
     Stacks: 1
     Duration: -1

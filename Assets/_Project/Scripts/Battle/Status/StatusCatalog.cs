@@ -40,6 +40,12 @@ namespace Grimhand.Battle.Status
         public const string Vulnerable = "vulnerable";
         /// <summary>蜘蛛贵妇：按玩家中毒层数同步的易伤展示/结算（每层 +1% 受伤）。</summary>
         public const string SpiderPoisonVulnerable = "spider_poison_vulnerable";
+        /// <summary>鬼灵海盗船长被动：条件满足时 +33% 增伤（不叠多次）。</summary>
+        public const string PhantomCaptainFrenzyAtk = "phantom_captain_frenzy_atk";
+        /// <summary>鬼灵海盗船长被动：条件满足时 +20% 易伤（不叠多次）。</summary>
+        public const string PhantomCaptainFrenzyVuln = "phantom_captain_frenzy_vuln";
+        /// <summary>潮汐之力：劈砍/破浪斩费用 -1（持续回合）。</summary>
+        public const string MermaidTidalCostCut = "mermaid_tidal_cost_cut";
         public const string DamageReduction = "damage_reduction";
         public const string FinalSummonPending = "final_summon_pending";
 
@@ -343,6 +349,27 @@ namespace Grimhand.Battle.Status
                 DisplayName = "易伤",
                 DurationKind = StatusDurationKind.Permanent,
                 IncomingDamagePercentPerStack = 1
+            };
+            map[PhantomCaptainFrenzyAtk] = new StatusDefinition
+            {
+                Id = PhantomCaptainFrenzyAtk,
+                DisplayName = "狂怒增伤",
+                DurationKind = StatusDurationKind.Permanent,
+                AttackPercentBonusPerStack = 1
+            };
+            map[PhantomCaptainFrenzyVuln] = new StatusDefinition
+            {
+                Id = PhantomCaptainFrenzyVuln,
+                DisplayName = "狂怒易伤",
+                DurationKind = StatusDurationKind.Permanent,
+                IncomingDamagePercentPerStack = 1
+            };
+            map[MermaidTidalCostCut] = new StatusDefinition
+            {
+                Id = MermaidTidalCostCut,
+                DisplayName = "潮汐减耗",
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 2
             };
             map[DamageReduction] = new StatusDefinition
             {

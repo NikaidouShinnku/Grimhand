@@ -285,35 +285,8 @@ namespace Grimhand.Presentation.Battle
                 TraitFootnote = MinionTraitDisplayFormatter.FormatFootnote(combatant, state)
             };
 
-        static List<FootStatusEntry> CaptureFootStatuses(CombatantState combatant)
-        {
-            var list = new List<FootStatusEntry>();
-            if (combatant?.Statuses == null)
-                return list;
-
-            // 同 StatusId（如中毒多持续时间桶）合并显示总层数。
-            var merged = new Dictionary<string, int>();
-            foreach (var status in combatant.Statuses)
-            {
-                if (status == null || status.Stacks <= 0 || string.IsNullOrEmpty(status.StatusId))
-                    continue;
-
-                if (!merged.ContainsKey(status.StatusId))
-                    merged[status.StatusId] = 0;
-                merged[status.StatusId] += status.Stacks;
-            }
-
-            foreach (var pair in merged)
-            {
-                list.Add(new FootStatusEntry
-                {
-                    StatusId = pair.Key,
-                    Stacks = pair.Value
-                });
-            }
-
-            return list;
-        }
+        static List<FootStatusEntry> CaptureFootStatuses(CombatantState combatant) =>
+            FootStatusIconAggregator.Aggregate(combatant);
 
         public void ApplyIronWallConversion(string combatantId, int amount)
         {

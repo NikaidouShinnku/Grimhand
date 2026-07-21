@@ -200,6 +200,48 @@ namespace Grimhand.Battle.Effects
             return candidates[rng.NextIndex(candidates.Count)];
         }
 
+        /// <summary>优先有护甲的敌方（夹断护甲等）；无人有甲时回退到可达范围内随机。嘲讽仅在其自身有甲或无人有甲时优先。</summary>
+        public static CombatantState PickEnemyPreferBlock(
+            BattleState state,
+            CombatantState actor,
+            TargetReach reach,
+            BattleRng rng)
+        {
+            if (state == null || actor == null)
+                return null;
+
+            var targetTeam = OppositeTeam(actor.Team);
+            var taunt = CombatMechanicsRules.FindTauntHolder(state, targetTeam);
+
+            var armored = new List<CombatantState>();
+            var all = new List<CombatantState>();
+            foreach (var unit in PositionRules.GetAliveSortedByPhysicalSlot(state, targetTeam))
+            {
+                if (reach != TargetReach.Any
+                    && !TargetReachRules.IsSlotAllowed(reach, PositionRules.GetEffectiveSlot(state, unit)))
+                    continue;
+
+                all.Add(unit);
+                if (unit.Block > 0)
+                    armored.Add(unit);
+            }
+
+            if (armored.Count > 0)
+            {
+                if (taunt != null && taunt.IsAlive && taunt.Block > 0
+                    && (reach == TargetReach.Any
+                        || TargetReachRules.IsSlotAllowed(reach, PositionRules.GetEffectiveSlot(state, taunt))))
+                    return taunt;
+
+                return PickRandomCandidate(armored, rng);
+            }
+
+            if (taunt != null && taunt.IsAlive)
+                return taunt;
+
+            return PickRandomCandidate(all, rng);
+        }
+
         static bool TryGetSelectedTarget(BattleState state, int cardInstanceId, out CombatantState target)
         {
             target = null;

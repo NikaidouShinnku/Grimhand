@@ -53,7 +53,7 @@ namespace Grimhand.Battle.Rules
             ["damage_up"] = new("damage_up", "增伤×层数", "攻击卡获得伤害加成，每层加1%"),
             ["parry"] = new("parry", "应对攻击", "当该角色受到攻击前，应对的效果会生效（无法应对带有应对关键词的牌）"),
             ["respond_status"] = new("respond_status", "应对状态", "当选择的目标使用状态牌时，应对的效果会生效（无法应对带有应对关键词的牌）"),
-            ["respond_defense"] = new("respond_defense", "应对防御", "当选择的目标使用防御牌时， 应对的效果会生效（无法应对带有应对关键词的牌）"),
+            ["respond_defense"] = new("respond_defense", "应对防御", "当选择的目标使用防御牌时，应对的效果会生效（无法应对带有应对关键词的牌）"),
             ["armor_up"] = new("armor_up", "强固×层数", "增加防御卡给予的护甲，每层加1%"),
             ["vulnerable"] = new("vulnerable", "易伤×层数", "增加单位受到的伤害，每层加1%"),
             ["polluted"] = new("polluted", "污染", "卡牌拥有者死亡，无法使用"),
@@ -64,6 +64,17 @@ namespace Grimhand.Battle.Rules
             ["ethereal"] = new("ethereal", "虚化", "本回合最多只受到1点伤害"),
             ["weaken"] = new("weaken", "虚弱×层数", "造成的伤害减少，每层减1%"),
             ["brand"] = new("brand", "烙印", "累计三层时该角色会即死"),
+            ["summon"] = new("summon", "召唤", "效果会召唤单位或造物进入战场"),
+            ["token"] = new("token", "衍生", "战斗中生成的临时卡牌，通常不进入常规构筑"),
+            ["inherit"] = new("inherit", "继承", "回合结束仍留在手牌，不会因回合结束被弃置"),
+            ["self_destruct"] = new("self_destruct", "自爆", "使用或触发后会牺牲自身并造成相应效果"),
+            ["bonus_hand"] = new("bonus_hand", "额外手牌", "额外置入手牌，不占用本回合常规抽牌名额"),
+            ["usable_while_constricted"] = new("usable_while_constricted", "缠绕可用", "即使处于缠绕禁牌状态也可以打出"),
+            ["quick_start"] = new("quick_start", "先攻", "与速度/先行相关的优先结算效果"),
+            ["melee"] = new("melee", "近战", "主要作用于前排与中排目标"),
+            ["snipe"] = new("snipe", "狙击", "可选择后排等指定站位目标"),
+            ["pierce"] = new("pierce", "贯穿", "命中主目标后可能继续影响后方单位"),
+            ["far_shot"] = new("far_shot", "远射", "可攻击后排；对后排可能有伤害修正"),
         };
     }
 }

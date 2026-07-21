@@ -64,9 +64,56 @@ namespace Grimhand.Battle.Rules
                 }
 
                 RefreshSeahorseWaveSurge(state, combatant, events);
+                RefreshPhantomCaptainFrenzy(state, combatant, events);
             }
 
             state.EnemyAttackCardsPlayedThisTurn = 0;
+        }
+
+        /// <summary>
+        /// 鬼灵海盗船长被动：回合开始检测敌方是否有 HP&lt;25% 或死亡；
+        /// 有则挂 33% 增伤 + 20% 易伤（固定层数，不多次叠加）。
+        /// </summary>
+        static void RefreshPhantomCaptainFrenzy(
+            BattleState state,
+            CombatantState combatant,
+            List<BattleEvent> events)
+        {
+            if (state == null || combatant == null || !combatant.IsAlive
+                || !HasTrait(combatant, MinionTraitCatalog.PhantomCaptainFrenzy))
+                return;
+
+            var active = HasLowHpOrDeadPlayer(state);
+            SyncPhantomCaptainFrenzyStatus(
+                state, combatant, StatusCatalog.PhantomCaptainFrenzyAtk,
+                active ? MinionTraitCatalog.PhantomCaptainFrenzyAttackPercent : 0, events);
+            SyncPhantomCaptainFrenzyStatus(
+                state, combatant, StatusCatalog.PhantomCaptainFrenzyVuln,
+                active ? MinionTraitCatalog.PhantomCaptainFrenzyDefensePercent : 0, events);
+        }
+
+        static void SyncPhantomCaptainFrenzyStatus(
+            BattleState state,
+            CombatantState combatant,
+            string statusId,
+            int desiredStacks,
+            List<BattleEvent> events)
+        {
+            var current = StatusRules.GetStatusStacks(combatant, statusId);
+            if (desiredStacks <= 0)
+            {
+                if (current > 0)
+                    StatusRules.RemoveStatus(combatant, statusId, current, events);
+                return;
+            }
+
+            if (current == desiredStacks)
+                return;
+
+            if (current > 0)
+                StatusRules.RemoveStatus(combatant, statusId, current, events);
+
+            StatusRules.ApplyStatus(state, combatant, statusId, desiredStacks, -1, events);
         }
 
         /// <summary>
@@ -415,10 +462,12 @@ namespace Grimhand.Battle.Rules
             actor.CardsResolvedThisTurn++;
             actor.CardsResolvedCount++;
 
-            if (HasTrait(actor, MinionTraitCatalog.MermaidZeroCostAttack) && card.Cost == 0)
+            if (HasTrait(actor, MinionTraitCatalog.MermaidZeroCostAttack)
+                && GetAdjustedCardCost(state, actor, card) == 0)
             {
                 actor.MermaidZeroCostAttackBonusPercent = System.Math.Min(
                     100, actor.MermaidZeroCostAttackBonusPercent + 5);
+                RelicBattleRules.RefreshDerivedStats(state, actor, state.Config?.RunModifiers);
             }
 
             // 骷髅 / 精英：跨回合累计出牌数，每满 3 的倍数触发一次
@@ -457,17 +506,32 @@ namespace Grimhand.Battle.Rules
                 return power;
 
             power = ApplyBloodRageOutgoingBonus(actor, cardType, power);
-            // 踏潮「浪潮」增伤由回合开始挂的 WaveSurge 状态经 CombatModifierRules 结算
-            power = ApplyPhantomCaptainFrenzyBonus(state, actor, power);
+            // 踏潮「浪潮」/船长狂怒增伤由回合开始挂的状态经 CombatModifierRules 结算
 
-            if (HasTrait(actor, MinionTraitCatalog.MermaidZeroCostAttack)
-                && actor.MermaidZeroCostAttackBonusPercent > 0)
+            // 人鱼零费增伤已计入 OutgoingDamagePercentBonus，此处不再二次乘算
+            return power;
+        }
+
+        /// <summary>敌人出牌费用（含潮汐之力对劈砍/破浪斩 -1）。</summary>
+        public static int GetAdjustedCardCost(
+            BattleState state,
+            CombatantState owner,
+            CardInstanceState card)
+        {
+            if (card == null)
+                return 0;
+
+            var cost = card.Cost;
+            if (owner != null
+                && (card.DefinitionId == AbyssMonsterCardCatalog.MermaidSlashCardId
+                    || card.DefinitionId == AbyssMonsterCardCatalog.WaveCleaveCardId))
             {
-                power = System.Math.Max(1,
-                    (int)System.Math.Round(power * (100 + actor.MermaidZeroCostAttackBonusPercent) / 100f));
+                var cut = StatusRules.GetStatusStacks(owner, StatusCatalog.MermaidTidalCostCut);
+                if (cut > 0)
+                    cost = System.Math.Max(0, cost - cut);
             }
 
-            return power;
+            return cost;
         }
 
         public static void OnDamageDealt(
@@ -568,18 +632,6 @@ namespace Grimhand.Battle.Rules
             }
 
             return first;
-        }
-
-        static int ApplyPhantomCaptainFrenzyBonus(BattleState state, CombatantState actor, int power)
-        {
-            if (state == null || actor == null || !HasTrait(actor, MinionTraitCatalog.PhantomCaptainFrenzy))
-                return power;
-
-            if (!HasLowHpOrDeadPlayer(state))
-                return power;
-
-            return System.Math.Max(1,
-                (int)System.Math.Round(power * (100 + MinionTraitCatalog.PhantomCaptainFrenzyAttackPercent) / 100f));
         }
 
         static bool HasLowHpOrDeadPlayer(BattleState state)

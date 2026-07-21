@@ -267,19 +267,6 @@ namespace Grimhand.Presentation.Battle
 
             _bodyText.text = lines;
 
-            if (_statusPanel != null && _statusText != null)
-            {
-                var hasStatusBox = !string.IsNullOrEmpty(statusTooltip);
-                _statusPanel.gameObject.SetActive(hasStatusBox);
-                if (hasStatusBox)
-                {
-                    _statusText.text = statusTooltip;
-                    var statusLines = statusTooltip.Split('\n').Length;
-                    var statusHeight = Mathf.Max(_panel.sizeDelta.y, 24f + statusLines * 18f);
-                    _statusPanel.sizeDelta = new Vector2(StatusPanelWidth, statusHeight);
-                }
-            }
-
             if (_expRow != null)
             {
                 _expRow.gameObject.SetActive(showExp);
@@ -291,6 +278,7 @@ namespace Grimhand.Presentation.Battle
                 }
             }
 
+            // 属性框：沿用原逻辑，勿用 preferredHeight 改布局
             var lineCount = 2;
             if (!string.IsNullOrEmpty(traitFootnote))
                 lineCount += traitFootnote.Split('\n').Length;
@@ -298,6 +286,8 @@ namespace Grimhand.Presentation.Battle
                 lineCount++;
             if (runRelics != null && runRelics.Count > 0 && unit.Team == TeamSide.Player)
                 lineCount += 1 + runRelics.Count;
+            if (expeditionMember != null && expeditionMember.PersonalAttackBonus > 0)
+                lineCount++;
             _panel.sizeDelta = new Vector2(280f, 28f + lineCount * 20f);
 
             if (_bodyText.rectTransform != null)
@@ -307,8 +297,91 @@ namespace Grimhand.Presentation.Battle
                 _bodyText.rectTransform.offsetMin = new Vector2(10f, top);
             }
 
+            if (_statusPanel != null && _statusText != null)
+            {
+                var hasStatusBox = !string.IsNullOrEmpty(statusTooltip);
+                _statusPanel.gameObject.SetActive(hasStatusBox);
+                if (hasStatusBox)
+                    ResizeStatusPanelToFit(statusTooltip);
+            }
+
             LayoutStatusPanelBesideMain();
             ApplySidePlacement();
+        }
+
+        void ResizeStatusPanelToFit(string statusTooltip)
+        {
+            if (_statusPanel == null || _statusText == null)
+                return;
+
+            _statusText.text = statusTooltip;
+            _statusText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _statusText.verticalOverflow = VerticalWrapMode.Overflow;
+            _statusText.supportRichText = true;
+
+            // 顶对齐 + 固定内容宽度，再用 preferredHeight 决定面板高度
+            var textRt = _statusText.rectTransform;
+            textRt.anchorMin = new Vector2(0f, 1f);
+            textRt.anchorMax = new Vector2(1f, 1f);
+            textRt.pivot = new Vector2(0.5f, 1f);
+            textRt.anchoredPosition = new Vector2(0f, -8f);
+            var contentWidth = StatusPanelWidth - 20f;
+            textRt.sizeDelta = new Vector2(-20f, 0f);
+
+            Canvas.ForceUpdateCanvases();
+            var preferred = _statusText.preferredHeight;
+            if (preferred < 8f)
+                preferred = EstimateWrappedTextHeight(statusTooltip, contentWidth);
+
+            var height = Mathf.Max(48f, preferred + 16f);
+            _statusPanel.sizeDelta = new Vector2(StatusPanelWidth, height);
+            textRt.sizeDelta = new Vector2(-20f, preferred);
+        }
+
+        float EstimateWrappedTextHeight(string richText, float width)
+        {
+            var plain = StripRichText(richText ?? "");
+            if (string.IsNullOrEmpty(plain) || width <= 0f)
+                return FontSize + 4f;
+
+            var avgCharWidth = FontSize * 0.95f; // 中文为主，按近似全角宽估算换行
+            var charsPerLine = Mathf.Max(1, Mathf.FloorToInt(width / avgCharWidth));
+            var visualLines = 0;
+            foreach (var line in plain.Split('\n'))
+            {
+                var len = Mathf.Max(1, line.Length);
+                visualLines += Mathf.CeilToInt(len / (float)charsPerLine);
+            }
+
+            return visualLines * (FontSize + 6f);
+        }
+
+        static string StripRichText(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return "";
+
+            var sb = new System.Text.StringBuilder(text.Length);
+            var inTag = false;
+            foreach (var ch in text)
+            {
+                if (ch == '<')
+                {
+                    inTag = true;
+                    continue;
+                }
+
+                if (ch == '>')
+                {
+                    inTag = false;
+                    continue;
+                }
+
+                if (!inTag)
+                    sb.Append(ch);
+            }
+
+            return sb.ToString();
         }
 
         public void SetVisible(bool visible)

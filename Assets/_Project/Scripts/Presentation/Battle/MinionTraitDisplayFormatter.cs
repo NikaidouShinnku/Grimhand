@@ -1,5 +1,6 @@
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
+using Grimhand.Battle.Status;
 
 namespace Grimhand.Presentation.Battle
 {
@@ -20,7 +21,7 @@ namespace Grimhand.Presentation.Battle
                 lines.Add($"鼠群狂怒 +{combatant.RatPackAttackBonusPercent}% 攻击");
 
             if (combatant.MermaidZeroCostAttackBonusPercent > 0)
-                lines.Add($"零费加攻 +{combatant.MermaidZeroCostAttackBonusPercent}%");
+                lines.Add($"增伤 +{combatant.MermaidZeroCostAttackBonusPercent}%");
 
             if (combatant.LowHpSpeedBonusApplied > 0)
                 lines.Add($"低血迅捷 +{combatant.LowHpSpeedBonusApplied} 速度");
@@ -37,8 +38,12 @@ namespace Grimhand.Presentation.Battle
                 lines.Add($"出牌 {n}（再{need}张触发）");
             }
 
-            if (HasTrait(combatant, MinionTraitCatalog.PhantomCaptainFrenzy) && IsPhantomCaptainFrenzyActive(state))
-                lines.Add($"狂怒 +{MinionTraitCatalog.PhantomCaptainFrenzyAttackPercent}% 攻击");
+            if (HasTrait(combatant, MinionTraitCatalog.PhantomCaptainFrenzy)
+                && StatusRules.GetStatusStacks(combatant, StatusCatalog.PhantomCaptainFrenzyAtk) > 0)
+            {
+                lines.Add($"狂怒 +{MinionTraitCatalog.PhantomCaptainFrenzyAttackPercent}% 增伤 / "
+                    + $"+{MinionTraitCatalog.PhantomCaptainFrenzyDefensePercent}% 易伤");
+            }
 
             if (HasTrait(combatant, MinionTraitCatalog.StoneGolemArmorRetain) && combatant.CarryOverBlock > 0)
                 lines.Add($"下回合保留 {combatant.CarryOverBlock} 护甲");
@@ -51,25 +56,5 @@ namespace Grimhand.Presentation.Battle
 
         static bool HasTrait(CombatantState combatant, string traitId) =>
             MinionTraitRules.HasTrait(combatant, traitId);
-
-        static bool IsPhantomCaptainFrenzyActive(BattleState state)
-        {
-            if (state == null)
-                return false;
-
-            foreach (var unit in state.Combatants)
-            {
-                if (unit.Team != TeamSide.Player)
-                    continue;
-
-                if (!unit.IsAlive)
-                    return true;
-
-                if (unit.MaxHp > 0 && unit.Hp * 100 / unit.MaxHp < 25)
-                    return true;
-            }
-
-            return false;
-        }
     }
 }

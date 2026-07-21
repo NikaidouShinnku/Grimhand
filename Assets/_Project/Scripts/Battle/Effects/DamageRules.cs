@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Reactions;
@@ -31,6 +32,9 @@ namespace Grimhand.Battle.Effects
         {
             if (target == null)
                 return;
+
+            if (state != null)
+                state.LastDamageHadRespondDefense = false;
 
             var recipient = CombatMechanicsRules.ResolveDamageRecipient(state, actor, target);
             var isGuardRedirect = recipient.Id != target.Id;
@@ -82,8 +86,6 @@ namespace Grimhand.Battle.Effects
             var blocked = Math.Min(effectiveBlock, raw);
             // 无视 N% 护甲：按有效护甲折算格挡量，仍扣减真实护甲（例：10 护甲 + 50% 无视 + 10 伤 → 护甲 -5，HP -5）
             recipient.Block = Math.Max(0, recipient.Block - blocked);
-            if (raw > 0)
-                MinionTraitRules.OnIncomingDamageHit(state, actor, recipient, events);
 
             // 攻击命中（含全额被护甲吸收）：荆棘/受击计数等按「受到攻击」结算，不要求掉血
             if (raw > 0
@@ -159,9 +161,6 @@ namespace Grimhand.Battle.Effects
             if (hpDamage > 0)
                 MinionTraitRules.OnDamageTaken(state, recipient, hpDamage, events);
 
-            if (hpDamage > 0)
-                MinionTraitRules.OnDamageDealt(state, actor, recipient, hpDamage, events);
-
             if (!recipient.IsAlive && wasAlive
                 && CombatMechanicsRules.TryPreventDeathWithReviveBlessing(state, recipient, events))
             {
@@ -184,6 +183,17 @@ namespace Grimhand.Battle.Effects
                 CardType = cardType,
                 CardInstanceId = sourceCardInstanceId
             });
+
+            // 深渊被动上毒等：必须在 DamageApplied 之后，保证演出「伤害 → 中毒」
+            if (hpDamage > 0)
+                MinionTraitRules.OnDamageDealt(state, actor, recipient, hpDamage, events);
+
+            // 腐蚀蟹：受击（含打甲）后上毒，同样须在 DamageApplied 之后
+            if (raw > 0)
+                MinionTraitRules.OnIncomingDamageHit(state, actor, recipient, events);
+
+            if (state != null)
+                state.LastDamageHadRespondDefense = hadRespondDefense;
 
             // 铁壁牢门等：主伤害事件之后再打副作用，保证演出顺序
             if (consumedArm != null)
@@ -219,6 +229,65 @@ namespace Grimhand.Battle.Effects
             else if (hpDamage > 0 && actor != null && recipient.Team == TeamSide.Enemy)
             {
                 TalentBattleRules.OnMageDamageDealt(state, actor, recipient, hpDamage, events);
+            }
+        }
+
+        /// <summary>
+        /// 真实伤害：无视护甲、减伤、易伤等，直接扣 HP。
+        /// 不触发深渊「造成 HP 伤害上毒」等 OnDamageDealt，避免与主伤害被动叠算。
+        /// </summary>
+        public static void ApplyTrueDamage(
+            BattleState state,
+            CombatantState actor,
+            CombatantState recipient,
+            int amount,
+            List<BattleEvent> events,
+            int sourceCardInstanceId = 0)
+        {
+            if (state == null || recipient == null || amount <= 0 || !recipient.IsAlive)
+                return;
+
+            var wasAlive = recipient.IsAlive;
+            PassiveCardMechanicsRules.TryTriggerLastStand(state, recipient, ref amount, events);
+            if (amount <= 0)
+                return;
+
+            recipient.Hp = Math.Max(0, recipient.Hp - amount);
+            recipient.HitThisTurn = true;
+
+            if (!recipient.IsAlive && wasAlive
+                && CombatMechanicsRules.TryPreventDeathWithReviveBlessing(state, recipient, events))
+            {
+                wasAlive = true;
+            }
+
+            var killed = wasAlive && !recipient.IsAlive;
+            var actorName = actor?.DisplayName ?? "真实伤害";
+            events.Add(new BattleEvent(BattleEventKind.DamageApplied, $"{actorName} -> {recipient.DisplayName}（真实）")
+            {
+                CombatantId = actor?.Id,
+                TargetId = recipient.Id,
+                Amount = amount,
+                CardInstanceId = sourceCardInstanceId
+            });
+
+            MinionTraitRules.OnDamageTaken(state, recipient, amount, events);
+            CombatMechanicsRules.TryTriggerUnyielding(state, recipient, events);
+            PassiveCardMechanicsRules.OnDamageTakenBattleWill(state, recipient, amount, events);
+            V09NewMechanicsRules.AfterDamageResolveEtherealOnNextHit(state, recipient, amount, events);
+            V091MechanicsRules.OnHpDamageTaken(state, recipient, amount, events);
+            TalentBattleRules.OnDamageTakenV09(state, recipient, amount, events);
+
+            if (killed)
+            {
+                events.Add(new BattleEvent(BattleEventKind.CharacterDied, recipient.DisplayName)
+                {
+                    CombatantId = recipient.Id
+                });
+                CombatantDeathRules.OnCharacterDied(state, recipient, events, null);
+
+                if (recipient.Team == TeamSide.Enemy && actor != null)
+                    RelicEffectRules.OnEnemyKilled(state, actor, events, null);
             }
         }
 

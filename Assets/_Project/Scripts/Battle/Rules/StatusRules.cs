@@ -53,8 +53,9 @@ namespace Grimhand.Battle.Rules
             if (def == null || target == null || !target.IsAlive || stacks <= 0)
                 return;
 
-            // 减益免疫：拦截新减益（免疫自身不算减益）
+            // 减益免疫：拦截新减益（免疫自身、船长被动狂怒易伤不算外来减益）
             if (statusId != StatusCatalog.DebuffImmune
+                && statusId != StatusCatalog.PhantomCaptainFrenzyVuln
                 && HasStatus(target, StatusCatalog.DebuffImmune)
                 && IsDebuffDefinition(def))
                 return;
@@ -63,6 +64,14 @@ namespace Grimhand.Battle.Rules
             if (statusId == StatusCatalog.Poison)
             {
                 ApplyPoisonBucket(state, target, stacks, durationOverride, events, mirrorChainWraith);
+                return;
+            }
+
+            // 增伤/减伤等：按剩余回合分桶，图标合并总层数，详情框按不同持续时间分列
+            if (UsesDurationBuckets(statusId))
+            {
+                ApplyTimedStatusBucket(
+                    state, target, statusId, stacks, durationOverride, events, mirrorChainWraith);
                 return;
             }
 
@@ -174,6 +183,71 @@ namespace Grimhand.Battle.Rules
                 MinionTraitRules.ShareChainWraithDebuff(
                     state, target, StatusCatalog.Poison, stacks, durationOverride, events);
         }
+
+        /// <summary>按 RemainingTurns 分桶叠层（潮汐减耗等：同剩余回合合并，不同回合分开以便独立到期）。</summary>
+        static void ApplyTimedStatusBucket(
+            BattleState state,
+            CombatantState target,
+            string statusId,
+            int stacks,
+            int durationOverride,
+            List<BattleEvent> events,
+            bool mirrorChainWraith)
+        {
+            var def = StatusCatalog.Get(statusId);
+            if (def == null || target == null || stacks <= 0)
+                return;
+
+            var turns = ResolveAppliedDurationTurns(state, durationOverride);
+            StatusInstance bucket = null;
+            foreach (var status in target.Statuses)
+            {
+                if (status?.StatusId == statusId && status.RemainingTurns == turns)
+                {
+                    bucket = status;
+                    break;
+                }
+            }
+
+            if (bucket == null)
+            {
+                bucket = new StatusInstance
+                {
+                    StatusId = statusId,
+                    Stacks = 0,
+                    RemainingTurns = turns
+                };
+                target.Statuses.Add(bucket);
+            }
+
+            bucket.Stacks += stacks;
+
+            events.Add(new BattleEvent(BattleEventKind.StatusApplied, def.DisplayName)
+            {
+                CombatantId = target.Id,
+                Amount = GetStatusStacks(target, statusId),
+                TargetId = statusId
+            });
+
+            CombatantRules.RefreshDerivedStats(target);
+            RelicBattleRules.RefreshDerivedStats(state, target, state?.Config?.RunModifiers);
+
+            if (mirrorChainWraith)
+                MinionTraitRules.ShareChainWraithDebuff(
+                    state, target, statusId, stacks, durationOverride, events);
+        }
+
+        static bool UsesDurationBuckets(string statusId) =>
+            statusId == StatusCatalog.MermaidTidalCostCut
+            || statusId == StatusCatalog.AttackUpPercent
+            || statusId == StatusCatalog.DamageReduction
+            || statusId == StatusCatalog.DefenseUpPercent
+            || statusId == StatusCatalog.DefenseDownPercent
+            || statusId == StatusCatalog.Vulnerable
+            || statusId == StatusCatalog.Weaken
+            || statusId == StatusCatalog.ArmorDown
+            || statusId == StatusCatalog.Slow
+            || statusId == StatusCatalog.SpeedUp;
 
         static int ResolveAppliedDurationTurns(BattleState state, int durationOverride)
         {
@@ -581,7 +655,11 @@ namespace Grimhand.Battle.Rules
                 or StatusCatalog.WaveSurge
                 or StatusCatalog.EbbingTide
                 or StatusCatalog.TideLocked
-                or StatusCatalog.TideEmpower)
+                or StatusCatalog.TideEmpower
+                or StatusCatalog.MermaidTidalCostCut
+                or StatusCatalog.HandCostZero
+                or StatusCatalog.PhantomCaptainFrenzyAtk
+                or StatusCatalog.PhantomCaptainFrenzyVuln)
                 return false;
 
             return def.SpeedModifierPerStack > 0

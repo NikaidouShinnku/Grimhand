@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
+using Grimhand.Battle.Rules;
 using Grimhand.Content;
 using Grimhand.Presentation.Audio;
 using UnityEngine;
@@ -347,12 +348,24 @@ namespace Grimhand.Presentation.Battle
                     GameAudioService.Instance.PlayBattleAttack(characterId, isEnemy);
                     break;
                 case CardType.Status:
+                    // 夹断护甲：不播施法音，改由护甲移除事件播护甲受击
+                    if (IsPinchArmorCard(card))
+                        break;
                     GameAudioService.Instance.PlayBattleCast();
                     break;
                 case CardType.Defense:
                     GameAudioService.Instance.PlayBattleGainArmor();
                     break;
             }
+        }
+
+        bool IsPinchArmorCard(CardPlayContext card)
+        {
+            if (card == null)
+                return false;
+            var inst = _session?.Engine?.State?.GetCard(card.CardInstanceId);
+            return inst != null
+                   && inst.DefinitionId == AbyssMonsterCardCatalog.PinchArmorCardId;
         }
 
         IEnumerator EndCardPlay(CardPlayContext card)
@@ -454,13 +467,10 @@ namespace Grimhand.Presentation.Battle
 
         void RevealFootStatusApplied(BattleEvent e)
         {
-            if (_session.PresentationSnapshot == null
-                || string.IsNullOrEmpty(e.CombatantId)
-                || string.IsNullOrEmpty(e.TargetId)
-                || e.Amount <= 0)
+            if (_session.PresentationSnapshot == null || string.IsNullOrEmpty(e.CombatantId))
                 return;
 
-            _session.PresentationSnapshot.ApplyFootStatusApplied(e.CombatantId, e.TargetId, e.Amount);
+            _session.PresentationSnapshot.SyncFootStatusesFromLive(_session.Engine?.State, e.CombatantId);
             _screen?.Refresh();
         }
 
@@ -469,11 +479,7 @@ namespace Grimhand.Presentation.Battle
             if (_session.PresentationSnapshot == null || string.IsNullOrEmpty(e.CombatantId))
                 return;
 
-            var statusId = !string.IsNullOrEmpty(e.TargetId) ? e.TargetId : e.Message;
-            if (string.IsNullOrEmpty(statusId) || e.Amount <= 0)
-                return;
-
-            _session.PresentationSnapshot.ApplyFootStatusRemoved(e.CombatantId, statusId, e.Amount);
+            _session.PresentationSnapshot.SyncFootStatusesFromLive(_session.Engine?.State, e.CombatantId);
             _screen?.Refresh();
         }
 
@@ -512,7 +518,11 @@ namespace Grimhand.Presentation.Battle
             if (IsBlockRemovalEvent(e))
             {
                 if (e.Amount > 0)
+                {
+                    // 夹断护甲 / 破甲等：用护甲受击音强化「甲被夹断」手感
+                    GameAudioService.Instance.PlayBattleHit(absorbedByArmor: true);
                     _session.PresentationSnapshot?.ApplyBlockConsumed(e.CombatantId, e.Amount);
+                }
                 else
                     _session.PresentationSnapshot?.ClearBlock(e.CombatantId);
                 _screen?.Refresh();
@@ -793,7 +803,6 @@ namespace Grimhand.Presentation.Battle
                 or BattleEventKind.BlockGained
                 or BattleEventKind.IronWallConverted
                 or BattleEventKind.HealApplied
-                or BattleEventKind.StatusApplied
                 or BattleEventKind.StatusRemoved
                 or BattleEventKind.DeckPolluted
                 or BattleEventKind.CardDrawn
@@ -803,6 +812,7 @@ namespace Grimhand.Presentation.Battle
                 return true;
             }
 
+            // StatusApplied 不并入 damage wave，保证「伤害 → 上毒 → 下一击」按事件序播放
             return aoeWave && kind == BattleEventKind.CardDiscarded;
         }
 

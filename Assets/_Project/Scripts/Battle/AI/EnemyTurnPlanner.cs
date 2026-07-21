@@ -38,7 +38,10 @@ namespace Grimhand.Battle.AI
 
             candidates.Sort((a, b) =>
             {
-                var costCmp = a.Cost.CompareTo(b.Cost);
+                var ownerA = state.GetCombatant(PositionRules.GetOwnerCombatantId(state, a) ?? "");
+                var ownerB = state.GetCombatant(PositionRules.GetOwnerCombatantId(state, b) ?? "");
+                var costCmp = MinionTraitRules.GetAdjustedCardCost(state, ownerA, a)
+                    .CompareTo(MinionTraitRules.GetAdjustedCardCost(state, ownerB, b));
                 if (costCmp != 0)
                     return costCmp;
 
@@ -48,11 +51,14 @@ namespace Grimhand.Battle.AI
 
             foreach (var card in candidates)
             {
-                if (spent + card.Cost > budget)
+                var ownerId = PositionRules.GetOwnerCombatantId(state, card);
+                var owner = ownerId != null ? state.GetCombatant(ownerId) : null;
+                var cost = MinionTraitRules.GetAdjustedCardCost(state, owner, card);
+                if (spent + cost > budget)
                     continue;
 
                 result.Plan.PlayQueue.Add(card.InstanceId);
-                spent += card.Cost;
+                spent += cost;
             }
 
             result.Plan.EnergySpent = spent;

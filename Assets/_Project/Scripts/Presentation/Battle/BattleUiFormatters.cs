@@ -1052,6 +1052,9 @@ namespace Grimhand.Presentation.Battle
                 "献祭增伤", $"出站伤害 +{unit.SacrificeAttackStacks}%（血祭坛等）");
             AppendStatusTooltipEntry(sb, unit.NextAttackFlatBonus > 0,
                 "下次攻击", $"额外 +{unit.NextAttackFlatBonus} 伤害");
+            AppendStatusTooltipEntry(sb, unit.MermaidZeroCostAttackBonusPercent > 0,
+                "增伤",
+                $"打出费用为 0 的卡牌时获得（永久，上限 100%）；当前 +{unit.MermaidZeroCostAttackBonusPercent}%，提升所有攻击牌伤害");
 
             foreach (var s in unit.Statuses)
             {
@@ -1117,7 +1120,114 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.ReviveBlessing:
                     return "HP 归零时恢复 25% HP（每场 1 次）";
                 case StatusCatalog.GodDescends:
-                    return "获得护甲时对全体敌人造成 8 伤害";
+                    return "本场战斗中，每当获得护甲时，对所有敌人造成 8 点伤害";
+                case StatusCatalog.MermaidTidalCostCut:
+                    return AppendStatusDurationLine(
+                        $"劈砍与破浪斩的能量消耗 -{status.Stacks}（每层 -1，可叠加；各层按自身剩余回合独立到期）",
+                        status, def);
+                case StatusCatalog.SpiderPoisonVulnerable:
+                    return AppendStatusDurationLine(
+                        $"受到的伤害增加 {status.Stacks}%（蜘蛛贵妇：每 5 层中毒视为 10% 易伤）",
+                        status, def);
+                case StatusCatalog.HandCostZero:
+                    return AppendStatusDurationLine("己方手牌费用变为 0", status, def);
+                case StatusCatalog.Slow:
+                    return AppendStatusDurationLine(
+                        $"速度 -{status.Stacks}（每层 -1）",
+                        status, def);
+                case StatusCatalog.SpeedUp:
+                case StatusCatalog.SnakeSwiftness:
+                    return AppendStatusDurationLine(
+                        $"速度 +{status.Stacks}（每层 +1）",
+                        status, def);
+                case StatusCatalog.DamageReduction:
+                    return AppendStatusDurationLine(
+                        $"受到的伤害减少 {status.Stacks}%（每层 -1%）",
+                        status, def);
+                case StatusCatalog.Unyielding:
+                    return "不屈：特定条件下不会被击败或触发对应保命效果";
+                case StatusCatalog.BoneWorkshop:
+                    return "骨之王座：获得时与每回合开始召唤易爆骷髅头";
+                case StatusCatalog.GhostQueenWrath:
+                    return "幽灵女王之怒：大幅提升攻击伤害（机制增益，不可驱散）";
+                case StatusCatalog.SandSpearReforge:
+                    return "沙矛重塑：相关沙矛/重塑效果已激活";
+                case StatusCatalog.RatSwarmCall:
+                    return "鼠群呼唤：死亡时召唤鼠群克隆";
+                case StatusCatalog.SoulDrain:
+                    return "摄魂：下回合玩家能量回复减少";
+                case StatusCatalog.FinalSummonPending:
+                    return AppendStatusDurationLine(
+                        "终焉召唤倒计时：到期时召唤终焉造物",
+                        status, def);
+                case StatusCatalog.RespondStance:
+                    return "应对姿态：成功应对时获得 8 护甲";
+                case StatusCatalog.BattleWill:
+                    return "战意觉醒：受到生命损失时获得 5% 增伤";
+                case StatusCatalog.HeavyArmor:
+                    return "重甲强化：获得护甲时额外 +20%";
+                case StatusCatalog.FinalBulwark:
+                    return "最终壁垒：回合结束仅清除 50% 护甲";
+                case StatusCatalog.RotAvatar:
+                    return "腐朽化身：敌人回合开始时对其施加 2 层中毒";
+                case StatusCatalog.BloodFrenzy:
+                    return "鲜血狂欢：献祭后获得 5% 增伤";
+                case StatusCatalog.BloodSharing:
+                    return "分血仪式：回复生命时，其他我方也回复 30%";
+                case StatusCatalog.Constrict:
+                    return AppendStatusDurationLine(
+                        $"缠绕：每回合开始受到 {status.Stacks} 点伤害；期间可能无法出牌",
+                        status, def);
+                case StatusCatalog.VenomSacBurst:
+                    return "毒囊破裂：施加中毒时额外 +1 层";
+                case StatusCatalog.ImmortalShed:
+                    return AppendStatusDurationLine(
+                        "不朽蛇蜕：获得中毒时额外获得 10% 增伤",
+                        status, def);
+                case StatusCatalog.PrayAncientSnakeGod:
+                    return "祈求远古蛇神：每回合注入蛇神的回应相关效果";
+                case StatusCatalog.DelayedDamage:
+                    return AppendStatusDurationLine(
+                        $"延迟伤害：下回合开始受到 {status.Stacks} 点伤害",
+                        status, def);
+                case StatusCatalog.EtherealOnNextHit:
+                    return "两界行者：下次受到伤害后获得虚化";
+                case StatusCatalog.PsionicBody:
+                    return "灵能体：非战斗回合相关增伤效果已激活";
+                case StatusCatalog.SealedNextCard:
+                    return "灵界封印：敌方使用的下一张卡将失效";
+                case StatusCatalog.SealNextStatusCard:
+                    return "状态封印：目标下一张状态牌无法有效使用";
+                case StatusCatalog.DespairSoulRecall:
+                    return "绝望之魂：获得虚化时从弃牌堆将相关牌加入手牌";
+                case StatusCatalog.EternalVoid:
+                    return "永恒虚无：永久虚化，每回合受到 25% 最大生命的真实伤害";
+                case StatusCatalog.SnakeGodChanneling:
+                    return "蛇神降临：蛇神回应链相关标记";
+                case StatusCatalog.DebuffImmune:
+                    return "减益免疫：不会再受到新的减益状态";
+                case StatusCatalog.ThornArmor:
+                    return "荆棘护甲：相关反伤/护甲效果已激活";
+                case StatusCatalog.BattleRoar:
+                    return "战斗咆哮：相关战吼增伤效果已激活";
+                case StatusCatalog.DoomProphecy:
+                    return "末日预言：相关预言效果已激活";
+                case StatusCatalog.LifeSpring:
+                    return "生命之泉：相关持续回复效果已激活";
+                case StatusCatalog.PainConvert:
+                    return "苦痛转化：相关伤害转化效果已激活";
+                case StatusCatalog.SnakeNest:
+                    return "千蛇窟：相关蛇群效果已激活";
+                case StatusCatalog.PsionicArrowRain:
+                    return "灵能箭雨：相关灵能箭雨效果已激活";
+                case StatusCatalog.PsionicMastery:
+                    return "灵能掌握：相关灵能掌握效果已激活";
+                case StatusCatalog.SoulBond:
+                    return "灵魂纽带：相关灵魂纽带效果已激活";
+                case StatusCatalog.NecroticPoison:
+                    return AppendStatusDurationLine(
+                        "亡灵毒：回合开始造成伤害的特殊中毒",
+                        status, def);
                 case StatusCatalog.FinalBloodRitual:
                     return "触发【献祭】时回复 5 HP，并在下回合开始时抽 1 张牌";
                 case StatusCatalog.VampAura:
@@ -1163,14 +1273,30 @@ namespace Grimhand.Presentation.Battle
                         status, def);
                 case StatusCatalog.WaveSurge:
                     return $"攻击伤害 +{status.Stacks}%（同位置速度优势；无同位置敌人时为 50%）";
+                case StatusCatalog.PhantomCaptainFrenzyAtk:
+                    return $"攻击伤害 +{status.Stacks}%（敌方有角色死亡或血量低于 25% 时）";
+                case StatusCatalog.PhantomCaptainFrenzyVuln:
+                    return $"受到的伤害 +{status.Stacks}%（敌方有角色死亡或血量低于 25% 时）";
                 case StatusCatalog.EbbingTide:
                     return AppendStatusDurationLine(
-                        $"无法获得涨潮；受到的伤害 +{def?.IncomingDamagePercentPerStack ?? 50}%",
+                        $"无法获得涨潮；受到的伤害 +{status.Stacks * (def?.IncomingDamagePercentPerStack ?? 50)}%",
                         status, def);
                 case StatusCatalog.TideLocked:
+                {
+                    // 施加时多写 1 回合抵消当回合末 tick；展示用 RemainingTurns-1 对齐卡面「持续 N 回合」
+                    var displayTurns = status.RemainingTurns > 0
+                        ? status.RemainingTurns - 1
+                        : status.RemainingTurns;
+                    var display = new StatusInstance
+                    {
+                        StatusId = status.StatusId,
+                        Stacks = status.Stacks,
+                        RemainingTurns = displayTurns
+                    };
                     return AppendStatusDurationLine(
                         $"涨潮锁定在 {V09BossMechanicsRules.TideLockedStackCount} 层",
-                        status, def);
+                        display, def);
+                }
                 case StatusCatalog.TideEmpower:
                     return "魔化潮汐：每层涨潮额外提供 5% 减伤";
                 case StatusCatalog.BrandMark:

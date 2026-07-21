@@ -113,7 +113,9 @@ namespace Grimhand.Battle.Model
         /// <summary>使目标全部减益的层数与剩余回合翻倍（永久保持 -1）。</summary>
         DoubleAllDebuffStacksAndDuration,
         /// <summary>使目标与其身后同队存活单位交换站位。</summary>
-        SwapTargetWithBehind
+        SwapTargetWithBehind,
+        /// <summary>真实伤害：按目标 StatusId 层数 × Stacks 直扣 HP（无视护甲/减伤/易伤等）。</summary>
+        DealTrueDamagePerStatusStack
     }
 
     public enum EffectTarget

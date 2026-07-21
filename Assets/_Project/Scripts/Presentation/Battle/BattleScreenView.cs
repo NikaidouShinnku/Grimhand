@@ -1867,13 +1867,41 @@ namespace Grimhand.Presentation.Battle
             keywordTooltipText.supportRichText = true;
             keywordTooltipText.fontStyle = FontStyle.Normal;
             keywordTooltipText.alignment = TextAnchor.UpperLeft;
+            keywordTooltipText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            keywordTooltipText.verticalOverflow = VerticalWrapMode.Overflow;
             keywordTooltipText.text = body;
 
             var panel = keywordTooltipPanel.transform as RectTransform;
             if (panel == null)
                 return;
 
+            const float tooltipWidth = 320f;
+            const float padX = 20f;
+            const float padY = 16f;
+
+            var textRt = keywordTooltipText.rectTransform;
+            textRt.anchorMin = new Vector2(0f, 1f);
+            textRt.anchorMax = new Vector2(1f, 1f);
+            textRt.pivot = new Vector2(0.5f, 1f);
+            textRt.anchoredPosition = new Vector2(0f, -8f);
+            textRt.sizeDelta = new Vector2(-padX, 0f);
+
             keywordTooltipPanel.SetActive(true);
+            Canvas.ForceUpdateCanvases();
+            var preferred = keywordTooltipText.preferredHeight;
+            if (preferred < 8f)
+            {
+                var settings = keywordTooltipText.GetGenerationSettings(new Vector2(tooltipWidth - padX, 0f));
+                settings.horizontalOverflow = HorizontalWrapMode.Wrap;
+                settings.verticalOverflow = VerticalWrapMode.Overflow;
+                settings.scaleFactor = 1f;
+                preferred = keywordTooltipText.cachedTextGeneratorForLayout
+                                .GetPreferredHeight(body, settings)
+                            / Mathf.Max(1f, keywordTooltipText.pixelsPerUnit);
+            }
+
+            panel.sizeDelta = new Vector2(tooltipWidth, Mathf.Max(64f, preferred + padY));
+            textRt.sizeDelta = new Vector2(-padX, preferred);
             LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
             PositionTooltipBesideCard(panel, anchor);
 

@@ -33,6 +33,7 @@ namespace Grimhand.Presentation.Battle
             StatusCatalog.DamageReduction,
             StatusCatalog.Vulnerable,
             StatusCatalog.SpiderPoisonVulnerable,
+            StatusCatalog.MermaidTidalCostCut,
             StatusCatalog.AttackUpPercent,
             StatusCatalog.AttackUp,
             StatusCatalog.DamageUp,
@@ -126,18 +127,12 @@ namespace Grimhand.Presentation.Battle
         static List<VisibleStatus> CollectVisible(CombatantState unit)
         {
             var list = new List<VisibleStatus>();
-            if (unit?.Statuses == null)
-                return list;
-
-            foreach (var status in unit.Statuses)
+            foreach (var entry in FootStatusIconAggregator.Aggregate(unit))
             {
-                if (status == null || status.Stacks <= 0 || string.IsNullOrEmpty(status.StatusId))
-                    continue;
-
                 list.Add(new VisibleStatus
                 {
-                    StatusId = status.StatusId,
-                    Stacks = status.Stacks
+                    StatusId = entry.StatusId,
+                    Stacks = entry.Stacks
                 });
             }
 
@@ -151,15 +146,24 @@ namespace Grimhand.Presentation.Battle
             if (entries == null)
                 return list;
 
+            // 快照已聚合；同 Id 再合并一次以防局部增量更新残留
+            var merged = new Dictionary<string, int>();
             foreach (var entry in entries)
             {
                 if (entry.Stacks <= 0 || string.IsNullOrEmpty(entry.StatusId))
                     continue;
 
+                if (!merged.ContainsKey(entry.StatusId))
+                    merged[entry.StatusId] = 0;
+                merged[entry.StatusId] += entry.Stacks;
+            }
+
+            foreach (var pair in merged)
+            {
                 list.Add(new VisibleStatus
                 {
-                    StatusId = entry.StatusId,
-                    Stacks = entry.Stacks
+                    StatusId = pair.Key,
+                    Stacks = pair.Value
                 });
             }
 

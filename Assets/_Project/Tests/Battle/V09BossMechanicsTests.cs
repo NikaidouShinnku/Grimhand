@@ -169,6 +169,9 @@ namespace Grimhand.Battle.Tests
 
             Assert.AreEqual(V09BossMechanicsRules.TideLockedStackCount,
                 StatusRules.GetStatusStacks(goddess, StatusCatalog.RisingTide));
+            Assert.IsTrue(StatusRules.HasStatus(goddess, StatusCatalog.TideLocked));
+            // 卡面 2 回合 → 写入 3，抵消当回合末 tick
+            Assert.AreEqual(3, StatusRules.FindStatus(goddess, StatusCatalog.TideLocked)?.RemainingTurns ?? 0);
             Assert.IsFalse(StatusRules.HasStatus(goddess, StatusCatalog.EbbingTide));
         }
 

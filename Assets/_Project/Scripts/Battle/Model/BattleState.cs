@@ -49,6 +49,9 @@ namespace Grimhand.Battle.Model
 
         public LastActionSnapshot LastAction { get; set; } = LastActionSnapshot.None;
 
+        /// <summary>上一击伤害结算是否触发了成功应对（溃烂钳击等消费）。</summary>
+        public bool LastDamageHadRespondDefense { get; set; }
+
         public BattlePlan PlayerPlan { get; } = new();
         public BattlePlan EnemyPlan { get; } = new();
         public List<EnemyIntentSlot> EnemyIntents { get; } = new();

@@ -145,7 +145,8 @@ namespace Grimhand.Battle.Effects
                         ExecuteDamageToAllEnemies(state, actor, card, action, value, events, rng, sourceCardInstanceId);
                     else if (target != null
                              && (action.Target == EffectTarget.Self
-                                 || TargetRules.IsTargetValidForAction(state, target, action.Reach, action)))
+                                 || TargetRules.IsTargetValidForAction(
+                                     state, target, GetEffectiveDamageReach(state, actor, card, action), action)))
                         ExecuteDamage(
                             state, actor, card, action, target, value, events, rng, sourceCardInstanceId,
                             isSacrificeSelfDamage: action.Target == EffectTarget.Self
@@ -867,8 +868,11 @@ namespace Grimhand.Battle.Effects
                 }
                 case EffectActionType.StripBlockThenDealDamage:
                 {
-                    var stripTarget = TargetRules.ResolveTarget(
-                        state, actor, action.Target, sourceCardInstanceId, rng, action);
+                    var stripTarget = TargetRules.PickEnemyPreferBlock(
+                        state, actor, action.Reach, rng)
+                        ?? TargetRules.ResolveTarget(
+                            state, actor, action.Target, sourceCardInstanceId, rng, action);
+
                     V09BossMechanicsRules.StripBlockThenDealDamage(
                         state, actor, stripTarget, card, action, events, rng, sourceCardInstanceId);
                     break;
@@ -916,18 +920,9 @@ namespace Grimhand.Battle.Effects
                 case EffectActionType.StealAllBuffs:
                 {
                     if (action.Target == EffectTarget.AllEnemies)
-                    {
-                        var enemyTeam = actor.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
-                        foreach (var enemy in state.GetTeam(enemyTeam))
-                        {
-                            if (enemy != null && enemy.IsAlive)
-                                StealAllBuffsFromTarget(state, actor, enemy, events);
-                        }
-                    }
+                        StealAllBuffsFromAllEnemies(state, actor, events);
                     else if (target != null)
-                    {
                         StealAllBuffsFromTarget(state, actor, target, events);
-                    }
 
                     state.LastAction = new LastActionSnapshot(
                         actor.Id, ActionKind.Status, target?.Id ?? actor.Id, false, 0);
@@ -941,10 +936,47 @@ namespace Grimhand.Battle.Effects
                 }
                 case EffectActionType.DoubleAllDebuffStacksAndDuration:
                 {
+                    // 溃烂钳击：仅当上一击被成功应对时翻倍减益
+                    if (card?.DefinitionId == AbyssMonsterCardCatalog.FesterClawCardId
+                        && (state == null || !state.LastDamageHadRespondDefense))
+                        break;
+
                     if (target != null)
                         DoubleAllDebuffStacksAndDuration(target, events);
                     state.LastAction = new LastActionSnapshot(
                         actor.Id, ActionKind.Status, target?.Id ?? actor.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.DealTrueDamagePerStatusStack:
+                {
+                    if (target == null || !target.IsAlive)
+                        break;
+                    if (!TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
+                        break;
+
+                    var statusId = string.IsNullOrEmpty(action.StatusId)
+                        ? StatusCatalog.Poison
+                        : action.StatusId;
+                    var perStack = action.Stacks > 0 ? action.Stacks : 1;
+                    var stacks = StatusRules.GetStatusStacks(target, statusId);
+                    // 贯穿触手：按命中前中毒结算；主伤害触发的深渊被动上毒不计入本段
+                    if (card?.DefinitionId == AbyssMonsterCardCatalog.PiercingTentacleCardId
+                        && statusId == StatusCatalog.Poison
+                        && MinionTraitRules.HasTrait(actor, MinionTraitCatalog.AbyssCreaturePoisonOnDamage)
+                        && stacks >= MinionTraitCatalog.AbyssCreaturePoisonStacks)
+                    {
+                        stacks -= MinionTraitCatalog.AbyssCreaturePoisonStacks;
+                    }
+
+                    var trueDmg = stacks * perStack;
+                    if (trueDmg > 0)
+                    {
+                        DamageRules.ApplyTrueDamage(
+                            state, actor, target, trueDmg, events, sourceCardInstanceId);
+                    }
+
+                    state.LastAction = new LastActionSnapshot(
+                        actor.Id, ActionKind.Attack, target.Id, false, trueDmg);
                     break;
                 }
             }
@@ -1561,6 +1593,24 @@ namespace Grimhand.Battle.Effects
             CombatantRules.RefreshDerivedStats(target);
         }
 
+        /// <summary>火枪等：结算伤害时使用与选目标相同的有效 Reach（无后排则回退前/中）。</summary>
+        static TargetReach GetEffectiveDamageReach(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState card,
+            EffectActionSpec action)
+        {
+            if (action == null)
+                return TargetReach.Any;
+
+            if (card != null
+                && card.DefinitionId == "m_musket_shot"
+                && action.Reach == TargetReach.BackOnly)
+                return TargetReachRules.GetPickReach(state, card, actor);
+
+            return action.Reach;
+        }
+
         static void StealAllBlockFromRandomEnemyPreferArmored(
             BattleState state,
             CombatantState actor,
@@ -1591,8 +1641,20 @@ namespace Grimhand.Battle.Effects
             if (stolen <= 0)
                 return;
 
+            events.Add(new BattleEvent(BattleEventKind.BlockGained, $"{victim.DisplayName} 护甲被移除")
+            {
+                CombatantId = victim.Id,
+                Amount = stolen
+            });
             victim.Block = 0;
-            DamageRules.ApplyBlock(actor, stolen, events, state, rng);
+
+            // 直接转移数值，避免再吃一次「获得护甲」加成/减成
+            actor.Block += stolen;
+            events.Add(new BattleEvent(BattleEventKind.BlockGained, actor.DisplayName)
+            {
+                CombatantId = actor.Id,
+                Amount = stolen
+            });
             events.Add(new BattleEvent(BattleEventKind.StatusApplied,
                 $"{actor.DisplayName} 劫掠了 {victim.DisplayName} 的 {stolen} 护甲")
             {
@@ -1602,13 +1664,88 @@ namespace Grimhand.Battle.Effects
             });
         }
 
+        /// <summary>从全体敌方聚合偷取增益（同 Id 层数相加），再一次性施加到自身。</summary>
+        static void StealAllBuffsFromAllEnemies(
+            BattleState state,
+            CombatantState actor,
+            List<BattleEvent> events)
+        {
+            if (state == null || actor == null || !actor.IsAlive)
+                return;
+
+            var enemyTeam = actor.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
+            var aggregate = new Dictionary<string, (int stacks, int turns)>();
+            var victimsWithBuffs = new List<CombatantState>();
+
+            foreach (var enemy in state.GetTeam(enemyTeam))
+            {
+                if (enemy == null)
+                    continue;
+
+                var hadBuff = false;
+                foreach (var status in enemy.Statuses)
+                {
+                    if (status == null || status.Stacks <= 0)
+                        continue;
+                    var def = StatusCatalog.Get(status.StatusId);
+                    if (!StatusRules.IsBuffDefinition(def))
+                        continue;
+
+                    hadBuff = true;
+                    if (aggregate.TryGetValue(status.StatusId, out var existing))
+                    {
+                        aggregate[status.StatusId] = (
+                            existing.stacks + status.Stacks,
+                            MergeStolenDuration(existing.turns, status.RemainingTurns));
+                    }
+                    else
+                    {
+                        aggregate[status.StatusId] = (status.Stacks, status.RemainingTurns);
+                    }
+                }
+
+                if (hadBuff)
+                    victimsWithBuffs.Add(enemy);
+            }
+
+            if (aggregate.Count == 0)
+                return;
+
+            foreach (var victim in victimsWithBuffs)
+            {
+                foreach (var statusId in aggregate.Keys)
+                    StatusRules.RemoveAllStatus(victim, statusId, events);
+            }
+
+            foreach (var pair in aggregate)
+            {
+                StatusRules.ApplyStatus(
+                    state, actor, pair.Key, pair.Value.stacks, pair.Value.turns, events);
+            }
+
+            events.Add(new BattleEvent(BattleEventKind.StatusApplied,
+                $"{actor.DisplayName} 偷取了全体敌人的增益")
+            {
+                CombatantId = actor.Id,
+                Amount = aggregate.Count
+            });
+        }
+
+        static int MergeStolenDuration(int a, int b)
+        {
+            if (a < 0 || b < 0)
+                return -1;
+            return System.Math.Max(a, b);
+        }
+
         static void StealAllBuffsFromTarget(
             BattleState state,
             CombatantState actor,
             CombatantState victim,
             List<BattleEvent> events)
         {
-            if (state == null || actor == null || victim == null || !actor.IsAlive || !victim.IsAlive)
+            // 允许从已死亡目标身上偷取（伤害先结算时仍可掠夺）
+            if (state == null || actor == null || victim == null || !actor.IsAlive)
                 return;
 
             var toSteal = new List<(string id, int stacks, int turns)>();

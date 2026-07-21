@@ -17,9 +17,11 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.AttackUp:
                 case StatusCatalog.DamageUp:
                 case StatusCatalog.WaveSurge:
+                case StatusCatalog.PhantomCaptainFrenzyAtk:
                 case StatusCatalog.BloodFrenzy:
                 case StatusCatalog.ImmortalShed:
                 case StatusCatalog.HandCostZero:
+                case StatusCatalog.MermaidTidalCostCut:
                 case StatusCatalog.BattleWill:
                 case StatusCatalog.SandSpearReforge:
                 case StatusCatalog.GodDescends:
@@ -37,6 +39,7 @@ namespace Grimhand.Presentation.Battle
 
                 case StatusCatalog.Vulnerable:
                 case StatusCatalog.SpiderPoisonVulnerable:
+                case StatusCatalog.PhantomCaptainFrenzyVuln:
                     return icons.StatusDefenseDown;
 
                 case StatusCatalog.DamageReduction:
@@ -78,25 +81,10 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.BrandMark:
                     return icons.StatusBrandMark != null ? icons.StatusBrandMark : icons.NoteIcon;
 
-                case StatusCatalog.Taunt:
-                case StatusCatalog.VampAura:
-                case StatusCatalog.ReviveBlessing:
-                case StatusCatalog.BoneWorkshop:
-                case StatusCatalog.AnubisAvatar:
-                case StatusCatalog.Ethereal:
-                case StatusCatalog.EtherealOnNextHit:
-                case StatusCatalog.Invulnerable:
-                case StatusCatalog.RatSwarmCall:
-                case StatusCatalog.BloodlineLegacy:
-                case StatusCatalog.BloodSharing:
-                case StatusCatalog.HolyInfusionPending:
-                case StatusCatalog.PrayAncientSnakeGod:
-                case StatusCatalog.PsionicBody:
-                case StatusCatalog.SealedNextCard:
-                case StatusCatalog.DespairSoulRecall:
-                case StatusCatalog.EternalVoid:
-                case StatusCatalog.SnakeGodChanneling:
-                case StatusCatalog.FinalSummonPending:
+                case StatusCatalog.RisingTide:
+                case StatusCatalog.EbbingTide:
+                case StatusCatalog.TideLocked:
+                case StatusCatalog.TideEmpower:
                     return icons.NoteIcon != null ? icons.NoteIcon : icons.StatusDefenseUp;
 
                 default:

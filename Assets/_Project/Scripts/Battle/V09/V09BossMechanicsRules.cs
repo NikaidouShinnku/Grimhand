@@ -174,7 +174,9 @@ namespace Grimhand.Battle.V09
             if (combatant == null)
                 return;
 
-            StatusRules.ApplyStatus(state, combatant, StatusCatalog.TideLocked, 1, turns, events);
+            // 卡面「持续 N 回合」：当回合末会扣 1，写入 N+1 以保证完整 N 回合锁定
+            var applyTurns = turns > 0 ? turns + 1 : turns;
+            StatusRules.ApplyStatus(state, combatant, StatusCatalog.TideLocked, 1, applyTurns, events);
             WriteRisingTideStacks(state, combatant, TideLockedStackCount, events, triggerEbb: false);
         }
 
@@ -272,9 +274,20 @@ namespace Grimhand.Battle.V09
                 return;
 
             var stripped = target.Block;
-            target.Block = 0;
+            if (stripped > 0)
+            {
+                events.Add(new BattleEvent(BattleEventKind.BlockGained, $"{target.DisplayName} 护甲被移除")
+                {
+                    CombatantId = target.Id,
+                    Amount = stripped
+                });
+                target.Block = 0;
+            }
+
             var bonusHits = stripped / 10;
             var total = action.Value + bonusHits * System.Math.Max(0, action.Stacks);
+            if (total <= 0)
+                return;
 
             DamageRules.ApplyDamage(
                 state,

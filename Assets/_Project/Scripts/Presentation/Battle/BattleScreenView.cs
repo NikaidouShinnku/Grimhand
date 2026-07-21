@@ -1202,6 +1202,13 @@ namespace Grimhand.Presentation.Battle
                 RefreshFelskullChoice(state);
                 RefreshPsionicScry(state);
             }
+            else
+            {
+                // 选路线等非战斗阶段 Engine 为空：必须关掉战场立绘，否则会残留上一场战斗的槽位
+                SetBattlefieldVisible(false);
+                ClearCombatantHoverDetails();
+                RefreshPlanningChromeVisibility();
+            }
 
             RefreshHand(_session.Engine?.State);
 
@@ -1720,6 +1727,13 @@ namespace Grimhand.Presentation.Battle
                 if (slot != null)
                     slot.gameObject.SetActive(visible);
             }
+        }
+
+        /// <summary>离开战斗 / 非战斗阶段强制隐藏立绘槽。</summary>
+        public void HideBattlefieldSlots()
+        {
+            SetBattlefieldVisible(false);
+            ClearCombatantHoverDetails();
         }
 
         void RefreshExpeditionPresentation()

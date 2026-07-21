@@ -186,6 +186,9 @@ namespace Grimhand.Presentation.Battle
 
             foreach (var view in screenView.AllPortraitViews())
                 view?.ResetInterruptedPresentationState();
+
+            // 离开战斗后立刻关掉立绘槽，避免回营再开远征时选路线残留上一场战斗立绘
+            screenView.HideBattlefieldSlots();
         }
 
         public void ClearExpeditionAfterLeave()

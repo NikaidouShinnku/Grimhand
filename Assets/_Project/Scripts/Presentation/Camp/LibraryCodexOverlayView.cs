@@ -365,7 +365,17 @@ namespace Grimhand.Presentation.Camp
             if (t == null)
                 return "已遇见该敌人。";
 
-            return $"HP {t.MaxHp}\n攻击 {t.BaseAttack}\n防御 {t.BaseDefense}\n速度 {t.Speed}";
+            var habitat = EnemyHabitatCatalog.GetHabitat(entry.CharacterId);
+            var lines = new List<string>
+            {
+                $"基础HP {t.MaxHp}",
+                $"速度 {t.Speed}"
+            };
+
+            if (!string.IsNullOrEmpty(habitat))
+                lines.Add($"出没：{habitat}");
+
+            return string.Join("\n", lines);
         }
 
         void BuildPlayerCards()

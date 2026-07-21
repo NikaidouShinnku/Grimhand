@@ -14,6 +14,7 @@ namespace Grimhand.Editor
         const string IconRoot = "Assets/The Grimhands Asset/icon/";
         const string CardRoot = "Assets/The Grimhands Asset/card/";
         const string CampArtRoot = "Assets/The Grimhands Asset/path and background/";
+        const string NewUiRoot = "Assets/The Grimhands Asset/new_UI_and_Layout/";
 
         [MenuItem("Grimhand/Content/Refresh UI Visual Catalogs")]
         public static void RefreshUiVisualCatalogsMenu()
@@ -63,12 +64,17 @@ namespace Grimhand.Editor
                 UnknownPathFullSpriteName);
             catalog.CaveBackground = LoadFirstSprite("Assets/The Grimhands Asset/path and background/cave_background.png");
             catalog.ShopBackground = LoadFirstSprite(CampArtRoot + "shop_background.png");
-            catalog.CampSiteBackground = LoadFirstSprite(CampArtRoot + "campsite_background.png");
+            catalog.CampSiteBackground = LoadFirstSprite(NewUiRoot + "camp_background.png")
+                ?? LoadFirstSprite(CampArtRoot + "campsite_background.png");
+            catalog.MainMenuBackground = LoadFirstSprite(NewUiRoot + "mainmenu_background.png")
+                ?? LoadNamedSprite(NewUiRoot + "mainmenu_background.png", "mainmenu_background_0");
             catalog.ChampionCampBuilding = LoadNamedSprite(CampArtRoot + "champion_camp.png", "champion_camp_0");
             catalog.MerchantCampBuilding = LoadNamedSprite(CampArtRoot + "merchant_camp.png", "merchant_camp_0");
             catalog.PortalBuilding = LoadNamedSprite(CampArtRoot + "portal.png", "portal_0");
             catalog.TrainingGroundBuilding = LoadNamedSprite(CampArtRoot + "training_ground.png", "training_ground_0")
                 ?? LoadFirstSprite(CampArtRoot + "training_ground.png");
+            catalog.LibraryBuilding = LoadNamedSprite(CampArtRoot + "library.png", "library_0")
+                ?? LoadFirstSprite(CampArtRoot + "library.png");
             catalog.TrainingGroundBackground = LoadFirstSprite(CampArtRoot + "training_ground_background.png");
             catalog.GameMenuButtons = new[]
             {

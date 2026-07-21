@@ -26,6 +26,7 @@ namespace Grimhand.Presentation.Camp
         [SerializeField] TalentCampOverlayView talentCamp;
         [SerializeField] PortalOverlayView portalOverlay;
         [SerializeField] MetaShopOverlayView metaShop;
+        [SerializeField] LibraryCodexOverlayView libraryCodex;
         [SerializeField] BattleSetupSO battleSetup;
         [SerializeField] ExpeditionSetupSO expeditionSetup;
 
@@ -82,6 +83,7 @@ namespace Grimhand.Presentation.Camp
             var cardCatalog = battleController.CardVisualCatalog;
             var charCatalog = battleController.CharacterVisualCatalog;
             var uiIcons = battleController.UiIconCatalog;
+            var relicCatalog = battleController.RelicVisualCatalog;
 
             gameMenu?.ConfigureArt(uiIcons);
             escMenu?.ConfigureArt(uiIcons);
@@ -108,7 +110,10 @@ namespace Grimhand.Presentation.Camp
                 OpenMetaShop,
                 OpenTrainingGround,
                 uiIcons,
-                ShowComingSoon);
+                ShowComingSoon,
+                OpenLibrary,
+                OpenSettings,
+                OpenCollection);
             championCamp?.Initialize(
                 battleSetup,
                 expeditionSetup,
@@ -138,6 +143,14 @@ namespace Grimhand.Presentation.Camp
                 _definitions,
                 OnShopProfileChanged,
                 OnOverlayClosed);
+            libraryCodex?.Initialize(
+                cardPrefab,
+                cardCatalog,
+                charCatalog,
+                relicCatalog,
+                uiIcons,
+                _definitions,
+                OnOverlayClosed);
 
             battleController.SetCampRoster(_roster);
             battleController.SetCampMeta(_meta);
@@ -161,6 +174,7 @@ namespace Grimhand.Presentation.Camp
             talentCamp?.Hide();
             portalOverlay?.Hide();
             metaShop?.Hide();
+            libraryCodex?.Hide();
             settingsOverlay?.Hide();
             battleController.SetBattleScreenVisible(false);
             GameAudioService.Instance.PlayCampBgm();
@@ -205,6 +219,7 @@ namespace Grimhand.Presentation.Camp
             talentCamp?.Hide();
             portalOverlay?.Hide();
             metaShop?.Hide();
+            libraryCodex?.Hide();
             settingsOverlay?.Hide();
             battleController.SetBattleScreenVisible(false);
             GameAudioService.Instance.PlayCampBgm();
@@ -233,6 +248,7 @@ namespace Grimhand.Presentation.Camp
             talentCamp?.Hide();
             portalOverlay?.Hide();
             metaShop?.Hide();
+            libraryCodex?.Hide();
             settingsOverlay?.Hide();
             battleController.SetBattleScreenVisible(true);
         }
@@ -422,6 +438,25 @@ namespace Grimhand.Presentation.Camp
             championCamp?.Show(_roster, _meta, _profile.AccountGold, _collection, _profile.CollectionCapacity);
         }
 
+        void OpenCollection()
+        {
+            EnsureReferences();
+            if (championCamp == null)
+            {
+                Debug.LogError("[GameFlow] 未找到 ChampionCampOverlay。");
+                campScreen?.ShowToast("收藏界面未就绪。");
+                return;
+            }
+
+            campScreen?.Hide();
+            championCamp.ShowCollection(
+                _roster,
+                _meta,
+                _profile.AccountGold,
+                _collection,
+                _profile.CollectionCapacity);
+        }
+
         void OpenTalentCamp()
         {
             EnsureReferences();
@@ -451,6 +486,37 @@ namespace Grimhand.Presentation.Camp
             campScreen?.Hide();
             metaShop.Show(_profile);
             GameAudioService.Instance.PlayUiShopEnter();
+        }
+
+        void OpenLibrary()
+        {
+            EnsureReferences();
+            EnsureLibraryInitialized();
+            if (libraryCodex == null)
+            {
+                Debug.LogError("[GameFlow] 未找到 LibraryCodexOverlay。");
+                campScreen?.ShowToast("图书馆界面未就绪。");
+                return;
+            }
+
+            TryRecordCodexProgress(forceSave: false);
+            campScreen?.Hide();
+            libraryCodex.Show(_profile);
+        }
+
+        void EnsureLibraryInitialized()
+        {
+            if (libraryCodex == null || battleController == null)
+                return;
+
+            libraryCodex.Initialize(
+                battleController.HandCardPrefab,
+                battleController.CardVisualCatalog,
+                battleController.CharacterVisualCatalog,
+                battleController.RelicVisualCatalog,
+                battleController.UiIconCatalog,
+                _definitions,
+                OnOverlayClosed);
         }
 
         void OnShopProfileChanged()
@@ -498,6 +564,9 @@ namespace Grimhand.Presentation.Camp
                 return;
 
             if (metaShop != null && metaShop.IsOpen)
+                return;
+
+            if (libraryCodex != null && libraryCodex.IsOpen)
                 return;
 
             if (settingsOverlay != null && settingsOverlay.IsOpen)
@@ -580,6 +649,8 @@ namespace Grimhand.Presentation.Camp
 
         void OnSessionChanged()
         {
+            TryRecordCodexProgress(forceSave: true);
+
             if (_trackingTrainingGround)
             {
                 // 训练场结束由 BattleSession.ReturnToCampRequested 回调处理
@@ -621,10 +692,30 @@ namespace Grimhand.Presentation.Camp
         {
             MetaEconomySync.SyncMetaGoldFromRun(_profile, run);
             RunSettlementRules.ApplyRunEndMetaRewards(run, _meta);
+            if (run?.Relics != null)
+                CodexProgressRules.RecordRelicsFromRun(_profile.Codex, run.Relics);
             ActiveRunPersistence.Clear(_profile);
             _trackingExpedition = false;
             _lastCheckpointPhase = null;
             SaveProfile();
+        }
+
+        void TryRecordCodexProgress(bool forceSave)
+        {
+            if (_profile?.Codex == null || battleController?.Session == null)
+                return;
+
+            var changed = false;
+            var battleConfig = battleController.Session.Engine?.State?.Config;
+            if (battleConfig != null)
+                changed |= CodexProgressRules.RecordFromBattleConfig(_profile.Codex, battleConfig);
+
+            var run = battleController.Session.Expedition?.Run;
+            if (run?.Relics != null)
+                changed |= CodexProgressRules.RecordRelicsFromRun(_profile.Codex, run.Relics);
+
+            if (changed && forceSave)
+                SaveProfile();
         }
 
         void SaveActiveRunCheckpoint()
@@ -638,6 +729,7 @@ namespace Grimhand.Presentation.Camp
             if (battleState != null)
                 engine.SyncV09BattleCountersFromBattleState(battleState);
 
+            TryRecordCodexProgress(forceSave: false);
             ActiveRunPersistence.UpdateCheckpoint(_profile, engine);
             SaveProfile();
         }
@@ -717,6 +809,13 @@ namespace Grimhand.Presentation.Camp
 
             if (metaShop == null)
                 metaShop = FindAnyObjectByType<MetaShopOverlayView>(FindObjectsInactive.Include);
+
+            if (libraryCodex == null && canvasRoot != null)
+                libraryCodex = CampOverlayBootstrap.EnsureOverlay<LibraryCodexOverlayView>(
+                    canvasRoot, "LibraryCodexOverlay");
+
+            if (libraryCodex == null)
+                libraryCodex = FindAnyObjectByType<LibraryCodexOverlayView>(FindObjectsInactive.Include);
         }
 
         void InitializeAudio()

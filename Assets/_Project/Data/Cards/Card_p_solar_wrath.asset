@@ -50,6 +50,7 @@ MonoBehaviour:
     AlternateAttackScalePercent: 0
     AlternateValue: 0
     UseAlternateIfTargetHasDebuff: 0
+    UseAlternateIfTargetHasAnyStatus: 0
     AlternateAttackScaleIfActorUsedAttack: 0
     AlternateValueIfActorUsedAttack: 0
     DamageMultiplierPercentIfRespondArmed: 100
@@ -65,6 +66,13 @@ MonoBehaviour:
     AlternateValueIfHealed: 0
     TokenCardId: 
     CostReduction: 0
+    ChancePercent: 0
+    UseAlternateIfActorNotHitThisTurn: 0
+    SelfBlockAboveThreshold: 0
+    AlternateValueIfSelfBlockAbove: 0
+    RepeatPerStatusId: 
+    RespondSideEffectAllyDamage: 0
+    RespondSideEffectAllyCharacterId: 
   CardArt: {fileID: 0}
   CardFrame: {fileID: 0}
   CardIcon: {fileID: 0}

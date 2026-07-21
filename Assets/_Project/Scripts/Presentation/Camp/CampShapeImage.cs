@@ -1,3 +1,4 @@
+using UnityEngine;
 using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Camp
@@ -8,12 +9,12 @@ namespace Grimhand.Presentation.Camp
         const float ShapeHitThreshold = 0.12f;
 
         /// <summary>在 sprite 赋值后调用；不可读贴图则跳过，避免 Console 警告/异常。</summary>
-        public void ApplyShapeHitTestIfSupported()
+        public void ApplyShapeHitTestIfSupported(float threshold = ShapeHitThreshold)
         {
             if (sprite == null || sprite.texture == null || !sprite.texture.isReadable)
                 return;
 
-            alphaHitTestMinimumThreshold = ShapeHitThreshold;
+            alphaHitTestMinimumThreshold = Mathf.Clamp01(threshold);
         }
     }
 }

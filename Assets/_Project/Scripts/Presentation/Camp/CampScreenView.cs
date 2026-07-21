@@ -6,15 +6,46 @@ using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Camp
 {
-    /// <summary>营地主界面：背景 + 可点击建筑（champion_camp / portal / merchant_camp）。</summary>
+    /// <summary>
+    /// 营地主界面。
+    /// 鼠标热区对齐【背景图中画出的建筑/图标】；悬停时才显示可互动建筑精灵并高亮。
+    /// </summary>
     [DisallowMultipleComponent]
     public sealed class CampScreenView : MonoBehaviour
     {
-        const float ChampionHeight = 400f;
-        const float PortalHeight = 360f;
-        const float MerchantHeight = 400f;
-        const float TalentAltarHeight = 340f;
-        const float TrainingGroundHeight = 340f;
+        /// <summary>归一化热区：原点在屏幕左下，(xmin,ymin)-(xmax,ymax)，相对整屏。</summary>
+        readonly struct NormRect
+        {
+            public readonly float XMin;
+            public readonly float YMin;
+            public readonly float XMax;
+            public readonly float YMax;
+
+            public NormRect(float xMin, float yMin, float xMax, float yMax)
+            {
+                XMin = xMin;
+                YMin = yMin;
+                XMax = xMax;
+                YMax = yMax;
+            }
+
+            public Vector2 Center => new((XMin + XMax) * 0.5f, (YMin + YMax) * 0.5f);
+            public float Width => XMax - XMin;
+            public float Height => YMax - YMin;
+        }
+
+        // —— 热区严格按用户标注红框（相对整屏，原点左下）——
+        static readonly NormRect ZoneChampion = new(0.0605f, 0.2795f, 0.2275f, 0.5035f);
+        static readonly NormRect ZoneAltar = new(0.2471f, 0.2934f, 0.3545f, 0.4757f);
+        static readonly NormRect ZonePortal = new(0.3916f, 0.3073f, 0.5127f, 0.5538f);
+        static readonly NormRect ZoneTarget = new(0.5439f, 0.2882f, 0.6387f, 0.4913f);
+        static readonly NormRect ZoneShop = new(0.6484f, 0.2726f, 0.7783f, 0.4948f);
+        static readonly NormRect ZoneLibrary = new(0.8262f, 0.2396f, 0.9785f, 0.5451f);
+
+        // 左下角书 / 卡牌 / 设置
+        static readonly NormRect ZoneBtnLibrary = new(0.0176f, 0.0156f, 0.0762f, 0.1146f);
+        static readonly NormRect ZoneBtnCards = new(0.0879f, 0.0191f, 0.1445f, 0.1215f);
+        static readonly NormRect ZoneBtnSettings = new(0.1582f, 0.0191f, 0.2148f, 0.1163f);
 
         [SerializeField] BattleUiIconCatalogSO uiIcons;
 
@@ -27,6 +58,9 @@ namespace Grimhand.Presentation.Camp
         Action _onTalentAltar;
         Action _onMetaShop;
         Action _onTrainingGround;
+        Action _onLibrary;
+        Action _onCollection;
+        Action _onSettings;
         Action<string> _onFeatureComingSoon;
 
         public void ConfigureArt(BattleUiIconCatalogSO icons) => uiIcons = icons;
@@ -38,7 +72,10 @@ namespace Grimhand.Presentation.Camp
             Action onMetaShop,
             Action onTrainingGround,
             BattleUiIconCatalogSO icons = null,
-            Action<string> onFeatureComingSoon = null)
+            Action<string> onFeatureComingSoon = null,
+            Action onLibrary = null,
+            Action onSettings = null,
+            Action onCollection = null)
         {
             if (icons != null)
                 uiIcons = icons;
@@ -49,8 +86,12 @@ namespace Grimhand.Presentation.Camp
             _onMetaShop = onMetaShop;
             _onTrainingGround = onTrainingGround;
             _onFeatureComingSoon = onFeatureComingSoon;
+            _onLibrary = onLibrary;
+            _onSettings = onSettings;
+            _onCollection = onCollection;
+
+            _built = false;
             EnsureBuilt();
-            HideToast();
         }
 
         public void Show(int accountGold = 0)
@@ -61,13 +102,17 @@ namespace Grimhand.Presentation.Camp
             transform.SetAsLastSibling();
         }
 
+        public void Hide()
+        {
+            if (gameObject != null)
+                gameObject.SetActive(false);
+        }
+
         public void RefreshAccountGold(int accountGold)
         {
             if (_accountGoldText != null)
                 _accountGoldText.text = accountGold.ToString();
         }
-
-        public void Hide() => gameObject.SetActive(false);
 
         void EnsureBuilt()
         {
@@ -89,12 +134,13 @@ namespace Grimhand.Presentation.Camp
             CampUiRuntime.StretchFull(bg.rectTransform);
             bg.sprite = uiIcons != null ? uiIcons.CampSiteBackground : null;
             bg.preserveAspect = false;
+            bg.raycastTarget = false;
             if (bg.sprite == null)
                 bg.color = new Color(0.05f, 0.07f, 0.12f, 1f);
 
             BuildTopBar(transform);
-            BuildSceneBuildings(transform);
-            BuildBottomBar(transform);
+            BuildBuildingHotZones(transform);
+            BuildCornerHotZones(transform);
             BuildToast(transform);
         }
 
@@ -116,109 +162,172 @@ namespace Grimhand.Presentation.Camp
 
         void BuildTopBar(Transform parent)
         {
-            var bar = CampUiRuntime.CreateImage("TopBar", parent, new Color(0.04f, 0.05f, 0.08f, 0.72f));
-            var barRt = bar.rectTransform;
+            var bar = CampUiRuntime.CreateRect("TopBar", parent);
+            var barRt = bar.GetComponent<RectTransform>();
             barRt.anchorMin = new Vector2(0f, 1f);
             barRt.anchorMax = new Vector2(1f, 1f);
             barRt.pivot = new Vector2(0.5f, 1f);
             barRt.sizeDelta = new Vector2(0f, 56f);
 
-            var title = CampUiRuntime.CreateText(bar.transform, "Grimhand 营地", 24, FontStyle.Bold,
-                TextAnchor.MiddleLeft);
-            title.rectTransform.anchorMin = new Vector2(0f, 0f);
-            title.rectTransform.anchorMax = new Vector2(0.45f, 1f);
-            title.rectTransform.offsetMin = new Vector2(24f, 0f);
-            title.rectTransform.offsetMax = Vector2.zero;
+            var goldRow = CampUiRuntime.CreateRect("AccountGold", bar.transform);
+            var goldRt = goldRow.GetComponent<RectTransform>();
+            goldRt.anchorMin = new Vector2(1f, 0.5f);
+            goldRt.anchorMax = new Vector2(1f, 0.5f);
+            goldRt.pivot = new Vector2(1f, 0.5f);
+            goldRt.anchoredPosition = new Vector2(-20f, 0f);
+            goldRt.sizeDelta = new Vector2(220f, 40f);
 
-            _accountGoldText = CampUiRuntime.CreateText(bar.transform, "0", 18, FontStyle.Normal,
+            _accountGoldText = CampUiRuntime.CreateText(goldRow.transform, "0", 20, FontStyle.Bold,
                 TextAnchor.MiddleRight);
-            _accountGoldText.rectTransform.anchorMin = new Vector2(0.45f, 0f);
+            _accountGoldText.rectTransform.anchorMin = new Vector2(0f, 0f);
             _accountGoldText.rectTransform.anchorMax = new Vector2(1f, 1f);
             _accountGoldText.rectTransform.offsetMin = Vector2.zero;
-            _accountGoldText.rectTransform.offsetMax = new Vector2(-56f, 0f);
-            _accountGoldText.color = new Color(0.92f, 0.88f, 0.72f, 1f);
+            _accountGoldText.rectTransform.offsetMax = new Vector2(-40f, 0f);
+            _accountGoldText.color = new Color(0.95f, 0.9f, 0.7f, 1f);
 
             var goldIcon = uiIcons != null ? uiIcons.CampGoldIcon : null;
             if (goldIcon != null)
             {
-                var icon = CampUiRuntime.CreateImage("CampGoldIcon", bar.transform, Color.white);
+                var icon = CampUiRuntime.CreateImage("CampGoldIcon", goldRow.transform, Color.white);
                 icon.sprite = goldIcon;
                 icon.preserveAspect = true;
+                icon.raycastTarget = false;
                 var iconRt = icon.rectTransform;
                 iconRt.anchorMin = new Vector2(1f, 0.5f);
                 iconRt.anchorMax = new Vector2(1f, 0.5f);
                 iconRt.pivot = new Vector2(1f, 0.5f);
-                iconRt.anchoredPosition = new Vector2(-24f, 0f);
+                iconRt.anchoredPosition = Vector2.zero;
                 iconRt.sizeDelta = new Vector2(32f, 32f);
             }
         }
 
-        void BuildSceneBuildings(Transform parent)
+        void BuildBuildingHotZones(Transform parent)
         {
-            var zone = CampUiRuntime.CreateRect("Buildings", parent);
-            var zoneRt = zone.GetComponent<RectTransform>();
-            zoneRt.anchorMin = new Vector2(0f, 0.05f);
-            zoneRt.anchorMax = new Vector2(1f, 0.92f);
-            zoneRt.offsetMin = Vector2.zero;
-            zoneRt.offsetMax = Vector2.zero;
+            var root = CampUiRuntime.CreateRect("BuildingHotZones", parent);
+            CampUiRuntime.StretchFull(root.GetComponent<RectTransform>());
 
-            // 绘制顺序：后添加的在上层，射线也优先命中上层。
-            CreateBuilding(zone.transform, "Portal", uiIcons?.PortalBuilding,
-                new Vector2(0.5f, 0.07f), PortalHeight, _onPortal);
-
-            CreateBuilding(zone.transform, "ChampionCamp", uiIcons?.ChampionCampBuilding,
-                new Vector2(0.21f, 0.06f), ChampionHeight, _onChampionCamp);
-
-            CreateBuilding(zone.transform, "TalentAltar", uiIcons?.TalentAltarBuilding,
-                new Vector2(0.38f, 0.06f), TalentAltarHeight, _onTalentAltar);
-
-            CreateBuilding(zone.transform, "MerchantCamp", uiIcons?.MerchantCampBuilding,
-                new Vector2(0.79f, 0.06f), MerchantHeight, _onMetaShop);
-
-            CreateBuilding(zone.transform, "TrainingGround", uiIcons?.TrainingGroundBuilding,
-                new Vector2(0.62f, 0.06f), TrainingGroundHeight, _onTrainingGround);
+            // 后添加的在上层；右侧重叠时优先右侧建筑
+            CreateBuildingHotZone(root.transform, "ChampionCamp", ZoneChampion,
+                uiIcons?.ChampionCampBuilding, _onChampionCamp);
+            CreateBuildingHotZone(root.transform, "TalentAltar", ZoneAltar,
+                uiIcons?.TalentAltarBuilding, _onTalentAltar);
+            CreateBuildingHotZone(root.transform, "Portal", ZonePortal,
+                uiIcons?.PortalBuilding, _onPortal);
+            CreateBuildingHotZone(root.transform, "TrainingGround", ZoneTarget,
+                uiIcons?.TrainingGroundBuilding, _onTrainingGround);
+            CreateBuildingHotZone(root.transform, "MerchantCamp", ZoneShop,
+                uiIcons?.MerchantCampBuilding, _onMetaShop);
+            CreateBuildingHotZone(root.transform, "Library", ZoneLibrary,
+                uiIcons?.LibraryBuilding,
+                () =>
+                {
+                    if (_onLibrary != null)
+                        _onLibrary.Invoke();
+                    else
+                        _onFeatureComingSoon?.Invoke("图书馆");
+                });
         }
 
-        void CreateBuilding(
+        /// <summary>
+        /// 热区 = 背景图建筑包围盒（隐形矩形）；
+        /// 子节点 Visual = 可互动建筑精灵，默认隐藏，悬停弹出盖住背景建筑。
+        /// </summary>
+        void CreateBuildingHotZone(
             Transform parent,
             string id,
-            Sprite sprite,
-            Vector2 groundAnchor,
-            float targetHeight,
+            NormRect zone,
+            Sprite visualSprite,
             Action onClick)
         {
             var go = CampUiRuntime.CreateRect(id, parent);
             var rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = groundAnchor;
-            rt.anchorMax = groundAnchor;
-            rt.pivot = new Vector2(0.5f, 0f);
-            rt.anchoredPosition = Vector2.zero;
+            ApplyNormRect(rt, zone);
 
-            if (sprite != null)
-            {
-                var aspect = sprite.rect.width / Mathf.Max(1f, sprite.rect.height);
-                rt.sizeDelta = new Vector2(targetHeight * aspect, targetHeight);
-            }
+            // 完全透明热区：只负责鼠标检测，玩家不可见
+            var hit = go.AddComponent<Image>();
+            hit.color = new Color(1f, 1f, 1f, 0f);
+            hit.raycastTarget = true;
+            go.GetComponent<CanvasRenderer>().cullTransparentMesh = false;
+
+            var visualGo = CampUiRuntime.CreateRect("Visual", go.transform);
+            var visualRt = visualGo.GetComponent<RectTransform>();
+            // 与热区同范围，略向外扩，悬停放大后盖住背景建筑
+            visualRt.anchorMin = Vector2.zero;
+            visualRt.anchorMax = Vector2.one;
+            visualRt.offsetMin = new Vector2(-8f, -4f);
+            visualRt.offsetMax = new Vector2(8f, 12f);
+            visualRt.pivot = new Vector2(0.5f, 0f);
+
+            var visualImg = visualGo.AddComponent<Image>();
+            visualImg.color = Color.white;
+            visualImg.raycastTarget = false;
+            visualImg.preserveAspect = true;
+            if (visualSprite != null)
+                visualImg.sprite = visualSprite;
             else
-            {
-                rt.sizeDelta = new Vector2(targetHeight * 0.9f, targetHeight);
                 Debug.LogWarning($"[CampScreen] 缺少建筑贴图：{id}");
-            }
 
-            var img = go.AddComponent<CampShapeImage>();
-            img.color = Color.white;
-            img.raycastTarget = true;
-            img.preserveAspect = true;
-            img.type = Image.Type.Simple;
-
-            if (sprite != null)
-            {
-                img.sprite = sprite;
-                img.ApplyShapeHitTestIfSupported();
-            }
+            var group = visualGo.AddComponent<CanvasGroup>();
+            group.alpha = 0f;
+            group.blocksRaycasts = false;
+            group.interactable = false;
 
             var hover = go.AddComponent<CampBuildingHoverView>();
-            hover.Bind(rt);
+            hover.Bind(visualRt, group);
+
+            var btn = go.AddComponent<Button>();
+            btn.targetGraphic = hit;
+            btn.transition = Selectable.Transition.None;
+            btn.onClick.AddListener(() => onClick?.Invoke());
+            UiAudioHooks.WireButton(btn);
+        }
+
+        void BuildCornerHotZones(Transform parent)
+        {
+            // 独立置顶，确保不被建筑热区挡住
+            var bar = CampUiRuntime.CreateRect("CornerHotZones", parent);
+            CampUiRuntime.StretchFull(bar.GetComponent<RectTransform>());
+            var canvas = bar.AddComponent<Canvas>();
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = 80;
+            bar.AddComponent<GraphicRaycaster>();
+
+            CreateSimpleHotZone(bar.transform, "LibraryHotspot", ZoneBtnLibrary,
+                () =>
+                {
+                    if (_onLibrary != null)
+                        _onLibrary.Invoke();
+                    else
+                        _onFeatureComingSoon?.Invoke("图书馆");
+                });
+            CreateSimpleHotZone(bar.transform, "CardsHotspot", ZoneBtnCards,
+                () =>
+                {
+                    if (_onCollection != null)
+                        _onCollection.Invoke();
+                    else
+                        _onFeatureComingSoon?.Invoke("收藏");
+                });
+            CreateSimpleHotZone(bar.transform, "SettingsHotspot", ZoneBtnSettings,
+                () =>
+                {
+                    if (_onSettings != null)
+                        _onSettings.Invoke();
+                    else
+                        _onFeatureComingSoon?.Invoke("设置");
+                });
+        }
+
+        void CreateSimpleHotZone(Transform parent, string id, NormRect zone, Action onClick)
+        {
+            var go = CampUiRuntime.CreateRect(id, parent);
+            var rt = go.GetComponent<RectTransform>();
+            ApplyNormRect(rt, zone);
+
+            var img = go.AddComponent<Image>();
+            img.color = new Color(1f, 1f, 1f, 0f);
+            img.raycastTarget = true;
+            go.GetComponent<CanvasRenderer>().cullTransparentMesh = false;
 
             var btn = go.AddComponent<Button>();
             btn.targetGraphic = img;
@@ -227,37 +336,13 @@ namespace Grimhand.Presentation.Camp
             UiAudioHooks.WireButton(btn);
         }
 
-        void BuildBottomBar(Transform parent)
+        static void ApplyNormRect(RectTransform rt, NormRect zone)
         {
-            var bar = CampUiRuntime.CreateImage("BottomBar", parent, new Color(0.04f, 0.05f, 0.08f, 0.72f));
-            var barRt = bar.rectTransform;
-            barRt.anchorMin = new Vector2(0f, 0f);
-            barRt.anchorMax = new Vector2(1f, 0f);
-            barRt.pivot = new Vector2(0.5f, 0f);
-            barRt.sizeDelta = new Vector2(0f, 52f);
-
-            var layoutGo = CampUiRuntime.CreateRect("Nav", bar.transform);
-            CampUiRuntime.StretchFull(layoutGo.GetComponent<RectTransform>());
-            var h = layoutGo.AddComponent<HorizontalLayoutGroup>();
-            h.childAlignment = TextAnchor.MiddleCenter;
-            h.spacing = 28f;
-            h.padding = new RectOffset(0, 0, 6, 6);
-            h.childControlWidth = false;
-            h.childControlHeight = true;
-            h.childForceExpandWidth = false;
-            h.childForceExpandHeight = false;
-
-            CreateNavButton(layoutGo.transform, "设置", "设置");
-            CreateNavButton(layoutGo.transform, "邮件", "邮件");
-            CreateNavButton(layoutGo.transform, "成就", "成就");
-            CreateNavButton(layoutGo.transform, "活动", "活动");
-        }
-
-        void CreateNavButton(Transform parent, string label, string toastKey)
-        {
-            var btn = CampUiRuntime.CreateButton(parent, label, new Color(0.18f, 0.22f, 0.32f, 0.9f),
-                new Vector2(120f, 38f));
-            btn.onClick.AddListener(() => _onFeatureComingSoon?.Invoke(toastKey));
+            rt.anchorMin = new Vector2(zone.XMin, zone.YMin);
+            rt.anchorMax = new Vector2(zone.XMax, zone.YMax);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            rt.pivot = new Vector2(0.5f, 0f);
         }
 
         void BuildToast(Transform parent)

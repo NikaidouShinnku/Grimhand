@@ -27,6 +27,24 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
+        public void RoundTrip_PreservesCodexProgress()
+        {
+            var storage = new LocalFileSaveStorage(_tempDir);
+            var service = new SaveService(storage, _context);
+            var profile = CreateSampleProfile();
+            profile.Codex.SeenEnemyIds.Add("char_goblin");
+            profile.Codex.SeenEnemyCardIds.Add("m_goblin_slash");
+            profile.Codex.SeenRelicIds.Add("relic_demo");
+
+            Assert.IsTrue(service.TrySave(profile, out var saveError), saveError);
+
+            var loaded = service.LoadOrCreate(() => throw new InvalidOperationException("不应创建新档"));
+            Assert.IsTrue(loaded.Profile.Codex.SeenEnemyIds.Contains("char_goblin"));
+            Assert.IsTrue(loaded.Profile.Codex.SeenEnemyCardIds.Contains("m_goblin_slash"));
+            Assert.IsTrue(loaded.Profile.Codex.SeenRelicIds.Contains("relic_demo"));
+        }
+
+        [Test]
         public void RoundTrip_PreservesMetaRosterAndCollection()
         {
             var storage = new LocalFileSaveStorage(_tempDir);

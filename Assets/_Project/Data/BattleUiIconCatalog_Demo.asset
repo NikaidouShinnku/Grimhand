@@ -30,11 +30,13 @@ MonoBehaviour:
   UnknownPathIcon: {fileID: -7903860423745096787, guid: 978dbf954c118db47a4b5da9e149b729, type: 3}
   CaveBackground: {fileID: 4714104671338776558, guid: 0d05dee52e0214c49a433c68c2420016, type: 3}
   ShopBackground: {fileID: -7590638603020057717, guid: 5cf7f9ce0c813364492217dd72e7cc5b, type: 3}
-  CampSiteBackground: {fileID: 8853133380120315180, guid: 832fbb818c54e9a44b314c2f4650b122, type: 3}
+  CampSiteBackground: {fileID: -4742831938080718281, guid: ae9d708b286f13c4b8028843adca79d3, type: 3}
+  MainMenuBackground: {fileID: -741072717784518279, guid: 71887aa55624401459db39aba60500c0, type: 3}
   ChampionCampBuilding: {fileID: -7344717493082030579, guid: 648ebbf42bc7b564c822f634853fcda6, type: 3}
   MerchantCampBuilding: {fileID: 1068998374052479245, guid: 24f6602b4c282414b8ba9f8fb4d661ac, type: 3}
   PortalBuilding: {fileID: -5816642994671486895, guid: 8001fab66b4b9164f897cd99ce75c3c9, type: 3}
   TrainingGroundBuilding: {fileID: 8469175750776524633, guid: 48f081ea59901d848aa889879fd72f60, type: 3}
+  LibraryBuilding: {fileID: -7657969199895774076, guid: 3b19de57acebdb94db7c1b5fe15a448a, type: 3}
   TrainingGroundBackground: {fileID: -4006478038615030680, guid: 276fcbfb087a27745a09d26bf1005a6f, type: 3}
   GameMenuButtons:
   - {fileID: -8289206137012799017, guid: c1a8b4b2c884f314a83a5a74d9c12a0f, type: 3}

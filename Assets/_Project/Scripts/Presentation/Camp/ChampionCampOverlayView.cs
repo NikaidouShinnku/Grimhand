@@ -164,6 +164,18 @@ namespace Grimhand.Presentation.Camp
             ShowHub();
         }
 
+        /// <summary>营地快捷入口：直接打开卡牌收藏管理。</summary>
+        public void ShowCollection(
+            CampRosterState roster,
+            CampMetaState meta,
+            int accountGold,
+            CampCollectionState collection,
+            int collectionCapacity)
+        {
+            Show(roster, meta, accountGold, collection, collectionCapacity);
+            ShowCollectionPanel();
+        }
+
         void ShowHub()
         {
             _tooltip?.Hide();

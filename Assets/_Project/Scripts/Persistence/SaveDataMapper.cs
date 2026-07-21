@@ -73,7 +73,27 @@ namespace Grimhand.Persistence
                 dto.activeRunJson = profile.ActiveRun.RunJson ?? "";
             }
 
+            dto.seenEnemyIds = ToIdArray(profile.Codex?.SeenEnemyIds);
+            dto.seenEnemyCardIds = ToIdArray(profile.Codex?.SeenEnemyCardIds);
+            dto.seenRelicIds = ToIdArray(profile.Codex?.SeenRelicIds);
+
             return dto;
+        }
+
+        static string[] ToIdArray(HashSet<string> ids)
+        {
+            if (ids == null || ids.Count == 0)
+                return Array.Empty<string>();
+
+            var list = new List<string>(ids.Count);
+            foreach (var id in ids)
+            {
+                if (!string.IsNullOrEmpty(id))
+                    list.Add(id);
+            }
+
+            list.Sort(StringComparer.Ordinal);
+            return list.ToArray();
         }
 
         public static PlayerProfileState FromDto(PlayerProfileSaveData dto)
@@ -160,7 +180,23 @@ namespace Grimhand.Persistence
                 };
             }
 
+            FillCodexSet(profile.Codex.SeenEnemyIds, dto.seenEnemyIds);
+            FillCodexSet(profile.Codex.SeenEnemyCardIds, dto.seenEnemyCardIds);
+            FillCodexSet(profile.Codex.SeenRelicIds, dto.seenRelicIds);
+
             return profile;
+        }
+
+        static void FillCodexSet(HashSet<string> target, string[] source)
+        {
+            if (target == null || source == null)
+                return;
+
+            foreach (var id in source)
+            {
+                if (!string.IsNullOrEmpty(id))
+                    target.Add(id);
+            }
         }
     }
 }

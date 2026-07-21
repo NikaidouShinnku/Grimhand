@@ -77,15 +77,21 @@ namespace Grimhand.Presentation.Camp
             _root = CampUiRuntime.CreateRect("GameMenuRoot", transform).GetComponent<RectTransform>();
             CampUiRuntime.StretchFull(_root);
 
-            var bg = CampUiRuntime.CreateImage("Background", _root, new Color(0.04f, 0.05f, 0.08f, 1f));
+            var bg = CampUiRuntime.CreateImage("Background", _root, Color.white);
             CampUiRuntime.StretchFull(bg.rectTransform);
+            bg.sprite = uiIcons != null ? uiIcons.MainMenuBackground : null;
+            bg.preserveAspect = false;
+            bg.raycastTarget = false;
+            if (bg.sprite == null)
+                bg.color = new Color(0.04f, 0.05f, 0.08f, 1f);
 
             var sprites = ResolveMenuSprites();
             var startWidth = sprites[0] != null ? sprites[0].rect.width : 179f;
 
+            // 右侧留白竖排，避免挡住左侧角色与 Logo
             var buttonColumn = CampUiRuntime.CreateRect("MenuButtons", _root).GetComponent<RectTransform>();
-            buttonColumn.anchorMin = new Vector2(0.5f, 0.5f);
-            buttonColumn.anchorMax = new Vector2(0.5f, 0.5f);
+            buttonColumn.anchorMin = new Vector2(0.78f, 0.42f);
+            buttonColumn.anchorMax = new Vector2(0.78f, 0.42f);
             buttonColumn.pivot = new Vector2(0.5f, 0.5f);
             buttonColumn.anchoredPosition = Vector2.zero;
 

@@ -20,6 +20,9 @@ namespace Grimhand.Persistence
         public string activeRunRngState = "1";
         public int activeRunMetaGoldSynced;
         public string activeRunJson = "";
+        public string[] seenEnemyIds = Array.Empty<string>();
+        public string[] seenEnemyCardIds = Array.Empty<string>();
+        public string[] seenRelicIds = Array.Empty<string>();
     }
 
     [Serializable]

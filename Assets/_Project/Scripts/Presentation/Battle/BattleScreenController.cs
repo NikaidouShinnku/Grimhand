@@ -32,6 +32,7 @@ namespace Grimhand.Presentation.Battle
         public CardVisualCatalogSO CardVisualCatalog => cardVisualCatalog;
         public CharacterVisualCatalogSO CharacterVisualCatalog => characterVisualCatalog;
         public BattleUiIconCatalogSO UiIconCatalog => uiIconCatalog;
+        public RelicVisualCatalogSO RelicVisualCatalog => relicVisualCatalog;
         public BattleSetupSO BattleSetup => battleSetup;
         public ExpeditionSetupSO ExpeditionSetup => expeditionSetup;
 

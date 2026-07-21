@@ -25,11 +25,15 @@ namespace Grimhand.Content
         public Sprite CaveBackground;
         public Sprite ShopBackground;
         public Sprite CampSiteBackground;
+        /// <summary>开局主菜单全屏背景（new_UI_and_Layout/mainmenu_background.png）</summary>
+        public Sprite MainMenuBackground;
         public Sprite ChampionCampBuilding;
         public Sprite MerchantCampBuilding;
         public Sprite PortalBuilding;
         /// <summary>Assets/The Grimhands Asset/path and background/training_ground.png</summary>
         public Sprite TrainingGroundBuilding;
+        /// <summary>Assets/The Grimhands Asset/path and background/library.png</summary>
+        public Sprite LibraryBuilding;
         /// <summary>Assets/The Grimhands Asset/path and background/training_ground_background.png</summary>
         public Sprite TrainingGroundBackground;
         /// <summary>gamemenu.png 切片：0=START, 1=CONTINUE, 2=SETTINGS, 3=QUIT GAME</summary>

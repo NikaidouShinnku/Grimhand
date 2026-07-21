@@ -17,6 +17,7 @@ namespace Grimhand.Presentation.Camp
                 Meta = CampMetaState.CreateNewProfile(),
                 Roster = roster,
                 Collection = new CampCollectionState(),
+                Codex = new CodexProgressState(),
                 AccountGold = DemoStartingAccountGold,
                 CollectionCapacity = CampCollectionState.DefaultCapacity
             };

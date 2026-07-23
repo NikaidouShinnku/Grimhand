@@ -10,7 +10,7 @@ namespace Grimhand.Presentation.Camp
     [DisallowMultipleComponent]
     public sealed class CampBuildingHoverView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
-        const float HoverScale = 1.42f;
+        const float DefaultHoverScale = 1.42f;
         const float ScaleLerpSpeed = 16f;
 
         static readonly Color HighlightOutlineColor = new(1f, 0.84f, 0.38f, 1f);
@@ -19,13 +19,21 @@ namespace Grimhand.Presentation.Camp
         RectTransform _visualRoot;
         CanvasGroup _visualGroup;
         Outline _outline;
+        float _hoverScale = DefaultHoverScale;
         float _targetScale = 1f;
         bool _shown;
+        bool _hideWhenIdle = true;
 
-        public void Bind(RectTransform visualRoot, CanvasGroup visualGroup)
+        public void Bind(
+            RectTransform visualRoot,
+            CanvasGroup visualGroup,
+            float hoverScale = DefaultHoverScale,
+            bool hideWhenIdle = true)
         {
             _visualRoot = visualRoot;
             _visualGroup = visualGroup;
+            _hoverScale = hoverScale > 1f ? hoverScale : DefaultHoverScale;
+            _hideWhenIdle = hideWhenIdle;
 
             if (_visualRoot != null)
             {
@@ -77,20 +85,24 @@ namespace Grimhand.Presentation.Camp
         void SetShown(bool shown, bool instant)
         {
             _shown = shown;
-            _targetScale = shown ? HoverScale : 1f;
+            _targetScale = shown ? _hoverScale : 1f;
 
             if (_visualGroup != null)
             {
-                _visualGroup.alpha = shown ? 1f : 0f;
-                _visualGroup.blocksRaycasts = false;
-                _visualGroup.interactable = false;
+                _visualGroup.alpha = !_hideWhenIdle || shown ? 1f : 0f;
+                // 悬停弹出层不抢点击；常显按钮则保留自身射线检测
+                if (_hideWhenIdle)
+                {
+                    _visualGroup.blocksRaycasts = false;
+                    _visualGroup.interactable = false;
+                }
             }
 
             if (_outline != null)
                 _outline.enabled = shown;
 
             if (_visualRoot != null && (instant || !shown))
-                _visualRoot.localScale = Vector3.one * (shown ? HoverScale : 1f);
+                _visualRoot.localScale = Vector3.one * (shown ? _hoverScale : 1f);
         }
     }
 }

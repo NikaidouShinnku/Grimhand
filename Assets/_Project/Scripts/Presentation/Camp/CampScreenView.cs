@@ -38,7 +38,7 @@ namespace Grimhand.Presentation.Camp
         static readonly NormRect ZoneChampion = new(0.0605f, 0.2795f, 0.2275f, 0.5035f);
         static readonly NormRect ZoneAltar = new(0.2471f, 0.2934f, 0.3545f, 0.4757f);
         static readonly NormRect ZonePortal = new(0.3916f, 0.3073f, 0.5127f, 0.5538f);
-        static readonly NormRect ZoneTarget = new(0.5439f, 0.2882f, 0.6387f, 0.4913f);
+        static readonly NormRect ZoneTarget = new(0.5280f, 0.2882f, 0.6228f, 0.4913f);
         static readonly NormRect ZoneShop = new(0.6484f, 0.2726f, 0.7783f, 0.4948f);
         static readonly NormRect ZoneLibrary = new(0.8262f, 0.2396f, 0.9785f, 0.5451f);
 

@@ -16,10 +16,87 @@ namespace Grimhand.Presentation.Camp
     [DisallowMultipleComponent]
     public sealed class ChampionCampOverlayView : MonoBehaviour
     {
-        const float CardScale = 0.68f;
+        const float CardScale = 0.72f;
         const int CardsPerRow = 5;
-        const float DeckSlotWidth = 132f;
-        const float DeckSlotHeight = 186f;
+        const float DeckSlotWidth = 108f;
+        const float DeckSlotHeight = 152f;
+        const float HubButtonHoverScale = 1.08f;
+
+        /// <summary>归一化热区：原点左下，相对军营一级全屏。</summary>
+        readonly struct HubNormRect
+        {
+            public readonly float XMin;
+            public readonly float YMin;
+            public readonly float XMax;
+            public readonly float YMax;
+
+            public HubNormRect(float xMin, float yMin, float xMax, float yMax)
+            {
+                XMin = xMin;
+                YMin = yMin;
+                XMax = xMax;
+                YMax = yMax;
+            }
+        }
+
+        // 对照用户红框（原点左下）：配置队伍 / 管理卡牌 / 右上角返回
+        static readonly HubNormRect HubZoneTeam = new(0.1660f, 0.0754f, 0.4424f, 0.3053f);
+        static readonly HubNormRect HubZoneCards = new(0.5332f, 0.0754f, 0.8115f, 0.3053f);
+        static readonly HubNormRect HubZoneClose = new(0.8975f, 0.7912f, 0.9736f, 0.8754f);
+
+        // 配置队伍二级：对照用户指示红/蓝框（原点左下）
+        static readonly HubNormRect TeamZoneSave = new(0.7480f, 0.9025f, 0.8613f, 0.9892f);
+        static readonly HubNormRect TeamZoneBack = new(0.8750f, 0.8971f, 0.9834f, 0.9892f);
+
+        // 三角色整框（立绘红框 + 右侧名字/经验区）
+        static readonly HubNormRect TeamZoneMemberBack = new(0.1650f, 0.6100f, 0.3850f, 0.8600f);
+        static readonly HubNormRect TeamZoneMemberMid = new(0.3880f, 0.6100f, 0.6080f, 0.8620f);
+        static readonly HubNormRect TeamZoneMemberFront = new(0.6100f, 0.6100f, 0.9000f, 0.8650f);
+
+        // 立绘红框（绝对坐标）；实际显示会再内缩以保比例不越界
+        static readonly HubNormRect TeamPortraitBack = new(0.1670f, 0.6054f, 0.2793f, 0.8523f);
+        static readonly HubNormRect TeamPortraitMid = new(0.3926f, 0.6090f, 0.5049f, 0.8559f);
+        static readonly HubNormRect TeamPortraitFront = new(0.6152f, 0.6054f, 0.7344f, 0.8595f);
+
+        // 换人蓝框
+        static readonly HubNormRect TeamSwapBack = new(0.1855f, 0.6180f, 0.2578f, 0.6739f);
+        static readonly HubNormRect TeamSwapMid = new(0.4111f, 0.6162f, 0.4854f, 0.6757f);
+        static readonly HubNormRect TeamSwapFront = new(0.6396f, 0.6126f, 0.7168f, 0.6775f);
+
+        // 绿框：名字 / 等级 / 经验文字
+        static readonly HubNormRect TeamNameBack = new(0.2861f, 0.7856f, 0.3486f, 0.8378f);
+        static readonly HubNormRect TeamNameMid = new(0.5117f, 0.7892f, 0.5693f, 0.8450f);
+        static readonly HubNormRect TeamNameFront = new(0.7441f, 0.7892f, 0.7998f, 0.8450f);
+        static readonly HubNormRect TeamLevelBack = new(0.2910f, 0.7000f, 0.3428f, 0.7315f);
+        static readonly HubNormRect TeamLevelMid = new(0.5176f, 0.7000f, 0.5693f, 0.7333f);
+        static readonly HubNormRect TeamLevelFront = new(0.7490f, 0.7045f, 0.7881f, 0.7333f);
+        static readonly HubNormRect TeamXpTextBack = new(0.2910f, 0.6631f, 0.3428f, 0.6970f);
+        static readonly HubNormRect TeamXpTextMid = new(0.5176f, 0.6649f, 0.5693f, 0.6970f);
+        static readonly HubNormRect TeamXpTextFront = new(0.7480f, 0.6649f, 0.8018f, 0.6973f);
+
+        // 紫框：经验条（填入模板已有细条内）
+        static readonly HubNormRect TeamXpBarBack = new(0.2920f, 0.6360f, 0.3682f, 0.6541f);
+        static readonly HubNormRect TeamXpBarMid = new(0.5146f, 0.6324f, 0.5928f, 0.6577f);
+        static readonly HubNormRect TeamXpBarFront = new(0.7441f, 0.6342f, 0.8213f, 0.6559f);
+
+        const float TeamPortraitInset = 0.07f;
+
+        // 携带卡区（两行 5 列，按首行红框推导）
+        static readonly HubNormRect TeamZoneDeck = new(0.0900f, 0.1157f, 0.4960f, 0.5150f);
+        // 军营收藏卡区：右缘留给粉色滑动条
+        static readonly HubNormRect TeamZonePool = new(0.5350f, 0.1157f, 0.9000f, 0.5150f);
+        // 粉色标注：固定 slider_bar + 可拖动 slider
+        static readonly HubNormRect TeamZonePoolScrollbar = new(0.9023f, 0.0868f, 0.9180f, 0.5278f);
+        const float TeamDeckCardX0 = 0.0957f;
+        const float TeamDeckCardStep = 0.0801f;
+        const float TeamDeckCardW = 0.0752f;
+        const float TeamDeckRow1YMin = 0.3177f;
+        const float TeamDeckRow1YMax = 0.5090f;
+        const float TeamDeckRow2YMin = 0.1157f;
+        const float TeamDeckRow2YMax = 0.3070f;
+
+        static readonly Color TeamXpBarFill = new(0.28f, 0.78f, 0.38f, 1f);
+        static readonly Color TeamSelectedOutline = new(0.35f, 0.75f, 1f, 1f);
 
         BattleSetupSO _battleSetup;
         ExpeditionSetupSO _expeditionSetup;
@@ -305,126 +382,55 @@ namespace Grimhand.Presentation.Camp
             var backdrop = CampUiRuntime.CreateImage("Backdrop", _overlayRoot, new Color(0.02f, 0.03f, 0.05f, 0.94f));
             CampUiRuntime.StretchFull(backdrop.rectTransform);
 
-            _body = CampUiRuntime.CreateImage("Body", _overlayRoot, new Color(0.07f, 0.08f, 0.11f, 0.98f))
-                .rectTransform;
-            _body.anchorMin = new Vector2(0.04f, 0.05f);
-            _body.anchorMax = new Vector2(0.96f, 0.93f);
-            _body.offsetMin = Vector2.zero;
-            _body.offsetMax = Vector2.zero;
+            _body = CampUiRuntime.CreateRect("Body", _overlayRoot).GetComponent<RectTransform>();
+            CampUiRuntime.StretchFull(_body);
+            var bodyBg = _body.gameObject.AddComponent<Image>();
+            bodyBg.color = Color.white;
+            bodyBg.preserveAspect = false;
+            bodyBg.raycastTarget = true;
+            if (_uiIcons != null && _uiIcons.ChampionCampTeamBackground != null)
+                bodyBg.sprite = _uiIcons.ChampionCampTeamBackground;
+            else
+            {
+                bodyBg.color = new Color(0.07f, 0.08f, 0.11f, 0.98f);
+                Debug.LogWarning("[ChampionCamp] 缺少 ChampionCampTeamBackground，请执行 Grimhand → Content → Refresh UI Visual Catalogs。");
+            }
 
-            var header = CampUiRuntime.CreateRect("Header", _body);
-            var headerRt = header.GetComponent<RectTransform>();
-            headerRt.anchorMin = new Vector2(0f, 1f);
-            headerRt.anchorMax = new Vector2(1f, 1f);
-            headerRt.offsetMin = new Vector2(20f, -58f);
-            headerRt.offsetMax = new Vector2(-20f, -8f);
-
-            var title = CampUiRuntime.CreateText(header.transform, "配置队伍", 26, FontStyle.Bold,
-                TextAnchor.MiddleLeft);
-            title.rectTransform.anchorMin = new Vector2(0f, 0f);
-            title.rectTransform.anchorMax = new Vector2(0.42f, 1f);
-            title.rectTransform.offsetMin = Vector2.zero;
-            title.rectTransform.offsetMax = Vector2.zero;
-
-            _metaSummaryText = CampUiRuntime.CreateText(header.transform, "", 15, FontStyle.Normal,
-                TextAnchor.MiddleLeft);
-            _metaSummaryText.rectTransform.anchorMin = new Vector2(0.52f, 0f);
-            _metaSummaryText.rectTransform.anchorMax = new Vector2(1f, 1f);
-            _metaSummaryText.rectTransform.offsetMin = new Vector2(0f, 0f);
-            _metaSummaryText.rectTransform.offsetMax = new Vector2(-280f, 0f);
-            _metaSummaryText.color = new Color(0.88f, 0.84f, 0.68f, 1f);
-            _metaSummaryText.supportRichText = false;
-
-            var campGoldIconGo = CampUiRuntime.CreateImage("CampGoldIcon", header.transform, Color.white);
-            _campGoldIcon = campGoldIconGo;
-            _campGoldIcon.sprite = _uiIcons != null ? _uiIcons.CampGoldIcon : null;
-            _campGoldIcon.preserveAspect = true;
-            var campGoldIconRt = _campGoldIcon.rectTransform;
-            campGoldIconRt.anchorMin = new Vector2(0.42f, 0.5f);
-            campGoldIconRt.anchorMax = new Vector2(0.42f, 0.5f);
-            campGoldIconRt.pivot = new Vector2(0f, 0.5f);
-            campGoldIconRt.anchoredPosition = Vector2.zero;
-            campGoldIconRt.sizeDelta = new Vector2(24f, 24f);
-
-            _accountGoldAmountText = CampUiRuntime.CreateText(header.transform, "0", 15, FontStyle.Bold,
-                TextAnchor.MiddleLeft);
-            _accountGoldAmountText.rectTransform.anchorMin = new Vector2(0.42f, 0f);
-            _accountGoldAmountText.rectTransform.anchorMax = new Vector2(0.52f, 1f);
-            _accountGoldAmountText.rectTransform.offsetMin = new Vector2(28f, 0f);
-            _accountGoldAmountText.rectTransform.offsetMax = Vector2.zero;
-            _accountGoldAmountText.color = new Color(0.92f, 0.88f, 0.72f, 1f);
-
-            _closeButton = CampUiRuntime.CreateButton(header.transform, "返回", new Color(0.28f, 0.3f, 0.36f, 1f),
-                new Vector2(120f, 40f));
-            var closeRt = _closeButton.GetComponent<RectTransform>();
-            closeRt.anchorMin = new Vector2(1f, 0.5f);
-            closeRt.anchorMax = new Vector2(1f, 0.5f);
-            closeRt.pivot = new Vector2(1f, 0.5f);
-            closeRt.anchoredPosition = new Vector2(0f, 0f);
-            _closeButton.onClick.AddListener(ShowHub);
-
-            _confirmButton = CampUiRuntime.CreateButton(header.transform, "保存编队", new Color(0.55f, 0.42f, 0.15f, 1f),
-                new Vector2(140f, 40f));
-            var confirmRt = _confirmButton.GetComponent<RectTransform>();
-            confirmRt.anchorMin = new Vector2(1f, 0.5f);
-            confirmRt.anchorMax = new Vector2(1f, 0.5f);
-            confirmRt.pivot = new Vector2(1f, 0.5f);
-            confirmRt.anchoredPosition = new Vector2(-132f, 0f);
-            _confirmButton.onClick.AddListener(SaveAndReturnToHub);
+            // 右上常显：保存编队 / 返回
+            var teamButtons = CampUiRuntime.CreateRect("TeamActionButtons", _body);
+            CampUiRuntime.StretchFull(teamButtons.GetComponent<RectTransform>());
+            var teamBtnCanvas = teamButtons.AddComponent<Canvas>();
+            teamBtnCanvas.overrideSorting = true;
+            teamBtnCanvas.sortingOrder = 40;
+            teamButtons.AddComponent<GraphicRaycaster>();
+            _confirmButton = CreateTeamActionButton(
+                teamButtons.transform,
+                "SaveFormation",
+                TeamZoneSave,
+                _uiIcons != null ? _uiIcons.UiButton1 : null,
+                "保存编队",
+                20,
+                SaveAndReturnToHub);
+            _closeButton = CreateTeamActionButton(
+                teamButtons.transform,
+                "BackToHub",
+                TeamZoneBack,
+                _uiIcons != null ? _uiIcons.UiButton2 : null,
+                "返回",
+                22,
+                ShowHub);
 
             _memberRow = CampUiRuntime.CreateRect("MemberRow", _body).GetComponent<RectTransform>();
-            _memberRow.anchorMin = new Vector2(0f, 1f);
-            _memberRow.anchorMax = new Vector2(1f, 1f);
-            _memberRow.offsetMin = new Vector2(20f, -200f);
-            _memberRow.offsetMax = new Vector2(-20f, -68f);
+            CampUiRuntime.StretchFull(_memberRow);
 
-            var deckColumn = CampUiRuntime.CreateRect("DeckColumn", _body);
-            var deckColumnRt = deckColumn.GetComponent<RectTransform>();
-            deckColumnRt.anchorMin = new Vector2(0f, 0f);
-            deckColumnRt.anchorMax = new Vector2(0.48f, 1f);
-            deckColumnRt.offsetMin = new Vector2(20f, 52f);
-            deckColumnRt.offsetMax = new Vector2(-8f, -208f);
+            _deckGrid = CampUiRuntime.CreateRect("DeckGrid", _body).GetComponent<RectTransform>();
+            CampUiRuntime.StretchFull(_deckGrid);
 
-            var deckLabel = CampUiRuntime.CreateText(deckColumn.transform, "携带卡牌", 18, FontStyle.Bold,
-                TextAnchor.MiddleLeft);
-            deckLabel.rectTransform.anchorMin = new Vector2(0f, 1f);
-            deckLabel.rectTransform.anchorMax = new Vector2(1f, 1f);
-            deckLabel.rectTransform.offsetMin = new Vector2(0f, -32f);
-            deckLabel.rectTransform.offsetMax = Vector2.zero;
-
-            _deckGrid = CampUiRuntime.CreateRect("DeckGrid", deckColumn.transform).GetComponent<RectTransform>();
-            _deckGrid.anchorMin = Vector2.zero;
-            _deckGrid.anchorMax = Vector2.one;
-            _deckGrid.offsetMin = Vector2.zero;
-            _deckGrid.offsetMax = new Vector2(0f, -36f);
-            var deckLayout = _deckGrid.gameObject.AddComponent<GridLayoutGroup>();
-            deckLayout.cellSize = new Vector2(DeckSlotWidth, DeckSlotHeight);
-            deckLayout.spacing = new Vector2(8f, 8f);
-            deckLayout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            deckLayout.constraintCount = 5;
-            deckLayout.childAlignment = TextAnchor.UpperLeft;
-
-            var poolColumn = CampUiRuntime.CreateRect("PoolColumn", _body);
-            var poolColumnRt = poolColumn.GetComponent<RectTransform>();
-            poolColumnRt.anchorMin = new Vector2(0.52f, 0f);
-            poolColumnRt.anchorMax = new Vector2(1f, 1f);
-            poolColumnRt.offsetMin = new Vector2(0f, 52f);
-            poolColumnRt.offsetMax = new Vector2(-20f, -208f);
-
-            var poolLabel = CampUiRuntime.CreateText(poolColumn.transform, "军营收藏", 18, FontStyle.Bold,
-                TextAnchor.MiddleLeft);
-            poolLabel.rectTransform.anchorMin = new Vector2(0f, 1f);
-            poolLabel.rectTransform.anchorMax = new Vector2(1f, 1f);
-            poolLabel.rectTransform.offsetMin = new Vector2(0f, -32f);
-            poolLabel.rectTransform.offsetMax = Vector2.zero;
-
-            var scrollGo = CampUiRuntime.CreateRect("PoolScroll", poolColumn.transform);
+            var scrollGo = CampUiRuntime.CreateRect("PoolScroll", _body);
             var scrollRt = scrollGo.GetComponent<RectTransform>();
-            scrollRt.anchorMin = Vector2.zero;
-            scrollRt.anchorMax = Vector2.one;
-            scrollRt.offsetMin = Vector2.zero;
-            scrollRt.offsetMax = new Vector2(0f, -36f);
-            scrollGo.AddComponent<Image>().color = new Color(0.1f, 0.11f, 0.14f, 0.65f);
+            ApplyHubNormRect(scrollRt, TeamZonePool);
+            // 透明滚动区，不盖住模板底
+            scrollGo.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.01f);
 
             _poolScroll = scrollGo.AddComponent<ScrollRect>();
             _poolScroll.horizontal = false;
@@ -445,11 +451,11 @@ namespace Grimhand.Presentation.Camp
             _poolGrid.anchorMin = new Vector2(0f, 1f);
             _poolGrid.anchorMax = new Vector2(1f, 1f);
             _poolGrid.pivot = new Vector2(0.5f, 1f);
-            _poolGrid.offsetMin = new Vector2(4f, 0f);
-            _poolGrid.offsetMax = new Vector2(-4f, 0f);
+            _poolGrid.offsetMin = new Vector2(2f, 0f);
+            _poolGrid.offsetMax = new Vector2(-2f, 0f);
             var poolLayout = _poolGrid.gameObject.AddComponent<GridLayoutGroup>();
-            poolLayout.cellSize = new Vector2(168f * CardScale + 8f, 236f * CardScale + 8f);
-            poolLayout.spacing = new Vector2(6f, 6f);
+            poolLayout.cellSize = new Vector2(168f * CardScale + 6f, 236f * CardScale + 6f);
+            poolLayout.spacing = new Vector2(4f, 4f);
             poolLayout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
             poolLayout.constraintCount = CardsPerRow;
             poolLayout.childAlignment = TextAnchor.UpperLeft;
@@ -458,12 +464,20 @@ namespace Grimhand.Presentation.Camp
             poolFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
             _poolScroll.content = _poolGrid;
 
-            _hintText = CampUiRuntime.CreateText(_body, "", 15, FontStyle.Italic, TextAnchor.MiddleLeft);
-            _hintText.rectTransform.anchorMin = new Vector2(0f, 0f);
-            _hintText.rectTransform.anchorMax = new Vector2(1f, 0f);
-            _hintText.rectTransform.offsetMin = new Vector2(20f, 10f);
-            _hintText.rectTransform.offsetMax = new Vector2(-20f, 42f);
-            _hintText.color = new Color(0.75f, 0.78f, 0.85f, 1f);
+            BuildPoolScrollbar();
+
+            _hintText = CampUiRuntime.CreateText(_body, "", 14, FontStyle.Italic, TextAnchor.MiddleCenter);
+            _hintText.rectTransform.anchorMin = new Vector2(0.2f, 0.01f);
+            _hintText.rectTransform.anchorMax = new Vector2(0.8f, 0.055f);
+            _hintText.rectTransform.offsetMin = Vector2.zero;
+            _hintText.rectTransform.offsetMax = Vector2.zero;
+            _hintText.color = new Color(0.75f, 0.78f, 0.85f, 0.85f);
+            _hintText.raycastTarget = false;
+
+            // 金币/等级摘要改由角色框展示，这里保留空引用以兼容 RefreshMetaSummary
+            _metaSummaryText = null;
+            _accountGoldAmountText = null;
+            _campGoldIcon = null;
 
             _tooltip = _overlayRoot.gameObject.AddComponent<InventoryTooltipView>();
             _tooltip.Initialize(_overlayRoot);
@@ -486,89 +500,238 @@ namespace Grimhand.Presentation.Camp
             _body.gameObject.SetActive(false);
         }
 
-        void BuildHubPanel()
+        void BuildPoolScrollbar()
         {
-            _hubPanel = CampUiRuntime.CreateImage("HubPanel", _overlayRoot, new Color(0.07f, 0.08f, 0.11f, 0.98f))
-                .rectTransform;
-            CampUiRuntime.Stretch(_hubPanel, 48f, 48f, -48f, -48f);
+            // 粉色区：固定轨道 sliderbar + 可拖动手柄 slider，长度由 ScrollRect 按内容自动缩放
+            var barGo = CampUiRuntime.CreateRect("PoolScrollbar", _body);
+            var barRt = barGo.GetComponent<RectTransform>();
+            ApplyHubNormRect(barRt, TeamZonePoolScrollbar);
 
-            var title = CampUiRuntime.CreateText(_hubPanel, "军营", 32, FontStyle.Bold, TextAnchor.UpperCenter);
-            title.rectTransform.anchorMin = new Vector2(0f, 1f);
-            title.rectTransform.anchorMax = new Vector2(1f, 1f);
-            title.rectTransform.offsetMin = new Vector2(0f, -56f);
-            title.rectTransform.offsetMax = new Vector2(0f, -8f);
-            title.color = new Color(0.95f, 0.88f, 0.62f, 1f);
+            var barImg = barGo.AddComponent<Image>();
+            barImg.color = Color.white;
+            barImg.raycastTarget = true;
+            barImg.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiSliderBar != null)
+                barImg.sprite = _uiIcons.UiSliderBar;
+            else
+                barImg.color = new Color(0.12f, 0.11f, 0.1f, 0.95f);
 
-            var closeBtn = CampUiRuntime.CreateButton(_hubPanel, "返回营地", new Color(0.28f, 0.3f, 0.36f, 1f),
-                new Vector2(140f, 42f));
-            var closeRt = closeBtn.GetComponent<RectTransform>();
-            closeRt.anchorMin = new Vector2(1f, 1f);
-            closeRt.anchorMax = new Vector2(1f, 1f);
-            closeRt.pivot = new Vector2(1f, 1f);
-            closeRt.anchoredPosition = new Vector2(-8f, -8f);
-            closeBtn.onClick.AddListener(CloseToCamp);
+            var slidingArea = CampUiRuntime.CreateRect("Sliding Area", barGo.transform);
+            var slidingRt = slidingArea.GetComponent<RectTransform>();
+            CampUiRuntime.StretchFull(slidingRt);
+            // 轨道两端装饰略内缩，手柄在槽内滑动
+            slidingRt.offsetMin = new Vector2(1f, 10f);
+            slidingRt.offsetMax = new Vector2(-1f, -10f);
 
-            var hint = CampUiRuntime.CreateText(_hubPanel,
-                "管理出征队伍与永久收藏卡牌。局外商店获得的卡牌可在「管理卡牌」中查看。",
-                16, FontStyle.Italic, TextAnchor.UpperCenter);
-            hint.rectTransform.anchorMin = new Vector2(0f, 1f);
-            hint.rectTransform.anchorMax = new Vector2(1f, 1f);
-            hint.rectTransform.offsetMin = new Vector2(24f, -96f);
-            hint.rectTransform.offsetMax = new Vector2(-24f, -60f);
-            hint.color = new Color(0.72f, 0.76f, 0.84f, 1f);
+            var handleGo = CampUiRuntime.CreateRect("Handle", slidingArea.transform);
+            var handleRt = handleGo.GetComponent<RectTransform>();
+            handleRt.anchorMin = Vector2.zero;
+            handleRt.anchorMax = Vector2.one;
+            handleRt.offsetMin = Vector2.zero;
+            handleRt.offsetMax = Vector2.zero;
 
-            var buttonRow = CampUiRuntime.CreateRect("HubButtons", _hubPanel);
-            var rowRt = buttonRow.GetComponent<RectTransform>();
-            rowRt.anchorMin = new Vector2(0.08f, 0.18f);
-            rowRt.anchorMax = new Vector2(0.92f, 0.78f);
-            rowRt.offsetMin = Vector2.zero;
-            rowRt.offsetMax = Vector2.zero;
-            var rowLayout = buttonRow.AddComponent<HorizontalLayoutGroup>();
-            rowLayout.spacing = 32f;
-            rowLayout.childAlignment = TextAnchor.MiddleCenter;
-            rowLayout.childControlWidth = true;
-            rowLayout.childControlHeight = true;
-            rowLayout.childForceExpandWidth = true;
-            rowLayout.childForceExpandHeight = true;
+            var handleImg = handleGo.AddComponent<Image>();
+            handleImg.color = Color.white;
+            handleImg.raycastTarget = true;
+            handleImg.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiSlider != null)
+                handleImg.sprite = _uiIcons.UiSlider;
+            else
+                handleImg.color = new Color(0.42f, 0.34f, 0.28f, 1f);
 
-            CreateHubActionButton(buttonRow.transform, "配置队伍",
-                "编辑远征小队成员和每人10张可在祭坛提取的卡牌",
-                new Color(0.18f, 0.28f, 0.42f, 0.98f),
-                ShowTeamPanel);
-            CreateHubActionButton(buttonRow.transform, "管理卡牌",
-                "浏览收藏、筛选查看详情，或出售卡牌换取黄金",
-                new Color(0.28f, 0.22f, 0.38f, 0.98f),
-                ShowCollectionPanel);
+            var scrollbar = barGo.AddComponent<Scrollbar>();
+            scrollbar.handleRect = handleRt;
+            scrollbar.targetGraphic = handleImg;
+            scrollbar.direction = Scrollbar.Direction.BottomToTop;
+            scrollbar.value = 1f;
+            scrollbar.size = 1f;
+            scrollbar.numberOfSteps = 0;
+
+            _poolScroll.verticalScrollbar = scrollbar;
+            _poolScroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
+            _poolScroll.verticalScrollbarSpacing = 0f;
         }
 
-        static void CreateHubActionButton(
+        void BuildHubPanel()
+        {
+            // 军营一级：模板全屏背景 + 透明热区；悬停弹出按钮精灵，点击进二级。
+            _hubPanel = CampUiRuntime.CreateRect("HubPanel", _overlayRoot).GetComponent<RectTransform>();
+            CampUiRuntime.StretchFull(_hubPanel);
+
+            var bg = _hubPanel.gameObject.AddComponent<Image>();
+            bg.color = Color.white;
+            bg.preserveAspect = false;
+            bg.raycastTarget = true;
+            if (_uiIcons != null && _uiIcons.ChampionCampHubBackground != null)
+            {
+                bg.sprite = _uiIcons.ChampionCampHubBackground;
+            }
+            else
+            {
+                bg.color = new Color(0.07f, 0.08f, 0.11f, 0.98f);
+                Debug.LogWarning("[ChampionCamp] 缺少 ChampionCampHubBackground，请执行 Grimhand → Content → Refresh UI Visual Catalogs。");
+            }
+
+            var zones = CampUiRuntime.CreateRect("HubHotZones", _hubPanel);
+            CampUiRuntime.StretchFull(zones.GetComponent<RectTransform>());
+
+            CreateHubActionHotZone(
+                zones.transform,
+                "ConfigureTeam",
+                HubZoneTeam,
+                _uiIcons != null ? _uiIcons.ChampionCampButton1 : null,
+                ShowTeamPanel);
+            CreateHubActionHotZone(
+                zones.transform,
+                "ManageCards",
+                HubZoneCards,
+                _uiIcons != null ? _uiIcons.ChampionCampButton2 : null,
+                ShowCollectionPanel);
+
+            // 返回按钮常显置顶
+            var closeBar = CampUiRuntime.CreateRect("HubCloseHotZones", _hubPanel);
+            CampUiRuntime.StretchFull(closeBar.GetComponent<RectTransform>());
+            var closeCanvas = closeBar.AddComponent<Canvas>();
+            closeCanvas.overrideSorting = true;
+            closeCanvas.sortingOrder = 90;
+            closeBar.AddComponent<GraphicRaycaster>();
+            CreateHubBackButton(closeBar.transform, HubZoneClose, CloseToCamp);
+        }
+
+        void CreateHubActionHotZone(
             Transform parent,
-            string title,
-            string subtitle,
-            Color bg,
+            string id,
+            HubNormRect zone,
+            Sprite visualSprite,
             Action onClick)
         {
-            var go = CampUiRuntime.CreateRect(title, parent);
-            var layout = go.AddComponent<LayoutElement>();
-            layout.minHeight = 280f;
-            layout.preferredHeight = 320f;
+            var go = CampUiRuntime.CreateRect(id, parent);
+            var rt = go.GetComponent<RectTransform>();
+            ApplyHubNormRect(rt, zone);
 
-            var bgImage = go.AddComponent<Image>();
-            bgImage.color = bg;
+            var hit = go.AddComponent<Image>();
+            hit.color = new Color(1f, 1f, 1f, 0f);
+            hit.raycastTarget = true;
+            go.GetComponent<CanvasRenderer>().cullTransparentMesh = false;
+
+            var visualGo = CampUiRuntime.CreateRect("Visual", go.transform);
+            var visualRt = visualGo.GetComponent<RectTransform>();
+            visualRt.anchorMin = Vector2.zero;
+            visualRt.anchorMax = Vector2.one;
+            visualRt.offsetMin = Vector2.zero;
+            visualRt.offsetMax = Vector2.zero;
+            visualRt.pivot = new Vector2(0.5f, 0.5f);
+
+            var visualImg = visualGo.AddComponent<Image>();
+            visualImg.color = Color.white;
+            visualImg.raycastTarget = false;
+            // 热区已按红框量过，直接铺满以精确盖住模板静态按钮
+            visualImg.preserveAspect = false;
+            if (visualSprite != null)
+                visualImg.sprite = visualSprite;
+            else
+                Debug.LogWarning($"[ChampionCamp] 缺少军营一级按钮贴图：{id}");
+
+            var group = visualGo.AddComponent<CanvasGroup>();
+            group.alpha = 0f;
+            group.blocksRaycasts = false;
+            group.interactable = false;
+
+            var hover = go.AddComponent<CampBuildingHoverView>();
+            hover.Bind(visualRt, group, HubButtonHoverScale);
 
             var btn = go.AddComponent<Button>();
-            btn.targetGraphic = bgImage;
+            btn.targetGraphic = hit;
+            btn.transition = Selectable.Transition.None;
             btn.onClick.AddListener(() => onClick?.Invoke());
             UiAudioHooks.WireButton(btn);
+        }
 
-            var titleText = CampUiRuntime.CreateText(go.transform, title, 28, FontStyle.Bold, TextAnchor.UpperCenter);
-            CampUiRuntime.SetAnchored(titleText.rectTransform, 0.08f, 0.58f, 0.92f, 0.88f);
-            titleText.color = new Color(0.95f, 0.9f, 0.72f, 1f);
+        void CreateHubBackButton(Transform parent, HubNormRect zone, Action onClick)
+        {
+            var go = CampUiRuntime.CreateRect("Back", parent);
+            var rt = go.GetComponent<RectTransform>();
+            ApplyHubNormRect(rt, zone);
 
-            var subText = CampUiRuntime.CreateText(go.transform, subtitle, 16, FontStyle.Normal, TextAnchor.UpperCenter);
-            CampUiRuntime.SetAnchored(subText.rectTransform, 0.1f, 0.18f, 0.9f, 0.52f);
-            subText.color = new Color(0.78f, 0.82f, 0.92f, 1f);
-            subText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            var img = go.AddComponent<Image>();
+            img.color = Color.white;
+            img.raycastTarget = true;
+            img.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiButton3 != null)
+                img.sprite = _uiIcons.UiButton3;
+            else
+                img.color = new Color(0.45f, 0.12f, 0.12f, 0.95f);
+
+            var label = CampUiRuntime.CreateText(go.transform, "返回", 22, FontStyle.Bold, TextAnchor.MiddleCenter);
+            CampUiRuntime.StretchFull(label.rectTransform);
+            label.color = new Color(0.95f, 0.88f, 0.62f, 1f);
+            label.raycastTarget = false;
+
+            var group = go.AddComponent<CanvasGroup>();
+            group.alpha = 1f;
+            group.blocksRaycasts = true;
+            group.interactable = true;
+
+            var hover = go.AddComponent<CampBuildingHoverView>();
+            hover.Bind(rt, group, HubButtonHoverScale, hideWhenIdle: false);
+
+            var btn = go.AddComponent<Button>();
+            btn.targetGraphic = img;
+            btn.transition = Selectable.Transition.None;
+            btn.onClick.AddListener(() => onClick?.Invoke());
+            UiAudioHooks.WireButton(btn);
+        }
+
+        Button CreateTeamActionButton(
+            Transform parent,
+            string id,
+            HubNormRect zone,
+            Sprite sprite,
+            string label,
+            int fontSize,
+            Action onClick)
+        {
+            var go = CampUiRuntime.CreateRect(id, parent);
+            var rt = go.GetComponent<RectTransform>();
+            ApplyHubNormRect(rt, zone);
+
+            var img = go.AddComponent<Image>();
+            img.color = Color.white;
+            img.raycastTarget = true;
+            img.preserveAspect = false;
+            if (sprite != null)
+                img.sprite = sprite;
+            else
+                img.color = new Color(0.35f, 0.28f, 0.18f, 0.95f);
+
+            var text = CampUiRuntime.CreateText(go.transform, label, fontSize, FontStyle.Bold, TextAnchor.MiddleCenter);
+            CampUiRuntime.StretchFull(text.rectTransform);
+            text.color = new Color(0.96f, 0.92f, 0.78f, 1f);
+            text.raycastTarget = false;
+
+            var group = go.AddComponent<CanvasGroup>();
+            group.alpha = 1f;
+            group.blocksRaycasts = true;
+            group.interactable = true;
+
+            var hover = go.AddComponent<CampBuildingHoverView>();
+            hover.Bind(rt, group, HubButtonHoverScale, hideWhenIdle: false);
+
+            var btn = go.AddComponent<Button>();
+            btn.targetGraphic = img;
+            btn.transition = Selectable.Transition.None;
+            btn.onClick.AddListener(() => onClick?.Invoke());
+            UiAudioHooks.WireButton(btn);
+            return btn;
+        }
+
+        static void ApplyHubNormRect(RectTransform rt, HubNormRect zone)
+        {
+            rt.anchorMin = new Vector2(zone.XMin, zone.YMin);
+            rt.anchorMax = new Vector2(zone.XMax, zone.YMax);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            rt.pivot = new Vector2(0.5f, 0.5f);
         }
 
         void SaveAndReturnToHub()
@@ -636,22 +799,65 @@ namespace Grimhand.Presentation.Camp
 
         void RebuildMemberRow()
         {
-            var layoutGo = CampUiRuntime.CreateRect("MemberLayout", _memberRow);
-            CampUiRuntime.StretchFull(layoutGo.GetComponent<RectTransform>());
-            var h = layoutGo.AddComponent<HorizontalLayoutGroup>();
-            h.spacing = 16f;
-            h.childAlignment = TextAnchor.MiddleCenter;
-            h.childControlWidth = false;
-            h.childControlHeight = true;
-            h.childForceExpandWidth = false;
-            h.childForceExpandHeight = false;
-            _dynamicObjects.Add(layoutGo);
+            HubNormRect[] zones =
+            {
+                TeamZoneMemberBack,
+                TeamZoneMemberMid,
+                TeamZoneMemberFront
+            };
+            HubNormRect[] portraits =
+            {
+                TeamPortraitBack,
+                TeamPortraitMid,
+                TeamPortraitFront
+            };
+            HubNormRect[] swaps =
+            {
+                TeamSwapBack,
+                TeamSwapMid,
+                TeamSwapFront
+            };
+            HubNormRect[] names =
+            {
+                TeamNameBack,
+                TeamNameMid,
+                TeamNameFront
+            };
+            HubNormRect[] levels =
+            {
+                TeamLevelBack,
+                TeamLevelMid,
+                TeamLevelFront
+            };
+            HubNormRect[] xpTexts =
+            {
+                TeamXpTextBack,
+                TeamXpTextMid,
+                TeamXpTextFront
+            };
+            HubNormRect[] xpBars =
+            {
+                TeamXpBarBack,
+                TeamXpBarMid,
+                TeamXpBarFront
+            };
 
             for (var vi = 0; vi < CampRosterState.PartySize; vi++)
             {
                 var index = CampFormationDisplay.VisualOrderMemberIndices[vi];
                 var member = _roster.Members[index];
-                var card = CreateMemberCard(layoutGo.transform, member, index, index == _activeMemberIndex);
+                var card = CreateMemberCard(
+                    _memberRow,
+                    member,
+                    index,
+                    index == _activeMemberIndex,
+                    zones[vi],
+                    portraits[vi],
+                    swaps[vi],
+                    names[vi],
+                    levels[vi],
+                    xpTexts[vi],
+                    xpBars[vi]);
                 card.GetComponent<Button>().onClick.AddListener(() =>
                 {
                     _activeMemberIndex = index;
@@ -665,83 +871,170 @@ namespace Grimhand.Presentation.Camp
             Transform parent,
             CampMemberLoadout member,
             int memberIndex,
-            bool active)
+            bool active,
+            HubNormRect zone,
+            HubNormRect portraitZone,
+            HubNormRect swapZone,
+            HubNormRect nameZone,
+            HubNormRect levelZone,
+            HubNormRect xpTextZone,
+            HubNormRect xpBarZone)
         {
-            var go = CampUiRuntime.CreateImage("Member", parent,
-                active ? new Color(0.35f, 0.48f, 0.72f, 0.95f) : new Color(0.16f, 0.18f, 0.24f, 0.95f)).gameObject;
+            var go = CampUiRuntime.CreateRect($"Member{memberIndex}", parent);
             var rt = go.GetComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(320f, 140f);
-            var le = go.AddComponent<LayoutElement>();
-            le.preferredWidth = 320f;
-            le.preferredHeight = 140f;
+            ApplyHubNormRect(rt, zone);
+
+            var hit = go.AddComponent<Image>();
+            hit.color = new Color(1f, 1f, 1f, 0.001f);
+            hit.raycastTarget = true;
+            go.GetComponent<CanvasRenderer>().cullTransparentMesh = false;
 
             var btn = go.AddComponent<Button>();
-            btn.targetGraphic = go.GetComponent<Image>();
+            btn.targetGraphic = hit;
+            btn.transition = Selectable.Transition.None;
             UiAudioHooks.WireButton(btn);
 
-            var portrait = CampUiRuntime.CreateImage("Portrait", go.transform, Color.white);
-            portrait.preserveAspect = true;
-            portrait.sprite = _characterVisuals != null
-                ? _characterVisuals.GetPortrait(member.CharacterDefinitionId)
-                : null;
-            var portraitRt = portrait.rectTransform;
-            portraitRt.anchorMin = new Vector2(0f, 0.5f);
-            portraitRt.anchorMax = new Vector2(0f, 0.5f);
-            portraitRt.pivot = new Vector2(0f, 0.5f);
-            portraitRt.sizeDelta = new Vector2(88f, 88f);
-            portraitRt.anchoredPosition = new Vector2(12f, 0f);
+            // 动画立绘：保比例，略缩小放入红框
+            var portraitHost = CampUiRuntime.CreateRect("PortraitHost", go.transform);
+            ApplyLocalNormRect(portraitHost.GetComponent<RectTransform>(), zone, InsetNormRect(portraitZone, TeamPortraitInset));
 
-            var slotLabel = CampUiRuntime.CreateText(go.transform, CampFormationDisplay.SlotLabel(memberIndex),
-                13, FontStyle.Bold, TextAnchor.UpperLeft);
-            slotLabel.rectTransform.anchorMin = new Vector2(0f, 1f);
-            slotLabel.rectTransform.anchorMax = new Vector2(1f, 1f);
-            slotLabel.rectTransform.offsetMin = new Vector2(108f, -52f);
-            slotLabel.rectTransform.offsetMax = new Vector2(-8f, -36f);
-            slotLabel.color = new Color(0.75f, 0.82f, 0.95f, 1f);
+            var portrait = CampUiRuntime.CreateImage("Portrait", portraitHost.transform, Color.white);
+            portrait.preserveAspect = true;
+            portrait.raycastTarget = false;
+            CampUiRuntime.StretchFull(portrait.rectTransform);
+            var animator = portraitHost.AddComponent<CampIdlePortraitAnimator>();
+            animator.Bind(portrait, _characterVisuals, member.CharacterDefinitionId);
+
+            if (active)
+            {
+                var outline = portrait.gameObject.AddComponent<Outline>();
+                outline.effectColor = TeamSelectedOutline;
+                outline.effectDistance = new Vector2(3f, 3f);
+                outline.useGraphicAlpha = true;
+            }
 
             var name = CampUiRuntime.CreateText(go.transform,
                 string.IsNullOrEmpty(member.DisplayName) ? "未选择" : member.DisplayName,
-                18, FontStyle.Bold, TextAnchor.UpperLeft);
-            name.rectTransform.anchorMin = new Vector2(0f, 1f);
-            name.rectTransform.anchorMax = new Vector2(1f, 1f);
-            name.rectTransform.offsetMin = new Vector2(108f, -36f);
-            name.rectTransform.offsetMax = new Vector2(-8f, -8f);
+                18, FontStyle.Bold, TextAnchor.MiddleCenter);
+            ApplyLocalNormRect(name.rectTransform, zone, nameZone);
+            name.color = Color.white;
+            name.raycastTarget = false;
+            name.horizontalOverflow = HorizontalWrapMode.Overflow;
+            name.verticalOverflow = VerticalWrapMode.Truncate;
 
-            var filled = CountFilledSlots(member);
-            var deckInfo = CampUiRuntime.CreateText(go.transform, $"祭坛携带 {filled}/{CampRosterState.DeckSize}",
-                15, FontStyle.Normal, TextAnchor.UpperLeft);
-            deckInfo.rectTransform.anchorMin = new Vector2(0f, 0f);
-            deckInfo.rectTransform.anchorMax = new Vector2(1f, 0f);
-            deckInfo.rectTransform.offsetMin = new Vector2(108f, 36f);
-            deckInfo.rectTransform.offsetMax = new Vector2(-120f, 64f);
-            deckInfo.color = filled == CampRosterState.DeckSize
-                ? new Color(0.7f, 0.95f, 0.72f, 1f)
-                : new Color(0.95f, 0.75f, 0.55f, 1f);
+            var levelLine = CampUiRuntime.CreateText(go.transform, "Lv.1", 14, FontStyle.Bold, TextAnchor.MiddleCenter);
+            ApplyLocalNormRect(levelLine.rectTransform, zone, levelZone);
+            levelLine.color = new Color(0.92f, 0.88f, 0.72f, 1f);
+            levelLine.raycastTarget = false;
 
+            var xpLine = CampUiRuntime.CreateText(go.transform, "0/100 XP", 12, FontStyle.Normal, TextAnchor.MiddleCenter);
+            ApplyLocalNormRect(xpLine.rectTransform, zone, xpTextZone);
+            xpLine.color = new Color(0.78f, 0.82f, 0.90f, 1f);
+            xpLine.raycastTarget = false;
+
+            // 经验条：仅绿色填充叠在模板细条（紫框）上，不再画大黑底
+            var xpFillHost = CampUiRuntime.CreateRect("XpBar", go.transform);
+            ApplyLocalNormRect(xpFillHost.GetComponent<RectTransform>(), zone, xpBarZone);
+
+            var xpFill = CampUiRuntime.CreateImage("XpFill", xpFillHost.transform, TeamXpBarFill);
+            xpFill.raycastTarget = false;
+            var xpFillRt = xpFill.rectTransform;
+            xpFillRt.anchorMin = Vector2.zero;
+            xpFillRt.anchorMax = new Vector2(0f, 1f);
+            xpFillRt.offsetMin = Vector2.zero;
+            xpFillRt.offsetMax = Vector2.zero;
+            xpFillRt.pivot = new Vector2(0f, 0.5f);
+
+            float ratio = 0f;
             if (_meta != null && !string.IsNullOrEmpty(member.CharacterDefinitionId))
             {
                 var progress = _meta.GetOrCreate(member.CharacterDefinitionId);
-                var metaLine = CampUiRuntime.CreateText(go.transform,
-                    MetaProgressionRules.FormatXpProgress(progress),
-                    14, FontStyle.Normal, TextAnchor.UpperLeft);
-                metaLine.rectTransform.anchorMin = new Vector2(0f, 0f);
-                metaLine.rectTransform.anchorMax = new Vector2(1f, 0f);
-                metaLine.rectTransform.offsetMin = new Vector2(108f, 8f);
-                metaLine.rectTransform.offsetMax = new Vector2(-120f, 32f);
-                metaLine.color = new Color(0.78f, 0.82f, 0.95f, 1f);
+                MetaProgressionRules.NormalizeProgress(progress);
+                levelLine.text = $"Lv.{progress.OutOfRunLevel}";
+                xpLine.text = MetaProgressionRules.FormatXpProgress(progress);
+
+                if (MetaProgressionRules.IsMaxLevel(progress))
+                    ratio = 1f;
+                else
+                {
+                    var need = MetaProgressionRules.XpRequiredForNextLevel(progress);
+                    ratio = need > 0 ? Mathf.Clamp01(progress.OutOfRunXp / (float)need) : 0f;
+                }
+            }
+            else if (string.IsNullOrEmpty(member.CharacterDefinitionId))
+            {
+                levelLine.text = "";
+                xpLine.text = "";
             }
 
-            var swapBtn = CampUiRuntime.CreateButton(go.transform, "换人", new Color(0.22f, 0.28f, 0.38f, 1f),
-                new Vector2(88f, 32f));
-            var swapRt = swapBtn.GetComponent<RectTransform>();
-            swapRt.anchorMin = new Vector2(1f, 0f);
-            swapRt.anchorMax = new Vector2(1f, 0f);
-            swapRt.pivot = new Vector2(1f, 0f);
-            swapRt.anchoredPosition = new Vector2(-8f, 10f);
+            xpFillRt.anchorMax = new Vector2(ratio, 1f);
+
+            var swapGo = CampUiRuntime.CreateRect("Swap", go.transform);
+            ApplyLocalNormRect(swapGo.GetComponent<RectTransform>(), zone, swapZone);
+
+            var swapImg = swapGo.AddComponent<Image>();
+            swapImg.color = Color.white;
+            swapImg.raycastTarget = true;
+            swapImg.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiButton1 != null)
+                swapImg.sprite = _uiIcons.UiButton1;
+            else
+                swapImg.color = new Color(0.45f, 0.28f, 0.12f, 0.95f);
+
+            var swapLabel = CampUiRuntime.CreateText(swapGo.transform, "换人", 12, FontStyle.Bold, TextAnchor.MiddleCenter);
+            CampUiRuntime.StretchFull(swapLabel.rectTransform);
+            swapLabel.color = new Color(0.96f, 0.92f, 0.78f, 1f);
+            swapLabel.raycastTarget = false;
+
+            var swapGroup = swapGo.AddComponent<CanvasGroup>();
+            swapGroup.alpha = 1f;
+            swapGroup.blocksRaycasts = true;
+            swapGroup.interactable = true;
+
+            var swapHover = swapGo.AddComponent<CampBuildingHoverView>();
+            swapHover.Bind(swapGo.GetComponent<RectTransform>(), swapGroup, HubButtonHoverScale, hideWhenIdle: false);
+
+            var swapBtn = swapGo.AddComponent<Button>();
+            swapBtn.targetGraphic = swapImg;
+            swapBtn.transition = Selectable.Transition.None;
             swapBtn.onClick.AddListener(() => ShowCharacterPicker(memberIndex));
+            UiAudioHooks.WireButton(swapBtn);
 
             _dynamicObjects.Add(go);
             return go;
+        }
+
+        static HubNormRect InsetNormRect(HubNormRect zone, float inset01)
+        {
+            var w = zone.XMax - zone.XMin;
+            var h = zone.YMax - zone.YMin;
+            var ix = w * inset01;
+            var iy = h * inset01;
+            return new HubNormRect(zone.XMin + ix, zone.YMin + iy, zone.XMax - ix, zone.YMax - iy);
+        }
+
+        static void ApplyLocalNormRect(RectTransform child, HubNormRect parentZone, HubNormRect absoluteZone)
+        {
+            var pw = parentZone.XMax - parentZone.XMin;
+            var ph = parentZone.YMax - parentZone.YMin;
+            if (pw < 0.0001f || ph < 0.0001f)
+            {
+                child.anchorMin = Vector2.zero;
+                child.anchorMax = Vector2.one;
+                child.offsetMin = Vector2.zero;
+                child.offsetMax = Vector2.zero;
+                return;
+            }
+
+            child.anchorMin = new Vector2(
+                (absoluteZone.XMin - parentZone.XMin) / pw,
+                (absoluteZone.YMin - parentZone.YMin) / ph);
+            child.anchorMax = new Vector2(
+                (absoluteZone.XMax - parentZone.XMin) / pw,
+                (absoluteZone.YMax - parentZone.YMin) / ph);
+            child.offsetMin = Vector2.zero;
+            child.offsetMax = Vector2.zero;
+            child.pivot = new Vector2(0.5f, 0.5f);
         }
 
         void ShowCharacterPicker(int memberIndex)
@@ -861,11 +1154,13 @@ namespace Grimhand.Presentation.Camp
                 var cardId = member.DeckCardIds[slot];
                 var slotGo = CampUiRuntime.CreateImage($"DeckSlot{slot}", _deckGrid,
                     slotIndex == _selectedDeckSlot
-                        ? new Color(0.45f, 0.55f, 0.85f, 0.35f)
-                        : new Color(0.12f, 0.13f, 0.17f, 0.9f)).gameObject;
+                        ? new Color(0.35f, 0.55f, 0.90f, 0.22f)
+                        : new Color(0.08f, 0.09f, 0.12f, 0.08f)).gameObject;
+                ApplyHubNormRect(slotGo.GetComponent<RectTransform>(), GetTeamDeckSlotRect(slot));
 
                 var btn = slotGo.AddComponent<Button>();
                 btn.targetGraphic = slotGo.GetComponent<Image>();
+                btn.transition = Selectable.Transition.None;
                 btn.onClick.AddListener(() =>
                 {
                     if (_selectedDeckSlot == slotIndex && !string.IsNullOrEmpty(member.DeckCardIds[slotIndex]))
@@ -895,15 +1190,20 @@ namespace Grimhand.Presentation.Camp
                         cg.blocksRaycasts = false;
                     BindCardTooltip(slotGo, preview);
                 }
-                else
-                {
-                    var empty = CampUiRuntime.CreateText(slotGo.transform, $"槽 {slot + 1}", 14, FontStyle.Normal);
-                    CampUiRuntime.StretchFull(empty.rectTransform);
-                    empty.color = new Color(0.55f, 0.58f, 0.65f, 1f);
-                }
 
                 _dynamicObjects.Add(slotGo);
             }
+        }
+
+        static HubNormRect GetTeamDeckSlotRect(int slot)
+        {
+            var col = slot % 5;
+            var row = slot / 5;
+            var xMin = TeamDeckCardX0 + col * TeamDeckCardStep;
+            var xMax = xMin + TeamDeckCardW;
+            var yMin = row == 0 ? TeamDeckRow1YMin : TeamDeckRow2YMin;
+            var yMax = row == 0 ? TeamDeckRow1YMax : TeamDeckRow2YMax;
+            return new HubNormRect(xMin, yMin, xMax, yMax);
         }
 
         void RebuildCardPool(float scrollY = 1f)

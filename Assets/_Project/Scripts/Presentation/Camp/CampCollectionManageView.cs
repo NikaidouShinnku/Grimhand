@@ -17,12 +17,18 @@ namespace Grimhand.Presentation.Camp
     [DisallowMultipleComponent]
     public sealed class CampCollectionManageView : MonoBehaviour
     {
-        const int CardsPerRow = 10;
-        const float GridHorizontalPadding = 16f;
-        const float GridSpacing = 6f;
-        const float CardAspect = 236f / 168f;
+        const int CardsPerRow = 6;
         const float DetailCardScale = 1.72f;
         const float SellButtonWidth = 200f;
+        const float ButtonHoverScale = 1.08f;
+
+        // 对照用户红框（原点左下）：筛选 / 返回 / 卡区虚影 / 滑动条
+        static readonly Vector4 ZoneFilterCost = new(0.1055f, 0.8084f, 0.2344f, 0.8554f);
+        static readonly Vector4 ZoneFilterRarity = new(0.2383f, 0.8066f, 0.3682f, 0.8537f);
+        static readonly Vector4 ZoneFilterOwner = new(0.3750f, 0.8049f, 0.5039f, 0.8571f);
+        static readonly Vector4 ZoneBack = new(0.8584f, 0.8902f, 0.9756f, 0.9617f);
+        static readonly Vector4 ZoneCards = new(0.1436f, 0.1948f, 0.8589f, 0.7561f);
+        static readonly Vector4 ZoneScrollbar = new(0.8828f, 0.1934f, 0.8955f, 0.7439f);
 
         struct CollectionRow
         {
@@ -44,7 +50,6 @@ namespace Grimhand.Presentation.Camp
 
         CampCollectionState _collection;
         CampRosterState _roster;
-        int _collectionCapacity;
         int _pendingSellGold;
 
         RectTransform _panel;
@@ -58,9 +63,6 @@ namespace Grimhand.Presentation.Camp
         GameObject _confirmPanel;
         Text _confirmTitleText;
         Text _confirmBodyText;
-        Text _titleText;
-        Text _summaryText;
-        Text _statusText;
         Text _detailTitleText;
         Text _detailMetaText;
         Text _detailStatsText;
@@ -119,9 +121,9 @@ namespace Grimhand.Presentation.Camp
 
         public void Show(CampCollectionState collection, CampRosterState roster, int collectionCapacity)
         {
+            _ = collectionCapacity;
             _collection = collection;
             _roster = roster;
-            _collectionCapacity = collectionCapacity;
             _filterCost = null;
             _filterRarity = null;
             _filterOwnerId = "";
@@ -162,12 +164,7 @@ namespace Grimhand.Presentation.Camp
             if (_collection == null)
                 return;
 
-            _summaryText.text = $"共 {_collection.Count} 张 · 上限 {_collectionCapacity}";
             var rows = BuildFilteredRows();
-            _statusText.text = rows.Count == 0
-                ? "没有符合筛选条件的卡牌。"
-                : $"显示 {rows.Count} 张 · 点击卡牌查看详情";
-
             RefreshGridLayout();
             foreach (var row in rows)
                 BuildCardCell(row);
@@ -274,23 +271,26 @@ namespace Grimhand.Presentation.Camp
 
             Canvas.ForceUpdateCanvases();
             var viewportWidth = _cardScroll.viewport.rect.width;
+            var viewportHeight = _cardScroll.viewport.rect.height;
             if (viewportWidth <= 1f)
                 viewportWidth = 1600f;
+            if (viewportHeight <= 1f)
+                viewportHeight = 900f;
 
-            var innerWidth = viewportWidth - GridHorizontalPadding * 2f;
-            var cellWidth = (innerWidth - GridSpacing * (CardsPerRow - 1)) / CardsPerRow;
-            var cellHeight = cellWidth * CardAspect;
+            // 6×2 虚影区归一化宽高：卡格与间距按视口比例对齐模板
+            const float zoneW = 0.7153f;
+            const float zoneH = 0.5613f;
+            var cellWidth = viewportWidth * (0.1103f / zoneW);
+            var cellHeight = viewportHeight * (0.2753f / zoneH);
+            var spacingX = viewportWidth * (0.0107f / zoneW);
+            var spacingY = viewportHeight * (0.0107f / zoneH);
 
-            _gridLayout.padding = new RectOffset(
-                Mathf.RoundToInt(GridHorizontalPadding),
-                Mathf.RoundToInt(GridHorizontalPadding),
-                10,
-                10);
-            _gridLayout.spacing = new Vector2(GridSpacing, GridSpacing);
+            _gridLayout.padding = new RectOffset(0, 0, 0, 0);
+            _gridLayout.spacing = new Vector2(spacingX, spacingY);
             _gridLayout.cellSize = new Vector2(cellWidth, cellHeight);
             _gridLayout.constraintCount = CardsPerRow;
-            _gridLayout.childAlignment = TextAnchor.UpperCenter;
-            _gridCardScale = Mathf.Clamp(cellWidth / 168f * 0.9f, 0.38f, 0.82f);
+            _gridLayout.childAlignment = TextAnchor.UpperLeft;
+            _gridCardScale = Mathf.Clamp(cellWidth / 168f * 0.92f, 0.35f, 0.95f);
         }
 
         void BuildCardCell(CollectionRow row)
@@ -462,7 +462,7 @@ namespace Grimhand.Presentation.Camp
             var rarity = ResolveRarity(cardId, definition);
 
             if (!CampCollectionRules.TrySellCollectionEntry(
-                    _collection, _detailEntryIndex, rarity, out var goldGained, out var message))
+                    _collection, _detailEntryIndex, rarity, out var goldGained, out _))
             {
                 HideConfirmPanel();
                 return;
@@ -481,7 +481,6 @@ namespace Grimhand.Presentation.Camp
             _onCollectionChanged?.Invoke();
             ShowListPanel();
             RebuildList();
-            _statusText.text = message;
         }
 
         void ShowConfirmPanel(string body)
@@ -614,59 +613,33 @@ namespace Grimhand.Presentation.Camp
 
         void BuildListPanel()
         {
-            _listPanel = CampUiRuntime.CreateImage("List", _panel, new Color(0.07f, 0.08f, 0.11f, 0.98f))
-                .rectTransform;
+            var listBg = CampUiRuntime.CreateImage("List", _panel, Color.white);
+            _listPanel = listBg.rectTransform;
             CampUiRuntime.StretchFull(_listPanel);
+            listBg.preserveAspect = false;
+            listBg.raycastTarget = true;
+            if (_uiIcons != null && _uiIcons.ChampionCampCollectionBackground != null)
+            {
+                listBg.sprite = _uiIcons.ChampionCampCollectionBackground;
+            }
+            else
+            {
+                listBg.color = new Color(0.07f, 0.08f, 0.11f, 0.98f);
+                Debug.LogWarning("[CampCollection] 缺少 ChampionCampCollectionBackground，请执行 Grimhand → Content → Refresh UI Visual Catalogs。");
+            }
 
-            _titleText = CampUiRuntime.CreateText(_listPanel, "管理卡牌", 28, FontStyle.Bold, TextAnchor.UpperCenter);
-            _titleText.rectTransform.anchorMin = new Vector2(0f, 1f);
-            _titleText.rectTransform.anchorMax = new Vector2(1f, 1f);
-            _titleText.rectTransform.offsetMin = new Vector2(0f, -52f);
-            _titleText.rectTransform.offsetMax = new Vector2(0f, -8f);
-            _titleText.color = new Color(0.95f, 0.88f, 0.62f, 1f);
+            // 标题 / 提示文案已在模板上
 
-            var backBtn = CampUiRuntime.CreateButton(_listPanel, "返回军营", new Color(0.28f, 0.3f, 0.36f, 1f),
-                new Vector2(140f, 42f));
-            var backRt = backBtn.GetComponent<RectTransform>();
-            backRt.anchorMin = new Vector2(1f, 1f);
-            backRt.anchorMax = new Vector2(1f, 1f);
-            backRt.pivot = new Vector2(1f, 1f);
-            backRt.anchoredPosition = new Vector2(-8f, -8f);
-            backBtn.onClick.AddListener(() => _onBack?.Invoke());
+            _filterCostButton = CreateFilterButton("FilterCost", ZoneFilterCost, CycleCostFilter);
+            _filterRarityButton = CreateFilterButton("FilterRarity", ZoneFilterRarity, CycleRarityFilter);
+            _filterOwnerButton = CreateFilterButton("FilterOwner", ZoneFilterOwner, CycleOwnerFilter);
 
-            _summaryText = CampUiRuntime.CreateText(_listPanel, "", 16, FontStyle.Normal, TextAnchor.UpperLeft);
-            CampUiRuntime.SetAnchored(_summaryText.rectTransform, 0.03f, 0.9f, 0.55f, 0.94f);
-            _summaryText.color = new Color(0.82f, 0.86f, 0.95f, 1f);
-
-            _statusText = CampUiRuntime.CreateText(_listPanel, "", 15, FontStyle.Italic, TextAnchor.UpperRight);
-            CampUiRuntime.SetAnchored(_statusText.rectTransform, 0.55f, 0.9f, 0.97f, 0.94f);
-            _statusText.color = new Color(0.72f, 0.76f, 0.84f, 1f);
-
-            var filterRow = CampUiRuntime.CreateRect("Filters", _listPanel);
-            var filterRt = filterRow.GetComponent<RectTransform>();
-            filterRt.anchorMin = new Vector2(0f, 1f);
-            filterRt.anchorMax = new Vector2(1f, 1f);
-            filterRt.offsetMin = new Vector2(20f, -132f);
-            filterRt.offsetMax = new Vector2(-20f, -96f);
-            var filterLayout = filterRow.AddComponent<HorizontalLayoutGroup>();
-            filterLayout.spacing = 12f;
-            filterLayout.childAlignment = TextAnchor.MiddleLeft;
-            filterLayout.childControlWidth = false;
-            filterLayout.childControlHeight = true;
-            filterLayout.childForceExpandWidth = false;
-            filterLayout.childForceExpandHeight = true;
-
-            _filterCostButton = CreateFilterButton(filterRow.transform, CycleCostFilter);
-            _filterRarityButton = CreateFilterButton(filterRow.transform, CycleRarityFilter);
-            _filterOwnerButton = CreateFilterButton(filterRow.transform, CycleOwnerFilter);
+            CreateBackButton();
 
             var scrollGo = CampUiRuntime.CreateRect("Scroll", _listPanel);
             var scrollRt = scrollGo.GetComponent<RectTransform>();
-            scrollRt.anchorMin = new Vector2(0f, 0f);
-            scrollRt.anchorMax = new Vector2(1f, 1f);
-            scrollRt.offsetMin = new Vector2(20f, 20f);
-            scrollRt.offsetMax = new Vector2(-20f, -140f);
-            scrollGo.AddComponent<Image>().color = new Color(0.1f, 0.11f, 0.14f, 0.65f);
+            CampUiRuntime.SetAnchored(scrollRt, ZoneCards.x, ZoneCards.y, ZoneCards.z, ZoneCards.w);
+            scrollGo.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.01f);
 
             _cardScroll = scrollGo.AddComponent<ScrollRect>();
             _cardScroll.horizontal = false;
@@ -677,7 +650,9 @@ namespace Grimhand.Presentation.Camp
             var viewport = CampUiRuntime.CreateRect("Viewport", scrollGo.transform);
             var viewportRt = viewport.GetComponent<RectTransform>();
             CampUiRuntime.StretchFull(viewportRt);
-            viewport.AddComponent<Image>().color = new Color(1f, 1f, 1f, 0.02f);
+            var viewportImg = viewport.AddComponent<Image>();
+            viewportImg.color = new Color(1f, 1f, 1f, 0.01f);
+            viewportImg.raycastTarget = true;
             viewport.AddComponent<Mask>().showMaskGraphic = false;
             _cardScroll.viewport = viewportRt;
 
@@ -689,11 +664,97 @@ namespace Grimhand.Presentation.Camp
             _cardGrid.offsetMax = Vector2.zero;
             _gridLayout = _cardGrid.gameObject.AddComponent<GridLayoutGroup>();
             _gridLayout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            _gridLayout.childAlignment = TextAnchor.UpperCenter;
+            _gridLayout.childAlignment = TextAnchor.UpperLeft;
             var fitter = _cardGrid.gameObject.AddComponent<ContentSizeFitter>();
             fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
             _cardScroll.content = _cardGrid;
+
+            BuildCardScrollbar();
+        }
+
+        void CreateBackButton()
+        {
+            var go = CampUiRuntime.CreateRect("Back", _listPanel);
+            var rt = go.GetComponent<RectTransform>();
+            CampUiRuntime.SetAnchored(rt, ZoneBack.x, ZoneBack.y, ZoneBack.z, ZoneBack.w);
+
+            var img = go.AddComponent<Image>();
+            img.color = Color.white;
+            img.raycastTarget = true;
+            img.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiButton2 != null)
+                img.sprite = _uiIcons.UiButton2;
+            else
+                img.color = new Color(0.35f, 0.28f, 0.18f, 0.95f);
+
+            var label = CampUiRuntime.CreateText(go.transform, "返回", 22, FontStyle.Bold, TextAnchor.MiddleCenter);
+            CampUiRuntime.StretchFull(label.rectTransform);
+            label.color = new Color(0.96f, 0.92f, 0.78f, 1f);
+            label.raycastTarget = false;
+
+            var group = go.AddComponent<CanvasGroup>();
+            group.alpha = 1f;
+            group.blocksRaycasts = true;
+            group.interactable = true;
+            var hover = go.AddComponent<CampBuildingHoverView>();
+            hover.Bind(rt, group, ButtonHoverScale, hideWhenIdle: false);
+
+            var btn = go.AddComponent<Button>();
+            btn.targetGraphic = img;
+            btn.transition = Selectable.Transition.None;
+            btn.onClick.AddListener(() => _onBack?.Invoke());
+            UiAudioHooks.WireButton(btn);
+        }
+
+        void BuildCardScrollbar()
+        {
+            var barGo = CampUiRuntime.CreateRect("CardScrollbar", _listPanel);
+            var barRt = barGo.GetComponent<RectTransform>();
+            CampUiRuntime.SetAnchored(barRt, ZoneScrollbar.x, ZoneScrollbar.y, ZoneScrollbar.z, ZoneScrollbar.w);
+
+            var barImg = barGo.AddComponent<Image>();
+            barImg.color = Color.white;
+            barImg.raycastTarget = true;
+            barImg.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiSliderBar != null)
+                barImg.sprite = _uiIcons.UiSliderBar;
+            else
+                barImg.color = new Color(0.12f, 0.11f, 0.1f, 0.95f);
+
+            var slidingArea = CampUiRuntime.CreateRect("Sliding Area", barGo.transform);
+            var slidingRt = slidingArea.GetComponent<RectTransform>();
+            CampUiRuntime.StretchFull(slidingRt);
+            slidingRt.offsetMin = new Vector2(1f, 10f);
+            slidingRt.offsetMax = new Vector2(-1f, -10f);
+
+            var handleGo = CampUiRuntime.CreateRect("Handle", slidingArea.transform);
+            var handleRt = handleGo.GetComponent<RectTransform>();
+            handleRt.anchorMin = Vector2.zero;
+            handleRt.anchorMax = Vector2.one;
+            handleRt.offsetMin = Vector2.zero;
+            handleRt.offsetMax = Vector2.zero;
+
+            var handleImg = handleGo.AddComponent<Image>();
+            handleImg.color = Color.white;
+            handleImg.raycastTarget = true;
+            handleImg.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiSlider != null)
+                handleImg.sprite = _uiIcons.UiSlider;
+            else
+                handleImg.color = new Color(0.42f, 0.34f, 0.28f, 1f);
+
+            var scrollbar = barGo.AddComponent<Scrollbar>();
+            scrollbar.handleRect = handleRt;
+            scrollbar.targetGraphic = handleImg;
+            scrollbar.direction = Scrollbar.Direction.BottomToTop;
+            scrollbar.value = 1f;
+            scrollbar.size = 1f;
+            scrollbar.numberOfSteps = 0;
+
+            _cardScroll.verticalScrollbar = scrollbar;
+            _cardScroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
+            _cardScroll.verticalScrollbarSpacing = 0f;
         }
 
         void BuildDetailPanel()
@@ -877,18 +938,38 @@ namespace Grimhand.Presentation.Camp
             _confirmPanel.SetActive(false);
         }
 
-        static Button CreateFilterButton(Transform parent, Action onClick)
+        Button CreateFilterButton(string id, Vector4 zone, Action onClick)
         {
-            var btn = CampUiRuntime.CreateButton(parent, "筛选", new Color(0.2f, 0.24f, 0.32f, 0.98f),
-                new Vector2(220f, 36f));
-            btn.onClick.AddListener(() => onClick?.Invoke());
-            var text = btn.GetComponentInChildren<Text>();
-            if (text != null)
-            {
-                text.fontSize = 15;
-                text.alignment = TextAnchor.MiddleCenter;
-            }
+            var go = CampUiRuntime.CreateRect(id, _listPanel);
+            var rt = go.GetComponent<RectTransform>();
+            CampUiRuntime.SetAnchored(rt, zone.x, zone.y, zone.z, zone.w);
 
+            var img = go.AddComponent<Image>();
+            img.color = Color.white;
+            img.raycastTarget = true;
+            img.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiButton4 != null)
+                img.sprite = _uiIcons.UiButton4;
+            else
+                img.color = new Color(0.2f, 0.24f, 0.32f, 0.98f);
+
+            var label = CampUiRuntime.CreateText(go.transform, "筛选", 14, FontStyle.Bold, TextAnchor.MiddleCenter);
+            CampUiRuntime.StretchFull(label.rectTransform);
+            label.color = new Color(0.96f, 0.92f, 0.78f, 1f);
+            label.raycastTarget = false;
+
+            var group = go.AddComponent<CanvasGroup>();
+            group.alpha = 1f;
+            group.blocksRaycasts = true;
+            group.interactable = true;
+            var hover = go.AddComponent<CampBuildingHoverView>();
+            hover.Bind(rt, group, ButtonHoverScale, hideWhenIdle: false);
+
+            var btn = go.AddComponent<Button>();
+            btn.targetGraphic = img;
+            btn.transition = Selectable.Transition.None;
+            btn.onClick.AddListener(() => onClick?.Invoke());
+            UiAudioHooks.WireButton(btn);
             return btn;
         }
     }

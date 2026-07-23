@@ -69,6 +69,30 @@ namespace Grimhand.Editor
             catalog.MainMenuBackground = LoadFirstSprite(NewUiRoot + "mainmenu_background.png")
                 ?? LoadNamedSprite(NewUiRoot + "mainmenu_background.png", "mainmenu_background_0");
             catalog.ChampionCampBuilding = LoadNamedSprite(CampArtRoot + "champion_camp.png", "champion_camp_0");
+            catalog.ChampionCampHubBackground = LoadFirstSprite(
+                NewUiRoot + "templates/远征军军营一级界面概念图-模板.png");
+            catalog.ChampionCampButton1 = LoadNamedSprite(
+                NewUiRoot + "interactables_and_ui/champion_camp_button1.png", "champion_camp_button1_0")
+                ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/champion_camp_button1.png");
+            catalog.ChampionCampButton2 = LoadNamedSprite(
+                NewUiRoot + "interactables_and_ui/champion_camp_button2.png", "champion_camp_button2_0")
+                ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/champion_camp_button2.png");
+            catalog.UiButton3 = LoadNamedSprite(NewUiRoot + "interactables_and_ui/button3.png", "button3_0")
+                ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/button3.png");
+            catalog.UiButton1 = LoadNamedSprite(NewUiRoot + "interactables_and_ui/button1.png", "button1_0")
+                ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/button1.png");
+            catalog.UiButton2 = LoadNamedSprite(NewUiRoot + "interactables_and_ui/button2.png", "button2_0")
+                ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/button2.png");
+            catalog.UiButton4 = LoadNamedSprite(NewUiRoot + "interactables_and_ui/button4.png", "button4_0")
+                ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/button4.png");
+            catalog.ChampionCampTeamBackground = LoadFirstSprite(
+                NewUiRoot + "templates/配置队伍概念图-模板.png");
+            catalog.ChampionCampCollectionBackground = LoadFirstSprite(
+                NewUiRoot + "templates/军营收藏概念图-模板.png");
+            catalog.UiSliderBar = LoadNamedSprite(NewUiRoot + "interactables_and_ui/sliderbar.png", "sliderbar_0")
+                ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/sliderbar.png");
+            catalog.UiSlider = LoadNamedSprite(NewUiRoot + "interactables_and_ui/slider.png", "slider_0")
+                ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/slider.png");
             catalog.MerchantCampBuilding = LoadNamedSprite(CampArtRoot + "merchant_camp.png", "merchant_camp_0");
             catalog.PortalBuilding = LoadNamedSprite(CampArtRoot + "portal.png", "portal_0");
             catalog.TrainingGroundBuilding = LoadNamedSprite(CampArtRoot + "training_ground.png", "training_ground_0")

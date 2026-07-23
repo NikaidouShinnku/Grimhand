@@ -28,6 +28,28 @@ namespace Grimhand.Content
         /// <summary>开局主菜单全屏背景（new_UI_and_Layout/mainmenu_background.png）</summary>
         public Sprite MainMenuBackground;
         public Sprite ChampionCampBuilding;
+        /// <summary>军营一级：templates/远征军军营一级界面概念图-模板.png</summary>
+        public Sprite ChampionCampHubBackground;
+        /// <summary>军营一级悬停：interactables_and_ui/champion_camp_button1.png（配置队伍）</summary>
+        public Sprite ChampionCampButton1;
+        /// <summary>军营一级悬停：interactables_and_ui/champion_camp_button2.png（管理卡牌）</summary>
+        public Sprite ChampionCampButton2;
+        /// <summary>通用 UI 按钮框：interactables_and_ui/button3.png</summary>
+        public Sprite UiButton3;
+        /// <summary>通用 UI 按钮框：interactables_and_ui/button1.png</summary>
+        public Sprite UiButton1;
+        /// <summary>通用 UI 按钮框：interactables_and_ui/button2.png</summary>
+        public Sprite UiButton2;
+        /// <summary>通用 UI 按钮框：interactables_and_ui/button4.png</summary>
+        public Sprite UiButton4;
+        /// <summary>配置队伍二级：templates/配置队伍概念图-模板.png</summary>
+        public Sprite ChampionCampTeamBackground;
+        /// <summary>管理卡牌二级：templates/军营收藏概念图-模板.png</summary>
+        public Sprite ChampionCampCollectionBackground;
+        /// <summary>通用竖直滑动条轨道：interactables_and_ui/sliderbar.png</summary>
+        public Sprite UiSliderBar;
+        /// <summary>通用竖直滑动条手柄：interactables_and_ui/slider.png</summary>
+        public Sprite UiSlider;
         public Sprite MerchantCampBuilding;
         public Sprite PortalBuilding;
         /// <summary>Assets/The Grimhands Asset/path and background/training_ground.png</summary>

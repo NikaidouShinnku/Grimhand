@@ -54,6 +54,40 @@ namespace Grimhand.Battle.Tests
             Assert.Greater(bonus, 10);
         }
 
+        [Test]
+        public void LichSpiritFocus_TalentBonusInNonCombatPhase()
+        {
+            var state = BuildState();
+            state.Config.Talents = new TalentBattleContext();
+            state.Config.Talents.ActiveTalentIds.Add("talent_lich_s2_lv2");
+            AddUnit(state, "lich", TeamSide.Player, FormationSlot.Back);
+
+            state.Phase = TurnPhase.Planning;
+            var bonus = V09NewMechanicsRules.ApplyPsionicBodyBonus(state, TeamSide.Player, 10);
+
+            Assert.AreEqual(11, bonus);
+
+            state.Phase = TurnPhase.SpeedResolve;
+            var combat = V09NewMechanicsRules.ApplyPsionicBodyBonus(state, TeamSide.Player, 10);
+            Assert.AreEqual(10, combat);
+        }
+
+        [Test]
+        public void LichSpiritFocus_StacksWithPsionicBody()
+        {
+            var state = BuildState();
+            state.Config.Talents = new TalentBattleContext();
+            state.Config.Talents.ActiveTalentIds.Add("talent_lich_s2_lv2");
+            var lich = AddUnit(state, "lich", TeamSide.Player, FormationSlot.Back);
+            StatusRules.ApplyStatus(state, lich, StatusCatalog.PsionicBody, 1, -1, new List<BattleEvent>());
+
+            state.Phase = TurnPhase.Planning;
+            var bonus = V09NewMechanicsRules.ApplyPsionicBodyBonus(state, TeamSide.Player, 10);
+
+            // 1.2 * 1.1 = 1.32 → 13
+            Assert.AreEqual(13, bonus);
+        }
+
         static BattleState BuildState() => new BattleState { Config = new BattleConfig() };
 
         static CombatantState AddUnit(

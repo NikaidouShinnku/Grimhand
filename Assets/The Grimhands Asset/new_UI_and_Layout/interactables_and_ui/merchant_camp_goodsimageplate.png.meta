@@ -116,8 +116,8 @@ TextureImporter:
       name: merchant_camp_goodsimageplate_0
       rect:
         serializedVersion: 2
-        x: 638
-        y: 270
+        x: 5
+        y: 4
         width: 394
         height: 402
       alignment: 0

@@ -18,15 +18,14 @@ namespace Grimhand.Presentation.Camp
         bool _built;
         RectTransform _root;
         Image _backgroundImage;
-        GameObject _forfeitConfirmPanel;
+        CampConfirmPromptView _forfeitConfirm;
         Action _onReturnToGame;
         Action _onSettings;
         Action _onForfeitConfirmed;
         Action _onQuit;
 
         public bool IsOpen => _root != null && _root.gameObject.activeSelf;
-        public bool IsForfeitConfirmOpen =>
-            _forfeitConfirmPanel != null && _forfeitConfirmPanel.activeSelf;
+        public bool IsForfeitConfirmOpen => _forfeitConfirm != null && _forfeitConfirm.IsOpen;
 
         public void ConfigureArt(BattleUiIconCatalogSO icons) => uiIcons = icons;
 
@@ -80,8 +79,7 @@ namespace Grimhand.Presentation.Camp
 
         public void HideForfeitConfirm()
         {
-            if (_forfeitConfirmPanel != null)
-                _forfeitConfirmPanel.SetActive(false);
+            _forfeitConfirm?.Hide();
         }
 
         void EnsureBuilt()
@@ -151,69 +149,25 @@ namespace Grimhand.Presentation.Camp
 
         void BuildForfeitConfirm()
         {
-            _forfeitConfirmPanel = CampUiRuntime.CreateImage(
-                "ForfeitConfirm", _root, new Color(0f, 0f, 0f, 0.72f)).gameObject;
-            CampUiRuntime.StretchFull(_forfeitConfirmPanel.GetComponent<RectTransform>());
-
-            var dialog = CampUiRuntime.CreateImage(
-                "Dialog", _forfeitConfirmPanel.transform, new Color(0.09f, 0.1f, 0.14f, 0.98f)).rectTransform;
-            dialog.anchorMin = new Vector2(0.5f, 0.5f);
-            dialog.anchorMax = new Vector2(0.5f, 0.5f);
-            dialog.pivot = new Vector2(0.5f, 0.5f);
-            dialog.sizeDelta = new Vector2(560f, 280f);
-
-            var title = CampUiRuntime.CreateText(dialog, "放弃当前远征？", 26, FontStyle.Bold, TextAnchor.UpperCenter);
-            title.rectTransform.anchorMin = new Vector2(0f, 1f);
-            title.rectTransform.anchorMax = new Vector2(1f, 1f);
-            title.rectTransform.offsetMin = new Vector2(24f, -64f);
-            title.rectTransform.offsetMax = new Vector2(-24f, -16f);
-            title.color = new Color(0.95f, 0.85f, 0.55f, 1f);
-            title.raycastTarget = false;
-
-            var body = CampUiRuntime.CreateText(dialog,
-                "放弃后将按攻略层数结算局外经验（×5），并同步尚未入账的局外金币。\n当前远征进度将丢失，无法继续本局。",
-                16, FontStyle.Normal, TextAnchor.UpperCenter);
-            body.rectTransform.anchorMin = new Vector2(0f, 0f);
-            body.rectTransform.anchorMax = new Vector2(1f, 1f);
-            body.rectTransform.offsetMin = new Vector2(28f, 72f);
-            body.rectTransform.offsetMax = new Vector2(-28f, -72f);
-            body.color = new Color(0.82f, 0.86f, 0.94f, 1f);
-            body.horizontalOverflow = HorizontalWrapMode.Wrap;
-            body.raycastTarget = false;
-
-            var noBtn = CampUiRuntime.CreateButton(dialog, "取消", new Color(0.28f, 0.3f, 0.36f, 1f),
-                new Vector2(140f, 44f));
-            var noRt = noBtn.GetComponent<RectTransform>();
-            noRt.anchorMin = new Vector2(0.5f, 0f);
-            noRt.anchorMax = new Vector2(0.5f, 0f);
-            noRt.pivot = new Vector2(1f, 0f);
-            noRt.anchoredPosition = new Vector2(-16f, 20f);
-            noBtn.onClick.AddListener(HideForfeitConfirm);
-
-            var yesBtn = CampUiRuntime.CreateButton(dialog, "确认放弃", new Color(0.55f, 0.28f, 0.18f, 1f),
-                new Vector2(160f, 44f));
-            var yesRt = yesBtn.GetComponent<RectTransform>();
-            yesRt.anchorMin = new Vector2(0.5f, 0f);
-            yesRt.anchorMax = new Vector2(0.5f, 0f);
-            yesRt.pivot = new Vector2(0f, 0f);
-            yesRt.anchoredPosition = new Vector2(16f, 20f);
-            yesBtn.onClick.AddListener(() =>
-            {
-                HideForfeitConfirm();
-                Hide();
-                _onForfeitConfirmed?.Invoke();
-            });
-
-            _forfeitConfirmPanel.SetActive(false);
+            _forfeitConfirm = CampConfirmPromptView.Create(_root, uiIcons, "ForfeitConfirm");
         }
 
         void ShowForfeitConfirm()
         {
-            if (_forfeitConfirmPanel == null)
+            if (_forfeitConfirm == null)
                 return;
 
-            _forfeitConfirmPanel.SetActive(true);
-            _forfeitConfirmPanel.transform.SetAsLastSibling();
+            _forfeitConfirm.Show(
+                "放弃当前远征？",
+                "放弃后将按攻略层数结算局外经验（×5），并同步尚未入账的局外金币。\n当前远征进度将丢失，无法继续本局。",
+                "取消",
+                "确认放弃",
+                onCancel: null,
+                onConfirm: () =>
+                {
+                    Hide();
+                    _onForfeitConfirmed?.Invoke();
+                });
         }
 
         void BringToFrontUnderCanvas()

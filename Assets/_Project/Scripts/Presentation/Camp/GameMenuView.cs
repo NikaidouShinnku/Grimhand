@@ -17,7 +17,7 @@ namespace Grimhand.Presentation.Camp
 
         bool _built;
         RectTransform _root;
-        GameObject _abandonConfirmPanel;
+        CampConfirmPromptView _abandonConfirm;
         Button _continueButton;
         Action _onStart;
         Action _onAbandonAndStart;
@@ -133,73 +133,30 @@ namespace Grimhand.Presentation.Camp
 
         void BuildAbandonConfirm()
         {
-            _abandonConfirmPanel = CampUiRuntime.CreateImage(
-                "AbandonConfirm", _root, new Color(0f, 0f, 0f, 0.72f)).gameObject;
-            CampUiRuntime.StretchFull(_abandonConfirmPanel.GetComponent<RectTransform>());
-
-            var dialog = CampUiRuntime.CreateImage(
-                "Dialog", _abandonConfirmPanel.transform, new Color(0.09f, 0.1f, 0.14f, 0.98f)).rectTransform;
-            dialog.anchorMin = new Vector2(0.5f, 0.5f);
-            dialog.anchorMax = new Vector2(0.5f, 0.5f);
-            dialog.pivot = new Vector2(0.5f, 0.5f);
-            dialog.sizeDelta = new Vector2(560f, 280f);
-
-            var title = CampUiRuntime.CreateText(dialog, "放弃当前远征？", 26, FontStyle.Bold, TextAnchor.UpperCenter);
-            title.rectTransform.anchorMin = new Vector2(0f, 1f);
-            title.rectTransform.anchorMax = new Vector2(1f, 1f);
-            title.rectTransform.offsetMin = new Vector2(24f, -64f);
-            title.rectTransform.offsetMax = new Vector2(-24f, -16f);
-            title.color = new Color(0.95f, 0.85f, 0.55f, 1f);
-
-            var body = CampUiRuntime.CreateText(dialog,
-                "进入营地会自动放弃未完成的远征。\n将按攻略层数结算局外经验（×5），并同步尚未入账的局外金币。\n此操作后将无法继续该局。",
-                16, FontStyle.Normal, TextAnchor.UpperCenter);
-            body.rectTransform.anchorMin = new Vector2(0f, 0f);
-            body.rectTransform.anchorMax = new Vector2(1f, 1f);
-            body.rectTransform.offsetMin = new Vector2(28f, 72f);
-            body.rectTransform.offsetMax = new Vector2(-28f, -72f);
-            body.color = new Color(0.82f, 0.86f, 0.94f, 1f);
-            body.horizontalOverflow = HorizontalWrapMode.Wrap;
-
-            var noBtn = CampUiRuntime.CreateButton(dialog, "取消", new Color(0.28f, 0.3f, 0.36f, 1f),
-                new Vector2(140f, 44f));
-            var noRt = noBtn.GetComponent<RectTransform>();
-            noRt.anchorMin = new Vector2(0.5f, 0f);
-            noRt.anchorMax = new Vector2(0.5f, 0f);
-            noRt.pivot = new Vector2(1f, 0f);
-            noRt.anchoredPosition = new Vector2(-16f, 20f);
-            noBtn.onClick.AddListener(HideAbandonConfirm);
-
-            var yesBtn = CampUiRuntime.CreateButton(dialog, "确认放弃", new Color(0.55f, 0.28f, 0.18f, 1f),
-                new Vector2(160f, 44f));
-            var yesRt = yesBtn.GetComponent<RectTransform>();
-            yesRt.anchorMin = new Vector2(0.5f, 0f);
-            yesRt.anchorMax = new Vector2(0.5f, 0f);
-            yesRt.pivot = new Vector2(0f, 0f);
-            yesRt.anchoredPosition = new Vector2(16f, 20f);
-            yesBtn.onClick.AddListener(() =>
-            {
-                HideAbandonConfirm();
-                Hide();
-                _onAbandonAndStart?.Invoke();
-            });
-
-            _abandonConfirmPanel.SetActive(false);
+            _abandonConfirm = CampConfirmPromptView.Create(_root, uiIcons, "AbandonConfirm");
         }
 
         void ShowAbandonConfirm()
         {
-            if (_abandonConfirmPanel == null)
+            if (_abandonConfirm == null)
                 return;
 
-            _abandonConfirmPanel.SetActive(true);
-            _abandonConfirmPanel.transform.SetAsLastSibling();
+            _abandonConfirm.Show(
+                "放弃当前远征？",
+                "进入营地会自动放弃未完成的远征。\n将按攻略层数结算局外经验（×5），并同步尚未入账的局外金币。\n此操作后将无法继续该局。",
+                "取消",
+                "确认放弃",
+                onCancel: null,
+                onConfirm: () =>
+                {
+                    Hide();
+                    _onAbandonAndStart?.Invoke();
+                });
         }
 
         void HideAbandonConfirm()
         {
-            if (_abandonConfirmPanel != null)
-                _abandonConfirmPanel.SetActive(false);
+            _abandonConfirm?.Hide();
         }
 
         Sprite[] ResolveMenuSprites()

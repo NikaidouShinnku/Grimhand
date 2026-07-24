@@ -10,10 +10,58 @@ using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Camp
 {
-    /// <summary>天赋祭坛：角色列表 → 双槽位符文天赋配置。</summary>
+    /// <summary>
+    /// 天赋祭坛：单层 UI。模板底图 + 左角色/切换 + 双槽垂直天赋 + 底栏生效效果。
+    /// </summary>
     [DisallowMultipleComponent]
     public sealed class TalentCampOverlayView : MonoBehaviour
     {
+        const int LayoutVersion = 16;
+        const float TemplateW = 1672f;
+        const float TemplateH = 941f;
+        const float ButtonAspect = 512f / 292f;
+        const float ButtonHoverScale = 1.06f;
+        const int TalentRowsPerSlot = 5;
+        // 符文边长略放大，仍贴近模板圆槽
+        const float RuneSizePx = 85f;
+        // 切换角色缩略图：从第 2 个起逐个右移；恶魔(char_ranger)/巫妖再略右
+        const float ThumbProgressiveShift = 0.014f;
+        const float ThumbExtraShiftDemonLich = 0.028f;
+
+        // 模板归一化（原点左下）
+        // 返回：拉长盖住模板钮，略加高（直接铺满热区，勿用 Cover/Fit 乱缩放）
+        static readonly Vector4 ZoneBack = new(0.842f, 0.908f, 0.978f, 0.972f);
+        static readonly Vector4 ZonePortrait = new(0.090f, 0.470f, 0.255f, 0.825f);
+        static readonly Vector4 ZoneName = new(0.095f, 0.408f, 0.250f, 0.450f);
+        // 等级/经验：贴齐左侧竖线后再略右约 1mm
+        static readonly Vector4 ZoneLevel = new(0.106f, 0.372f, 0.261f, 0.405f);
+        static readonly Vector4 ZoneXpBar = new(0.106f, 0.348f, 0.261f, 0.368f);
+        // 隐形热区：左恢复原对齐；右再略右移
+        static readonly Vector4 ZoneCharPrev = new(0.038f, 0.095f, 0.070f, 0.200f);
+        static readonly Vector4 ZoneCharNext = new(0.316f, 0.095f, 0.348f, 0.200f);
+        // 缩略图落入模板五框（略上移）
+        static readonly Vector4 ZoneCharThumbs = new(0.078f, 0.078f, 0.288f, 0.235f);
+        // 槽位标题：1 右移居中；2 略左
+        static readonly Vector4 ZoneSlot1Header = new(0.400f, 0.800f, 0.560f, 0.848f);
+        static readonly Vector4 ZoneSlot2Header = new(0.688f, 0.800f, 0.848f, 0.848f);
+        // 天赋列：符文位不动；等级略左，拉开与符文间距
+        static readonly Vector4 ZoneSlot1Lv = new(0.400f, 0.332f, 0.440f, 0.772f);
+        static readonly Vector4 ZoneSlot1Icon = new(0.455f, 0.332f, 0.510f, 0.772f);
+        static readonly Vector4 ZoneSlot1Name = new(0.515f, 0.332f, 0.695f, 0.772f);
+        static readonly Vector4 ZoneSlot2Lv = new(0.697f, 0.332f, 0.737f, 0.772f);
+        static readonly Vector4 ZoneSlot2Icon = new(0.752f, 0.332f, 0.807f, 0.772f);
+        static readonly Vector4 ZoneSlot2Name = new(0.812f, 0.332f, 0.980f, 0.772f);
+        // 底栏生效效果右移
+        static readonly Vector4 ZoneEffect1 = new(0.400f, 0.048f, 0.640f, 0.158f);
+        static readonly Vector4 ZoneEffect2 = new(0.690f, 0.048f, 0.930f, 0.158f);
+
+        static readonly Color TitleGold = new(0.95f, 0.85f, 0.55f, 1f);
+        static readonly Color BodyText = new(0.86f, 0.88f, 0.94f, 1f);
+        static readonly Color MuteText = new(0.70f, 0.74f, 0.82f, 1f);
+        static readonly Color EquippedGold = new(1f, 0.88f, 0.38f, 1f);
+        static readonly Color ButtonLabel = new(0.96f, 0.92f, 0.78f, 1f);
+        static readonly Color XpBarFill = new(0.28f, 0.78f, 0.38f, 1f);
+
         BattleSetupSO _battleSetup;
         CharacterVisualCatalogSO _characterVisuals;
         BattleUiIconCatalogSO _uiIcons;
@@ -22,25 +70,29 @@ namespace Grimhand.Presentation.Camp
         Action _onClose;
 
         List<CharacterDefinitionSO> _ownedCharacters = new();
+        int _selectedIndex;
 
         RectTransform _overlayRoot;
-        RectTransform _listPanel;
-        RectTransform _detailPanel;
-        RectTransform _detailSlot1Row;
-        RectTransform _detailSlot2Row;
-        Text _detailTitle;
-        Text _detailLevel;
-        Text _detailXpHint;
-        Text _detailSummary;
-        Text _detailSlot1Label;
-        Text _detailSlot2Label;
-        Image _detailPortrait;
+        Image _bgImage;
+        Image _portraitImage;
+        CampIdlePortraitAnimator _portraitAnimator;
+        Text _nameText;
+        Text _levelText;
+        Image _xpFill;
+        Text _xpText;
+        Text _slot1Header;
+        Text _slot2Header;
+        Text _effect1Text;
+        Text _effect2Text;
+        RectTransform _thumbHost;
+        RectTransform _slot1Host;
+        RectTransform _slot2Host;
         GameObject _tooltipPanel;
         Text _tooltipTitle;
         Text _tooltipBody;
 
-        string _detailCharacterId = "";
         bool _built;
+        int _builtVersion = -1;
         readonly List<GameObject> _dynamicObjects = new();
 
         public bool IsOpen => _overlayRoot != null && _overlayRoot.gameObject.activeSelf;
@@ -70,14 +122,17 @@ namespace Grimhand.Presentation.Camp
                 MetaProgressionRules.NormalizeProgress(progress);
                 TalentRules.PruneInvalidSelections(progress);
             }
+
             _ownedCharacters = CollectOwnedCharacters();
+            if (_selectedIndex < 0 || _selectedIndex >= _ownedCharacters.Count)
+                _selectedIndex = 0;
+
             EnsureBuilt();
             HideTooltip();
             _overlayRoot.gameObject.SetActive(true);
             gameObject.SetActive(true);
             transform.SetAsLastSibling();
-            ShowListPanel();
-            RebuildList();
+            RefreshAll();
         }
 
         public void Hide()
@@ -85,6 +140,489 @@ namespace Grimhand.Presentation.Camp
             HideTooltip();
             if (_overlayRoot != null)
                 _overlayRoot.gameObject.SetActive(false);
+        }
+
+        void EnsureBuilt()
+        {
+            if (_built && _builtVersion == LayoutVersion)
+                return;
+
+            if (_overlayRoot != null)
+                Destroy(_overlayRoot.gameObject);
+
+            _built = true;
+            _builtVersion = LayoutVersion;
+            _dynamicObjects.Clear();
+
+            var hostRt = GetComponent<RectTransform>();
+            if (hostRt == null)
+                hostRt = gameObject.AddComponent<RectTransform>();
+            CampUiRuntime.StretchFull(hostRt);
+
+            _overlayRoot = CampUiRuntime.CreateRect("TalentCampOverlayRoot", transform).GetComponent<RectTransform>();
+            CampUiRuntime.StretchFull(_overlayRoot);
+            _overlayRoot.gameObject.SetActive(false);
+
+            _bgImage = CampUiRuntime.CreateImage("Background", _overlayRoot, Color.white);
+            CampUiRuntime.StretchFull(_bgImage.rectTransform);
+            _bgImage.preserveAspect = false;
+            _bgImage.raycastTarget = true;
+            var bgSprite = _uiIcons != null ? _uiIcons.UiTalentAltarBackground : null;
+            if (bgSprite != null)
+            {
+                _bgImage.sprite = bgSprite;
+                _bgImage.color = Color.white;
+                _bgImage.type = Image.Type.Simple;
+            }
+            else
+            {
+                _bgImage.sprite = null;
+                _bgImage.color = new Color(0.04f, 0.05f, 0.08f, 0.98f);
+                Debug.LogWarning("[TalentCamp] 缺少 UiTalentAltarBackground，请执行 Grimhand → Content → Refresh UI Visual Catalogs。");
+            }
+
+            CreateBackButton();
+            BuildPortraitBlock();
+            BuildCharacterSwitcher();
+            BuildSlotHeaders();
+            _slot1Host = CampUiRuntime.CreateRect("Slot1Rows", _overlayRoot).GetComponent<RectTransform>();
+            CampUiRuntime.StretchFull(_slot1Host);
+            _slot2Host = CampUiRuntime.CreateRect("Slot2Rows", _overlayRoot).GetComponent<RectTransform>();
+            CampUiRuntime.StretchFull(_slot2Host);
+            BuildEffectsBlock();
+            BuildTooltip();
+        }
+
+        void CreateBackButton()
+        {
+            var go = CampUiRuntime.CreateRect("Back", _overlayRoot);
+            var rt = go.GetComponent<RectTransform>();
+            SetZone(rt, ZoneBack);
+
+            var img = go.AddComponent<Image>();
+            img.color = Color.white;
+            img.raycastTarget = true;
+            img.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiButton2 != null)
+                img.sprite = _uiIcons.UiButton2;
+            else
+                img.color = new Color(0.28f, 0.3f, 0.36f, 1f);
+
+            var label = CampUiRuntime.CreateText(go.transform, "返回", 18, FontStyle.Bold, TextAnchor.MiddleCenter);
+            CampUiRuntime.StretchFull(label.rectTransform);
+            label.rectTransform.offsetMin = new Vector2(4f, 2f);
+            label.rectTransform.offsetMax = new Vector2(-4f, -6f);
+            label.color = ButtonLabel;
+            label.raycastTarget = false;
+
+            var group = go.AddComponent<CanvasGroup>();
+            group.alpha = 1f;
+            group.blocksRaycasts = true;
+            group.interactable = true;
+            go.AddComponent<CampBuildingHoverView>().Bind(rt, group, ButtonHoverScale, hideWhenIdle: false);
+
+            var btn = go.AddComponent<Button>();
+            btn.targetGraphic = img;
+            btn.transition = Selectable.Transition.None;
+            btn.onClick.AddListener(CloseOverlay);
+            UiAudioHooks.WireButton(btn);
+        }
+
+        void BuildPortraitBlock()
+        {
+            _portraitImage = CampUiRuntime.CreateImage("Portrait", _overlayRoot, Color.white);
+            _portraitImage.preserveAspect = true;
+            _portraitImage.raycastTarget = false;
+            SetZone(_portraitImage.rectTransform, ZonePortrait);
+            _portraitAnimator = _portraitImage.gameObject.AddComponent<CampIdlePortraitAnimator>();
+
+            _nameText = CampUiRuntime.CreateText(_overlayRoot, "", 22, FontStyle.Bold, TextAnchor.MiddleCenter);
+            SetZone(_nameText.rectTransform, ZoneName);
+            _nameText.color = Color.white;
+            _nameText.raycastTarget = false;
+
+            _levelText = CampUiRuntime.CreateText(_overlayRoot, "", 16, FontStyle.Bold, TextAnchor.MiddleLeft);
+            SetZone(_levelText.rectTransform, ZoneLevel);
+            _levelText.color = BodyText;
+            _levelText.raycastTarget = false;
+
+            // 经验槽：透明底，仅绿填充叠在模板细槽上
+            var xpBg = CampUiRuntime.CreateImage("XpBarBg", _overlayRoot, new Color(0f, 0f, 0f, 0.01f));
+            SetZone(xpBg.rectTransform, ZoneXpBar);
+            xpBg.raycastTarget = false;
+
+            _xpFill = CampUiRuntime.CreateImage("XpFill", xpBg.transform, XpBarFill);
+            var fillRt = _xpFill.rectTransform;
+            fillRt.anchorMin = Vector2.zero;
+            fillRt.anchorMax = new Vector2(0f, 1f);
+            fillRt.offsetMin = new Vector2(1f, 1f);
+            fillRt.offsetMax = new Vector2(-1f, -1f);
+            fillRt.pivot = new Vector2(0f, 0.5f);
+            _xpFill.raycastTarget = false;
+
+            _xpText = CampUiRuntime.CreateText(xpBg.transform, "", 12, FontStyle.Normal, TextAnchor.MiddleCenter);
+            CampUiRuntime.StretchFull(_xpText.rectTransform);
+            _xpText.color = BodyText;
+            _xpText.raycastTarget = false;
+        }
+
+        void BuildCharacterSwitcher()
+        {
+            // 仅隐形热区盖住模板箭头，不叠黄色字
+            CreateInvisibleArrowHit("CharPrev", ZoneCharPrev, () => CycleCharacter(-1));
+            CreateInvisibleArrowHit("CharNext", ZoneCharNext, () => CycleCharacter(1));
+
+            _thumbHost = CampUiRuntime.CreateRect("CharThumbs", _overlayRoot).GetComponent<RectTransform>();
+            SetZone(_thumbHost, ZoneCharThumbs);
+        }
+
+        void CreateInvisibleArrowHit(string id, Vector4 zone, Action onClick)
+        {
+            var go = CampUiRuntime.CreateRect(id, _overlayRoot);
+            var rt = go.GetComponent<RectTransform>();
+            SetZone(rt, zone);
+
+            var img = go.AddComponent<Image>();
+            img.color = new Color(1f, 1f, 1f, 0f);
+            img.raycastTarget = true;
+
+            var btn = go.AddComponent<Button>();
+            btn.targetGraphic = img;
+            btn.transition = Selectable.Transition.None;
+            btn.onClick.AddListener(() => onClick?.Invoke());
+            UiAudioHooks.WireButton(btn);
+        }
+
+        void BuildSlotHeaders()
+        {
+            _slot1Header = CampUiRuntime.CreateText(_overlayRoot, "槽位 1", 20, FontStyle.Bold, TextAnchor.MiddleCenter);
+            SetZone(_slot1Header.rectTransform, ZoneSlot1Header);
+            _slot1Header.color = TitleGold;
+            _slot1Header.raycastTarget = false;
+
+            _slot2Header = CampUiRuntime.CreateText(_overlayRoot, "槽位 2", 20, FontStyle.Bold, TextAnchor.MiddleCenter);
+            SetZone(_slot2Header.rectTransform, ZoneSlot2Header);
+            _slot2Header.color = TitleGold;
+            _slot2Header.raycastTarget = false;
+        }
+
+        void BuildEffectsBlock()
+        {
+            _effect1Text = CampUiRuntime.CreateText(_overlayRoot, "", 14, FontStyle.Normal, TextAnchor.UpperLeft);
+            SetZone(_effect1Text.rectTransform, ZoneEffect1);
+            _effect1Text.color = BodyText;
+            _effect1Text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _effect1Text.verticalOverflow = VerticalWrapMode.Truncate;
+            _effect1Text.raycastTarget = false;
+
+            _effect2Text = CampUiRuntime.CreateText(_overlayRoot, "", 14, FontStyle.Normal, TextAnchor.UpperLeft);
+            SetZone(_effect2Text.rectTransform, ZoneEffect2);
+            _effect2Text.color = BodyText;
+            _effect2Text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _effect2Text.verticalOverflow = VerticalWrapMode.Truncate;
+            _effect2Text.raycastTarget = false;
+        }
+
+        void BuildTooltip()
+        {
+            _tooltipPanel = CampUiRuntime.CreateImage("TalentTooltip", _overlayRoot,
+                new Color(0.08f, 0.1f, 0.14f, 0.98f)).gameObject;
+            var rt = _tooltipPanel.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 0.18f);
+            rt.anchorMax = new Vector2(0.5f, 0.18f);
+            rt.pivot = new Vector2(0.5f, 0f);
+            rt.sizeDelta = new Vector2(520f, 110f);
+
+            var outline = _tooltipPanel.AddComponent<Outline>();
+            outline.effectColor = new Color(0.75f, 0.65f, 0.28f, 0.9f);
+            outline.effectDistance = new Vector2(2f, -2f);
+
+            _tooltipTitle = CampUiRuntime.CreateText(_tooltipPanel.transform, "", 16, FontStyle.Bold,
+                TextAnchor.UpperLeft);
+            _tooltipTitle.rectTransform.anchorMin = new Vector2(0f, 1f);
+            _tooltipTitle.rectTransform.anchorMax = new Vector2(1f, 1f);
+            _tooltipTitle.rectTransform.offsetMin = new Vector2(14f, -32f);
+            _tooltipTitle.rectTransform.offsetMax = new Vector2(-14f, -8f);
+            _tooltipTitle.color = TitleGold;
+
+            _tooltipBody = CampUiRuntime.CreateText(_tooltipPanel.transform, "", 14, FontStyle.Normal,
+                TextAnchor.UpperLeft);
+            _tooltipBody.rectTransform.anchorMin = Vector2.zero;
+            _tooltipBody.rectTransform.anchorMax = Vector2.one;
+            _tooltipBody.rectTransform.offsetMin = new Vector2(14f, 10f);
+            _tooltipBody.rectTransform.offsetMax = new Vector2(-14f, -34f);
+            _tooltipBody.color = BodyText;
+            _tooltipBody.horizontalOverflow = HorizontalWrapMode.Wrap;
+
+            _tooltipPanel.SetActive(false);
+        }
+
+        void CloseOverlay()
+        {
+            _onMetaChanged?.Invoke(_meta);
+            Hide();
+            _onClose?.Invoke();
+        }
+
+        void CycleCharacter(int delta)
+        {
+            if (_ownedCharacters.Count == 0)
+                return;
+
+            _selectedIndex = (_selectedIndex + delta + _ownedCharacters.Count) % _ownedCharacters.Count;
+            HideTooltip();
+            RefreshAll();
+        }
+
+        void SelectCharacter(int index)
+        {
+            if (index < 0 || index >= _ownedCharacters.Count)
+                return;
+
+            _selectedIndex = index;
+            HideTooltip();
+            RefreshAll();
+        }
+
+        void RefreshAll()
+        {
+            ClearDynamic();
+            if (_ownedCharacters.Count == 0)
+            {
+                _portraitAnimator?.Bind(_portraitImage, _characterVisuals, "");
+                _nameText.text = "无可用角色";
+                _levelText.text = "";
+                _xpText.text = "";
+                _effect1Text.text = "";
+                _effect2Text.text = "";
+                return;
+            }
+
+            var character = _ownedCharacters[_selectedIndex];
+            var progress = _meta.GetOrCreate(character.CharacterId);
+
+            _portraitAnimator?.Bind(_portraitImage, _characterVisuals, character.CharacterId);
+            _nameText.text = character.DisplayName;
+            _levelText.text = $"Lv.{progress.OutOfRunLevel}";
+            RefreshXpBar(progress);
+            RebuildThumbs();
+            RebuildSlotRows(_slot1Host, character.CharacterId, 1, progress,
+                ZoneSlot1Lv, ZoneSlot1Icon, ZoneSlot1Name);
+            RebuildSlotRows(_slot2Host, character.CharacterId, 2, progress,
+                ZoneSlot2Lv, ZoneSlot2Icon, ZoneSlot2Name);
+            RefreshEffects(progress);
+        }
+
+        void RefreshXpBar(CharacterMetaProgress progress)
+        {
+            if (MetaProgressionRules.IsMaxLevel(progress))
+            {
+                _xpFill.rectTransform.anchorMax = new Vector2(1f, 1f);
+                _xpText.text = "满级";
+                return;
+            }
+
+            var need = MetaProgressionRules.XpRequiredForNextLevel(progress);
+            var t = need > 0 ? Mathf.Clamp01(progress.OutOfRunXp / (float)need) : 0f;
+            _xpFill.rectTransform.anchorMax = new Vector2(t, 1f);
+            _xpText.text = MetaProgressionRules.FormatXpProgress(progress);
+        }
+
+        void RebuildThumbs()
+        {
+            if (_thumbHost == null)
+                return;
+
+            var count = _ownedCharacters.Count;
+            for (var i = 0; i < count; i++)
+            {
+                var character = _ownedCharacters[i];
+                var go = CampUiRuntime.CreateRect($"Thumb_{i}", _thumbHost);
+                var rt = go.GetComponent<RectTransform>();
+                var x0 = i / (float)count;
+                var x1 = (i + 1) / (float)count;
+                var shift = i * ThumbProgressiveShift;
+                // 恶魔(char_ranger) / 巫妖女王：再略右
+                if (character.CharacterId == TalentCatalog.RangerId
+                    || character.CharacterId == TalentCatalog.LichQueenId)
+                    shift += ThumbExtraShiftDemonLich;
+                CampUiRuntime.SetAnchored(rt, x0 + 0.015f + shift, 0.06f, x1 - 0.015f + shift, 0.98f);
+
+                var img = go.AddComponent<Image>();
+                img.color = Color.white;
+                img.preserveAspect = true;
+                img.raycastTarget = true;
+                img.sprite = _characterVisuals != null
+                    ? _characterVisuals.GetPortrait(character.CharacterId)
+                    : null;
+
+                var selected = i == _selectedIndex;
+                var outline = go.AddComponent<Outline>();
+                outline.effectColor = selected
+                    ? new Color(1f, 0.84f, 0.28f, 1f)
+                    : new Color(0.2f, 0.22f, 0.28f, 0.6f);
+                outline.effectDistance = selected ? new Vector2(3f, -3f) : new Vector2(1f, -1f);
+
+                var btn = go.AddComponent<Button>();
+                btn.targetGraphic = img;
+                btn.transition = Selectable.Transition.None;
+                var captured = i;
+                btn.onClick.AddListener(() => SelectCharacter(captured));
+                UiAudioHooks.WireButton(btn);
+
+                _dynamicObjects.Add(go);
+            }
+        }
+
+        void RebuildSlotRows(
+            RectTransform host,
+            string characterId,
+            int slot,
+            CharacterMetaProgress progress,
+            Vector4 zoneLv,
+            Vector4 zoneIcon,
+            Vector4 zoneName)
+        {
+            if (host == null)
+                return;
+
+            var talents = TalentCatalog.GetSlotTalents(characterId, slot);
+            var runeSprite = _uiIcons != null ? _uiIcons.TalentRunePlate : null;
+            var rows = Mathf.Min(TalentRowsPerSlot, talents.Count);
+
+            for (var i = 0; i < rows; i++)
+            {
+                var talent = talents[i];
+                var state = TalentRules.GetCardState(talent, progress);
+                var t0 = 1f - (i + 1) / (float)TalentRowsPerSlot;
+                var t1 = 1f - i / (float)TalentRowsPerSlot;
+
+                var row = CampUiRuntime.CreateRect($"Talent_{talent.Id}", host);
+                CampUiRuntime.StretchFull(row.GetComponent<RectTransform>());
+                _dynamicObjects.Add(row);
+
+                var lv = CampUiRuntime.CreateText(row.transform, $"Lv{talent.UnlockLevel}", 16, FontStyle.Bold,
+                    TextAnchor.MiddleRight);
+                SetRowBand(lv.rectTransform, zoneLv, t0, t1);
+                lv.color = state == TalentCardState.Locked ? MuteText : BodyText;
+                lv.raycastTarget = false;
+
+                var iconGo = CampUiRuntime.CreateRect("Icon", row.transform);
+                var iconRt = iconGo.GetComponent<RectTransform>();
+                SetSquareInColumn(iconRt, zoneIcon, t0, t1);
+
+                var icon = iconGo.AddComponent<Image>();
+                icon.sprite = runeSprite;
+                icon.preserveAspect = true;
+                icon.raycastTarget = false;
+                icon.color = state == TalentCardState.Locked
+                    ? new Color(0.42f, 0.42f, 0.45f, 0.85f)
+                    : state == TalentCardState.Selected
+                        ? new Color(1f, 0.96f, 0.78f, 1f)
+                        : Color.white;
+
+                if (state == TalentCardState.Selected)
+                {
+                    var outline = iconGo.AddComponent<Outline>();
+                    outline.effectColor = EquippedGold;
+                    outline.effectDistance = new Vector2(2.5f, -2.5f);
+                }
+
+                if (state == TalentCardState.Locked)
+                {
+                    var lockImg = CampUiRuntime.CreateImage("Lock", iconGo.transform, new Color(0f, 0f, 0f, 0.55f));
+                    CampUiRuntime.StretchFull(lockImg.rectTransform);
+                    lockImg.raycastTarget = false;
+                    var lockText = CampUiRuntime.CreateText(lockImg.transform, "锁", 14, FontStyle.Bold,
+                        TextAnchor.MiddleCenter);
+                    CampUiRuntime.StretchFull(lockText.rectTransform);
+                    lockText.raycastTarget = false;
+                }
+
+                var name = CampUiRuntime.CreateText(row.transform, talent.ShortTitle, 19, FontStyle.Bold,
+                    TextAnchor.MiddleLeft);
+                SetRowBand(name.rectTransform, zoneName, t0, t1);
+                name.color = state == TalentCardState.Locked ? MuteText : BodyText;
+                name.raycastTarget = false;
+
+                var hitGo = CampUiRuntime.CreateRect("Hit", row.transform);
+                var hitRt = hitGo.GetComponent<RectTransform>();
+                var y0 = Lerp(zoneLv.y, zoneLv.w, t0);
+                var y1 = Lerp(zoneLv.y, zoneLv.w, t1);
+                CampUiRuntime.SetAnchored(hitRt, zoneLv.x, y0, zoneName.z, y1);
+                var hit = hitGo.AddComponent<Image>();
+                hit.color = new Color(0f, 0f, 0f, 0.01f);
+                hit.raycastTarget = true;
+
+                var btn = hitGo.AddComponent<Button>();
+                btn.targetGraphic = hit;
+                btn.transition = Selectable.Transition.None;
+                var captured = talent;
+                btn.onClick.AddListener(() => OnTalentClicked(captured));
+                UiAudioHooks.WireButton(btn);
+
+                var hover = hitGo.AddComponent<TalentRowHoverRelay>();
+                hover.Bind(
+                    () => ShowTooltip(captured, state),
+                    HideTooltip);
+            }
+        }
+
+        void RefreshEffects(CharacterMetaProgress progress)
+        {
+            _effect1Text.text = FormatEffectColumn(progress, 1);
+            _effect2Text.text = FormatEffectColumn(progress, 2);
+        }
+
+        static string FormatEffectColumn(CharacterMetaProgress progress, int slot)
+        {
+            var talentId = progress.GetSelectedTalentId(slot);
+            if (string.IsNullOrEmpty(talentId))
+                return $"槽位 {slot}：未装备";
+
+            var talent = TalentCatalog.Get(talentId);
+            if (talent == null)
+                return $"槽位 {slot}：未装备";
+
+            return $"槽位 {slot}：{talent.ShortTitle}  Lv.{talent.UnlockLevel}\n{talent.Description}";
+        }
+
+        void OnTalentClicked(TalentDefinition talent)
+        {
+            if (talent == null || _ownedCharacters.Count == 0)
+                return;
+
+            var character = _ownedCharacters[_selectedIndex];
+            var progress = _meta.GetOrCreate(character.CharacterId);
+            if (!TalentRules.IsUnlocked(talent, progress))
+                return;
+
+            TalentRules.TryToggleSelection(talent, progress);
+            _onMetaChanged?.Invoke(_meta);
+            HideTooltip();
+            RefreshAll();
+        }
+
+        void ShowTooltip(TalentDefinition talent, TalentCardState state)
+        {
+            if (talent == null || _tooltipPanel == null)
+                return;
+
+            var locked = state == TalentCardState.Locked;
+            _tooltipTitle.text = locked
+                ? $"{talent.ShortTitle}（Lv.{talent.UnlockLevel} 解锁）"
+                : $"{talent.ShortTitle}（槽位 {talent.Slot} · Lv.{talent.UnlockLevel}）";
+            _tooltipBody.text = locked
+                ? $"需要局外等级 Lv.{talent.UnlockLevel} 才能解锁此天赋。\n{talent.Description}"
+                : talent.Description;
+            _tooltipPanel.SetActive(true);
+            _tooltipPanel.transform.SetAsLastSibling();
+        }
+
+        void HideTooltip()
+        {
+            if (_tooltipPanel != null)
+                _tooltipPanel.SetActive(false);
         }
 
         List<CharacterDefinitionSO> CollectOwnedCharacters()
@@ -98,10 +636,8 @@ namespace Grimhand.Presentation.Camp
                 {
                     if (character == null || character.Team != TeamSide.Player)
                         continue;
-
                     if (!IsPlayableCharacter(character.CharacterId) || !seen.Add(character.CharacterId))
                         continue;
-
                     list.Add(character);
                 }
             }
@@ -110,7 +646,6 @@ namespace Grimhand.Presentation.Camp
             {
                 if (seen.Contains(id))
                     continue;
-
                 var fromSetup = FindCharacterInSetup(id);
                 if (fromSetup != null && seen.Add(id))
                     list.Add(fromSetup);
@@ -156,479 +691,6 @@ namespace Grimhand.Presentation.Camp
             return 99;
         }
 
-        void EnsureBuilt()
-        {
-            if (_built)
-                return;
-
-            _built = true;
-            var hostRt = GetComponent<RectTransform>();
-            if (hostRt == null)
-                hostRt = gameObject.AddComponent<RectTransform>();
-            CampUiRuntime.StretchFull(hostRt);
-
-            _overlayRoot = CampUiRuntime.CreateRect("TalentCampOverlayRoot", transform).GetComponent<RectTransform>();
-            CampUiRuntime.StretchFull(_overlayRoot);
-            _overlayRoot.gameObject.SetActive(false);
-
-            var backdrop = CampUiRuntime.CreateImage("Backdrop", _overlayRoot, new Color(0.03f, 0.05f, 0.09f, 0.96f));
-            CampUiRuntime.StretchFull(backdrop.rectTransform);
-
-            BuildTooltip();
-            BuildListPanel();
-            BuildDetailPanel();
-        }
-
-        void BuildTooltip()
-        {
-            _tooltipPanel = CampUiRuntime.CreateImage("TalentTooltip", _overlayRoot,
-                new Color(0.08f, 0.1f, 0.14f, 0.98f)).gameObject;
-            var rt = _tooltipPanel.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0.5f, 0f);
-            rt.anchorMax = new Vector2(0.5f, 0f);
-            rt.pivot = new Vector2(0.5f, 0f);
-            rt.anchoredPosition = new Vector2(0f, 140f);
-            rt.sizeDelta = new Vector2(640f, 120f);
-
-            var outline = _tooltipPanel.AddComponent<Outline>();
-            outline.effectColor = new Color(0.75f, 0.65f, 0.28f, 0.9f);
-            outline.effectDistance = new Vector2(2f, -2f);
-
-            _tooltipTitle = CampUiRuntime.CreateText(_tooltipPanel.transform, "", 17, FontStyle.Bold,
-                TextAnchor.UpperLeft);
-            _tooltipTitle.rectTransform.anchorMin = new Vector2(0f, 1f);
-            _tooltipTitle.rectTransform.anchorMax = new Vector2(1f, 1f);
-            _tooltipTitle.rectTransform.offsetMin = new Vector2(16f, -34f);
-            _tooltipTitle.rectTransform.offsetMax = new Vector2(-16f, -8f);
-            _tooltipTitle.color = new Color(0.95f, 0.88f, 0.55f, 1f);
-
-            _tooltipBody = CampUiRuntime.CreateText(_tooltipPanel.transform, "", 15, FontStyle.Normal,
-                TextAnchor.UpperLeft);
-            _tooltipBody.rectTransform.anchorMin = Vector2.zero;
-            _tooltipBody.rectTransform.anchorMax = Vector2.one;
-            _tooltipBody.rectTransform.offsetMin = new Vector2(16f, 12f);
-            _tooltipBody.rectTransform.offsetMax = new Vector2(-16f, -38f);
-            _tooltipBody.color = new Color(0.88f, 0.9f, 0.96f, 1f);
-            _tooltipBody.horizontalOverflow = HorizontalWrapMode.Wrap;
-            _tooltipBody.verticalOverflow = VerticalWrapMode.Overflow;
-
-            _tooltipPanel.SetActive(false);
-        }
-
-        void BuildListPanel()
-        {
-            _listPanel = CampUiRuntime.CreateImage("ListPanel", _overlayRoot, new Color(0.09f, 0.1f, 0.14f, 0.98f))
-                .rectTransform;
-            CampUiRuntime.Stretch(_listPanel, 48f, 48f, -48f, -48f);
-
-            var title = CampUiRuntime.CreateText(_listPanel, "天赋祭坛", 28, FontStyle.Bold, TextAnchor.UpperCenter);
-            title.rectTransform.anchorMin = new Vector2(0f, 1f);
-            title.rectTransform.anchorMax = new Vector2(1f, 1f);
-            title.rectTransform.offsetMin = new Vector2(0f, -52f);
-            title.rectTransform.offsetMax = new Vector2(0f, -8f);
-
-            var closeBtn = CampUiRuntime.CreateButton(_listPanel, "返回营地", new Color(0.28f, 0.3f, 0.36f, 1f),
-                new Vector2(140f, 42f));
-            var closeRt = closeBtn.GetComponent<RectTransform>();
-            closeRt.anchorMin = new Vector2(1f, 1f);
-            closeRt.anchorMax = new Vector2(1f, 1f);
-            closeRt.pivot = new Vector2(1f, 1f);
-            closeRt.anchoredPosition = new Vector2(-8f, -8f);
-            closeBtn.onClick.AddListener(CloseOverlay);
-
-            var hint = CampUiRuntime.CreateText(_listPanel,
-                "选择角色进入天赋配置。局外等级解锁候选符文，每槽位装备一枚。鼠标悬停符文可查看完整描述。",
-                16, FontStyle.Italic, TextAnchor.UpperCenter);
-            hint.rectTransform.anchorMin = new Vector2(0f, 1f);
-            hint.rectTransform.anchorMax = new Vector2(1f, 1f);
-            hint.rectTransform.offsetMin = new Vector2(24f, -88f);
-            hint.rectTransform.offsetMax = new Vector2(-24f, -56f);
-            hint.color = new Color(0.72f, 0.76f, 0.84f, 1f);
-
-            CampUiRuntime.CreateRect("CharacterRowHost", _listPanel);
-            var rowHostRt = _listPanel.Find("CharacterRowHost").GetComponent<RectTransform>();
-            rowHostRt.anchorMin = new Vector2(0f, 0.08f);
-            rowHostRt.anchorMax = new Vector2(1f, 0.82f);
-            rowHostRt.offsetMin = new Vector2(32f, 0f);
-            rowHostRt.offsetMax = new Vector2(-32f, 0f);
-        }
-
-        void BuildDetailPanel()
-        {
-            _detailPanel = CampUiRuntime.CreateImage("DetailPanel", _overlayRoot, new Color(0.09f, 0.1f, 0.14f, 0.98f))
-                .rectTransform;
-            CampUiRuntime.Stretch(_detailPanel, 32f, 32f, -32f, -32f);
-            _detailPanel.gameObject.SetActive(false);
-
-            var backBtn = CampUiRuntime.CreateButton(_detailPanel, "返回角色列表", new Color(0.28f, 0.3f, 0.36f, 1f),
-                new Vector2(140f, 42f));
-            var backRt = backBtn.GetComponent<RectTransform>();
-            backRt.anchorMin = new Vector2(1f, 1f);
-            backRt.anchorMax = new Vector2(1f, 1f);
-            backRt.pivot = new Vector2(1f, 1f);
-            backRt.anchoredPosition = new Vector2(-8f, -8f);
-            backBtn.onClick.AddListener(ShowListPanel);
-
-            var top = CampUiRuntime.CreateRect("DetailTop", _detailPanel);
-            var topRt = top.GetComponent<RectTransform>();
-            topRt.anchorMin = new Vector2(0f, 1f);
-            topRt.anchorMax = new Vector2(1f, 1f);
-            topRt.offsetMin = new Vector2(20f, -148f);
-            topRt.offsetMax = new Vector2(-20f, -52f);
-
-            _detailPortrait = CampUiRuntime.CreateImage("Portrait", top.transform, Color.white);
-            _detailPortrait.preserveAspect = true;
-            var portraitRt = _detailPortrait.rectTransform;
-            portraitRt.anchorMin = new Vector2(0f, 0f);
-            portraitRt.anchorMax = new Vector2(0f, 1f);
-            portraitRt.pivot = new Vector2(0f, 0.5f);
-            portraitRt.sizeDelta = new Vector2(96f, 96f);
-
-            _detailTitle = CampUiRuntime.CreateText(top.transform, "", 26, FontStyle.Bold, TextAnchor.UpperLeft);
-            _detailTitle.rectTransform.anchorMin = new Vector2(0f, 1f);
-            _detailTitle.rectTransform.anchorMax = new Vector2(1f, 1f);
-            _detailTitle.rectTransform.offsetMin = new Vector2(112f, -40f);
-            _detailTitle.rectTransform.offsetMax = new Vector2(-8f, -8f);
-
-            _detailLevel = CampUiRuntime.CreateText(top.transform, "", 18, FontStyle.Normal, TextAnchor.UpperLeft);
-            _detailLevel.rectTransform.anchorMin = new Vector2(0f, 1f);
-            _detailLevel.rectTransform.anchorMax = new Vector2(1f, 1f);
-            _detailLevel.rectTransform.offsetMin = new Vector2(112f, -72f);
-            _detailLevel.rectTransform.offsetMax = new Vector2(-8f, -44f);
-            _detailLevel.color = new Color(0.82f, 0.86f, 0.95f, 1f);
-
-            _detailXpHint = CampUiRuntime.CreateText(top.transform, "", 15, FontStyle.Italic, TextAnchor.UpperLeft);
-            _detailXpHint.rectTransform.anchorMin = new Vector2(0f, 1f);
-            _detailXpHint.rectTransform.anchorMax = new Vector2(1f, 1f);
-            _detailXpHint.rectTransform.offsetMin = new Vector2(112f, -96f);
-            _detailXpHint.rectTransform.offsetMax = new Vector2(-8f, -72f);
-            _detailXpHint.color = new Color(0.68f, 0.74f, 0.88f, 1f);
-
-            var summaryBox = CampUiRuntime.CreateImage("SummaryBox", _detailPanel, new Color(0.12f, 0.14f, 0.19f, 0.95f));
-            var summaryRt = summaryBox.rectTransform;
-            summaryRt.anchorMin = new Vector2(0f, 1f);
-            summaryRt.anchorMax = new Vector2(1f, 1f);
-            summaryRt.offsetMin = new Vector2(20f, -228f);
-            summaryRt.offsetMax = new Vector2(-20f, -168f);
-
-            var summaryLabel = CampUiRuntime.CreateText(summaryBox.transform, "当前生效效果", 15, FontStyle.Bold,
-                TextAnchor.UpperLeft);
-            summaryLabel.rectTransform.anchorMin = new Vector2(0f, 1f);
-            summaryLabel.rectTransform.anchorMax = new Vector2(1f, 1f);
-            summaryLabel.rectTransform.offsetMin = new Vector2(12f, -26f);
-            summaryLabel.rectTransform.offsetMax = new Vector2(-12f, -4f);
-
-            _detailSummary = CampUiRuntime.CreateText(summaryBox.transform, "", 14, FontStyle.Normal,
-                TextAnchor.UpperLeft);
-            _detailSummary.rectTransform.anchorMin = Vector2.zero;
-            _detailSummary.rectTransform.anchorMax = Vector2.one;
-            _detailSummary.rectTransform.offsetMin = new Vector2(12f, 8f);
-            _detailSummary.rectTransform.offsetMax = new Vector2(-12f, -28f);
-            _detailSummary.color = new Color(0.82f, 0.88f, 0.98f, 1f);
-
-            BuildSlotSection(_detailPanel, "Slot1Section", 0.52f, 0.74f, out _detailSlot1Label, out _detailSlot1Row);
-            BuildSlotSection(_detailPanel, "Slot2Section", 0.24f, 0.46f, out _detailSlot2Label, out _detailSlot2Row);
-        }
-
-        void BuildSlotSection(
-            RectTransform parent,
-            string name,
-            float yMin,
-            float yMax,
-            out Text slotLabel,
-            out RectTransform cardRow)
-        {
-            var section = CampUiRuntime.CreateRect(name, parent);
-            var sectionRt = section.GetComponent<RectTransform>();
-            sectionRt.anchorMin = new Vector2(0f, yMin);
-            sectionRt.anchorMax = new Vector2(1f, yMax);
-            sectionRt.offsetMin = new Vector2(20f, 0f);
-            sectionRt.offsetMax = new Vector2(-20f, 0f);
-
-            slotLabel = CampUiRuntime.CreateText(section.transform, "", 16, FontStyle.Bold, TextAnchor.MiddleLeft);
-            slotLabel.rectTransform.anchorMin = new Vector2(0f, 1f);
-            slotLabel.rectTransform.anchorMax = new Vector2(1f, 1f);
-            slotLabel.rectTransform.offsetMin = new Vector2(0f, -26f);
-            slotLabel.rectTransform.offsetMax = Vector2.zero;
-
-            var scrollGo = CampUiRuntime.CreateRect("Scroll", section.transform);
-            var scrollRt = scrollGo.GetComponent<RectTransform>();
-            scrollRt.anchorMin = Vector2.zero;
-            scrollRt.anchorMax = Vector2.one;
-            scrollRt.offsetMin = Vector2.zero;
-            scrollRt.offsetMax = new Vector2(0f, -28f);
-            scrollGo.AddComponent<Image>().color = new Color(0.06f, 0.07f, 0.1f, 0.65f);
-
-            var scroll = scrollGo.AddComponent<ScrollRect>();
-            scroll.horizontal = true;
-            scroll.vertical = false;
-            scroll.movementType = ScrollRect.MovementType.Clamped;
-            scroll.scrollSensitivity = 28f;
-
-            var viewport = CampUiRuntime.CreateRect("Viewport", scrollGo.transform);
-            var viewportRt = viewport.GetComponent<RectTransform>();
-            CampUiRuntime.StretchFull(viewportRt);
-            viewport.AddComponent<Image>().color = new Color(1f, 1f, 1f, 0.01f);
-            viewport.AddComponent<Mask>().showMaskGraphic = false;
-            scroll.viewport = viewportRt;
-
-            cardRow = CampUiRuntime.CreateRect("Cards", viewport.transform).GetComponent<RectTransform>();
-            cardRow.anchorMin = new Vector2(0f, 0f);
-            cardRow.anchorMax = new Vector2(0f, 1f);
-            cardRow.pivot = new Vector2(0f, 0.5f);
-            cardRow.sizeDelta = new Vector2(900f, 0f);
-
-            var layout = cardRow.gameObject.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 16f;
-            layout.padding = new RectOffset(12, 12, 8, 8);
-            layout.childAlignment = TextAnchor.MiddleLeft;
-            layout.childControlWidth = false;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = false;
-            layout.childForceExpandHeight = false;
-
-            var fitter = cardRow.gameObject.AddComponent<ContentSizeFitter>();
-            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-            fitter.verticalFit = ContentSizeFitter.FitMode.Unconstrained;
-            scroll.content = cardRow;
-        }
-
-        void CloseOverlay()
-        {
-            _onMetaChanged?.Invoke(_meta);
-            Hide();
-            _onClose?.Invoke();
-        }
-
-        void ShowListPanel()
-        {
-            _detailCharacterId = "";
-            HideTooltip();
-            _listPanel.gameObject.SetActive(true);
-            _detailPanel.gameObject.SetActive(false);
-        }
-
-        void OpenDetail(string characterId, string displayName)
-        {
-            _detailCharacterId = characterId;
-            HideTooltip();
-            _listPanel.gameObject.SetActive(false);
-            _detailPanel.gameObject.SetActive(true);
-
-            var progress = _meta.GetOrCreate(characterId);
-            _detailTitle.text = $"角色：{displayName}";
-            _detailLevel.text = MetaProgressionRules.FormatLevelProgress(progress);
-            if (_detailXpHint != null)
-                _detailXpHint.text = "";
-            _detailPortrait.sprite = _characterVisuals != null
-                ? _characterVisuals.GetPortrait(characterId)
-                : null;
-            RefreshDetailSummary(progress);
-
-            RefreshSlotLabel(_detailSlot1Label, progress, 1);
-            RefreshSlotLabel(_detailSlot2Label, progress, 2);
-            RebuildSlotRow(_detailSlot1Row, characterId, 1, progress);
-            RebuildSlotRow(_detailSlot2Row, characterId, 2, progress);
-        }
-
-        void RefreshSlotLabel(Text label, CharacterMetaProgress progress, int slot)
-        {
-            if (label == null)
-                return;
-
-            var selectedId = progress.GetSelectedTalentId(slot);
-            if (string.IsNullOrEmpty(selectedId))
-            {
-                label.text = $"槽位 {slot}（已选：无）";
-                return;
-            }
-
-            var talent = TalentCatalog.Get(selectedId);
-            label.text = talent != null
-                ? $"槽位 {slot}（已选：{talent.ShortTitle}）"
-                : $"槽位 {slot}（已选：无）";
-        }
-
-        void RefreshDetailSummary(CharacterMetaProgress progress)
-        {
-            _detailSummary.text = TalentRules.BuildActiveEffectsSummary(progress);
-        }
-
-        void RebuildList()
-        {
-            ClearDynamic();
-            var host = _listPanel.Find("CharacterRowHost");
-            if (host == null)
-                return;
-
-            if (_ownedCharacters.Count == 0)
-            {
-                var empty = CampUiRuntime.CreateText(host, "未找到可配置的角色（战士 / 法老 / 恶魔）。",
-                    18, FontStyle.Bold, TextAnchor.MiddleCenter);
-                CampUiRuntime.StretchFull(empty.rectTransform);
-                empty.color = new Color(0.95f, 0.7f, 0.55f, 1f);
-                _dynamicObjects.Add(empty.gameObject);
-                return;
-            }
-
-            var row = CampUiRuntime.CreateRect("CharacterRow", host);
-            CampUiRuntime.StretchFull(row.GetComponent<RectTransform>());
-            var h = row.AddComponent<HorizontalLayoutGroup>();
-            h.spacing = 24f;
-            h.childAlignment = TextAnchor.MiddleCenter;
-            h.childControlWidth = false;
-            h.childControlHeight = true;
-            _dynamicObjects.Add(row);
-
-            foreach (var character in _ownedCharacters)
-            {
-                var progress = _meta.GetOrCreate(character.CharacterId);
-                var card = CreateCharacterListCard(row.transform, character, progress);
-                var capturedId = character.CharacterId;
-                var capturedName = character.DisplayName;
-                card.GetComponent<Button>().onClick.AddListener(() => OpenDetail(capturedId, capturedName));
-            }
-        }
-
-        GameObject CreateCharacterListCard(
-            Transform parent,
-            CharacterDefinitionSO character,
-            CharacterMetaProgress progress)
-        {
-            var go = CampUiRuntime.CreateImage("CharacterCard", parent, new Color(0.14f, 0.17f, 0.24f, 0.96f))
-                .gameObject;
-            var rt = go.GetComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(300f, 340f);
-            var le = go.AddComponent<LayoutElement>();
-            le.preferredWidth = 300f;
-            le.preferredHeight = 340f;
-
-            var btn = go.AddComponent<Button>();
-            btn.targetGraphic = go.GetComponent<Image>();
-            UiAudioHooks.WireButton(btn);
-
-            var portrait = CampUiRuntime.CreateImage("Portrait", go.transform, Color.white);
-            portrait.preserveAspect = true;
-            portrait.sprite = _characterVisuals?.GetPortrait(character.CharacterId);
-            var portraitRt = portrait.rectTransform;
-            portraitRt.anchorMin = new Vector2(0.5f, 1f);
-            portraitRt.anchorMax = new Vector2(0.5f, 1f);
-            portraitRt.pivot = new Vector2(0.5f, 1f);
-            portraitRt.anchoredPosition = new Vector2(0f, -16f);
-            portraitRt.sizeDelta = new Vector2(120f, 120f);
-
-            var name = CampUiRuntime.CreateText(go.transform, character.DisplayName, 22, FontStyle.Bold,
-                TextAnchor.UpperCenter);
-            name.rectTransform.anchorMin = new Vector2(0f, 1f);
-            name.rectTransform.anchorMax = new Vector2(1f, 1f);
-            name.rectTransform.offsetMin = new Vector2(8f, -152f);
-            name.rectTransform.offsetMax = new Vector2(-8f, -124f);
-
-            var level = CampUiRuntime.CreateText(go.transform, MetaProgressionRules.FormatLevelProgress(progress),
-                16, FontStyle.Normal, TextAnchor.UpperCenter);
-            level.rectTransform.anchorMin = new Vector2(0f, 1f);
-            level.rectTransform.anchorMax = new Vector2(1f, 1f);
-            level.rectTransform.offsetMin = new Vector2(8f, -184f);
-            level.rectTransform.offsetMax = new Vector2(-8f, -156f);
-            level.color = new Color(0.8f, 0.84f, 0.92f, 1f);
-
-            var summary = CampUiRuntime.CreateText(go.transform, TalentRules.BuildActiveEffectsSummary(progress),
-                14, FontStyle.Italic, TextAnchor.UpperLeft);
-            summary.rectTransform.anchorMin = new Vector2(0f, 0f);
-            summary.rectTransform.anchorMax = new Vector2(1f, 0f);
-            summary.rectTransform.offsetMin = new Vector2(12f, 48f);
-            summary.rectTransform.offsetMax = new Vector2(-12f, 128f);
-            summary.color = new Color(0.68f, 0.74f, 0.86f, 1f);
-
-            var enter = CampUiRuntime.CreateText(go.transform, "点击进入天赋配置 →", 14, FontStyle.Bold,
-                TextAnchor.LowerCenter);
-            enter.rectTransform.anchorMin = new Vector2(0f, 0f);
-            enter.rectTransform.anchorMax = new Vector2(1f, 0f);
-            enter.rectTransform.offsetMin = new Vector2(8f, 12f);
-            enter.rectTransform.offsetMax = new Vector2(-8f, 40f);
-            enter.color = new Color(0.95f, 0.84f, 0.48f, 1f);
-
-            _dynamicObjects.Add(go);
-            return go;
-        }
-
-        void RebuildSlotRow(RectTransform row, string characterId, int slot, CharacterMetaProgress progress)
-        {
-            if (row == null)
-                return;
-
-            for (var i = row.childCount - 1; i >= 0; i--)
-                Destroy(row.GetChild(i).gameObject);
-
-            var runeSprite = _uiIcons != null ? _uiIcons.TalentRunePlate : null;
-            foreach (var talent in TalentCatalog.GetSlotTalents(characterId, slot))
-            {
-                var state = TalentRules.GetCardState(talent, progress);
-                var stoneGo = CampUiRuntime.CreateRect($"Talent_{talent.Id}", row);
-                var stone = stoneGo.AddComponent<TalentRuneStoneView>();
-                stone.Bind(
-                    talent,
-                    state,
-                    runeSprite,
-                    OnTalentCardClicked,
-                    ShowTooltip,
-                    HideTooltip);
-            }
-
-            LayoutRebuilder.ForceRebuildLayoutImmediate(row);
-        }
-
-        void OnTalentCardClicked(TalentDefinition talent)
-        {
-            if (talent == null || string.IsNullOrEmpty(_detailCharacterId))
-                return;
-
-            var progress = _meta.GetOrCreate(_detailCharacterId);
-            if (!TalentRules.IsUnlocked(talent, progress))
-                return;
-
-            TalentRules.TryToggleSelection(talent, progress);
-            _onMetaChanged?.Invoke(_meta);
-
-            var character = FindCharacter(_detailCharacterId);
-            OpenDetail(_detailCharacterId, character?.DisplayName ?? _detailCharacterId);
-        }
-
-        void ShowTooltip(TalentDefinition talent, TalentCardState state)
-        {
-            if (talent == null || _tooltipPanel == null)
-                return;
-
-            var locked = state == TalentCardState.Locked;
-            _tooltipTitle.text = locked
-                ? $"{talent.ShortTitle}（Lv.{talent.UnlockLevel} 解锁）"
-                : $"{talent.ShortTitle}（槽位 {talent.Slot} · Lv.{talent.UnlockLevel}）";
-
-            _tooltipBody.text = locked
-                ? $"需要局外等级 Lv.{talent.UnlockLevel} 才能解锁此天赋。\n\n{talent.Description}"
-                : talent.Description;
-
-            _tooltipPanel.SetActive(true);
-            _tooltipPanel.transform.SetAsLastSibling();
-        }
-
-        void HideTooltip()
-        {
-            if (_tooltipPanel != null)
-                _tooltipPanel.SetActive(false);
-        }
-
-        CharacterDefinitionSO FindCharacter(string characterId)
-        {
-            foreach (var character in _ownedCharacters)
-            {
-                if (character.CharacterId == characterId)
-                    return character;
-            }
-
-            return FindCharacterInSetup(characterId);
-        }
-
         void ClearDynamic()
         {
             foreach (var go in _dynamicObjects)
@@ -639,5 +701,86 @@ namespace Grimhand.Presentation.Camp
 
             _dynamicObjects.Clear();
         }
+
+        static void SetZone(RectTransform rt, Vector4 zone) =>
+            CampUiRuntime.SetAnchored(rt, zone.x, zone.y, zone.z, zone.w);
+
+        static void SetZoneCoverAspect(RectTransform rt, Vector4 zone, float aspect)
+        {
+            var cx = (zone.x + zone.z) * 0.5f;
+            var cy = (zone.y + zone.w) * 0.5f;
+            var rw = (zone.z - zone.x) * TemplateW;
+            var rh = (zone.w - zone.y) * TemplateH;
+            var bw = rw;
+            var bh = bw / aspect;
+            if (bh < rh)
+            {
+                bh = rh;
+                bw = bh * aspect;
+            }
+
+            var nw = bw / TemplateW;
+            var nh = bh / TemplateH;
+            CampUiRuntime.SetAnchored(rt, cx - nw * 0.5f, cy - nh * 0.5f, cx + nw * 0.5f, cy + nh * 0.5f);
+        }
+
+        /// <summary>保持宽高比缩进热区内（不撑破），用于返回钮刚好盖住模板按钮。</summary>
+        static void SetZoneFitAspect(RectTransform rt, Vector4 zone, float aspect)
+        {
+            var cx = (zone.x + zone.z) * 0.5f;
+            var cy = (zone.y + zone.w) * 0.5f;
+            var rw = (zone.z - zone.x) * TemplateW;
+            var rh = (zone.w - zone.y) * TemplateH;
+            var bw = rw;
+            var bh = bw / aspect;
+            if (bh > rh)
+            {
+                bh = rh;
+                bw = bh * aspect;
+            }
+
+            var nw = bw / TemplateW;
+            var nh = bh / TemplateH;
+            CampUiRuntime.SetAnchored(rt, cx - nw * 0.5f, cy - nh * 0.5f, cx + nw * 0.5f, cy + nh * 0.5f);
+        }
+
+        static void SetRowBand(RectTransform rt, Vector4 colZone, float t0, float t1)
+        {
+            var y0 = Lerp(colZone.y, colZone.w, t0);
+            var y1 = Lerp(colZone.y, colZone.w, t1);
+            CampUiRuntime.SetAnchored(rt, colZone.x, y0, colZone.z, y1);
+        }
+
+        /// <summary>按模板圆槽虚影固定边长，居中到该行。</summary>
+        static void SetSquareInColumn(RectTransform rt, Vector4 colZone, float t0, float t1)
+        {
+            var y0 = Lerp(colZone.y, colZone.w, t0);
+            var y1 = Lerp(colZone.y, colZone.w, t1);
+            var cy = (y0 + y1) * 0.5f;
+            var cx = (colZone.x + colZone.z) * 0.5f;
+            var nw = RuneSizePx / TemplateW;
+            var nh = RuneSizePx / TemplateH;
+            CampUiRuntime.SetAnchored(rt, cx - nw * 0.5f, cy - nh * 0.5f, cx + nw * 0.5f, cy + nh * 0.5f);
+        }
+
+        static float Lerp(float a, float b, float t) => a + (b - a) * t;
+    }
+
+    /// <summary>天赋行悬停转发（避免与 Button 抢事件）。</summary>
+    sealed class TalentRowHoverRelay : MonoBehaviour, UnityEngine.EventSystems.IPointerEnterHandler,
+        UnityEngine.EventSystems.IPointerExitHandler
+    {
+        Action _enter;
+        Action _exit;
+
+        public void Bind(Action enter, Action exit)
+        {
+            _enter = enter;
+            _exit = exit;
+        }
+
+        public void OnPointerEnter(UnityEngine.EventSystems.PointerEventData eventData) => _enter?.Invoke();
+
+        public void OnPointerExit(UnityEngine.EventSystems.PointerEventData eventData) => _exit?.Invoke();
     }
 }

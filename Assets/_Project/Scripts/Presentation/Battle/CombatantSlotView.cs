@@ -51,7 +51,6 @@ namespace Grimhand.Presentation.Battle
         [SerializeField] Button selectButton;
         [SerializeField] TeamSide team;
         [SerializeField] FormationSlot formationSlot;
-        [SerializeField] bool mirrorPortrait;
 
         RectTransform _portraitHit;
         Outline _targetOutline;
@@ -168,7 +167,6 @@ namespace Grimhand.Presentation.Battle
             formationSlot = slot;
             team = teamSide;
             // 忽略 mirror 参数：原画已朝向场地中央，不镜像
-            mirrorPortrait = false;
             ApplyPortraitMirror();
             ApplyDrawOrder();
             ApplyStatusAnchorLayout();
@@ -181,7 +179,6 @@ namespace Grimhand.Presentation.Battle
             if (formationSlot == 0)
                 TryInferSlotFromName();
             // 不再按阵营默认镜像：原画已面向场地中央
-            mirrorPortrait = false;
             ApplyStatusAnchorLayout();
             ApplyPortraitMirror();
             EnsurePortraitInteraction();
@@ -217,8 +214,6 @@ namespace Grimhand.Presentation.Battle
                 if (parent.name.Contains("Enemy")) team = TeamSide.Enemy;
                 else if (parent.name.Contains("Player")) team = TeamSide.Player;
             }
-
-            mirrorPortrait = false;
         }
 
         void EnsurePortraitInteraction()

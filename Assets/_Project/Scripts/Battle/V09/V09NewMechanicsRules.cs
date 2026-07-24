@@ -743,13 +743,38 @@ namespace Grimhand.Battle.V09
             return 30;
         }
 
-        /// <summary>灵能体：非战斗时段我方造成的伤害 +20%。</summary>
+        /// <summary>灵界专注：非战斗时段我方造成的伤害 +10%。</summary>
+        public static float GetLichSpiritFocusDamageMultiplier(BattleState state, TeamSide sourceTeam)
+        {
+            if (state == null || sourceTeam != TeamSide.Player || !IsNonCombatPhase(state))
+                return 1f;
+            return TalentBattleRules.HasTalent(state, "talent_lich_s2_lv2") ? 1.1f : 1f;
+        }
+
+        /// <summary>灵能体 / 灵界专注：非战斗时段我方造成的伤害增幅（可叠加）。</summary>
+        public static float GetNonCombatOutgoingDamageMultiplier(BattleState state, TeamSide sourceTeam)
+        {
+            if (state == null || sourceTeam != TeamSide.Player || !IsNonCombatPhase(state))
+                return 1f;
+
+            var mul = 1f;
+            if (TeamHasPsionicBody(state))
+                mul *= 1.2f;
+            mul *= GetLichSpiritFocusDamageMultiplier(state, sourceTeam);
+            return mul;
+        }
+
+        /// <summary>灵能体：非战斗时段我方造成的伤害 +20%；灵界专注：+10%（可叠加）。</summary>
         public static int ApplyPsionicBodyBonus(BattleState state, TeamSide sourceTeam, int damage)
         {
-            if (damage <= 0 || sourceTeam != TeamSide.Player || !IsNonCombatPhase(state) || !TeamHasPsionicBody(state))
+            if (damage <= 0 || sourceTeam != TeamSide.Player)
                 return damage;
 
-            return System.Math.Max(1, (int)System.Math.Round(damage * 1.2f));
+            var mul = GetNonCombatOutgoingDamageMultiplier(state, sourceTeam);
+            if (mul <= 1f)
+                return damage;
+
+            return System.Math.Max(1, (int)System.Math.Round(damage * mul));
         }
     }
 }

@@ -85,6 +85,8 @@ namespace Grimhand.Editor
                 ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/button2.png");
             catalog.UiButton4 = LoadNamedSprite(NewUiRoot + "interactables_and_ui/button4.png", "button4_0")
                 ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/button4.png");
+            catalog.UiButton6 = LoadNamedSprite(NewUiRoot + "interactables_and_ui/button6.png", "button6_0")
+                ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/button6.png");
             catalog.ChampionCampTeamBackground = LoadFirstSprite(
                 NewUiRoot + "templates/配置队伍概念图-模板.png");
             catalog.ChampionCampCollectionBackground = LoadFirstSprite(
@@ -100,6 +102,21 @@ namespace Grimhand.Editor
                 ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/slider.png");
             catalog.UiCardDetailBackground = LoadFirstSprite(
                 NewUiRoot + "templates/卡牌遗物角色详情概念图-模板.png");
+            catalog.UiCampShopBackground = LoadFirstSprite(
+                NewUiRoot + "templates/营地商店概念图-模板.png");
+            catalog.UiMerchantGoodsPlate = LoadNamedSprite(
+                NewUiRoot + "interactables_and_ui/merchant_camp_goodsplate.png", "merchant_camp_goodsplate_0")
+                ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/merchant_camp_goodsplate.png");
+            catalog.UiMerchantGoodsImagePlate = LoadNamedSprite(
+                NewUiRoot + "interactables_and_ui/merchant_camp_goodsimageplate.png",
+                "merchant_camp_goodsimageplate_0")
+                ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/merchant_camp_goodsimageplate.png");
+            catalog.UiPromptPlate = LoadNamedSprite(
+                NewUiRoot + "interactables_and_ui/prompt_plate.png", "prompt_plate_0")
+                ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/prompt_plate.png");
+            catalog.UiInformationPlate = LoadNamedSprite(
+                NewUiRoot + "interactables_and_ui/information_plate.png", "information_plate_0")
+                ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/information_plate.png");
             catalog.MerchantCampBuilding = LoadNamedSprite(CampArtRoot + "merchant_camp.png", "merchant_camp_0");
             catalog.PortalBuilding = LoadNamedSprite(CampArtRoot + "portal.png", "portal_0");
             catalog.TrainingGroundBuilding = LoadNamedSprite(CampArtRoot + "training_ground.png", "training_ground_0")
@@ -122,6 +139,10 @@ namespace Grimhand.Editor
                 LoadNamedSprite(IconRoot + "escmenu.png", "escmenu_3")
             };
             catalog.TalentAltarBuilding = LoadNamedSprite(CampArtRoot + "talent_alter.png", "talent_alter_0");
+            catalog.UiTalentAltarBackground = LoadFirstSprite(
+                NewUiRoot + "templates/天赋祭坛概念图-模板.png");
+            catalog.UiLibraryCodexBackground = LoadFirstSprite(
+                NewUiRoot + "templates/图鉴概念图-模板.png");
             catalog.TalentRunePlate = LoadNamedSprite(IconRoot + "talent_rune_plate.png", "talent_rune_plate_0");
             catalog.TreasureChestClosed = LoadFirstSprite("Assets/The Grimhands Asset/icon/treasure_chest_closed.png");
             catalog.TreasureChestOpen = LoadFirstSprite("Assets/The Grimhands Asset/icon/treasure_chest_open.png");

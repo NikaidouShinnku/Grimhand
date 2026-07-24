@@ -40,6 +40,7 @@ MonoBehaviour:
   UiButton1: {fileID: 1086331387851373080, guid: 14b186b726ab3524fb83e5c2a8ca679d, type: 3}
   UiButton2: {fileID: 8871750365745515610, guid: d619ff2ea209a2246acbd4d72c70dbe4, type: 3}
   UiButton4: {fileID: 9144582269909938847, guid: ef10e47b9b2ae804a9a0ffd37082d925, type: 3}
+  UiButton6: {fileID: 7568152274879746454, guid: 62190e57d27c1084e87ce0d668ebc28b, type: 3}
   ChampionCampTeamBackground: {fileID: 5994488411133315561, guid: 3f3696689d9c0684dac38c7a2fa31792, type: 3}
   ChampionCampCollectionBackground: {fileID: 7209182411906069109, guid: 136772d9a99b2f041a4528e44157b516, type: 3}
   ChampionCampCharacterSelectBackground: {fileID: -4891787566669454194, guid: 7ab2574c28ad43d4c905097073d17caf, type: 3}
@@ -47,6 +48,11 @@ MonoBehaviour:
   UiSliderBar: {fileID: 726077871081428148, guid: 57ed6ea2170b68f4d90a1423fa946a4d, type: 3}
   UiSlider: {fileID: 6259983639586318526, guid: 9d147a4feca23334686cb8677f8cb1fb, type: 3}
   UiCardDetailBackground: {fileID: 7972302303753936476, guid: 23f0985e021397e468b3de0ace467930, type: 3}
+  UiCampShopBackground: {fileID: 1181734610085639232, guid: a6639200538557a4a8484fd667d2c028, type: 3}
+  UiMerchantGoodsPlate: {fileID: 5259747473136246319, guid: 770c6675c2743e04dadd34d17f0a27e7, type: 3}
+  UiMerchantGoodsImagePlate: {fileID: -3197859760195274323, guid: de9e6afb8c9dda04db06332220f546d7, type: 3}
+  UiPromptPlate: {fileID: -9038996849599471438, guid: f1bdb0f7f59d07c4e8563c8b0d3a60fb, type: 3}
+  UiInformationPlate: {fileID: -6407821348471935228, guid: 42d3a5cfd9440a3478fcf2ae537099ec, type: 3}
   MerchantCampBuilding: {fileID: 1068998374052479245, guid: 24f6602b4c282414b8ba9f8fb4d661ac, type: 3}
   PortalBuilding: {fileID: -5816642994671486895, guid: 8001fab66b4b9164f897cd99ce75c3c9, type: 3}
   TrainingGroundBuilding: {fileID: 8469175750776524633, guid: 48f081ea59901d848aa889879fd72f60, type: 3}
@@ -63,6 +69,8 @@ MonoBehaviour:
   - {fileID: 3626979959010494828, guid: 8eea5bbb263a8ff4aa420f493afa4e49, type: 3}
   - {fileID: -2851821248087912490, guid: 8eea5bbb263a8ff4aa420f493afa4e49, type: 3}
   TalentAltarBuilding: {fileID: -7883540776455437975, guid: 25365cd805f3d9845a027898103047dd, type: 3}
+  UiTalentAltarBackground: {fileID: 5357591938430817483, guid: ca2e39c3277ef6949acdf83cdb6484a9, type: 3}
+  UiLibraryCodexBackground: {fileID: -2091795795522694761, guid: 4e37280d484db664fa248d7ed23cee93, type: 3}
   TalentRunePlate: {fileID: 3640283115439223827, guid: 24a2f5fd444af0844b332a37a382e580, type: 3}
   TreasureChestClosed: {fileID: -7219296677170973702, guid: a869e9d4f75b44e40bd0a5bba6b0122e, type: 3}
   TreasureChestOpen: {fileID: 4853945434919486788, guid: 5bc009981bcff9d4cb2419a05e08ffe0, type: 3}

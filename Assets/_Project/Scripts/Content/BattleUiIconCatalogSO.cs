@@ -42,6 +42,8 @@ namespace Grimhand.Content
         public Sprite UiButton2;
         /// <summary>通用 UI 按钮框：interactables_and_ui/button4.png</summary>
         public Sprite UiButton4;
+        /// <summary>通用 UI 按钮框：interactables_and_ui/button6.png（离开商店等宽钮）</summary>
+        public Sprite UiButton6;
         /// <summary>配置队伍二级：templates/配置队伍概念图-模板.png</summary>
         public Sprite ChampionCampTeamBackground;
         /// <summary>管理卡牌二级：templates/军营收藏概念图-模板.png</summary>
@@ -56,6 +58,16 @@ namespace Grimhand.Content
         public Sprite UiSlider;
         /// <summary>卡牌/遗物/角色详情：templates/卡牌遗物角色详情概念图-模板.png</summary>
         public Sprite UiCardDetailBackground;
+        /// <summary>局外营地商店：templates/营地商店概念图-模板.png</summary>
+        public Sprite UiCampShopBackground;
+        /// <summary>商店商品行底板：interactables_and_ui/merchant_camp_goodsplate.png</summary>
+        public Sprite UiMerchantGoodsPlate;
+        /// <summary>商店商品图标框：interactables_and_ui/merchant_camp_goodsimageplate.png</summary>
+        public Sprite UiMerchantGoodsImagePlate;
+        /// <summary>通用是/否确认底板：interactables_and_ui/prompt_plate.png</summary>
+        public Sprite UiPromptPlate;
+        /// <summary>信息/设置底板：interactables_and_ui/information_plate.png</summary>
+        public Sprite UiInformationPlate;
         public Sprite MerchantCampBuilding;
         public Sprite PortalBuilding;
         /// <summary>Assets/The Grimhands Asset/path and background/training_ground.png</summary>
@@ -70,6 +82,10 @@ namespace Grimhand.Content
         public Sprite[] EscMenuButtons = System.Array.Empty<Sprite>();
         /// <summary>Assets/The Grimhands Asset/path and background/talent_alter.png</summary>
         public Sprite TalentAltarBuilding;
+        /// <summary>局外天赋祭坛：templates/天赋祭坛概念图-模板.png</summary>
+        public Sprite UiTalentAltarBackground;
+        /// <summary>局外图书馆图鉴：templates/图鉴概念图-模板.png</summary>
+        public Sprite UiLibraryCodexBackground;
         /// <summary>Assets/The Grimhands Asset/icon/talent_rune_plate.png</summary>
         public Sprite TalentRunePlate;
         public Sprite TreasureChestClosed;

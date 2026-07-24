@@ -166,7 +166,7 @@ namespace Grimhand.Expedition
                 "永久处于虚化时不再受永恒虚无真伤（TODO：占位）");
 
             yield return Def(LichQueenId, 2, 2, "talent_lich_s2_lv2", "灵界专注",
-                "非攻击类卡牌造成的伤害+10%（TODO：语义待确认）");
+                "自身在非战斗回合造成的伤害拥有10%增伤");
             yield return Def(LichQueenId, 2, 5, "talent_lich_s2_lv5", "魂火节流",
                 "每场战斗中使用的第一张消耗牌能量消耗-1");
             yield return Def(LichQueenId, 2, 10, "talent_lich_s2_lv10", "封印武装",

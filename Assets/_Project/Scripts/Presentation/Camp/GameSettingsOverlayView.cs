@@ -1,14 +1,34 @@
 using System;
+using Grimhand.Content;
+using Grimhand.Presentation.Audio;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Camp
 {
-    /// <summary>设置：音乐 / 音效 / 分辨率。</summary>
+    /// <summary>设置：音乐 / 音效 / 分辨率；底板 information_plate，返回 button2。</summary>
     [DisallowMultipleComponent]
     public sealed class GameSettingsOverlayView : MonoBehaviour
     {
+        const float PanelWidth = 560f;
+        // 相对 information_plate 原生比例纵向拉长，容纳设置项
+        const float PanelHeight = 620f;
+        const float ButtonAspect = 512f / 292f;
+        const float ButtonHoverScale = 1.06f;
+        const int LayoutVersion = 2;
+
+        static readonly Color TitleColor = new(0.95f, 0.85f, 0.55f, 1f);
+        static readonly Color LabelColor = new(0.92f, 0.90f, 0.84f, 1f);
+        static readonly Color ButtonLabelColor = new(0.96f, 0.92f, 0.78f, 1f);
+
+        // 板内槽位（原点左下）；边距避开装饰框
+        static readonly Vector4 ZoneTitle = new(0.12f, 0.86f, 0.88f, 0.94f);
+        static readonly Vector4 ZoneBack = new(0.32f, 0.06f, 0.68f, 0.16f);
+
+        [SerializeField] BattleUiIconCatalogSO uiIcons;
+
         bool _built;
+        int _builtVersion = -1;
         RectTransform _root;
         Slider _musicSlider;
         Slider _sfxSlider;
@@ -19,8 +39,12 @@ namespace Grimhand.Presentation.Camp
 
         public bool IsOpen => _root != null && _root.gameObject.activeSelf;
 
-        public void Initialize(Action onClose)
+        public void ConfigureArt(BattleUiIconCatalogSO icons) => uiIcons = icons;
+
+        public void Initialize(Action onClose, BattleUiIconCatalogSO icons = null)
         {
+            if (icons != null)
+                uiIcons = icons;
             _onClose = onClose;
             EnsureBuilt();
         }
@@ -60,10 +84,14 @@ namespace Grimhand.Presentation.Camp
 
         void EnsureBuilt()
         {
-            if (_built)
+            if (_built && _builtVersion == LayoutVersion)
                 return;
 
+            if (_root != null)
+                Destroy(_root.gameObject);
+
             _built = true;
+            _builtVersion = LayoutVersion;
             var hostRt = GetComponent<RectTransform>();
             if (hostRt == null)
                 hostRt = gameObject.AddComponent<RectTransform>();
@@ -75,26 +103,41 @@ namespace Grimhand.Presentation.Camp
             var backdrop = CampUiRuntime.CreateImage("Backdrop", _root, new Color(0f, 0f, 0f, 0.72f));
             CampUiRuntime.StretchFull(backdrop.rectTransform);
 
-            var panel = CampUiRuntime.CreateImage("Panel", _root, new Color(0.08f, 0.09f, 0.12f, 0.98f))
-                .rectTransform;
+            var panelImg = CampUiRuntime.CreateImage("Panel", _root, Color.white);
+            var panel = panelImg.rectTransform;
             panel.anchorMin = new Vector2(0.5f, 0.5f);
             panel.anchorMax = new Vector2(0.5f, 0.5f);
             panel.pivot = new Vector2(0.5f, 0.5f);
-            panel.sizeDelta = new Vector2(520f, 460f);
+            panel.sizeDelta = new Vector2(PanelWidth, PanelHeight);
+            panelImg.preserveAspect = false;
+            panelImg.raycastTarget = true;
 
-            var title = CampUiRuntime.CreateText(panel, "设置", 28, FontStyle.Bold, TextAnchor.UpperCenter);
-            title.rectTransform.anchorMin = new Vector2(0f, 1f);
-            title.rectTransform.anchorMax = new Vector2(1f, 1f);
-            title.rectTransform.offsetMin = new Vector2(0f, -56f);
-            title.rectTransform.offsetMax = new Vector2(0f, -8f);
+            var plate = uiIcons != null ? uiIcons.UiInformationPlate : null;
+            if (plate != null)
+            {
+                panelImg.sprite = plate;
+                panelImg.color = Color.white;
+                panelImg.type = Image.Type.Simple;
+            }
+            else
+            {
+                panelImg.sprite = null;
+                panelImg.color = new Color(0.08f, 0.09f, 0.12f, 0.98f);
+                Debug.LogWarning("[Settings] 缺少 UiInformationPlate，请执行 Grimhand → Content → Refresh UI Visual Catalogs。");
+            }
 
-            _musicSlider = CreateVolumeRow(panel, "音乐", 0.78f, GameSettings.MusicVolume, v =>
+            var title = CampUiRuntime.CreateText(panel, "设置", 28, FontStyle.Bold, TextAnchor.MiddleCenter);
+            CampUiRuntime.SetAnchored(title.rectTransform, ZoneTitle.x, ZoneTitle.y, ZoneTitle.z, ZoneTitle.w);
+            title.color = TitleColor;
+            title.raycastTarget = false;
+
+            _musicSlider = CreateVolumeRow(panel, "音乐", 0.72f, GameSettings.MusicVolume, v =>
             {
                 GameSettings.MusicVolume = v;
                 GameSettings.ApplyAudioVolumes();
                 GameSettings.Save();
             });
-            _sfxSlider = CreateVolumeRow(panel, "音效", 0.62f, GameSettings.SfxVolume, v =>
+            _sfxSlider = CreateVolumeRow(panel, "音效", 0.58f, GameSettings.SfxVolume, v =>
             {
                 GameSettings.SfxVolume = v;
                 GameSettings.ApplyAudioVolumes();
@@ -103,36 +146,56 @@ namespace Grimhand.Presentation.Camp
 
             BuildResolutionRow(panel);
             BuildFullscreenRow(panel);
+            CreateBackButton(panel);
 
-            var hint = CampUiRuntime.CreateText(panel, "分辨率更改后立即生效。", 14, FontStyle.Italic,
-                TextAnchor.LowerCenter);
-            hint.rectTransform.anchorMin = new Vector2(0f, 0f);
-            hint.rectTransform.anchorMax = new Vector2(1f, 0f);
-            hint.rectTransform.offsetMin = new Vector2(16f, 64f);
-            hint.rectTransform.offsetMax = new Vector2(-16f, 96f);
-            hint.color = new Color(0.7f, 0.72f, 0.78f, 1f);
+            _root.gameObject.SetActive(false);
+        }
 
-            var closeBtn = CampUiRuntime.CreateButton(panel, "返回", new Color(0.28f, 0.3f, 0.36f, 1f),
-                new Vector2(140f, 44f));
-            var closeRt = closeBtn.GetComponent<RectTransform>();
-            closeRt.anchorMin = new Vector2(0.5f, 0f);
-            closeRt.anchorMax = new Vector2(0.5f, 0f);
-            closeRt.pivot = new Vector2(0.5f, 0f);
-            closeRt.anchoredPosition = new Vector2(0f, 16f);
-            closeBtn.onClick.AddListener(() =>
+        void CreateBackButton(RectTransform panel)
+        {
+            var go = CampUiRuntime.CreateRect("Back", panel);
+            var rt = go.GetComponent<RectTransform>();
+            SetZoneCoverAspect(rt, ZoneBack, PanelWidth, PanelHeight, ButtonAspect);
+
+            var img = go.AddComponent<Image>();
+            img.color = Color.white;
+            img.raycastTarget = true;
+            img.preserveAspect = false;
+            if (uiIcons != null && uiIcons.UiButton2 != null)
+                img.sprite = uiIcons.UiButton2;
+            else
+                img.color = new Color(0.28f, 0.3f, 0.36f, 1f);
+
+            var label = CampUiRuntime.CreateText(go.transform, "返回", 20, FontStyle.Bold, TextAnchor.MiddleCenter);
+            CampUiRuntime.StretchFull(label.rectTransform);
+            label.rectTransform.offsetMin = new Vector2(4f, 2f);
+            label.rectTransform.offsetMax = new Vector2(-4f, -6f);
+            label.color = ButtonLabelColor;
+            label.raycastTarget = false;
+
+            var group = go.AddComponent<CanvasGroup>();
+            group.alpha = 1f;
+            group.blocksRaycasts = true;
+            group.interactable = true;
+            var hover = go.AddComponent<CampBuildingHoverView>();
+            hover.Bind(rt, group, ButtonHoverScale, hideWhenIdle: false);
+
+            var btn = go.AddComponent<Button>();
+            btn.targetGraphic = img;
+            btn.transition = Selectable.Transition.None;
+            btn.onClick.AddListener(() =>
             {
                 Hide();
                 _onClose?.Invoke();
             });
-
-            _root.gameObject.SetActive(false);
+            UiAudioHooks.WireButton(btn);
         }
 
         void BuildResolutionRow(RectTransform panel)
         {
             var row = CampUiRuntime.CreateRect("ResolutionRow", panel).GetComponent<RectTransform>();
-            row.anchorMin = new Vector2(0.08f, 0.38f);
-            row.anchorMax = new Vector2(0.92f, 0.52f);
+            row.anchorMin = new Vector2(0.12f, 0.40f);
+            row.anchorMax = new Vector2(0.88f, 0.52f);
             row.offsetMin = Vector2.zero;
             row.offsetMax = Vector2.zero;
 
@@ -141,6 +204,8 @@ namespace Grimhand.Presentation.Camp
             label.rectTransform.anchorMax = new Vector2(0.28f, 1f);
             label.rectTransform.offsetMin = Vector2.zero;
             label.rectTransform.offsetMax = Vector2.zero;
+            label.color = LabelColor;
+            label.raycastTarget = false;
 
             var prev = CampUiRuntime.CreateButton(row, "◀", new Color(0.22f, 0.26f, 0.34f, 1f),
                 new Vector2(48f, 36f));
@@ -163,6 +228,7 @@ namespace Grimhand.Presentation.Camp
             _resolutionLabel.rectTransform.offsetMin = Vector2.zero;
             _resolutionLabel.rectTransform.offsetMax = Vector2.zero;
             _resolutionLabel.color = new Color(0.92f, 0.88f, 0.72f, 1f);
+            _resolutionLabel.raycastTarget = false;
 
             var next = CampUiRuntime.CreateButton(row, "▶", new Color(0.22f, 0.26f, 0.34f, 1f),
                 new Vector2(48f, 36f));
@@ -182,8 +248,8 @@ namespace Grimhand.Presentation.Camp
         void BuildFullscreenRow(RectTransform panel)
         {
             var row = CampUiRuntime.CreateRect("FullscreenRow", panel).GetComponent<RectTransform>();
-            row.anchorMin = new Vector2(0.08f, 0.24f);
-            row.anchorMax = new Vector2(0.92f, 0.36f);
+            row.anchorMin = new Vector2(0.12f, 0.26f);
+            row.anchorMax = new Vector2(0.88f, 0.38f);
             row.offsetMin = Vector2.zero;
             row.offsetMax = Vector2.zero;
 
@@ -192,6 +258,8 @@ namespace Grimhand.Presentation.Camp
             label.rectTransform.anchorMax = new Vector2(0.28f, 1f);
             label.rectTransform.offsetMin = Vector2.zero;
             label.rectTransform.offsetMax = Vector2.zero;
+            label.color = LabelColor;
+            label.raycastTarget = false;
 
             var toggleGo = CampUiRuntime.CreateRect("FullscreenToggle", row);
             var toggleRt = toggleGo.GetComponent<RectTransform>();
@@ -231,8 +299,8 @@ namespace Grimhand.Presentation.Camp
         static Slider CreateVolumeRow(RectTransform panel, string label, float anchorY, float initial, Action<float> onChanged)
         {
             var row = CampUiRuntime.CreateRect(label + "Row", panel).GetComponent<RectTransform>();
-            row.anchorMin = new Vector2(0.08f, anchorY);
-            row.anchorMax = new Vector2(0.92f, anchorY + 0.12f);
+            row.anchorMin = new Vector2(0.12f, anchorY);
+            row.anchorMax = new Vector2(0.88f, anchorY + 0.10f);
             row.offsetMin = Vector2.zero;
             row.offsetMax = Vector2.zero;
 
@@ -241,6 +309,8 @@ namespace Grimhand.Presentation.Camp
             labelText.rectTransform.anchorMax = new Vector2(0.28f, 1f);
             labelText.rectTransform.offsetMin = Vector2.zero;
             labelText.rectTransform.offsetMax = Vector2.zero;
+            labelText.color = LabelColor;
+            labelText.raycastTarget = false;
 
             var sliderGo = CampUiRuntime.CreateRect("Slider", row);
             var sliderRt = sliderGo.GetComponent<RectTransform>();
@@ -281,6 +351,25 @@ namespace Grimhand.Presentation.Camp
             slider.onValueChanged.AddListener(v => onChanged?.Invoke(v));
 
             return slider;
+        }
+
+        static void SetZoneCoverAspect(RectTransform rt, Vector4 zone, float plateW, float plateH, float aspect)
+        {
+            var cx = (zone.x + zone.z) * 0.5f;
+            var cy = (zone.y + zone.w) * 0.5f;
+            var rw = (zone.z - zone.x) * plateW;
+            var rh = (zone.w - zone.y) * plateH;
+            var bw = rw;
+            var bh = bw / aspect;
+            if (bh < rh)
+            {
+                bh = rh;
+                bw = bh * aspect;
+            }
+
+            var nw = bw / plateW;
+            var nh = bh / plateH;
+            CampUiRuntime.SetAnchored(rt, cx - nw * 0.5f, cy - nh * 0.5f, cx + nw * 0.5f, cy + nh * 0.5f);
         }
     }
 }

@@ -100,7 +100,8 @@ namespace Grimhand.Presentation.Camp
                 ForfeitExpeditionFromEsc,
                 QuitGame,
                 uiIcons);
-            settingsOverlay?.Initialize(CloseSettings);
+            settingsOverlay?.ConfigureArt(uiIcons);
+            settingsOverlay?.Initialize(CloseSettings, uiIcons);
 
             campScreen?.ConfigureArt(uiIcons);
             campScreen?.Initialize(

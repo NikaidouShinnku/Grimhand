@@ -12,7 +12,9 @@ using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Camp
 {
-    /// <summary>营地图书馆图鉴：玩家角色 / 卡牌 / 敌方角色 / 敌方卡牌 / 遗物。</summary>
+    /// <summary>
+    /// 图书馆图鉴：模板底图 + button6 五页签 + 内容区（角色/卡牌/敌人/敌卡/遗物）。
+    /// </summary>
     [DisallowMultipleComponent]
     public sealed class LibraryCodexOverlayView : MonoBehaviour
     {
@@ -25,17 +27,35 @@ namespace Grimhand.Presentation.Camp
             Relics
         }
 
-        const float PanelWidth = 1180f;
-        const float PanelHeight = 820f;
-        const float CardScale = 0.68f;
-        const int CardsPerRow = 5;
-        const int PortraitColumns = 4;
-        const int RelicColumns = 5;
-        const float CardGridHorizontalPadding = 16f;
+        const int LayoutVersion = 1;
+        const float ButtonHoverScale = 1.06f;
+        const float CardScale = 0.62f;
+        const int CardsPerRow = 6;
+        const int PortraitColumns = 6;
+        const int RelicColumns = 7;
+        const float CardGridHorizontalPadding = 10f;
+
+        // 模板归一化（原点左下）
+        static readonly Vector4 ZoneClose = new(0.862f, 0.898f, 0.968f, 0.962f);
+        static readonly Vector4 ZoneTabs = new(0.128f, 0.748f, 0.872f, 0.818f);
+        static readonly Vector4 ZoneContent = new(0.138f, 0.138f, 0.862f, 0.720f);
 
         static readonly Color SilhouetteColor = new(0.02f, 0.02f, 0.03f, 1f);
-        static readonly Color TabActive = new(0.32f, 0.26f, 0.16f, 0.98f);
-        static readonly Color TabIdle = new(0.14f, 0.15f, 0.2f, 0.96f);
+        static readonly Color TabActiveTint = new(1f, 0.92f, 0.72f, 1f);
+        static readonly Color TabIdleTint = new(0.62f, 0.64f, 0.70f, 1f);
+        static readonly Color TabActiveLabel = new(0.98f, 0.94f, 0.78f, 1f);
+        static readonly Color TabIdleLabel = new(0.78f, 0.80f, 0.86f, 1f);
+        static readonly Color SectionGold = new(0.92f, 0.82f, 0.48f, 1f);
+        static readonly Color ButtonLabel = new(0.96f, 0.92f, 0.78f, 1f);
+
+        static readonly string[] TabLabels =
+        {
+            "玩家角色",
+            "卡牌",
+            "敌方角色",
+            "敌方卡牌",
+            "遗物"
+        };
 
         PlayerProfileState _profile;
         CardView _cardPrefab;
@@ -47,16 +67,17 @@ namespace Grimhand.Presentation.Camp
         Action _onClose;
 
         RectTransform _overlayRoot;
-        RectTransform _panel;
+        Image _bgImage;
         RectTransform _content;
         ScrollRect _scroll;
         InventoryTooltipView _tooltip;
         CampCardDetailView _cardDetail;
-        Text _titleText;
-        readonly List<Button> _tabButtons = new();
+        readonly List<Image> _tabImages = new();
+        readonly List<Text> _tabLabels = new();
         readonly List<GameObject> _dynamicObjects = new();
         CodexTab _activeTab = CodexTab.PlayerCharacters;
         bool _built;
+        int _builtVersion = -1;
 
         public bool IsOpen => _overlayRoot != null && _overlayRoot.gameObject.activeSelf;
 
@@ -100,35 +121,53 @@ namespace Grimhand.Presentation.Camp
 
         void EnsureBuilt()
         {
-            if (_built)
+            if (_built && _builtVersion == LayoutVersion)
                 return;
 
+            if (_overlayRoot != null)
+                Destroy(_overlayRoot.gameObject);
+
             _built = true;
-            var root = CampUiRuntime.CreateRect("LibraryCodexRoot", transform);
-            _overlayRoot = root.GetComponent<RectTransform>();
+            _builtVersion = LayoutVersion;
+            _dynamicObjects.Clear();
+            _tabImages.Clear();
+            _tabLabels.Clear();
+
+            var hostRt = GetComponent<RectTransform>();
+            if (hostRt == null)
+                hostRt = gameObject.AddComponent<RectTransform>();
+            CampUiRuntime.StretchFull(hostRt);
+
+            _overlayRoot = CampUiRuntime.CreateRect("LibraryCodexRoot", transform).GetComponent<RectTransform>();
             CampUiRuntime.StretchFull(_overlayRoot);
+            _overlayRoot.gameObject.SetActive(false);
 
-            var dim = root.AddComponent<Image>();
-            dim.color = new Color(0f, 0f, 0f, 0.62f);
-            dim.raycastTarget = true;
+            _bgImage = CampUiRuntime.CreateImage("Background", _overlayRoot, Color.white);
+            CampUiRuntime.StretchFull(_bgImage.rectTransform);
+            _bgImage.preserveAspect = false;
+            _bgImage.raycastTarget = true;
+            var bgSprite = _uiIcons != null ? _uiIcons.UiLibraryCodexBackground : null;
+            if (bgSprite != null)
+            {
+                _bgImage.sprite = bgSprite;
+                _bgImage.color = Color.white;
+                _bgImage.type = Image.Type.Simple;
+            }
+            else
+            {
+                _bgImage.sprite = null;
+                _bgImage.color = new Color(0.04f, 0.05f, 0.08f, 0.98f);
+                Debug.LogWarning("[LibraryCodex] 缺少 UiLibraryCodexBackground，请执行 Grimhand → Content → Refresh UI Visual Catalogs。");
+            }
 
-            var panelGo = CampUiRuntime.CreateRect("Panel", root.transform);
-            _panel = panelGo.GetComponent<RectTransform>();
-            _panel.anchorMin = new Vector2(0.5f, 0.5f);
-            _panel.anchorMax = new Vector2(0.5f, 0.5f);
-            _panel.pivot = new Vector2(0.5f, 0.5f);
-            _panel.sizeDelta = new Vector2(PanelWidth, PanelHeight);
-            var panelBg = panelGo.AddComponent<Image>();
-            panelBg.color = new Color(0.06f, 0.07f, 0.1f, 0.97f);
+            CreateCloseButton();
+            BuildTabs();
+            BuildScroll();
 
-            BuildHeader(panelGo.transform);
-            BuildTabs(panelGo.transform);
-            BuildScroll(panelGo.transform);
+            _tooltip = _overlayRoot.gameObject.AddComponent<InventoryTooltipView>();
+            _tooltip.Initialize(_overlayRoot);
 
-            _tooltip = panelGo.AddComponent<InventoryTooltipView>();
-            _tooltip.Initialize(_panel);
-
-            var detailHost = CampUiRuntime.CreateRect("CardDetailHost", root.transform);
+            var detailHost = CampUiRuntime.CreateRect("CardDetailHost", _overlayRoot);
             CampUiRuntime.StretchFull(detailHost.GetComponent<RectTransform>());
             _cardDetail = detailHost.AddComponent<CampCardDetailView>();
             _cardDetail.Initialize(
@@ -138,96 +177,128 @@ namespace Grimhand.Presentation.Camp
                 _uiIcons,
                 _definitions,
                 playerCharacters: null);
-
-            _overlayRoot.gameObject.SetActive(false);
         }
 
-        void BuildHeader(Transform parent)
+        void CreateCloseButton()
         {
-            var header = CampUiRuntime.CreateRect("Header", parent);
-            var headerRt = header.GetComponent<RectTransform>();
-            headerRt.anchorMin = new Vector2(0f, 1f);
-            headerRt.anchorMax = new Vector2(1f, 1f);
-            headerRt.pivot = new Vector2(0.5f, 1f);
-            headerRt.anchoredPosition = Vector2.zero;
-            headerRt.sizeDelta = new Vector2(0f, 56f);
+            var go = CampUiRuntime.CreateRect("Close", _overlayRoot);
+            var rt = go.GetComponent<RectTransform>();
+            SetZone(rt, ZoneClose);
 
-            _titleText = CampUiRuntime.CreateText(header.transform, "图书馆图鉴", 26, FontStyle.Bold, TextAnchor.MiddleLeft);
-            CampUiRuntime.SetAnchored(_titleText.rectTransform, 0.02f, 0.1f, 0.8f, 0.9f);
-            _titleText.color = new Color(0.92f, 0.86f, 0.68f, 1f);
+            var img = go.AddComponent<Image>();
+            img.color = Color.white;
+            img.raycastTarget = true;
+            img.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiButton2 != null)
+                img.sprite = _uiIcons.UiButton2;
+            else
+                img.color = new Color(0.28f, 0.16f, 0.16f, 0.98f);
 
-            var close = CampUiRuntime.CreateButton(header.transform, "关闭", new Color(0.28f, 0.16f, 0.16f, 0.98f),
-                new Vector2(96f, 36f));
-            var closeRt = close.GetComponent<RectTransform>();
-            closeRt.anchorMin = new Vector2(1f, 0.5f);
-            closeRt.anchorMax = new Vector2(1f, 0.5f);
-            closeRt.pivot = new Vector2(1f, 0.5f);
-            closeRt.anchoredPosition = new Vector2(-16f, 0f);
-            close.onClick.AddListener(() =>
+            var label = CampUiRuntime.CreateText(go.transform, "关闭", 18, FontStyle.Bold, TextAnchor.MiddleCenter);
+            CampUiRuntime.StretchFull(label.rectTransform);
+            label.rectTransform.offsetMin = new Vector2(4f, 2f);
+            label.rectTransform.offsetMax = new Vector2(-4f, -6f);
+            label.color = ButtonLabel;
+            label.raycastTarget = false;
+
+            var group = go.AddComponent<CanvasGroup>();
+            group.alpha = 1f;
+            group.blocksRaycasts = true;
+            group.interactable = true;
+            go.AddComponent<CampBuildingHoverView>().Bind(rt, group, ButtonHoverScale, hideWhenIdle: false);
+
+            var btn = go.AddComponent<Button>();
+            btn.targetGraphic = img;
+            btn.transition = Selectable.Transition.None;
+            btn.onClick.AddListener(() =>
             {
                 Hide();
                 _onClose?.Invoke();
             });
+            UiAudioHooks.WireButton(btn);
         }
 
-        void BuildTabs(Transform parent)
+        void BuildTabs()
         {
-            var row = CampUiRuntime.CreateRect("Tabs", parent);
+            var row = CampUiRuntime.CreateRect("Tabs", _overlayRoot);
             var rowRt = row.GetComponent<RectTransform>();
-            rowRt.anchorMin = new Vector2(0f, 1f);
-            rowRt.anchorMax = new Vector2(1f, 1f);
-            rowRt.pivot = new Vector2(0.5f, 1f);
-            rowRt.anchoredPosition = new Vector2(0f, -56f);
-            rowRt.sizeDelta = new Vector2(0f, 48f);
+            SetZone(rowRt, ZoneTabs);
 
             var layout = row.AddComponent<HorizontalLayoutGroup>();
-            layout.padding = new RectOffset(16, 16, 4, 4);
-            layout.spacing = 8f;
-            layout.childAlignment = TextAnchor.MiddleLeft;
-            layout.childControlWidth = false;
+            layout.padding = new RectOffset(4, 4, 2, 4);
+            layout.spacing = 10f;
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.childControlWidth = true;
             layout.childControlHeight = true;
-            layout.childForceExpandWidth = false;
+            layout.childForceExpandWidth = true;
             layout.childForceExpandHeight = true;
 
-            AddTab(row.transform, "玩家角色", CodexTab.PlayerCharacters);
-            AddTab(row.transform, "卡牌", CodexTab.PlayerCards);
-            AddTab(row.transform, "敌方角色", CodexTab.EnemyCharacters);
-            AddTab(row.transform, "敌方卡牌", CodexTab.EnemyCards);
-            AddTab(row.transform, "遗物", CodexTab.Relics);
+            for (var i = 0; i < TabLabels.Length; i++)
+            {
+                var tab = (CodexTab)i;
+                var go = CampUiRuntime.CreateRect($"Tab_{tab}", row.transform);
+                go.AddComponent<LayoutElement>().flexibleWidth = 1f;
+
+                var img = go.AddComponent<Image>();
+                img.color = TabIdleTint;
+                img.raycastTarget = true;
+                img.preserveAspect = false;
+                if (_uiIcons != null && _uiIcons.UiButton6 != null)
+                    img.sprite = _uiIcons.UiButton6;
+
+                var label = CampUiRuntime.CreateText(go.transform, TabLabels[i], 20, FontStyle.Bold,
+                    TextAnchor.MiddleCenter);
+                CampUiRuntime.StretchFull(label.rectTransform);
+                label.rectTransform.offsetMin = new Vector2(4f, 2f);
+                label.rectTransform.offsetMax = new Vector2(-4f, -6f);
+                label.color = TabIdleLabel;
+                label.raycastTarget = false;
+
+                var group = go.AddComponent<CanvasGroup>();
+                group.alpha = 1f;
+                group.blocksRaycasts = true;
+                group.interactable = true;
+                go.AddComponent<CampBuildingHoverView>().Bind(
+                    go.GetComponent<RectTransform>(), group, ButtonHoverScale, hideWhenIdle: false);
+
+                var btn = go.AddComponent<Button>();
+                btn.targetGraphic = img;
+                btn.transition = Selectable.Transition.None;
+                var captured = tab;
+                btn.onClick.AddListener(() => SelectTab(captured, forceRebuild: true));
+                UiAudioHooks.WireButton(btn);
+
+                _tabImages.Add(img);
+                _tabLabels.Add(label);
+            }
         }
 
-        void AddTab(Transform parent, string label, CodexTab tab)
+        void BuildScroll()
         {
-            var btn = CampUiRuntime.CreateButton(parent, label, TabIdle, new Vector2(150f, 36f));
-            var le = btn.gameObject.AddComponent<LayoutElement>();
-            le.preferredWidth = 150f;
-            le.preferredHeight = 36f;
-            btn.onClick.AddListener(() => SelectTab(tab, forceRebuild: true));
-            _tabButtons.Add(btn);
-        }
-
-        void BuildScroll(Transform parent)
-        {
-            var scrollGo = CampUiRuntime.CreateRect("Scroll", parent);
+            var scrollGo = CampUiRuntime.CreateRect("Scroll", _overlayRoot);
             var scrollRt = scrollGo.GetComponent<RectTransform>();
-            scrollRt.anchorMin = Vector2.zero;
-            scrollRt.anchorMax = Vector2.one;
-            scrollRt.offsetMin = new Vector2(16f, 16f);
-            scrollRt.offsetMax = new Vector2(-16f, -112f);
-            scrollGo.AddComponent<Image>().color = new Color(0.1f, 0.11f, 0.14f, 0.55f);
+            SetZone(scrollRt, ZoneContent);
+            // 透明底，露出模板内框；仅挡射线
+            var scrollBg = scrollGo.AddComponent<Image>();
+            scrollBg.color = new Color(0f, 0f, 0f, 0.01f);
+            scrollBg.raycastTarget = true;
 
             _scroll = scrollGo.AddComponent<ScrollRect>();
             _scroll.horizontal = false;
             _scroll.vertical = true;
             _scroll.movementType = ScrollRect.MovementType.Clamped;
-            _scroll.scrollSensitivity = 40f;
+            _scroll.scrollSensitivity = 44f;
             _scroll.onValueChanged.AddListener(_ => _tooltip?.Hide());
 
             var viewportGo = CampUiRuntime.CreateRect("Viewport", scrollGo.transform);
             var viewport = viewportGo.GetComponent<RectTransform>();
             CampUiRuntime.StretchFull(viewport);
+            viewport.offsetMin = new Vector2(8f, 8f);
+            viewport.offsetMax = new Vector2(-8f, -8f);
             viewportGo.AddComponent<RectMask2D>();
-            viewportGo.AddComponent<Image>().color = new Color(1f, 1f, 1f, 0.01f);
+            var vpImg = viewportGo.AddComponent<Image>();
+            vpImg.color = new Color(1f, 1f, 1f, 0.01f);
+            vpImg.raycastTarget = true;
 
             var contentGo = CampUiRuntime.CreateRect("Content", viewportGo.transform);
             _content = contentGo.GetComponent<RectTransform>();
@@ -238,8 +309,8 @@ namespace Grimhand.Presentation.Camp
             _content.sizeDelta = new Vector2(0f, 0f);
 
             var vlg = contentGo.AddComponent<VerticalLayoutGroup>();
-            vlg.padding = new RectOffset(8, 8, 8, 16);
-            vlg.spacing = 10f;
+            vlg.padding = new RectOffset(12, 12, 10, 20);
+            vlg.spacing = 14f;
             vlg.childAlignment = TextAnchor.UpperLeft;
             vlg.childControlWidth = true;
             vlg.childControlHeight = true;
@@ -257,11 +328,12 @@ namespace Grimhand.Presentation.Camp
         void SelectTab(CodexTab tab, bool forceRebuild)
         {
             _activeTab = tab;
-            for (var i = 0; i < _tabButtons.Count; i++)
+            for (var i = 0; i < _tabImages.Count; i++)
             {
-                var img = _tabButtons[i].targetGraphic as Image;
-                if (img != null)
-                    img.color = (CodexTab)i == tab ? TabActive : TabIdle;
+                var active = (CodexTab)i == tab;
+                _tabImages[i].color = active ? TabActiveTint : TabIdleTint;
+                if (i < _tabLabels.Count)
+                    _tabLabels[i].color = active ? TabActiveLabel : TabIdleLabel;
             }
 
             if (forceRebuild)
@@ -283,23 +355,18 @@ namespace Grimhand.Presentation.Camp
             switch (_activeTab)
             {
                 case CodexTab.PlayerCharacters:
-                    _titleText.text = "图书馆图鉴 — 玩家角色";
                     BuildPlayerCharacters();
                     break;
                 case CodexTab.PlayerCards:
-                    _titleText.text = "图书馆图鉴 — 卡牌";
                     BuildPlayerCards();
                     break;
                 case CodexTab.EnemyCharacters:
-                    _titleText.text = "图书馆图鉴 — 敌方角色";
                     BuildEnemyCharacters();
                     break;
                 case CodexTab.EnemyCards:
-                    _titleText.text = "图书馆图鉴 — 敌方卡牌";
                     BuildEnemyCards();
                     break;
                 case CodexTab.Relics:
-                    _titleText.text = "图书馆图鉴 — 遗物";
                     BuildRelics();
                     break;
             }
@@ -309,8 +376,17 @@ namespace Grimhand.Presentation.Camp
 
         void BuildPlayerCharacters()
         {
-            var grid = CreatePortraitGrid(_content, PortraitColumns, 168f, 210f);
-            foreach (var characterId in TalentCatalog.PlayableCharacterIds)
+            var ids = TalentCatalog.PlayableCharacterIds;
+            var unlocked = 0;
+            foreach (var id in ids)
+            {
+                if (CodexProgressRules.HasOwnedCharacter(_profile, id))
+                    unlocked++;
+            }
+
+            AddCategoryHeader($"玩家角色 ({unlocked}/{ids.Count})");
+            var grid = CreatePortraitGrid(_content, PortraitColumns, 148f, 188f);
+            foreach (var characterId in ids)
             {
                 var owned = CodexProgressRules.HasOwnedCharacter(_profile, characterId);
                 var name = CharacterDisplayNames.GetOrFallback(characterId, characterId);
@@ -333,7 +409,17 @@ namespace Grimhand.Presentation.Camp
                 return;
             }
 
-            var grid = CreatePortraitGrid(_content, CardsPerRow, 168f, 188f);
+            var seenCount = 0;
+            foreach (var entry in entries)
+            {
+                if (entry != null
+                    && !string.IsNullOrEmpty(entry.CharacterId)
+                    && CodexProgressRules.HasSeenEnemy(_profile.Codex, entry.CharacterId))
+                    seenCount++;
+            }
+
+            AddCategoryHeader($"敌方角色 ({seenCount}/{entries.Count})");
+            var grid = CreatePortraitGrid(_content, PortraitColumns, 148f, 176f);
             foreach (var entry in entries)
             {
                 if (entry == null || string.IsNullOrEmpty(entry.CharacterId))
@@ -348,10 +434,10 @@ namespace Grimhand.Presentation.Camp
         {
             var go = CampUiRuntime.CreateRect($"Enemy_{entry.CharacterId}", parent);
             var le = go.AddComponent<LayoutElement>();
-            le.preferredWidth = 168f;
-            le.preferredHeight = 188f;
+            le.preferredWidth = 148f;
+            le.preferredHeight = 176f;
             var bg = go.AddComponent<Image>();
-            bg.color = new Color(0.11f, 0.12f, 0.16f, 0.95f);
+            bg.color = new Color(0.08f, 0.09f, 0.12f, 0.72f);
             bg.raycastTarget = true;
             _dynamicObjects.Add(go);
 
@@ -364,14 +450,9 @@ namespace Grimhand.Presentation.Camp
             icon.color = seen ? Color.white : SilhouetteColor;
 
             if (seen)
-            {
-                var body = FormatEnemyStats(entry);
-                _tooltip?.BindHover(go, entry.DisplayName, body);
-            }
+                _tooltip?.BindHover(go, entry.DisplayName, FormatEnemyStats(entry));
             else
-            {
                 _tooltip?.BindHover(go, "未遇见", "尚未遇见该敌人。");
-            }
         }
 
         static string FormatEnemyStats(TrainingMonsterCatalog.Entry entry)
@@ -408,7 +489,14 @@ namespace Grimhand.Presentation.Camp
                 return;
             }
 
-            AddCategoryHeader($"玩家卡牌（{cards.Count}）");
+            var owned = 0;
+            foreach (var def in cards)
+            {
+                if (CodexProgressRules.HasOwnedCard(_profile, def.CardId))
+                    owned++;
+            }
+
+            AddCategoryHeader($"卡牌 ({owned}/{cards.Count})");
             var grid = CreateCardGrid(_content);
             foreach (var def in cards)
                 CreateCardCell(grid, def, unlocked: CodexProgressRules.HasOwnedCard(_profile, def.CardId));
@@ -429,7 +517,14 @@ namespace Grimhand.Presentation.Camp
                 return;
             }
 
-            AddCategoryHeader($"敌方卡牌（{cards.Count}）");
+            var seen = 0;
+            foreach (var def in cards)
+            {
+                if (CodexProgressRules.HasSeenEnemyCard(_profile.Codex, def.CardId))
+                    seen++;
+            }
+
+            AddCategoryHeader($"敌方卡牌 ({seen}/{cards.Count})");
             var grid = CreateCardGrid(_content);
             foreach (var def in cards)
                 CreateCardCell(grid, def, unlocked: CodexProgressRules.HasSeenEnemyCard(_profile.Codex, def.CardId));
@@ -452,15 +547,23 @@ namespace Grimhand.Presentation.Camp
                 return;
             }
 
-            AddCategoryHeader($"遗物（{relics.Count}）");
-            var grid = CreatePortraitGrid(_content, RelicColumns, 132f, 156f);
+            var owned = 0;
+            foreach (var relic in relics)
+            {
+                if (relic != null
+                    && !string.IsNullOrEmpty(relic.Id)
+                    && CodexProgressRules.HasOwnedRelic(_profile.Codex, relic.Id))
+                    owned++;
+            }
+
+            AddCategoryHeader($"遗物 ({owned}/{relics.Count})");
+            var grid = CreatePortraitGrid(_content, RelicColumns, 118f, 142f);
             foreach (var relic in relics)
             {
                 if (relic == null || string.IsNullOrEmpty(relic.Id))
                     continue;
 
-                var owned = CodexProgressRules.HasOwnedRelic(_profile.Codex, relic.Id);
-                CreateRelicCell(grid, relic, owned);
+                CreateRelicCell(grid, relic, CodexProgressRules.HasOwnedRelic(_profile.Codex, relic.Id));
             }
         }
 
@@ -534,10 +637,10 @@ namespace Grimhand.Presentation.Camp
         {
             var go = CampUiRuntime.CreateRect($"Char_{characterId}", parent);
             var le = go.AddComponent<LayoutElement>();
-            le.preferredWidth = 156f;
-            le.preferredHeight = 196f;
+            le.preferredWidth = 148f;
+            le.preferredHeight = 188f;
             var bg = go.AddComponent<Image>();
-            bg.color = new Color(0.11f, 0.12f, 0.16f, 0.95f);
+            bg.color = new Color(0.08f, 0.09f, 0.12f, 0.72f);
             bg.raycastTarget = true;
             _dynamicObjects.Add(go);
 
@@ -549,7 +652,7 @@ namespace Grimhand.Presentation.Camp
             icon.sprite = _characterVisuals?.GetPortrait(characterId);
             icon.color = unlocked ? Color.white : SilhouetteColor;
 
-            var label = CampUiRuntime.CreateText(go.transform, unlocked ? displayName : "？？？", 16, FontStyle.Bold);
+            var label = CampUiRuntime.CreateText(go.transform, unlocked ? displayName : "？？？", 15, FontStyle.Bold);
             CampUiRuntime.SetAnchored(label.rectTransform, 0.04f, 0.02f, 0.96f, 0.2f);
             label.color = unlocked
                 ? new Color(0.9f, 0.88f, 0.8f, 1f)
@@ -565,10 +668,10 @@ namespace Grimhand.Presentation.Camp
         {
             var go = CampUiRuntime.CreateRect($"Relic_{relic.Id}", parent);
             var le = go.AddComponent<LayoutElement>();
-            le.preferredWidth = 120f;
-            le.preferredHeight = 148f;
+            le.preferredWidth = 110f;
+            le.preferredHeight = 136f;
             var bg = go.AddComponent<Image>();
-            bg.color = new Color(0.11f, 0.12f, 0.16f, 0.95f);
+            bg.color = new Color(0.08f, 0.09f, 0.12f, 0.72f);
             bg.raycastTarget = true;
             _dynamicObjects.Add(go);
 
@@ -582,7 +685,7 @@ namespace Grimhand.Presentation.Camp
                 ? (icon.sprite != null ? Color.white : new Color(0.55f, 0.48f, 0.35f, 1f))
                 : SilhouetteColor;
 
-            var label = CampUiRuntime.CreateText(go.transform, owned ? relic.DisplayName : "？？？", 14, FontStyle.Bold);
+            var label = CampUiRuntime.CreateText(go.transform, owned ? relic.DisplayName : "？？？", 13, FontStyle.Bold);
             CampUiRuntime.SetAnchored(label.rectTransform, 0.04f, 0.02f, 0.96f, 0.26f);
             label.color = owned
                 ? new Color(0.9f, 0.88f, 0.8f, 1f)
@@ -681,7 +784,7 @@ namespace Grimhand.Presentation.Camp
                 if (graphic is Text text)
                 {
                     text.color = new Color(0.15f, 0.15f, 0.18f, 1f);
-                    if (text != null && text.gameObject.name.IndexOf("Name", StringComparison.OrdinalIgnoreCase) >= 0)
+                    if (text.gameObject.name.IndexOf("Name", StringComparison.OrdinalIgnoreCase) >= 0)
                         text.text = "？？？";
                     continue;
                 }
@@ -716,8 +819,8 @@ namespace Grimhand.Presentation.Camp
 
             var grid = go.AddComponent<GridLayoutGroup>();
             grid.cellSize = new Vector2(cellW, cellH);
-            grid.spacing = new Vector2(12f, 12f);
-            grid.padding = new RectOffset(8, 8, 4, 8);
+            grid.spacing = new Vector2(14f, 14f);
+            grid.padding = new RectOffset(4, 4, 2, 8);
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
             grid.constraintCount = columns;
             grid.childAlignment = TextAnchor.UpperLeft;
@@ -737,7 +840,7 @@ namespace Grimhand.Presentation.Camp
 
             var grid = go.AddComponent<GridLayoutGroup>();
             grid.cellSize = new Vector2(cardWidth + 8f, cardHeight + 8f);
-            grid.spacing = new Vector2(10f, 12f);
+            grid.spacing = new Vector2(12f, 14f);
             grid.padding = new RectOffset(
                 (int)CardGridHorizontalPadding,
                 (int)CardGridHorizontalPadding,
@@ -753,12 +856,12 @@ namespace Grimhand.Presentation.Camp
         {
             var go = CampUiRuntime.CreateRect("Category", _content);
             _dynamicObjects.Add(go);
-            go.AddComponent<LayoutElement>().preferredHeight = 32f;
+            go.AddComponent<LayoutElement>().preferredHeight = 36f;
             var text = go.AddComponent<Text>();
             text.font = CampUiRuntime.DefaultFont;
-            text.fontSize = 20;
+            text.fontSize = 22;
             text.fontStyle = FontStyle.Bold;
-            text.color = new Color(0.85f, 0.78f, 0.55f, 1f);
+            text.color = SectionGold;
             text.alignment = TextAnchor.MiddleLeft;
             text.text = label;
         }
@@ -789,10 +892,14 @@ namespace Grimhand.Presentation.Camp
 
         void ForceLayout(bool resetScroll = false)
         {
-            LayoutRebuilder.ForceRebuildLayoutImmediate(_content);
+            if (_content != null)
+                LayoutRebuilder.ForceRebuildLayoutImmediate(_content);
             Canvas.ForceUpdateCanvases();
             if (_scroll != null && resetScroll)
                 _scroll.verticalNormalizedPosition = 1f;
         }
+
+        static void SetZone(RectTransform rt, Vector4 zone) =>
+            CampUiRuntime.SetAnchored(rt, zone.x, zone.y, zone.z, zone.w);
     }
 }

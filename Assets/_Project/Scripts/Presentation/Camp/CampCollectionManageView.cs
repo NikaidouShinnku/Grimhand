@@ -58,9 +58,7 @@ namespace Grimhand.Presentation.Camp
         ScrollRect _cardScroll;
         GridLayoutGroup _gridLayout;
         float _gridCardScale = 0.55f;
-        GameObject _confirmPanel;
-        Text _confirmTitleText;
-        Text _confirmBodyText;
+        CampConfirmPromptView _confirmPrompt;
         Button _filterCostButton;
         Button _filterRarityButton;
         Button _filterOwnerButton;
@@ -364,15 +362,11 @@ namespace Grimhand.Presentation.Camp
 
             if (!CampCollectionRules.TrySellCollectionEntry(
                     _collection, _detailEntryIndex, rarity, out var goldGained, out _))
-            {
-                HideConfirmPanel();
                 return;
-            }
 
             if (_roster != null)
                 CampRosterLoadoutRules.OnCollectionEntryRemoved(_roster, _detailEntryIndex);
 
-            HideConfirmPanel();
             if (goldGained > 0)
             {
                 _onGoldGained?.Invoke(goldGained);
@@ -386,18 +380,21 @@ namespace Grimhand.Presentation.Camp
 
         void ShowConfirmPanel(string body)
         {
-            if (_confirmPanel == null)
+            if (_confirmPrompt == null)
                 return;
 
-            _confirmBodyText.text = body;
-            _confirmPanel.SetActive(true);
-            _confirmPanel.transform.SetAsLastSibling();
+            _confirmPrompt.Show(
+                "确认出售",
+                body,
+                "取消",
+                "确认出售",
+                onCancel: null,
+                onConfirm: ConfirmSellCurrent);
         }
 
         void HideConfirmPanel()
         {
-            if (_confirmPanel != null)
-                _confirmPanel.SetActive(false);
+            _confirmPrompt?.Hide();
         }
 
         void CycleCostFilter()
@@ -670,51 +667,7 @@ namespace Grimhand.Presentation.Camp
                 _uiIcons,
                 _definitions,
                 _characters);
-            BuildConfirmPanel();
-        }
-
-        void BuildConfirmPanel()
-        {
-            _confirmPanel = CampUiRuntime.CreateImage("ConfirmSell", _panel, new Color(0f, 0f, 0f, 0.72f)).gameObject;
-            CampUiRuntime.StretchFull(_confirmPanel.GetComponent<RectTransform>());
-
-            var dialog = CampUiRuntime.CreateImage("Dialog", _confirmPanel.transform, new Color(0.1f, 0.11f, 0.15f, 0.98f));
-            var dialogRt = dialog.rectTransform;
-            dialogRt.anchorMin = new Vector2(0.5f, 0.5f);
-            dialogRt.anchorMax = new Vector2(0.5f, 0.5f);
-            dialogRt.pivot = new Vector2(0.5f, 0.5f);
-            dialogRt.sizeDelta = new Vector2(520f, 260f);
-
-            _confirmTitleText = CampUiRuntime.CreateText(dialog.transform, "确认出售", 24, FontStyle.Bold, TextAnchor.UpperCenter);
-            CampUiRuntime.SetAnchored(_confirmTitleText.rectTransform, 0.08f, 0.78f, 0.92f, 0.94f);
-            _confirmTitleText.color = new Color(0.95f, 0.85f, 0.55f, 1f);
-            _confirmTitleText.raycastTarget = false;
-
-            _confirmBodyText = CampUiRuntime.CreateText(dialog.transform, "", 18, FontStyle.Normal, TextAnchor.UpperCenter);
-            CampUiRuntime.SetAnchored(_confirmBodyText.rectTransform, 0.08f, 0.34f, 0.92f, 0.76f);
-            _confirmBodyText.color = new Color(0.88f, 0.9f, 0.96f, 1f);
-            _confirmBodyText.horizontalOverflow = HorizontalWrapMode.Wrap;
-            _confirmBodyText.raycastTarget = false;
-
-            var cancelBtn = CampUiRuntime.CreateButton(dialog.transform, "取消", new Color(0.28f, 0.3f, 0.36f, 1f),
-                new Vector2(160f, 44f));
-            var cancelRt = cancelBtn.GetComponent<RectTransform>();
-            cancelRt.anchorMin = new Vector2(0.12f, 0.1f);
-            cancelRt.anchorMax = new Vector2(0.12f, 0.1f);
-            cancelRt.pivot = new Vector2(0f, 0f);
-            cancelRt.anchoredPosition = Vector2.zero;
-            cancelBtn.onClick.AddListener(HideConfirmPanel);
-
-            var confirmBtn = CampUiRuntime.CreateButton(dialog.transform, "确认出售", new Color(0.62f, 0.22f, 0.22f, 1f),
-                new Vector2(160f, 44f));
-            var confirmRt = confirmBtn.GetComponent<RectTransform>();
-            confirmRt.anchorMin = new Vector2(0.88f, 0.1f);
-            confirmRt.anchorMax = new Vector2(0.88f, 0.1f);
-            confirmRt.pivot = new Vector2(1f, 0f);
-            confirmRt.anchoredPosition = Vector2.zero;
-            confirmBtn.onClick.AddListener(ConfirmSellCurrent);
-
-            _confirmPanel.SetActive(false);
+            _confirmPrompt = CampConfirmPromptView.Create(_panel, _uiIcons, "ConfirmSell");
         }
 
         Button CreateFilterButton(string id, Vector4 zone, Action onClick)

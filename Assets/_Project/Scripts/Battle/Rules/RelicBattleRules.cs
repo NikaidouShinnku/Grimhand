@@ -2,6 +2,7 @@ using Grimhand.Battle.Effects;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Status;
+using Grimhand.Battle.V09;
 using Grimhand.Core;
 
 namespace Grimhand.Battle.Rules
@@ -156,6 +157,9 @@ namespace Grimhand.Battle.Rules
 
             var mul = GetOutgoingDamageMultiplier(state, actor, cardType, isSacrificeDamage, cardCost);
             mul *= TalentBattleRules.GetOutgoingDamageMultiplier(state, actor, cardType);
+            // 灵界专注：卡牌伤害也走非战斗增伤（灵能体仍只走 DoT 钩子，保持原行为）
+            if (actor != null && actor.Team == TeamSide.Player)
+                mul *= V09NewMechanicsRules.GetLichSpiritFocusDamageMultiplier(state, TeamSide.Player);
             var power = (int)System.Math.Round(basePower * mul);
             power += GetOutgoingDamageFlatBonus(state, actor, cardType);
             power += TalentBattleRules.GetOutgoingDamageFlatBonus(state, actor, cardType);

@@ -46,10 +46,16 @@ namespace Grimhand.Content
         public Sprite ChampionCampTeamBackground;
         /// <summary>管理卡牌二级：templates/军营收藏概念图-模板.png</summary>
         public Sprite ChampionCampCollectionBackground;
+        /// <summary>换人选择：templates/军营角色选择概念图-模板.png</summary>
+        public Sprite ChampionCampCharacterSelectBackground;
+        /// <summary>角色选择板：interactables_and_ui/character_plate.png</summary>
+        public Sprite UiCharacterPlate;
         /// <summary>通用竖直滑动条轨道：interactables_and_ui/sliderbar.png</summary>
         public Sprite UiSliderBar;
         /// <summary>通用竖直滑动条手柄：interactables_and_ui/slider.png</summary>
         public Sprite UiSlider;
+        /// <summary>卡牌/遗物/角色详情：templates/卡牌遗物角色详情概念图-模板.png</summary>
+        public Sprite UiCardDetailBackground;
         public Sprite MerchantCampBuilding;
         public Sprite PortalBuilding;
         /// <summary>Assets/The Grimhands Asset/path and background/training_ground.png</summary>

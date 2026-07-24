@@ -51,6 +51,7 @@ namespace Grimhand.Presentation.Camp
         RectTransform _content;
         ScrollRect _scroll;
         InventoryTooltipView _tooltip;
+        CampCardDetailView _cardDetail;
         Text _titleText;
         readonly List<Button> _tabButtons = new();
         readonly List<GameObject> _dynamicObjects = new();
@@ -92,6 +93,7 @@ namespace Grimhand.Presentation.Camp
         public void Hide()
         {
             _tooltip?.Hide();
+            _cardDetail?.Hide();
             if (_overlayRoot != null)
                 _overlayRoot.gameObject.SetActive(false);
         }
@@ -125,6 +127,18 @@ namespace Grimhand.Presentation.Camp
 
             _tooltip = panelGo.AddComponent<InventoryTooltipView>();
             _tooltip.Initialize(_panel);
+
+            var detailHost = CampUiRuntime.CreateRect("CardDetailHost", root.transform);
+            CampUiRuntime.StretchFull(detailHost.GetComponent<RectTransform>());
+            _cardDetail = detailHost.AddComponent<CampCardDetailView>();
+            _cardDetail.Initialize(
+                _cardPrefab,
+                _cardCatalog,
+                _characterVisuals,
+                _uiIcons,
+                _definitions,
+                playerCharacters: null);
+
             _overlayRoot.gameObject.SetActive(false);
         }
 
@@ -258,6 +272,7 @@ namespace Grimhand.Presentation.Camp
         {
             ClearDynamic();
             _tooltip?.Hide();
+            _cardDetail?.Hide();
             if (_profile == null)
             {
                 AddHint("档案未就绪。");
@@ -598,19 +613,22 @@ namespace Grimhand.Presentation.Camp
 
             var view = UnityEngine.Object.Instantiate(_cardPrefab, holder.transform);
             CardView.ApplyHandPresentationScaleCentered(view, CardScale);
+            var faction = _activeTab == CodexTab.PlayerCards ? "远征军" : "怪物";
             view.BindWithCard(
                 preview,
                 visual,
                 selected: false,
                 polluted: false,
-                interactable: false,
+                interactable: unlocked,
                 orderBadge: "",
                 statsLine: unlocked
                     ? BattleUiFormatters.BuildCardStatsLinePreview(preview, _definitions)
                     : "",
                 uiIcons: _uiIcons,
                 characterVisuals: _characterVisuals,
-                onClick: null,
+                onClick: unlocked
+                    ? _ => ShowCardDetail(def, faction)
+                    : null,
                 onHoverEnter: null,
                 onHoverExit: null);
 
@@ -633,6 +651,21 @@ namespace Grimhand.Presentation.Camp
             {
                 _tooltip?.BindHover(view.gameObject, "未解锁", "尚未拥有 / 遇见该卡牌。");
             }
+        }
+
+        void ShowCardDetail(CardDefinitionSO def, string faction)
+        {
+            if (def == null || _cardDetail == null)
+                return;
+
+            _tooltip?.Hide();
+            _cardDetail.Show(
+                def,
+                def.CardId,
+                showSell: false,
+                onBack: null,
+                onSell: null,
+                factionOverride: faction);
         }
 
         static void ApplyCardSilhouette(CardView view)

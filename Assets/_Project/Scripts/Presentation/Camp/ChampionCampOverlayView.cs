@@ -18,8 +18,6 @@ namespace Grimhand.Presentation.Camp
     {
         const float CardScale = 0.72f;
         const int CardsPerRow = 5;
-        const float DeckSlotWidth = 108f;
-        const float DeckSlotHeight = 152f;
         const float HubButtonHoverScale = 1.08f;
 
         /// <summary>归一化热区：原点左下，相对军营一级全屏。</summary>
@@ -44,42 +42,42 @@ namespace Grimhand.Presentation.Camp
         static readonly HubNormRect HubZoneCards = new(0.5332f, 0.0754f, 0.8115f, 0.3053f);
         static readonly HubNormRect HubZoneClose = new(0.8975f, 0.7912f, 0.9736f, 0.8754f);
 
-        // 配置队伍二级：对照用户指示红/蓝框（原点左下）
-        static readonly HubNormRect TeamZoneSave = new(0.7480f, 0.9025f, 0.8613f, 0.9892f);
-        static readonly HubNormRect TeamZoneBack = new(0.8750f, 0.8971f, 0.9834f, 0.9892f);
+        // 配置队伍二级：保存/返回略左移并加宽，完全盖住模板底图按钮
+        static readonly HubNormRect TeamZoneSave = new(0.7350f, 0.9000f, 0.8580f, 0.9920f);
+        static readonly HubNormRect TeamZoneBack = new(0.8620f, 0.8950f, 0.9820f, 0.9920f);
 
         // 三角色整框（立绘红框 + 右侧名字/经验区）
         static readonly HubNormRect TeamZoneMemberBack = new(0.1650f, 0.6100f, 0.3850f, 0.8600f);
         static readonly HubNormRect TeamZoneMemberMid = new(0.3880f, 0.6100f, 0.6080f, 0.8620f);
         static readonly HubNormRect TeamZoneMemberFront = new(0.6100f, 0.6100f, 0.9000f, 0.8650f);
 
-        // 立绘红框（绝对坐标）；实际显示会再内缩以保比例不越界
-        static readonly HubNormRect TeamPortraitBack = new(0.1670f, 0.6054f, 0.2793f, 0.8523f);
-        static readonly HubNormRect TeamPortraitMid = new(0.3926f, 0.6090f, 0.5049f, 0.8559f);
-        static readonly HubNormRect TeamPortraitFront = new(0.6152f, 0.6054f, 0.7344f, 0.8595f);
+        // 立绘框：整体上移，减少被换人按钮遮挡，仍不越出模板框
+        static readonly HubNormRect TeamPortraitBack = new(0.1670f, 0.6220f, 0.2793f, 0.8620f);
+        static readonly HubNormRect TeamPortraitMid = new(0.3926f, 0.6250f, 0.5049f, 0.8650f);
+        static readonly HubNormRect TeamPortraitFront = new(0.6152f, 0.6220f, 0.7344f, 0.8680f);
 
-        // 换人蓝框
-        static readonly HubNormRect TeamSwapBack = new(0.1855f, 0.6180f, 0.2578f, 0.6739f);
-        static readonly HubNormRect TeamSwapMid = new(0.4111f, 0.6162f, 0.4854f, 0.6757f);
-        static readonly HubNormRect TeamSwapFront = new(0.6396f, 0.6126f, 0.7168f, 0.6775f);
+        // 换人：与立绘框水平居中，三槽统一高度
+        static readonly HubNormRect TeamSwapBack = new(0.1870f, 0.6180f, 0.2593f, 0.6739f);
+        static readonly HubNormRect TeamSwapMid = new(0.4126f, 0.6180f, 0.4849f, 0.6739f);
+        static readonly HubNormRect TeamSwapFront = new(0.6387f, 0.6180f, 0.7110f, 0.6739f);
 
-        // 绿框：名字 / 等级 / 经验文字
-        static readonly HubNormRect TeamNameBack = new(0.2861f, 0.7856f, 0.3486f, 0.8378f);
-        static readonly HubNormRect TeamNameMid = new(0.5117f, 0.7892f, 0.5693f, 0.8450f);
-        static readonly HubNormRect TeamNameFront = new(0.7441f, 0.7892f, 0.7998f, 0.8450f);
-        static readonly HubNormRect TeamLevelBack = new(0.2910f, 0.7000f, 0.3428f, 0.7315f);
-        static readonly HubNormRect TeamLevelMid = new(0.5176f, 0.7000f, 0.5693f, 0.7333f);
-        static readonly HubNormRect TeamLevelFront = new(0.7490f, 0.7045f, 0.7881f, 0.7333f);
-        static readonly HubNormRect TeamXpTextBack = new(0.2910f, 0.6631f, 0.3428f, 0.6970f);
-        static readonly HubNormRect TeamXpTextMid = new(0.5176f, 0.6649f, 0.5693f, 0.6970f);
-        static readonly HubNormRect TeamXpTextFront = new(0.7480f, 0.6649f, 0.8018f, 0.6973f);
+        // 蓝/绿/粉框：左缘与「后排/中排/前排」标签左缘对齐
+        static readonly HubNormRect TeamNameBack = new(0.2885f, 0.7939f, 0.3600f, 0.8517f);
+        static readonly HubNormRect TeamNameMid = new(0.5123f, 0.7939f, 0.5838f, 0.8517f);
+        static readonly HubNormRect TeamNameFront = new(0.7389f, 0.7939f, 0.8104f, 0.8517f);
+        static readonly HubNormRect TeamLevelBack = new(0.2885f, 0.7107f, 0.3500f, 0.7414f);
+        static readonly HubNormRect TeamLevelMid = new(0.5123f, 0.7107f, 0.5738f, 0.7414f);
+        static readonly HubNormRect TeamLevelFront = new(0.7389f, 0.7107f, 0.8004f, 0.7414f);
+        static readonly HubNormRect TeamXpTextBack = new(0.2885f, 0.6700f, 0.3650f, 0.7050f);
+        static readonly HubNormRect TeamXpTextMid = new(0.5123f, 0.6700f, 0.5888f, 0.7050f);
+        static readonly HubNormRect TeamXpTextFront = new(0.7389f, 0.6700f, 0.8154f, 0.7050f);
 
-        // 紫框：经验条（填入模板已有细条内）
-        static readonly HubNormRect TeamXpBarBack = new(0.2920f, 0.6360f, 0.3682f, 0.6541f);
-        static readonly HubNormRect TeamXpBarMid = new(0.5146f, 0.6324f, 0.5928f, 0.6577f);
-        static readonly HubNormRect TeamXpBarFront = new(0.7441f, 0.6342f, 0.8213f, 0.6559f);
+        // 黄框：精确落入模板经验槽内（相对标注整体上移）
+        static readonly HubNormRect TeamXpBarBack = new(0.2900f, 0.6550f, 0.3652f, 0.6690f);
+        static readonly HubNormRect TeamXpBarMid = new(0.5138f, 0.6550f, 0.5891f, 0.6690f);
+        static readonly HubNormRect TeamXpBarFront = new(0.7404f, 0.6550f, 0.8158f, 0.6690f);
 
-        const float TeamPortraitInset = 0.07f;
+        const float TeamPortraitInset = 0.05f;
 
         // 携带卡区（两行 5 列，按首行红框推导）
         static readonly HubNormRect TeamZoneDeck = new(0.0900f, 0.1157f, 0.4960f, 0.5150f);
@@ -135,7 +133,6 @@ namespace Grimhand.Presentation.Camp
         InventoryTooltipView _tooltip;
 
         int _activeMemberIndex;
-        int _selectedDeckSlot = -1;
         bool _built;
         readonly List<GameObject> _dynamicObjects = new();
 
@@ -237,7 +234,6 @@ namespace Grimhand.Presentation.Camp
             _overlayRoot.gameObject.SetActive(true);
             transform.SetAsLastSibling();
             _activeMemberIndex = 0;
-            _selectedDeckSlot = 0;
             ShowHub();
         }
 
@@ -861,7 +857,6 @@ namespace Grimhand.Presentation.Camp
                 card.GetComponent<Button>().onClick.AddListener(() =>
                 {
                     _activeMemberIndex = index;
-                    _selectedDeckSlot = 0;
                     Rebuild();
                 });
             }
@@ -894,14 +889,19 @@ namespace Grimhand.Presentation.Camp
             btn.transition = Selectable.Transition.None;
             UiAudioHooks.WireButton(btn);
 
-            // 动画立绘：保比例，略缩小放入红框
+            // 动画立绘：保比例，略缩小放入框内；顶对齐以减少底部被换人挡住
             var portraitHost = CampUiRuntime.CreateRect("PortraitHost", go.transform);
             ApplyLocalNormRect(portraitHost.GetComponent<RectTransform>(), zone, InsetNormRect(portraitZone, TeamPortraitInset));
 
             var portrait = CampUiRuntime.CreateImage("Portrait", portraitHost.transform, Color.white);
             portrait.preserveAspect = true;
             portrait.raycastTarget = false;
-            CampUiRuntime.StretchFull(portrait.rectTransform);
+            var portraitRt = portrait.rectTransform;
+            portraitRt.anchorMin = new Vector2(0f, 0.08f);
+            portraitRt.anchorMax = new Vector2(1f, 1f);
+            portraitRt.offsetMin = Vector2.zero;
+            portraitRt.offsetMax = Vector2.zero;
+            portraitRt.pivot = new Vector2(0.5f, 1f);
             var animator = portraitHost.AddComponent<CampIdlePortraitAnimator>();
             animator.Bind(portrait, _characterVisuals, member.CharacterDefinitionId);
 
@@ -915,29 +915,30 @@ namespace Grimhand.Presentation.Camp
 
             var name = CampUiRuntime.CreateText(go.transform,
                 string.IsNullOrEmpty(member.DisplayName) ? "未选择" : member.DisplayName,
-                18, FontStyle.Bold, TextAnchor.MiddleCenter);
+                22, FontStyle.Bold, TextAnchor.MiddleLeft);
             ApplyLocalNormRect(name.rectTransform, zone, nameZone);
             name.color = Color.white;
             name.raycastTarget = false;
             name.horizontalOverflow = HorizontalWrapMode.Overflow;
             name.verticalOverflow = VerticalWrapMode.Truncate;
 
-            var levelLine = CampUiRuntime.CreateText(go.transform, "Lv.1", 14, FontStyle.Bold, TextAnchor.MiddleCenter);
+            var levelLine = CampUiRuntime.CreateText(go.transform, "Lv.1", 15, FontStyle.Bold, TextAnchor.MiddleLeft);
             ApplyLocalNormRect(levelLine.rectTransform, zone, levelZone);
             levelLine.color = new Color(0.92f, 0.88f, 0.72f, 1f);
             levelLine.raycastTarget = false;
 
-            var xpLine = CampUiRuntime.CreateText(go.transform, "0/100 XP", 12, FontStyle.Normal, TextAnchor.MiddleCenter);
+            var xpLine = CampUiRuntime.CreateText(go.transform, "0/100 XP", 13, FontStyle.Normal, TextAnchor.MiddleLeft);
             ApplyLocalNormRect(xpLine.rectTransform, zone, xpTextZone);
             xpLine.color = new Color(0.78f, 0.82f, 0.90f, 1f);
             xpLine.raycastTarget = false;
 
-            // 经验条：仅绿色填充叠在模板细条（紫框）上，不再画大黑底
+            // 经验条：仅绿色填充精确叠在黄框/模板细槽内
             var xpFillHost = CampUiRuntime.CreateRect("XpBar", go.transform);
             ApplyLocalNormRect(xpFillHost.GetComponent<RectTransform>(), zone, xpBarZone);
 
             var xpFill = CampUiRuntime.CreateImage("XpFill", xpFillHost.transform, TeamXpBarFill);
             xpFill.raycastTarget = false;
+            xpFill.type = Image.Type.Simple;
             var xpFillRt = xpFill.rectTransform;
             xpFillRt.anchorMin = Vector2.zero;
             xpFillRt.anchorMax = new Vector2(0f, 1f);
@@ -1037,97 +1038,310 @@ namespace Grimhand.Presentation.Camp
             child.pivot = new Vector2(0.5f, 0.5f);
         }
 
+        // 角色选择弹窗：底板 sprite 裁切为 1316×978（非全图 1402×1122），坐标相对该裁切。
+        // character_plate_0 = 162×288，与模板空槽模板匹配量取。
+        const float PickDialogAspect = 978f / 1316f;
+        const int PickColumns = 5;
+        const int PickVisibleRows = 2;
+        const float PickPlateW = 162f / 1316f;
+        const float PickPlateH = 288f / 978f;
+        const float PickPlateX0 = 112f / 1316f;
+        const float PickPlateStepX = 230.5f / 1316f;
+        const float PickPlateGapY = 43f / 978f;
+        const float PickPlateTopRowYMin = (978f - 146f - 288f) / 978f;
+        static readonly HubNormRect PickZoneViewport = new(
+            PickPlateX0,
+            PickPlateTopRowYMin - (PickPlateH + PickPlateGapY),
+            PickPlateX0 + (PickColumns - 1) * PickPlateStepX + PickPlateW,
+            PickPlateTopRowYMin + PickPlateH);
+        // 盖住模板右侧装饰轨道，换上 UiSliderBar + UiSlider
+        static readonly HubNormRect PickZoneScrollbar = new(0.9483f, 0.2055f, 0.9612f, 0.8446f);
+        static readonly HubNormRect PickZoneCancel = new(0.390f, 0.100f, 0.610f, 0.170f);
+        static readonly HubNormRect PickZoneClose = new(0.90f, 0.90f, 0.98f, 0.98f);
+
         void ShowCharacterPicker(int memberIndex)
         {
             _activeMemberIndex = memberIndex;
-            var picker = CampUiRuntime.CreateImage("CharacterPicker", _body, new Color(0.05f, 0.06f, 0.09f, 0.98f))
-                .gameObject;
-            var rt = picker.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0.5f, 0.5f);
-            rt.anchorMax = new Vector2(0.5f, 0.5f);
-            rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.sizeDelta = new Vector2(640f, 360f);
-            picker.transform.SetAsLastSibling();
-            _dynamicObjects.Add(picker);
 
-            var title = CampUiRuntime.CreateText(picker.transform, "选择角色", 22, FontStyle.Bold);
-            title.rectTransform.anchorMin = new Vector2(0f, 1f);
-            title.rectTransform.anchorMax = new Vector2(1f, 1f);
-            title.rectTransform.offsetMin = new Vector2(16f, -48f);
-            title.rectTransform.offsetMax = new Vector2(-16f, -8f);
+            var root = CampUiRuntime.CreateRect("CharacterPicker", _body);
+            CampUiRuntime.StretchFull(root.GetComponent<RectTransform>());
+            root.transform.SetAsLastSibling();
+            _dynamicObjects.Add(root);
 
-            var row = CampUiRuntime.CreateRect("PickRow", picker.transform);
-            var rowRt = row.GetComponent<RectTransform>();
-            rowRt.anchorMin = new Vector2(0f, 0.15f);
-            rowRt.anchorMax = new Vector2(1f, 0.85f);
-            rowRt.offsetMin = new Vector2(16f, 0f);
-            rowRt.offsetMax = new Vector2(-16f, 0f);
-            var h = row.AddComponent<HorizontalLayoutGroup>();
-            h.spacing = 12f;
-            h.childAlignment = TextAnchor.MiddleCenter;
-            h.childControlWidth = false;
-            h.childControlHeight = true;
+            var dim = CampUiRuntime.CreateImage("Dim", root.transform, new Color(0f, 0f, 0f, 0.55f));
+            CampUiRuntime.StretchFull(dim.rectTransform);
+            dim.raycastTarget = true;
 
-            foreach (var character in _playableCharacters)
+            var dialog = CampUiRuntime.CreateImage("Dialog", root.transform, Color.white);
+            var dialogRt = dialog.rectTransform;
+            dialogRt.anchorMin = new Vector2(0.5f, 0.5f);
+            dialogRt.anchorMax = new Vector2(0.5f, 0.5f);
+            dialogRt.pivot = new Vector2(0.5f, 0.5f);
+            // 与底板 sprite 裁切同比例，避免空槽被非等比拉伸错位
+            const float dialogW = 1000f;
+            var dialogH = dialogW * PickDialogAspect;
+            dialogRt.sizeDelta = new Vector2(dialogW, dialogH);
+            dialog.preserveAspect = false;
+            dialog.raycastTarget = true;
+            if (_uiIcons != null && _uiIcons.ChampionCampCharacterSelectBackground != null)
+                dialog.sprite = _uiIcons.ChampionCampCharacterSelectBackground;
+            else
+                dialog.color = new Color(0.07f, 0.08f, 0.1f, 0.98f);
+
+            void ClosePicker()
             {
-                var pickBtn = CampUiRuntime.CreateButton(row.transform, "",
-                    new Color(0.2f, 0.32f, 0.48f, 1f), new Vector2(140f, 180f));
-                var pickRt = pickBtn.GetComponent<RectTransform>();
-                pickRt.sizeDelta = new Vector2(140f, 180f);
-
-                var portrait = CampUiRuntime.CreateImage("Portrait", pickBtn.transform, Color.white);
-                portrait.sprite = _characterVisuals?.GetPortrait(character.CharacterId);
-                portrait.preserveAspect = true;
-                var pRt = portrait.rectTransform;
-                pRt.anchorMin = new Vector2(0.5f, 1f);
-                pRt.anchorMax = new Vector2(0.5f, 1f);
-                pRt.pivot = new Vector2(0.5f, 1f);
-                pRt.anchoredPosition = new Vector2(0f, -12f);
-                pRt.sizeDelta = new Vector2(96f, 96f);
-
-                var nameLabel = CampUiRuntime.CreateText(pickBtn.transform,
-                    CampRosterValidation.FindMemberIndexWithCharacter(_roster, character.CharacterId, memberIndex) >= 0
-                        ? $"{character.DisplayName}\n(互换)"
-                        : character.DisplayName,
-                    16,
-                    FontStyle.Bold, TextAnchor.UpperCenter);
-                var nameRt = nameLabel.rectTransform;
-                nameRt.anchorMin = new Vector2(0f, 0f);
-                nameRt.anchorMax = new Vector2(1f, 0f);
-                nameRt.offsetMin = new Vector2(4f, 28f);
-                nameRt.offsetMax = new Vector2(-4f, 56f);
-
-                if (_meta != null)
-                {
-                    var progress = _meta.GetOrCreate(character.CharacterId);
-                    var metaLabel = CampUiRuntime.CreateText(pickBtn.transform,
-                        MetaProgressionRules.FormatXpProgress(progress),
-                        13, FontStyle.Normal, TextAnchor.UpperCenter);
-                    var metaRt = metaLabel.rectTransform;
-                    metaRt.anchorMin = new Vector2(0f, 0f);
-                    metaRt.anchorMax = new Vector2(1f, 0f);
-                    metaRt.offsetMin = new Vector2(4f, 8f);
-                    metaRt.offsetMax = new Vector2(-4f, 26f);
-                    metaLabel.color = new Color(0.75f, 0.8f, 0.92f, 1f);
-                }
-
-                var captured = character;
-                pickBtn.onClick.AddListener(() =>
-                {
-                    ApplyCharacter(memberIndex, captured);
-                    Destroy(picker);
-                    Rebuild();
-                });
+                if (root != null)
+                    Destroy(root);
             }
 
-            var cancel = CampUiRuntime.CreateButton(picker.transform, "取消", new Color(0.28f, 0.3f, 0.36f, 1f),
-                new Vector2(100f, 36f));
-            var cancelRt = cancel.GetComponent<RectTransform>();
-            cancelRt.anchorMin = new Vector2(1f, 0f);
-            cancelRt.anchorMax = new Vector2(1f, 0f);
-            cancelRt.pivot = new Vector2(1f, 0f);
-            cancelRt.anchoredPosition = new Vector2(-12f, 12f);
-            cancel.onClick.AddListener(() => Destroy(picker));
+            var closeGo = CampUiRuntime.CreateRect("Close", dialog.transform);
+            ApplyHubNormRect(closeGo.GetComponent<RectTransform>(), PickZoneClose);
+            var closeHit = closeGo.AddComponent<Image>();
+            closeHit.color = new Color(1f, 1f, 1f, 0.001f);
+            closeHit.raycastTarget = true;
+            var closeBtn = closeGo.AddComponent<Button>();
+            closeBtn.targetGraphic = closeHit;
+            closeBtn.transition = Selectable.Transition.None;
+            closeBtn.onClick.AddListener(ClosePicker);
+            UiAudioHooks.WireButton(closeBtn);
+
+            var characters = new List<CharacterDefinitionSO>();
+            foreach (var character in _playableCharacters)
+            {
+                if (character != null)
+                    characters.Add(character);
+            }
+
+            var cellW = PickPlateW * dialogW;
+            var cellH = PickPlateH * dialogH;
+            var spacingX = PickPlateStepX * dialogW - cellW;
+            var spacingY = PickPlateGapY * dialogH;
+
+            var scrollGo = CampUiRuntime.CreateRect("PlateScroll", dialog.transform);
+            var scrollRt = scrollGo.GetComponent<RectTransform>();
+            ApplyHubNormRect(scrollRt, PickZoneViewport);
+            var scroll = scrollGo.AddComponent<ScrollRect>();
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = 24f;
+            scroll.inertia = false;
+
+            var viewport = CampUiRuntime.CreateRect("Viewport", scrollGo.transform);
+            var viewportRt = viewport.GetComponent<RectTransform>();
+            CampUiRuntime.StretchFull(viewportRt);
+            var viewportImg = viewport.AddComponent<Image>();
+            viewportImg.color = new Color(0f, 0f, 0f, 0.02f);
+            viewportImg.raycastTarget = true;
+            var mask = viewport.AddComponent<Mask>();
+            mask.showMaskGraphic = false;
+
+            var content = CampUiRuntime.CreateRect("Content", viewport.transform);
+            var contentRt = content.GetComponent<RectTransform>();
+            contentRt.anchorMin = new Vector2(0f, 1f);
+            contentRt.anchorMax = new Vector2(1f, 1f);
+            contentRt.pivot = new Vector2(0.5f, 1f);
+            contentRt.offsetMin = Vector2.zero;
+            contentRt.offsetMax = Vector2.zero;
+
+            var grid = content.AddComponent<GridLayoutGroup>();
+            grid.cellSize = new Vector2(cellW, cellH);
+            grid.spacing = new Vector2(spacingX, spacingY);
+            grid.padding = new RectOffset(0, 0, 0, 0);
+            grid.startCorner = GridLayoutGroup.Corner.UpperLeft;
+            grid.startAxis = GridLayoutGroup.Axis.Horizontal;
+            grid.childAlignment = TextAnchor.UpperLeft;
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            grid.constraintCount = PickColumns;
+
+            var fitter = content.AddComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            scroll.viewport = viewportRt;
+            scroll.content = contentRt;
+
+            foreach (var character in characters)
+            {
+                var plate = CreateCharacterPickPlate(content.transform, character, memberIndex, root);
+                var le = plate.AddComponent<LayoutElement>();
+                le.minWidth = cellW;
+                le.minHeight = cellH;
+                le.preferredWidth = cellW;
+                le.preferredHeight = cellH;
+                ScrollRectNavigation.WireForwarding(plate, scroll);
+            }
+
+            LayoutRebuilder.ForceRebuildLayoutImmediate(contentRt);
+            Canvas.ForceUpdateCanvases();
+            // 内容不超过可视 2 行时 size=1，滑块铺满轨道、不可拖动
+            var visibleH = PickVisibleRows * cellH + (PickVisibleRows - 1) * spacingY;
+            var contentH = Mathf.Max(contentRt.rect.height, 1f);
+            scroll.verticalNormalizedPosition = 1f;
+
+            BuildCharacterPickerScrollbar(dialog.transform, scroll, contentH, visibleH);
+            Canvas.ForceUpdateCanvases();
+
+            // 取消：透明热区盖住模板按钮，不再叠字/叠图（避免双「取消」）
+            var cancelGo = CampUiRuntime.CreateRect("Cancel", dialog.transform);
+            ApplyHubNormRect(cancelGo.GetComponent<RectTransform>(), PickZoneCancel);
+            var cancelHit = cancelGo.AddComponent<Image>();
+            cancelHit.color = new Color(1f, 1f, 1f, 0.001f);
+            cancelHit.raycastTarget = true;
+            var cancelBtn = cancelGo.AddComponent<Button>();
+            cancelBtn.targetGraphic = cancelHit;
+            cancelBtn.transition = Selectable.Transition.None;
+            cancelBtn.onClick.AddListener(ClosePicker);
+            UiAudioHooks.WireButton(cancelBtn);
+        }
+
+        void BuildCharacterPickerScrollbar(
+            Transform dialog,
+            ScrollRect scroll,
+            float contentHeight,
+            float viewportHeight)
+        {
+            var barGo = CampUiRuntime.CreateRect("PickScrollbar", dialog);
+            var barRt = barGo.GetComponent<RectTransform>();
+            ApplyHubNormRect(barRt, PickZoneScrollbar);
+
+            var barImg = barGo.AddComponent<Image>();
+            barImg.color = Color.white;
+            barImg.raycastTarget = true;
+            barImg.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiSliderBar != null)
+                barImg.sprite = _uiIcons.UiSliderBar;
+            else
+                barImg.color = new Color(0.12f, 0.11f, 0.1f, 0.95f);
+
+            var slidingArea = CampUiRuntime.CreateRect("Sliding Area", barGo.transform);
+            var slidingRt = slidingArea.GetComponent<RectTransform>();
+            CampUiRuntime.StretchFull(slidingRt);
+            slidingRt.offsetMin = new Vector2(1f, 10f);
+            slidingRt.offsetMax = new Vector2(-1f, -10f);
+
+            var handleGo = CampUiRuntime.CreateRect("Handle", slidingArea.transform);
+            var handleRt = handleGo.GetComponent<RectTransform>();
+            handleRt.anchorMin = Vector2.zero;
+            handleRt.anchorMax = Vector2.one;
+            handleRt.offsetMin = Vector2.zero;
+            handleRt.offsetMax = Vector2.zero;
+
+            var handleImg = handleGo.AddComponent<Image>();
+            handleImg.color = Color.white;
+            handleImg.raycastTarget = true;
+            handleImg.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiSlider != null)
+                handleImg.sprite = _uiIcons.UiSlider;
+            else
+                handleImg.color = new Color(0.42f, 0.34f, 0.28f, 1f);
+
+            var scrollbar = barGo.AddComponent<Scrollbar>();
+            scrollbar.handleRect = handleRt;
+            scrollbar.targetGraphic = handleImg;
+            scrollbar.direction = Scrollbar.Direction.BottomToTop;
+            scrollbar.numberOfSteps = 0;
+            var size = contentHeight <= viewportHeight + 0.5f
+                ? 1f
+                : Mathf.Clamp01(viewportHeight / contentHeight);
+            scrollbar.size = size;
+            scrollbar.value = 1f;
+
+            scroll.verticalScrollbar = scrollbar;
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
+            scroll.verticalScrollbarSpacing = 0f;
+        }
+
+        GameObject CreateCharacterPickPlate(
+            Transform parent,
+            CharacterDefinitionSO character,
+            int memberIndex,
+            GameObject pickerRoot)
+        {
+            var plate = CampUiRuntime.CreateRect(character.CharacterId, parent);
+
+            var plateImg = plate.AddComponent<Image>();
+            plateImg.color = Color.white;
+            plateImg.raycastTarget = true;
+            // 格子尺寸已按 plate 精灵比例设定；关闭 preserveAspect，铺满空槽
+            plateImg.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiCharacterPlate != null)
+                plateImg.sprite = _uiIcons.UiCharacterPlate;
+            else
+                plateImg.color = new Color(0.18f, 0.16f, 0.14f, 1f);
+
+            // 立绘：贴合拱形内腔（相对 character_plate 量取）
+            var portraitHost = CampUiRuntime.CreateRect("Portrait", plate.transform);
+            var portraitHostRt = portraitHost.GetComponent<RectTransform>();
+            portraitHostRt.anchorMin = new Vector2(0.10f, 0.30f);
+            portraitHostRt.anchorMax = new Vector2(0.90f, 0.90f);
+            portraitHostRt.offsetMin = Vector2.zero;
+            portraitHostRt.offsetMax = Vector2.zero;
+
+            var portrait = CampUiRuntime.CreateImage("Idle", portraitHost.transform, Color.white);
+            portrait.preserveAspect = true;
+            portrait.raycastTarget = false;
+            CampUiRuntime.StretchFull(portrait.rectTransform);
+            var animator = portraitHost.AddComponent<CampIdlePortraitAnimator>();
+            animator.Bind(portrait, _characterVisuals, character.CharacterId);
+
+            var isSwap = CampRosterValidation.FindMemberIndexWithCharacter(
+                _roster, character.CharacterId, memberIndex) >= 0;
+            var displayName = CharacterDisplayNames.GetOrFallback(character.CharacterId, character.DisplayName);
+            if (isSwap)
+                displayName += " (互换)";
+
+            // 名/等级：落在底部铭牌盒内并水平居中
+            var name = CampUiRuntime.CreateText(plate.transform, displayName, 14, FontStyle.Bold,
+                TextAnchor.MiddleCenter);
+            var nameRt = name.rectTransform;
+            nameRt.anchorMin = new Vector2(0.08f, 0.12f);
+            nameRt.anchorMax = new Vector2(0.92f, 0.26f);
+            nameRt.offsetMin = Vector2.zero;
+            nameRt.offsetMax = Vector2.zero;
+            name.color = new Color(0.96f, 0.92f, 0.78f, 1f);
+            name.raycastTarget = false;
+            name.horizontalOverflow = HorizontalWrapMode.Wrap;
+            name.verticalOverflow = VerticalWrapMode.Truncate;
+
+            var level = 1;
+            if (_meta != null && !string.IsNullOrEmpty(character.CharacterId))
+            {
+                var progress = _meta.GetOrCreate(character.CharacterId);
+                MetaProgressionRules.NormalizeProgress(progress);
+                level = progress.OutOfRunLevel;
+            }
+
+            var levelText = CampUiRuntime.CreateText(plate.transform, $"Lv.{level}", 12, FontStyle.Normal,
+                TextAnchor.MiddleCenter);
+            var levelRt = levelText.rectTransform;
+            levelRt.anchorMin = new Vector2(0.08f, 0.02f);
+            levelRt.anchorMax = new Vector2(0.92f, 0.12f);
+            levelRt.offsetMin = Vector2.zero;
+            levelRt.offsetMax = Vector2.zero;
+            levelText.color = new Color(0.78f, 0.82f, 0.90f, 1f);
+            levelText.raycastTarget = false;
+
+            var group = plate.AddComponent<CanvasGroup>();
+            group.alpha = 1f;
+            group.blocksRaycasts = true;
+            group.interactable = true;
+            var hover = plate.AddComponent<CampBuildingHoverView>();
+            hover.Bind(plate.GetComponent<RectTransform>(), group, HubButtonHoverScale, hideWhenIdle: false);
+
+            var btn = plate.AddComponent<Button>();
+            btn.targetGraphic = plateImg;
+            btn.transition = Selectable.Transition.None;
+            var captured = character;
+            btn.onClick.AddListener(() =>
+            {
+                ApplyCharacter(memberIndex, captured);
+                if (pickerRoot != null)
+                    Destroy(pickerRoot);
+                Rebuild();
+            });
+            UiAudioHooks.WireButton(btn);
+            return plate;
         }
 
         void ApplyCharacter(int memberIndex, CharacterDefinitionSO character)
@@ -1152,29 +1366,25 @@ namespace Grimhand.Presentation.Camp
             {
                 var slotIndex = slot;
                 var cardId = member.DeckCardIds[slot];
+                // 空槽透明且不可点；有卡时由 CardView 响应单击卸下与悬停高亮（无蓝色选中框）
                 var slotGo = CampUiRuntime.CreateImage($"DeckSlot{slot}", _deckGrid,
-                    slotIndex == _selectedDeckSlot
-                        ? new Color(0.35f, 0.55f, 0.90f, 0.22f)
-                        : new Color(0.08f, 0.09f, 0.12f, 0.08f)).gameObject;
+                    new Color(0f, 0f, 0f, 0f)).gameObject;
+                var slotImg = slotGo.GetComponent<Image>();
+                slotImg.raycastTarget = false;
                 ApplyHubNormRect(slotGo.GetComponent<RectTransform>(), GetTeamDeckSlotRect(slot));
-
-                var btn = slotGo.AddComponent<Button>();
-                btn.targetGraphic = slotGo.GetComponent<Image>();
-                btn.transition = Selectable.Transition.None;
-                btn.onClick.AddListener(() =>
-                {
-                    if (_selectedDeckSlot == slotIndex && !string.IsNullOrEmpty(member.DeckCardIds[slotIndex]))
-                        CampRosterLoadoutRules.ClearSlot(member, slotIndex);
-                    else
-                        _selectedDeckSlot = slotIndex;
-                    Rebuild();
-                });
-                UiAudioHooks.WireButton(btn);
 
                 if (!string.IsNullOrEmpty(cardId) && _cardPrefab != null)
                 {
+                    // 与右侧收藏使用相同宿主尺寸，保证卡牌视觉大小一致
+                    var cardHost = CampUiRuntime.CreateRect("CardHost", slotGo.transform);
+                    var cardHostRt = cardHost.GetComponent<RectTransform>();
+                    cardHostRt.anchorMin = new Vector2(0.5f, 0.5f);
+                    cardHostRt.anchorMax = new Vector2(0.5f, 0.5f);
+                    cardHostRt.pivot = new Vector2(0.5f, 0.5f);
+                    cardHostRt.sizeDelta = new Vector2(168f * CardScale + 8f, 236f * CardScale + 8f);
+
                     _definitions.TryGetValue(cardId, out var definition);
-                    var view = Instantiate(_cardPrefab, slotGo.transform);
+                    var view = Instantiate(_cardPrefab, cardHost.transform);
                     CardView.ApplyHandPresentationScaleCentered(view, CardScale);
                     var preview = CardVisualResolver.CreatePreviewInstance(
                         cardId,
@@ -1183,12 +1393,24 @@ namespace Grimhand.Presentation.Camp
                         definition);
                     var visual = CardVisualResolver.Resolve(preview, _cardCatalog, _characterVisuals, _definitions);
                     var statsLine = BattleUiFormatters.BuildCardStatsLinePreview(preview, _definitions);
-                    view.BindWithCard(preview, visual, false, false, false, "", statsLine,
-                        _uiIcons, _characterVisuals, null, null, null);
-                    var cg = view.GetComponent<CanvasGroup>();
-                    if (cg != null)
-                        cg.blocksRaycasts = false;
-                    BindCardTooltip(slotGo, preview);
+                    view.BindWithCard(
+                        preview,
+                        visual,
+                        false,
+                        false,
+                        true,
+                        "",
+                        statsLine,
+                        _uiIcons,
+                        _characterVisuals,
+                        _ =>
+                        {
+                            CampRosterLoadoutRules.ClearSlot(member, slotIndex);
+                            Rebuild();
+                        },
+                        null,
+                        null);
+                    BindCardTooltip(view.gameObject, preview);
                 }
 
                 _dynamicObjects.Add(slotGo);
@@ -1271,10 +1493,10 @@ namespace Grimhand.Presentation.Camp
                 var capturedIndex = entryIndex;
                 view.BindWithCard(preview, visual, false, false, true, "", statsLine,
                     _uiIcons, _characterVisuals,
-                    _ => AssignCollectionEntryToSelectedSlot(capturedIndex),
+                    _ => AssignCollectionEntryToFirstEmptySlot(capturedIndex),
                     null,
                     null);
-                BindCardTooltip(holder, preview);
+                BindCardTooltip(view.gameObject, preview);
                 ScrollRectNavigation.WireForwarding(holder, _poolScroll);
 
                 _dynamicObjects.Add(holder);
@@ -1298,9 +1520,11 @@ namespace Grimhand.Presentation.Camp
             _tooltip.BindHover(target, card.DisplayName, body, showTitle: false);
         }
 
-        void AssignCollectionEntryToSelectedSlot(int collectionEntryIndex)
+        void AssignCollectionEntryToFirstEmptySlot(int collectionEntryIndex)
         {
-            if (_selectedDeckSlot < 0 || _selectedDeckSlot >= CampRosterState.DeckSize)
+            var member = _roster.Members[_activeMemberIndex];
+            var slot = FindFirstEmptyDeckSlot(member);
+            if (slot < 0)
                 return;
 
             if (!CampRosterLoadoutRules.TryAssignCollectionEntry(
@@ -1308,14 +1532,26 @@ namespace Grimhand.Presentation.Camp
                     _collection,
                     CardOwnerLookup,
                     _activeMemberIndex,
-                    _selectedDeckSlot,
+                    slot,
                     collectionEntryIndex,
                     out _))
                 return;
 
-            if (_selectedDeckSlot < CampRosterState.DeckSize - 1)
-                _selectedDeckSlot++;
             Rebuild();
+        }
+
+        static int FindFirstEmptyDeckSlot(CampMemberLoadout member)
+        {
+            if (member?.DeckCardIds == null)
+                return -1;
+
+            for (var i = 0; i < CampRosterState.DeckSize; i++)
+            {
+                if (string.IsNullOrEmpty(member.DeckCardIds[i]))
+                    return i;
+            }
+
+            return -1;
         }
 
         static int CountFilledSlots(CampMemberLoadout member)
@@ -1370,7 +1606,7 @@ namespace Grimhand.Presentation.Camp
 
             _hintText.text = ready
                 ? "编队已就绪（远征仍使用角色初始卡组；左侧为空表示祭坛暂无可提取收藏牌）。保存后可通过传送门开始远征。"
-                : $"正在编辑：{member.DisplayName} — 选中槽位 {_selectedDeckSlot + 1}，点击右侧收藏卡牌填入祭坛携带；再次点击已填槽位可归还收藏。";
+                : $"正在编辑：{member.DisplayName} — 点击右侧收藏卡牌按顺序加入携带；点击左侧携带卡牌可移回收藏。";
         }
 
         void RefreshMetaSummary()

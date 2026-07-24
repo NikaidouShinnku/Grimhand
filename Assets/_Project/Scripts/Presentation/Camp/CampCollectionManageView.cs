@@ -18,15 +18,14 @@ namespace Grimhand.Presentation.Camp
     public sealed class CampCollectionManageView : MonoBehaviour
     {
         const int CardsPerRow = 6;
-        const float DetailCardScale = 1.72f;
-        const float SellButtonWidth = 200f;
         const float ButtonHoverScale = 1.08f;
 
-        // 对照用户红框（原点左下）：筛选 / 返回 / 卡区虚影 / 滑动条
-        static readonly Vector4 ZoneFilterCost = new(0.1055f, 0.8084f, 0.2344f, 0.8554f);
-        static readonly Vector4 ZoneFilterRarity = new(0.2383f, 0.8066f, 0.3682f, 0.8537f);
-        static readonly Vector4 ZoneFilterOwner = new(0.3750f, 0.8049f, 0.5039f, 0.8571f);
-        static readonly Vector4 ZoneBack = new(0.8584f, 0.8902f, 0.9756f, 0.9617f);
+        // 模板空槽实测约 y=0.809–0.860；略放大并上扩以完全盖住底图框（勿大幅平移）
+        static readonly Vector4 ZoneFilterCost = new(0.1000f, 0.8050f, 0.2400f, 0.8680f);
+        static readonly Vector4 ZoneFilterRarity = new(0.2330f, 0.8050f, 0.3740f, 0.8680f);
+        static readonly Vector4 ZoneFilterOwner = new(0.3660f, 0.8050f, 0.5080f, 0.8680f);
+        // 返回：对齐概念图按钮区，略放大并稍向左，盖住底图框
+        static readonly Vector4 ZoneBack = new(0.8480f, 0.8820f, 0.9820f, 0.9720f);
         static readonly Vector4 ZoneCards = new(0.1436f, 0.1948f, 0.8589f, 0.7561f);
         static readonly Vector4 ZoneScrollbar = new(0.8828f, 0.1934f, 0.8955f, 0.7439f);
 
@@ -54,26 +53,17 @@ namespace Grimhand.Presentation.Camp
 
         RectTransform _panel;
         RectTransform _listPanel;
-        RectTransform _detailPanel;
+        CampCardDetailView _detailView;
         RectTransform _cardGrid;
         ScrollRect _cardScroll;
-        ScrollRect _keywordScroll;
         GridLayoutGroup _gridLayout;
         float _gridCardScale = 0.55f;
         GameObject _confirmPanel;
         Text _confirmTitleText;
         Text _confirmBodyText;
-        Text _detailTitleText;
-        Text _detailMetaText;
-        Text _detailStatsText;
-        Text _detailKeywordText;
-        Text _sellGoldText;
-        Image _sellGoldIcon;
-        RectTransform _detailCardAnchor;
         Button _filterCostButton;
         Button _filterRarityButton;
         Button _filterOwnerButton;
-        Button _sellButton;
 
         int? _filterCost;
         CardRarity? _filterRarity;
@@ -93,7 +83,7 @@ namespace Grimhand.Presentation.Camp
             CardRarity.Legendary
         };
 
-        public bool IsDetailOpen => _detailPanel != null && _detailPanel.gameObject.activeSelf;
+        public bool IsDetailOpen => _detailView != null && _detailView.IsOpen;
         public bool IsOpen => _panel != null && _panel.gameObject.activeSelf;
 
         public void Initialize(
@@ -137,6 +127,7 @@ namespace Grimhand.Presentation.Camp
         public void Hide()
         {
             HideConfirmPanel();
+            _detailView?.Hide();
             if (_panel != null)
                 _panel.gameObject.SetActive(false);
         }
@@ -145,14 +136,14 @@ namespace Grimhand.Presentation.Camp
         {
             _detailEntryIndex = -1;
             _listPanel.gameObject.SetActive(true);
-            _detailPanel.gameObject.SetActive(false);
+            _detailView?.Hide();
         }
 
         void ShowDetailPanel(int entryIndex)
         {
             _detailEntryIndex = entryIndex;
-            _listPanel.gameObject.SetActive(false);
-            _detailPanel.gameObject.SetActive(true);
+            // 保持收藏列表可见，作为详情弹窗外围背景
+            _listPanel.gameObject.SetActive(true);
             RebuildDetail();
         }
 
@@ -334,110 +325,19 @@ namespace Grimhand.Presentation.Camp
 
         void RebuildDetail()
         {
-            ClearDetailCard();
-            if (_collection == null || _detailEntryIndex < 0 || _detailEntryIndex >= _collection.Count)
+            if (_detailView == null || _collection == null
+                || _detailEntryIndex < 0 || _detailEntryIndex >= _collection.Count)
                 return;
 
             var cardId = _collection.Entries[_detailEntryIndex];
             _definitions.TryGetValue(cardId, out var definition);
-            var ownerId = definition?.OwnerCharacterId ?? "";
-            var preview = CardVisualResolver.CreatePreviewInstance(
-                cardId,
-                ownerId,
-                definition?.DisplayName ?? cardId,
-                definition);
-            var descCard = CardVisualResolver.ResolveForDescription(preview, _definitions);
-
-            _detailTitleText.text = descCard.DisplayName;
-            _detailMetaText.text =
-                $"{CampCardUiLabels.FormatRarity(cardId)} · 费用 {descCard.Cost} · {CampCardUiLabels.FormatType(descCard.CardType)} · 归属 {CampCardUiLabels.FormatOwner(ownerId, _characters)}";
-
-            _detailStatsText.text = BattleUiFormatters.BuildCardStatsLinePreview(descCard, _definitions);
-            var keywords = BattleUiFormatters.BuildCardKeywordTooltip(null, descCard, _definitions)
-                .Replace("<b>", "").Replace("</b>", "");
-            _detailKeywordText.text = string.IsNullOrWhiteSpace(keywords)
-                ? "（无关键词说明）"
-                : keywords;
-            RefreshKeywordScrollLayout();
-
-            if (_cardPrefab != null)
-            {
-                var view = Instantiate(_cardPrefab, _detailCardAnchor);
-                CardView.ApplyHandPresentationScaleCentered(view, DetailCardScale);
-                var visual = CardVisualResolver.Resolve(preview, _cardCatalog, _characterVisuals, _definitions);
-                var statsLine = BattleUiFormatters.BuildCardStatsLinePreview(preview, _definitions);
-                view.BindWithCard(
-                    preview,
-                    visual,
-                    false,
-                    false,
-                    false,
-                    "",
-                    statsLine,
-                    _uiIcons,
-                    _characterVisuals,
-                    null,
-                    null,
-                    null);
-            }
-
-            _sellButton.interactable = true;
-            RefreshSellPriceDisplay(cardId, definition);
             HideConfirmPanel();
-        }
-
-        void RefreshSellPriceDisplay(string cardId, CardDefinitionSO definition)
-        {
-            var gold = CampCollectionRules.GetSellGold(ResolveRarity(cardId, definition));
-            if (_sellGoldText != null)
-                _sellGoldText.text = gold.ToString();
-            if (_sellGoldIcon != null && _uiIcons?.CampGoldIcon != null)
-                _sellGoldIcon.sprite = _uiIcons.CampGoldIcon;
-        }
-
-        static CardRarity ResolveRarity(string cardId, CardDefinitionSO definition)
-        {
-            if (definition != null)
-                return definition.Rarity;
-            return CardRarityTable.GetOrDefault(cardId);
-        }
-
-        void RefreshKeywordScrollLayout()
-        {
-            if (_detailKeywordText == null)
-                return;
-
-            Canvas.ForceUpdateCanvases();
-            var textRt = _detailKeywordText.rectTransform;
-            var content = textRt.parent as RectTransform;
-            var viewport = content != null ? content.parent as RectTransform : null;
-
-            // 先固定宽度，再按换行后的 preferredHeight 撑开内容；否则 ContentSizeFitter
-            // 在高度为 0 时算不出滚动区，表现为拖一下立刻回弹。
-            var width = viewport != null ? Mathf.Max(40f, viewport.rect.width - 16f) : 400f;
-            textRt.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);
-            LayoutRebuilder.ForceRebuildLayoutImmediate(textRt);
-
-            var preferred = Mathf.Max(_detailKeywordText.preferredHeight + 8f, 1f);
-            textRt.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, preferred);
-            if (content != null)
-            {
-                content.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, viewport != null ? viewport.rect.width : width);
-                content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, preferred);
-                LayoutRebuilder.ForceRebuildLayoutImmediate(content);
-            }
-
-            if (_keywordScroll != null)
-                _keywordScroll.verticalNormalizedPosition = 1f;
-        }
-
-        void ClearDetailCard()
-        {
-            if (_detailCardAnchor == null)
-                return;
-
-            foreach (Transform child in _detailCardAnchor)
-                Destroy(child.gameObject);
+            _detailView.Show(
+                definition,
+                cardId,
+                showSell: true,
+                onBack: ShowListPanel,
+                onSell: TrySellCurrent);
         }
 
         void TrySellCurrent()
@@ -448,7 +348,8 @@ namespace Grimhand.Presentation.Camp
             var cardId = _collection.Entries[_detailEntryIndex];
             _definitions.TryGetValue(cardId, out var definition);
             var cardName = definition != null ? definition.DisplayName : cardId;
-            _pendingSellGold = CampCollectionRules.GetSellGold(ResolveRarity(cardId, definition));
+            var rarity = definition != null ? definition.Rarity : CardRarityTable.GetOrDefault(cardId);
+            _pendingSellGold = CampCollectionRules.GetSellGold(rarity);
             ShowConfirmPanel($"确定出售「{cardName}」？\n将获得 {_pendingSellGold} 黄金，并从收藏中移除。");
         }
 
@@ -459,7 +360,7 @@ namespace Grimhand.Presentation.Camp
 
             var cardId = _collection.Entries[_detailEntryIndex];
             _definitions.TryGetValue(cardId, out var definition);
-            var rarity = ResolveRarity(cardId, definition);
+            var rarity = definition != null ? definition.Rarity : CardRarityTable.GetOrDefault(cardId);
 
             if (!CampCollectionRules.TrySellCollectionEntry(
                     _collection, _detailEntryIndex, rarity, out var goldGained, out _))
@@ -759,138 +660,16 @@ namespace Grimhand.Presentation.Camp
 
         void BuildDetailPanel()
         {
-            _detailPanel = CampUiRuntime.CreateImage("Detail", _panel, new Color(0.08f, 0.09f, 0.12f, 0.99f))
-                .rectTransform;
-            CampUiRuntime.Stretch(_detailPanel, 24f, 24f, -24f, -24f);
-            _detailPanel.gameObject.SetActive(false);
-
-            var backBtn = CampUiRuntime.CreateButton(_detailPanel, "返回收藏", new Color(0.28f, 0.3f, 0.36f, 1f),
-                new Vector2(160f, 42f));
-            var backRt = backBtn.GetComponent<RectTransform>();
-            backRt.anchorMin = new Vector2(1f, 1f);
-            backRt.anchorMax = new Vector2(1f, 1f);
-            backRt.pivot = new Vector2(1f, 1f);
-            backRt.anchoredPosition = new Vector2(-8f, -8f);
-            backBtn.onClick.AddListener(ShowListPanel);
-
-            _detailTitleText = CampUiRuntime.CreateText(_detailPanel, "", 34, FontStyle.Bold, TextAnchor.UpperLeft);
-            // 右侧留给「返回收藏」，避免标题全宽透明区域挡住按钮左半边点击。
-            CampUiRuntime.SetAnchored(_detailTitleText.rectTransform, 0.04f, 0.9f, 0.72f, 0.98f);
-            _detailTitleText.color = new Color(0.95f, 0.88f, 0.62f, 1f);
-            _detailTitleText.raycastTarget = false;
-
-            _detailMetaText = CampUiRuntime.CreateText(_detailPanel, "", 20, FontStyle.Normal, TextAnchor.UpperLeft);
-            CampUiRuntime.SetAnchored(_detailMetaText.rectTransform, 0.44f, 0.84f, 0.96f, 0.9f);
-            _detailMetaText.color = new Color(0.82f, 0.86f, 0.95f, 1f);
-            _detailMetaText.raycastTarget = false;
-
-            _detailCardAnchor = CampUiRuntime.CreateRect("CardAnchor", _detailPanel).GetComponent<RectTransform>();
-            CampUiRuntime.SetAnchored(_detailCardAnchor, 0.03f, 0.1f, 0.4f, 0.9f);
-            var cardAnchorBlocker = _detailCardAnchor.gameObject.AddComponent<Image>();
-            cardAnchorBlocker.color = new Color(0f, 0f, 0f, 0f);
-            cardAnchorBlocker.raycastTarget = false;
-
-            var infoBox = CampUiRuntime.CreateImage("InfoBox", _detailPanel, new Color(0.12f, 0.14f, 0.19f, 0.95f));
-            var infoRt = infoBox.rectTransform;
-            CampUiRuntime.SetAnchored(infoRt, 0.42f, 0.1f, 0.96f, 0.82f);
-
-            var statsLabel = CampUiRuntime.CreateText(infoBox.transform, "属性", 22, FontStyle.Bold, TextAnchor.UpperLeft);
-            CampUiRuntime.SetAnchored(statsLabel.rectTransform, 0.04f, 0.88f, 0.96f, 0.98f);
-
-            _detailStatsText = CampUiRuntime.CreateText(infoBox.transform, "", 20, FontStyle.Normal, TextAnchor.UpperLeft);
-            CampUiRuntime.SetAnchored(_detailStatsText.rectTransform, 0.04f, 0.68f, 0.96f, 0.88f);
-
-            var keywordLabel = CampUiRuntime.CreateText(infoBox.transform, "关键词说明", 22, FontStyle.Bold,
-                TextAnchor.UpperLeft);
-            CampUiRuntime.SetAnchored(keywordLabel.rectTransform, 0.04f, 0.62f, 0.96f, 0.7f);
-
-            var keywordScrollGo = CampUiRuntime.CreateRect("KeywordScroll", infoBox.transform);
-            var keywordScrollRt = keywordScrollGo.GetComponent<RectTransform>();
-            CampUiRuntime.SetAnchored(keywordScrollRt, 0.04f, 0.04f, 0.96f, 0.64f);
-            keywordScrollGo.AddComponent<Image>().color = new Color(0.08f, 0.09f, 0.12f, 0.55f);
-            _keywordScroll = keywordScrollGo.AddComponent<ScrollRect>();
-            _keywordScroll.horizontal = false;
-            _keywordScroll.vertical = true;
-            _keywordScroll.movementType = ScrollRect.MovementType.Clamped;
-            _keywordScroll.scrollSensitivity = 28f;
-            _keywordScroll.inertia = true;
-            var keywordScroll = _keywordScroll;
-
-            var keywordViewport = CampUiRuntime.CreateRect("Viewport", keywordScrollGo.transform);
-            var keywordViewportRt = keywordViewport.GetComponent<RectTransform>();
-            CampUiRuntime.StretchFull(keywordViewportRt);
-            keywordViewport.AddComponent<Mask>().showMaskGraphic = false;
-            keywordViewport.AddComponent<Image>().color = new Color(1f, 1f, 1f, 0.01f);
-            keywordScroll.viewport = keywordViewportRt;
-
-            var keywordContent = CampUiRuntime.CreateRect("Content", keywordViewport.transform)
-                .GetComponent<RectTransform>();
-            keywordContent.anchorMin = new Vector2(0f, 1f);
-            keywordContent.anchorMax = new Vector2(1f, 1f);
-            keywordContent.pivot = new Vector2(0.5f, 1f);
-            keywordContent.anchoredPosition = Vector2.zero;
-            keywordContent.sizeDelta = new Vector2(0f, 0f);
-            var keywordFitter = keywordContent.gameObject.AddComponent<ContentSizeFitter>();
-            keywordFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-            keywordFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-            keywordScroll.content = keywordContent;
-
-            _detailKeywordText = CampUiRuntime.CreateText(keywordContent, "", 18, FontStyle.Normal, TextAnchor.UpperLeft);
-            var keywordTextRt = _detailKeywordText.rectTransform;
-            keywordTextRt.anchorMin = new Vector2(0f, 1f);
-            keywordTextRt.anchorMax = new Vector2(1f, 1f);
-            keywordTextRt.pivot = new Vector2(0.5f, 1f);
-            keywordTextRt.anchoredPosition = Vector2.zero;
-            keywordTextRt.sizeDelta = new Vector2(-16f, 0f);
-            _detailKeywordText.color = new Color(0.86f, 0.9f, 0.98f, 1f);
-            _detailKeywordText.horizontalOverflow = HorizontalWrapMode.Wrap;
-            _detailKeywordText.verticalOverflow = VerticalWrapMode.Overflow;
-            var keywordTextFitter = _detailKeywordText.gameObject.AddComponent<ContentSizeFitter>();
-            keywordTextFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-            keywordTextFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-            _sellButton = CampUiRuntime.CreateButton(_detailPanel, "出售卡牌", new Color(0.62f, 0.22f, 0.22f, 1f),
-                new Vector2(SellButtonWidth, 52f));
-            var sellRt = _sellButton.GetComponent<RectTransform>();
-            sellRt.anchorMin = new Vector2(0.03f, 0.03f);
-            sellRt.anchorMax = new Vector2(0.03f, 0.03f);
-            sellRt.pivot = new Vector2(0f, 0f);
-            sellRt.anchoredPosition = Vector2.zero;
-            _sellButton.onClick.AddListener(TrySellCurrent);
-
-            var sellGoldRow = CampUiRuntime.CreateRect("SellGold", _detailPanel).GetComponent<RectTransform>();
-            sellGoldRow.anchorMin = new Vector2(0.03f, 0.03f);
-            sellGoldRow.anchorMax = new Vector2(0.03f, 0.03f);
-            sellGoldRow.pivot = new Vector2(0f, 0f);
-            sellGoldRow.anchoredPosition = new Vector2(SellButtonWidth + 16f, 8f);
-            sellGoldRow.sizeDelta = new Vector2(180f, 36f);
-            var sellGoldLayout = sellGoldRow.gameObject.AddComponent<HorizontalLayoutGroup>();
-            sellGoldLayout.spacing = 8f;
-            sellGoldLayout.childAlignment = TextAnchor.MiddleLeft;
-            sellGoldLayout.childControlWidth = false;
-            sellGoldLayout.childControlHeight = true;
-            sellGoldLayout.childForceExpandWidth = false;
-            sellGoldLayout.childForceExpandHeight = false;
-
-            _sellGoldIcon = CampUiRuntime.CreateImage("SellGoldIcon", sellGoldRow, Color.white);
-            _sellGoldIcon.preserveAspect = true;
-            _sellGoldIcon.sprite = _uiIcons != null ? _uiIcons.CampGoldIcon : null;
-            _sellGoldIcon.raycastTarget = false;
-            var sellIconLe = _sellGoldIcon.gameObject.AddComponent<LayoutElement>();
-            sellIconLe.preferredWidth = 32f;
-            sellIconLe.preferredHeight = 32f;
-
-            _sellGoldText = CampUiRuntime.CreateText(sellGoldRow, "0", 24, FontStyle.Bold, TextAnchor.MiddleLeft);
-            _sellGoldText.color = new Color(0.95f, 0.88f, 0.62f, 1f);
-            _sellGoldText.raycastTarget = false;
-            var sellTextLe = _sellGoldText.gameObject.AddComponent<LayoutElement>();
-            sellTextLe.preferredWidth = 120f;
-            sellTextLe.preferredHeight = 32f;
-
-            backBtn.transform.SetAsLastSibling();
-            _sellButton.transform.SetAsLastSibling();
-            sellGoldRow.SetAsLastSibling();
-
+            var host = CampUiRuntime.CreateRect("DetailHost", _panel);
+            CampUiRuntime.StretchFull(host.GetComponent<RectTransform>());
+            _detailView = host.AddComponent<CampCardDetailView>();
+            _detailView.Initialize(
+                _cardPrefab,
+                _cardCatalog,
+                _characterVisuals,
+                _uiIcons,
+                _definitions,
+                _characters);
             BuildConfirmPanel();
         }
 

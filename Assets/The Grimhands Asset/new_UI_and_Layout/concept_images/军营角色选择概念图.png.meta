@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 26f03d9d5929aea49a93bf718fa7a569
+guid: 5b0cc052cef7f834793d7fba31d2b580
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 4219208660190694281
-    second: snakequeen_hit_1024_0
+      213: -3113258607433771915
+    second: "\u519B\u8425\u89D2\u8272\u9009\u62E9\u6982\u5FF5\u56FE_0"
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: snakequeen_hit_1024_0
+      name: "\u519B\u8425\u89D2\u8272\u9009\u62E9\u6982\u5FF5\u56FE_0"
       rect:
         serializedVersion: 2
-        x: 19
-        y: 63
-        width: 979
-        height: 874
+        x: 0
+        y: 0
+        width: 1402
+        height: 1122
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 98b0bef0ce3ad8a30800000000000000
-      internalID: 4219208660190694281
+      spriteID: 5749bf19acb7bc4d0800000000000000
+      internalID: -3113258607433771915
       vertices: []
       indices: 
       edges: []
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      snakequeen_hit_1024_0: 4219208660190694281
+      "\u519B\u8425\u89D2\u8272\u9009\u62E9\u6982\u5FF5\u56FE_0": -3113258607433771915
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

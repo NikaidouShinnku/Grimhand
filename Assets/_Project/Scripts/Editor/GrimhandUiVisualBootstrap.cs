@@ -89,10 +89,17 @@ namespace Grimhand.Editor
                 NewUiRoot + "templates/配置队伍概念图-模板.png");
             catalog.ChampionCampCollectionBackground = LoadFirstSprite(
                 NewUiRoot + "templates/军营收藏概念图-模板.png");
+            catalog.ChampionCampCharacterSelectBackground = LoadFirstSprite(
+                NewUiRoot + "templates/军营角色选择概念图-模板.png");
+            catalog.UiCharacterPlate = LoadNamedSprite(
+                NewUiRoot + "interactables_and_ui/character_plate.png", "character_plate_0")
+                ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/character_plate.png");
             catalog.UiSliderBar = LoadNamedSprite(NewUiRoot + "interactables_and_ui/sliderbar.png", "sliderbar_0")
                 ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/sliderbar.png");
             catalog.UiSlider = LoadNamedSprite(NewUiRoot + "interactables_and_ui/slider.png", "slider_0")
                 ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/slider.png");
+            catalog.UiCardDetailBackground = LoadFirstSprite(
+                NewUiRoot + "templates/卡牌遗物角色详情概念图-模板.png");
             catalog.MerchantCampBuilding = LoadNamedSprite(CampArtRoot + "merchant_camp.png", "merchant_camp_0");
             catalog.PortalBuilding = LoadNamedSprite(CampArtRoot + "portal.png", "portal_0");
             catalog.TrainingGroundBuilding = LoadNamedSprite(CampArtRoot + "training_ground.png", "training_ground_0")

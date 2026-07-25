@@ -85,6 +85,8 @@ namespace Grimhand.Editor
             catalog.UiCardPackOpen = LoadClip("ui_cardpack_open");
             catalog.UiInventoryOpen = LoadClip("ui_inventory_open");
             catalog.UiInventoryClose = LoadClip("ui_inventory_close");
+            catalog.UiOpenMap = LoadClipFirst("ui_open_map", "open_map");
+            catalog.UiCloseMap = LoadClipFirst("ui_close_map", "close_map");
 
             catalog.BattleUsePotion = LoadClip("battle_use_potion");
             catalog.BattleUseConsumable = LoadClip("battle_use_consumable");
@@ -118,7 +120,21 @@ namespace Grimhand.Editor
             return catalog;
         }
 
-        static AudioClip LoadClip(string idWithoutExt)
+        static AudioClip LoadClipFirst(params string[] idsWithoutExt)
+        {
+            foreach (var id in idsWithoutExt)
+            {
+                var clip = LoadClipQuiet(id);
+                if (clip != null)
+                    return clip;
+            }
+
+            if (idsWithoutExt.Length > 0)
+                Debug.LogWarning($"[AudioCatalog] Missing clip: {string.Join(" / ", idsWithoutExt)}");
+            return null;
+        }
+
+        static AudioClip LoadClipQuiet(string idWithoutExt)
         {
             foreach (var ext in new[] { ".ogg", ".mp3", ".wav" })
             {
@@ -128,8 +144,15 @@ namespace Grimhand.Editor
                     return clip;
             }
 
-            Debug.LogWarning($"[AudioCatalog] Missing clip: {idWithoutExt}");
             return null;
+        }
+
+        static AudioClip LoadClip(string idWithoutExt)
+        {
+            var clip = LoadClipQuiet(idWithoutExt);
+            if (clip == null)
+                Debug.LogWarning($"[AudioCatalog] Missing clip: {idWithoutExt}");
+            return clip;
         }
 
         static void ConfigureBgmStreaming(AudioClip clip)

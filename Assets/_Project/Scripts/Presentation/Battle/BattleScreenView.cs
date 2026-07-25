@@ -560,7 +560,7 @@ namespace Grimhand.Presentation.Battle
             _turnLogButton.onClick.AddListener(ToggleTurnDetailPanel);
 
             _turnDetailPanel = gameObject.AddComponent<BattleTurnDetailPanelView>();
-            _turnDetailPanel.Initialize(_session, transform);
+            _turnDetailPanel.Initialize(_session, transform, _uiIcons);
             ApplyTurnLogButtonLayout();
         }
 
@@ -1347,6 +1347,31 @@ namespace Grimhand.Presentation.Battle
 
             foreach (var graphic in keywordTooltipPanel.GetComponentsInChildren<Graphic>(true))
                 graphic.raycastTarget = false;
+
+            ApplyKeywordTooltipPlate();
+        }
+
+        void ApplyKeywordTooltipPlate()
+        {
+            if (keywordTooltipPanel == null)
+                return;
+
+            var img = keywordTooltipPanel.GetComponent<Image>();
+            if (img == null)
+                img = keywordTooltipPanel.AddComponent<Image>();
+
+            var plate = _uiIcons != null ? _uiIcons.UiInformationPlate : null;
+            if (plate != null)
+            {
+                img.sprite = plate;
+                img.type = Image.Type.Simple;
+                img.preserveAspect = false;
+                img.color = Color.white;
+            }
+
+            foreach (var fx in keywordTooltipPanel.GetComponents<Outline>())
+                Destroy(fx);
+            img.raycastTarget = false;
         }
 
         public void Refresh()
@@ -1998,37 +2023,25 @@ namespace Grimhand.Presentation.Battle
             keywordTooltipText.verticalOverflow = VerticalWrapMode.Overflow;
             keywordTooltipText.text = body;
 
+            ApplyKeywordTooltipPlate();
+
             var panel = keywordTooltipPanel.transform as RectTransform;
             if (panel == null)
                 return;
 
-            const float tooltipWidth = 320f;
-            const float padX = 20f;
-            const float padY = 16f;
-
-            var textRt = keywordTooltipText.rectTransform;
-            textRt.anchorMin = new Vector2(0f, 1f);
-            textRt.anchorMax = new Vector2(1f, 1f);
-            textRt.pivot = new Vector2(0.5f, 1f);
-            textRt.anchoredPosition = new Vector2(0f, -8f);
-            textRt.sizeDelta = new Vector2(-padX, 0f);
+            // 固定较窄宽度，高度按正文撑开（information plate 上下内边距）
+            const float tooltipWidth = UiInfoPlateMetrics.MaxWidth;
+            var innerW = UiInfoPlateMetrics.InnerWidth(tooltipWidth);
 
             keywordTooltipPanel.SetActive(true);
-            Canvas.ForceUpdateCanvases();
-            var preferred = keywordTooltipText.preferredHeight;
-            if (preferred < 8f)
-            {
-                var settings = keywordTooltipText.GetGenerationSettings(new Vector2(tooltipWidth - padX, 0f));
-                settings.horizontalOverflow = HorizontalWrapMode.Wrap;
-                settings.verticalOverflow = VerticalWrapMode.Overflow;
-                settings.scaleFactor = 1f;
-                preferred = keywordTooltipText.cachedTextGeneratorForLayout
-                                .GetPreferredHeight(body, settings)
-                            / Mathf.Max(1f, keywordTooltipText.pixelsPerUnit);
-            }
-
-            panel.sizeDelta = new Vector2(tooltipWidth, Mathf.Max(64f, preferred + padY));
-            textRt.sizeDelta = new Vector2(-padX, preferred);
+            var preferred = UiInfoPlateMetrics.MeasureHeight(keywordTooltipText, body, innerW);
+            panel.sizeDelta = new Vector2(tooltipWidth, Mathf.Max(72f, preferred + UiInfoPlateMetrics.PadY * 2f));
+            UiInfoPlateMetrics.ApplyTextInsets(keywordTooltipText.rectTransform);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
+            // 二次测量：避免富文本首次 preferred 偏低
+            preferred = UiInfoPlateMetrics.MeasureHeight(keywordTooltipText, body, innerW);
+            panel.sizeDelta = new Vector2(tooltipWidth, Mathf.Max(72f, preferred + UiInfoPlateMetrics.PadY * 2f));
+            UiInfoPlateMetrics.ApplyTextInsets(keywordTooltipText.rectTransform);
             LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
             PositionTooltipBesideCard(panel, anchor);
 

@@ -146,7 +146,7 @@ namespace Grimhand.Presentation.Battle
             _scroll.content = _content;
 
             _tooltip = panelGo.AddComponent<InventoryTooltipView>();
-            _tooltip.Initialize(_panel);
+            _tooltip.Initialize(_panel, _uiIcons);
             _panel.gameObject.SetActive(false);
         }
 

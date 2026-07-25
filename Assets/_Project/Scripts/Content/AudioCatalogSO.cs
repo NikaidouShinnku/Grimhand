@@ -31,6 +31,8 @@ namespace Grimhand.Content
         public AudioClip UiCardPackOpen;
         public AudioClip UiInventoryOpen;
         public AudioClip UiInventoryClose;
+        public AudioClip UiOpenMap;
+        public AudioClip UiCloseMap;
 
         [Header("Battle")]
         public AudioClip BattleUsePotion;

@@ -279,6 +279,10 @@ namespace Grimhand.Presentation.Audio
 
         public void PlayUiInventoryClose() => PlaySfx(_catalog?.UiInventoryClose);
 
+        public void PlayUiMapOpen() => PlaySfx(_catalog?.UiOpenMap);
+
+        public void PlayUiMapClose() => PlaySfx(_catalog?.UiCloseMap);
+
         void EnsureCatalogFallback()
         {
             if (_catalog != null)

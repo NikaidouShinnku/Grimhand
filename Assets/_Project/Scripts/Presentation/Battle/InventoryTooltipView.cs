@@ -1,4 +1,5 @@
 using System.Collections;
+using Grimhand.Content;
 using Grimhand.Presentation;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -9,11 +10,11 @@ namespace Grimhand.Presentation.Battle
     public sealed class InventoryTooltipView : MonoBehaviour
     {
         const float HideDelaySeconds = 0.05f;
-        const float MaxWidth = 360f;
-        const float Padding = 12f;
+        const float TitleBodySpacing = 6f;
 
         RectTransform _panel;
         RectTransform _content;
+        Image _panelBg;
         Text _title;
         Text _body;
         bool _built;
@@ -21,53 +22,72 @@ namespace Grimhand.Presentation.Battle
         GameObject _pendingHideTarget;
         Coroutine _hideRoutine;
 
-        public void Initialize(RectTransform parent)
+        public void Initialize(RectTransform parent, BattleUiIconCatalogSO icons = null)
         {
             if (_built)
+            {
+                ApplyInformationPlate(icons);
                 return;
+            }
 
             _built = true;
             var go = new GameObject("InventoryTooltip", typeof(RectTransform), typeof(Image), typeof(CanvasGroup));
             go.transform.SetParent(parent, false);
             _panel = go.GetComponent<RectTransform>();
-            _panel.sizeDelta = new Vector2(MaxWidth, 120f);
-            var bg = go.GetComponent<Image>();
-            bg.color = new Color(0.04f, 0.05f, 0.08f, 0.98f);
-            bg.raycastTarget = false;
+            _panel.sizeDelta = new Vector2(UiInfoPlateMetrics.MinWidth, 80f);
+            _panelBg = go.GetComponent<Image>();
+            _panelBg.raycastTarget = false;
+            ApplyInformationPlate(icons);
             var group = go.GetComponent<CanvasGroup>();
             group.blocksRaycasts = false;
             group.interactable = false;
             go.SetActive(false);
 
-            _content = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter))
-                .GetComponent<RectTransform>();
+            _content = new GameObject("Content", typeof(RectTransform)).GetComponent<RectTransform>();
             _content.SetParent(go.transform, false);
-            _content.anchorMin = Vector2.zero;
-            _content.anchorMax = Vector2.one;
-            _content.offsetMin = new Vector2(Padding, Padding);
-            _content.offsetMax = new Vector2(-Padding, -Padding);
-            var layout = _content.GetComponent<VerticalLayoutGroup>();
-            layout.spacing = 6f;
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = true;
-            layout.childForceExpandHeight = false;
-            var fitter = _content.GetComponent<ContentSizeFitter>();
-            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            UiInfoPlateMetrics.ApplyTextInsets(_content);
 
-            var titleGo = new GameObject("Title", typeof(RectTransform), typeof(Text), typeof(LayoutElement));
+            var titleGo = new GameObject("Title", typeof(RectTransform), typeof(Text));
             titleGo.transform.SetParent(_content, false);
-            titleGo.GetComponent<LayoutElement>().preferredWidth = MaxWidth - Padding * 2f;
             _title = titleGo.GetComponent<Text>();
             Style(_title, 16, TextAnchor.UpperLeft);
+            StretchTop(_title.rectTransform);
 
-            var bodyGo = new GameObject("Body", typeof(RectTransform), typeof(Text), typeof(LayoutElement));
+            var bodyGo = new GameObject("Body", typeof(RectTransform), typeof(Text));
             bodyGo.transform.SetParent(_content, false);
-            bodyGo.GetComponent<LayoutElement>().preferredWidth = MaxWidth - Padding * 2f;
             _body = bodyGo.GetComponent<Text>();
             Style(_body, 14, TextAnchor.UpperLeft);
             _body.fontStyle = FontStyle.Normal;
+            StretchTop(_body.rectTransform);
+        }
+
+        static void StretchTop(RectTransform rt)
+        {
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(1f, 1f);
+            rt.pivot = new Vector2(0.5f, 1f);
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = new Vector2(0f, 20f);
+        }
+
+        void ApplyInformationPlate(BattleUiIconCatalogSO icons)
+        {
+            if (_panelBg == null)
+                return;
+
+            var plate = icons != null ? icons.UiInformationPlate : null;
+            if (plate != null)
+            {
+                _panelBg.sprite = plate;
+                _panelBg.type = Image.Type.Simple;
+                _panelBg.preserveAspect = false;
+                _panelBg.color = Color.white;
+            }
+            else
+            {
+                _panelBg.sprite = null;
+                _panelBg.color = new Color(0.04f, 0.05f, 0.08f, 0.98f);
+            }
         }
 
         public void BindHover(GameObject target, string title, string body, bool showTitle = true)
@@ -99,13 +119,14 @@ namespace Grimhand.Presentation.Battle
             _title.gameObject.SetActive(hasTitle);
             _title.text = hasTitle ? title : "";
 
-            _body.text = body ?? "";
-            _body.gameObject.SetActive(!string.IsNullOrWhiteSpace(_body.text));
+            var hasBody = !string.IsNullOrWhiteSpace(body);
+            _body.text = hasBody ? body : "";
+            _body.gameObject.SetActive(hasBody);
+
+            ResizePanelToFit(hasTitle, hasBody);
 
             _panel.gameObject.SetActive(true);
             _panel.SetAsLastSibling();
-            LayoutRebuilder.ForceRebuildLayoutImmediate(_content);
-            LayoutRebuilder.ForceRebuildLayoutImmediate(_panel);
 
             var corners = new Vector3[4];
             anchor.GetWorldCorners(corners);
@@ -132,6 +153,79 @@ namespace Grimhand.Presentation.Battle
 
             if (canvasRect != null)
                 ClampToCanvas(canvasRect);
+        }
+
+        void ResizePanelToFit(bool hasTitle, bool hasBody)
+        {
+            // 宽度：尽量窄；超长才顶到 MaxWidth 并换行加高
+            var maxInner = UiInfoPlateMetrics.InnerWidth(UiInfoPlateMetrics.MaxWidth);
+            var contentW = 0f;
+            var contentH = 0f;
+            var y = 0f;
+
+            if (hasTitle)
+            {
+                var rawW = UiInfoPlateMetrics.MeasureUnwrappedWidth(_title, _title.text, maxInner);
+                var tw = rawW >= maxInner - 1f ? maxInner : Mathf.Max(rawW, 40f);
+                var th = UiInfoPlateMetrics.MeasureHeight(_title, _title.text, tw);
+                contentW = Mathf.Max(contentW, tw);
+                contentH += th;
+                PlaceBlock(_title.rectTransform, y, th);
+                y += th + (hasBody ? TitleBodySpacing : 0f);
+            }
+
+            if (hasBody)
+            {
+                if (hasTitle)
+                    contentH += TitleBodySpacing;
+
+                var rawW = UiInfoPlateMetrics.MeasureUnwrappedWidth(_body, _body.text, maxInner);
+                var bw = rawW >= maxInner - 1f ? maxInner : Mathf.Max(rawW, 40f);
+                // 若与标题同框，宽度对齐到内容总宽（仍不超过 Max）
+                bw = Mathf.Max(bw, contentW);
+                if (bw > maxInner)
+                    bw = maxInner;
+                var bh = UiInfoPlateMetrics.MeasureHeight(_body, _body.text, bw);
+                contentW = Mathf.Max(contentW, bw);
+                contentH += bh;
+                PlaceBlock(_body.rectTransform, y, bh);
+            }
+
+            // 最终宽度按内容，但二次用最终宽度复测高度（换行后可能更高）
+            var panelW = Mathf.Clamp(contentW + UiInfoPlateMetrics.PadX * 2f,
+                UiInfoPlateMetrics.MinWidth, UiInfoPlateMetrics.MaxWidth);
+            var innerW = UiInfoPlateMetrics.InnerWidth(panelW);
+            contentH = 0f;
+            y = 0f;
+            if (hasTitle)
+            {
+                var th = UiInfoPlateMetrics.MeasureHeight(_title, _title.text, innerW);
+                contentH += th;
+                PlaceBlock(_title.rectTransform, y, th);
+                y += th + (hasBody ? TitleBodySpacing : 0f);
+            }
+
+            if (hasBody)
+            {
+                if (hasTitle)
+                    contentH += TitleBodySpacing;
+                var bh = UiInfoPlateMetrics.MeasureHeight(_body, _body.text, innerW);
+                contentH += bh;
+                PlaceBlock(_body.rectTransform, y, bh);
+            }
+
+            _panel.sizeDelta = UiInfoPlateMetrics.FitPanelSize(innerW, contentH);
+            UiInfoPlateMetrics.ApplyTextInsets(_content);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(_panel);
+        }
+
+        static void PlaceBlock(RectTransform rt, float fromTop, float height)
+        {
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(1f, 1f);
+            rt.pivot = new Vector2(0.5f, 1f);
+            rt.anchoredPosition = new Vector2(0f, -fromTop);
+            rt.sizeDelta = new Vector2(0f, height);
         }
 
         void ClampToCanvas(RectTransform canvasRect)

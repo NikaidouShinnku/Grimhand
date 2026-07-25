@@ -16,11 +16,12 @@ namespace Grimhand.Presentation.Battle
     [DisallowMultipleComponent]
     public sealed class ExpeditionPostBattleOverlayView : MonoBehaviour
     {
-        const int LayoutVersion = 4;
+        const int LayoutVersion = 5;
         const float DoorWidth = 286f;
         const float DoorHeight = 364f;
         const float DoorLabelHeight = 36f;
-        const float DoorSpacing = 318f;
+        // 门框中心距加大，整组仍居中
+        const float DoorSpacing = 400f;
         const float RewardCardScale = 0.68f;
         const float ChestRewardCardScale = 0.92f;
         const float RewardCardSpacing = 180f;
@@ -238,7 +239,7 @@ namespace Grimhand.Presentation.Battle
             overlayGo.SetActive(false);
 
             _tooltip = overlayGo.AddComponent<InventoryTooltipView>();
-            _tooltip.Initialize(_root);
+            _tooltip.Initialize(_root, _icons);
         }
 
         void BuildLocationPlate(RectTransform parent)
@@ -270,18 +271,23 @@ namespace Grimhand.Presentation.Battle
             _locationTitle = titleGo.GetComponent<Text>();
             StyleText(_locationTitle, 40, TextAnchor.MiddleCenter);
             _locationTitle.color = LocationTitleColor;
+            foreach (var fx in _locationTitle.GetComponents<Shadow>())
+                Destroy(fx);
 
             var floorGo = new GameObject("FloorText", typeof(RectTransform), typeof(Text));
             floorGo.transform.SetParent(plateGo.transform, false);
             var floorRt = floorGo.GetComponent<RectTransform>();
+            // 层数上移，落入下方小框内（不动「洞窟」等地图名）
             floorRt.anchorMin = new Vector2(0.22f, 0.40f);
-            floorRt.anchorMax = new Vector2(0.78f, 0.60f);
+            floorRt.anchorMax = new Vector2(0.78f, 0.58f);
             floorRt.offsetMin = Vector2.zero;
             floorRt.offsetMax = Vector2.zero;
             _locationFloor = floorGo.GetComponent<Text>();
             StyleText(_locationFloor, 22, TextAnchor.MiddleCenter);
             _locationFloor.fontStyle = FontStyle.Normal;
             _locationFloor.color = LocationFloorColor;
+            foreach (var fx in _locationFloor.GetComponents<Shadow>())
+                Destroy(fx);
 
             plateGo.SetActive(false);
         }
@@ -1386,6 +1392,8 @@ namespace Grimhand.Presentation.Battle
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.verticalOverflow = VerticalWrapMode.Overflow;
             text.raycastTarget = false;
+            foreach (var fx in text.GetComponents<Shadow>())
+                UnityEngine.Object.Destroy(fx);
         }
     }
 }

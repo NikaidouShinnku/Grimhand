@@ -13,7 +13,11 @@ namespace Grimhand.Presentation.Battle
         Vector2 _dragStartAnchored;
         Vector2 _pointerStartLocal;
 
-        public void SetDragTarget(RectTransform target) => dragTarget = target;
+        public void SetDragTarget(RectTransform target)
+        {
+            dragTarget = target;
+            _target = target;
+        }
 
         public System.Action HideTooltipOnDrag { get; set; }
 

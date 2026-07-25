@@ -476,7 +476,7 @@ namespace Grimhand.Presentation.Camp
             _campGoldIcon = null;
 
             _tooltip = _overlayRoot.gameObject.AddComponent<InventoryTooltipView>();
-            _tooltip.Initialize(_overlayRoot);
+            _tooltip.Initialize(_overlayRoot, _uiIcons);
 
             BuildHubPanel();
             var collectionHost = CampUiRuntime.CreateRect("CollectionManageHost", _overlayRoot);

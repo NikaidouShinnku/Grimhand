@@ -1351,7 +1351,7 @@ namespace Grimhand.Presentation.Battle
             panelRt.offsetMax = Vector2.zero;
             panelGo.GetComponent<Image>().raycastTarget = true;
             _tooltip = panelGo.gameObject.AddComponent<InventoryTooltipView>();
-            _tooltip.Initialize(panelRt);
+            _tooltip.Initialize(panelRt, _uiIcons);
 
             BuildHeader(panelRt);
             _contentHost = CreateRect("Content", panelRt);

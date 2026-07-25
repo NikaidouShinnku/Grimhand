@@ -53,6 +53,7 @@ MonoBehaviour:
   UiSlider: {fileID: 6259983639586318526, guid: 9d147a4feca23334686cb8677f8cb1fb, type: 3}
   UiCardDetailBackground: {fileID: 7972302303753936476, guid: 23f0985e021397e468b3de0ace467930, type: 3}
   UiCampShopBackground: {fileID: 1181734610085639232, guid: a6639200538557a4a8484fd667d2c028, type: 3}
+  UiExpeditionShopBackground: {fileID: -4658533704779628012, guid: 9d25121bea5c17e4aa40f74bb695803b, type: 3}
   UiMerchantGoodsPlate: {fileID: 5259747473136246319, guid: 770c6675c2743e04dadd34d17f0a27e7, type: 3}
   UiMerchantGoodsImagePlate: {fileID: -3197859760195274323, guid: de9e6afb8c9dda04db06332220f546d7, type: 3}
   UiPromptPlate: {fileID: -9038996849599471438, guid: f1bdb0f7f59d07c4e8563c8b0d3a60fb, type: 3}

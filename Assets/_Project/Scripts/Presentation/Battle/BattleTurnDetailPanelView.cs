@@ -8,12 +8,17 @@ namespace Grimhand.Presentation.Battle
     [DisallowMultipleComponent]
     public sealed class BattleTurnDetailPanelView : MonoBehaviour
     {
-        const float PanelWidth = 560f;
-        const float PanelHeight = 640f;
-        const float PanelLeft = 12f;
-        const float PanelBottom = 120f;
+        const float PanelWidth = 520f;
+        const float PanelHeight = 560f;
+        // 左下三按钮（约 8+96）右侧，避免盖住
+        const float PanelLeft = 120f;
+        const float PanelBottom = 12f;
+
+        const int DetailLayoutVersion = 2;
+        int _layoutVersion;
 
         BattleSession _session;
+        BattleUiIconCatalogSO _icons;
         Transform _battleRoot;
         RectTransform _panel;
         RectTransform _content;
@@ -31,15 +36,19 @@ namespace Grimhand.Presentation.Battle
                 _panel.gameObject.SetActive(false);
         }
 
-        public void Initialize(BattleSession session, Transform battleRoot)
+        public void Initialize(BattleSession session, Transform battleRoot, BattleUiIconCatalogSO icons = null)
         {
             _session = session;
             _battleRoot = battleRoot;
+            _icons = icons;
             EnsureBuilt(battleRoot);
         }
 
         public void Toggle()
         {
+            if (_battleRoot != null)
+                EnsureBuilt(_battleRoot);
+
             _open = !_open;
             if (_panel == null)
                 return;
@@ -103,12 +112,9 @@ namespace Grimhand.Presentation.Battle
             if (_bodyText == null || _content == null)
                 return;
 
-            // 先确定正文宽度（依据当前视口宽度），再触发布局重建，
-            // 让 ContentSizeFitter 基于正确宽度计算 preferredHeight，
-            // 否则文字换行行数会按旧/零宽度估算，导致内容高度偏小、滚动不到底。
             var viewportWidth = _scroll != null && _scroll.viewport != null
                 ? _scroll.viewport.rect.width
-                : (_content.rect.width > 1f ? _content.rect.width : 500f);
+                : (_content.rect.width > 1f ? _content.rect.width : 460f);
             var bodyRt = _bodyText.rectTransform;
             bodyRt.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, Mathf.Max(viewportWidth - 16f, 80f));
 
@@ -119,7 +125,6 @@ namespace Grimhand.Presentation.Battle
             if (_scroll != null)
             {
                 _scroll.verticalNormalizedPosition = 1f;
-                // 再强制一次，避免滚动条在内容增高后未更新可滚动范围。
                 Canvas.ForceUpdateCanvases();
                 _scroll.verticalNormalizedPosition = 1f;
             }
@@ -127,10 +132,15 @@ namespace Grimhand.Presentation.Battle
 
         void EnsureBuilt(Transform battleRoot)
         {
-            if (_built)
+            if (_built && _layoutVersion == DetailLayoutVersion && _panel != null)
                 return;
 
+            if (_panel != null)
+                Destroy(_panel.gameObject);
+
             _built = true;
+            _layoutVersion = DetailLayoutVersion;
+            _open = false;
 
             var go = new GameObject("TurnDetailPanel", typeof(RectTransform), typeof(Image));
             go.transform.SetParent(battleRoot, false);
@@ -142,34 +152,50 @@ namespace Grimhand.Presentation.Battle
             _panel.sizeDelta = new Vector2(PanelWidth, PanelHeight);
 
             var bg = go.GetComponent<Image>();
-            bg.color = new Color(0.08f, 0.1f, 0.14f, 0.97f);
-            bg.raycastTarget = true;
+            ApplyEventPlate(bg);
 
-            var titleGo = new GameObject("Title", typeof(RectTransform), typeof(Text));
+            var titleGo = new GameObject("TitleBar", typeof(RectTransform), typeof(Image));
             titleGo.transform.SetParent(go.transform, false);
-            var titleRt = titleGo.GetComponent<RectTransform>();
-            titleRt.anchorMin = new Vector2(0f, 1f);
-            titleRt.anchorMax = new Vector2(1f, 1f);
-            titleRt.pivot = new Vector2(0.5f, 1f);
-            titleRt.anchoredPosition = new Vector2(0f, -10f);
-            titleRt.sizeDelta = new Vector2(-20f, 32f);
-            var title = titleGo.GetComponent<Text>();
+            var titleBarRt = titleGo.GetComponent<RectTransform>();
+            titleBarRt.anchorMin = new Vector2(0f, 1f);
+            titleBarRt.anchorMax = new Vector2(1f, 1f);
+            titleBarRt.pivot = new Vector2(0.5f, 1f);
+            titleBarRt.anchoredPosition = Vector2.zero;
+            titleBarRt.sizeDelta = new Vector2(0f, 44f);
+            var titleBg = titleGo.GetComponent<Image>();
+            titleBg.color = Color.clear;
+            titleBg.raycastTarget = true;
+            var drag = titleGo.AddComponent<UiPanelDragHandle>();
+            drag.SetDragTarget(_panel);
+
+            var titleTextGo = new GameObject("Title", typeof(RectTransform), typeof(Text));
+            titleTextGo.transform.SetParent(titleGo.transform, false);
+            var titleRt = titleTextGo.GetComponent<RectTransform>();
+            titleRt.anchorMin = Vector2.zero;
+            titleRt.anchorMax = Vector2.one;
+            // 略靠右、靠下
+            titleRt.offsetMin = new Vector2(28f, -4f);
+            titleRt.offsetMax = new Vector2(-12f, -8f);
+            var title = titleTextGo.GetComponent<Text>();
             title.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             title.fontSize = 20;
             title.fontStyle = FontStyle.Bold;
-            title.alignment = TextAnchor.UpperLeft;
+            title.alignment = TextAnchor.MiddleLeft;
             title.color = Color.white;
-            title.text = "上回合明细";
+            title.text = "明细";
+            title.raycastTarget = false;
+            foreach (var fx in title.GetComponents<Shadow>())
+                Destroy(fx);
 
             var scrollGo = new GameObject("Scroll", typeof(RectTransform), typeof(ScrollRect), typeof(Image));
             scrollGo.transform.SetParent(go.transform, false);
             var scrollRt = scrollGo.GetComponent<RectTransform>();
             scrollRt.anchorMin = new Vector2(0f, 0f);
             scrollRt.anchorMax = new Vector2(1f, 1f);
-            scrollRt.offsetMin = new Vector2(10f, 10f);
-            scrollRt.offsetMax = new Vector2(-26f, -44f);
+            scrollRt.offsetMin = new Vector2(16f, 16f);
+            scrollRt.offsetMax = new Vector2(-28f, -52f);
             var scrollBg = scrollGo.GetComponent<Image>();
-            scrollBg.color = new Color(0.05f, 0.06f, 0.09f, 0.85f);
+            scrollBg.color = Color.clear;
             scrollBg.raycastTarget = true;
 
             var viewportGo = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(Mask));
@@ -236,8 +262,8 @@ namespace Grimhand.Presentation.Battle
             bodyFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             var layout = bodyGo.GetComponent<LayoutElement>();
-            layout.minWidth = 500f;
-            layout.preferredWidth = 500f;
+            layout.minWidth = 460f;
+            layout.preferredWidth = 460f;
 
             _bodyText = bodyGo.GetComponent<Text>();
             _bodyText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
@@ -248,18 +274,42 @@ namespace Grimhand.Presentation.Battle
             _bodyText.horizontalOverflow = HorizontalWrapMode.Wrap;
             _bodyText.verticalOverflow = VerticalWrapMode.Overflow;
             _bodyText.raycastTarget = false;
+            foreach (var fx in _bodyText.GetComponents<Shadow>())
+                Destroy(fx);
 
             _scroll = scrollGo.GetComponent<ScrollRect>();
-            _scroll.content = _content;
             _scroll.viewport = viewportRt;
+            _scroll.content = _content;
             _scroll.horizontal = false;
             _scroll.vertical = true;
-            _scroll.movementType = ScrollRect.MovementType.Elastic;
-            _scroll.scrollSensitivity = 30f;
+            _scroll.movementType = ScrollRect.MovementType.Clamped;
+            _scroll.scrollSensitivity = 28f;
             _scroll.verticalScrollbar = scrollbar;
-            _scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHideAndExpandViewport;
+            _scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
 
             go.SetActive(false);
+        }
+
+        void ApplyEventPlate(Image image)
+        {
+            if (image == null)
+                return;
+
+            var plate = _icons != null ? _icons.UiEventPlate : null;
+            if (plate != null)
+            {
+                image.sprite = plate;
+                image.type = Image.Type.Simple;
+                image.preserveAspect = false;
+                image.color = Color.white;
+            }
+            else
+            {
+                image.sprite = null;
+                image.color = new Color(0.08f, 0.1f, 0.14f, 0.97f);
+            }
+
+            image.raycastTarget = true;
         }
     }
 }

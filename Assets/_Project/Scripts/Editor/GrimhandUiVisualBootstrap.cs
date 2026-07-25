@@ -117,6 +117,8 @@ namespace Grimhand.Editor
                 NewUiRoot + "templates/卡牌遗物角色详情概念图-模板.png");
             catalog.UiCampShopBackground = LoadFirstSprite(
                 NewUiRoot + "templates/营地商店概念图-模板.png");
+            catalog.UiExpeditionShopBackground = LoadFirstSprite(
+                NewUiRoot + "templates/局内流浪商人概念图-模板.png");
             catalog.UiMerchantGoodsPlate = LoadNamedSprite(
                 NewUiRoot + "interactables_and_ui/merchant_camp_goodsplate.png", "merchant_camp_goodsplate_0")
                 ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/merchant_camp_goodsplate.png");

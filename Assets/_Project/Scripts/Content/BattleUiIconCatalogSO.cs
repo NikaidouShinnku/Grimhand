@@ -68,6 +68,8 @@ namespace Grimhand.Content
         public Sprite UiCardDetailBackground;
         /// <summary>局外营地商店：templates/营地商店概念图-模板.png</summary>
         public Sprite UiCampShopBackground;
+        /// <summary>局内流浪商人：templates/局内流浪商人概念图-模板.png</summary>
+        public Sprite UiExpeditionShopBackground;
         /// <summary>商店商品行底板：interactables_and_ui/merchant_camp_goodsplate.png</summary>
         public Sprite UiMerchantGoodsPlate;
         /// <summary>商店商品图标框：interactables_and_ui/merchant_camp_goodsimageplate.png</summary>

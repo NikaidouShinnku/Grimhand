@@ -27,10 +27,11 @@ namespace Grimhand.Expedition.Map
 
             for (var layer = 1; layer <= layerCount; layer++)
             {
-                var row = new ExpeditionMapLayer { LayerNumber = layer, IsBoss = layer == layerCount };
+                var isBoss = layer == layerCount || ExpeditionRegionRules.IsMandatoryBossLayer(layer);
+                var row = new ExpeditionMapLayer { LayerNumber = layer, IsBoss = isBoss };
                 if (row.IsBoss)
                 {
-                    row.Options.Add(CreateBossOption());
+                    row.Options.Add(CreateBossOption(layer));
                     map.Layers.Add(row);
                     continue;
                 }
@@ -92,7 +93,7 @@ namespace Grimhand.Expedition.Map
 
             layer.IsBoss = true;
             layer.Options.Clear();
-            layer.Options.Add(CreateBossOption());
+            layer.Options.Add(CreateBossOption(layerNumber));
         }
 
         static int RollOptionCount(int layer, BattleRng rng)
@@ -271,7 +272,7 @@ namespace Grimhand.Expedition.Map
             for (var layer = 1; layer < map.ChapterLayerCount; layer++)
             {
                 var row = map.GetLayer(layer);
-                if (row == null || row.Options.Count == 0)
+                if (row == null || row.IsBoss || row.Options.Count == 0)
                     continue;
 
                 if (!state.MerchantPlaced && layer is >= 3 and <= 10)
@@ -380,7 +381,9 @@ namespace Grimhand.Expedition.Map
             {
                 case ExpeditionNodeType.Boss:
                     option.DisplayName = "守关 Boss";
-                    option.Description = $"第 {layer} 层终局守关：骷髅王或幽灵女王。";
+                    option.Description = ExpeditionRegionRules.IsMandatoryBossLayer(layer)
+                        ? $"第 {layer} 层守关 Boss：唯一通路。"
+                        : $"第 {layer} 层终局守关。";
                     break;
                 case ExpeditionNodeType.Combat:
                     option.DisplayName = Pick(ExpeditionNodeNames.Combat, layer, index);
@@ -424,12 +427,14 @@ namespace Grimhand.Expedition.Map
             }
         }
 
-        static ExpeditionMapOption CreateBossOption() =>
+        static ExpeditionMapOption CreateBossOption(int layer) =>
             new()
             {
                 NodeType = ExpeditionNodeType.Boss,
                 DisplayName = "守关 Boss",
-                Description = "终层守关者：骷髅王或幽灵女王。",
+                Description = ExpeditionRegionRules.IsMandatoryBossLayer(layer)
+                    ? $"第 {layer} 层守关 Boss：唯一通路。"
+                    : $"第 {layer} 层终局守关。",
                 PathSpriteIndex = 0,
                 EncounterIndex = 0
             };

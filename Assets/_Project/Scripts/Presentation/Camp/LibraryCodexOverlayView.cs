@@ -186,7 +186,7 @@ namespace Grimhand.Presentation.Camp
             BuildScroll();
 
             _tooltip = _overlayRoot.gameObject.AddComponent<InventoryTooltipView>();
-            _tooltip.Initialize(_overlayRoot);
+            _tooltip.Initialize(_overlayRoot, _uiIcons);
 
             var detailHost = CampUiRuntime.CreateRect("CardDetailHost", _overlayRoot);
             CampUiRuntime.StretchFull(detailHost.GetComponent<RectTransform>());

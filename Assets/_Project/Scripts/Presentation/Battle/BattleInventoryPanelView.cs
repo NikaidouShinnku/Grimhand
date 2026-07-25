@@ -15,15 +15,20 @@ namespace Grimhand.Presentation.Battle
 {
     public sealed class BattleInventoryPanelView : MonoBehaviour
     {
-        const float PanelWidth = 1080f;
-        const float PanelHeight = 780f;
-        const float ConsumableStripWidth = 108f;
+        const float PanelWidth = 1240f;
+        const float PanelHeight = 860f;
+        const float ConsumableStripWidth = 112f;
+        const float ConsumableSlotSize = 96f;
+        const float RelicSlotWidth = 108f;
+        const float RelicSlotHeight = 120f;
         const float CardScale = 0.98f;
         const int CardsPerRow = 5;
-        const float CardGridHorizontalPadding = 20f;
+        const float CardGridHorizontalPadding = 28f;
         const float CharacterCardWidth = 228f;
         const float CharacterCardHeight = 318f;
         const float CharacterPortraitSize = 168f;
+
+        const int InventoryLayoutVersion = 10;
 
         BattleSession _session;
         Transform _battleRoot;
@@ -36,9 +41,11 @@ namespace Grimhand.Presentation.Battle
         Dictionary<string, CardDefinitionSO> _definitions = new();
 
         RectTransform _panel;
+        int _layoutVersion;
         RectTransform _goldRow;
         Text _goldText;
         RectTransform _consumableDetailRoot;
+        RectTransform _consumableDetailBox;
         Text _consumableDetailTitle;
         Text _consumableDetailBody;
         Button _consumableDiscardButton;
@@ -83,6 +90,9 @@ namespace Grimhand.Presentation.Battle
 
         public void Toggle()
         {
+            if (_battleRoot != null)
+                EnsureBuilt(_battleRoot);
+
             if (_panel == null)
                 return;
 
@@ -102,6 +112,9 @@ namespace Grimhand.Presentation.Battle
 
         public void Refresh()
         {
+            if (_battleRoot != null)
+                EnsureBuilt(_battleRoot);
+
             if (_panel == null || !IsOpen)
                 return;
 
@@ -329,21 +342,21 @@ namespace Grimhand.Presentation.Battle
 
         GameObject CreateRelicSlot(Transform parent, RelicDefinition relic)
         {
-            const float width = 108f;
-            const float height = 132f;
+            var width = RelicSlotWidth;
+            var height = RelicSlotHeight;
             var go = new GameObject("RelicSlot", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
             go.transform.SetParent(parent, false);
             go.GetComponent<LayoutElement>().preferredWidth = width;
             go.GetComponent<LayoutElement>().preferredHeight = height;
             var bg = go.GetComponent<Image>();
-            bg.color = new Color(0.11f, 0.12f, 0.16f, 0.95f);
+            ApplyEventPlate(bg);
             bg.raycastTarget = true;
 
             var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
             iconGo.transform.SetParent(go.transform, false);
             var iconRt = iconGo.GetComponent<RectTransform>();
-            iconRt.anchorMin = new Vector2(0.1f, 0.12f);
-            iconRt.anchorMax = new Vector2(0.9f, 0.92f);
+            iconRt.anchorMin = new Vector2(0.14f, 0.18f);
+            iconRt.anchorMax = new Vector2(0.86f, 0.88f);
             iconRt.offsetMin = Vector2.zero;
             iconRt.offsetMax = Vector2.zero;
             var icon = iconGo.GetComponent<Image>();
@@ -595,11 +608,16 @@ namespace Grimhand.Presentation.Battle
 
                 if (!empty && ConsumableDatabase.TryGet(id, out var def))
                 {
+                    var slotBg = slotGo.GetComponent<Image>();
+                    if (slotBg != null)
+                        ApplyEventPlate(slotBg);
+
                     if (icon != null)
                     {
                         icon.sprite = _consumableCatalog?.GetIcon(id);
                         icon.type = Image.Type.Simple;
                         icon.color = icon.sprite != null ? Color.white : new Color(0.35f, 0.4f, 0.5f, 1f);
+                        icon.enabled = true;
                     }
 
                     _tooltip?.BindHover(slotGo, def.DisplayName, def.Description);
@@ -621,10 +639,23 @@ namespace Grimhand.Presentation.Battle
 
                     ScrollRectNavigation.WireForwarding(slotGo);
                 }
-                else if (icon != null)
+                else
                 {
-                    icon.sprite = null;
-                    icon.color = new Color(0.18f, 0.2f, 0.26f, 0.8f);
+                    // 空槽：保留 event plate 边框，只清图标（不要蓝虚影填充）
+                    var slotBg = slotGo.GetComponent<Image>();
+                    if (slotBg != null)
+                        ApplyEventPlate(slotBg);
+
+                    if (icon != null)
+                    {
+                        icon.sprite = null;
+                        icon.color = Color.clear;
+                        icon.enabled = false;
+                    }
+
+                    var btn = slotGo.GetComponent<Button>();
+                    if (btn != null)
+                        btn.onClick.RemoveAllListeners();
                 }
             }
         }
@@ -637,9 +668,39 @@ namespace Grimhand.Presentation.Battle
             _consumableDetailSlot = slotIndex;
             _consumableDetailTitle.text = def.DisplayName;
             _consumableDetailBody.text = def.Description;
+            ResizeConsumableDetailBox();
             _consumableDetailRoot.gameObject.SetActive(true);
             _consumableDetailRoot.SetAsLastSibling();
             _tooltip?.Hide();
+        }
+
+        void ResizeConsumableDetailBox()
+        {
+            if (_consumableDetailBox == null || _consumableDetailTitle == null || _consumableDetailBody == null)
+                return;
+
+            var panelW = UiInfoPlateMetrics.MaxWidth;
+            var innerW = UiInfoPlateMetrics.InnerWidth(panelW);
+            var titleH = UiInfoPlateMetrics.MeasureHeight(_consumableDetailTitle, _consumableDetailTitle.text, innerW);
+            var bodyH = UiInfoPlateMetrics.MeasureHeight(_consumableDetailBody, _consumableDetailBody.text, innerW);
+            const float discardH = 96f;
+            const float gap = 12f;
+            var panelH = UiInfoPlateMetrics.PadY + titleH + gap + bodyH + gap + discardH + UiInfoPlateMetrics.PadY;
+            _consumableDetailBox.sizeDelta = new Vector2(panelW, Mathf.Max(220f, panelH));
+
+            var titleRt = _consumableDetailTitle.rectTransform;
+            titleRt.anchorMin = new Vector2(0f, 1f);
+            titleRt.anchorMax = new Vector2(1f, 1f);
+            titleRt.pivot = new Vector2(0.5f, 1f);
+            titleRt.anchoredPosition = new Vector2(0f, -UiInfoPlateMetrics.PadY);
+            titleRt.sizeDelta = new Vector2(-UiInfoPlateMetrics.PadX * 2f, titleH);
+
+            var bodyRt = _consumableDetailBody.rectTransform;
+            bodyRt.anchorMin = new Vector2(0f, 1f);
+            bodyRt.anchorMax = new Vector2(1f, 1f);
+            bodyRt.pivot = new Vector2(0.5f, 1f);
+            bodyRt.anchoredPosition = new Vector2(0f, -(UiInfoPlateMetrics.PadY + titleH + gap));
+            bodyRt.sizeDelta = new Vector2(-UiInfoPlateMetrics.PadX * 2f, bodyH);
         }
 
         void HideConsumableDetail()
@@ -663,12 +724,36 @@ namespace Grimhand.Presentation.Battle
 
         void EnsureBuilt(Transform root)
         {
-            if (_panel != null)
+            if (_panel != null && _layoutVersion == InventoryLayoutVersion)
             {
                 if (_consumableDetailRoot == null)
                     BuildConsumableDetailPopup(_panel);
                 return;
             }
+
+            var wasOpen = _panel != null && _panel.gameObject.activeSelf;
+            if (_panel != null)
+            {
+                Destroy(_panel.gameObject);
+                _panel = null;
+                _consumableDetailRoot = null;
+                _consumableDetailBox = null;
+                _tooltip = null;
+                _mainContent = null;
+                _consumableStrip = null;
+                _characterRow = null;
+                _relicRow = null;
+                _cardArea = null;
+                _scroll = null;
+                _goldRow = null;
+                _goldText = null;
+                _xpText = null;
+                _goldIcon = null;
+                _xpIcon = null;
+                _dynamicObjects.Clear();
+            }
+
+            _layoutVersion = InventoryLayoutVersion;
 
             var panelGo = new GameObject("InventoryPanel", typeof(RectTransform), typeof(Image));
             panelGo.transform.SetParent(root, false);
@@ -677,7 +762,7 @@ namespace Grimhand.Presentation.Battle
             _panel.anchorMax = new Vector2(0.5f, 0.5f);
             _panel.pivot = new Vector2(0.5f, 0.5f);
             _panel.sizeDelta = new Vector2(PanelWidth, PanelHeight);
-            panelGo.GetComponent<Image>().color = new Color(0.07f, 0.08f, 0.12f, 0.995f);
+            ApplyEventPlate(panelGo.GetComponent<Image>());
 
             var titleBar = CreateTitleBar(panelGo.transform);
             var dragHandle = titleBar.gameObject.AddComponent<UiPanelDragHandle>();
@@ -691,8 +776,8 @@ namespace Grimhand.Presentation.Battle
             var bodyRt = bodyGo.GetComponent<RectTransform>();
             bodyRt.anchorMin = new Vector2(0f, 0f);
             bodyRt.anchorMax = new Vector2(1f, 1f);
-            bodyRt.offsetMin = new Vector2(12f, 12f);
-            bodyRt.offsetMax = new Vector2(-12f, -96f);
+            bodyRt.offsetMin = new Vector2(48f, 16f);
+            bodyRt.offsetMax = new Vector2(-16f, -140f);
 
             var scrollGo = new GameObject("MainScroll", typeof(RectTransform), typeof(ScrollRect), typeof(Image));
             scrollGo.transform.SetParent(bodyGo.transform, false);
@@ -700,11 +785,13 @@ namespace Grimhand.Presentation.Battle
             scrollRt.anchorMin = Vector2.zero;
             scrollRt.anchorMax = Vector2.one;
             scrollRt.offsetMin = Vector2.zero;
-            scrollRt.offsetMax = new Vector2(-ConsumableStripWidth - 8f, 0f);
-            scrollGo.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.15f);
+            scrollRt.offsetMax = new Vector2(-ConsumableStripWidth - 28f, 0f);
+            scrollGo.GetComponent<Image>().color = Color.clear;
             _scroll = scrollGo.GetComponent<ScrollRect>();
             _scroll.horizontal = false;
             _scroll.vertical = true;
+            _scroll.scrollSensitivity = 64f;
+            _scroll.movementType = ScrollRect.MovementType.Clamped;
 
             var viewport = CreateViewport(scrollGo.transform);
             _mainContent = CreateVerticalContent(viewport, "MainContent");
@@ -715,11 +802,11 @@ namespace Grimhand.Presentation.Battle
             CreateSectionHeader(_mainContent, "角色");
             _characterRow = CreateHorizontalRow(_mainContent, CharacterCardHeight + 12f);
             CreateSectionHeader(_mainContent, "遗物");
-            _relicRow = CreateHorizontalRow(_mainContent, 120f);
+            _relicRow = CreateHorizontalRow(_mainContent, RelicSlotHeight + 12f);
             CreateSectionHeader(_mainContent, "卡牌");
             _cardArea = CreateVerticalContent(_mainContent, "Cards");
             var cardAreaLayout = _cardArea.GetComponent<VerticalLayoutGroup>();
-            cardAreaLayout.padding = new RectOffset(24, 16, 4, 8);
+            cardAreaLayout.padding = new RectOffset(32, 16, 4, 8);
 
             var stripGo = new GameObject("ConsumableStrip", typeof(RectTransform), typeof(VerticalLayoutGroup));
             stripGo.transform.SetParent(bodyGo.transform, false);
@@ -728,9 +815,12 @@ namespace Grimhand.Presentation.Battle
             _consumableStrip.anchorMax = new Vector2(1f, 1f);
             _consumableStrip.pivot = new Vector2(1f, 0.5f);
             _consumableStrip.sizeDelta = new Vector2(ConsumableStripWidth, 0f);
-            _consumableStrip.anchoredPosition = Vector2.zero;
+            // 整列消耗品框略向左
+            _consumableStrip.anchoredPosition = new Vector2(-22f, 0f);
             var stripLayout = stripGo.GetComponent<VerticalLayoutGroup>();
             stripLayout.spacing = 8f;
+            // 标题「消耗品」略靠右、略靠下
+            stripLayout.padding = new RectOffset(10, 4, 22, 8);
             stripLayout.childAlignment = TextAnchor.UpperCenter;
             stripLayout.childControlWidth = true;
             stripLayout.childControlHeight = false;
@@ -739,9 +829,11 @@ namespace Grimhand.Presentation.Battle
             CreateSectionHeader(stripGo.transform, "消耗品");
 
             _tooltip = panelGo.AddComponent<InventoryTooltipView>();
-            _tooltip.Initialize(_panel);
+            _tooltip.Initialize(_panel, _icons);
             BuildConsumableDetailPopup(panelGo.transform);
             panelGo.SetActive(false);
+            if (wasOpen)
+                Show();
         }
 
         void BuildConsumableDetailPopup(Transform parent)
@@ -754,7 +846,7 @@ namespace Grimhand.Presentation.Battle
             _consumableDetailRoot.anchorMax = Vector2.one;
             // 右侧消耗品栏留空，便于切换查看其它消耗品而不先关掉弹窗。
             _consumableDetailRoot.offsetMin = Vector2.zero;
-            _consumableDetailRoot.offsetMax = new Vector2(-(ConsumableStripWidth + 12f), 0f);
+            _consumableDetailRoot.offsetMax = new Vector2(-(ConsumableStripWidth + 28f), 0f);
             var hostImage = rootGo.GetComponent<Image>();
             hostImage.color = new Color(0f, 0f, 0f, 0.01f);
             hostImage.raycastTarget = true;
@@ -765,19 +857,32 @@ namespace Grimhand.Presentation.Battle
             var boxGo = new GameObject("Box", typeof(RectTransform), typeof(Image));
             boxGo.transform.SetParent(rootGo.transform, false);
             var boxRt = boxGo.GetComponent<RectTransform>();
+            _consumableDetailBox = boxRt;
             boxRt.anchorMin = new Vector2(0.5f, 0.5f);
             boxRt.anchorMax = new Vector2(0.5f, 0.5f);
-            boxRt.sizeDelta = new Vector2(360f, 220f);
+            boxRt.sizeDelta = new Vector2(UiInfoPlateMetrics.MaxWidth, 260f);
             boxRt.anchoredPosition = new Vector2(180f, 40f);
-            boxGo.GetComponent<Image>().color = new Color(0.09f, 0.1f, 0.14f, 0.98f);
+            var boxImg = boxGo.GetComponent<Image>();
+            if (_icons != null && _icons.UiInformationPlate != null)
+            {
+                boxImg.sprite = _icons.UiInformationPlate;
+                boxImg.type = Image.Type.Simple;
+                boxImg.preserveAspect = false;
+                boxImg.color = Color.white;
+            }
+            else
+            {
+                boxImg.color = new Color(0.09f, 0.1f, 0.14f, 0.98f);
+            }
+
             // 阻断点击落到宿主 Button，避免点框内文字区域也关闭。
             boxGo.AddComponent<Button>().transition = Selectable.Transition.None;
 
             var titleGo = new GameObject("Title", typeof(RectTransform), typeof(Text));
             titleGo.transform.SetParent(boxGo.transform, false);
             var titleRt = titleGo.GetComponent<RectTransform>();
-            titleRt.anchorMin = new Vector2(0.06f, 0.72f);
-            titleRt.anchorMax = new Vector2(0.94f, 0.94f);
+            titleRt.anchorMin = new Vector2(0.12f, 0.72f);
+            titleRt.anchorMax = new Vector2(0.88f, 0.90f);
             titleRt.offsetMin = Vector2.zero;
             titleRt.offsetMax = Vector2.zero;
             _consumableDetailTitle = titleGo.GetComponent<Text>();
@@ -791,8 +896,8 @@ namespace Grimhand.Presentation.Battle
             var bodyGo = new GameObject("Body", typeof(RectTransform), typeof(Text));
             bodyGo.transform.SetParent(boxGo.transform, false);
             var bodyRt = bodyGo.GetComponent<RectTransform>();
-            bodyRt.anchorMin = new Vector2(0.08f, 0.32f);
-            bodyRt.anchorMax = new Vector2(0.92f, 0.70f);
+            bodyRt.anchorMin = new Vector2(0.14f, 0.36f);
+            bodyRt.anchorMax = new Vector2(0.86f, 0.70f);
             bodyRt.offsetMin = Vector2.zero;
             bodyRt.offsetMax = Vector2.zero;
             _consumableDetailBody = bodyGo.GetComponent<Text>();
@@ -810,10 +915,25 @@ namespace Grimhand.Presentation.Battle
             discardRt.anchorMin = new Vector2(0.5f, 0f);
             discardRt.anchorMax = new Vector2(0.5f, 0f);
             discardRt.pivot = new Vector2(0.5f, 0f);
-            discardRt.anchoredPosition = new Vector2(0f, 16f);
-            discardRt.sizeDelta = new Vector2(160f, 44f);
-            discardGo.GetComponent<Image>().color = new Color(0.55f, 0.14f, 0.14f, 1f);
+            discardRt.anchoredPosition = new Vector2(0f, 22f);
+            // button3 素材约 512×292，按比例做丢弃钮
+            const float discardW = 168f;
+            discardRt.sizeDelta = new Vector2(discardW, discardW * (292f / 512f));
+            var discardImg = discardGo.GetComponent<Image>();
+            if (_icons != null && _icons.UiButton3 != null)
+            {
+                discardImg.sprite = _icons.UiButton3;
+                discardImg.type = Image.Type.Simple;
+                discardImg.preserveAspect = true;
+                discardImg.color = Color.white;
+            }
+            else
+            {
+                discardImg.color = new Color(0.55f, 0.14f, 0.14f, 1f);
+            }
+
             _consumableDiscardButton = discardGo.GetComponent<Button>();
+            _consumableDiscardButton.transition = Selectable.Transition.None;
             _consumableDiscardButton.onClick.AddListener(OnDiscardConsumableClicked);
 
             var discardLabelGo = new GameObject("Text", typeof(RectTransform), typeof(Text));
@@ -821,8 +941,8 @@ namespace Grimhand.Presentation.Battle
             var discardLabelRt = discardLabelGo.GetComponent<RectTransform>();
             discardLabelRt.anchorMin = Vector2.zero;
             discardLabelRt.anchorMax = Vector2.one;
-            discardLabelRt.offsetMin = Vector2.zero;
-            discardLabelRt.offsetMax = Vector2.zero;
+            discardLabelRt.offsetMin = new Vector2(4f, 4f);
+            discardLabelRt.offsetMax = new Vector2(-4f, -6f);
             var discardLabel = discardLabelGo.GetComponent<Text>();
             discardLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             discardLabel.fontSize = 18;
@@ -843,19 +963,23 @@ namespace Grimhand.Presentation.Battle
             rt.anchorMin = new Vector2(0f, 1f);
             rt.anchorMax = new Vector2(1f, 1f);
             rt.pivot = new Vector2(0.5f, 1f);
-            rt.sizeDelta = new Vector2(0f, 44f);
-            go.GetComponent<Image>().color = new Color(0.12f, 0.13f, 0.18f, 1f);
+            // 标题落入大框内，略下移
+            rt.anchoredPosition = new Vector2(0f, -18f);
+            rt.sizeDelta = new Vector2(-40f, 40f);
+            var bg = go.GetComponent<Image>();
+            bg.color = Color.clear;
+            bg.raycastTarget = true;
 
             var textGo = new GameObject("Title", typeof(RectTransform), typeof(Text));
             textGo.transform.SetParent(go.transform, false);
             var textRt = textGo.GetComponent<RectTransform>();
             textRt.anchorMin = Vector2.zero;
             textRt.anchorMax = Vector2.one;
-            textRt.offsetMin = new Vector2(16f, 0f);
+            textRt.offsetMin = new Vector2(56f, 0f);
             textRt.offsetMax = new Vector2(-16f, 0f);
             var text = textGo.GetComponent<Text>();
             StyleText(text, 22, TextAnchor.MiddleLeft);
-            text.text = "背包 · 拖动标题栏移动";
+            text.text = "背包";
             return rt;
         }
 
@@ -867,13 +991,16 @@ namespace Grimhand.Presentation.Battle
             rt.anchorMin = new Vector2(0f, 1f);
             rt.anchorMax = new Vector2(1f, 1f);
             rt.pivot = new Vector2(0.5f, 1f);
-            rt.anchoredPosition = new Vector2(0f, -44f);
-            rt.sizeDelta = new Vector2(-24f, 44f);
-            go.GetComponent<Image>().color = new Color(0.1f, 0.11f, 0.15f, 0.95f);
+            // 图标×2 后整体略下移
+            rt.anchoredPosition = new Vector2(0f, -58f);
+            rt.sizeDelta = new Vector2(-24f, 72f);
+            var bg = go.GetComponent<Image>();
+            bg.color = Color.clear;
+            bg.raycastTarget = false;
 
             var layout = go.GetComponent<HorizontalLayoutGroup>();
             layout.spacing = 40f;
-            layout.padding = new RectOffset(16, 16, 6, 6);
+            layout.padding = new RectOffset(16, 16, 4, 4);
             layout.childAlignment = TextAnchor.MiddleLeft;
             layout.childControlWidth = false;
             layout.childControlHeight = true;
@@ -890,11 +1017,11 @@ namespace Grimhand.Presentation.Battle
             var slotGo = new GameObject("Currency", typeof(RectTransform), typeof(HorizontalLayoutGroup), typeof(LayoutElement));
             slotGo.transform.SetParent(parent, false);
             var slotLe = slotGo.GetComponent<LayoutElement>();
-            slotLe.preferredWidth = 220f;
-            slotLe.minHeight = 32f;
+            slotLe.preferredWidth = 260f;
+            slotLe.minHeight = 64f;
 
             var slotLayout = slotGo.GetComponent<HorizontalLayoutGroup>();
-            slotLayout.spacing = 10f;
+            slotLayout.spacing = 12f;
             slotLayout.childAlignment = TextAnchor.MiddleLeft;
             slotLayout.childControlWidth = false;
             slotLayout.childControlHeight = true;
@@ -903,8 +1030,8 @@ namespace Grimhand.Presentation.Battle
 
             var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
             iconGo.transform.SetParent(slotGo.transform, false);
-            iconGo.GetComponent<LayoutElement>().preferredWidth = 32f;
-            iconGo.GetComponent<LayoutElement>().preferredHeight = 32f;
+            iconGo.GetComponent<LayoutElement>().preferredWidth = 64f;
+            iconGo.GetComponent<LayoutElement>().preferredHeight = 64f;
             icon = iconGo.GetComponent<Image>();
             icon.preserveAspect = true;
             icon.raycastTarget = false;
@@ -941,7 +1068,7 @@ namespace Grimhand.Presentation.Battle
             rt.sizeDelta = new Vector2(0f, 100f);
             var layout = go.GetComponent<VerticalLayoutGroup>();
             layout.spacing = 10f;
-            layout.padding = new RectOffset(8, 8, 8, 8);
+            layout.padding = new RectOffset(36, 8, 8, 8);
             layout.childControlWidth = true;
             layout.childControlHeight = true;
             layout.childForceExpandWidth = true;
@@ -1000,9 +1127,51 @@ namespace Grimhand.Presentation.Battle
             rt.sizeDelta = new Vector2(width, height);
             go.GetComponent<LayoutElement>().preferredWidth = width;
             go.GetComponent<LayoutElement>().preferredHeight = height;
-            go.GetComponent<Image>().color = new Color(0.12f, 0.13f, 0.18f, 0.96f);
+            ApplyCharacterPlate(go.GetComponent<Image>());
             _dynamicObjects.Add(go);
             return rt;
+        }
+
+        void ApplyEventPlate(Image image)
+        {
+            if (image == null)
+                return;
+
+            var plate = _icons != null ? _icons.UiEventPlate : null;
+            if (plate != null)
+            {
+                image.enabled = true;
+                image.sprite = plate;
+                image.type = Image.Type.Simple;
+                image.preserveAspect = false;
+                image.color = Color.white;
+            }
+            else
+            {
+                image.enabled = true;
+                image.sprite = null;
+                image.color = new Color(0.07f, 0.08f, 0.12f, 0.995f);
+            }
+        }
+
+        void ApplyCharacterPlate(Image image)
+        {
+            if (image == null)
+                return;
+
+            var plate = _icons != null ? _icons.UiCharacterPlate : null;
+            if (plate != null)
+            {
+                image.sprite = plate;
+                image.type = Image.Type.Simple;
+                image.preserveAspect = false;
+                image.color = Color.white;
+            }
+            else
+            {
+                image.sprite = null;
+                image.color = new Color(0.12f, 0.13f, 0.18f, 0.96f);
+            }
         }
 
         GameObject CreateIconSlot(Transform parent, float size)
@@ -1031,22 +1200,40 @@ namespace Grimhand.Presentation.Battle
             var go = new GameObject($"ConsumableSlot_{index}", typeof(RectTransform), typeof(Image), typeof(LayoutElement), typeof(Button));
             go.transform.SetParent(parent, false);
             var le = go.GetComponent<LayoutElement>();
-            le.preferredWidth = 92f;
-            le.preferredHeight = 92f;
+            le.preferredWidth = ConsumableSlotSize;
+            le.minWidth = ConsumableSlotSize;
+            le.preferredHeight = ConsumableSlotSize;
+            le.minHeight = ConsumableSlotSize;
+            // 边框：与遗物同款 event plate（空槽也保留）；不要蓝色 Outline/Button 高亮虚影
             var bg = go.GetComponent<Image>();
-            bg.color = new Color(0.11f, 0.12f, 0.16f, 0.95f);
+            ApplyEventPlate(bg);
             bg.raycastTarget = true;
+            foreach (var fx in go.GetComponents<Shadow>())
+                Destroy(fx);
+
+            var btn = go.GetComponent<Button>();
+            btn.transition = Selectable.Transition.None;
+            var colors = btn.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = Color.white;
+            colors.pressedColor = Color.white;
+            colors.selectedColor = Color.white;
+            colors.disabledColor = Color.white;
+            btn.colors = colors;
 
             var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
             iconGo.transform.SetParent(go.transform, false);
             var iconRt = iconGo.GetComponent<RectTransform>();
-            iconRt.anchorMin = new Vector2(0.1f, 0.1f);
-            iconRt.anchorMax = new Vector2(0.9f, 0.9f);
+            iconRt.anchorMin = new Vector2(0.14f, 0.14f);
+            iconRt.anchorMax = new Vector2(0.86f, 0.86f);
             iconRt.offsetMin = Vector2.zero;
             iconRt.offsetMax = Vector2.zero;
             var icon = iconGo.GetComponent<Image>();
             icon.preserveAspect = true;
             icon.raycastTarget = false;
+            icon.sprite = null;
+            icon.color = Color.clear;
+            icon.enabled = false;
             _dynamicObjects.Add(go);
             return go;
         }
@@ -1095,6 +1282,8 @@ namespace Grimhand.Presentation.Battle
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.verticalOverflow = VerticalWrapMode.Overflow;
             text.raycastTarget = false;
+            foreach (var fx in text.GetComponents<Shadow>())
+                UnityEngine.Object.Destroy(fx);
         }
     }
 }

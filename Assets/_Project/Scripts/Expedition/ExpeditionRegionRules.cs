@@ -11,6 +11,10 @@ namespace Grimhand.Expedition
         public const int DungeonBossLayer = 40;
         public const int AbyssBossLayer = 60;
 
+        /// <summary>洞窟/地牢/海渊关底：这些层必须是唯一可选的 Boss 房。</summary>
+        public static bool IsMandatoryBossLayer(int layerNumber) =>
+            layerNumber is CaveBossLayer or DungeonBossLayer or AbyssBossLayer;
+
         public static bool IsAbyssLayer(int layerNumber) => layerNumber >= AbyssStartLayer;
 
         public static bool IsDungeonLayer(int layerNumber) =>

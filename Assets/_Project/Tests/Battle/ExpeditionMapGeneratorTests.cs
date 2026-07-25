@@ -24,6 +24,34 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
+        public void Generate_RegionBossLayersAreSingleBossOnly()
+        {
+            var config = new ExpeditionConfig
+            {
+                ChapterLayerCount = ExpeditionRegionRules.FullLayerCount,
+                RunSeed = 123
+            };
+            config.CombatEncounters.Add(new BattleConfig());
+            var run = new ExpeditionRunState();
+            var map = ExpeditionMapGenerator.Generate(config, run, new Core.BattleRng(123));
+
+            Assert.AreEqual(ExpeditionRegionRules.FullLayerCount, map.Layers.Count);
+            foreach (var bossLayer in new[]
+                     {
+                         ExpeditionRegionRules.CaveBossLayer,
+                         ExpeditionRegionRules.DungeonBossLayer,
+                         ExpeditionRegionRules.AbyssBossLayer
+                     })
+            {
+                var row = map.GetLayer(bossLayer);
+                Assert.IsNotNull(row);
+                Assert.IsTrue(row.IsBoss, $"Layer {bossLayer} should be marked boss.");
+                Assert.AreEqual(1, row.Options.Count, $"Layer {bossLayer} must have exactly one route.");
+                Assert.AreEqual(ExpeditionNodeType.Boss, row.Options[0].NodeType);
+            }
+        }
+
+        [Test]
         public void Generate_LayersAfterFirstHaveTwoToFourOptions()
         {
             var config = new ExpeditionConfig { ChapterLayerCount = 10, RunSeed = 7 };
@@ -34,6 +62,9 @@ namespace Grimhand.Battle.Tests
             Assert.AreEqual(1, map.Layers[0].Options.Count);
             for (var layer = 2; layer < map.ChapterLayerCount; layer++)
             {
+                if (ExpeditionRegionRules.IsMandatoryBossLayer(layer))
+                    continue;
+
                 var count = map.Layers[layer - 1].Options.Count;
                 Assert.GreaterOrEqual(count, 2);
                 Assert.LessOrEqual(count, 4);

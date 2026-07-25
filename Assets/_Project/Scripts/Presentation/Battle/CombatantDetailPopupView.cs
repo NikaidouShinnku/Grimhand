@@ -14,7 +14,7 @@ namespace Grimhand.Presentation.Battle
         const float ExpBarWidth = 72f;
         const float ExpBarHeight = 6f;
         const float StatusPanelGap = 6f;
-        const float StatusPanelWidth = 240f;
+        const float StatusPanelWidth = 280f;
 
         RectTransform _panel;
         RectTransform _statusPanel;
@@ -44,18 +44,14 @@ namespace Grimhand.Presentation.Battle
                 bg.color = new Color(0.08f, 0.1f, 0.14f, 0.94f);
                 bg.raycastTarget = false;
 
-                var outline = go.AddComponent<Outline>();
-                outline.effectColor = new Color(0.75f, 0.82f, 0.95f, 0.55f);
-                outline.effectDistance = new Vector2(1.5f, -1.5f);
-
                 var textGo = new GameObject("Body", typeof(RectTransform), typeof(Text));
                 textGo.transform.SetParent(go.transform, false);
                 var textRt = textGo.GetComponent<RectTransform>();
                 textRt.anchorMin = new Vector2(0f, 1f);
                 textRt.anchorMax = new Vector2(1f, 1f);
                 textRt.pivot = new Vector2(0f, 1f);
-                textRt.offsetMin = new Vector2(10f, -999f);
-                textRt.offsetMax = new Vector2(-10f, -8f);
+                textRt.offsetMin = new Vector2(UiInfoPlateMetrics.PadX, -999f);
+                textRt.offsetMax = new Vector2(-UiInfoPlateMetrics.PadX, -UiInfoPlateMetrics.PadY);
 
                 _bodyText = textGo.GetComponent<Text>();
                 _bodyText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
@@ -146,17 +142,13 @@ namespace Grimhand.Presentation.Battle
             bg.color = new Color(0.06f, 0.08f, 0.12f, 0.94f);
             bg.raycastTarget = false;
 
-            var outline = go.AddComponent<Outline>();
-            outline.effectColor = new Color(0.55f, 0.72f, 0.95f, 0.55f);
-            outline.effectDistance = new Vector2(1.5f, -1.5f);
-
             var textGo = new GameObject("Body", typeof(RectTransform), typeof(Text));
             textGo.transform.SetParent(go.transform, false);
             var textRt = textGo.GetComponent<RectTransform>();
             textRt.anchorMin = Vector2.zero;
             textRt.anchorMax = Vector2.one;
-            textRt.offsetMin = new Vector2(10f, 8f);
-            textRt.offsetMax = new Vector2(-10f, -8f);
+            textRt.offsetMin = new Vector2(UiInfoPlateMetrics.PadX, UiInfoPlateMetrics.PadY);
+            textRt.offsetMax = new Vector2(-UiInfoPlateMetrics.PadX, -UiInfoPlateMetrics.PadY);
 
             _statusText = textGo.GetComponent<Text>();
             _statusText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
@@ -238,6 +230,9 @@ namespace Grimhand.Presentation.Battle
                 return;
             }
 
+            ApplyInformationPlate(_panel, icons);
+            ApplyInformationPlate(_statusPanel, icons);
+
             var statusTooltip = BattleUiFormatters.FormatStatusTooltipDescriptions(unit);
             var speed = CombatantDisplayHelper.GetSpeed(unit, presentation);
             var showExp = showExpBar && unit.Team == TeamSide.Player;
@@ -278,23 +273,19 @@ namespace Grimhand.Presentation.Battle
                 }
             }
 
-            // 属性框：沿用原逻辑，勿用 preferredHeight 改布局
-            var lineCount = 2;
-            if (!string.IsNullOrEmpty(traitFootnote))
-                lineCount += traitFootnote.Split('\n').Length;
-            if (showExp)
-                lineCount++;
-            if (runRelics != null && runRelics.Count > 0 && unit.Team == TeamSide.Player)
-                lineCount += 1 + runRelics.Count;
-            if (expeditionMember != null && expeditionMember.PersonalAttackBonus > 0)
-                lineCount++;
-            _panel.sizeDelta = new Vector2(280f, 28f + lineCount * 20f);
+            var panelW = UiInfoPlateMetrics.MinWidth + 40f;
+            var innerW = UiInfoPlateMetrics.InnerWidth(panelW);
+            var bodyH = UiInfoPlateMetrics.MeasureHeight(_bodyText, lines, innerW);
+            var topReserve = showExp ? 56f : UiInfoPlateMetrics.PadY;
+            _panel.sizeDelta = new Vector2(panelW, topReserve + bodyH + UiInfoPlateMetrics.PadY);
 
             if (_bodyText.rectTransform != null)
             {
-                var top = showExp ? -52f : -30f;
-                _bodyText.rectTransform.offsetMax = new Vector2(-10f, -8f);
-                _bodyText.rectTransform.offsetMin = new Vector2(10f, top);
+                var textRt = _bodyText.rectTransform;
+                textRt.anchorMin = Vector2.zero;
+                textRt.anchorMax = Vector2.one;
+                textRt.offsetMin = new Vector2(UiInfoPlateMetrics.PadX, UiInfoPlateMetrics.PadY);
+                textRt.offsetMax = new Vector2(-UiInfoPlateMetrics.PadX, -topReserve);
             }
 
             if (_statusPanel != null && _statusText != null)
@@ -319,69 +310,11 @@ namespace Grimhand.Presentation.Battle
             _statusText.verticalOverflow = VerticalWrapMode.Overflow;
             _statusText.supportRichText = true;
 
-            // 顶对齐 + 固定内容宽度，再用 preferredHeight 决定面板高度
-            var textRt = _statusText.rectTransform;
-            textRt.anchorMin = new Vector2(0f, 1f);
-            textRt.anchorMax = new Vector2(1f, 1f);
-            textRt.pivot = new Vector2(0.5f, 1f);
-            textRt.anchoredPosition = new Vector2(0f, -8f);
-            var contentWidth = StatusPanelWidth - 20f;
-            textRt.sizeDelta = new Vector2(-20f, 0f);
-
-            Canvas.ForceUpdateCanvases();
-            var preferred = _statusText.preferredHeight;
-            if (preferred < 8f)
-                preferred = EstimateWrappedTextHeight(statusTooltip, contentWidth);
-
-            var height = Mathf.Max(48f, preferred + 16f);
-            _statusPanel.sizeDelta = new Vector2(StatusPanelWidth, height);
-            textRt.sizeDelta = new Vector2(-20f, preferred);
-        }
-
-        float EstimateWrappedTextHeight(string richText, float width)
-        {
-            var plain = StripRichText(richText ?? "");
-            if (string.IsNullOrEmpty(plain) || width <= 0f)
-                return FontSize + 4f;
-
-            var avgCharWidth = FontSize * 0.95f; // 中文为主，按近似全角宽估算换行
-            var charsPerLine = Mathf.Max(1, Mathf.FloorToInt(width / avgCharWidth));
-            var visualLines = 0;
-            foreach (var line in plain.Split('\n'))
-            {
-                var len = Mathf.Max(1, line.Length);
-                visualLines += Mathf.CeilToInt(len / (float)charsPerLine);
-            }
-
-            return visualLines * (FontSize + 6f);
-        }
-
-        static string StripRichText(string text)
-        {
-            if (string.IsNullOrEmpty(text))
-                return "";
-
-            var sb = new System.Text.StringBuilder(text.Length);
-            var inTag = false;
-            foreach (var ch in text)
-            {
-                if (ch == '<')
-                {
-                    inTag = true;
-                    continue;
-                }
-
-                if (ch == '>')
-                {
-                    inTag = false;
-                    continue;
-                }
-
-                if (!inTag)
-                    sb.Append(ch);
-            }
-
-            return sb.ToString();
+            var panelW = StatusPanelWidth;
+            var innerW = UiInfoPlateMetrics.InnerWidth(panelW);
+            var preferred = UiInfoPlateMetrics.MeasureHeight(_statusText, statusTooltip, innerW);
+            _statusPanel.sizeDelta = new Vector2(panelW, preferred + UiInfoPlateMetrics.PadY * 2f);
+            UiInfoPlateMetrics.ApplyTextInsets(_statusText.rectTransform);
         }
 
         public void SetVisible(bool visible)
@@ -417,6 +350,28 @@ namespace Grimhand.Presentation.Battle
 
             var battleRoot = GetComponentInParent<BattleScreenView>()?.transform ?? transform.root;
             CombatantTooltipLayer.MountToFront(_panel, battleRoot);
+        }
+
+        static void ApplyInformationPlate(RectTransform target, BattleUiIconCatalogSO icons)
+        {
+            if (target == null)
+                return;
+
+            var image = target.GetComponent<Image>();
+            if (image == null)
+                return;
+
+            var plate = icons != null ? icons.UiInformationPlate : null;
+            if (plate != null)
+            {
+                image.sprite = plate;
+                image.type = Image.Type.Simple;
+                image.preserveAspect = false;
+                image.color = Color.white;
+            }
+
+            foreach (var fx in target.GetComponents<Outline>())
+                Destroy(fx);
         }
     }
 }

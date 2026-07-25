@@ -34,6 +34,8 @@ MonoBehaviour:
   UiCardPackOpen: {fileID: 8300000, guid: c23f9b6d7022f3446a446994fd2f8c60, type: 3}
   UiInventoryOpen: {fileID: 8300000, guid: 0c111cbc0df42fd4e9b206a7311e2669, type: 3}
   UiInventoryClose: {fileID: 8300000, guid: bd4f0c1ab791ce641b5c20ad989bd079, type: 3}
+  UiOpenMap: {fileID: 8300000, guid: 50ec52dc130b43546a881a682065389c, type: 3}
+  UiCloseMap: {fileID: 8300000, guid: 0651e9b5db194704fb25af515eaa7d9f, type: 3}
   BattleUsePotion: {fileID: 8300000, guid: b982ee9f47340bd43b332cc7eccbb99e, type: 3}
   BattleUseConsumable: {fileID: 8300000, guid: 7b15a11617df57443a31bf36151f62de, type: 3}
   BattleAttackEnemy: {fileID: 8300000, guid: 723e0fceee2a23d4191e8d581014b685, type: 3}

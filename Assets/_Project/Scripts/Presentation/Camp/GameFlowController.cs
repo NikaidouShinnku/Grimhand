@@ -102,7 +102,7 @@ namespace Grimhand.Presentation.Camp
                 uiIcons);
             settingsOverlay?.ConfigureArt(uiIcons);
             settingsOverlay?.Initialize(CloseSettings, uiIcons);
-            battleController?.BindBattleHudSettings(OpenSettings);
+            battleController?.BindBattleHudSettings(HandleEscapePressed);
 
             campScreen?.ConfigureArt(uiIcons);
             campScreen?.Initialize(

@@ -5,6 +5,7 @@ using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 using Grimhand.Presentation.Audio;
+using Grimhand.Presentation.Battle;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -16,7 +17,7 @@ namespace Grimhand.Presentation.Camp
     [DisallowMultipleComponent]
     public sealed class TalentCampOverlayView : MonoBehaviour
     {
-        const int LayoutVersion = 16;
+        const int LayoutVersion = 19;
         const float TemplateW = 1672f;
         const float TemplateH = 941f;
         const float ButtonAspect = 512f / 292f;
@@ -325,32 +326,40 @@ namespace Grimhand.Presentation.Camp
 
         void BuildTooltip()
         {
-            _tooltipPanel = CampUiRuntime.CreateImage("TalentTooltip", _overlayRoot,
-                new Color(0.08f, 0.1f, 0.14f, 0.98f)).gameObject;
+            _tooltipPanel = CampUiRuntime.CreateImage("TalentTooltip", _overlayRoot, Color.white).gameObject;
             var rt = _tooltipPanel.GetComponent<RectTransform>();
             rt.anchorMin = new Vector2(0.5f, 0.18f);
             rt.anchorMax = new Vector2(0.5f, 0.18f);
             rt.pivot = new Vector2(0.5f, 0f);
             rt.sizeDelta = new Vector2(520f, 110f);
 
-            var outline = _tooltipPanel.AddComponent<Outline>();
-            outline.effectColor = new Color(0.75f, 0.65f, 0.28f, 0.9f);
-            outline.effectDistance = new Vector2(2f, -2f);
+            var tipImg = _tooltipPanel.GetComponent<Image>();
+            if (_uiIcons != null && _uiIcons.UiInformationPlate != null)
+            {
+                tipImg.sprite = _uiIcons.UiInformationPlate;
+                tipImg.type = Image.Type.Simple;
+                tipImg.preserveAspect = false;
+                tipImg.color = Color.white;
+            }
+            else
+            {
+                tipImg.color = new Color(0.08f, 0.1f, 0.14f, 0.98f);
+            }
 
             _tooltipTitle = CampUiRuntime.CreateText(_tooltipPanel.transform, "", 16, FontStyle.Bold,
                 TextAnchor.UpperLeft);
             _tooltipTitle.rectTransform.anchorMin = new Vector2(0f, 1f);
             _tooltipTitle.rectTransform.anchorMax = new Vector2(1f, 1f);
-            _tooltipTitle.rectTransform.offsetMin = new Vector2(14f, -32f);
-            _tooltipTitle.rectTransform.offsetMax = new Vector2(-14f, -8f);
+            _tooltipTitle.rectTransform.offsetMin = new Vector2(32f, -40f);
+            _tooltipTitle.rectTransform.offsetMax = new Vector2(-32f, -16f);
             _tooltipTitle.color = TitleGold;
 
             _tooltipBody = CampUiRuntime.CreateText(_tooltipPanel.transform, "", 14, FontStyle.Normal,
                 TextAnchor.UpperLeft);
             _tooltipBody.rectTransform.anchorMin = Vector2.zero;
             _tooltipBody.rectTransform.anchorMax = Vector2.one;
-            _tooltipBody.rectTransform.offsetMin = new Vector2(14f, 10f);
-            _tooltipBody.rectTransform.offsetMax = new Vector2(-14f, -34f);
+            _tooltipBody.rectTransform.offsetMin = new Vector2(32f, 18f);
+            _tooltipBody.rectTransform.offsetMax = new Vector2(-32f, -44f);
             _tooltipBody.color = BodyText;
             _tooltipBody.horizontalOverflow = HorizontalWrapMode.Wrap;
 
@@ -615,6 +624,29 @@ namespace Grimhand.Presentation.Camp
             _tooltipBody.text = locked
                 ? $"需要局外等级 Lv.{talent.UnlockLevel} 才能解锁此天赋。\n{talent.Description}"
                 : talent.Description;
+
+            var panelRt = _tooltipPanel.GetComponent<RectTransform>();
+            var panelW = UiInfoPlateMetrics.MaxWidth;
+            var innerW = UiInfoPlateMetrics.InnerWidth(panelW);
+            var titleH = UiInfoPlateMetrics.MeasureHeight(_tooltipTitle, _tooltipTitle.text, innerW);
+            var bodyH = UiInfoPlateMetrics.MeasureHeight(_tooltipBody, _tooltipBody.text, innerW);
+            var gap = 8f;
+            panelRt.sizeDelta = new Vector2(panelW, titleH + gap + bodyH + UiInfoPlateMetrics.PadY * 2f);
+
+            var titleRt = _tooltipTitle.rectTransform;
+            titleRt.anchorMin = new Vector2(0f, 1f);
+            titleRt.anchorMax = new Vector2(1f, 1f);
+            titleRt.pivot = new Vector2(0.5f, 1f);
+            titleRt.anchoredPosition = new Vector2(0f, -UiInfoPlateMetrics.PadY);
+            titleRt.sizeDelta = new Vector2(-UiInfoPlateMetrics.PadX * 2f, titleH);
+
+            var bodyRt = _tooltipBody.rectTransform;
+            bodyRt.anchorMin = new Vector2(0f, 1f);
+            bodyRt.anchorMax = new Vector2(1f, 1f);
+            bodyRt.pivot = new Vector2(0.5f, 1f);
+            bodyRt.anchoredPosition = new Vector2(0f, -(UiInfoPlateMetrics.PadY + titleH + gap));
+            bodyRt.sizeDelta = new Vector2(-UiInfoPlateMetrics.PadX * 2f, bodyH);
+
             _tooltipPanel.SetActive(true);
             _tooltipPanel.transform.SetAsLastSibling();
         }

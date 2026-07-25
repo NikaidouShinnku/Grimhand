@@ -172,7 +172,7 @@ namespace Grimhand.Presentation.Battle
             panelGo.GetComponent<Image>().color = new Color(0.1f, 0.11f, 0.15f, 0.98f);
 
             _tooltip = panelGo.AddComponent<InventoryTooltipView>();
-            _tooltip.Initialize(panelRt);
+            _tooltip.Initialize(panelRt, _uiIcons);
 
             _headerText = CreateText(panelGo.transform, "卡包", 30, FontStyle.Bold, TextAnchor.MiddleCenter);
             AnchorBand(_headerText.rectTransform, 0.90f, 0.97f);

@@ -16,17 +16,22 @@ namespace Grimhand.Presentation.Battle
     [DisallowMultipleComponent]
     public sealed class ExpeditionPostBattleOverlayView : MonoBehaviour
     {
-        const float DoorWidth = 280f;
-        const float DoorHeight = 360f;
-        const float DoorSpacing = 300f;
+        const int LayoutVersion = 4;
+        const float DoorWidth = 286f;
+        const float DoorHeight = 364f;
+        const float DoorLabelHeight = 36f;
+        const float DoorSpacing = 318f;
         const float RewardCardScale = 0.68f;
         const float ChestRewardCardScale = 0.92f;
         const float RewardCardSpacing = 180f;
         const float RewardIconSpacing = 140f;
         const float ChestPanelWidth = 920f;
         const float ChestPanelHeight = 560f;
-        const float DoorHoverScale = 1.12f;
+        const float DoorHoverScale = 1.16f;
         const float ChestOpenArtAlpha = 0.8f;
+        static readonly Color LocationTitleColor = new(0.93f, 0.86f, 0.68f, 1f);
+        static readonly Color LocationFloorColor = new(0.82f, 0.78f, 0.72f, 1f);
+        static readonly Color PathTitleColor = new(0.90f, 0.78f, 0.42f, 1f);
 
         BattleSession _session;
         BattleUiIconCatalogSO _icons;
@@ -37,8 +42,12 @@ namespace Grimhand.Presentation.Battle
         Dictionary<string, CardDefinitionSO> _definitions = new();
         CardView _cardPrefab;
         RectTransform _root;
+        Image _dimImage;
         RectTransform _rewardRow;
         RectTransform _doorRow;
+        RectTransform _locationPlate;
+        Text _locationTitle;
+        Text _locationFloor;
         RectTransform _chestPanel;
         RectTransform _chestClosedLayer;
         Image _chestPanelBackground;
@@ -52,6 +61,7 @@ namespace Grimhand.Presentation.Battle
         readonly List<Button> _rewardButtons = new();
         readonly List<Button> _doorButtons = new();
         bool _built;
+        int _builtVersion = -1;
 
         public void Initialize(
             BattleSession session,
@@ -113,6 +123,16 @@ namespace Grimhand.Presentation.Battle
             _chestPanel.gameObject.SetActive(isChest);
             _rewardRow.gameObject.SetActive(phase == ExpeditionPhase.RewardPickup && !isChest && !packPickActive);
             _doorRow.gameObject.SetActive(phase == ExpeditionPhase.RouteSelect);
+            if (_locationPlate != null)
+                _locationPlate.gameObject.SetActive(phase == ExpeditionPhase.RouteSelect);
+            if (_headerText != null)
+                _headerText.gameObject.SetActive(phase != ExpeditionPhase.RouteSelect);
+            if (_dimImage != null)
+            {
+                _dimImage.color = phase == ExpeditionPhase.RouteSelect
+                    ? new Color(0f, 0f, 0f, 0f)
+                    : new Color(0f, 0f, 0f, 0.42f);
+            }
             if (_skipVictoryButton != null)
             {
                 var showSkip = phase == ExpeditionPhase.RewardPickup && HasRemainingRewards(rewards);
@@ -159,10 +179,16 @@ namespace Grimhand.Presentation.Battle
 
         void EnsureBuilt(Transform parent)
         {
-            if (_built)
+            if (_built && _builtVersion == LayoutVersion)
                 return;
 
+            if (_root != null)
+                Destroy(_root.gameObject);
+
             _built = true;
+            _builtVersion = LayoutVersion;
+            _rewardButtons.Clear();
+            _doorButtons.Clear();
 
             var overlayGo = new GameObject("ExpeditionPostBattleOverlay", typeof(RectTransform), typeof(Image));
             overlayGo.transform.SetParent(parent, false);
@@ -173,9 +199,9 @@ namespace Grimhand.Presentation.Battle
             _root.offsetMin = Vector2.zero;
             _root.offsetMax = Vector2.zero;
 
-            var dim = overlayGo.GetComponent<Image>();
-            dim.color = new Color(0f, 0f, 0f, 0.42f);
-            dim.raycastTarget = true;
+            _dimImage = overlayGo.GetComponent<Image>();
+            _dimImage.color = new Color(0f, 0f, 0f, 0.42f);
+            _dimImage.raycastTarget = true;
 
             var headerGo = new GameObject("Header", typeof(RectTransform), typeof(Text));
             headerGo.transform.SetParent(_root, false);
@@ -187,6 +213,8 @@ namespace Grimhand.Presentation.Battle
             headerRt.sizeDelta = new Vector2(900f, 72f);
             _headerText = headerGo.GetComponent<Text>();
             StyleText(_headerText, 22, TextAnchor.UpperCenter);
+
+            BuildLocationPlate(_root);
 
             var rewardGo = new GameObject("RewardRow", typeof(RectTransform));
             rewardGo.transform.SetParent(_root, false);
@@ -201,16 +229,61 @@ namespace Grimhand.Presentation.Battle
             var doorGo = new GameObject("DoorRow", typeof(RectTransform));
             doorGo.transform.SetParent(_root, false);
             _doorRow = doorGo.GetComponent<RectTransform>();
-            _doorRow.anchorMin = new Vector2(0.5f, 0.48f);
-            _doorRow.anchorMax = new Vector2(0.5f, 0.48f);
+            _doorRow.anchorMin = new Vector2(0.5f, 0.46f);
+            _doorRow.anchorMax = new Vector2(0.5f, 0.46f);
             _doorRow.pivot = new Vector2(0.5f, 0.5f);
-            _doorRow.sizeDelta = new Vector2(980f, DoorHeight + 120f);
+            _doorRow.sizeDelta = new Vector2(1180f, DoorHeight + DoorLabelHeight + 40f);
 
             _chestPanel = BuildChestPanel(_root);
             overlayGo.SetActive(false);
 
             _tooltip = overlayGo.AddComponent<InventoryTooltipView>();
             _tooltip.Initialize(_root);
+        }
+
+        void BuildLocationPlate(RectTransform parent)
+        {
+            var plateGo = new GameObject("LocationPlate", typeof(RectTransform), typeof(Image));
+            plateGo.transform.SetParent(parent, false);
+            _locationPlate = plateGo.GetComponent<RectTransform>();
+            _locationPlate.anchorMin = new Vector2(0.5f, 1f);
+            _locationPlate.anchorMax = new Vector2(0.5f, 1f);
+            _locationPlate.pivot = new Vector2(0.5f, 1f);
+            // 框位保持原位；只把字往上提
+            _locationPlate.anchoredPosition = new Vector2(0f, -18f);
+            _locationPlate.sizeDelta = new Vector2(620f, 320f);
+
+            var plateImage = plateGo.GetComponent<Image>();
+            plateImage.sprite = _icons?.UiChoosingPathLocationPlate;
+            plateImage.preserveAspect = true;
+            plateImage.type = Image.Type.Simple;
+            plateImage.color = plateImage.sprite != null ? Color.white : new Color(0.12f, 0.1f, 0.14f, 0.92f);
+            plateImage.raycastTarget = false;
+
+            var titleGo = new GameObject("RegionTitle", typeof(RectTransform), typeof(Text));
+            titleGo.transform.SetParent(plateGo.transform, false);
+            var titleRt = titleGo.GetComponent<RectTransform>();
+            titleRt.anchorMin = new Vector2(0.18f, 0.62f);
+            titleRt.anchorMax = new Vector2(0.82f, 0.90f);
+            titleRt.offsetMin = Vector2.zero;
+            titleRt.offsetMax = Vector2.zero;
+            _locationTitle = titleGo.GetComponent<Text>();
+            StyleText(_locationTitle, 40, TextAnchor.MiddleCenter);
+            _locationTitle.color = LocationTitleColor;
+
+            var floorGo = new GameObject("FloorText", typeof(RectTransform), typeof(Text));
+            floorGo.transform.SetParent(plateGo.transform, false);
+            var floorRt = floorGo.GetComponent<RectTransform>();
+            floorRt.anchorMin = new Vector2(0.22f, 0.40f);
+            floorRt.anchorMax = new Vector2(0.78f, 0.60f);
+            floorRt.offsetMin = Vector2.zero;
+            floorRt.offsetMax = Vector2.zero;
+            _locationFloor = floorGo.GetComponent<Text>();
+            StyleText(_locationFloor, 22, TextAnchor.MiddleCenter);
+            _locationFloor.fontStyle = FontStyle.Normal;
+            _locationFloor.color = LocationFloorColor;
+
+            plateGo.SetActive(false);
         }
 
         RectTransform BuildChestPanel(RectTransform parent)
@@ -745,9 +818,12 @@ namespace Grimhand.Presentation.Battle
         {
             ClearDoorRow();
             var run = _session.Expedition.Run;
-            _headerText.text =
-                $"选择前进路线（第 {run.Map?.NodesCompleted + 1 ?? run.BattlesWon + 1}/{run.Map?.ChapterLayerCount ?? run.TargetBattleCount} 层）\n" +
-                BattleUiFormatters.FormatPartySummary(run.Party, run.Gold);
+            var layer = run.Map?.NodesCompleted + 1 ?? run.BattlesWon + 1;
+            var total = run.Map?.ChapterLayerCount ?? run.TargetBattleCount;
+            if (_locationTitle != null)
+                _locationTitle.text = ExpeditionPathArt.ResolveRegionDisplayName(layer);
+            if (_locationFloor != null)
+                _locationFloor.text = $"第 {layer} 层 / {total} 层";
 
             var routes = run.PendingRoutes;
             var spacing = DoorSpacing;
@@ -758,12 +834,18 @@ namespace Grimhand.Presentation.Battle
                 var route = routes[i];
                 var index = i;
                 var isTreasure = route.NodeType == ExpeditionNodeType.Treasure;
-                var sprite = isTreasure
+                var nodeSprite = isTreasure
                     ? _icons?.TreasureChestClosed
                     : PickPathSprite(route.PathSpriteIndex, route.LayerNumber);
-                var label = ExpeditionRoutePresentation.BuildDoorLabel(route);
+                var frameSprite = ExpeditionPathArt.ResolvePathFrame(_icons, route.NodeType);
+                var typeLabel = BattleUiFormatters.DescribeNodeType(route.NodeType);
 
-                var btn = CreateDoorButton(_doorRow, new Vector2(startX + i * spacing, 0f), sprite, label, isTreasure,
+                var btn = CreateDoorButton(
+                    _doorRow,
+                    new Vector2(startX + i * spacing, 0f),
+                    frameSprite,
+                    nodeSprite,
+                    typeLabel,
                     () => _session.SelectRoute(index));
                 _doorButtons.Add(btn);
             }
@@ -1078,11 +1160,12 @@ namespace Grimhand.Presentation.Battle
         Button CreateDoorButton(
             Transform parent,
             Vector2 pos,
-            Sprite sprite,
-            string label,
-            bool isTreasure,
+            Sprite frameSprite,
+            Sprite nodeSprite,
+            string typeLabel,
             Action onClick)
         {
+            var totalHeight = DoorHeight + DoorLabelHeight;
             var go = new GameObject("Door", typeof(RectTransform), typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
             var rt = go.GetComponent<RectTransform>();
@@ -1090,30 +1173,68 @@ namespace Grimhand.Presentation.Battle
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = pos;
-            rt.sizeDelta = isTreasure ? new Vector2(240f, 220f) : new Vector2(DoorWidth, DoorHeight);
+            rt.sizeDelta = new Vector2(DoorWidth, totalHeight);
 
-            var img = go.GetComponent<Image>();
-            img.sprite = sprite;
-            img.preserveAspect = true;
-            img.type = Image.Type.Simple;
-            img.color = sprite != null ? Color.white : new Color(0.55f, 0.45f, 0.32f, 1f);
+            // 全透明点击层：不可见，仅接收射线
+            var hit = go.GetComponent<Image>();
+            hit.color = Color.clear;
+            hit.raycastTarget = true;
 
-            WireHoverScale(rt, img, DoorHoverScale, addOutline: true);
+            var visualGo = new GameObject("Visual", typeof(RectTransform));
+            visualGo.transform.SetParent(go.transform, false);
+            var visualRt = visualGo.GetComponent<RectTransform>();
+            visualRt.anchorMin = new Vector2(0.5f, 1f);
+            visualRt.anchorMax = new Vector2(0.5f, 1f);
+            visualRt.pivot = new Vector2(0.5f, 1f);
+            visualRt.anchoredPosition = Vector2.zero;
+            visualRt.sizeDelta = new Vector2(DoorWidth, DoorHeight);
 
-            var labelGo = new GameObject("Label", typeof(RectTransform), typeof(Text));
-            labelGo.transform.SetParent(_doorRow, false);
-            var labelRt = labelGo.GetComponent<RectTransform>();
-            labelRt.anchorMin = new Vector2(0.5f, 0.5f);
-            labelRt.anchorMax = new Vector2(0.5f, 0.5f);
-            labelRt.pivot = new Vector2(0.5f, 1f);
-            labelRt.anchoredPosition = new Vector2(pos.x, pos.y - DoorHeight * 0.5f - 6f);
-            labelRt.sizeDelta = new Vector2(DoorWidth + 24f, 88f);
-            var text = labelGo.GetComponent<Text>();
-            StyleText(text, 16, TextAnchor.UpperCenter);
-            text.text = label;
+            var nodeGo = new GameObject("NodeArt", typeof(RectTransform), typeof(Image));
+            nodeGo.transform.SetParent(visualGo.transform, false);
+            var nodeRt = nodeGo.GetComponent<RectTransform>();
+            nodeRt.anchorMin = new Vector2(0.16f, 0.08f);
+            nodeRt.anchorMax = new Vector2(0.84f, 0.72f);
+            nodeRt.offsetMin = Vector2.zero;
+            nodeRt.offsetMax = Vector2.zero;
+            var nodeImg = nodeGo.GetComponent<Image>();
+            nodeImg.sprite = nodeSprite;
+            nodeImg.preserveAspect = true;
+            nodeImg.type = Image.Type.Simple;
+            nodeImg.color = nodeSprite != null ? Color.white : new Color(0.55f, 0.45f, 0.32f, 1f);
+            nodeImg.raycastTarget = false;
+
+            var frameGo = new GameObject("Frame", typeof(RectTransform), typeof(Image));
+            frameGo.transform.SetParent(visualGo.transform, false);
+            var frameRt = frameGo.GetComponent<RectTransform>();
+            frameRt.anchorMin = Vector2.zero;
+            frameRt.anchorMax = Vector2.one;
+            frameRt.offsetMin = Vector2.zero;
+            frameRt.offsetMax = Vector2.zero;
+            var frame = frameGo.GetComponent<Image>();
+            frame.sprite = frameSprite;
+            frame.preserveAspect = true;
+            frame.type = Image.Type.Simple;
+            frame.color = frameSprite != null ? Color.white : new Color(0.18f, 0.16f, 0.2f, 0.95f);
+            frame.raycastTarget = false;
+
+            var typeGo = new GameObject("TypeLabel", typeof(RectTransform), typeof(Text));
+            typeGo.transform.SetParent(go.transform, false);
+            var typeRt = typeGo.GetComponent<RectTransform>();
+            typeRt.anchorMin = new Vector2(0f, 0f);
+            typeRt.anchorMax = new Vector2(1f, 0f);
+            typeRt.pivot = new Vector2(0.5f, 0f);
+            typeRt.anchoredPosition = Vector2.zero;
+            typeRt.sizeDelta = new Vector2(0f, DoorLabelHeight);
+            var typeText = typeGo.GetComponent<Text>();
+            StyleText(typeText, 18, TextAnchor.MiddleCenter);
+            typeText.color = PathTitleColor;
+            typeText.text = typeLabel ?? "";
+
+            WireHoverScale(rt, nodeRt, hit, DoorHoverScale, addOutline: false);
 
             var btn = go.GetComponent<Button>();
-            btn.targetGraphic = img;
+            btn.targetGraphic = hit;
+            btn.transition = Selectable.Transition.None;
             btn.onClick.AddListener(() => onClick?.Invoke());
             return btn;
         }
@@ -1200,9 +1321,17 @@ namespace Grimhand.Presentation.Battle
             buttons.Clear();
         }
 
-        static void WireHoverScale(RectTransform rt, Graphic graphic, float hoverScale, bool addOutline = false)
+        static void WireHoverScale(RectTransform rt, Graphic graphic, float hoverScale, bool addOutline = false) =>
+            WireHoverScale(rt, rt, graphic, hoverScale, addOutline);
+
+        static void WireHoverScale(
+            RectTransform eventHost,
+            RectTransform scaleTarget,
+            Graphic graphic,
+            float hoverScale,
+            bool addOutline = false)
         {
-            if (rt == null)
+            if (eventHost == null || scaleTarget == null)
                 return;
 
             Outline outline = null;
@@ -1215,14 +1344,14 @@ namespace Grimhand.Presentation.Battle
                 outline.effectDistance = new Vector2(2f, -2f);
             }
 
-            var trigger = rt.gameObject.GetComponent<EventTrigger>();
+            var trigger = eventHost.gameObject.GetComponent<EventTrigger>();
             if (trigger == null)
-                trigger = rt.gameObject.AddComponent<EventTrigger>();
+                trigger = eventHost.gameObject.AddComponent<EventTrigger>();
 
             var enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
             enter.callback.AddListener(_ =>
             {
-                rt.localScale = Vector3.one * hoverScale;
+                scaleTarget.localScale = Vector3.one * hoverScale;
                 if (outline != null)
                     outline.effectColor = new Color(1f, 0.88f, 0.35f, 0.95f);
             });
@@ -1231,7 +1360,7 @@ namespace Grimhand.Presentation.Battle
             var exit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
             exit.callback.AddListener(_ =>
             {
-                rt.localScale = Vector3.one;
+                scaleTarget.localScale = Vector3.one;
                 if (outline != null)
                     outline.effectColor = new Color(1f, 0.88f, 0.35f, 0f);
             });

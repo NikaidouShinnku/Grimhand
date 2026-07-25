@@ -6,16 +6,16 @@ using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Camp
 {
-    /// <summary>设置：音乐 / 音效 / 分辨率；底板 information_plate，返回 button2。</summary>
+    /// <summary>设置：音乐 / 音效 / 分辨率；底板 event_plate，返回 button2。</summary>
     [DisallowMultipleComponent]
     public sealed class GameSettingsOverlayView : MonoBehaviour
     {
-        const float PanelWidth = 560f;
-        // 相对 information_plate 原生比例纵向拉长，容纳设置项
-        const float PanelHeight = 620f;
+        // event_plate 约 1203×1308，略竖长
+        const float PanelWidth = 520f;
+        const float PanelHeight = 580f;
         const float ButtonAspect = 512f / 292f;
         const float ButtonHoverScale = 1.06f;
-        const int LayoutVersion = 2;
+        const int LayoutVersion = 4;
 
         static readonly Color TitleColor = new(0.95f, 0.85f, 0.55f, 1f);
         static readonly Color LabelColor = new(0.92f, 0.90f, 0.84f, 1f);
@@ -100,6 +100,15 @@ namespace Grimhand.Presentation.Camp
             _root = CampUiRuntime.CreateRect("SettingsRoot", transform).GetComponent<RectTransform>();
             CampUiRuntime.StretchFull(_root);
 
+            // 高于 ESC 菜单（5000），否则局内 ESC→设置会被挡住
+            var overlayCanvas = _root.gameObject.GetComponent<Canvas>();
+            if (overlayCanvas == null)
+                overlayCanvas = _root.gameObject.AddComponent<Canvas>();
+            overlayCanvas.overrideSorting = true;
+            overlayCanvas.sortingOrder = 5200;
+            if (_root.GetComponent<GraphicRaycaster>() == null)
+                _root.gameObject.AddComponent<GraphicRaycaster>();
+
             var backdrop = CampUiRuntime.CreateImage("Backdrop", _root, new Color(0f, 0f, 0f, 0.72f));
             CampUiRuntime.StretchFull(backdrop.rectTransform);
 
@@ -112,7 +121,7 @@ namespace Grimhand.Presentation.Camp
             panelImg.preserveAspect = false;
             panelImg.raycastTarget = true;
 
-            var plate = uiIcons != null ? uiIcons.UiInformationPlate : null;
+            var plate = uiIcons != null ? uiIcons.UiEventPlate : null;
             if (plate != null)
             {
                 panelImg.sprite = plate;
@@ -123,7 +132,7 @@ namespace Grimhand.Presentation.Camp
             {
                 panelImg.sprite = null;
                 panelImg.color = new Color(0.08f, 0.09f, 0.12f, 0.98f);
-                Debug.LogWarning("[Settings] 缺少 UiInformationPlate，请执行 Grimhand → Content → Refresh UI Visual Catalogs。");
+                Debug.LogWarning("[Settings] 缺少 UiEventPlate，请执行 Grimhand → Content → Refresh UI Visual Catalogs。");
             }
 
             var title = CampUiRuntime.CreateText(panel, "设置", 28, FontStyle.Bold, TextAnchor.MiddleCenter);

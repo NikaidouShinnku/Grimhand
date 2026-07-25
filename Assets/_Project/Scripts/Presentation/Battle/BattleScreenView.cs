@@ -81,8 +81,10 @@ namespace Grimhand.Presentation.Battle
         MonsterSpawnOverlayView _monsterSpawnOverlay;
         BattleActionOrderBarView _actionOrderBar;
         BattlePresentationSpeedToggleView _presentationSpeedToggle;
+        Button _settingsButton;
         Button _targetCancelBackdrop;
         Text _inventoryFallbackLabel;
+        System.Action _onOpenSettings;
 
         BattleSession _session;
         System.Func<bool> _presentationBusy;
@@ -159,6 +161,7 @@ namespace Grimhand.Presentation.Battle
             EnsureCodexHud();
             EnsureDummyPlayHud();
             EnsurePresentationSpeedHud();
+            EnsureSettingsHud();
             EnsureExpeditionPresentation();
             ApplyPlanningButtonIcons();
             CombatantTooltipLayer.GetOrCreate(transform);
@@ -168,6 +171,8 @@ namespace Grimhand.Presentation.Battle
             if (GetComponent<BattleUiBootstrap>() == null)
                 gameObject.AddComponent<BattleUiBootstrap>();
         }
+
+        public void BindOpenSettings(System.Action onOpenSettings) => _onOpenSettings = onOpenSettings;
 
         public void SetPresentationBusyCheck(System.Func<bool> check) => _presentationBusy = check;
 
@@ -211,6 +216,7 @@ namespace Grimhand.Presentation.Battle
                 _definitions,
                 ShowKeywordTooltip,
                 HideKeywordTooltip);
+            BattleUiLayoutRuntimeFix.EnsureInteractiveHudAboveActionOrderBar(chromeRoot);
         }
 
         public void ShowActiveCard(int cardInstanceId) =>
@@ -230,8 +236,8 @@ namespace Grimhand.Presentation.Battle
             if (!ShouldShowBattlePlanningChrome())
                 return;
 
-            PlanningActionButtonStyle.Apply(confirmButton, _uiIcons.ConfirmPlayIcon, "出牌");
-            PlanningActionButtonStyle.Apply(skipButton, _uiIcons.SkipIcon, "空过");
+            PlanningActionButtonStyle.Apply(confirmButton, _uiIcons.UiButton1, "出牌");
+            PlanningActionButtonStyle.Apply(skipButton, _uiIcons.UiButton2, "空过");
 
             if (skipButton != null)
             {
@@ -302,16 +308,17 @@ namespace Grimhand.Presentation.Battle
             if (icon == null)
                 return;
 
+            const float size = 56f;
             var le = icon.GetComponent<LayoutElement>() ?? icon.gameObject.AddComponent<LayoutElement>();
-            le.preferredWidth = 32f;
-            le.preferredHeight = 32f;
-            le.minWidth = 32f;
-            le.minHeight = 32f;
+            le.preferredWidth = size;
+            le.preferredHeight = size;
+            le.minWidth = size;
+            le.minHeight = size;
             le.flexibleWidth = 0f;
             le.flexibleHeight = 0f;
 
             var rt = icon.rectTransform;
-            rt.sizeDelta = new Vector2(32f, 32f);
+            rt.sizeDelta = new Vector2(size, size);
             icon.preserveAspect = true;
             icon.raycastTarget = false;
         }
@@ -333,10 +340,9 @@ namespace Grimhand.Presentation.Battle
                 var hudGo = new GameObject("EnergyHud", typeof(RectTransform), typeof(Image));
                 hudGo.transform.SetParent(HudRoot, false);
                 energyHud = hudGo.GetComponent<RectTransform>();
-                var hudBg = hudGo.GetComponent<Image>();
-                hudBg.color = new Color(0.1f, 0.11f, 0.15f, 0.92f);
-                hudBg.raycastTarget = false;
             }
+
+            ApplyEnergyHudPlate(energyHud.GetComponent<Image>());
 
             var energyRow = energyHud.Find("EnergyRow") as RectTransform;
             if (energyRow == null)
@@ -357,8 +363,8 @@ namespace Grimhand.Presentation.Battle
             energyRow.anchorMin = Vector2.zero;
             energyRow.anchorMax = Vector2.one;
             energyRow.pivot = new Vector2(0.5f, 0.5f);
-            energyRow.offsetMin = new Vector2(8f, 6f);
-            energyRow.offsetMax = new Vector2(-8f, -6f);
+            energyRow.offsetMin = new Vector2(10f, 8f);
+            energyRow.offsetMax = new Vector2(-10f, -8f);
             energyRow.gameObject.SetActive(true);
 
             var layout = energyRow.GetComponent<HorizontalLayoutGroup>()
@@ -391,14 +397,24 @@ namespace Grimhand.Presentation.Battle
                 FixEnergyIconLayout(hudEnergyIcon);
             }
 
+            if (energyValueText == null)
+            {
+                var textGo = new GameObject("EnergyValue", typeof(RectTransform), typeof(Text));
+                textGo.transform.SetParent(energyRow, false);
+                energyValueText = textGo.GetComponent<Text>();
+                energyValueText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                energyValueText.alignment = TextAnchor.MiddleLeft;
+            }
+
             if (energyValueText != null)
             {
                 if (energyValueText.transform.parent != energyRow)
                     energyValueText.transform.SetParent(energyRow, false);
                 energyValueText.gameObject.SetActive(true);
-                energyValueText.fontSize = Mathf.Max(energyValueText.fontSize, 24);
+                energyValueText.fontSize = Mathf.Max(energyValueText.fontSize, 28);
                 energyValueText.fontStyle = FontStyle.Bold;
                 energyValueText.color = Color.white;
+                energyValueText.raycastTarget = false;
             }
 
             if (legacyEnergyRow != null && legacyEnergyRow != energyRow)
@@ -406,6 +422,28 @@ namespace Grimhand.Presentation.Battle
 
             BattleUiLayoutRuntimeFix.LayoutEnergyHud(energyHud);
             LayoutRebuilder.ForceRebuildLayoutImmediate(energyRow);
+        }
+
+        void ApplyEnergyHudPlate(Image hudBg)
+        {
+            if (hudBg == null)
+                return;
+
+            hudBg.raycastTarget = false;
+            var plate = _uiIcons != null ? _uiIcons.UiButton5 : null;
+            if (plate != null)
+            {
+                hudBg.sprite = plate;
+                hudBg.type = Image.Type.Simple;
+                hudBg.preserveAspect = false;
+                hudBg.color = Color.white;
+            }
+            else
+            {
+                // 无美术底板时不加自制半透明虚影框，只留水晶+数字
+                hudBg.sprite = null;
+                hudBg.color = Color.clear;
+            }
         }
 
         void EnsureInventoryHud()
@@ -502,7 +540,7 @@ namespace Grimhand.Presentation.Battle
                     _definitions);
             }
 
-            ApplyLateHudLayout();
+            ApplyInventoryButtonLayout();
         }
 
         void EnsureTurnLogHud()
@@ -722,7 +760,50 @@ namespace Grimhand.Presentation.Battle
             if (_presentationSpeedToggle == null)
                 _presentationSpeedToggle = gameObject.AddComponent<BattlePresentationSpeedToggleView>();
 
-            _presentationSpeedToggle.EnsureCreated(HudRoot);
+            _presentationSpeedToggle.EnsureCreated(HudRoot, _uiIcons);
+        }
+
+        void EnsureSettingsHud()
+        {
+            if (_settingsButton == null)
+            {
+                var go = new GameObject("BattleSettingsButton", typeof(RectTransform), typeof(Image), typeof(Button));
+                go.transform.SetParent(HudRoot, false);
+
+                var img = go.GetComponent<Image>();
+                img.raycastTarget = true;
+                img.preserveAspect = true;
+                img.type = Image.Type.Simple;
+
+                _settingsButton = go.GetComponent<Button>();
+                _settingsButton.targetGraphic = img;
+                _settingsButton.onClick.AddListener(() => _onOpenSettings?.Invoke());
+                UiAudioHooks.WireButton(_settingsButton);
+            }
+
+            ApplySettingsButtonVisual();
+            BattleButtonPressFeedback.Apply(_settingsButton);
+            BattleUiLayoutRuntimeFix.LayoutSettingsButton(_settingsButton.transform as RectTransform);
+            BattleUiLayoutRuntimeFix.PromoteHudControlOverlay(_settingsButton.transform as RectTransform);
+        }
+
+        void ApplySettingsButtonVisual()
+        {
+            if (_settingsButton == null)
+                return;
+
+            var img = _settingsButton.GetComponent<Image>();
+            var sprite = _uiIcons != null ? _uiIcons.UiSettingButton : null;
+            if (sprite != null)
+            {
+                img.sprite = sprite;
+                img.color = Color.white;
+            }
+            else
+            {
+                img.sprite = null;
+                img.color = new Color(0.14f, 0.15f, 0.2f, 0.96f);
+            }
         }
 
         void ToggleCodexPanel()
@@ -785,6 +866,7 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             BattleUiLayoutRuntimeFix.LayoutCodexButton(_codexButton.transform as RectTransform);
+            ApplyFramedUtilityButton(_codexButton.GetComponent<Image>(), null, keepLabel: true);
         }
 
         void ApplyDummyPlayButtonLayout()
@@ -796,6 +878,7 @@ namespace Grimhand.Presentation.Battle
             BattleUiLayoutRuntimeFix.LayoutDummyPlayButton(
                 _dummyPlayButton.transform as RectTransform,
                 codexRt);
+            ApplyFramedUtilityButton(_dummyPlayButton.GetComponent<Image>(), null, keepLabel: true);
             ApplyMonsterSpawnButtonLayout();
         }
 
@@ -807,6 +890,75 @@ namespace Grimhand.Presentation.Battle
             BattleUiLayoutRuntimeFix.LayoutMonsterSpawnButton(
                 _monsterSpawnButton.transform as RectTransform,
                 _dummyPlayButton != null ? _dummyPlayButton.transform as RectTransform : null);
+            ApplyFramedUtilityButton(_monsterSpawnButton.GetComponent<Image>(), null, keepLabel: true);
+        }
+
+        /// <summary>button5 外框 + 内嵌图标；无图标时仅底板（可保留 Label）。</summary>
+        void ApplyFramedUtilityButton(Image frameImage, Sprite icon, bool keepLabel = false)
+        {
+            if (frameImage == null)
+                return;
+
+            var frame = _uiIcons != null ? _uiIcons.UiButton5 : null;
+            if (frame != null)
+            {
+                frameImage.sprite = frame;
+                frameImage.type = Image.Type.Simple;
+                frameImage.preserveAspect = true;
+                frameImage.color = Color.white;
+            }
+            else if (icon != null)
+            {
+                frameImage.sprite = icon;
+                frameImage.type = Image.Type.Simple;
+                frameImage.preserveAspect = true;
+                frameImage.color = Color.white;
+            }
+            else
+            {
+                frameImage.sprite = null;
+                frameImage.color = new Color(0.14f, 0.15f, 0.2f, 0.96f);
+            }
+
+            var host = frameImage.transform;
+            var iconTr = host.Find("FrameIcon");
+            if (icon != null && frame != null)
+            {
+                if (iconTr == null)
+                {
+                    var go = new GameObject("FrameIcon", typeof(RectTransform), typeof(Image));
+                    go.transform.SetParent(host, false);
+                    iconTr = go.transform;
+                }
+
+                var iconRt = iconTr as RectTransform;
+                iconRt.anchorMin = new Vector2(0.18f, 0.18f);
+                iconRt.anchorMax = new Vector2(0.82f, 0.82f);
+                iconRt.offsetMin = Vector2.zero;
+                iconRt.offsetMax = Vector2.zero;
+                var iconImg = iconTr.GetComponent<Image>();
+                iconImg.sprite = icon;
+                iconImg.preserveAspect = true;
+                iconImg.type = Image.Type.Simple;
+                iconImg.color = Color.white;
+                iconImg.raycastTarget = false;
+                iconTr.gameObject.SetActive(true);
+
+                if (!keepLabel)
+                {
+                    var label = host.Find("Label");
+                    if (label != null)
+                        label.gameObject.SetActive(false);
+                }
+            }
+            else if (iconTr != null)
+            {
+                iconTr.gameObject.SetActive(false);
+            }
+
+            var button = frameImage.GetComponent<Button>();
+            if (button != null)
+                BattleButtonPressFeedback.Apply(button);
         }
 
         void EnsureMapHud()
@@ -848,14 +1000,8 @@ namespace Grimhand.Presentation.Battle
             BattleUiLayoutRuntimeFix.LayoutMapButton(_mapButton.transform as RectTransform);
 
             var img = _mapButton.GetComponent<Image>();
-            var icon = _uiIcons != null ? _uiIcons.MapIcon : null;
-            if (icon != null)
-            {
-                img.sprite = icon;
-                img.type = Image.Type.Simple;
-                img.preserveAspect = true;
-                img.color = Color.white;
-            }
+            ApplyFramedUtilityButton(img, _uiIcons != null ? _uiIcons.MapIcon : null);
+            BattleUiLayoutRuntimeFix.PromoteHudControlOverlay(_mapButton.transform as RectTransform);
         }
 
         void EnsureExpeditionPresentation()
@@ -939,14 +1085,8 @@ namespace Grimhand.Presentation.Battle
             BattleUiLayoutRuntimeFix.LayoutTurnLogButton(rt);
 
             var img = _turnLogButton.GetComponent<Image>();
-            var icon = _uiIcons != null ? _uiIcons.NoteIcon : null;
-            if (icon != null)
-            {
-                img.sprite = icon;
-                img.type = Image.Type.Simple;
-                img.preserveAspect = true;
-                img.color = Color.white;
-            }
+            ApplyFramedUtilityButton(img, _uiIcons != null ? _uiIcons.NoteIcon : null);
+            BattleUiLayoutRuntimeFix.PromoteHudControlOverlay(rt);
         }
 
         void ToggleTurnDetailPanel()
@@ -959,17 +1099,45 @@ namespace Grimhand.Presentation.Battle
                 _turnDetailPanel.Refresh();
         }
 
+        bool _applyingLateHudLayout;
+
         public void ApplyLateHudLayout()
         {
-            EnsurePlanningEnergyHud();
-            ApplyInventoryButtonLayout();
-            ApplyTurnLogButtonLayout();
-            ApplyCodexButtonLayout();
-            ApplyDummyPlayButtonLayout();
-            BattleUiLayoutRuntimeFix.RefreshBottomHud(transform);
-            if (ShouldShowBattlePlanningChrome())
-                ApplyPlanningButtonIcons();
-            RefreshPlanningChromeVisibility();
+            if (_applyingLateHudLayout)
+                return;
+
+            _applyingLateHudLayout = true;
+            try
+            {
+                EnsurePlanningEnergyHud();
+                EnsureSettingsHud();
+                EnsureInventoryHud();
+                EnsureTurnLogHud();
+                EnsureMapHud();
+                if (ShouldShowBattlePlanningChrome())
+                    EnsurePresentationSpeedHud();
+
+                ApplyInventoryButtonLayout();
+                ApplyTurnLogButtonLayout();
+                ApplyMapButtonLayout();
+                ApplyCodexButtonLayout();
+                ApplyDummyPlayButtonLayout();
+                ApplySettingsButtonVisual();
+                if (_settingsButton != null)
+                {
+                    BattleUiLayoutRuntimeFix.LayoutSettingsButton(_settingsButton.transform as RectTransform);
+                    BattleUiLayoutRuntimeFix.PromoteHudControlOverlay(_settingsButton.transform as RectTransform);
+                }
+
+                BattleUiLayoutRuntimeFix.RefreshBottomHud(transform);
+                if (ShouldShowBattlePlanningChrome())
+                    ApplyPlanningButtonIcons();
+                RefreshPlanningChromeVisibility();
+            }
+            finally
+            {
+                _applyingLateHudLayout = false;
+            }
         }
 
         public void NotifyLayoutApplied()
@@ -1029,7 +1197,8 @@ namespace Grimhand.Presentation.Battle
             var info = transform.Find("HudChromeRoot/PlanningInfoLeft") ?? transform.Find("PlanningInfoLeft");
 
             info?.gameObject.SetActive(false);
-            intent?.gameObject.SetActive(showBattleChrome);
+            // 旧意图灰框永不显示，避免挡住加速等按钮
+            intent?.gameObject.SetActive(false);
             actions?.gameObject.SetActive(showBattleChrome);
             if (!showBattleChrome)
                 orderBar?.gameObject.SetActive(false);
@@ -1045,11 +1214,23 @@ namespace Grimhand.Presentation.Battle
             }
 
             // Esc 会把图鉴/背包等 SetActive(false)；关闭后必须显式恢复，否则会永久消失。
-            var showUtilityHud = showBattleChrome;
-            _inventoryButton?.gameObject.SetActive(showUtilityHud);
-            _mapButton?.gameObject.SetActive(showUtilityHud);
-            _codexButton?.gameObject.SetActive(showUtilityHud);
-            var showDummyPlay = showUtilityHud && _session?.Expedition?.Run?.IsTrainingGround == true;
+            // 局外（选路/事件/商店等）也要能打开背包、明细、地图、设置。
+            var showMetaUtility = !_escUiSuppressed;
+            var showBattleOnlyUtility = showBattleChrome;
+
+            _inventoryButton?.gameObject.SetActive(showMetaUtility);
+            _mapButton?.gameObject.SetActive(showMetaUtility);
+            _turnLogButton?.gameObject.SetActive(showMetaUtility);
+            _settingsButton?.gameObject.SetActive(showMetaUtility);
+
+            _codexButton?.gameObject.SetActive(showBattleOnlyUtility);
+            if (_presentationSpeedToggle != null)
+            {
+                var speedGo = HudRoot.Find("PresentationSpeedButton");
+                speedGo?.gameObject.SetActive(showBattleOnlyUtility);
+            }
+
+            var showDummyPlay = showBattleOnlyUtility && _session?.Expedition?.Run?.IsTrainingGround == true;
             if (showDummyPlay)
             {
                 ApplyDummyPlayButtonLayout();
@@ -1062,7 +1243,6 @@ namespace Grimhand.Presentation.Battle
                 _monsterSpawnButton?.gameObject.SetActive(false);
                 _monsterSpawnOverlay?.Hide();
             }
-            _turnLogButton?.gameObject.SetActive(showUtilityHud);
 
             if (_escUiSuppressed)
             {
@@ -1113,23 +1293,10 @@ namespace Grimhand.Presentation.Battle
 
             var img = _inventoryButton.GetComponent<Image>();
             var icon = _uiIcons != null ? _uiIcons.InventoryIcon : null;
-            if (icon != null)
-            {
-                img.sprite = icon;
-                img.type = Image.Type.Simple;
-                img.preserveAspect = true;
-                img.color = Color.white;
-                if (_inventoryFallbackLabel != null)
-                    _inventoryFallbackLabel.enabled = false;
-            }
-            else
-            {
-                img.sprite = null;
-                img.color = new Color(0.14f, 0.15f, 0.2f, 0.96f);
-                if (_inventoryFallbackLabel != null)
-                    _inventoryFallbackLabel.enabled = true;
-            }
-
+            ApplyFramedUtilityButton(img, icon);
+            if (_inventoryFallbackLabel != null)
+                _inventoryFallbackLabel.enabled = icon == null && (_uiIcons == null || _uiIcons.UiButton5 == null);
+            BattleUiLayoutRuntimeFix.PromoteHudControlOverlay(rt);
         }
 
         void ToggleInventoryPanel()
@@ -1405,69 +1572,11 @@ namespace Grimhand.Presentation.Battle
             selectedQueuePanel?.SetActive(false);
             RefreshActionOrderBar(state, draft);
 
-            if (enemyIntentPanel == null)
-                return;
-
-            if (!ShouldShowBattlePlanningChrome())
-            {
+            // 旧右下意图面板已废弃；永久关闭以免灰框挡 UI
+            if (enemyIntentPanel != null)
                 enemyIntentPanel.SetActive(false);
-                return;
-            }
-
-            var presenting = _session.PresentationLocked
-                && _session.PresentationSnapshot?.HasTurnPresentation == true;
-            var planning = state.Phase == TurnPhase.Planning;
-            enemyIntentPanel.SetActive(planning || presenting);
-            if (enemyIntentText == null || (!planning && !presenting))
-                return;
-
-            if (presenting)
-            {
-                var lines = BattleUiFormatters.BuildActionOrderSummaryFromSnapshot(
-                    state, _session.PresentationSnapshot);
-                enemyIntentText.text = lines.Count > 0
-                    ? "【行动顺序】\n" + string.Join("\n", lines)
-                    : "【行动顺序】\n（暂无）";
-                return;
-            }
-
-            var hasPlayerCards = draft != null && draft.SelectedQueue.Count > 0;
-            var hasEnemyIntents = state.EnemyIntents.Count > 0;
-            if (!hasPlayerCards && !hasEnemyIntents)
-            {
-                enemyIntentText.text = "【敌方意图】\n（暂无）";
-                return;
-            }
-
-            if (hasPlayerCards)
-            {
-                var lines = BattleUiFormatters.BuildActionOrderSummary(
-                    state, draft, _session.Engine.PreviewResolutionSteps());
-                enemyIntentText.text = "【行动顺序】\n" + string.Join("\n", lines);
-                return;
-            }
-
-            var intentLines = new List<string> { "【敌方意图】" };
-            foreach (var intent in state.EnemyIntents)
-            {
-                var card = state.GetCard(intent.CardInstanceId);
-                if (card == null)
-                    continue;
-
-                var owner = !string.IsNullOrEmpty(intent.OwnerCombatantId)
-                    ? state.GetCombatant(intent.OwnerCombatantId)
-                    : null;
-                if (owner == null)
-                {
-                    var ownerId = PositionRules.GetOwnerCombatantId(state, card);
-                    owner = ownerId != null ? state.GetCombatant(ownerId) : null;
-                }
-
-                intentLines.Add(BattleUiFormatters.BuildEnemyIntentDisplayLine(
-                    state, owner, card, intent.IsHidden));
-            }
-
-            enemyIntentText.text = string.Join("\n", intentLines);
+            var legacyIntent = transform.Find("HudChromeRoot/EnemyIntentPanel") ?? transform.Find("EnemyIntentPanel");
+            legacyIntent?.gameObject.SetActive(false);
         }
 
         void RefreshActionOrderBar(BattleState state, PlanningDraft draft)
@@ -1741,10 +1850,14 @@ namespace Grimhand.Presentation.Battle
             var expedition = _session.IsExpeditionMode;
             var training = _session.Expedition?.Run?.IsTrainingGround == true;
             var layer = _session.Expedition?.Run?.Map?.NodesCompleted + 1 ?? 1;
+            var phase = _session.Expedition?.Run?.Phase;
             var bg = training
                 ? _uiIcons?.TrainingGroundBackground
-                : ExpeditionPathArt.ResolveBackground(_uiIcons, layer);
-            _backgroundView?.EnsureBuilt(transform, bg ?? _uiIcons?.CaveBackground);
+                : phase == ExpeditionPhase.RouteSelect
+                    ? ExpeditionPathArt.ResolveRouteSelectBackground(_uiIcons, layer)
+                    : ExpeditionPathArt.ResolveBackground(_uiIcons, layer);
+            var bgAlpha = phase == ExpeditionPhase.RouteSelect ? 1f : 0.88f;
+            _backgroundView?.EnsureBuilt(transform, bg ?? _uiIcons?.CaveBackground, bgAlpha);
             _backgroundView?.SetVisible(expedition);
             UpdateExpeditionAudio(expedition, layer);
 

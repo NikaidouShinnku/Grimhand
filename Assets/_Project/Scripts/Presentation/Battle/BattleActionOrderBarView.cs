@@ -7,14 +7,17 @@ using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Battle
 {
-    /// <summary>顶部行动顺序条：卡牌居中于条内，卡名浮在卡牌上方（可超出条外）。</summary>
+    /// <summary>顶部行动顺序条：卡名在上，出卡者→目标在下；无灰色底板以免挡住加速等按钮。</summary>
     [DisallowMultipleComponent]
     public sealed class BattleActionOrderBarView : MonoBehaviour
     {
-        const float EntrySpacing = 10f;
-        const int NameFontSize = 15;
-        const float NameLabelHeight = 34f;
-        const float NameGapAboveCard = 3f;
+        const float EntrySpacing = 14f;
+        const int TitleFontSize = 16;
+        const int RouteFontSize = 14;
+        const float TitleLabelHeight = 28f;
+        const float RouteLabelHeight = 26f;
+        const float NameGapAboveCard = 2f;
+        const float RouteGapBelowCard = 2f;
 
         CardView _cardPrefab;
         CardVisualCatalogSO _catalog;
@@ -34,7 +37,8 @@ namespace Grimhand.Presentation.Battle
         {
             public GameObject Root;
             public CardView Card;
-            public Text NameLabel;
+            public Text TitleLabel;
+            public Text RouteLabel;
         }
 
         public void Initialize(
@@ -144,25 +148,34 @@ namespace Grimhand.Presentation.Battle
             panelGo.transform.SetParent(chromeRoot, false);
             _panel = panelGo.GetComponent<RectTransform>();
             var bg = panelGo.GetComponent<Image>();
-            bg.color = new Color(0.08f, 0.1f, 0.16f, 0.82f);
+            bg.color = Color.clear;
             bg.raycastTarget = false;
 
             BattleUiLayoutRuntimeFix.LayoutActionOrderBar(_panel);
-            _panel.SetAsLastSibling();
+            // 不要压到设置/加速按钮之上
+            _panel.SetSiblingIndex(0);
 
-            var scrollGo = new GameObject("Scroll", typeof(RectTransform), typeof(ScrollRect));
+            var scrollGo = new GameObject("Scroll", typeof(RectTransform), typeof(ScrollRect), typeof(CanvasGroup));
             scrollGo.transform.SetParent(_panel, false);
             var scrollRt = scrollGo.GetComponent<RectTransform>();
-            StretchFull(scrollRt, 8f, 6f, -8f, -6f);
+            StretchFull(scrollRt, 4f, 4f, -4f, -4f);
+            var scrollGroup = scrollGo.GetComponent<CanvasGroup>();
+            // 空白区域不拦截点击；卡牌自身仍可悬停
+            scrollGroup.blocksRaycasts = true;
+            scrollGroup.interactable = true;
             _scroll = scrollGo.GetComponent<ScrollRect>();
             _scroll.horizontal = true;
             _scroll.vertical = false;
             _scroll.movementType = ScrollRect.MovementType.Clamped;
+            _scroll.scrollSensitivity = 24f;
 
-            var viewportGo = new GameObject("Viewport", typeof(RectTransform));
+            var viewportGo = new GameObject("Viewport", typeof(RectTransform), typeof(Image));
             viewportGo.transform.SetParent(scrollGo.transform, false);
             var viewportRt = viewportGo.GetComponent<RectTransform>();
             StretchFull(viewportRt, 0f, 0f, 0f, 0f);
+            var viewportImg = viewportGo.GetComponent<Image>();
+            viewportImg.color = Color.clear;
+            viewportImg.raycastTarget = false;
             _scroll.viewport = viewportRt;
 
             var contentGo = new GameObject("Content", typeof(RectTransform), typeof(HorizontalLayoutGroup));
@@ -193,6 +206,7 @@ namespace Grimhand.Presentation.Battle
         {
             var cardHeight = BattleUiLayoutRuntimeFix.ScaledOrderBarCardHeight;
             var cardWidth = BattleUiLayoutRuntimeFix.ScaledOrderBarCardWidth;
+            var entryHeight = cardHeight + TitleLabelHeight + RouteLabelHeight + NameGapAboveCard + RouteGapBelowCard;
 
             while (_pool.Count < count)
             {
@@ -200,25 +214,31 @@ namespace Grimhand.Presentation.Battle
                 entryGo.transform.SetParent(_content, false);
 
                 var entryLe = entryGo.AddComponent<LayoutElement>();
-                entryLe.preferredWidth = cardWidth + 12f;
-                entryLe.minWidth = cardWidth + 12f;
-                entryLe.preferredHeight = cardHeight;
-                entryLe.minHeight = cardHeight;
+                entryLe.preferredWidth = cardWidth + 16f;
+                entryLe.minWidth = cardWidth + 16f;
+                entryLe.preferredHeight = entryHeight;
+                entryLe.minHeight = entryHeight;
 
                 var card = Instantiate(_cardPrefab, entryGo.transform);
                 CardView.ApplyHandPresentationScale(card, BattleUiLayoutRuntimeFix.ActionOrderBarMiniCardScale);
                 CenterCardInEntry(card.transform as RectTransform);
 
-                var nameGo = new GameObject("Name", typeof(RectTransform), typeof(Text));
-                nameGo.transform.SetParent(entryGo.transform, false);
-                var nameText = ConfigureNameLabel(nameGo.GetComponent<Text>());
-                LayoutNameAboveCard(nameText, cardWidth, cardHeight);
+                var titleGo = new GameObject("Title", typeof(RectTransform), typeof(Text));
+                titleGo.transform.SetParent(entryGo.transform, false);
+                var titleText = ConfigureLabel(titleGo.GetComponent<Text>(), TitleFontSize, TextAnchor.LowerCenter);
+                LayoutTitleAboveCard(titleText, cardWidth, cardHeight);
+
+                var routeGo = new GameObject("Route", typeof(RectTransform), typeof(Text));
+                routeGo.transform.SetParent(entryGo.transform, false);
+                var routeText = ConfigureLabel(routeGo.GetComponent<Text>(), RouteFontSize, TextAnchor.UpperCenter);
+                LayoutRouteBelowCard(routeText, cardWidth, cardHeight);
 
                 _pool.Add(new EntrySlot
                 {
                     Root = entryGo,
                     Card = card,
-                    NameLabel = nameText
+                    TitleLabel = titleText,
+                    RouteLabel = routeText
                 });
             }
         }
@@ -232,7 +252,8 @@ namespace Grimhand.Presentation.Battle
             if (card == null)
             {
                 slot.Card.gameObject.SetActive(false);
-                slot.NameLabel.text = "";
+                slot.TitleLabel.text = "";
+                slot.RouteLabel.text = "";
                 return;
             }
 
@@ -240,11 +261,13 @@ namespace Grimhand.Presentation.Battle
             CenterCardInEntry(slot.Card.transform as RectTransform);
 
             var visual = CardVisualResolver.Resolve(card, _catalog, _characterVisuals, _definitions);
-            var displayName = !string.IsNullOrEmpty(entry.DisplayName)
-                ? entry.DisplayName
+            var title = !string.IsNullOrEmpty(entry.CardTitle)
+                ? entry.CardTitle
                 : (entry.IsHidden ? "?" : card.DisplayName);
+            var route = !string.IsNullOrEmpty(entry.OwnerArrowTarget)
+                ? entry.OwnerArrowTarget
+                : (entry.DisplayName ?? "");
 
-            // 未看破（?）不显示效果；已揭示的敌/我卡均可悬停查看
             var hoverEnter = entry.IsHidden ? null : _onHoverEnter;
             var hoverExit = entry.IsHidden ? null : _onHoverExit;
 
@@ -263,9 +286,10 @@ namespace Grimhand.Presentation.Battle
                 onHoverExit: hoverExit);
             slot.Card.SetOrderBarPresentation(compact: true, hiddenIntent: entry.IsHidden);
 
-            ApplyNameLabelStyle(slot.NameLabel);
-            slot.NameLabel.text = displayName;
-            LayoutNameAboveCard(slot.NameLabel, cardWidth, cardHeight);
+            slot.TitleLabel.text = title ?? "";
+            slot.RouteLabel.text = route ?? "";
+            LayoutTitleAboveCard(slot.TitleLabel, cardWidth, cardHeight);
+            LayoutRouteBelowCard(slot.RouteLabel, cardWidth, cardHeight);
         }
 
         static void CenterCardInEntry(RectTransform cardRt)
@@ -279,43 +303,51 @@ namespace Grimhand.Presentation.Battle
             cardRt.anchoredPosition = Vector2.zero;
         }
 
-        static void LayoutNameAboveCard(Text nameLabel, float cardWidth, float cardHeight)
+        static void LayoutTitleAboveCard(Text label, float cardWidth, float cardHeight)
         {
-            if (nameLabel == null)
+            if (label == null)
                 return;
 
-            var rt = nameLabel.rectTransform;
+            var rt = label.rectTransform;
             rt.anchorMin = new Vector2(0.5f, 0.5f);
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0f);
             rt.anchoredPosition = new Vector2(0f, cardHeight * 0.5f + NameGapAboveCard);
-            rt.sizeDelta = new Vector2(cardWidth + 12f, NameLabelHeight);
+            rt.sizeDelta = new Vector2(cardWidth + 20f, TitleLabelHeight);
         }
 
-        static Text ConfigureNameLabel(Text nameText)
+        static void LayoutRouteBelowCard(Text label, float cardWidth, float cardHeight)
         {
-            ApplyNameLabelStyle(nameText);
-            return nameText;
-        }
-
-        static void ApplyNameLabelStyle(Text nameText)
-        {
-            if (nameText == null)
+            if (label == null)
                 return;
 
-            nameText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            nameText.fontSize = NameFontSize;
-            nameText.fontStyle = FontStyle.Bold;
-            nameText.alignment = TextAnchor.LowerCenter;
-            nameText.color = Color.white;
-            nameText.horizontalOverflow = HorizontalWrapMode.Wrap;
-            nameText.verticalOverflow = VerticalWrapMode.Truncate;
-            nameText.lineSpacing = 1f;
-            nameText.raycastTarget = false;
+            var rt = label.rectTransform;
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 1f);
+            rt.anchoredPosition = new Vector2(0f, -cardHeight * 0.5f - RouteGapBelowCard);
+            rt.sizeDelta = new Vector2(cardWidth + 28f, RouteLabelHeight);
+        }
 
-            var outline = nameText.GetComponent<Outline>() ?? nameText.gameObject.AddComponent<Outline>();
-            outline.effectColor = new Color(0f, 0f, 0f, 0.82f);
+        static Text ConfigureLabel(Text text, int fontSize, TextAnchor alignment)
+        {
+            if (text == null)
+                return null;
+
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = fontSize;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = alignment;
+            text.color = Color.white;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.verticalOverflow = VerticalWrapMode.Truncate;
+            text.lineSpacing = 1f;
+            text.raycastTarget = false;
+
+            var outline = text.GetComponent<Outline>() ?? text.gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(0f, 0f, 0f, 0.85f);
             outline.effectDistance = new Vector2(1.2f, -1.2f);
+            return text;
         }
 
         static void StretchFull(RectTransform rt, float left, float bottom, float right, float top)

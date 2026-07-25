@@ -1,35 +1,62 @@
 using System;
+using System.Collections.Generic;
 using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
+using Grimhand.Presentation.Audio;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Camp
 {
-    /// <summary>传送门：确认编队后进入 Demo 远征。</summary>
+    /// <summary>
+    /// 传送门 / 开启远征：模板底图 + 三槽出征角色 + 起始层选择（测试用）+ 返回 / 开始远征。
+    /// </summary>
     [DisallowMultipleComponent]
     public sealed class PortalOverlayView : MonoBehaviour
     {
-        CharacterVisualCatalogSO _characterVisuals;
-        [SerializeField] Sprite portalBackground;
+        const int LayoutVersion = 6;
+        const float ButtonHoverScale = 1.06f;
 
+        // 模板归一化（原点左下）1672×941
+        static readonly Vector4[] ZoneSlots =
+        {
+            new(0.226f, 0.355f, 0.416f, 0.720f), // 后排：微左
+            new(0.398f, 0.355f, 0.588f, 0.720f), // 中排
+            new(0.580f, 0.355f, 0.770f, 0.720f)  // 前排：微右
+        };
+        static readonly Vector4 ZoneDifficulty = new(0.220f, 0.175f, 0.780f, 0.305f);
+        static readonly Vector4 ZoneBack = new(0.055f, 0.035f, 0.215f, 0.125f);
+        // 开始远征：略左移并略放大
+        static readonly Vector4 ZoneStart = new(0.748f, 0.028f, 0.938f, 0.138f);
+
+        static readonly Color BodyText = new(0.88f, 0.90f, 0.95f, 1f);
+        static readonly Color MuteText = new(0.70f, 0.74f, 0.82f, 1f);
+        static readonly Color GoldText = new(0.95f, 0.85f, 0.55f, 1f);
+        static readonly Color ButtonLabel = new(0.96f, 0.92f, 0.78f, 1f);
+        static readonly Color ReadyGreen = new(0.70f, 0.95f, 0.72f, 1f);
+        static readonly Color WarnOrange = new(0.95f, 0.75f, 0.55f, 1f);
+        static readonly Color LayerIdle = new(0.22f, 0.24f, 0.30f, 0.96f);
+        static readonly Color LayerSelected = new(0.52f, 0.40f, 0.18f, 1f);
+
+        CharacterVisualCatalogSO _characterVisuals;
+        BattleUiIconCatalogSO _uiIcons;
         CampRosterState _roster;
+        CampMetaState _meta;
         Action _onConfirm;
         Action _onClose;
 
         RectTransform _overlayRoot;
-        RectTransform _body;
-        RectTransform _partyRow;
-        Button _confirmButton;
-        Button _caveStartButton;
-        Button _dungeonStartButton;
-        Button _abyssStartButton;
-        Button _caveBossButton;
-        Button _dungeonBossButton;
-        Button _abyssBossButton;
+        Image _bgImage;
+        Button _startButton;
+        Text _startLayerHint;
+        readonly List<Button> _startLayerButtons = new();
+        readonly List<int> _startLayerValues = new();
+        readonly List<GameObject> _slotHosts = new();
+        readonly List<GameObject> _dynamicObjects = new();
         int _selectedStartLayer = 1;
         bool _built;
+        int _builtVersion = -1;
 
         public int SelectedStartLayer => _selectedStartLayer;
 
@@ -41,7 +68,17 @@ namespace Grimhand.Presentation.Camp
             Action onConfirm,
             Action onClose)
         {
+            Initialize(characterVisuals, null, onConfirm, onClose);
+        }
+
+        public void Initialize(
+            CharacterVisualCatalogSO characterVisuals,
+            BattleUiIconCatalogSO uiIcons,
+            Action onConfirm,
+            Action onClose)
+        {
             _characterVisuals = characterVisuals;
+            _uiIcons = uiIcons;
             _onConfirm = onConfirm;
             _onClose = onClose;
             EnsureBuilt();
@@ -49,12 +86,20 @@ namespace Grimhand.Presentation.Camp
 
         public void Show(CampRosterState roster)
         {
+            Show(roster, null);
+        }
+
+        public void Show(CampRosterState roster, CampMetaState meta)
+        {
             _roster = roster;
+            _meta = meta;
             EnsureBuilt();
-            SelectStartLayer(1);
+            SelectStartLayer(_selectedStartLayer > 0 ? _selectedStartLayer : 1);
             _overlayRoot.gameObject.SetActive(true);
+            gameObject.SetActive(true);
             transform.SetAsLastSibling();
-            RebuildPartySummary();
+            _overlayRoot.SetAsLastSibling();
+            RebuildPartySlots();
         }
 
         public void Hide()
@@ -65,10 +110,20 @@ namespace Grimhand.Presentation.Camp
 
         void EnsureBuilt()
         {
-            if (_built)
+            if (_built && _builtVersion == LayoutVersion)
                 return;
 
+            if (_overlayRoot != null)
+                Destroy(_overlayRoot.gameObject);
+
             _built = true;
+            _builtVersion = LayoutVersion;
+            _slotHosts.Clear();
+            _dynamicObjects.Clear();
+            _startLayerButtons.Clear();
+            _startLayerValues.Clear();
+            _selectedStartLayer = 1;
+
             var hostRt = GetComponent<RectTransform>();
             if (hostRt == null)
                 hostRt = gameObject.AddComponent<RectTransform>();
@@ -78,144 +133,181 @@ namespace Grimhand.Presentation.Camp
             CampUiRuntime.StretchFull(_overlayRoot);
             _overlayRoot.gameObject.SetActive(false);
 
-            var backdrop = CampUiRuntime.CreateImage("Backdrop", _overlayRoot, new Color(0.02f, 0.03f, 0.05f, 0.94f));
-            CampUiRuntime.StretchFull(backdrop.rectTransform);
-
-            _body = CampUiRuntime.CreateImage("Body", _overlayRoot, new Color(0.06f, 0.08f, 0.14f, 0.98f))
-                .rectTransform;
-            _body.anchorMin = new Vector2(0.28f, 0.18f);
-            _body.anchorMax = new Vector2(0.72f, 0.82f);
-            _body.offsetMin = Vector2.zero;
-            _body.offsetMax = Vector2.zero;
-
-            var title = CampUiRuntime.CreateText(_body, "开启远征", 28, FontStyle.Bold);
-            title.rectTransform.anchorMin = new Vector2(0f, 1f);
-            title.rectTransform.anchorMax = new Vector2(1f, 1f);
-            title.rectTransform.offsetMin = new Vector2(24f, -56f);
-            title.rectTransform.offsetMax = new Vector2(-24f, -12f);
-
-            if (portalBackground != null)
+            _bgImage = CampUiRuntime.CreateImage("Background", _overlayRoot, Color.white);
+            CampUiRuntime.StretchFull(_bgImage.rectTransform);
+            _bgImage.preserveAspect = false;
+            _bgImage.raycastTarget = true;
+            var bgSprite = _uiIcons != null ? _uiIcons.UiExpeditionStartBackground : null;
+            if (bgSprite != null)
             {
-                var art = CampUiRuntime.CreateImage("PortalArt", _body, Color.white);
-                art.sprite = portalBackground;
-                art.preserveAspect = true;
-                var artRt = art.rectTransform;
-                artRt.anchorMin = new Vector2(0.5f, 0.72f);
-                artRt.anchorMax = new Vector2(0.5f, 0.72f);
-                artRt.sizeDelta = new Vector2(280f, 280f);
+                _bgImage.sprite = bgSprite;
+                _bgImage.color = Color.white;
+                _bgImage.type = Image.Type.Simple;
+            }
+            else
+            {
+                _bgImage.sprite = null;
+                _bgImage.color = new Color(0.04f, 0.05f, 0.08f, 0.98f);
+                Debug.LogWarning("[Portal] 缺少 UiExpeditionStartBackground，请执行 Grimhand → Content → Refresh UI Visual Catalogs。");
             }
 
-            var subtitle = CampUiRuntime.CreateText(_body, "确认出征队伍后将进入 Demo 远征地图", 17, FontStyle.Normal);
-            subtitle.rectTransform.anchorMin = new Vector2(0f, 1f);
-            subtitle.rectTransform.anchorMax = new Vector2(1f, 1f);
-            subtitle.rectTransform.offsetMin = new Vector2(24f, -92f);
-            subtitle.rectTransform.offsetMax = new Vector2(-24f, -60f);
-            subtitle.color = new Color(0.78f, 0.82f, 0.92f, 1f);
+            for (var i = 0; i < ZoneSlots.Length; i++)
+            {
+                var host = CampUiRuntime.CreateRect($"Slot_{i}", _overlayRoot);
+                SetZone(host.GetComponent<RectTransform>(), ZoneSlots[i]);
+                _slotHosts.Add(host);
+            }
 
-            _partyRow = CampUiRuntime.CreateRect("PartyRow", _body).GetComponent<RectTransform>();
-            _partyRow.anchorMin = new Vector2(0f, 0.35f);
-            _partyRow.anchorMax = new Vector2(1f, 0.78f);
-            _partyRow.offsetMin = new Vector2(32f, 0f);
-            _partyRow.offsetMax = new Vector2(-32f, 0f);
+            BuildDifficultySelector();
+            BuildBackButton();
+            BuildStartButton();
+            SelectStartLayer(1);
+        }
 
-            var difficulty = CampUiRuntime.CreateText(_body, "难度：Demo（标准）", 18, FontStyle.Bold,
-                TextAnchor.MiddleLeft);
-            difficulty.raycastTarget = false;
-            difficulty.rectTransform.anchorMin = new Vector2(0f, 0.28f);
-            difficulty.rectTransform.anchorMax = new Vector2(1f, 0.36f);
-            difficulty.rectTransform.offsetMin = new Vector2(32f, 0f);
-            difficulty.rectTransform.offsetMax = new Vector2(-32f, 0f);
+        void BuildDifficultySelector()
+        {
+            var go = CampUiRuntime.CreateRect("Difficulty", _overlayRoot);
+            SetZone(go.GetComponent<RectTransform>(), ZoneDifficulty);
 
-            var regionLabel = CampUiRuntime.CreateText(_body, "起始区域", 17, FontStyle.Bold, TextAnchor.MiddleLeft);
-            regionLabel.raycastTarget = false;
-            regionLabel.rectTransform.anchorMin = new Vector2(0f, 0.24f);
-            regionLabel.rectTransform.anchorMax = new Vector2(1f, 0.32f);
-            regionLabel.rectTransform.offsetMin = new Vector2(32f, 0f);
-            regionLabel.rectTransform.offsetMax = new Vector2(-32f, 0f);
+            _startLayerHint = CampUiRuntime.CreateText(
+                go.transform,
+                "起始层（测试）",
+                16,
+                FontStyle.Bold,
+                TextAnchor.UpperCenter);
+            CampUiRuntime.SetAnchored(_startLayerHint.rectTransform, 0.04f, 0.72f, 0.96f, 0.98f);
+            _startLayerHint.color = MuteText;
+            _startLayerHint.raycastTarget = false;
 
-            var bossLabel = CampUiRuntime.CreateText(_body, "Boss 直通", 17, FontStyle.Bold, TextAnchor.MiddleLeft);
-            bossLabel.raycastTarget = false;
-            bossLabel.rectTransform.anchorMin = new Vector2(0f, 0.08f);
-            bossLabel.rectTransform.anchorMax = new Vector2(1f, 0.14f);
-            bossLabel.rectTransform.offsetMin = new Vector2(32f, 0f);
-            bossLabel.rectTransform.offsetMax = new Vector2(-32f, 0f);
+            AddStartLayerButton(go.transform, "洞穴·1", 1, 0, 0);
+            AddStartLayerButton(go.transform, "地牢·21", ExpeditionRegionRules.DungeonStartLayer, 1, 0);
+            AddStartLayerButton(go.transform, "海渊·41", ExpeditionRegionRules.AbyssStartLayer, 2, 0);
+            AddStartLayerButton(go.transform, "Boss·20", ExpeditionRegionRules.CaveBossLayer, 0, 1);
+            AddStartLayerButton(go.transform, "Boss·40", ExpeditionRegionRules.DungeonBossLayer, 1, 1);
+            AddStartLayerButton(go.transform, "Boss·60", ExpeditionRegionRules.AbyssBossLayer, 2, 1);
+        }
 
-            _caveStartButton = CampUiRuntime.CreateButton(_body, "洞穴（1层）", new Color(0.22f, 0.34f, 0.28f, 1f),
-                new Vector2(132f, 40f));
-            var caveRt = _caveStartButton.GetComponent<RectTransform>();
-            caveRt.anchorMin = new Vector2(0.5f, 0f);
-            caveRt.anchorMax = new Vector2(0.5f, 0f);
-            caveRt.pivot = new Vector2(0.5f, 0f);
-            caveRt.anchoredPosition = new Vector2(-150f, 116f);
+        void AddStartLayerButton(Transform parent, string label, int layer, int col, int row)
+        {
+            const float cols = 3f;
+            const float rows = 2f;
+            var x0 = 0.04f + col / cols * 0.92f;
+            var x1 = 0.04f + (col + 1f) / cols * 0.92f - 0.02f;
+            var y0 = 0.06f + (rows - 1 - row) / rows * 0.62f;
+            var y1 = 0.06f + (rows - row) / rows * 0.62f - 0.04f;
 
-            _dungeonStartButton = CampUiRuntime.CreateButton(_body, "地牢（21层）", new Color(0.28f, 0.24f, 0.38f, 1f),
-                new Vector2(132f, 40f));
-            var dungeonRt = _dungeonStartButton.GetComponent<RectTransform>();
-            dungeonRt.anchorMin = new Vector2(0.5f, 0f);
-            dungeonRt.anchorMax = new Vector2(0.5f, 0f);
-            dungeonRt.pivot = new Vector2(0.5f, 0f);
-            dungeonRt.anchoredPosition = new Vector2(0f, 116f);
+            var btnGo = CampUiRuntime.CreateRect($"StartLayer_{layer}", parent);
+            CampUiRuntime.SetAnchored(btnGo.GetComponent<RectTransform>(), x0, y0, x1, y1);
 
-            _abyssStartButton = CampUiRuntime.CreateButton(_body, "海渊（41层）", new Color(0.16f, 0.30f, 0.42f, 1f),
-                new Vector2(132f, 40f));
-            var abyssRt = _abyssStartButton.GetComponent<RectTransform>();
-            abyssRt.anchorMin = new Vector2(0.5f, 0f);
-            abyssRt.anchorMax = new Vector2(0.5f, 0f);
-            abyssRt.pivot = new Vector2(0.5f, 0f);
-            abyssRt.anchoredPosition = new Vector2(150f, 116f);
+            var img = btnGo.AddComponent<Image>();
+            img.color = LayerIdle;
+            img.raycastTarget = true;
 
-            _caveBossButton = CampUiRuntime.CreateButton(_body, "Boss·20层", new Color(0.42f, 0.24f, 0.20f, 1f),
-                new Vector2(132f, 40f));
-            var caveBossRt = _caveBossButton.GetComponent<RectTransform>();
-            caveBossRt.anchorMin = new Vector2(0.5f, 0f);
-            caveBossRt.anchorMax = new Vector2(0.5f, 0f);
-            caveBossRt.pivot = new Vector2(0.5f, 0f);
-            caveBossRt.anchoredPosition = new Vector2(-150f, 68f);
+            var text = CampUiRuntime.CreateText(btnGo.transform, label, 15, FontStyle.Bold, TextAnchor.MiddleCenter);
+            CampUiRuntime.StretchFull(text.rectTransform);
+            text.rectTransform.offsetMin = new Vector2(2f, 1f);
+            text.rectTransform.offsetMax = new Vector2(-2f, -1f);
+            text.color = ButtonLabel;
+            text.raycastTarget = false;
 
-            _dungeonBossButton = CampUiRuntime.CreateButton(_body, "Boss·40层", new Color(0.38f, 0.22f, 0.28f, 1f),
-                new Vector2(132f, 40f));
-            var dungeonBossRt = _dungeonBossButton.GetComponent<RectTransform>();
-            dungeonBossRt.anchorMin = new Vector2(0.5f, 0f);
-            dungeonBossRt.anchorMax = new Vector2(0.5f, 0f);
-            dungeonBossRt.pivot = new Vector2(0.5f, 0f);
-            dungeonBossRt.anchoredPosition = new Vector2(0f, 68f);
+            var btn = btnGo.AddComponent<Button>();
+            btn.targetGraphic = img;
+            btn.transition = Selectable.Transition.None;
+            btn.onClick.AddListener(() => SelectStartLayer(layer));
+            UiAudioHooks.WireButton(btn);
 
-            _abyssBossButton = CampUiRuntime.CreateButton(_body, "Boss·60层", new Color(0.18f, 0.28f, 0.44f, 1f),
-                new Vector2(132f, 40f));
-            var abyssBossRt = _abyssBossButton.GetComponent<RectTransform>();
-            abyssBossRt.anchorMin = new Vector2(0.5f, 0f);
-            abyssBossRt.anchorMax = new Vector2(0.5f, 0f);
-            abyssBossRt.pivot = new Vector2(0.5f, 0f);
-            abyssBossRt.anchoredPosition = new Vector2(150f, 68f);
+            _startLayerButtons.Add(btn);
+            _startLayerValues.Add(layer);
+        }
 
-            _caveStartButton.onClick.AddListener(() => SelectStartLayer(1));
-            _dungeonStartButton.onClick.AddListener(() => SelectStartLayer(ExpeditionRegionRules.DungeonStartLayer));
-            _abyssStartButton.onClick.AddListener(() => SelectStartLayer(ExpeditionRegionRules.AbyssStartLayer));
-            _caveBossButton.onClick.AddListener(() => SelectStartLayer(ExpeditionRegionRules.CaveBossLayer));
-            _dungeonBossButton.onClick.AddListener(() => SelectStartLayer(ExpeditionRegionRules.DungeonBossLayer));
-            _abyssBossButton.onClick.AddListener(() => SelectStartLayer(ExpeditionRegionRules.AbyssBossLayer));
+        void SelectStartLayer(int layer)
+        {
+            _selectedStartLayer = layer;
+            for (var i = 0; i < _startLayerButtons.Count; i++)
+            {
+                var btn = _startLayerButtons[i];
+                if (btn == null)
+                    continue;
+                var img = btn.targetGraphic as Image;
+                if (img != null)
+                    img.color = _startLayerValues[i] == layer ? LayerSelected : LayerIdle;
+            }
 
-            var closeBtn = CampUiRuntime.CreateButton(_body, "返回", new Color(0.28f, 0.3f, 0.36f, 1f),
-                new Vector2(120f, 44f));
-            var closeRt = closeBtn.GetComponent<RectTransform>();
-            closeRt.anchorMin = new Vector2(0f, 0f);
-            closeRt.anchorMax = new Vector2(0f, 0f);
-            closeRt.pivot = new Vector2(0f, 0f);
-            closeRt.anchoredPosition = new Vector2(32f, 24f);
-            closeBtn.onClick.AddListener(() =>
+            if (_startLayerHint != null)
+                _startLayerHint.text = $"起始层（测试）：第 {layer} 层";
+        }
+
+        void BuildBackButton()
+        {
+            var go = CampUiRuntime.CreateRect("Back", _overlayRoot);
+            var rt = go.GetComponent<RectTransform>();
+            SetZone(rt, ZoneBack);
+
+            var img = go.AddComponent<Image>();
+            img.color = Color.white;
+            img.raycastTarget = true;
+            img.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiButton6 != null)
+                img.sprite = _uiIcons.UiButton6;
+            else
+                img.color = new Color(0.28f, 0.3f, 0.36f, 1f);
+
+            var label = CampUiRuntime.CreateText(go.transform, "返回", 22, FontStyle.Bold, TextAnchor.MiddleCenter);
+            CampUiRuntime.StretchFull(label.rectTransform);
+            label.rectTransform.offsetMin = new Vector2(4f, 2f);
+            label.rectTransform.offsetMax = new Vector2(-4f, -6f);
+            label.color = ButtonLabel;
+            label.raycastTarget = false;
+
+            var group = go.AddComponent<CanvasGroup>();
+            group.alpha = 1f;
+            group.blocksRaycasts = true;
+            group.interactable = true;
+            go.AddComponent<CampBuildingHoverView>().Bind(rt, group, ButtonHoverScale, hideWhenIdle: false);
+
+            var btn = go.AddComponent<Button>();
+            btn.targetGraphic = img;
+            btn.transition = Selectable.Transition.None;
+            btn.onClick.AddListener(() =>
             {
                 Hide();
                 _onClose?.Invoke();
             });
+            UiAudioHooks.WireButton(btn);
+        }
 
-            _confirmButton = CampUiRuntime.CreateButton(_body, "开始远征", new Color(0.55f, 0.38f, 0.12f, 1f),
-                new Vector2(180f, 48f));
-            var confirmRt = _confirmButton.GetComponent<RectTransform>();
-            confirmRt.anchorMin = new Vector2(1f, 0f);
-            confirmRt.anchorMax = new Vector2(1f, 0f);
-            confirmRt.pivot = new Vector2(1f, 0f);
-            confirmRt.anchoredPosition = new Vector2(-32f, 24f);
-            _confirmButton.onClick.AddListener(() =>
+        void BuildStartButton()
+        {
+            var go = CampUiRuntime.CreateRect("Start", _overlayRoot);
+            var rt = go.GetComponent<RectTransform>();
+            SetZone(rt, ZoneStart);
+
+            var img = go.AddComponent<Image>();
+            img.color = Color.white;
+            img.raycastTarget = true;
+            img.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiButton6 != null)
+                img.sprite = _uiIcons.UiButton6;
+            else
+                img.color = new Color(0.55f, 0.38f, 0.12f, 1f);
+
+            var label = CampUiRuntime.CreateText(go.transform, "开始远征", 22, FontStyle.Bold, TextAnchor.MiddleCenter);
+            CampUiRuntime.StretchFull(label.rectTransform);
+            label.rectTransform.offsetMin = new Vector2(4f, 2f);
+            label.rectTransform.offsetMax = new Vector2(-4f, -6f);
+            label.color = ButtonLabel;
+            label.raycastTarget = false;
+
+            var group = go.AddComponent<CanvasGroup>();
+            group.alpha = 1f;
+            group.blocksRaycasts = true;
+            group.interactable = true;
+            go.AddComponent<CampBuildingHoverView>().Bind(rt, group, ButtonHoverScale, hideWhenIdle: false);
+
+            _startButton = go.AddComponent<Button>();
+            _startButton.targetGraphic = img;
+            _startButton.transition = Selectable.Transition.None;
+            _startButton.onClick.AddListener(() =>
             {
                 if (_roster == null || !_roster.IsReadyForExpedition)
                     return;
@@ -223,113 +315,133 @@ namespace Grimhand.Presentation.Camp
                 Hide();
                 _onConfirm?.Invoke();
             });
+            UiAudioHooks.WireButton(_startButton);
         }
 
-        void RebuildPartySummary()
+        void RebuildPartySlots()
         {
-            foreach (Transform child in _partyRow)
-                Destroy(child.gameObject);
+            ClearDynamic();
 
-            if (_roster == null)
-                return;
-
-            var layoutGo = CampUiRuntime.CreateRect("Layout", _partyRow);
-            CampUiRuntime.StretchFull(layoutGo.GetComponent<RectTransform>());
-            var h = layoutGo.AddComponent<HorizontalLayoutGroup>();
-            h.spacing = 20f;
-            h.childAlignment = TextAnchor.MiddleCenter;
-            h.childControlWidth = false;
-            h.childControlHeight = true;
-
-            for (var vi = 0; vi < _roster.Members.Count && vi < CampFormationDisplay.VisualOrderMemberIndices.Length; vi++)
+            for (var vi = 0; vi < _slotHosts.Count; vi++)
             {
-                var index = CampFormationDisplay.VisualOrderMemberIndices[vi];
-                var member = _roster.Members[index];
-                var card = CampUiRuntime.CreateImage("MemberSummary", layoutGo.transform,
-                    new Color(0.12f, 0.16f, 0.24f, 0.95f)).gameObject;
-                var rt = card.GetComponent<RectTransform>();
-                rt.sizeDelta = new Vector2(240f, 220f);
-                var le = card.AddComponent<LayoutElement>();
-                le.preferredWidth = 240f;
-                le.preferredHeight = 220f;
+                var host = _slotHosts[vi];
+                if (host == null)
+                    continue;
 
-                var portrait = CampUiRuntime.CreateImage("Portrait", card.transform, Color.white);
-                portrait.sprite = _characterVisuals?.GetPortrait(member.CharacterDefinitionId);
-                portrait.preserveAspect = true;
-                var pRt = portrait.rectTransform;
-                pRt.anchorMin = new Vector2(0.5f, 0.62f);
-                pRt.anchorMax = new Vector2(0.5f, 0.62f);
-                pRt.sizeDelta = new Vector2(120f, 120f);
-
-                var name = CampUiRuntime.CreateText(card.transform, member.DisplayName, 18, FontStyle.Bold);
-                name.rectTransform.anchorMin = new Vector2(0f, 0f);
-                name.rectTransform.anchorMax = new Vector2(1f, 0f);
-                name.rectTransform.offsetMin = new Vector2(8f, 52f);
-                name.rectTransform.offsetMax = new Vector2(-8f, 84f);
-
-                var slot = CampUiRuntime.CreateText(card.transform, CampFormationDisplay.SlotLabel(index),
-                    14, FontStyle.Normal);
-                slot.rectTransform.anchorMin = new Vector2(0f, 0f);
-                slot.rectTransform.anchorMax = new Vector2(1f, 0f);
-                slot.rectTransform.offsetMin = new Vector2(8f, 84f);
-                slot.rectTransform.offsetMax = new Vector2(-8f, 108f);
-                slot.color = new Color(0.72f, 0.78f, 0.9f, 1f);
-
-                var deckCount = 0;
-                foreach (var id in member.DeckCardIds)
+                if (_roster == null
+                    || vi >= CampFormationDisplay.VisualOrderMemberIndices.Length
+                    || CampFormationDisplay.VisualOrderMemberIndices[vi] >= _roster.Members.Count)
                 {
-                    if (!string.IsNullOrEmpty(id))
-                        deckCount++;
+                    BuildEmptySlot(host.transform, CampFormationDisplay.SlotLabel(
+                        CampFormationDisplay.VisualOrderMemberIndices[
+                            Mathf.Min(vi, CampFormationDisplay.VisualOrderMemberIndices.Length - 1)]));
+                    continue;
                 }
 
-                var deck = CampUiRuntime.CreateText(card.transform, $"祭坛携带 {deckCount}/10", 15, FontStyle.Normal);
-                deck.rectTransform.anchorMin = new Vector2(0f, 0f);
-                deck.rectTransform.anchorMax = new Vector2(1f, 0f);
-                deck.rectTransform.offsetMin = new Vector2(8f, 20f);
-                deck.rectTransform.offsetMax = new Vector2(-8f, 48f);
-                deck.color = deckCount == CampRosterState.DeckSize
-                    ? new Color(0.7f, 0.95f, 0.72f, 1f)
-                    : new Color(0.95f, 0.75f, 0.55f, 1f);
+                var memberIndex = CampFormationDisplay.VisualOrderMemberIndices[vi];
+                var member = _roster.Members[memberIndex];
+                if (member == null || string.IsNullOrEmpty(member.CharacterDefinitionId))
+                {
+                    BuildEmptySlot(host.transform, CampFormationDisplay.SlotLabel(memberIndex));
+                    continue;
+                }
+
+                BuildMemberSlot(host.transform, member, memberIndex);
             }
 
-            var ready = _roster.IsReadyForExpedition;
-            _confirmButton.interactable = ready;
-            RefreshStartLayerButtons();
+            if (_startButton != null)
+                _startButton.interactable = _roster != null && _roster.IsReadyForExpedition;
         }
 
-        void SelectStartLayer(int layer)
+        void BuildEmptySlot(Transform host, string slotLabel)
         {
-            _selectedStartLayer = layer;
-            RefreshStartLayerButtons();
+            var hint = CampUiRuntime.CreateText(host, $"{slotLabel}\n未配置", 20, FontStyle.Bold,
+                TextAnchor.MiddleCenter);
+            CampUiRuntime.StretchFull(hint.rectTransform);
+            hint.color = MuteText;
+            hint.raycastTarget = false;
+            _dynamicObjects.Add(hint.gameObject);
         }
 
-        void RefreshStartLayerButtons()
+        void BuildMemberSlot(Transform host, CampMemberLoadout member, int memberIndex)
         {
-            if (_caveStartButton == null)
-                return;
+            var portrait = CampUiRuntime.CreateImage("Portrait", host, Color.white);
+            portrait.preserveAspect = true;
+            portrait.raycastTarget = false;
+            CampUiRuntime.SetAnchored(portrait.rectTransform, 0.12f, 0.38f, 0.88f, 0.92f);
+            portrait.sprite = _characterVisuals != null
+                ? _characterVisuals.GetPortrait(member.CharacterDefinitionId)
+                : null;
+            var animator = portrait.gameObject.AddComponent<CampIdlePortraitAnimator>();
+            animator.Bind(portrait, _characterVisuals, member.CharacterDefinitionId);
+            _dynamicObjects.Add(portrait.gameObject);
 
-            SetLayerButtonSelected(_caveStartButton, new Color(0.22f, 0.34f, 0.28f, 1f),
-                _selectedStartLayer == 1);
-            SetLayerButtonSelected(_dungeonStartButton, new Color(0.28f, 0.24f, 0.38f, 1f),
-                _selectedStartLayer == ExpeditionRegionRules.DungeonStartLayer);
-            SetLayerButtonSelected(_abyssStartButton, new Color(0.16f, 0.30f, 0.42f, 1f),
-                _selectedStartLayer == ExpeditionRegionRules.AbyssStartLayer);
-            SetLayerButtonSelected(_caveBossButton, new Color(0.42f, 0.24f, 0.20f, 1f),
-                _selectedStartLayer == ExpeditionRegionRules.CaveBossLayer);
-            SetLayerButtonSelected(_dungeonBossButton, new Color(0.38f, 0.22f, 0.28f, 1f),
-                _selectedStartLayer == ExpeditionRegionRules.DungeonBossLayer);
-            SetLayerButtonSelected(_abyssBossButton, new Color(0.18f, 0.28f, 0.44f, 1f),
-                _selectedStartLayer == ExpeditionRegionRules.AbyssBossLayer);
+            var displayName = string.IsNullOrEmpty(member.DisplayName)
+                ? CharacterDisplayNames.GetOrFallback(member.CharacterDefinitionId, member.CharacterDefinitionId)
+                : member.DisplayName;
+
+            var name = CampUiRuntime.CreateText(host, displayName, 20, FontStyle.Bold, TextAnchor.MiddleCenter);
+            CampUiRuntime.SetAnchored(name.rectTransform, 0.06f, 0.26f, 0.94f, 0.36f);
+            name.color = GoldText;
+            name.raycastTarget = false;
+            _dynamicObjects.Add(name.gameObject);
+
+            var level = 1;
+            if (_meta != null && !string.IsNullOrEmpty(member.CharacterDefinitionId))
+            {
+                var progress = _meta.GetOrCreate(member.CharacterDefinitionId);
+                MetaProgressionRules.NormalizeProgress(progress);
+                level = progress.OutOfRunLevel;
+            }
+
+            var levelText = CampUiRuntime.CreateText(host, $"Lv.{level}", 16, FontStyle.Bold, TextAnchor.MiddleCenter);
+            CampUiRuntime.SetAnchored(levelText.rectTransform, 0.06f, 0.18f, 0.94f, 0.26f);
+            levelText.color = BodyText;
+            levelText.raycastTarget = false;
+            _dynamicObjects.Add(levelText.gameObject);
+
+            var deckCount = 0;
+            foreach (var id in member.DeckCardIds)
+            {
+                if (!string.IsNullOrEmpty(id))
+                    deckCount++;
+            }
+
+            var deck = CampUiRuntime.CreateText(
+                host,
+                $"卡组 {deckCount}/{CampRosterState.DeckSize}",
+                15,
+                FontStyle.Normal,
+                TextAnchor.MiddleCenter);
+            CampUiRuntime.SetAnchored(deck.rectTransform, 0.06f, 0.08f, 0.94f, 0.18f);
+            deck.color = deckCount == CampRosterState.DeckSize ? ReadyGreen : WarnOrange;
+            deck.raycastTarget = false;
+            _dynamicObjects.Add(deck.gameObject);
+
+            var slot = CampUiRuntime.CreateText(
+                host,
+                CampFormationDisplay.SlotLabel(memberIndex),
+                14,
+                FontStyle.Normal,
+                TextAnchor.MiddleCenter);
+            CampUiRuntime.SetAnchored(slot.rectTransform, 0.06f, 0.01f, 0.94f, 0.08f);
+            slot.color = MuteText;
+            slot.raycastTarget = false;
+            _dynamicObjects.Add(slot.gameObject);
         }
 
-        static void SetLayerButtonSelected(Button button, Color baseColor, bool selected)
+        void ClearDynamic()
         {
-            if (button == null)
-                return;
+            foreach (var go in _dynamicObjects)
+            {
+                if (go != null)
+                    Destroy(go);
+            }
 
-            button.interactable = true;
-            if (button.targetGraphic is Image img)
-                img.color = selected ? Color.Lerp(baseColor, Color.white, 0.22f) : baseColor;
+            _dynamicObjects.Clear();
         }
+
+        static void SetZone(RectTransform rt, Vector4 zone) =>
+            CampUiRuntime.SetAnchored(rt, zone.x, zone.y, zone.z, zone.w);
     }
 }

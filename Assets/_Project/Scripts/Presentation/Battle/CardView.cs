@@ -485,11 +485,19 @@ namespace Grimhand.Presentation.Battle
                 button.onClick.RemoveAllListeners();
             }
 
+            // 允许悬停读效果（未看破意图由调用方不挂 hover）；不响应点击，且不挡住加速等按钮
             if (canvasGroup != null)
             {
-                // 允许悬停读效果（未看破意图由调用方不挂 hover）；不响应点击
                 canvasGroup.blocksRaycasts = true;
                 canvasGroup.alpha = 1f;
+            }
+
+            // 卡面 Image 仍可悬停；根 Button 关闭射线，减少误挡右上角加速
+            if (button != null)
+            {
+                var g = button.targetGraphic;
+                if (g != null)
+                    g.raycastTarget = true;
             }
 
             _interactable = false;

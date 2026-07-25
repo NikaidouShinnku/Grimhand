@@ -163,6 +163,13 @@ namespace Grimhand.Presentation.Battle
             }
         }
 
+        public void BindBattleHudSettings(System.Action openSettings)
+        {
+            if (screenView == null)
+                screenView = FindAnyObjectByType<BattleScreenView>(FindObjectsInactive.Include);
+            screenView?.BindOpenSettings(openSettings);
+        }
+
         public void SetCampRoster(CampRosterState roster) => _session.SetCampRoster(roster);
         public void SetCampMeta(CampMetaState meta) => _session.SetCampMeta(meta);
 

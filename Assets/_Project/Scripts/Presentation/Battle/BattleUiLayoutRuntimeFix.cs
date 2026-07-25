@@ -22,28 +22,31 @@ namespace Grimhand.Presentation.Battle
         const float IntentPanelRight = 12f;
         const float IntentPanelHeight = 248f;
 
-        const float InventoryButtonSize = 56f;
+        const float InventoryButtonSize = 96f;
         const float InventoryGap = 8f;
-        const float TurnLogButtonGap = 6f;
-        const float MapButtonGap = 6f;
+        const float TurnLogButtonGap = 8f;
+        const float MapButtonGap = 8f;
         const float CodexButtonGap = 12f;
         const float PresentationSpeedButtonGap = 12f;
-        const float PresentationSpeedButtonSize = 48f;
-        const float EnergyHudWidth = 132f;
-        const float EnergyHudHeight = 56f;
+        const float PresentationSpeedButtonSize = 96f;
+        const float SettingsButtonSize = 96f;
+        const float SettingsButtonGap = 12f;
+        const float EnergyHudWidth = 168f;
+        const float EnergyHudHeight = 72f;
 
         const float ExpeditionPanelWidth = 320f;
         const float ExpeditionPanelHeight = 84f;
-        const float PlanningActionsWidth = 208f;
-        const float PlanningActionsHeight = 104f;
-        const float PlanningActionButtonWidth = 96f;
+        const float PlanningActionsWidth = 360f;
+        const float PlanningActionsHeight = 112f;
+        const float PlanningActionButtonWidth = PlanningActionButtonStyle.DefaultWidth;
         const float PlanningActionsAboveIntentGap = 10f;
 
-        const float ActionOrderBarTop = 56f;
-        const float ActionOrderBarHeight = 136f;
+        const float ActionOrderBarTop = 8f;
+        const float ActionOrderBarHeight = 220f;
         const float ActionOrderBarLeft = 120f;
-        const float ActionOrderBarRight = 24f;
-        public const float ActionOrderBarMiniCardScale = 0.44f;
+        // 右侧留给加速按钮（含独立 overlay canvas），避免意图条盖住
+        const float ActionOrderBarRight = 140f;
+        public const float ActionOrderBarMiniCardScale = 0.66f;
 
         const float StageBottom = 0.19f;
         const float StageTop = 0.78f;
@@ -51,16 +54,36 @@ namespace Grimhand.Presentation.Battle
 
         public static int HudChromeSortOrderValue => HudChromeSortOrder;
 
+        /// <summary>设置/加速等关键控件提到更高 Canvas，避免被意图条挡住点击。</summary>
+        public static void PromoteHudControlOverlay(RectTransform control)
+        {
+            if (control == null)
+                return;
+
+            var canvas = control.GetComponent<Canvas>();
+            if (canvas == null)
+                canvas = control.gameObject.AddComponent<Canvas>();
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = HudChromeSortOrder + 20;
+
+            if (control.GetComponent<GraphicRaycaster>() == null)
+                control.gameObject.AddComponent<GraphicRaycaster>();
+        }
+
         public static float ScaledCardWidth => CardBaseWidth * HandCardScale;
         public static float ScaledCardHeight => CardBaseHeight * HandCardScale;
         public static float ScaledOrderBarCardWidth => CardBaseWidth * ActionOrderBarMiniCardScale;
         public static float ScaledOrderBarCardHeight => CardBaseHeight * ActionOrderBarMiniCardScale;
         static float CardRowHeight => ScaledCardHeight + HandLabelHeight + 2f;
-        static float HandRightInset => IntentPanelWidth + IntentPanelRight + RowGap;
-        static float HandLeftInset => InventoryButtonSize + InventoryGap + EnergyHudWidth + RowGap + 12f;
-        static float EnergyHudLeft => InventoryButtonSize + InventoryGap * 2f;
+        static float HandRightInset => 24f;
+        static float EnergyHudLeft => InventoryGap;
+        // 能量靠左下角后，侧栏按钮叠在能量上方；手牌需避开更宽的能量区
+        static float UtilityStackBottom => CardRowBottom + EnergyHudHeight + InventoryGap;
+        static float HandLeftInset =>
+            Mathf.Max(InventoryButtonSize + InventoryGap, EnergyHudLeft + EnergyHudWidth) + 12f;
         static float UpperRowBottom => CardRowBottom + CardRowHeight + RowGap;
-        static float PlanningActionsBottom => CardRowBottom + IntentPanelHeight + PlanningActionsAboveIntentGap;
+        // 出牌/空过放在手牌行上方，避免与加宽后的手牌区重叠
+        static float PlanningActionsBottom => CardRowBottom + CardRowHeight + RowGap;
 
         public static void ApplyIfNeeded(Transform battleScreenRoot)
         {
@@ -149,6 +172,7 @@ namespace Grimhand.Presentation.Battle
             ReparentIfFound(battleScreenRoot, chromeRoot, "CodexButton");
             ReparentIfFound(battleScreenRoot, chromeRoot, "DummyPlayButton");
             ReparentIfFound(battleScreenRoot, chromeRoot, "PresentationSpeedButton");
+            ReparentIfFound(battleScreenRoot, chromeRoot, "BattleSettingsButton");
         }
 
         static void ReparentIfFound(Transform battleScreenRoot, RectTransform chromeRoot, string name)
@@ -192,21 +216,14 @@ namespace Grimhand.Presentation.Battle
             var intent = layoutRoot.Find("EnemyIntentPanel") as RectTransform;
             if (intent != null)
             {
+                // 旧右下意图灰框永久关闭；意图改由顶部 ActionOrderBar 显示
+                intent.gameObject.SetActive(false);
                 StripNestedCanvas(intent.gameObject);
-                PinBottomRight(intent, IntentPanelRight, CardRowBottom, IntentPanelWidth, IntentPanelHeight);
                 var intentBg = intent.GetComponent<Image>();
                 if (intentBg != null)
                 {
-                    intentBg.color = new Color(0.2f, 0.12f, 0.12f, 0.94f);
+                    intentBg.color = Color.clear;
                     intentBg.raycastTarget = false;
-                }
-
-                var intentText = intent.Find("Text")?.GetComponent<Text>();
-                if (intentText != null)
-                {
-                    intentText.fontSize = Mathf.Max(intentText.fontSize, 15);
-                    intentText.color = Color.white;
-                    intentText.alignment = TextAnchor.UpperLeft;
                 }
             }
 
@@ -362,13 +379,46 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             StripNestedCanvas(energyHud.gameObject);
+            // 水晶靠左下角
             PinBottomLeft(energyHud, EnergyHudLeft, CardRowBottom, EnergyHudWidth, EnergyHudHeight);
             var bg = energyHud.GetComponent<Image>();
             if (bg != null)
-            {
-                bg.color = new Color(0.1f, 0.11f, 0.15f, 0.92f);
                 bg.raycastTarget = false;
-            }
+        }
+
+        /// <summary>确保意图条在设置/加速等可点按钮之下，避免遮挡。</summary>
+        public static void EnsureInteractiveHudAboveActionOrderBar(Transform chromeRoot)
+        {
+            if (chromeRoot == null)
+                return;
+
+            var orderBar = chromeRoot.Find("ActionOrderBar");
+            if (orderBar != null)
+                orderBar.SetSiblingIndex(0);
+
+            BringToFront(chromeRoot, "BattleSettingsButton");
+            BringToFront(chromeRoot, "PresentationSpeedButton");
+            BringToFront(chromeRoot, "CodexButton");
+            BringToFront(chromeRoot, "DummyPlayButton");
+            BringToFront(chromeRoot, "MonsterSpawnButton");
+            BringToFront(chromeRoot, "InventoryButton");
+            BringToFront(chromeRoot, "TurnLogButton");
+            BringToFront(chromeRoot, "MapButton");
+            BringToFront(chromeRoot, "PlanningActionsRight");
+            BringToFront(chromeRoot, "EnergyHud");
+
+            PromoteHudControlOverlay(chromeRoot.Find("BattleSettingsButton") as RectTransform);
+            PromoteHudControlOverlay(chromeRoot.Find("PresentationSpeedButton") as RectTransform);
+            PromoteHudControlOverlay(chromeRoot.Find("InventoryButton") as RectTransform);
+            PromoteHudControlOverlay(chromeRoot.Find("TurnLogButton") as RectTransform);
+            PromoteHudControlOverlay(chromeRoot.Find("MapButton") as RectTransform);
+        }
+
+        static void BringToFront(Transform chromeRoot, string name)
+        {
+            var node = chromeRoot.Find(name);
+            if (node != null)
+                node.SetAsLastSibling();
         }
 
         public static void LayoutInventoryButton(RectTransform inventoryButton)
@@ -376,7 +426,7 @@ namespace Grimhand.Presentation.Battle
             if (inventoryButton == null)
                 return;
 
-            PinBottomLeft(inventoryButton, InventoryGap, CardRowBottom, InventoryButtonSize, InventoryButtonSize);
+            PinBottomLeft(inventoryButton, InventoryGap, UtilityStackBottom, InventoryButtonSize, InventoryButtonSize);
         }
 
         public static void LayoutTurnLogButton(RectTransform turnLogButton)
@@ -384,8 +434,18 @@ namespace Grimhand.Presentation.Battle
             if (turnLogButton == null)
                 return;
 
-            var fromBottom = CardRowBottom + InventoryButtonSize + TurnLogButtonGap;
+            var fromBottom = UtilityStackBottom + InventoryButtonSize + TurnLogButtonGap;
             PinBottomLeft(turnLogButton, InventoryGap, fromBottom, InventoryButtonSize, InventoryButtonSize);
+        }
+
+        public static void LayoutMapButton(RectTransform mapButton)
+        {
+            if (mapButton == null)
+                return;
+
+            var fromBottom = UtilityStackBottom + InventoryButtonSize + TurnLogButtonGap
+                             + InventoryButtonSize + MapButtonGap;
+            PinBottomLeft(mapButton, InventoryGap, fromBottom, InventoryButtonSize, InventoryButtonSize);
         }
 
         public static void LayoutCodexButton(RectTransform codexButton)
@@ -393,7 +453,9 @@ namespace Grimhand.Presentation.Battle
             if (codexButton == null)
                 return;
 
-            PinTopLeft(codexButton, CodexButtonGap, CodexButtonGap, InventoryButtonSize + 16f, InventoryButtonSize);
+            // 设置按钮占左上角，图鉴紧挨其右
+            var left = SettingsButtonGap + SettingsButtonSize + CodexButtonGap;
+            PinTopLeft(codexButton, left, CodexButtonGap, InventoryButtonSize, InventoryButtonSize);
         }
 
         public static void LayoutDummyPlayButton(RectTransform dummyPlayButton, RectTransform codexButton = null)
@@ -404,15 +466,9 @@ namespace Grimhand.Presentation.Battle
             if (codexButton != null && codexButton.parent != null)
                 dummyPlayButton.SetParent(codexButton.parent, false);
 
-            var codexWidth = InventoryButtonSize + 16f;
+            var codexWidth = InventoryButtonSize;
             var dummyWidth = InventoryButtonSize + 40f;
-            var left = CodexButtonGap + codexWidth + CodexButtonGap;
-            if (codexButton != null)
-            {
-                // 紧贴图鉴右侧，避免绝对坐标漂移
-                left = codexButton.anchorMax.x * RefWidth + CodexButtonGap;
-            }
-
+            var left = SettingsButtonGap + SettingsButtonSize + CodexButtonGap + codexWidth + CodexButtonGap;
             PinTopLeft(dummyPlayButton, left, CodexButtonGap, dummyWidth, InventoryButtonSize);
         }
 
@@ -424,11 +480,12 @@ namespace Grimhand.Presentation.Battle
             if (dummyPlayButton != null && dummyPlayButton.parent != null)
                 monsterButton.SetParent(dummyPlayButton.parent, false);
 
-            var dummyWidth = InventoryButtonSize + 40f;
             var monsterWidth = InventoryButtonSize + 40f;
-            var left = CodexButtonGap + (InventoryButtonSize + 16f) + CodexButtonGap + dummyWidth + CodexButtonGap;
+            var left = SettingsButtonGap + SettingsButtonSize + CodexButtonGap + InventoryButtonSize
+                       + CodexButtonGap + (InventoryButtonSize + 40f) + CodexButtonGap;
             if (dummyPlayButton != null)
-                left = dummyPlayButton.anchorMax.x * RefWidth + CodexButtonGap;
+                left = SettingsButtonGap + SettingsButtonSize + CodexButtonGap + InventoryButtonSize
+                       + CodexButtonGap + dummyPlayButton.sizeDelta.x + CodexButtonGap;
 
             PinTopLeft(monsterButton, left, CodexButtonGap, monsterWidth, InventoryButtonSize);
         }
@@ -446,13 +503,17 @@ namespace Grimhand.Presentation.Battle
                 PresentationSpeedButtonSize);
         }
 
-        public static void LayoutMapButton(RectTransform mapButton)
+        public static void LayoutSettingsButton(RectTransform settingsButton)
         {
-            if (mapButton == null)
+            if (settingsButton == null)
                 return;
 
-            var fromBottom = CardRowBottom + InventoryButtonSize + TurnLogButtonGap + InventoryButtonSize + MapButtonGap;
-            PinBottomLeft(mapButton, InventoryGap, fromBottom, InventoryButtonSize, InventoryButtonSize);
+            PinTopLeft(
+                settingsButton,
+                SettingsButtonGap,
+                SettingsButtonGap,
+                SettingsButtonSize,
+                SettingsButtonSize);
         }
 
         public static void RefreshBottomHud(Transform battleScreenRoot)
@@ -470,8 +531,10 @@ namespace Grimhand.Presentation.Battle
                 chromeRoot.Find("DummyPlayButton") as RectTransform,
                 chromeRoot.Find("CodexButton") as RectTransform);
             LayoutPresentationSpeedButton(chromeRoot.Find("PresentationSpeedButton") as RectTransform);
+            LayoutSettingsButton(chromeRoot.Find("BattleSettingsButton") as RectTransform);
             FixHandArea(chromeRoot.Find("HandArea"));
             ApplyBottomRowLayout(chromeRoot);
+            EnsureInteractiveHudAboveActionOrderBar(chromeRoot);
             EnsureBottomHudDrawOrder(battleScreenRoot, chromeRoot);
         }
 
@@ -760,13 +823,13 @@ namespace Grimhand.Presentation.Battle
 
                 var rt = child as RectTransform;
                 if (rt != null)
-                    rt.sizeDelta = new Vector2(PlanningActionButtonWidth, rt.sizeDelta.y);
+                    rt.sizeDelta = new Vector2(PlanningActionButtonWidth, PlanningActionButtonStyle.HeightForWidth(PlanningActionButtonWidth));
 
                 var le = child.GetComponent<LayoutElement>() ?? child.gameObject.AddComponent<LayoutElement>();
                 le.preferredWidth = PlanningActionButtonWidth;
                 le.minWidth = PlanningActionButtonWidth;
-                le.preferredHeight = 112f;
-                le.minHeight = 96f;
+                le.preferredHeight = PlanningActionButtonStyle.HeightForWidth(PlanningActionButtonWidth);
+                le.minHeight = PlanningActionButtonStyle.HeightForWidth(PlanningActionButtonWidth);
                 le.flexibleWidth = 0f;
                 le.flexibleHeight = 0f;
             }

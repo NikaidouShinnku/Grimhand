@@ -28,7 +28,7 @@ MonoBehaviour:
   MapIcon: {fileID: 4804446361586417100, guid: 16422e1bda6922249b68f89a00c3dcb6, type: 3}
   ShopRefreshIcon: {fileID: -8687029706193621143, guid: 02213fe47ae2c3c47bc10e8cd35c1e6b, type: 3}
   UnknownPathIcon: {fileID: -7903860423745096787, guid: 978dbf954c118db47a4b5da9e149b729, type: 3}
-  CaveBackground: {fileID: 4714104671338776558, guid: 0d05dee52e0214c49a433c68c2420016, type: 3}
+  CaveBackground: {fileID: 1862379120496173366, guid: 3f73a91d859341f4ba791865b8e8a5b9, type: 3}
   ShopBackground: {fileID: -7590638603020057717, guid: 5cf7f9ce0c813364492217dd72e7cc5b, type: 3}
   CampSiteBackground: {fileID: -4742831938080718281, guid: ae9d708b286f13c4b8028843adca79d3, type: 3}
   MainMenuBackground: {fileID: -741072717784518279, guid: 71887aa55624401459db39aba60500c0, type: 3}
@@ -41,10 +41,14 @@ MonoBehaviour:
   UiButton2: {fileID: 8871750365745515610, guid: d619ff2ea209a2246acbd4d72c70dbe4, type: 3}
   UiButton4: {fileID: 9144582269909938847, guid: ef10e47b9b2ae804a9a0ffd37082d925, type: 3}
   UiButton6: {fileID: 7568152274879746454, guid: 62190e57d27c1084e87ce0d668ebc28b, type: 3}
+  UiButton5: {fileID: -2202143836880063414, guid: 2319da3c58786a844be496a38d760f27, type: 3}
+  UiSettingButton: {fileID: 3822675230927641974, guid: a5a8b0ca941ea684fbb186be83faca9f, type: 3}
+  UiChangeGamespeedButton: {fileID: -7120287032070845733, guid: ea45f0eb7474120489f254fd28d0016c, type: 3}
   ChampionCampTeamBackground: {fileID: 5994488411133315561, guid: 3f3696689d9c0684dac38c7a2fa31792, type: 3}
   ChampionCampCollectionBackground: {fileID: 7209182411906069109, guid: 136772d9a99b2f041a4528e44157b516, type: 3}
   ChampionCampCharacterSelectBackground: {fileID: -4891787566669454194, guid: 7ab2574c28ad43d4c905097073d17caf, type: 3}
   UiCharacterPlate: {fileID: -2840089345441573963, guid: af711568baf1fd54e8e22df3d1d30f1c, type: 3}
+  UiEventPlate: {fileID: -8860745196728967458, guid: 6c95107eaf761f54cb51a1a4b31daf0a, type: 3}
   UiSliderBar: {fileID: 726077871081428148, guid: 57ed6ea2170b68f4d90a1423fa946a4d, type: 3}
   UiSlider: {fileID: 6259983639586318526, guid: 9d147a4feca23334686cb8677f8cb1fb, type: 3}
   UiCardDetailBackground: {fileID: 7972302303753936476, guid: 23f0985e021397e468b3de0ace467930, type: 3}
@@ -57,7 +61,7 @@ MonoBehaviour:
   PortalBuilding: {fileID: -5816642994671486895, guid: 8001fab66b4b9164f897cd99ce75c3c9, type: 3}
   TrainingGroundBuilding: {fileID: 8469175750776524633, guid: 48f081ea59901d848aa889879fd72f60, type: 3}
   LibraryBuilding: {fileID: -7657969199895774076, guid: 3b19de57acebdb94db7c1b5fe15a448a, type: 3}
-  TrainingGroundBackground: {fileID: -4006478038615030680, guid: 276fcbfb087a27745a09d26bf1005a6f, type: 3}
+  TrainingGroundBackground: {fileID: 6714950605396456769, guid: 81016446403077f43a0e2e278dadab35, type: 3}
   GameMenuButtons:
   - {fileID: -8289206137012799017, guid: c1a8b4b2c884f314a83a5a74d9c12a0f, type: 3}
   - {fileID: -7619838892229133767, guid: c1a8b4b2c884f314a83a5a74d9c12a0f, type: 3}
@@ -71,6 +75,18 @@ MonoBehaviour:
   TalentAltarBuilding: {fileID: -7883540776455437975, guid: 25365cd805f3d9845a027898103047dd, type: 3}
   UiTalentAltarBackground: {fileID: 5357591938430817483, guid: ca2e39c3277ef6949acdf83cdb6484a9, type: 3}
   UiLibraryCodexBackground: {fileID: -2091795795522694761, guid: 4e37280d484db664fa248d7ed23cee93, type: 3}
+  UiExpeditionStartBackground: {fileID: 6381289981265433941, guid: 229b96b5dff2028429b659d8d77f1669, type: 3}
+  UiChoosingPathLocationPlate: {fileID: -4953475700974519502, guid: 2508cc26dbc774a4a82d2f148dee3e1e, type: 3}
+  CaveRouteSelectBackground: {fileID: -1046003894288102623, guid: b3726f8ac79d4e64ea975246d1671520, type: 3}
+  DungeonRouteSelectBackground: {fileID: 1166636471466035211, guid: 28b377a54572a724f8f1b1105fcc849b, type: 3}
+  AbyssRouteSelectBackground: {fileID: 7117281841294927370, guid: 3b5edd5e37a0cb34b9ed828abf813b2d, type: 3}
+  PathFrameCombat: {fileID: -842599312946750280, guid: 5d95dc3831afa914cb05ffa57f2acd43, type: 3}
+  PathFrameElite: {fileID: 2068025263883294554, guid: 60f82ee031490e74682750b7e7b87725, type: 3}
+  PathFrameTreasure: {fileID: -7312152758478415193, guid: f85eaa0545444424381bad731e445269, type: 3}
+  PathFrameEvent: {fileID: -4960280529460799052, guid: dd6a3fa4997ffff4cb8800200c3e86e0, type: 3}
+  PathFrameShop: {fileID: 1183686493530436603, guid: 7cc5b7e9fca889847b488de77814f052, type: 3}
+  PathFrameAltar: {fileID: -852007682885959615, guid: 65d2830d73838ea42b71df6518dc38c5, type: 3}
+  PathFrameBoss: {fileID: 5959809599688895972, guid: 8fd1354fc5ffcce4aa382722521b43fd, type: 3}
   TalentRunePlate: {fileID: 3640283115439223827, guid: 24a2f5fd444af0844b332a37a382e580, type: 3}
   TreasureChestClosed: {fileID: -7219296677170973702, guid: a869e9d4f75b44e40bd0a5bba6b0122e, type: 3}
   TreasureChestOpen: {fileID: 4853945434919486788, guid: 5bc009981bcff9d4cb2419a05e08ffe0, type: 3}
@@ -83,12 +99,12 @@ MonoBehaviour:
   - {fileID: 2324293664701428765, guid: 1a4fb8ecc2e6bc845a7730ce3186ab9e, type: 3}
   - {fileID: 6525756207177096557, guid: 387885b527a1ded4e9a13b63a83bade0, type: 3}
   - {fileID: 6659219929621819091, guid: a394a3e57aab15d44a0908599c3f9827, type: 3}
-  DungeonBackground: {fileID: -5521389433338677368, guid: 10cccdc226161514d95c045dc4a2a537, type: 3}
+  DungeonBackground: {fileID: 1039283327973381073, guid: 8659bcf9831bfc84994700c2d8714aec, type: 3}
   DungeonPathVariants:
   - {fileID: -5074124878924022668, guid: 344cbb201debf354d8ebdc9410282d90, type: 3}
   - {fileID: -1750541262561690569, guid: 6c9d5eeb733be69489bf1a49da170f5b, type: 3}
   - {fileID: 5576632795534058508, guid: 0ac7eed4f96f57c4cb975df49648f2e8, type: 3}
-  AbyssBackground: {fileID: -502073333250325513, guid: 9ff5ec08be1d93043bfba210ee104e74, type: 3}
+  AbyssBackground: {fileID: -8006278965040979640, guid: 6c7bbebfab8b90340a22165301ad6cfe, type: 3}
   AbyssPathVariants:
   - {fileID: -972667787962235512, guid: f539451bdc1b977448783c9e8d58a5b5, type: 3}
   - {fileID: 121210507401309378, guid: 091d25c1df8dfd544ad5cc290631fa3b, type: 3}

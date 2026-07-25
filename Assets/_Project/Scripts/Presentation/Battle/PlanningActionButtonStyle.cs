@@ -3,132 +3,94 @@ using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Battle
 {
-    /// <summary>规划阶段 Icon 按钮：Icon 即点击区，文字仅标注、不参与判定。</summary>
+    /// <summary>规划阶段出牌/空过：button1/button2 底板 + 居中文字。</summary>
     public static class PlanningActionButtonStyle
     {
-        const int IconSize = 96;
-        const int LabelFontSize = 16;
-        const float AlphaHitThreshold = 0.25f;
+        public const float DefaultWidth = 168f;
+        public const float PlateAspect = 512f / 292f;
+        const int LabelFontSize = 22;
 
-        public static void Apply(Button button, Sprite icon, string label)
+        public static float HeightForWidth(float width) => width / PlateAspect;
+
+        public static void Apply(Button button, Sprite plate, string label, float width = DefaultWidth)
         {
             if (button == null)
                 return;
 
             var root = button.transform;
-            EnsureButtonBackground(button);
-            EnsureVerticalLayout(root);
-            EnsureLabel(root, label);
-            var iconImage = EnsureIcon(root, icon);
-            button.targetGraphic = iconImage;
-
-            var le = button.GetComponent<LayoutElement>() ?? button.gameObject.AddComponent<LayoutElement>();
-            le.preferredWidth = IconSize;
-            le.preferredHeight = IconSize + 24f;
-            le.minWidth = IconSize;
-            le.minHeight = IconSize;
-            le.flexibleWidth = 0f;
-            le.flexibleHeight = 0f;
-        }
-
-        static void EnsureButtonBackground(Button button)
-        {
-            var bg = button.GetComponent<Image>();
-            if (bg != null)
-            {
-                bg.color = Color.clear;
-                bg.raycastTarget = false;
-            }
-        }
-
-        static void EnsureVerticalLayout(Transform root)
-        {
             var horizontal = root.GetComponent<HorizontalLayoutGroup>();
             if (horizontal != null)
                 Object.Destroy(horizontal);
+            var vertical = root.GetComponent<VerticalLayoutGroup>();
+            if (vertical != null)
+                Object.Destroy(vertical);
 
-            var layout = root.GetComponent<VerticalLayoutGroup>();
-            if (layout == null)
-                layout = root.gameObject.AddComponent<VerticalLayoutGroup>();
-
-            layout.spacing = 4;
-            layout.padding = new RectOffset(0, 0, 0, 0);
-            layout.childAlignment = TextAnchor.MiddleCenter;
-            layout.childControlWidth = false;
-            layout.childControlHeight = false;
-            layout.childForceExpandWidth = false;
-            layout.childForceExpandHeight = false;
-        }
-
-        static Image EnsureIcon(Transform root, Sprite icon)
-        {
             var iconTr = root.Find("Icon");
-            if (iconTr == null)
-            {
-                var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
-                iconGo.transform.SetParent(root, false);
-                iconTr = iconGo.transform;
-            }
+            if (iconTr != null)
+                iconTr.gameObject.SetActive(false);
 
-            iconTr.SetAsLastSibling();
+            var bg = button.GetComponent<Image>();
+            if (bg == null)
+                bg = button.gameObject.AddComponent<Image>();
+            bg.sprite = plate;
+            bg.type = Image.Type.Simple;
+            bg.preserveAspect = false;
+            bg.raycastTarget = true;
+            bg.color = plate != null ? Color.white : new Color(0.18f, 0.16f, 0.22f, 0.96f);
 
-            var img = iconTr.GetComponent<Image>();
-            img.sprite = icon;
-            img.enabled = icon != null;
-            img.color = Color.white;
-            img.preserveAspect = true;
-            img.raycastTarget = true;
-            img.type = Image.Type.Simple;
-            img.alphaHitTestMinimumThreshold = AlphaHitThreshold;
+            var height = HeightForWidth(width);
+            var rt = button.transform as RectTransform;
+            if (rt != null)
+                rt.sizeDelta = new Vector2(width, height);
 
-            var le = img.GetComponent<LayoutElement>() ?? img.gameObject.AddComponent<LayoutElement>();
-            le.preferredWidth = IconSize;
-            le.preferredHeight = IconSize;
-            le.minWidth = IconSize;
-            le.minHeight = IconSize;
+            var le = button.GetComponent<LayoutElement>() ?? button.gameObject.AddComponent<LayoutElement>();
+            le.preferredWidth = width;
+            le.preferredHeight = height;
+            le.minWidth = width;
+            le.minHeight = height;
             le.flexibleWidth = 0f;
             le.flexibleHeight = 0f;
 
-            var rt = img.rectTransform;
-            rt.sizeDelta = new Vector2(IconSize, IconSize);
-            return img;
+            EnsureLabel(root, label);
+            button.targetGraphic = bg;
+            BattleButtonPressFeedback.Apply(button);
         }
 
         static void EnsureLabel(Transform root, string label)
         {
             var labelTr = root.Find("Label");
             if (labelTr == null)
-                return;
+            {
+                var go = new GameObject("Label", typeof(RectTransform), typeof(Text));
+                go.transform.SetParent(root, false);
+                labelTr = go.transform;
+            }
 
-            labelTr.SetAsFirstSibling();
-
+            labelTr.SetAsLastSibling();
             var labelRt = labelTr as RectTransform;
             if (labelRt != null)
             {
-                labelRt.anchorMin = new Vector2(0.5f, 0.5f);
-                labelRt.anchorMax = new Vector2(0.5f, 0.5f);
-                labelRt.offsetMin = Vector2.zero;
-                labelRt.offsetMax = Vector2.zero;
+                labelRt.anchorMin = Vector2.zero;
+                labelRt.anchorMax = Vector2.one;
+                labelRt.offsetMin = new Vector2(8f, 6f);
+                labelRt.offsetMax = new Vector2(-8f, -8f);
             }
 
-            var le = labelTr.GetComponent<LayoutElement>() ?? labelTr.gameObject.AddComponent<LayoutElement>();
-            le.flexibleWidth = 0f;
-            le.minWidth = 0f;
-            le.preferredHeight = 20f;
+            var le = labelTr.GetComponent<LayoutElement>();
+            if (le != null)
+                Object.Destroy(le);
 
             var text = labelTr.GetComponent<Text>();
             if (text == null)
                 return;
 
             text.raycastTarget = false;
-
-            if (string.IsNullOrEmpty(label))
-                return;
-
-            text.text = label;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.text = label ?? "";
             text.fontSize = LabelFontSize;
             text.fontStyle = FontStyle.Bold;
             text.alignment = TextAnchor.MiddleCenter;
+            text.color = new Color(0.96f, 0.92f, 0.78f, 1f);
             text.horizontalOverflow = HorizontalWrapMode.Overflow;
             text.verticalOverflow = VerticalWrapMode.Overflow;
         }

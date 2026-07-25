@@ -17,6 +17,11 @@ namespace Grimhand.Presentation.Battle
         public int OrderIndex;
         public CardInstanceState Card;
         public bool IsHidden;
+        /// <summary>卡牌上方标题（卡名；隐藏时为 ?）。</summary>
+        public string CardTitle;
+        /// <summary>卡牌下方：出卡者→目标（如 哥布林1→AOE）。</summary>
+        public string OwnerArrowTarget;
+        /// <summary>兼容旧用法；优先用 CardTitle。</summary>
         public string DisplayName;
     }
 
@@ -100,6 +105,119 @@ namespace Grimhand.Presentation.Battle
                 return card?.DisplayName ?? "?";
 
             return $"{FormatCombatantDisambiguatedName(state, owner)} · {card.DisplayName}";
+        }
+
+        public static string FormatActionOrderCardTitle(CardInstanceState card, bool hidden) =>
+            hidden || card == null ? "?" : (card.DisplayName ?? "?");
+
+        public static string FormatActionOrderOwnerArrowTarget(
+            BattleState state,
+            CombatantState owner,
+            CardInstanceState card,
+            bool hidden,
+            string assignedTargetId = null)
+        {
+            var ownerName = owner != null ? FormatCombatantDisambiguatedName(state, owner) : "?";
+            var target = FormatActionOrderTargetLabel(state, owner, card, hidden, assignedTargetId);
+            return $"{ownerName}→{target}";
+        }
+
+        public static string FormatActionOrderTargetLabel(
+            BattleState state,
+            CombatantState owner,
+            CardInstanceState card,
+            bool hidden,
+            string assignedTargetId = null)
+        {
+            if (hidden)
+                return "?";
+            if (state == null || card == null)
+                return "?";
+
+            if (CardPreviewRules.CardUsesAoeEnemyPreview(card) || CardHasAllEnemiesTarget(card))
+                return "AOE";
+
+            if (CardTargetsSelfOnly(card))
+                return "自己";
+
+            if (!string.IsNullOrEmpty(assignedTargetId))
+            {
+                var assigned = state.GetCombatant(assignedTargetId);
+                if (assigned == null)
+                    return "?";
+                if (owner != null && assigned.Id == owner.Id)
+                    return "自己";
+                return FormatCombatantDisambiguatedName(state, assigned);
+            }
+
+            if (owner != null && owner.Team == TeamSide.Enemy)
+            {
+                var predicted = TargetRules.PredictIntentTarget(state, owner, card);
+                if (predicted == null)
+                    return "?";
+                if (predicted.Id == owner.Id)
+                    return "自己";
+                return FormatCombatantDisambiguatedName(state, predicted);
+            }
+
+            // 玩家牌未选目标
+            if (CardRules.GetRequiredTargetPick(card) != TargetPickSide.None)
+                return "?";
+
+            var fallback = owner != null ? TargetRules.PredictIntentTarget(state, owner, card) : null;
+            if (fallback == null)
+                return "?";
+            if (owner != null && fallback.Id == owner.Id)
+                return "自己";
+            return FormatCombatantDisambiguatedName(state, fallback);
+        }
+
+        static bool CardHasAllEnemiesTarget(CardInstanceState card)
+        {
+            if (card?.Actions == null)
+                return false;
+            foreach (var action in card.Actions)
+            {
+                if (action.Condition != ReactionConditionType.None)
+                    continue;
+                if (action.Target == EffectTarget.AllEnemies)
+                    return true;
+            }
+
+            return false;
+        }
+
+        static bool CardTargetsSelfOnly(CardInstanceState card)
+        {
+            if (card?.Actions == null || card.Actions.Count == 0)
+                return false;
+
+            var sawSelf = false;
+            foreach (var action in card.Actions)
+            {
+                if (action.Condition != ReactionConditionType.None)
+                    continue;
+                if (action.Target == EffectTarget.Self)
+                {
+                    sawSelf = true;
+                    continue;
+                }
+
+                // 另有指向他人的目标则不算纯自身
+                if (action.Target is EffectTarget.DefaultEnemy
+                    or EffectTarget.ManualSelected
+                    or EffectTarget.AllEnemies
+                    or EffectTarget.RandomEnemy
+                    or EffectTarget.RandomEnemies
+                    or EffectTarget.FrontAlly
+                    or EffectTarget.BackAlly
+                    or EffectTarget.EnemyFrontSlot
+                    or EffectTarget.EnemyMiddleSlot
+                    or EffectTarget.EnemyBackSlot)
+                    return false;
+            }
+
+            return sawSelf;
         }
 
         public static string FormatUnitLine(CombatantState unit)
@@ -1517,11 +1635,18 @@ namespace Grimhand.Presentation.Battle
                     && owner.Team == TeamSide.Enemy
                     && IsEnemyIntentHidden(state, step.CardInstanceId, snapshot.TurnEnemyIntents);
 
+                string assignedId = null;
+                if (snapshot.TurnTargetByCardId != null
+                    && snapshot.TurnTargetByCardId.TryGetValue(step.CardInstanceId, out var tid))
+                    assignedId = tid;
+
                 entries.Add(new ActionOrderVisualEntry
                 {
                     OrderIndex = i + 1,
                     Card = card,
                     IsHidden = hidden,
+                    CardTitle = FormatActionOrderCardTitle(card, hidden),
+                    OwnerArrowTarget = FormatActionOrderOwnerArrowTarget(state, owner, card, hidden, assignedId),
                     DisplayName = owner != null && owner.Team == TeamSide.Enemy
                         ? FormatEnemyActionOrderLabel(state, owner, card, hidden)
                         : (hidden ? "?" : card.DisplayName)
@@ -1552,11 +1677,14 @@ namespace Grimhand.Presentation.Battle
                     && owner.Team == TeamSide.Enemy
                     && IsEnemyIntentHidden(state, step.CardInstanceId);
 
+                var assignedId = draft?.GetAssignedTarget(step.CardInstanceId);
                 entries.Add(new ActionOrderVisualEntry
                 {
                     OrderIndex = i + 1,
                     Card = card,
                     IsHidden = hidden,
+                    CardTitle = FormatActionOrderCardTitle(card, hidden),
+                    OwnerArrowTarget = FormatActionOrderOwnerArrowTarget(state, owner, card, hidden, assignedId),
                     DisplayName = owner != null && owner.Team == TeamSide.Enemy
                         ? FormatEnemyActionOrderLabel(state, owner, card, hidden)
                         : (hidden ? "?" : card.DisplayName)
@@ -1593,6 +1721,8 @@ namespace Grimhand.Presentation.Battle
                     OrderIndex = order++,
                     Card = card,
                     IsHidden = intent.IsHidden,
+                    CardTitle = FormatActionOrderCardTitle(card, intent.IsHidden),
+                    OwnerArrowTarget = FormatActionOrderOwnerArrowTarget(state, owner, card, intent.IsHidden),
                     DisplayName = FormatEnemyActionOrderLabel(state, owner, card, intent.IsHidden)
                 });
             }
@@ -1865,10 +1995,10 @@ namespace Grimhand.Presentation.Battle
             switch (type)
             {
                 case ExpeditionNodeType.Combat: return "普通战斗";
-                case ExpeditionNodeType.Elite: return "精英";
+                case ExpeditionNodeType.Elite: return "精英战斗";
                 case ExpeditionNodeType.Treasure: return "宝箱";
                 case ExpeditionNodeType.Event: return "事件";
-                case ExpeditionNodeType.Shop: return "商人";
+                case ExpeditionNodeType.Shop: return "流浪商人";
                 case ExpeditionNodeType.Shrine: return "祭坛";
                 case ExpeditionNodeType.Boss: return "Boss";
                 default: return type.ToString();

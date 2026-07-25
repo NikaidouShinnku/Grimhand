@@ -102,6 +102,7 @@ namespace Grimhand.Presentation.Camp
                 uiIcons);
             settingsOverlay?.ConfigureArt(uiIcons);
             settingsOverlay?.Initialize(CloseSettings, uiIcons);
+            battleController?.BindBattleHudSettings(OpenSettings);
 
             campScreen?.ConfigureArt(uiIcons);
             campScreen?.Initialize(
@@ -133,7 +134,7 @@ namespace Grimhand.Presentation.Camp
                 uiIcons,
                 OnMetaSaved,
                 OnOverlayClosed);
-            portalOverlay?.Initialize(battleSetup, charCatalog, BeginExpedition, OnOverlayClosed);
+            portalOverlay?.Initialize(charCatalog, uiIcons, BeginExpedition, OnOverlayClosed);
             metaShop?.Initialize(
                 expeditionSetup,
                 battleSetup,
@@ -403,7 +404,7 @@ namespace Grimhand.Presentation.Camp
             else
             {
                 var layer = battleController?.Session?.Expedition?.Run?.Map?.NodesCompleted + 1 ?? 1;
-                bg = ExpeditionPathArt.ResolveBackground(uiIcons, layer);
+                bg = ExpeditionPathArt.ResolveRouteSelectBackground(uiIcons, layer);
             }
 
             FindAnyObjectByType<BattleScreenView>(FindObjectsInactive.Include)?.SetEscUiSuppressed(true);
@@ -531,7 +532,7 @@ namespace Grimhand.Presentation.Camp
         {
             CampRosterLoadoutRules.EnsureRosterStructure(_roster);
             campScreen?.Hide();
-            portalOverlay?.Show(_roster);
+            portalOverlay?.Show(_roster, _meta);
         }
 
         void OpenTrainingGround()

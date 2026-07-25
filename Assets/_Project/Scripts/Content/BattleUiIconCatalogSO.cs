@@ -44,6 +44,12 @@ namespace Grimhand.Content
         public Sprite UiButton4;
         /// <summary>通用 UI 按钮框：interactables_and_ui/button6.png（离开商店等宽钮）</summary>
         public Sprite UiButton6;
+        /// <summary>通用 UI 按钮框：interactables_and_ui/button5.png（战斗侧栏等）</summary>
+        public Sprite UiButton5;
+        /// <summary>战斗设置：interactables_and_ui/setting_button.png</summary>
+        public Sprite UiSettingButton;
+        /// <summary>战斗倍速：interactables_and_ui/change_gamespeed_button.png</summary>
+        public Sprite UiChangeGamespeedButton;
         /// <summary>配置队伍二级：templates/配置队伍概念图-模板.png</summary>
         public Sprite ChampionCampTeamBackground;
         /// <summary>管理卡牌二级：templates/军营收藏概念图-模板.png</summary>
@@ -52,6 +58,8 @@ namespace Grimhand.Content
         public Sprite ChampionCampCharacterSelectBackground;
         /// <summary>角色选择板：interactables_and_ui/character_plate.png</summary>
         public Sprite UiCharacterPlate;
+        /// <summary>事件/遗物板：interactables_and_ui/event_plate.png</summary>
+        public Sprite UiEventPlate;
         /// <summary>通用竖直滑动条轨道：interactables_and_ui/sliderbar.png</summary>
         public Sprite UiSliderBar;
         /// <summary>通用竖直滑动条手柄：interactables_and_ui/slider.png</summary>
@@ -86,6 +94,30 @@ namespace Grimhand.Content
         public Sprite UiTalentAltarBackground;
         /// <summary>局外图书馆图鉴：templates/图鉴概念图-模板.png</summary>
         public Sprite UiLibraryCodexBackground;
+        /// <summary>局外开启远征：templates/远征开启概念图-模板.png</summary>
+        public Sprite UiExpeditionStartBackground;
+        /// <summary>道路选择顶栏：interactables_and_ui/choosingpath_location_plate.png</summary>
+        public Sprite UiChoosingPathLocationPlate;
+        /// <summary>道路选择背景（洞穴）：new_cave_background2.png</summary>
+        public Sprite CaveRouteSelectBackground;
+        /// <summary>道路选择背景（地牢）：new_dungeon_background2.png</summary>
+        public Sprite DungeonRouteSelectBackground;
+        /// <summary>道路选择背景（海渊）：new_underwaterruin_background2.png</summary>
+        public Sprite AbyssRouteSelectBackground;
+        /// <summary>道路框：path/path_combat.png</summary>
+        public Sprite PathFrameCombat;
+        /// <summary>道路框：path/path_combatelite.png</summary>
+        public Sprite PathFrameElite;
+        /// <summary>道路框：path/path_treasurechest.png</summary>
+        public Sprite PathFrameTreasure;
+        /// <summary>道路框：path/path_event.png</summary>
+        public Sprite PathFrameEvent;
+        /// <summary>道路框：path/path_shop.png</summary>
+        public Sprite PathFrameShop;
+        /// <summary>道路框：path/path_alter.png</summary>
+        public Sprite PathFrameAltar;
+        /// <summary>道路框：path/path_boss.png</summary>
+        public Sprite PathFrameBoss;
         /// <summary>Assets/The Grimhands Asset/icon/talent_rune_plate.png</summary>
         public Sprite TalentRunePlate;
         public Sprite TreasureChestClosed;

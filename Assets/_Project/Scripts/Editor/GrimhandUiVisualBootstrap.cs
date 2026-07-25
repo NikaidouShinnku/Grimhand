@@ -62,7 +62,9 @@ namespace Grimhand.Editor
             catalog.UnknownPathIcon = LoadNamedSprite(
                 "Assets/The Grimhands Asset/path and background/unknown_path.png",
                 UnknownPathFullSpriteName);
-            catalog.CaveBackground = LoadFirstSprite("Assets/The Grimhands Asset/path and background/cave_background.png");
+            catalog.CaveBackground = LoadNamedSprite(NewUiRoot + "new_cave_background.png", "new_cave_background_0")
+                ?? LoadFirstSprite(NewUiRoot + "new_cave_background.png")
+                ?? LoadFirstSprite("Assets/The Grimhands Asset/path and background/cave_background.png");
             catalog.ShopBackground = LoadFirstSprite(CampArtRoot + "shop_background.png");
             catalog.CampSiteBackground = LoadFirstSprite(NewUiRoot + "camp_background.png")
                 ?? LoadFirstSprite(CampArtRoot + "campsite_background.png");
@@ -87,6 +89,14 @@ namespace Grimhand.Editor
                 ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/button4.png");
             catalog.UiButton6 = LoadNamedSprite(NewUiRoot + "interactables_and_ui/button6.png", "button6_0")
                 ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/button6.png");
+            catalog.UiButton5 = LoadNamedSprite(NewUiRoot + "interactables_and_ui/button5.png", "button5_0")
+                ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/button5.png");
+            catalog.UiSettingButton = LoadNamedSprite(
+                NewUiRoot + "interactables_and_ui/setting_button.png", "setting_button_0")
+                ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/setting_button.png");
+            catalog.UiChangeGamespeedButton = LoadNamedSprite(
+                NewUiRoot + "interactables_and_ui/change_gamespeed_button.png", "change_gamespeed_button_0")
+                ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/change_gamespeed_button.png");
             catalog.ChampionCampTeamBackground = LoadFirstSprite(
                 NewUiRoot + "templates/配置队伍概念图-模板.png");
             catalog.ChampionCampCollectionBackground = LoadFirstSprite(
@@ -96,6 +106,9 @@ namespace Grimhand.Editor
             catalog.UiCharacterPlate = LoadNamedSprite(
                 NewUiRoot + "interactables_and_ui/character_plate.png", "character_plate_0")
                 ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/character_plate.png");
+            catalog.UiEventPlate = LoadNamedSprite(
+                NewUiRoot + "interactables_and_ui/event_plate.png", "event_plate_0")
+                ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/event_plate.png");
             catalog.UiSliderBar = LoadNamedSprite(NewUiRoot + "interactables_and_ui/sliderbar.png", "sliderbar_0")
                 ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/sliderbar.png");
             catalog.UiSlider = LoadNamedSprite(NewUiRoot + "interactables_and_ui/slider.png", "slider_0")
@@ -123,7 +136,10 @@ namespace Grimhand.Editor
                 ?? LoadFirstSprite(CampArtRoot + "training_ground.png");
             catalog.LibraryBuilding = LoadNamedSprite(CampArtRoot + "library.png", "library_0")
                 ?? LoadFirstSprite(CampArtRoot + "library.png");
-            catalog.TrainingGroundBackground = LoadFirstSprite(CampArtRoot + "training_ground_background.png");
+            catalog.TrainingGroundBackground = LoadNamedSprite(
+                NewUiRoot + "new_training_ground_background.png", "new_training_ground_background_0")
+                ?? LoadFirstSprite(NewUiRoot + "new_training_ground_background.png")
+                ?? LoadFirstSprite(CampArtRoot + "training_ground_background.png");
             catalog.GameMenuButtons = new[]
             {
                 LoadNamedSprite(IconRoot + "gamemenu.png", "gamemenu_0"),
@@ -143,6 +159,36 @@ namespace Grimhand.Editor
                 NewUiRoot + "templates/天赋祭坛概念图-模板.png");
             catalog.UiLibraryCodexBackground = LoadFirstSprite(
                 NewUiRoot + "templates/图鉴概念图-模板.png");
+            catalog.UiExpeditionStartBackground = LoadFirstSprite(
+                NewUiRoot + "templates/远征开启概念图-模板.png");
+            catalog.UiChoosingPathLocationPlate = LoadNamedSprite(
+                NewUiRoot + "interactables_and_ui/choosingpath_location_plate.png",
+                "choosingpath_location_plate_0")
+                ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/choosingpath_location_plate.png");
+            catalog.CaveRouteSelectBackground = LoadNamedSprite(
+                NewUiRoot + "new_cave_background2.png", "new_cave_background2_0")
+                ?? LoadFirstSprite(NewUiRoot + "new_cave_background2.png");
+            catalog.DungeonRouteSelectBackground = LoadNamedSprite(
+                NewUiRoot + "new_dungeon_background2.png", "new_dungeon_background2_0")
+                ?? LoadFirstSprite(NewUiRoot + "new_dungeon_background2.png");
+            catalog.AbyssRouteSelectBackground = LoadNamedSprite(
+                NewUiRoot + "new_underwaterruin_background2.png", "new_underwaterruin_background2_0")
+                ?? LoadFirstSprite(NewUiRoot + "new_underwaterruin_background2.png");
+            catalog.PathFrameCombat = LoadNamedSprite(NewUiRoot + "path/path_combat.png", "path_combat_0")
+                ?? LoadFirstSprite(NewUiRoot + "path/path_combat.png");
+            catalog.PathFrameElite = LoadNamedSprite(NewUiRoot + "path/path_combatelite.png", "path_combatelite_0")
+                ?? LoadFirstSprite(NewUiRoot + "path/path_combatelite.png");
+            catalog.PathFrameTreasure = LoadNamedSprite(
+                NewUiRoot + "path/path_treasurechest.png", "path_treasurechest_0")
+                ?? LoadFirstSprite(NewUiRoot + "path/path_treasurechest.png");
+            catalog.PathFrameEvent = LoadNamedSprite(NewUiRoot + "path/path_event.png", "path_event_0")
+                ?? LoadFirstSprite(NewUiRoot + "path/path_event.png");
+            catalog.PathFrameShop = LoadNamedSprite(NewUiRoot + "path/path_shop.png", "path_shop_0")
+                ?? LoadFirstSprite(NewUiRoot + "path/path_shop.png");
+            catalog.PathFrameAltar = LoadNamedSprite(NewUiRoot + "path/path_alter.png", "path_alter_0")
+                ?? LoadFirstSprite(NewUiRoot + "path/path_alter.png");
+            catalog.PathFrameBoss = LoadNamedSprite(NewUiRoot + "path/path_boss.png", "path_boss_0")
+                ?? LoadFirstSprite(NewUiRoot + "path/path_boss.png");
             catalog.TalentRunePlate = LoadNamedSprite(IconRoot + "talent_rune_plate.png", "talent_rune_plate_0");
             catalog.TreasureChestClosed = LoadFirstSprite("Assets/The Grimhands Asset/icon/treasure_chest_closed.png");
             catalog.TreasureChestOpen = LoadFirstSprite("Assets/The Grimhands Asset/icon/treasure_chest_open.png");
@@ -166,7 +212,10 @@ namespace Grimhand.Editor
             }
 
             catalog.DungeonPathVariants = dungeonPaths.ToArray();
-            catalog.DungeonBackground = LoadFirstSprite(CampArtRoot + "dungeon_background.png");
+            catalog.DungeonBackground = LoadNamedSprite(
+                NewUiRoot + "new_dungeon_background.png", "new_dungeon_background_0")
+                ?? LoadFirstSprite(NewUiRoot + "new_dungeon_background.png")
+                ?? LoadFirstSprite(CampArtRoot + "dungeon_background.png");
 
             var abyssPaths = new System.Collections.Generic.List<Sprite>();
             for (var i = 1; i <= 3; i++)
@@ -178,8 +227,11 @@ namespace Grimhand.Editor
             }
 
             catalog.AbyssPathVariants = abyssPaths.ToArray();
-            catalog.AbyssBackground = LoadFirstSprite(
-                "Assets/The Grimhands Asset/path and background/underwaterruin_background.png");
+            catalog.AbyssBackground = LoadNamedSprite(
+                NewUiRoot + "new_underwaterruin_background.png", "new_underwaterruin_background_0")
+                ?? LoadFirstSprite(NewUiRoot + "new_underwaterruin_background.png")
+                ?? LoadFirstSprite(
+                    "Assets/The Grimhands Asset/path and background/underwaterruin_background.png");
 
             catalog.StatusDamageUp = LoadFirstSprite(IconRoot + "damage_up.png");
             catalog.StatusDamageDown = LoadFirstSprite(IconRoot + "damage_down.png");

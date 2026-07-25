@@ -18,7 +18,7 @@ namespace Grimhand.Presentation.Camp
     [DisallowMultipleComponent]
     public sealed class MetaShopOverlayView : MonoBehaviour
     {
-        const int LayoutVersion = 9;
+        const int LayoutVersion = 11;
         const float CardScale = 1.05f;
         const float ButtonHoverScale = 1.08f;
         const float GoldIconSize = 20f;
@@ -49,7 +49,7 @@ namespace Grimhand.Presentation.Camp
         static readonly Vector4 RowTitle = new(0.190f, 0.56f, 0.680f, 0.90f);
         static readonly Vector4 RowDesc = new(0.190f, 0.14f, 0.680f, 0.50f);
         static readonly Vector4 RowPrice = new(0.700f, 0.28f, 0.770f, 0.72f);
-        static readonly Vector4 RowBuy = new(0.800f, 0.20f, 0.975f, 0.80f);
+        static readonly Vector4 RowBuy = new(0.785f, 0.18f, 0.980f, 0.82f);
 
         static readonly Color ValueText = new(0.96f, 0.92f, 0.78f, 1f);
         static readonly Color BodyText = new(0.78f, 0.82f, 0.88f, 1f);
@@ -248,15 +248,6 @@ namespace Grimhand.Presentation.Camp
                          && !CampCollectionRules.BlocksShopCardPack(_profile.Collection, _profile.CollectionCapacity);
             var buyBtn = CreateBuyButton(rowGo.transform, canBuy && _pendingPack == null, offer.PackId);
 
-            if (_tooltip != null)
-            {
-                _tooltip.BindHover(
-                    rowGo,
-                    CardPackIds.GetDisplayName(offer.PackId),
-                    $"{offer.Hint}\n价格：{offer.Price}",
-                    showTitle: true);
-            }
-
             _dynamicObjects.Add(rowGo);
             ScrollRectNavigation.WireForwarding(rowGo, _offerScroll);
             ScrollRectNavigation.WireForwarding(buyBtn.gameObject, _offerScroll);
@@ -306,23 +297,26 @@ namespace Grimhand.Presentation.Camp
             SetZone(rt, RowBuy);
 
             var img = go.AddComponent<Image>();
-            img.color = Color.white;
             img.raycastTarget = true;
             img.preserveAspect = false;
             if (_uiIcons != null && _uiIcons.UiButton2 != null)
                 img.sprite = _uiIcons.UiButton2;
-            else
-                img.color = new Color(0.22f, 0.28f, 0.4f, 0.98f);
+            // 买不起：不透明灰色，避免透出底板
+            img.color = interactable
+                ? Color.white
+                : new Color(0.42f, 0.42f, 0.45f, 1f);
 
             var label = CampUiRuntime.CreateText(go.transform, "购买", 22, FontStyle.Bold, TextAnchor.MiddleCenter);
             CampUiRuntime.StretchFull(label.rectTransform);
             label.rectTransform.offsetMin = new Vector2(4f, 2f);
             label.rectTransform.offsetMax = new Vector2(-4f, -6f);
-            label.color = ValueText;
+            label.color = interactable
+                ? ValueText
+                : new Color(0.62f, 0.62f, 0.66f, 1f);
             label.raycastTarget = false;
 
             var group = go.AddComponent<CanvasGroup>();
-            group.alpha = interactable ? 1f : 0.45f;
+            group.alpha = 1f;
             group.blocksRaycasts = true;
             group.interactable = interactable;
             var hover = go.AddComponent<CampBuildingHoverView>();
@@ -515,8 +509,7 @@ namespace Grimhand.Presentation.Camp
 
             BuildShopPanel();
             BuildPickPanel();
-            _tooltip = _overlayRoot.gameObject.AddComponent<InventoryTooltipView>();
-            _tooltip.Initialize(_overlayRoot);
+            _tooltip = null;
 
             _overlayRoot.gameObject.SetActive(false);
         }

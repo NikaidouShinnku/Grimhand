@@ -58,13 +58,7 @@ namespace Grimhand.Presentation.Battle
                 scrollRect.gameObject.SetActive(!presenting);
 
             if (handCountLabel != null)
-            {
-                var handSource = ResolveHandCards(state, session);
-                var turnHint = state.Phase == TurnPhase.Planning && !presenting
-                    ? $" · 回合 {state.TurnNumber}"
-                    : presenting ? " · 出牌中" : "";
-                handCountLabel.text = $"{handSource.Count}/{state.Config.HandLimit}{turnHint}";
-            }
+                handCountLabel.gameObject.SetActive(false);
 
             var handCards = ResolveHandCards(state, session);
             var needed = handCards.Count;

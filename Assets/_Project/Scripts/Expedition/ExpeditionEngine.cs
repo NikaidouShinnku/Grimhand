@@ -322,6 +322,7 @@ namespace Grimhand.Expedition
             _run.ExtractedCampCollectionIndices.Clear();
             _run.Modifiers.TeamAttackBonus = 0;
             _run.Modifiers.TeamDefenseBonus = 0;
+            _run.Modifiers.TeamBlockGainBonusPercent = 0f;
             _run.Modifiers.EnergyCapBonus = 0;
             _run.Modifiers.HandLimitBonus = 0;
             _run.Modifiers.DrawPerTurnBonus = 0;
@@ -502,6 +503,7 @@ namespace Grimhand.Expedition
             _run.ExtractedCampCollectionIndices.Clear();
             _run.Modifiers.TeamAttackBonus = 0;
             _run.Modifiers.TeamDefenseBonus = 0;
+            _run.Modifiers.TeamBlockGainBonusPercent = 0f;
             _run.Modifiers.EnergyCapBonus = 0;
             _run.Modifiers.HandLimitBonus = 0;
             _run.Modifiers.DrawPerTurnBonus = 0;
@@ -1135,6 +1137,8 @@ namespace Grimhand.Expedition
                 _run.Modifiers.TeamAttackBonus += rewards.TeamAttackBonus;
             if (rewards.TeamDefenseBonus != 0)
                 _run.Modifiers.TeamDefenseBonus += rewards.TeamDefenseBonus;
+            if (rewards.TeamBlockGainBonusPercent != 0f)
+                _run.Modifiers.TeamBlockGainBonusPercent += rewards.TeamBlockGainBonusPercent;
             if (rewards.EnergyCapBonus != 0)
                 _run.Modifiers.EnergyCapBonus += rewards.EnergyCapBonus;
             if (rewards.EnableSoulRiftBattleStartRandomHpLoss)
@@ -1192,8 +1196,9 @@ namespace Grimhand.Expedition
             }
             if (rewards.HasConsumable && !rewards.ConsumableClaimed && !rewards.ConsumableSkipped)
                 TrySkipRewardConsumable();
+            // 属性/强固等强制增益：放弃剩余时仍自动领取，不可丢弃
             if (rewards.HasStatBonus && !rewards.StatClaimed && !rewards.StatSkipped)
-                TrySkipRewardStat();
+                TryClaimRewardStat();
 
             return _run.Phase == ExpeditionPhase.RouteSelect || _run.Phase == ExpeditionPhase.RunComplete;
         }
@@ -1342,6 +1347,35 @@ namespace Grimhand.Expedition
 
             if (outcome.InteractionSteps.Count > 0)
             {
+                // 纯「继续确认」文案步：已有事件结果页时多余，直接结算延迟结果
+                if (AreOnlyShowMessageSteps(outcome.InteractionSteps))
+                {
+                    foreach (var step in outcome.InteractionSteps)
+                    {
+                        if (!string.IsNullOrEmpty(step.Message))
+                            _run.LastEventMessage = step.Message;
+                    }
+
+                    outcome.DeferredRunAction?.Invoke(_run);
+                    if (TryFailRunIfPartyWiped())
+                        return true;
+
+                    ApplyPendingTravelerGift();
+                    if (TryFailRunIfPartyWiped())
+                        return true;
+
+                    if (outcome.DeferredOutcome != null)
+                    {
+                        var deferred = outcome.DeferredOutcome;
+                        deferred.DeferredRunAction?.Invoke(_run);
+                        ApplyEventOutcome(deferred);
+                        return true;
+                    }
+
+                    ApplyEventOutcome(new ExpeditionEventOutcome { Message = _run.LastEventMessage });
+                    return true;
+                }
+
                 var interaction = new ExpeditionEventInteractionState
                 {
                     EventId = eventId,
@@ -2808,6 +2842,20 @@ namespace Grimhand.Expedition
             }
 
             ApplyEventOutcome(new ExpeditionEventOutcome { Message = _run.LastEventMessage });
+        }
+
+        static bool AreOnlyShowMessageSteps(IReadOnlyList<ExpeditionEventInteractionStep> steps)
+        {
+            if (steps == null || steps.Count == 0)
+                return false;
+
+            foreach (var step in steps)
+            {
+                if (step == null || step.Kind != ExpeditionEventStepKind.ShowMessage)
+                    return false;
+            }
+
+            return true;
         }
     }
 }

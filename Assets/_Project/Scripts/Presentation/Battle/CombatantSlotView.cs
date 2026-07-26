@@ -25,14 +25,14 @@ namespace Grimhand.Presentation.Battle
         const float ElevatedEnemyPortraitScale = 1.62f;
         const float AbyssEnemyPortraitScale = 2.15f;
         const float BossEnemyPortraitScale = 2.35f;
-        /// <summary>六人共用脚线；敌人位置已调好，玩家通过额外下移对齐同一地面线。</summary>
-        const float UnifiedFeetLine = 0.12f;
+        /// <summary>六人共用脚线（贴地）；敌人位置为基准，玩家靠额外下移对齐。</summary>
+        const float UnifiedFeetLine = 0.02f;
         const float PlayerFeetLine = UnifiedFeetLine;
         const float EnemyFeetLine = UnifiedFeetLine;
         /// <summary>Boss 敌人与玩家共用地面线，保证血条水平对齐。</summary>
         const float BossEnemyFeetLine = UnifiedFeetLine;
         /// <summary>玩家立绘 sprite 留白较多，额外下移到与敌人脚线对齐。</summary>
-        const float PlayerPortraitExtraDownPx = -96f;
+        const float PlayerPortraitExtraDownPx = -112f;
         const float BossEnemyPortraitExtraDownPx = PlayerPortraitExtraDownPx;
         const float PortraitTop = 0.88f;
         const float FootStatusDropPx = 2f;

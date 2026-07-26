@@ -49,6 +49,7 @@ MonoBehaviour:
   ChampionCampCharacterSelectBackground: {fileID: -4891787566669454194, guid: 7ab2574c28ad43d4c905097073d17caf, type: 3}
   UiCharacterPlate: {fileID: -2840089345441573963, guid: af711568baf1fd54e8e22df3d1d30f1c, type: 3}
   UiEventPlate: {fileID: -8860745196728967458, guid: 6c95107eaf761f54cb51a1a4b31daf0a, type: 3}
+  UiEventOptionPlate: {fileID: 6303593736086396435, guid: 98a5c526006112a4dba1040481b1ffec, type: 3}
   UiSliderBar: {fileID: 726077871081428148, guid: 57ed6ea2170b68f4d90a1423fa946a4d, type: 3}
   UiSlider: {fileID: 6259983639586318526, guid: 9d147a4feca23334686cb8677f8cb1fb, type: 3}
   UiCardDetailBackground: {fileID: 7972302303753936476, guid: 23f0985e021397e468b3de0ace467930, type: 3}
@@ -58,6 +59,7 @@ MonoBehaviour:
   UiMerchantGoodsImagePlate: {fileID: -3197859760195274323, guid: de9e6afb8c9dda04db06332220f546d7, type: 3}
   UiPromptPlate: {fileID: -9038996849599471438, guid: f1bdb0f7f59d07c4e8563c8b0d3a60fb, type: 3}
   UiInformationPlate: {fileID: -6407821348471935228, guid: 42d3a5cfd9440a3478fcf2ae537099ec, type: 3}
+  UiRewardPlate: {fileID: 1029285068822226292, guid: a4941350742bad0448697750ad07b3d0, type: 3}
   MerchantCampBuilding: {fileID: 1068998374052479245, guid: 24f6602b4c282414b8ba9f8fb4d661ac, type: 3}
   PortalBuilding: {fileID: -5816642994671486895, guid: 8001fab66b4b9164f897cd99ce75c3c9, type: 3}
   TrainingGroundBuilding: {fileID: 8469175750776524633, guid: 48f081ea59901d848aa889879fd72f60, type: 3}

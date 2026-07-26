@@ -122,6 +122,7 @@ namespace Grimhand.Persistence
     {
         public int teamAttackBonus;
         public int teamDefenseBonus;
+        public float teamBlockGainBonusPercent;
         public int energyCapBonus;
         public int handLimitBonus;
         public int drawPerTurnBonus;
@@ -214,6 +215,7 @@ namespace Grimhand.Persistence
         public string statCharacterName = "";
         public int teamAttackBonus;
         public int teamDefenseBonus;
+        public float teamBlockGainBonusPercent;
         public int energyCapBonus;
         public int personalAttackBonus;
         public int grantXp;

@@ -109,6 +109,9 @@ namespace Grimhand.Editor
             catalog.UiEventPlate = LoadNamedSprite(
                 NewUiRoot + "interactables_and_ui/event_plate.png", "event_plate_0")
                 ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/event_plate.png");
+            catalog.UiEventOptionPlate = LoadNamedSprite(
+                NewUiRoot + "interactables_and_ui/event_option_plate.png", "event_option_plate_0")
+                ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/event_option_plate.png");
             catalog.UiSliderBar = LoadNamedSprite(NewUiRoot + "interactables_and_ui/sliderbar.png", "sliderbar_0")
                 ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/sliderbar.png");
             catalog.UiSlider = LoadNamedSprite(NewUiRoot + "interactables_and_ui/slider.png", "slider_0")
@@ -132,6 +135,9 @@ namespace Grimhand.Editor
             catalog.UiInformationPlate = LoadNamedSprite(
                 NewUiRoot + "interactables_and_ui/information_plate.png", "information_plate_0")
                 ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/information_plate.png");
+            catalog.UiRewardPlate = LoadNamedSprite(
+                NewUiRoot + "interactables_and_ui/reward_plate.png", "reward_plate_0")
+                ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/reward_plate.png");
             catalog.MerchantCampBuilding = LoadNamedSprite(CampArtRoot + "merchant_camp.png", "merchant_camp_0");
             catalog.PortalBuilding = LoadNamedSprite(CampArtRoot + "portal.png", "portal_0");
             catalog.TrainingGroundBuilding = LoadNamedSprite(CampArtRoot + "training_ground.png", "training_ground_0")

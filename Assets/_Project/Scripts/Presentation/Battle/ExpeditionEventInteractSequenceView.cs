@@ -14,15 +14,21 @@ namespace Grimhand.Presentation.Battle
     [DisallowMultipleComponent]
     public sealed class ExpeditionEventInteractSequenceView : MonoBehaviour
     {
+        const int LayoutVersion = 2;
         const float CardScale = 0.92f;
         const int CardsPerRow = 5;
-        const float CharacterPortraitSize = 168f;
-        const float CharacterCardWidth = 228f;
-        const float CharacterCardHeight = 318f;
+        // character_plate 约 162×288
+        const float CharacterPortraitSize = 148f;
+        const float CharacterCardWidth = 196f;
+        const float CharacterCardHeight = 300f;
         const float MessageAutoAdvanceSeconds = 2.2f;
         const float HpLossAnimSeconds = 1.4f;
+        // button6 原生 512×216
+        const float Button6Aspect = 512f / 216f;
+        const float ConfirmButtonWidth = 260f;
 
         BattleSession _session;
+        Transform _parent;
         CardView _cardPrefab;
         CardVisualCatalogSO _cardCatalog;
         CharacterVisualCatalogSO _characterVisuals;
@@ -30,6 +36,7 @@ namespace Grimhand.Presentation.Battle
         Dictionary<string, CardDefinitionSO> _definitions = new();
 
         RectTransform _root;
+        Image _panelImage;
         RectTransform _contentArea;
         Text _promptText;
         RectTransform _characterRow;
@@ -37,9 +44,11 @@ namespace Grimhand.Presentation.Battle
         ScrollRect _cardScroll;
         RectTransform _cardGrid;
         Button _confirmButton;
+        Image _confirmImage;
         Text _confirmLabel;
 
         bool _built;
+        int _builtVersion = -1;
         int _displayedStepIndex = -1;
         string _selectedCharacterId = "";
         string _selectedCardKey = "";
@@ -51,6 +60,7 @@ namespace Grimhand.Presentation.Battle
         readonly Dictionary<string, CardType> _cardTypesByKey = new();
         readonly Dictionary<string, Text> _portraitHpTexts = new();
         readonly Dictionary<string, Text> _portraitFloaters = new();
+        readonly Dictionary<string, Image> _characterPlateImages = new();
 
         public void Initialize(
             BattleSession session,
@@ -62,6 +72,7 @@ namespace Grimhand.Presentation.Battle
             Dictionary<string, CardDefinitionSO> definitions)
         {
             _session = session;
+            _parent = parent;
             _cardPrefab = cardPrefab;
             _cardCatalog = cardCatalog;
             _characterVisuals = characterVisuals;
@@ -72,6 +83,9 @@ namespace Grimhand.Presentation.Battle
 
         public void Refresh()
         {
+            if (_parent != null)
+                EnsureBuilt(_parent);
+
             if (!_built || _session == null || !_session.IsExpeditionMode)
             {
                 SetVisible(false);
@@ -91,6 +105,7 @@ namespace Grimhand.Presentation.Battle
             }
 
             _root.SetAsLastSibling();
+            ApplyEventPlate(_panelImage);
 
             if (_stepBusy && !_awaitingContinue)
                 return;
@@ -230,8 +245,10 @@ namespace Grimhand.Presentation.Battle
             le.preferredHeight = CharacterCardHeight;
 
             var bg = go.GetComponent<Image>();
-            bg.color = new Color(0.12f, 0.13f, 0.18f, 0.96f);
+            ApplyCharacterPlate(bg);
             bg.raycastTarget = true;
+            _characterPlateImages[member.CharacterDefinitionId] = bg;
+            go.name = $"MemberCard_{member.CharacterDefinitionId}";
 
             var portraitGo = new GameObject("Portrait", typeof(RectTransform), typeof(Image));
             portraitGo.transform.SetParent(go.transform, false);
@@ -239,7 +256,7 @@ namespace Grimhand.Presentation.Battle
             portraitRt.anchorMin = new Vector2(0.5f, 1f);
             portraitRt.anchorMax = new Vector2(0.5f, 1f);
             portraitRt.pivot = new Vector2(0.5f, 1f);
-            portraitRt.anchoredPosition = new Vector2(0f, -10f);
+            portraitRt.anchoredPosition = new Vector2(0f, -18f);
             portraitRt.sizeDelta = new Vector2(CharacterPortraitSize, CharacterPortraitSize);
             var portrait = portraitGo.GetComponent<Image>();
             portrait.sprite = _characterVisuals?.GetPortraitReference(member.CharacterDefinitionId)
@@ -295,26 +312,15 @@ namespace Grimhand.Presentation.Battle
 
         void HighlightSelectedCharacter()
         {
-            foreach (Transform child in _characterRow)
+            foreach (var pair in _characterPlateImages)
             {
-                var img = child.GetComponent<Image>();
-                if (img == null)
+                if (pair.Value == null)
                     continue;
 
-                var isSelected = false;
-                foreach (var member in _session.Expedition.Run.Party)
-                {
-                    if (member.CharacterDefinitionId == _selectedCharacterId)
-                    {
-                        var nameText = child.Find("Name")?.GetComponent<Text>();
-                        isSelected = nameText != null && nameText.text == member.DisplayName;
-                        break;
-                    }
-                }
-
-                img.color = isSelected
-                    ? new Color(0.22f, 0.24f, 0.32f, 0.98f)
-                    : new Color(0.12f, 0.13f, 0.18f, 0.96f);
+                // 选中保持白底 plate；未选中略微压暗，不用蓝色虚影描边
+                pair.Value.color = pair.Key == _selectedCharacterId
+                    ? Color.white
+                    : new Color(0.72f, 0.72f, 0.72f, 1f);
             }
         }
 
@@ -758,6 +764,7 @@ namespace Grimhand.Presentation.Battle
             _cardTypesByKey.Clear();
             _portraitHpTexts.Clear();
             _portraitFloaters.Clear();
+            _characterPlateImages.Clear();
             ClearChildren(_characterRow);
             ClearChildren(_cardGrid);
         }
@@ -773,10 +780,14 @@ namespace Grimhand.Presentation.Battle
 
         void EnsureBuilt(Transform parent)
         {
-            if (_built)
+            if (_built && _builtVersion == LayoutVersion && _root != null)
                 return;
 
+            if (_root != null)
+                Destroy(_root.gameObject);
+
             _built = true;
+            _builtVersion = LayoutVersion;
 
             var go = new GameObject("ExpeditionEventInteractSequence", typeof(RectTransform), typeof(Image));
             go.transform.SetParent(parent, false);
@@ -793,7 +804,8 @@ namespace Grimhand.Presentation.Battle
             panelRt.anchorMin = new Vector2(0.5f, 0.5f);
             panelRt.anchorMax = new Vector2(0.5f, 0.5f);
             panelRt.sizeDelta = new Vector2(920f, 640f);
-            panelGo.GetComponent<Image>().color = new Color(0.1f, 0.11f, 0.15f, 0.98f);
+            _panelImage = panelGo.GetComponent<Image>();
+            ApplyEventPlate(_panelImage);
 
             var promptGo = new GameObject("Prompt", typeof(RectTransform), typeof(Text));
             promptGo.transform.SetParent(panelGo.transform, false);
@@ -842,7 +854,7 @@ namespace Grimhand.Presentation.Battle
             scrollRt.anchorMax = Vector2.one;
             scrollRt.offsetMin = Vector2.zero;
             scrollRt.offsetMax = Vector2.zero;
-            scrollGo.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.12f);
+            scrollGo.GetComponent<Image>().color = Color.clear;
             _cardScroll = scrollGo.GetComponent<ScrollRect>();
             _cardScroll.horizontal = false;
             _cardScroll.vertical = true;
@@ -883,9 +895,12 @@ namespace Grimhand.Presentation.Battle
             confirmRt.anchorMin = new Vector2(0.5f, 0.04f);
             confirmRt.anchorMax = new Vector2(0.5f, 0.04f);
             confirmRt.pivot = new Vector2(0.5f, 0f);
-            confirmRt.sizeDelta = new Vector2(220f, 52f);
-            confirmGo.GetComponent<Image>().color = new Color(0.16f, 0.18f, 0.24f, 0.95f);
+            confirmRt.sizeDelta = new Vector2(ConfirmButtonWidth, ConfirmButtonWidth / Button6Aspect);
+            _confirmImage = confirmGo.GetComponent<Image>();
+            ApplyConfirmButtonArt(_confirmImage);
             _confirmButton = confirmGo.GetComponent<Button>();
+            _confirmButton.transition = Selectable.Transition.None;
+            _confirmButton.targetGraphic = _confirmImage;
             _confirmButton.onClick.AddListener(OnConfirmClicked);
 
             var confirmTextGo = new GameObject("Label", typeof(RectTransform), typeof(Text));
@@ -893,14 +908,69 @@ namespace Grimhand.Presentation.Battle
             var confirmTextRt = confirmTextGo.GetComponent<RectTransform>();
             confirmTextRt.anchorMin = Vector2.zero;
             confirmTextRt.anchorMax = Vector2.one;
-            confirmTextRt.offsetMin = Vector2.zero;
-            confirmTextRt.offsetMax = Vector2.zero;
+            confirmTextRt.offsetMin = new Vector2(12f, 8f);
+            confirmTextRt.offsetMax = new Vector2(-12f, -10f);
             _confirmLabel = confirmTextGo.GetComponent<Text>();
             StyleText(_confirmLabel, 20, TextAnchor.MiddleCenter);
             _confirmLabel.text = "确认";
 
             _root.gameObject.SetActive(false);
             _root.SetAsLastSibling();
+        }
+
+        void ApplyEventPlate(Image image)
+        {
+            if (image == null)
+                return;
+
+            image.preserveAspect = false;
+            image.type = Image.Type.Simple;
+            image.raycastTarget = true;
+            if (_icons != null && _icons.UiEventPlate != null)
+            {
+                image.sprite = _icons.UiEventPlate;
+                image.color = Color.white;
+                return;
+            }
+
+            image.sprite = null;
+            image.color = new Color(0.1f, 0.11f, 0.15f, 0.98f);
+        }
+
+        void ApplyCharacterPlate(Image image)
+        {
+            if (image == null)
+                return;
+
+            image.preserveAspect = false;
+            image.type = Image.Type.Simple;
+            if (_icons != null && _icons.UiCharacterPlate != null)
+            {
+                image.sprite = _icons.UiCharacterPlate;
+                image.color = Color.white;
+                return;
+            }
+
+            image.sprite = null;
+            image.color = new Color(0.12f, 0.13f, 0.18f, 0.96f);
+        }
+
+        void ApplyConfirmButtonArt(Image image)
+        {
+            if (image == null)
+                return;
+
+            image.type = Image.Type.Simple;
+            image.preserveAspect = false;
+            if (_icons != null && _icons.UiButton6 != null)
+            {
+                image.sprite = _icons.UiButton6;
+                image.color = Color.white;
+                return;
+            }
+
+            image.sprite = null;
+            image.color = new Color(0.16f, 0.18f, 0.24f, 0.95f);
         }
 
         static void ClearChildren(RectTransform parent)

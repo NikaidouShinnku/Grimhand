@@ -16,7 +16,7 @@ namespace Grimhand.Presentation.Battle
     [DisallowMultipleComponent]
     public sealed class ExpeditionPostBattleOverlayView : MonoBehaviour
     {
-        const int LayoutVersion = 5;
+        const int LayoutVersion = 7;
         const float DoorWidth = 286f;
         const float DoorHeight = 364f;
         const float DoorLabelHeight = 36f;
@@ -24,8 +24,13 @@ namespace Grimhand.Presentation.Battle
         const float DoorSpacing = 400f;
         const float RewardCardScale = 0.68f;
         const float ChestRewardCardScale = 0.92f;
-        const float RewardCardSpacing = 180f;
-        const float RewardIconSpacing = 140f;
+        const float RewardCardSpacing = 200f;
+        const float RewardIconSpacing = 200f;
+        const float RewardPlateWidth = 168f;
+        const float RewardPlateHeight = 236f;
+        const float SkipButtonWidth = 280f;
+        // button6 原生 512×216
+        const float Button6Aspect = 512f / 216f;
         const float ChestPanelWidth = 920f;
         const float ChestPanelHeight = 560f;
         const float DoorHoverScale = 1.16f;
@@ -33,6 +38,8 @@ namespace Grimhand.Presentation.Battle
         static readonly Color LocationTitleColor = new(0.93f, 0.86f, 0.68f, 1f);
         static readonly Color LocationFloorColor = new(0.82f, 0.78f, 0.72f, 1f);
         static readonly Color PathTitleColor = new(0.90f, 0.78f, 0.42f, 1f);
+        static readonly Color HeaderGold = new(0.95f, 0.85f, 0.55f, 1f);
+        static readonly Color ButtonLabel = new(0.96f, 0.92f, 0.78f, 1f);
 
         BattleSession _session;
         BattleUiIconCatalogSO _icons;
@@ -136,7 +143,8 @@ namespace Grimhand.Presentation.Battle
             }
             if (_skipVictoryButton != null)
             {
-                var showSkip = phase == ExpeditionPhase.RewardPickup && HasRemainingRewards(rewards);
+                // 属性/强固等强制增益不可放弃：仅当仍有可跳过奖励时显示放弃钮
+                var showSkip = phase == ExpeditionPhase.RewardPickup && HasSkippableRemainingRewards(rewards);
                 _skipVictoryButton.gameObject.SetActive(showSkip && !isChest);
                 if (_chestSkipButton != null)
                     _chestSkipButton.gameObject.SetActive(showSkip && isChest && _chestRevealed);
@@ -210,22 +218,23 @@ namespace Grimhand.Presentation.Battle
             headerRt.anchorMin = new Vector2(0.5f, 1f);
             headerRt.anchorMax = new Vector2(0.5f, 1f);
             headerRt.pivot = new Vector2(0.5f, 1f);
-            headerRt.anchoredPosition = new Vector2(0f, -24f);
-            headerRt.sizeDelta = new Vector2(900f, 72f);
+            headerRt.anchoredPosition = new Vector2(0f, -36f);
+            headerRt.sizeDelta = new Vector2(900f, 48f);
             _headerText = headerGo.GetComponent<Text>();
-            StyleText(_headerText, 22, TextAnchor.UpperCenter);
+            StyleText(_headerText, 28, TextAnchor.MiddleCenter);
+            _headerText.color = HeaderGold;
 
             BuildLocationPlate(_root);
 
             var rewardGo = new GameObject("RewardRow", typeof(RectTransform));
             rewardGo.transform.SetParent(_root, false);
             _rewardRow = rewardGo.GetComponent<RectTransform>();
-            _rewardRow.anchorMin = new Vector2(0.5f, 0.62f);
-            _rewardRow.anchorMax = new Vector2(0.5f, 0.62f);
+            _rewardRow.anchorMin = new Vector2(0.5f, 0.54f);
+            _rewardRow.anchorMax = new Vector2(0.5f, 0.54f);
             _rewardRow.pivot = new Vector2(0.5f, 0.5f);
-            _rewardRow.sizeDelta = new Vector2(720f, 280f);
+            _rewardRow.sizeDelta = new Vector2(920f, RewardPlateHeight + 24f);
 
-            _skipVictoryButton = CreateSkipVictoryButton(_root, new Vector2(0.5f, 0.14f));
+            _skipVictoryButton = CreateSkipVictoryButton(_root, new Vector2(0.5f, 0.12f));
 
             var doorGo = new GameObject("DoorRow", typeof(RectTransform));
             doorGo.transform.SetParent(_root, false);
@@ -437,7 +446,8 @@ namespace Grimhand.Presentation.Battle
                 _chestClosedLayer.gameObject.SetActive(false);
 
             if (_chestSkipButton != null && _session?.Expedition?.Run?.PendingRewardPickup != null)
-                _chestSkipButton.gameObject.SetActive(HasRemainingRewards(_session.Expedition.Run.PendingRewardPickup));
+                _chestSkipButton.gameObject.SetActive(
+                    HasSkippableRemainingRewards(_session.Expedition.Run.PendingRewardPickup));
 
             RefreshRewardPickup(useChestPanel: true);
             _session?.RequestRefresh();
@@ -470,16 +480,18 @@ namespace Grimhand.Presentation.Battle
 
             if (rewards.Kind == RewardPickupKind.BattleVictory)
             {
-                _headerText.text =
-                    $"第 {run.BattlesWon}/{run.TargetBattleCount} 场胜利\n点击领取奖励";
+                _headerText.text = "点击领取奖励";
+                _headerText.color = HeaderGold;
             }
             else if (!string.IsNullOrEmpty(rewards.HeaderText))
             {
-                _headerText.text = rewards.HeaderText + "\n点击领取奖励";
+                _headerText.text = rewards.HeaderText;
+                _headerText.color = HeaderGold;
             }
             else
             {
-                _headerText.text = "拾取奖励\n点击领取奖励";
+                _headerText.text = "点击领取奖励";
+                _headerText.color = HeaderGold;
             }
 
             var parent = useChestPanel
@@ -495,7 +507,7 @@ namespace Grimhand.Presentation.Battle
                     Destroy(child.gameObject);
             }
 
-            var x = useChestPanel ? -240f : -220f;
+            var x = useChestPanel ? -260f : -220f;
             var spacing = useChestPanel ? RewardCardSpacing : RewardIconSpacing;
             var cardScale = useChestPanel ? ChestRewardCardScale : RewardCardScale;
 
@@ -615,6 +627,7 @@ namespace Grimhand.Presentation.Battle
 
             return rewards.TeamAttackBonus == 0
                    && rewards.TeamDefenseBonus == 0
+                   && rewards.TeamBlockGainBonusPercent == 0f
                    && rewards.EnergyCapBonus == 0
                    && rewards.PersonalAttackBonus == 0
                    && !rewards.EnableSoulRiftBattleStartRandomHpLoss
@@ -622,6 +635,18 @@ namespace Grimhand.Presentation.Battle
         }
 
         static bool HasRemainingRewards(ExpeditionRewardPickup rewards)
+        {
+            if (rewards == null)
+                return false;
+
+            if (HasSkippableRemainingRewards(rewards))
+                return true;
+
+            return rewards.HasStatBonus && !rewards.StatClaimed && !rewards.StatSkipped;
+        }
+
+        /// <summary>可放弃的奖励（金币/遗物/卡牌/消耗品等）；属性与强固等强制增益不算。</summary>
+        static bool HasSkippableRemainingRewards(ExpeditionRewardPickup rewards)
         {
             if (rewards == null)
                 return false;
@@ -640,9 +665,8 @@ namespace Grimhand.Presentation.Battle
                         return true;
                 }
             }
+
             if (rewards.HasConsumable && !rewards.ConsumableClaimed && !rewards.ConsumableSkipped)
-                return true;
-            if (rewards.HasStatBonus && !rewards.StatClaimed && !rewards.StatSkipped)
                 return true;
 
             return false;
@@ -655,51 +679,15 @@ namespace Grimhand.Presentation.Battle
             ExpeditionRewardPickup rewards,
             Action onClaim)
         {
-            var container = CreateRewardContainer(parent, new Vector2(x, 0f), useChestPanel: true);
-            var btnGo = new GameObject("StatReward", typeof(RectTransform), typeof(Image), typeof(Button));
-            btnGo.transform.SetParent(container, false);
-            var btnRt = btnGo.GetComponent<RectTransform>();
-            btnRt.anchorMin = new Vector2(0.5f, 0.5f);
-            btnRt.anchorMax = new Vector2(0.5f, 0.5f);
-            btnRt.pivot = new Vector2(0.5f, 0.5f);
-            btnRt.anchoredPosition = Vector2.zero;
-            btnRt.sizeDelta = new Vector2(180f, 240f);
-            btnGo.GetComponent<Image>().color = new Color(0.14f, 0.16f, 0.22f, 0.98f);
-
-            var portraitGo = new GameObject("Portrait", typeof(RectTransform), typeof(Image));
-            portraitGo.transform.SetParent(btnGo.transform, false);
-            var portraitRt = portraitGo.GetComponent<RectTransform>();
-            portraitRt.anchorMin = new Vector2(0.5f, 1f);
-            portraitRt.anchorMax = new Vector2(0.5f, 1f);
-            portraitRt.pivot = new Vector2(0.5f, 1f);
-            portraitRt.anchoredPosition = new Vector2(0f, -12f);
-            portraitRt.sizeDelta = new Vector2(128f, 128f);
-            var portrait = portraitGo.GetComponent<Image>();
-            var characterId = rewards.StatCharacterId;
-            if (string.IsNullOrEmpty(characterId) && _session.Expedition.Run.Party.Count > 0)
-                characterId = _session.Expedition.Run.Party[0].CharacterDefinitionId;
-            portrait.sprite = _characterVisuals?.GetPortraitReference(characterId)
-                ?? _characterVisuals?.GetPortrait(characterId);
-            portrait.preserveAspect = true;
-            portrait.color = portrait.sprite != null ? Color.white : new Color(0.35f, 0.38f, 0.45f, 1f);
-
-            var labelGo = new GameObject("Label", typeof(RectTransform), typeof(Text));
-            labelGo.transform.SetParent(btnGo.transform, false);
-            var labelRt = labelGo.GetComponent<RectTransform>();
-            labelRt.anchorMin = new Vector2(0.06f, 0f);
-            labelRt.anchorMax = new Vector2(0.94f, 0.42f);
-            labelRt.offsetMin = Vector2.zero;
-            labelRt.offsetMax = Vector2.zero;
-            var label = labelGo.GetComponent<Text>();
-            StyleText(label, 18, TextAnchor.MiddleCenter);
-            label.text = BuildStatRewardLabel(rewards);
-
-            var btn = btnGo.GetComponent<Button>();
-            btn.targetGraphic = btnGo.GetComponent<Image>();
-            btn.onClick.AddListener(() => onClaim?.Invoke());
-            BindRewardTooltip(btnGo, BuildStatRewardTitle(rewards), label.text);
-            _rewardButtons.Add(btn);
-            x += spacing;
+            // 与金币/遗物等同规格：reward_plate 小框领取，不可放弃
+            AddClaimReward(
+                parent,
+                ref x,
+                spacing,
+                BuildStatRewardLabel(rewards),
+                null,
+                onClaim,
+                BuildStatRewardTitle(rewards));
         }
 
         static string BuildStatRewardTitle(ExpeditionRewardPickup rewards)
@@ -722,6 +710,8 @@ namespace Grimhand.Presentation.Battle
                 lines.Add($"全队增伤 +{rewards.TeamAttackBonus}");
             if (rewards.TeamDefenseBonus != 0)
                 lines.Add($"全队护甲获取 +{rewards.TeamDefenseBonus}");
+            if (rewards.TeamBlockGainBonusPercent != 0f)
+                lines.Add($"全队强固 +{rewards.TeamBlockGainBonusPercent:0.#}%");
             if (rewards.EnergyCapBonus != 0)
                 lines.Add($"能量上限 +{rewards.EnergyCapBonus}");
             if (rewards.GrantXp > 0)
@@ -816,7 +806,9 @@ namespace Grimhand.Presentation.Battle
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = pos;
-            rt.sizeDelta = useChestPanel ? new Vector2(220f, 300f) : new Vector2(148f, 160f);
+            rt.sizeDelta = useChestPanel
+                ? new Vector2(220f, 300f)
+                : new Vector2(RewardPlateWidth, RewardPlateHeight);
             return rt;
         }
 
@@ -958,7 +950,6 @@ namespace Grimhand.Presentation.Battle
                 onHoverExit: null);
 
             ForceRewardCardOpaque(cardView);
-            AttachRewardBadge(rt);
             BindCardRewardTooltip(go, preview);
 
             var button = cardView.GetComponent<Button>();
@@ -990,25 +981,34 @@ namespace Grimhand.Presentation.Battle
             rt.anchorMax = anchorY;
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = Vector2.zero;
-            rt.sizeDelta = new Vector2(360f, 52f);
+            rt.sizeDelta = new Vector2(SkipButtonWidth, SkipButtonWidth / Button6Aspect);
 
             var image = go.GetComponent<Image>();
-            image.color = new Color(0.22f, 0.24f, 0.32f, 0.96f);
+            image.color = Color.white;
+            image.preserveAspect = false;
+            if (_icons != null && _icons.UiButton6 != null)
+                image.sprite = _icons.UiButton6;
+            else
+                image.color = new Color(0.22f, 0.24f, 0.32f, 0.96f);
 
             var labelGo = new GameObject("Label", typeof(RectTransform), typeof(Text));
             labelGo.transform.SetParent(go.transform, false);
             var labelRt = labelGo.GetComponent<RectTransform>();
             labelRt.anchorMin = Vector2.zero;
             labelRt.anchorMax = Vector2.one;
-            labelRt.offsetMin = Vector2.zero;
-            labelRt.offsetMax = Vector2.zero;
+            labelRt.offsetMin = new Vector2(18f, 10f);
+            labelRt.offsetMax = new Vector2(-18f, -14f);
             var label = labelGo.GetComponent<Text>();
-            StyleText(label, 18, TextAnchor.MiddleCenter);
+            StyleText(label, 22, TextAnchor.MiddleCenter);
+            label.color = ButtonLabel;
             label.text = "放弃剩余奖励";
 
             var btn = go.GetComponent<Button>();
             btn.targetGraphic = image;
+            btn.transition = Selectable.Transition.None;
             btn.onClick.AddListener(() => _session?.SkipAllRemainingRewards());
+            BattleButtonPressFeedback.Apply(btn);
+            UiAudioHooks.WireButton(btn);
             go.SetActive(false);
             return btn;
         }
@@ -1020,9 +1020,6 @@ namespace Grimhand.Presentation.Battle
             string relicId,
             Action onClick)
         {
-            const float width = 148f;
-            const float height = 188f;
-
             var go = new GameObject("RelicReward", typeof(RectTransform), typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
             var rt = go.GetComponent<RectTransform>();
@@ -1030,17 +1027,16 @@ namespace Grimhand.Presentation.Battle
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = pos;
-            rt.sizeDelta = new Vector2(width, height);
+            rt.sizeDelta = new Vector2(RewardPlateWidth, RewardPlateHeight);
 
             var rootImage = go.GetComponent<Image>();
-            rootImage.color = new Color(0.08f, 0.09f, 0.12f, 0.92f);
-            rootImage.raycastTarget = true;
+            ApplyRewardPlate(rootImage);
 
             var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
             iconGo.transform.SetParent(go.transform, false);
             var iconRt = iconGo.GetComponent<RectTransform>();
-            iconRt.anchorMin = new Vector2(0.12f, 0.22f);
-            iconRt.anchorMax = new Vector2(0.88f, 0.92f);
+            iconRt.anchorMin = new Vector2(0.14f, 0.32f);
+            iconRt.anchorMax = new Vector2(0.86f, 0.88f);
             iconRt.offsetMin = Vector2.zero;
             iconRt.offsetMax = Vector2.zero;
             var iconImage = iconGo.GetComponent<Image>();
@@ -1067,24 +1063,26 @@ namespace Grimhand.Presentation.Battle
                     ? "?"
                     : relic.DisplayName.Substring(0, 1);
             }
+
             iconImage.raycastTarget = false;
 
             var nameGo = new GameObject("Name", typeof(RectTransform), typeof(Text));
             nameGo.transform.SetParent(go.transform, false);
             var nameRt = nameGo.GetComponent<RectTransform>();
-            nameRt.anchorMin = new Vector2(0.08f, 0.04f);
-            nameRt.anchorMax = new Vector2(0.92f, 0.20f);
+            nameRt.anchorMin = new Vector2(0.08f, 0.08f);
+            nameRt.anchorMax = new Vector2(0.92f, 0.28f);
             nameRt.offsetMin = Vector2.zero;
             nameRt.offsetMax = Vector2.zero;
             var nameText = nameGo.GetComponent<Text>();
-            StyleText(nameText, 14, TextAnchor.MiddleCenter);
+            StyleText(nameText, 16, TextAnchor.MiddleCenter);
             nameText.text = relic?.DisplayName ?? relicId ?? "遗物";
-
-            AttachRewardBadge(rt);
 
             var btn = go.GetComponent<Button>();
             btn.targetGraphic = rootImage;
+            btn.transition = Selectable.Transition.None;
             btn.onClick.AddListener(() => onClick?.Invoke());
+            BattleButtonPressFeedback.Apply(btn);
+            UiAudioHooks.WireButton(btn);
             BindRewardTooltip(go, relic?.DisplayName ?? relicId ?? "遗物", relic?.Description);
             return btn;
         }
@@ -1254,18 +1252,18 @@ namespace Grimhand.Presentation.Battle
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = pos;
-            rt.sizeDelta = new Vector2(size, size);
+            rt.sizeDelta = new Vector2(RewardPlateWidth, RewardPlateHeight);
 
             var img = go.GetComponent<Image>();
-            img.color = new Color(0.14f, 0.16f, 0.22f, 0.96f);
+            ApplyRewardPlate(img);
 
             if (icon != null)
             {
                 var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
                 iconGo.transform.SetParent(go.transform, false);
                 var iconRt = iconGo.GetComponent<RectTransform>();
-                iconRt.anchorMin = new Vector2(0.12f, 0.22f);
-                iconRt.anchorMax = new Vector2(0.88f, 0.92f);
+                iconRt.anchorMin = new Vector2(0.14f, 0.32f);
+                iconRt.anchorMax = new Vector2(0.86f, 0.88f);
                 iconRt.offsetMin = Vector2.zero;
                 iconRt.offsetMax = Vector2.zero;
                 var iconImg = iconGo.GetComponent<Image>();
@@ -1281,8 +1279,8 @@ namespace Grimhand.Presentation.Battle
             var labelRt = labelGo.GetComponent<RectTransform>();
             if (icon != null)
             {
-                labelRt.anchorMin = new Vector2(0.06f, 0.04f);
-                labelRt.anchorMax = new Vector2(0.94f, 0.2f);
+                labelRt.anchorMin = new Vector2(0.08f, 0.08f);
+                labelRt.anchorMax = new Vector2(0.92f, 0.28f);
                 labelRt.offsetMin = Vector2.zero;
                 labelRt.offsetMax = Vector2.zero;
             }
@@ -1290,17 +1288,40 @@ namespace Grimhand.Presentation.Battle
             {
                 labelRt.anchorMin = Vector2.zero;
                 labelRt.anchorMax = Vector2.one;
-                labelRt.offsetMin = new Vector2(4f, 4f);
-                labelRt.offsetMax = new Vector2(-4f, -4f);
+                labelRt.offsetMin = new Vector2(10f, 12f);
+                labelRt.offsetMax = new Vector2(-10f, -12f);
             }
+
             var text = labelGo.GetComponent<Text>();
-            StyleText(text, icon != null ? 13 : 16, TextAnchor.MiddleCenter);
+            StyleText(text, icon != null ? 16 : 18, TextAnchor.MiddleCenter);
             text.text = label;
 
             var btn = go.GetComponent<Button>();
             btn.targetGraphic = img;
+            btn.transition = Selectable.Transition.None;
             btn.onClick.AddListener(() => onClick?.Invoke());
+            BattleButtonPressFeedback.Apply(btn);
+            UiAudioHooks.WireButton(btn);
             return btn;
+        }
+
+        void ApplyRewardPlate(Image image)
+        {
+            if (image == null)
+                return;
+
+            image.raycastTarget = true;
+            image.preserveAspect = false;
+            image.type = Image.Type.Simple;
+            if (_icons != null && _icons.UiRewardPlate != null)
+            {
+                image.sprite = _icons.UiRewardPlate;
+                image.color = Color.white;
+                return;
+            }
+
+            image.sprite = null;
+            image.color = new Color(0.12f, 0.13f, 0.16f, 0.96f);
         }
 
         Sprite PickPathSprite(int index, int layerNumber) =>

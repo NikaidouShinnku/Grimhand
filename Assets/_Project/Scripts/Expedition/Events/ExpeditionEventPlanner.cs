@@ -396,8 +396,12 @@ namespace Grimhand.Expedition
                 0 => TeamHpThen(
                     run,
                     -10,
-                    "全队轮番对人偶展开特训，护甲技巧有所提升。",
-                    ExpeditionRewardPickupFactory.TeamStats("训练人偶", teamDefense: 1, grantXp: 5)),
+                    "全队轮番对人偶展开特训，虽然消耗了不少体力，但每个人的防御技巧都有所提升。",
+                    ExpeditionRewardPickupFactory.TeamStats(
+                        "训练人偶",
+                        teamBlockGainPercent: 5f,
+                        grantXp: 5),
+                    percentFromMaxHp: true),
                 1 => PlanTrainingDummyCardUpgrade(run),
                 _ => TeamHealThen(run, 10, "短暂休息后继续前行。")
             };

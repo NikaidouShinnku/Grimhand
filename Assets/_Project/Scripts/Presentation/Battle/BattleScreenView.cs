@@ -1050,7 +1050,7 @@ namespace Grimhand.Presentation.Battle
             if (_nodeInteractOverlay == null)
             {
                 _nodeInteractOverlay = gameObject.AddComponent<ExpeditionNodeInteractOverlayView>();
-                _nodeInteractOverlay.Initialize(_session, transform);
+                _nodeInteractOverlay.Initialize(_session, transform, _uiIcons);
             }
 
             if (_eventSequenceOverlay == null)
@@ -1506,8 +1506,9 @@ namespace Grimhand.Presentation.Battle
                 ClearDamagePreviewTarget(silent: true);
 
             RefreshSlotRow(enemySlots, state, targetMode, validTargets, _session.PresentationSnapshot, showExpBar: false);
+            // 战斗信息框只显示等级/生命/速度等，不显示经验
             RefreshSlotRow(playerSlots, state, targetMode, validTargets, _session.PresentationSnapshot,
-                showExpBar: _session.IsExpeditionMode);
+                showExpBar: false);
             EnsureEnemyHpBarAlignment();
         }
 

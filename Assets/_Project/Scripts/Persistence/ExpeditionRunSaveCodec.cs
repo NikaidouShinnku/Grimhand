@@ -285,6 +285,7 @@ namespace Grimhand.Persistence
             {
                 teamAttackBonus = modifiers.TeamAttackBonus,
                 teamDefenseBonus = modifiers.TeamDefenseBonus,
+                teamBlockGainBonusPercent = modifiers.TeamBlockGainBonusPercent,
                 energyCapBonus = modifiers.EnergyCapBonus,
                 handLimitBonus = modifiers.HandLimitBonus,
                 drawPerTurnBonus = modifiers.DrawPerTurnBonus,
@@ -306,6 +307,7 @@ namespace Grimhand.Persistence
 
             modifiers.TeamAttackBonus = dto.teamAttackBonus;
             modifiers.TeamDefenseBonus = dto.teamDefenseBonus;
+            modifiers.TeamBlockGainBonusPercent = dto.teamBlockGainBonusPercent;
             modifiers.EnergyCapBonus = dto.energyCapBonus;
             modifiers.HandLimitBonus = dto.handLimitBonus;
             modifiers.DrawPerTurnBonus = dto.drawPerTurnBonus;
@@ -530,6 +532,7 @@ namespace Grimhand.Persistence
                 statCharacterName = pickup.StatCharacterName ?? "",
                 teamAttackBonus = pickup.TeamAttackBonus,
                 teamDefenseBonus = pickup.TeamDefenseBonus,
+                teamBlockGainBonusPercent = pickup.TeamBlockGainBonusPercent,
                 energyCapBonus = pickup.EnergyCapBonus,
                 personalAttackBonus = pickup.PersonalAttackBonus,
                 grantXp = pickup.GrantXp,
@@ -591,6 +594,7 @@ namespace Grimhand.Persistence
                 StatCharacterName = dto.statCharacterName ?? "",
                 TeamAttackBonus = dto.teamAttackBonus,
                 TeamDefenseBonus = dto.teamDefenseBonus,
+                TeamBlockGainBonusPercent = dto.teamBlockGainBonusPercent,
                 EnergyCapBonus = dto.energyCapBonus,
                 PersonalAttackBonus = dto.personalAttackBonus,
                 GrantXp = dto.grantXp,

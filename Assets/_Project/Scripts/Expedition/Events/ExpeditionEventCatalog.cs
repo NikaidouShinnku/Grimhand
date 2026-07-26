@@ -110,7 +110,7 @@ namespace Grimhand.Expedition.Events
                     prerequisite: "looted_adventurer"),
                 Evt(ExpeditionEventIds.TrainingDummy, "训练人偶",
                     "破旧训练人偶仍可用于练习。",
-                    Choice("A", "全队训练", "全队 -10% HP，整场远征中所有角色DEF+1，全队+5经验",
+                    Choice("A", "全队训练", "全队 -10% 最大HP，整场远征获得5%强固，全队+5经验",
                         "全队轮番对人偶展开特训，虽然消耗了不少体力，但每个人的防御技巧都有所提升。"),
                     Choice("B", "单人特训", "1 名角色 -20% HP，该角色选择1张卡升1级并获得+10经验",
                         "一名角色独自苦练到精疲力竭，但攻击力得到了显著提升。"),

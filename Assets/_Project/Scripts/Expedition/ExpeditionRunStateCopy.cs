@@ -138,6 +138,7 @@ namespace Grimhand.Expedition
 
             target.TeamAttackBonus = source.TeamAttackBonus;
             target.TeamDefenseBonus = source.TeamDefenseBonus;
+            target.TeamBlockGainBonusPercent = source.TeamBlockGainBonusPercent;
             target.EnergyCapBonus = source.EnergyCapBonus;
             target.HandLimitBonus = source.HandLimitBonus;
             target.DrawPerTurnBonus = source.DrawPerTurnBonus;
@@ -257,6 +258,7 @@ namespace Grimhand.Expedition
                 StatCharacterName = source.StatCharacterName,
                 TeamAttackBonus = source.TeamAttackBonus,
                 TeamDefenseBonus = source.TeamDefenseBonus,
+                TeamBlockGainBonusPercent = source.TeamBlockGainBonusPercent,
                 EnergyCapBonus = source.EnergyCapBonus,
                 PersonalAttackBonus = source.PersonalAttackBonus,
                 GrantXp = source.GrantXp,

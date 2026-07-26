@@ -15,7 +15,7 @@ namespace Grimhand.Presentation.Battle
         const float RefHeight = 1080f;
 
         const float CardRowBottom = 8f;
-        const float HandLabelHeight = 20f;
+        const float HandLabelHeight = 0f;
         const float RowGap = 8f;
 
         const float IntentPanelWidth = 360f;
@@ -48,8 +48,9 @@ namespace Grimhand.Presentation.Battle
         const float ActionOrderBarRight = 140f;
         public const float ActionOrderBarMiniCardScale = 0.66f;
 
-        const float StageBottom = 0.19f;
-        const float StageTop = 0.78f;
+        // 舞台整体下移，贴着地面线；左右阵营向中间靠拢
+        const float StageBottom = 0.075f;
+        const float StageTop = 0.70f;
         const int HudChromeSortOrder = 45;
 
         public static int HudChromeSortOrderValue => HudChromeSortOrder;
@@ -75,15 +76,16 @@ namespace Grimhand.Presentation.Battle
         public static float ScaledOrderBarCardWidth => CardBaseWidth * ActionOrderBarMiniCardScale;
         public static float ScaledOrderBarCardHeight => CardBaseHeight * ActionOrderBarMiniCardScale;
         static float CardRowHeight => ScaledCardHeight + HandLabelHeight + 2f;
-        static float HandRightInset => 24f;
         static float EnergyHudLeft => InventoryGap;
         // 能量靠左下角后，侧栏按钮叠在能量上方；手牌需避开更宽的能量区
         static float UtilityStackBottom => CardRowBottom + EnergyHudHeight + InventoryGap;
         static float HandLeftInset =>
             Mathf.Max(InventoryButtonSize + InventoryGap, EnergyHudLeft + EnergyHudWidth) + 12f;
+        // 右侧留给出牌/空过，避免与下移后的按钮重叠
+        static float HandRightInset => PlanningActionsWidth + IntentPanelRight - 28f;
         static float UpperRowBottom => CardRowBottom + CardRowHeight + RowGap;
-        // 出牌/空过放在手牌行上方，避免与加宽后的手牌区重叠
-        static float PlanningActionsBottom => CardRowBottom + CardRowHeight + RowGap;
+        // 出牌/空过贴在手牌上沿附近（红框位置），不再悬在半空
+        static float PlanningActionsBottom => CardRowBottom + ScaledCardHeight * 0.52f;
 
         public static void ApplyIfNeeded(Transform battleScreenRoot)
         {
@@ -133,6 +135,7 @@ namespace Grimhand.Presentation.Battle
                 ConfigureHudChromeRoot(existing);
                 ReparentChromePanels(battleScreenRoot, existing);
                 existing.SetAsLastSibling();
+                ExpeditionMapOverlayLayer.BringLayerToFront(battleScreenRoot);
                 return existing;
             }
 
@@ -142,6 +145,7 @@ namespace Grimhand.Presentation.Battle
             ConfigureHudChromeRoot(root);
             ReparentChromePanels(battleScreenRoot, root);
             root.SetAsLastSibling();
+            ExpeditionMapOverlayLayer.BringLayerToFront(battleScreenRoot);
             return root;
         }
 
@@ -186,8 +190,8 @@ namespace Grimhand.Presentation.Battle
 
         static void ApplyStageClusterLayout(Transform battleScreenRoot)
         {
-            SetStageRect(battleScreenRoot.Find("PlayerStage") as RectTransform, 0.02f, StageBottom, 0.42f, StageTop);
-            SetStageRect(battleScreenRoot.Find("EnemyStage") as RectTransform, 0.58f, StageBottom, 0.98f, StageTop);
+            SetStageRect(battleScreenRoot.Find("PlayerStage") as RectTransform, 0.06f, StageBottom, 0.47f, StageTop);
+            SetStageRect(battleScreenRoot.Find("EnemyStage") as RectTransform, 0.53f, StageBottom, 0.94f, StageTop);
         }
 
         static void SetStageRect(RectTransform stage, float xMin, float yMin, float xMax, float yMax)
@@ -303,20 +307,21 @@ namespace Grimhand.Presentation.Battle
             if (stage == null)
                 return;
 
-            const float rowMinY = 0.08f;
-            const float rowMaxY = 0.92f;
+            const float rowMinY = 0.02f;
+            const float rowMaxY = 0.96f;
 
+            // 三人横向收紧，避免站得太散
             if (team == TeamSide.Player)
             {
-                SetSlotBand(stage, "Slot_Back", 0.04f, 0.32f, rowMinY, rowMaxY);
-                SetSlotBand(stage, "Slot_Middle", 0.36f, 0.64f, rowMinY, rowMaxY);
-                SetSlotBand(stage, "Slot_Front", 0.68f, 0.96f, rowMinY, rowMaxY);
+                SetSlotBand(stage, "Slot_Back", 0.10f, 0.36f, rowMinY, rowMaxY);
+                SetSlotBand(stage, "Slot_Middle", 0.38f, 0.64f, rowMinY, rowMaxY);
+                SetSlotBand(stage, "Slot_Front", 0.66f, 0.92f, rowMinY, rowMaxY);
             }
             else
             {
-                SetSlotBand(stage, "Slot_Front", 0.04f, 0.32f, rowMinY, rowMaxY);
-                SetSlotBand(stage, "Slot_Middle", 0.36f, 0.64f, rowMinY, rowMaxY);
-                SetSlotBand(stage, "Slot_Back", 0.68f, 0.96f, rowMinY, rowMaxY);
+                SetSlotBand(stage, "Slot_Front", 0.08f, 0.34f, rowMinY, rowMaxY);
+                SetSlotBand(stage, "Slot_Middle", 0.36f, 0.62f, rowMinY, rowMaxY);
+                SetSlotBand(stage, "Slot_Back", 0.64f, 0.90f, rowMinY, rowMaxY);
             }
         }
 
@@ -755,20 +760,8 @@ namespace Grimhand.Presentation.Battle
             }
 
             var label = handArea.Find("HandCount");
-            if (label is RectTransform labelRt)
-            {
-                labelRt.SetAsLastSibling();
-                labelRt.anchorMin = new Vector2(0f, 1f);
-                labelRt.anchorMax = new Vector2(1f, 1f);
-                labelRt.pivot = new Vector2(0.5f, 1f);
-                labelRt.anchoredPosition = Vector2.zero;
-                labelRt.offsetMin = new Vector2(0f, -HandLabelHeight);
-                labelRt.offsetMax = new Vector2(0f, 0f);
-
-                var labelText = label.GetComponent<Text>();
-                if (labelText != null)
-                    labelText.alignment = TextAnchor.MiddleCenter;
-            }
+            if (label != null)
+                label.gameObject.SetActive(false);
         }
 
         static void ApplyHandCardScale(Transform battleScreenRoot)
@@ -789,6 +782,9 @@ namespace Grimhand.Presentation.Battle
             var tooltip = battleScreenRoot.Find("CombatantTooltipLayer");
             if (tooltip != null)
                 tooltip.SetAsLastSibling();
+
+            // 地图必须压在手牌/出牌/意图之上（布局刷新常把 HudChrome 提到最后）
+            ExpeditionMapOverlayLayer.BringLayerToFront(battleScreenRoot);
         }
 
         public static void FixActionBarPublic(Transform actionBar) => FixActionBar(actionBar);

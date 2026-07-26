@@ -83,6 +83,8 @@ namespace Grimhand.Expedition.Model
     {
         public int TeamAttackBonus { get; set; }
         public int TeamDefenseBonus { get; set; }
+        /// <summary>整场远征：全队强固（护甲获取百分比加成）。</summary>
+        public float TeamBlockGainBonusPercent { get; set; }
         public int EnergyCapBonus { get; set; }
         public int HandLimitBonus { get; set; }
         /// <summary>祭坛「抽牌数量」升级档位（基础 5，+1×3 至 8）。</summary>

@@ -126,8 +126,15 @@ namespace Grimhand.Expedition
             config.RunModifiers = RelicDatabase.BuildModifiers(relicIds, relicGrowthTiers);
             TalentDatabase.MergeIntoBattleConfig(config, party, talentRunState, isBossBattle);
             if (expeditionModifiers != null)
+            {
+                // 事件等远征加成必须并入本场战斗，否则领取后不会生效。
+                config.RunModifiers.TeamAttackBonus += expeditionModifiers.TeamAttackBonus;
+                config.RunModifiers.TeamDefenseBonus += expeditionModifiers.TeamDefenseBonus;
+                config.RunModifiers.TeamBlockGainBonusPercent +=
+                    expeditionModifiers.TeamBlockGainBonusPercent;
                 config.RunModifiers.SoulRiftBattleStartRandomHpLoss =
                     expeditionModifiers.SoulRiftBattleStartRandomHpLoss;
+            }
             config.MiracleLeafRevivesRemaining = miracleLeafUsesRemaining;
 
             var playerCap = party != null && party.Count > 0

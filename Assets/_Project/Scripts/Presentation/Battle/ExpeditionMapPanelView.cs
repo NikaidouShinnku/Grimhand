@@ -24,9 +24,8 @@ namespace Grimhand.Presentation.Battle
         const float ScrollbarHandleNudgeX = 4f;
         const float ContentSidePad = 40f;
         const int LayersPerRow = 5;
-        const int MapCanvasSortOrder = 90;
 
-        const int LayoutVersion = 8;
+        const int LayoutVersion = 10;
         int _layoutVersion;
 
         BattleSession _session;
@@ -79,6 +78,8 @@ namespace Grimhand.Presentation.Battle
                 GameAudioService.Instance?.PlayUiMapOpen();
 
             BringToFront();
+            // 打开后立刻再压一次：同帧里 RefreshBottomHud 可能把 HudChrome 提到后面
+            ExpeditionMapOverlayLayer.BringLayerToFront(_parent);
             Refresh();
             if (_scrollRect != null)
                 _scrollRect.verticalNormalizedPosition = 0f;
@@ -151,13 +152,10 @@ namespace Grimhand.Presentation.Battle
 
         void BringToFront()
         {
-            if (_overlayRoot == null)
+            if (_overlayRoot == null || _parent == null)
                 return;
 
-            _overlayRoot.SetAsLastSibling();
-            var canvas = _overlayRoot.GetComponent<Canvas>();
-            if (canvas != null)
-                canvas.sortingOrder = MapCanvasSortOrder;
+            ExpeditionMapOverlayLayer.MountToFront(_overlayRoot, _parent);
         }
 
         IEnumerator DeferredScrollAfterLayout()
@@ -168,6 +166,7 @@ namespace Grimhand.Presentation.Battle
             if (!_open || _session?.Expedition?.Run?.Map == null)
                 yield break;
 
+            BringToFront();
             Canvas.ForceUpdateCanvases();
             LayoutRebuilder.ForceRebuildLayoutImmediate(_scrollContent);
             KeepMapContentCentered();
@@ -375,21 +374,14 @@ namespace Grimhand.Presentation.Battle
             _built = true;
             _layoutVersion = LayoutVersion;
 
-            var overlayGo = new GameObject(
-                "ExpeditionMapOverlay",
-                typeof(RectTransform),
-                typeof(Canvas),
-                typeof(GraphicRaycaster));
+            var overlayGo = new GameObject("ExpeditionMapOverlay", typeof(RectTransform));
             overlayGo.transform.SetParent(parent, false);
             _overlayRoot = overlayGo.GetComponent<RectTransform>();
             _overlayRoot.anchorMin = Vector2.zero;
             _overlayRoot.anchorMax = Vector2.one;
             _overlayRoot.offsetMin = Vector2.zero;
             _overlayRoot.offsetMax = Vector2.zero;
-
-            var canvas = overlayGo.GetComponent<Canvas>();
-            canvas.overrideSorting = true;
-            canvas.sortingOrder = MapCanvasSortOrder;
+            ExpeditionMapOverlayLayer.MountToFront(_overlayRoot, parent);
 
             var blockerGo = new GameObject("Blocker", typeof(RectTransform), typeof(Image), typeof(Button));
             blockerGo.transform.SetParent(_overlayRoot, false);

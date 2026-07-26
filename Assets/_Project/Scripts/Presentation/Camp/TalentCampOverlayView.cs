@@ -17,7 +17,7 @@ namespace Grimhand.Presentation.Camp
     [DisallowMultipleComponent]
     public sealed class TalentCampOverlayView : MonoBehaviour
     {
-        const int LayoutVersion = 19;
+        const int LayoutVersion = 22;
         const float TemplateW = 1672f;
         const float TemplateH = 941f;
         const float ButtonAspect = 512f / 292f;
@@ -33,7 +33,8 @@ namespace Grimhand.Presentation.Camp
         // 返回：拉长盖住模板钮，略加高（直接铺满热区，勿用 Cover/Fit 乱缩放）
         static readonly Vector4 ZoneBack = new(0.842f, 0.908f, 0.978f, 0.972f);
         static readonly Vector4 ZonePortrait = new(0.090f, 0.470f, 0.255f, 0.825f);
-        static readonly Vector4 ZoneName = new(0.095f, 0.408f, 0.250f, 0.450f);
+        // 角色名略右，落在平台铭牌视觉中心
+        static readonly Vector4 ZoneName = new(0.108f, 0.408f, 0.263f, 0.450f);
         // 等级/经验：贴齐左侧竖线后再略右约 1mm
         static readonly Vector4 ZoneLevel = new(0.106f, 0.372f, 0.261f, 0.405f);
         static readonly Vector4 ZoneXpBar = new(0.106f, 0.348f, 0.261f, 0.368f);
@@ -42,9 +43,9 @@ namespace Grimhand.Presentation.Camp
         static readonly Vector4 ZoneCharNext = new(0.316f, 0.095f, 0.348f, 0.200f);
         // 缩略图落入模板五框（略上移）
         static readonly Vector4 ZoneCharThumbs = new(0.078f, 0.078f, 0.288f, 0.235f);
-        // 槽位标题：1 右移居中；2 略左
-        static readonly Vector4 ZoneSlot1Header = new(0.400f, 0.800f, 0.560f, 0.848f);
-        static readonly Vector4 ZoneSlot2Header = new(0.688f, 0.800f, 0.848f, 0.848f);
+        // 槽位标题：右下微调，落入石柱顶帽中心
+        static readonly Vector4 ZoneSlot1Header = new(0.418f, 0.778f, 0.578f, 0.826f);
+        static readonly Vector4 ZoneSlot2Header = new(0.706f, 0.778f, 0.866f, 0.826f);
         // 天赋列：符文位不动；等级略左，拉开与符文间距
         static readonly Vector4 ZoneSlot1Lv = new(0.400f, 0.332f, 0.440f, 0.772f);
         static readonly Vector4 ZoneSlot1Icon = new(0.455f, 0.332f, 0.510f, 0.772f);

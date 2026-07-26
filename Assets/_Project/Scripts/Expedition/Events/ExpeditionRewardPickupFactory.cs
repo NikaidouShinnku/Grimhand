@@ -121,13 +121,15 @@ namespace Grimhand.Expedition.Events
             string header,
             int teamAttack = 0,
             int teamDefense = 0,
+            float teamBlockGainPercent = 0f,
             int energyCap = 0,
             int grantXp = 0,
             bool enableSoulRiftBattleStartRandomHpLoss = false,
             bool enableDivinePunishment = false,
             RewardPickupKind kind = RewardPickupKind.EventOrShrine)
         {
-            if (teamAttack == 0 && teamDefense == 0 && energyCap == 0 && grantXp == 0
+            if (teamAttack == 0 && teamDefense == 0 && teamBlockGainPercent == 0f
+                && energyCap == 0 && grantXp == 0
                 && !enableSoulRiftBattleStartRandomHpLoss && !enableDivinePunishment)
                 return null;
 
@@ -137,6 +139,7 @@ namespace Grimhand.Expedition.Events
                 Kind = kind,
                 TeamAttackBonus = teamAttack,
                 TeamDefenseBonus = teamDefense,
+                TeamBlockGainBonusPercent = teamBlockGainPercent,
                 EnergyCapBonus = energyCap,
                 GrantXp = grantXp,
                 EnableSoulRiftBattleStartRandomHpLoss = enableSoulRiftBattleStartRandomHpLoss,

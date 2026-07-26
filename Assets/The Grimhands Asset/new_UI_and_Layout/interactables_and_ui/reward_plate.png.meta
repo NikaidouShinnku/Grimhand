@@ -5,6 +5,12 @@ TextureImporter:
   - first:
       213: 1029285068822226292
     second: reward_plate_0
+  - first:
+      213: 3207012601695574289
+    second: reward_plate_1
+  - first:
+      213: -2392421635937018995
+    second: reward_plate_2
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -116,10 +122,10 @@ TextureImporter:
       name: reward_plate_0
       rect:
         serializedVersion: 2
-        x: 64
-        y: 58
-        width: 933
-        height: 1372
+        x: 0
+        y: 2
+        width: 1024
+        height: 1529
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -130,6 +136,50 @@ TextureImporter:
       bones: []
       spriteID: 47523c31151c84e00800000000000000
       internalID: 1029285068822226292
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: reward_plate_1
+      rect:
+        serializedVersion: 2
+        x: 38
+        y: 1353
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 119144248f8918c20800000000000000
+      internalID: 3207012601695574289
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: reward_plate_2
+      rect:
+        serializedVersion: 2
+        x: 961
+        y: 1353
+        width: 8
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d8bd30d92396cced0800000000000000
+      internalID: -2392421635937018995
       vertices: []
       indices: 
       edges: []
@@ -149,6 +199,8 @@ TextureImporter:
       entries: []
     nameFileIdTable:
       reward_plate_0: 1029285068822226292
+      reward_plate_1: 3207012601695574289
+      reward_plate_2: -2392421635937018995
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

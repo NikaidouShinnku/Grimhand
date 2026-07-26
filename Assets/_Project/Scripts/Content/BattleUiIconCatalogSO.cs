@@ -60,6 +60,8 @@ namespace Grimhand.Content
         public Sprite UiCharacterPlate;
         /// <summary>事件/遗物板：interactables_and_ui/event_plate.png</summary>
         public Sprite UiEventPlate;
+        /// <summary>事件选项按钮：interactables_and_ui/event_option_plate.png</summary>
+        public Sprite UiEventOptionPlate;
         /// <summary>通用竖直滑动条轨道：interactables_and_ui/sliderbar.png</summary>
         public Sprite UiSliderBar;
         /// <summary>通用竖直滑动条手柄：interactables_and_ui/slider.png</summary>
@@ -78,6 +80,8 @@ namespace Grimhand.Content
         public Sprite UiPromptPlate;
         /// <summary>信息/设置底板：interactables_and_ui/information_plate.png</summary>
         public Sprite UiInformationPlate;
+        /// <summary>奖励框 / 开包底板：interactables_and_ui/reward_plate.png</summary>
+        public Sprite UiRewardPlate;
         public Sprite MerchantCampBuilding;
         public Sprite PortalBuilding;
         /// <summary>Assets/The Grimhands Asset/path and background/training_ground.png</summary>

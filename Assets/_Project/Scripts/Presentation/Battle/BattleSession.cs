@@ -1092,6 +1092,9 @@ namespace Grimhand.Presentation.Battle
             if (rewards.TeamDefenseBonus != 0)
                 return $"全队防御 +{rewards.TeamDefenseBonus}";
 
+            if (rewards.TeamBlockGainBonusPercent != 0f)
+                return $"全队强固 +{rewards.TeamBlockGainBonusPercent:0.#}%";
+
             if (rewards.EnergyCapBonus != 0)
                 return $"能量上限 +{rewards.EnergyCapBonus}";
 

@@ -225,7 +225,8 @@ namespace Grimhand.Presentation.Camp
                         _onLibrary.Invoke();
                     else
                         _onFeatureComingSoon?.Invoke("图书馆");
-                });
+                },
+                visualNudge: new Vector2(-8f, -5f));
         }
 
         /// <summary>
@@ -237,7 +238,8 @@ namespace Grimhand.Presentation.Camp
             string id,
             NormRect zone,
             Sprite visualSprite,
-            Action onClick)
+            Action onClick,
+            Vector2 visualNudge = default)
         {
             var go = CampUiRuntime.CreateRect(id, parent);
             var rt = go.GetComponent<RectTransform>();
@@ -254,8 +256,8 @@ namespace Grimhand.Presentation.Camp
             // 与热区同范围，略向外扩，悬停放大后盖住背景建筑
             visualRt.anchorMin = Vector2.zero;
             visualRt.anchorMax = Vector2.one;
-            visualRt.offsetMin = new Vector2(-8f, -4f);
-            visualRt.offsetMax = new Vector2(8f, 12f);
+            visualRt.offsetMin = new Vector2(-8f + visualNudge.x, -4f + visualNudge.y);
+            visualRt.offsetMax = new Vector2(8f + visualNudge.x, 12f + visualNudge.y);
             visualRt.pivot = new Vector2(0.5f, 0f);
 
             var visualImg = visualGo.AddComponent<Image>();

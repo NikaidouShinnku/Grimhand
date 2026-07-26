@@ -43,6 +43,8 @@ namespace Grimhand.Expedition.Model
         public string StatCharacterName { get; set; } = "";
         public int TeamAttackBonus { get; set; }
         public int TeamDefenseBonus { get; set; }
+        /// <summary>全队强固百分比（护甲获取加成）。</summary>
+        public float TeamBlockGainBonusPercent { get; set; }
         public int EnergyCapBonus { get; set; }
         public int PersonalAttackBonus { get; set; }
         public int GrantXp { get; set; }
@@ -63,6 +65,7 @@ namespace Grimhand.Expedition.Model
         public bool HasStatBonus =>
             TeamAttackBonus != 0
             || TeamDefenseBonus != 0
+            || TeamBlockGainBonusPercent != 0f
             || EnergyCapBonus != 0
             || PersonalAttackBonus != 0
             || GrantXp > 0

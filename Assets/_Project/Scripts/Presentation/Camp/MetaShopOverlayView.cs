@@ -18,12 +18,16 @@ namespace Grimhand.Presentation.Camp
     [DisallowMultipleComponent]
     public sealed class MetaShopOverlayView : MonoBehaviour
     {
-        const int LayoutVersion = 11;
+        const int LayoutVersion = 14;
         const float CardScale = 1.05f;
         const float ButtonHoverScale = 1.08f;
         const float GoldIconSize = 20f;
+        const float PickSkipButtonWidth = 280f;
+        const float Button6Aspect = 512f / 216f;
         // goodsplate sprite 裁切 1634×228
         const float GoodsPlateAspect = 1634f / 228f;
+        static readonly Color HeaderGold = new(0.95f, 0.85f, 0.55f, 1f);
+        static readonly Color ButtonLabel = new(0.96f, 0.92f, 0.78f, 1f);
 
         // 模板 1670×941 归一化
         static readonly Vector4[] ZoneResourceFrames =
@@ -367,18 +371,17 @@ namespace Grimhand.Presentation.Camp
             if (choice?.Template == null || _cardPrefab == null)
                 return;
 
-            var holder = new GameObject($"Choice_{choiceIndex}", typeof(RectTransform), typeof(Image), typeof(Button));
+            var holder = new GameObject($"Choice_{choiceIndex}", typeof(RectTransform));
             holder.transform.SetParent(_pickChoiceRow, false);
             var rt = holder.GetComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(280f, 420f);
-            holder.GetComponent<Image>().color = new Color(0.16f, 0.18f, 0.24f, 0.92f);
+            rt.sizeDelta = new Vector2(220f, 320f);
 
             var cardGo = Instantiate(_cardPrefab.gameObject, holder.transform);
             var cardRt = cardGo.GetComponent<RectTransform>();
             cardRt.anchorMin = new Vector2(0.5f, 0.5f);
             cardRt.anchorMax = new Vector2(0.5f, 0.5f);
             cardRt.pivot = new Vector2(0.5f, 0.5f);
-            cardRt.anchoredPosition = new Vector2(0f, 8f);
+            cardRt.anchoredPosition = Vector2.zero;
             cardRt.localScale = Vector3.one * CardScale;
 
             _definitions.TryGetValue(choice.Template.DefinitionId, out var definition);
@@ -406,9 +409,6 @@ namespace Grimhand.Presentation.Camp
                 onHoverEnter: null,
                 onHoverExit: null);
 
-            var btn = holder.GetComponent<Button>();
-            btn.targetGraphic = holder.GetComponent<Image>();
-            btn.interactable = false;
             _dynamicObjects.Add(holder);
         }
 
@@ -746,34 +746,68 @@ namespace Grimhand.Presentation.Camp
         void BuildPickPanel()
         {
             _pickPanel = CampUiRuntime.CreateRect("PickPanel", _overlayRoot).GetComponent<RectTransform>();
-            CampUiRuntime.SetAnchored(_pickPanel, 0.12f, 0.12f, 0.88f, 0.88f);
+            CampUiRuntime.SetAnchored(_pickPanel, 0.14f, 0.12f, 0.86f, 0.88f);
             var panelBg = _pickPanel.gameObject.AddComponent<Image>();
-            panelBg.color = new Color(0.1f, 0.11f, 0.15f, 0.98f);
+            panelBg.preserveAspect = false;
+            panelBg.type = Image.Type.Simple;
+            if (_uiIcons != null && _uiIcons.UiEventPlate != null)
+            {
+                panelBg.sprite = _uiIcons.UiEventPlate;
+                panelBg.color = Color.white;
+            }
+            else
+            {
+                panelBg.color = new Color(0.1f, 0.11f, 0.15f, 0.98f);
+            }
 
             _pickHeaderText = CampUiRuntime.CreateText(_pickPanel, "卡包", 30, FontStyle.Bold);
-            CampUiRuntime.SetAnchored(_pickHeaderText.rectTransform, 0.04f, 0.9f, 0.96f, 0.98f);
-            _pickHeaderText.color = new Color(0.95f, 0.85f, 0.55f, 1f);
+            CampUiRuntime.SetAnchored(_pickHeaderText.rectTransform, 0.06f, 0.88f, 0.94f, 0.96f);
+            _pickHeaderText.color = HeaderGold;
+            _pickHeaderText.alignment = TextAnchor.MiddleCenter;
 
             _pickHintText = CampUiRuntime.CreateText(_pickPanel, "", 20, FontStyle.Normal);
-            CampUiRuntime.SetAnchored(_pickHintText.rectTransform, 0.04f, 0.82f, 0.96f, 0.89f);
+            CampUiRuntime.SetAnchored(_pickHintText.rectTransform, 0.06f, 0.80f, 0.94f, 0.87f);
+            _pickHintText.alignment = TextAnchor.MiddleCenter;
 
             var rowGo = CampUiRuntime.CreateRect("Choices", _pickPanel);
             _pickChoiceRow = rowGo.GetComponent<RectTransform>();
-            CampUiRuntime.SetAnchored(_pickChoiceRow, 0.04f, 0.12f, 0.96f, 0.8f);
+            CampUiRuntime.SetAnchored(_pickChoiceRow, 0.06f, 0.16f, 0.94f, 0.78f);
             var rowLayout = rowGo.AddComponent<HorizontalLayoutGroup>();
-            rowLayout.spacing = 32f;
+            rowLayout.spacing = 28f;
             rowLayout.childAlignment = TextAnchor.MiddleCenter;
             rowLayout.childControlWidth = false;
             rowLayout.childControlHeight = false;
 
-            _pickCollectButton = CampUiRuntime.CreateButton(_pickPanel, "收下全部",
-                new Color(0.22f, 0.42f, 0.24f, 1f), new Vector2(260f, 56f));
-            var collectRt = _pickCollectButton.GetComponent<RectTransform>();
+            var collectGo = CampUiRuntime.CreateRect("CollectAll", _pickPanel);
+            var collectRt = collectGo.GetComponent<RectTransform>();
             collectRt.anchorMin = new Vector2(0.5f, 0.04f);
             collectRt.anchorMax = new Vector2(0.5f, 0.04f);
             collectRt.pivot = new Vector2(0.5f, 0f);
             collectRt.anchoredPosition = Vector2.zero;
+            collectRt.sizeDelta = new Vector2(PickSkipButtonWidth, PickSkipButtonWidth / Button6Aspect);
+
+            var collectImg = collectGo.AddComponent<Image>();
+            collectImg.color = Color.white;
+            collectImg.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiButton6 != null)
+                collectImg.sprite = _uiIcons.UiButton6;
+            else
+                collectImg.color = new Color(0.22f, 0.42f, 0.24f, 1f);
+
+            var collectLabel = CampUiRuntime.CreateText(collectGo.transform, "收下全部", 22, FontStyle.Bold,
+                TextAnchor.MiddleCenter);
+            CampUiRuntime.StretchFull(collectLabel.rectTransform);
+            collectLabel.rectTransform.offsetMin = new Vector2(16f, 8f);
+            collectLabel.rectTransform.offsetMax = new Vector2(-16f, -12f);
+            collectLabel.color = ButtonLabel;
+            collectLabel.raycastTarget = false;
+
+            _pickCollectButton = collectGo.AddComponent<Button>();
+            _pickCollectButton.targetGraphic = collectImg;
+            _pickCollectButton.transition = Selectable.Transition.None;
             _pickCollectButton.onClick.AddListener(TryCollectAll);
+            BattleButtonPressFeedback.Apply(_pickCollectButton);
+            UiAudioHooks.WireButton(_pickCollectButton);
 
             _pickPanel.gameObject.SetActive(false);
         }

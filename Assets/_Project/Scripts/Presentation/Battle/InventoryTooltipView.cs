@@ -9,7 +9,8 @@ namespace Grimhand.Presentation.Battle
 {
     public sealed class InventoryTooltipView : MonoBehaviour
     {
-        const float HideDelaySeconds = 0.05f;
+        /// <summary>指针离开目标后，超过该秒数仍未回到目标则强制隐藏（防战斗切换等残留）。</summary>
+        const float StaleHideSeconds = 1f;
         const float TitleBodySpacing = 6f;
 
         RectTransform _panel;
@@ -21,6 +22,7 @@ namespace Grimhand.Presentation.Battle
         GameObject _activeTarget;
         GameObject _pendingHideTarget;
         Coroutine _hideRoutine;
+        float _leftTargetAt = -1f;
 
         public void Initialize(RectTransform parent, BattleUiIconCatalogSO icons = null)
         {
@@ -113,6 +115,7 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             CancelHide();
+            _leftTargetAt = -1f;
             _activeTarget = target;
 
             var hasTitle = showTitle && !string.IsNullOrWhiteSpace(title);
@@ -263,7 +266,7 @@ namespace Grimhand.Presentation.Battle
         IEnumerator HideAfterDelay()
         {
             var target = _pendingHideTarget;
-            yield return new WaitForSecondsRealtime(HideDelaySeconds);
+            yield return new WaitForSecondsRealtime(StaleHideSeconds);
             _hideRoutine = null;
             if (_activeTarget != target)
                 yield break;
@@ -277,6 +280,7 @@ namespace Grimhand.Presentation.Battle
                 _panel.gameObject.SetActive(false);
             _activeTarget = null;
             _pendingHideTarget = null;
+            _leftTargetAt = -1f;
         }
 
         void CancelHide()
@@ -298,8 +302,15 @@ namespace Grimhand.Presentation.Battle
 
         void LateUpdate()
         {
-            if (_panel == null || !_panel.gameObject.activeSelf || _activeTarget == null)
+            if (_panel == null || !_panel.gameObject.activeSelf)
                 return;
+
+            // Unity 已销毁对象 == null 为 true：必须清掉残留面板
+            if (_activeTarget == null)
+            {
+                HideImmediate();
+                return;
+            }
 
             if (!_activeTarget.activeInHierarchy)
             {
@@ -309,9 +320,22 @@ namespace Grimhand.Presentation.Battle
 
             var rt = _activeTarget.transform as RectTransform;
             if (rt == null)
+            {
+                HideImmediate();
                 return;
+            }
 
-            if (!UiPointerUtility.IsOverRectTransform(rt, UiPointerUtility.GetEventCamera(rt)))
+            if (UiPointerUtility.IsOverRectTransform(rt, UiPointerUtility.GetEventCamera(rt)))
+            {
+                _leftTargetAt = -1f;
+                CancelHide();
+                return;
+            }
+
+            if (_leftTargetAt < 0f)
+                _leftTargetAt = Time.unscaledTime;
+
+            if (Time.unscaledTime - _leftTargetAt >= StaleHideSeconds)
                 HideImmediate();
         }
 

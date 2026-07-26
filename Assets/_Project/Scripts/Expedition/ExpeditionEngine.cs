@@ -1278,6 +1278,9 @@ namespace Grimhand.Expedition
                 return false;
 
             var choice = definition.Choices[choiceIndex];
+            if (choice.RequiredGold > 0 && _run.Gold < choice.RequiredGold)
+                return false;
+
             var eventId = _run.PendingEvent.EventId;
             var aftermathText = choice.AfterChoiceText;
             int? fixedRoll = null;

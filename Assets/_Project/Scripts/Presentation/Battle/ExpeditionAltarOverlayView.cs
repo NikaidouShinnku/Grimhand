@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
 using Grimhand.Content;
@@ -5,6 +6,7 @@ using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 using Grimhand.Presentation;
 using Grimhand.Presentation.Audio;
+using Grimhand.Presentation.Camp;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -40,9 +42,43 @@ namespace Grimhand.Presentation.Battle
 
         const float SummonCardScale = 1.02f;
         const float SummonReplaceCardScale = 0.78f;
-        const float UpgradeCardScale = 0.74f;
+        const float UpgradeCardScale = 0.92f;
         const float HubTileMinHeight = 280f;
         const float ActionButtonHeight = 56f;
+        const int LayoutVersion = 13;
+        const float HubButtonHoverScale = 1.08f;
+        // button6 原生 512×216
+        const float Button6Aspect = 512f / 216f;
+
+        /// <summary>归一化热区：原点左下，相对祭坛一级大模板精灵裁切（1488×995）。</summary>
+        readonly struct HubNormRect
+        {
+            public readonly float XMin;
+            public readonly float YMin;
+            public readonly float XMax;
+            public readonly float YMax;
+
+            public HubNormRect(float xMin, float yMin, float xMax, float yMax)
+            {
+                XMin = xMin;
+                YMin = yMin;
+                XMax = xMax;
+                YMax = yMax;
+            }
+        }
+
+        // 三选项：竖直约 1.5× 盖住模板框；休息回复略左收，与左中间距一致
+        static readonly HubNormRect HubZoneSummon = new(0.095f, 0.175f, 0.350f, 0.590f);
+        static readonly HubNormRect HubZoneDistribute = new(0.375f, 0.175f, 0.630f, 0.590f);
+        static readonly HubNormRect HubZoneRest = new(0.645f, 0.175f, 0.900f, 0.590f);
+        static readonly HubNormRect HubZoneXpIcon = new(0.415f, 0.900f, 0.455f, 0.960f);
+        static readonly HubNormRect HubZoneXpText = new(0.458f, 0.905f, 0.520f, 0.955f);
+        static readonly HubNormRect HubZoneGoldIcon = new(0.530f, 0.895f, 0.575f, 0.960f);
+        static readonly HubNormRect HubZoneGoldText = new(0.578f, 0.905f, 0.645f, 0.955f);
+        static readonly HubNormRect HubZoneTitleLeft = new(0.03f, 0.90f, 0.20f, 0.97f);
+        // 离开：保持此前已对齐位置，不再挪动
+        static readonly HubNormRect HubZoneLeave = new(0.755f, 0.018f, 0.958f, 0.128f);
+
         const float SummonCardWidth = 208f;
         const float SummonCardHeight = 292f;
         const float SummonReplaceCardWidth = 156f;
@@ -50,8 +86,10 @@ namespace Grimhand.Presentation.Battle
         const int SummonCollectionColumns = 7;
         const float SummonCollectionGridSpacing = 10f;
         const float SummonReplaceCardSpacing = 18f;
-        const float UpgradeCardWidth = 188f;
-        const float UpgradeCardHeight = 272f;
+        const float UpgradeCardWidth = 210f;
+        const float UpgradeCardHeight = 300f;
+        const int UpgradeCardColumns = 3;
+        const float UpgradeCardSpacing = 12f;
 
         BattleSession _session;
         CardView _cardPrefab;
@@ -71,6 +109,12 @@ namespace Grimhand.Presentation.Battle
         Button _backButton;
         Text _footerHintText;
         Button _leaveButton;
+        Image _panelImage;
+        RectTransform _panelRt;
+        RectTransform _hubLayer;
+        Text _titleLeftText;
+        int _builtVersion = -1;
+
 
         RectTransform _summonMemberRow;
         RectTransform _summonCollectionHost;
@@ -84,6 +128,7 @@ namespace Grimhand.Presentation.Battle
         RectTransform _upgradeCardGrid;
         ScrollRect _upgradeCardScroll;
         float _upgradeCardScrollY = 1f;
+        Coroutine _upgradeCardLayoutRoutine;
         RectTransform _upgradeCardDetail;
         Button _upgradeCardButton;
         Text _upgradeCardDetailTitle;
@@ -150,6 +195,8 @@ namespace Grimhand.Presentation.Battle
 
             SetVisible(true);
             _root.SetAsLastSibling();
+            if (_panelRt != null)
+                FitPanelToAspect(_panelRt, GetPanelAspect(), 0.92f, 0.90f);
             if (_navBar != null && _screen != AltarScreen.Hub)
                 _navBar.SetAsLastSibling();
             RefreshHeader(run);
@@ -182,6 +229,8 @@ namespace Grimhand.Presentation.Battle
 
         void RefreshHeader(ExpeditionRunState run)
         {
+            ApplyChromeForScreen();
+
             if (_xpHeaderText != null)
                 _xpHeaderText.text = run.SharedXpPool.ToString();
             if (_xpHeaderIcon != null && _uiIcons?.XpIcon != null)
@@ -198,9 +247,14 @@ namespace Grimhand.Presentation.Battle
                 _goldHeaderIcon.color = Color.white;
             }
 
-            var layer = run.CardAltar?.SourceLayer ?? 1;
-            _layerHeaderText.text = $"第 {layer} 层 · {ResolveRegionName(layer)}";
-            _backButton.gameObject.SetActive(_screen != AltarScreen.Hub);
+            if (_layerHeaderText != null)
+                _layerHeaderText.gameObject.SetActive(false);
+
+            if (_footerHintText != null)
+                _footerHintText.gameObject.SetActive(false);
+
+            if (_backButton != null)
+                _backButton.gameObject.SetActive(_screen != AltarScreen.Hub);
             if (_navBar != null)
                 _navBar.gameObject.SetActive(_screen != AltarScreen.Hub);
         }
@@ -213,14 +267,23 @@ namespace Grimhand.Presentation.Battle
             if (_screen == AltarScreen.UpgradeCards && _upgradeCardScroll != null)
                 _upgradeCardScrollY = ScrollRectNavigation.CaptureVertical(_upgradeCardScroll);
 
+            if (_upgradeCardLayoutRoutine != null)
+            {
+                StopCoroutine(_upgradeCardLayoutRoutine);
+                _upgradeCardLayoutRoutine = null;
+            }
+
             ClearChildren(_contentHost);
             _upgradeCardScroll = null;
             _upgradeCardGrid = null;
 
+            if (_hubLayer != null)
+                _hubLayer.gameObject.SetActive(_screen == AltarScreen.Hub);
+
             switch (_screen)
             {
                 case AltarScreen.Hub:
-                    BuildHub(_contentHost);
+                    // 一级热区在 _hubLayer，模板已含标题文案
                     break;
                 case AltarScreen.SummonCards:
                     BuildSummonScreen(_contentHost, run);
@@ -247,13 +310,85 @@ namespace Grimhand.Presentation.Battle
             }
         }
 
-        void BuildHub(RectTransform parent)
+        void BuildHubLayer(RectTransform panelRt)
         {
-            AddTitle(parent, "祭坛", "选择一项祭坛服务", 0.86f, 1f, 0.76f, 0.86f);
-            var grid = CreateGrid(parent, "HubGrid", 3, 1, 0.06f, 0.72f, 20f, new Vector2(340f, 300f));
-            CreateHubTile(grid, "◫", "召唤卡牌", "从收藏取出卡牌，加入或替换卡组", () => _screen = AltarScreen.SummonCards);
-            CreateHubTile(grid, "★", "分配经验", "花费经验强化角色与卡牌", () => _screen = AltarScreen.DistributeXp);
-            CreateHubTile(grid, "♥", "休息回复", "花费金币或经验，恢复全队生命", () => _screen = AltarScreen.RestRecovery);
+            _hubLayer = CreateRect("HubLayer", panelRt);
+            StretchFull(_hubLayer);
+
+            CreateHubOptionButton(
+                _hubLayer, "Summon", HubZoneSummon, "◫", "召唤卡牌",
+                "从收藏取出卡牌，加入或替换卡组",
+                () => { _screen = AltarScreen.SummonCards; Refresh(); });
+            CreateHubOptionButton(
+                _hubLayer, "Distribute", HubZoneDistribute, "★", "分配经验",
+                "花费经验强化角色与卡牌",
+                () => { _screen = AltarScreen.DistributeXp; Refresh(); });
+            CreateHubOptionButton(
+                _hubLayer, "Rest", HubZoneRest, "♥", "休息回复",
+                "花费金币或经验，恢复全队生命",
+                () => { _screen = AltarScreen.RestRecovery; Refresh(); });
+        }
+
+        void CreateHubOptionButton(
+            Transform parent,
+            string id,
+            HubNormRect zone,
+            string icon,
+            string title,
+            string desc,
+            System.Action onClick)
+        {
+            var go = CreateRect(id, parent);
+            ApplyHubNormRect(go, zone);
+
+            var hit = go.gameObject.AddComponent<Image>();
+            hit.color = new Color(1f, 1f, 1f, 0.01f);
+            hit.raycastTarget = true;
+            go.GetComponent<CanvasRenderer>().cullTransparentMesh = false;
+
+            var visualGo = CreateRect("Visual", go);
+            StretchFull(visualGo);
+            visualGo.pivot = new Vector2(0.5f, 0.5f);
+
+            var visualImg = visualGo.gameObject.AddComponent<Image>();
+            visualImg.color = Color.white;
+            visualImg.raycastTarget = false;
+            visualImg.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiButton7 != null)
+                visualImg.sprite = _uiIcons.UiButton7;
+            else
+            {
+                visualImg.color = CardBg;
+                Debug.LogWarning($"[ExpeditionAltar] 缺少 UiButton7，请执行 Grimhand → Content → Refresh UI Visual Catalogs。选项：{id}");
+            }
+
+            var iconText = CreateStaticText(visualGo, icon, 42, FontStyle.Normal, TextAnchor.UpperCenter);
+            StretchBand(iconText.rectTransform, 0.62f, 0.92f);
+            iconText.color = TitleGold;
+
+            var titleText = CreateStaticText(visualGo, title, 26, FontStyle.Bold, TextAnchor.UpperCenter);
+            StretchBand(titleText.rectTransform, 0.42f, 0.62f);
+            titleText.color = TextMain;
+
+            var descText = CreateStaticText(visualGo, desc, 15, FontStyle.Normal, TextAnchor.UpperCenter);
+            StretchBand(descText.rectTransform, 0.06f, 0.40f);
+            descText.color = TextMuted;
+            descText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            descText.verticalOverflow = VerticalWrapMode.Truncate;
+
+            var group = visualGo.gameObject.AddComponent<CanvasGroup>();
+            group.alpha = 1f;
+            group.blocksRaycasts = false;
+            group.interactable = false;
+
+            var hover = go.gameObject.AddComponent<CampBuildingHoverView>();
+            hover.Bind(visualGo, group, HubButtonHoverScale, hideWhenIdle: false);
+
+            var btn = go.gameObject.AddComponent<Button>();
+            btn.targetGraphic = hit;
+            btn.transition = Selectable.Transition.None;
+            btn.onClick.AddListener(() => onClick?.Invoke());
+            UiAudioHooks.WireButton(btn);
         }
 
         void BuildRestRecoveryScreen(RectTransform parent, ExpeditionRunState run)
@@ -495,7 +630,8 @@ namespace Grimhand.Presentation.Battle
                 titleMaxY: 0.995f,
                 subtitleMinY: 0.845f,
                 subtitleMaxY: 0.90f);
-            var grid = CreateGrid(parent, "XpGrid", 2, 2, 0.18f, 0.83f, 16f, new Vector2(420f, 230f));
+            // 与改皮肤前同布局：2×2 大格铺满中部
+            var grid = CreateGrid(parent, "XpGrid", 2, 2, 0.06f, 0.82f, 18f, new Vector2(460f, 250f));
             CreateHubTile(grid, "♥", "升级血量", "选择角色提升最大 HP", () => _screen = AltarScreen.UpgradeHp);
             CreateHubTile(grid, "⚡", "升级能量", $"提升能量上限（当前 {GetEffectiveEnergyCap()}）", () => _screen = AltarScreen.UpgradeEnergy);
             CreateHubTile(grid, "▤", "抽牌数量", $"提升每回合抽牌数（当前 {GetEffectiveDrawCount()}）", () => _screen = AltarScreen.UpgradeHand);
@@ -509,21 +645,162 @@ namespace Grimhand.Presentation.Battle
         void BuildUpgradeHpScreen(RectTransform parent, ExpeditionRunState run)
         {
             AddTitle(parent, "升级血量", "选择角色，消耗经验提升其最大 HP");
-            var list = CreateVerticalList(parent, "HpList", 0.12f, 0.78f, 12f);
+            var list = CreateVerticalList(parent, "HpList", 0.06f, 0.78f, 14f);
             var cost = ExpeditionAltarUpgradeRules.GetHpPlus5Cost(run.Modifiers);
             foreach (var member in run.Party)
             {
                 if (member == null)
                     continue;
 
-                var afterMax = member.MaxHp + ExpeditionAltarUpgradeRules.HpPlus5Amount;
-                var afterHp = System.Math.Min(afterMax, member.Hp + ExpeditionAltarUpgradeRules.HpPlus5Amount);
-                var healNote = member.Hp < member.MaxHp ? $"（并回复 {ExpeditionAltarUpgradeRules.HpPlus5Amount}HP）" : "";
-                var sub = $"{member.Hp} / {member.MaxHp} HP";
-                var right = $"{cost} XP → HP +{ExpeditionAltarUpgradeRules.HpPlus5Amount}\n升级后：{afterHp} / {afterMax} HP{healNote}";
-                var memberId = member.CharacterDefinitionId;
-                CreateMemberRow(list, member, sub, right, run.SharedXpPool >= cost,
-                    () => { _session.UpgradeAltarMemberHp(memberId); Refresh(); });
+                CreateUpgradeHpMemberRow(list, member, cost, run);
+            }
+        }
+
+        void CreateUpgradeHpMemberRow(
+            RectTransform parent,
+            PartyMemberSnapshot member,
+            int cost,
+            ExpeditionRunState run)
+        {
+            ExpeditionPartyStatsRules.GetDisplayHp(
+                member, run.Party, run.Relics, run.RelicGrowthTiers, out var hp, out var maxHp);
+            var afterMax = maxHp + ExpeditionAltarUpgradeRules.HpPlus5Amount;
+            var afterHp = System.Math.Min(afterMax, hp + ExpeditionAltarUpgradeRules.HpPlus5Amount);
+            var canBuy = run.SharedXpPool >= cost && hp > 0;
+            var memberId = member.CharacterDefinitionId;
+
+            var go = CreateRect("HpRow", parent);
+            var le = go.gameObject.AddComponent<LayoutElement>();
+            le.preferredHeight = 148f;
+            le.flexibleWidth = 1f;
+
+            var bg = go.gameObject.AddComponent<Image>();
+            bg.raycastTarget = false;
+            bg.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiEventPlate != null)
+            {
+                bg.sprite = _uiIcons.UiEventPlate;
+                bg.color = Color.white;
+            }
+            else
+            {
+                bg.color = CardBg;
+            }
+
+            // 立绘
+            var portraitGo = new GameObject("Portrait", typeof(RectTransform), typeof(Image));
+            portraitGo.transform.SetParent(go, false);
+            var portraitRt = portraitGo.GetComponent<RectTransform>();
+            portraitRt.anchorMin = new Vector2(0f, 0.5f);
+            portraitRt.anchorMax = new Vector2(0f, 0.5f);
+            portraitRt.pivot = new Vector2(0f, 0.5f);
+            portraitRt.sizeDelta = new Vector2(112f, 112f);
+            portraitRt.anchoredPosition = new Vector2(24f, 0f);
+            var portrait = portraitGo.GetComponent<Image>();
+            portrait.preserveAspect = true;
+            portrait.raycastTarget = false;
+            portrait.sprite = _characterVisuals?.GetPortrait(memberId)
+                ?? _characterVisuals?.GetPortraitReference(memberId);
+            portrait.color = portrait.sprite != null ? Color.white : new Color(0.35f, 0.38f, 0.45f, 1f);
+
+            // 当前 HP 文案
+            var hpLabel = CreateStaticText(go, $"♥ 当前 HP  {hp} / {maxHp}", 20, FontStyle.Bold, TextAnchor.MiddleLeft);
+            hpLabel.rectTransform.anchorMin = new Vector2(0f, 0.55f);
+            hpLabel.rectTransform.anchorMax = new Vector2(0.52f, 0.92f);
+            hpLabel.rectTransform.offsetMin = new Vector2(152f, 0f);
+            hpLabel.rectTransform.offsetMax = new Vector2(-8f, 0f);
+            hpLabel.color = TextMain;
+            hpLabel.alignment = TextAnchor.MiddleLeft;
+
+            // HP 条
+            var barBgGo = new GameObject("HpBarBg", typeof(RectTransform), typeof(Image));
+            barBgGo.transform.SetParent(go, false);
+            var barBgRt = barBgGo.GetComponent<RectTransform>();
+            barBgRt.anchorMin = new Vector2(0f, 0.38f);
+            barBgRt.anchorMax = new Vector2(0.48f, 0.52f);
+            barBgRt.offsetMin = new Vector2(152f, 0f);
+            barBgRt.offsetMax = new Vector2(0f, 0f);
+            var barBg = barBgGo.GetComponent<Image>();
+            barBg.color = new Color(0.12f, 0.1f, 0.1f, 0.95f);
+            barBg.raycastTarget = false;
+
+            var barFillGo = new GameObject("HpBarFill", typeof(RectTransform), typeof(Image));
+            barFillGo.transform.SetParent(barBgGo.transform, false);
+            var barFillRt = barFillGo.GetComponent<RectTransform>();
+            StretchFull(barFillRt);
+            var fillRatio = maxHp > 0 ? Mathf.Clamp01(hp / (float)maxHp) : 0f;
+            barFillRt.anchorMax = new Vector2(fillRatio, 1f);
+            var barFill = barFillGo.GetComponent<Image>();
+            barFill.color = new Color(0.78f, 0.22f, 0.22f, 1f);
+            barFill.raycastTarget = false;
+
+            // 升级预览
+            var preview = CreateStaticText(
+                go,
+                hp <= 0
+                    ? "角色已倒下，无法升级"
+                    : $"{cost} XP → HP +{ExpeditionAltarUpgradeRules.HpPlus5Amount}\n升级后：{afterHp} / {afterMax}",
+                18,
+                FontStyle.Normal,
+                TextAnchor.MiddleLeft);
+            preview.rectTransform.anchorMin = new Vector2(0.50f, 0.18f);
+            preview.rectTransform.anchorMax = new Vector2(0.78f, 0.82f);
+            preview.rectTransform.offsetMin = Vector2.zero;
+            preview.rectTransform.offsetMax = Vector2.zero;
+            preview.color = canBuy ? AccentGreen : TextMuted;
+            preview.alignment = TextAnchor.MiddleLeft;
+            preview.horizontalOverflow = HorizontalWrapMode.Wrap;
+
+            // button1 升级
+            var btnGo = CreateRect("Upgrade", go);
+            var btnRt = btnGo;
+            btnRt.anchorMin = new Vector2(1f, 0.5f);
+            btnRt.anchorMax = new Vector2(1f, 0.5f);
+            btnRt.pivot = new Vector2(1f, 0.5f);
+            btnRt.sizeDelta = new Vector2(168f, 64f);
+            btnRt.anchoredPosition = new Vector2(-22f, 0f);
+
+            var btnImg = btnGo.gameObject.AddComponent<Image>();
+            btnImg.raycastTarget = true;
+            btnImg.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiButton1 != null)
+            {
+                btnImg.sprite = _uiIcons.UiButton1;
+                btnImg.color = canBuy ? Color.white : new Color(0.45f, 0.45f, 0.48f, 1f);
+            }
+            else
+            {
+                btnImg.color = canBuy ? BtnGreen : DisabledCardBg;
+            }
+
+            var btnLabel = CreateStaticText(btnGo, "升级", 22, FontStyle.Bold, TextAnchor.MiddleCenter);
+            StretchFull(btnLabel.rectTransform);
+            btnLabel.color = canBuy
+                ? new Color(0.96f, 0.92f, 0.78f, 1f)
+                : new Color(0.55f, 0.55f, 0.58f, 1f);
+
+            var group = btnGo.gameObject.AddComponent<CanvasGroup>();
+            group.alpha = 1f;
+            group.blocksRaycasts = canBuy;
+            group.interactable = canBuy;
+            if (canBuy)
+            {
+                var hover = btnGo.gameObject.AddComponent<CampBuildingHoverView>();
+                hover.Bind(btnRt, group, HubButtonHoverScale, hideWhenIdle: false);
+            }
+
+            var btn = btnGo.gameObject.AddComponent<Button>();
+            btn.targetGraphic = btnImg;
+            btn.transition = Selectable.Transition.None;
+            btn.interactable = canBuy;
+            if (canBuy)
+            {
+                btn.onClick.AddListener(() =>
+                {
+                    _session.UpgradeAltarMemberHp(memberId);
+                    Refresh();
+                });
+                UiAudioHooks.WireButton(btn);
             }
         }
 
@@ -568,8 +845,14 @@ namespace Grimhand.Presentation.Battle
             CreateLabel(center, "↓", 36, TextMuted, new Vector2(0f, -20f), new Vector2(80f, 48f));
             CreateLabel(center, next.ToString(), 72, AccentGreen, new Vector2(0f, -90f), new Vector2(200f, 90f));
 
-            var btn = CreateActionButton(center, $"花费 {cost} XP 升级", BtnGreen, AccentGreen,
-                new Vector2(0f, -190f), new Vector2(380f, ActionButtonHeight), canBuy, onBuy);
+            var btn = CreateButton1(
+                center,
+                $"花费 {cost} XP 升级",
+                new Vector2(0.5f, 0.5f),
+                new Vector2(360f, 72f),
+                canBuy,
+                onBuy,
+                new Vector2(0f, -190f));
             btn.gameObject.SetActive(cost > 0);
 
             var maxUpgrades = label.Contains("抽牌") || label.Contains("手牌")
@@ -581,43 +864,51 @@ namespace Grimhand.Presentation.Battle
 
         void BuildUpgradeCardsScreen(RectTransform parent, ExpeditionRunState run)
         {
-            AddTitle(parent, "强化卡牌", "选择一张可强化的卡牌查看详情");
+            AddTitle(parent, "强化卡牌", "选择一张可强化的卡牌查看详情",
+                titleMinY: 0.88f, titleMaxY: 0.995f, subtitleMinY: 0.80f, subtitleMaxY: 0.88f);
 
             var body = CreateRect("CardUpgradeBody", parent);
             var bodyRt = body.GetComponent<RectTransform>();
-            SetAnchoredBand(body, 0.04f, 0.80f);
+            SetAnchoredBand(body, 0.02f, 0.78f);
 
             var gridHost = CreateRect("GridHost", bodyRt);
             var gridHostRt = gridHost.GetComponent<RectTransform>();
             gridHostRt.anchorMin = new Vector2(0f, 0f);
-            gridHostRt.anchorMax = new Vector2(0.52f, 1f);
+            gridHostRt.anchorMax = new Vector2(0.62f, 1f);
             gridHostRt.offsetMin = Vector2.zero;
             gridHostRt.offsetMax = Vector2.zero;
-            _upgradeCardGrid = BuildScrollGrid(gridHost.transform, 3, new Vector2(UpgradeCardWidth, UpgradeCardHeight));
+            _upgradeCardGrid = BuildUpgradeCardScroll(gridHost.transform);
             _upgradeCardScroll = _upgradeCardGrid != null
                 ? _upgradeCardGrid.GetComponentInParent<ScrollRect>()
                 : null;
 
-            _upgradeCardDetail = CreatePanel("Detail", bodyRt, CardBg, Border).GetComponent<RectTransform>();
+            _upgradeCardDetail = CreateRect("Detail", bodyRt);
             var detailRt = _upgradeCardDetail;
-            detailRt.anchorMin = new Vector2(0.54f, 0f);
+            detailRt.anchorMin = new Vector2(0.64f, 0f);
             detailRt.anchorMax = Vector2.one;
-            detailRt.offsetMin = new Vector2(12f, 0f);
+            detailRt.offsetMin = new Vector2(8f, 0f);
             detailRt.offsetMax = Vector2.zero;
 
-            _upgradeCardDetailTitle = CreateStaticText(_upgradeCardDetail, "", 22, FontStyle.Bold, TextAnchor.UpperLeft);
+            _upgradeCardDetailTitle = CreateStaticText(_upgradeCardDetail, "", 34, FontStyle.Bold, TextAnchor.UpperLeft);
             AnchorDetailText(_upgradeCardDetailTitle.rectTransform, 0.82f, 0.98f);
-            _upgradeCardCurrentText = CreateStaticText(_upgradeCardDetail, "", 16, FontStyle.Normal, TextAnchor.UpperLeft);
+            _upgradeCardCurrentText = CreateStaticText(_upgradeCardDetail, "", 24, FontStyle.Normal, TextAnchor.UpperLeft);
             AnchorDetailText(_upgradeCardCurrentText.rectTransform, 0.52f, 0.8f);
-            _upgradeCardNextText = CreateStaticText(_upgradeCardDetail, "", 16, FontStyle.Normal, TextAnchor.UpperLeft);
+            _upgradeCardNextText = CreateStaticText(_upgradeCardDetail, "", 24, FontStyle.Normal, TextAnchor.UpperLeft);
             AnchorDetailText(_upgradeCardNextText.rectTransform, 0.28f, 0.5f);
-            _upgradeCardMetaText = CreateStaticText(_upgradeCardDetail, "", 16, FontStyle.Normal, TextAnchor.UpperLeft);
+            _upgradeCardMetaText = CreateStaticText(_upgradeCardDetail, "", 22, FontStyle.Normal, TextAnchor.UpperLeft);
             AnchorDetailText(_upgradeCardMetaText.rectTransform, 0.14f, 0.26f);
-            _upgradeCardButton = CreateActionButton(_upgradeCardDetail, "强化", BtnGreen, AccentGreen,
-                new Vector2(0f, 48f), new Vector2(280f, ActionButtonHeight), false, ConfirmCardUpgrade);
+            _upgradeCardButton = CreateButton1(
+                _upgradeCardDetail,
+                "强化",
+                new Vector2(0.5f, 0f),
+                new Vector2(280f, 72f),
+                false,
+                ConfirmCardUpgrade,
+                new Vector2(0f, 48f));
 
             ClearChildren(_upgradeCardGrid);
             var config = _session.Expedition.Config;
+            var spawned = 0;
             foreach (var member in run.Party)
             {
                 if (member == null)
@@ -626,7 +917,8 @@ namespace Grimhand.Presentation.Battle
                 foreach (var entry in ExpeditionRunDeckCatalog.CollectMemberDeckEntries(config, member))
                 {
                     var template = entry.Template;
-                    if (template == null || !CardUpgradeRules.CanUpgrade(member, template.DeckInstanceId, template.DisplayName))
+                    if (template == null
+                        || !CardUpgradeRules.CanUpgrade(member, template.DeckInstanceId, template.DisplayName))
                         continue;
 
                     var memberId = member.CharacterDefinitionId;
@@ -641,9 +933,11 @@ namespace Grimhand.Presentation.Battle
                         _selectedUpgradeDisplayName = displayName;
                         Refresh();
                     });
+                    spawned++;
                 }
             }
 
+            ScheduleUpgradeCardGridLayout(spawned);
             RefreshCardUpgradeDetail(run);
         }
 
@@ -656,6 +950,22 @@ namespace Grimhand.Presentation.Battle
                 _upgradeCardNextText.text = "";
                 _upgradeCardMetaText.text = "";
                 _upgradeCardButton.interactable = false;
+                var idleImg = _upgradeCardButton.targetGraphic as Image;
+                if (idleImg != null)
+                {
+                    if (_uiIcons != null && _uiIcons.UiButton1 != null)
+                        idleImg.color = new Color(0.45f, 0.45f, 0.48f, 1f);
+                    else
+                        idleImg.color = DisabledCardBg;
+                }
+
+                var idleLabel = _upgradeCardButton.GetComponentInChildren<Text>();
+                if (idleLabel != null)
+                {
+                    idleLabel.text = "强化";
+                    idleLabel.color = new Color(0.55f, 0.55f, 0.58f, 1f);
+                }
+
                 return;
             }
 
@@ -690,9 +1000,23 @@ namespace Grimhand.Presentation.Battle
             _upgradeCardMetaText.text = $"剩余次数: {max - level} / {max}\n{cost} XP";
             _upgradeCardMetaText.color = TextMuted;
             _upgradeCardButton.interactable = canBuy;
+            var btnImg = _upgradeCardButton.targetGraphic as Image;
+            if (btnImg != null)
+            {
+                if (_uiIcons != null && _uiIcons.UiButton1 != null)
+                    btnImg.color = canBuy ? Color.white : new Color(0.45f, 0.45f, 0.48f, 1f);
+                else
+                    btnImg.color = canBuy ? BtnGreen : DisabledCardBg;
+            }
+
             var btnLabel = _upgradeCardButton.GetComponentInChildren<Text>();
             if (btnLabel != null)
+            {
                 btnLabel.text = $"↑  强化（{cost} XP）";
+                btnLabel.color = canBuy
+                    ? new Color(0.96f, 0.92f, 0.78f, 1f)
+                    : new Color(0.55f, 0.55f, 0.58f, 1f);
+            }
         }
 
         void ConfirmCardUpgrade()
@@ -942,6 +1266,14 @@ namespace Grimhand.Presentation.Battle
                     RebuildSummonContent(_session.Expedition.Run);
                 });
             }
+
+            var scroll = _summonCollectionGrid != null
+                ? _summonCollectionGrid.GetComponentInParent<ScrollRect>()
+                : null;
+            FinalizeScrollGridContent(
+                _summonCollectionGrid,
+                scroll,
+                _summonCollectionGrid != null ? _summonCollectionGrid.childCount : 0);
         }
 
         void RefreshSummonStatus(PartyMemberSnapshot member)
@@ -1019,7 +1351,7 @@ namespace Grimhand.Presentation.Battle
 
         void CreateHubTile(RectTransform parent, string icon, string title, string desc, System.Action onClick)
         {
-            var go = CreatePanel("Tile", parent, CardBg, Border);
+            var go = CreateRect("Tile", parent);
             var inGrid = parent.GetComponent<GridLayoutGroup>() != null;
 
             var le = go.gameObject.AddComponent<LayoutElement>();
@@ -1031,22 +1363,44 @@ namespace Grimhand.Presentation.Battle
                 le.minHeight = HubTileMinHeight;
             }
 
-            var iconText = CreateStaticText(go.transform, icon, 48, FontStyle.Normal, TextAnchor.UpperCenter);
+            var img = go.gameObject.AddComponent<Image>();
+            img.raycastTarget = true;
+            img.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiButton7 != null)
+            {
+                img.sprite = _uiIcons.UiButton7;
+                img.color = Color.white;
+            }
+            else
+            {
+                img.sprite = null;
+                img.color = CardBg;
+            }
+
+            var iconText = CreateStaticText(go, icon, 48, FontStyle.Normal, TextAnchor.UpperCenter);
             StretchBand(iconText.rectTransform, 0.66f, 0.92f);
             iconText.color = TitleGold;
 
-            var titleText = CreateStaticText(go.transform, title, 28, FontStyle.Bold, TextAnchor.UpperCenter);
+            var titleText = CreateStaticText(go, title, 28, FontStyle.Bold, TextAnchor.UpperCenter);
             StretchBand(titleText.rectTransform, 0.46f, 0.64f);
             titleText.color = TextMain;
 
-            var descText = CreateStaticText(go.transform, desc, 17, FontStyle.Normal, TextAnchor.UpperCenter);
+            var descText = CreateStaticText(go, desc, 17, FontStyle.Normal, TextAnchor.UpperCenter);
             StretchBand(descText.rectTransform, 0.08f, 0.44f);
             descText.color = TextMuted;
             descText.horizontalOverflow = HorizontalWrapMode.Wrap;
             descText.verticalOverflow = VerticalWrapMode.Truncate;
 
+            var group = go.gameObject.AddComponent<CanvasGroup>();
+            group.alpha = 1f;
+            group.blocksRaycasts = true;
+            group.interactable = true;
+            var hover = go.gameObject.AddComponent<CampBuildingHoverView>();
+            hover.Bind(go, group, HubButtonHoverScale, hideWhenIdle: false);
+
             var btn = go.gameObject.AddComponent<Button>();
-            btn.targetGraphic = go;
+            btn.targetGraphic = img;
+            btn.transition = Selectable.Transition.None;
             btn.onClick.AddListener(() =>
             {
                 onClick?.Invoke();
@@ -1104,60 +1458,6 @@ namespace Grimhand.Presentation.Battle
             amountText.raycastTarget = false;
         }
 
-        void CreateMemberRow(
-            RectTransform parent,
-            PartyMemberSnapshot member,
-            string sub,
-            string right,
-            bool canBuy,
-            System.Action onClick)
-        {
-            var go = CreatePanel("MemberRow", parent, CardBg, Border);
-            var le = go.gameObject.AddComponent<LayoutElement>();
-            le.preferredHeight = 96f;
-
-            var badgeColor = ResolveMemberColor(member.CharacterDefinitionId);
-            var badge = CreatePanel("Badge", go.transform, badgeColor, badgeColor);
-            var badgeRt = badge.GetComponent<RectTransform>();
-            badgeRt.anchorMin = new Vector2(0f, 0.5f);
-            badgeRt.anchorMax = new Vector2(0f, 0.5f);
-            badgeRt.pivot = new Vector2(0f, 0.5f);
-            badgeRt.sizeDelta = new Vector2(56f, 56f);
-            badgeRt.anchoredPosition = new Vector2(16f, 0f);
-            CreateStaticText(badge.transform, ResolveMemberBadge(member.CharacterDefinitionId), 24, FontStyle.Bold, TextAnchor.MiddleCenter)
-                .color = Color.white;
-
-            var name = CreateStaticText(go.transform, member.DisplayName, 22, FontStyle.Bold, TextAnchor.MiddleLeft);
-            name.rectTransform.anchorMin = new Vector2(0f, 0.5f);
-            name.rectTransform.anchorMax = new Vector2(0.55f, 1f);
-            name.rectTransform.offsetMin = new Vector2(84f, 8f);
-            name.rectTransform.offsetMax = new Vector2(-8f, -8f);
-            name.color = TextMain;
-            name.alignment = TextAnchor.LowerLeft;
-
-            var hp = CreateStaticText(go.transform, $"♥ {sub}", 18, FontStyle.Normal, TextAnchor.MiddleLeft);
-            hp.rectTransform.anchorMin = new Vector2(0f, 0f);
-            hp.rectTransform.anchorMax = new Vector2(0.55f, 0.5f);
-            hp.rectTransform.offsetMin = new Vector2(84f, 8f);
-            hp.rectTransform.offsetMax = new Vector2(-8f, -8f);
-            hp.color = TextMuted;
-            hp.alignment = TextAnchor.UpperLeft;
-
-            var action = CreateStaticText(go.transform, right, 18, FontStyle.Normal, TextAnchor.MiddleRight);
-            action.rectTransform.anchorMin = new Vector2(0.55f, 0f);
-            action.rectTransform.anchorMax = new Vector2(1f, 1f);
-            action.rectTransform.offsetMin = new Vector2(8f, 12f);
-            action.rectTransform.offsetMax = new Vector2(-16f, -12f);
-            action.color = canBuy ? AccentGreen : TextMuted;
-            action.alignment = TextAnchor.MiddleRight;
-
-            var btn = go.gameObject.AddComponent<Button>();
-            btn.targetGraphic = go;
-            btn.interactable = canBuy;
-            btn.onClick.AddListener(() => onClick?.Invoke());
-            UiAudioHooks.WireButton(btn);
-        }
-
         void CreateMemberTab(PartyMemberSnapshot member, bool active, System.Action onClick)
         {
             var go = CreatePanel("MemberTab", _summonMemberRow, active ? AccentGreenBg : CardBg, Border);
@@ -1175,13 +1475,17 @@ namespace Grimhand.Presentation.Battle
 
         void SpawnUpgradeCardButton(CardTemplate template, string ownerId, bool selected, System.Action onClick)
         {
-            var holder = CreateCardHolder(_upgradeCardGrid, selected, UpgradeCardWidth, UpgradeCardHeight);
+            var holder = CreateUpgradeCardHolder(_upgradeCardGrid, UpgradeCardWidth, UpgradeCardHeight);
             var btn = holder.gameObject.AddComponent<Button>();
             btn.targetGraphic = holder;
+            btn.transition = Selectable.Transition.None;
             btn.onClick.AddListener(() => onClick?.Invoke());
             UiAudioHooks.WireButton(btn);
             ScrollRectNavigation.WireForwarding(holder.gameObject, _upgradeCardScroll);
-            SpawnCardVisual(holder.transform, template, ownerId, UpgradeCardScale);
+            var cardView = SpawnCardVisual(holder.transform, template, ownerId, UpgradeCardScale);
+            CardView.ConfigureForAltarUpgradePresentation(cardView);
+            if (cardView != null)
+                cardView.SetSelected(selected);
         }
 
         void SpawnSummonCard(RectTransform parent, CardTemplate template, string ownerId, bool selected, System.Action onClick,
@@ -1212,6 +1516,132 @@ namespace Grimhand.Presentation.Battle
             }
         }
 
+        /// <summary>强化卡牌列表：透明点击区，无虚影底板；选中由 CardView 高亮。</summary>
+        static Image CreateUpgradeCardHolder(Transform parent, float width, float height)
+        {
+            var go = new GameObject("CardHolder", typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+            var holder = go.GetComponent<Image>();
+            holder.color = Color.clear;
+            holder.raycastTarget = true;
+            go.GetComponent<CanvasRenderer>().cullTransparentMesh = false;
+
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot = new Vector2(0f, 1f);
+            rt.sizeDelta = new Vector2(width, height);
+            return holder;
+        }
+
+        RectTransform BuildUpgradeCardScroll(Transform parent)
+        {
+            var scrollGo = new GameObject("UpgradeScroll", typeof(RectTransform), typeof(ScrollRect));
+            scrollGo.transform.SetParent(parent, false);
+            var scrollRt = scrollGo.GetComponent<RectTransform>();
+            StretchFull(scrollRt);
+
+            var viewportGo = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(RectMask2D));
+            viewportGo.transform.SetParent(scrollGo.transform, false);
+            var viewportRt = viewportGo.GetComponent<RectTransform>();
+            StretchFull(viewportRt);
+            var viewportImg = viewportGo.GetComponent<Image>();
+            viewportImg.color = Color.clear;
+            viewportImg.raycastTarget = true;
+
+            var contentGo = new GameObject("Content", typeof(RectTransform));
+            contentGo.transform.SetParent(viewportGo.transform, false);
+            var contentRt = contentGo.GetComponent<RectTransform>();
+            contentRt.anchorMin = new Vector2(0f, 1f);
+            contentRt.anchorMax = new Vector2(1f, 1f);
+            contentRt.pivot = new Vector2(0.5f, 1f);
+            contentRt.anchoredPosition = Vector2.zero;
+            contentRt.sizeDelta = new Vector2(0f, 0f);
+
+            var scroll = scrollGo.GetComponent<ScrollRect>();
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = 48f;
+            scroll.viewport = viewportRt;
+            scroll.content = contentRt;
+            return contentRt;
+        }
+
+        void ScheduleUpgradeCardGridLayout(int itemCount)
+        {
+            LayoutUpgradeCardGrid(itemCount);
+            if (!isActiveAndEnabled)
+                return;
+
+            if (_upgradeCardLayoutRoutine != null)
+                StopCoroutine(_upgradeCardLayoutRoutine);
+            _upgradeCardLayoutRoutine = StartCoroutine(LayoutUpgradeCardGridNextFrame(itemCount));
+        }
+
+        IEnumerator LayoutUpgradeCardGridNextFrame(int itemCount)
+        {
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            LayoutUpgradeCardGrid(itemCount);
+            if (_upgradeCardScroll != null)
+                ScrollRectNavigation.RestoreVertical(_upgradeCardScroll, _upgradeCardScrollY);
+            _upgradeCardLayoutRoutine = null;
+        }
+
+        void LayoutUpgradeCardGrid(int itemCount)
+        {
+            if (_upgradeCardGrid == null)
+                return;
+
+            Canvas.ForceUpdateCanvases();
+            var viewW = 0f;
+            if (_upgradeCardScroll != null && _upgradeCardScroll.viewport != null)
+                viewW = _upgradeCardScroll.viewport.rect.width;
+            if (viewW < 32f)
+                viewW = (_upgradeCardGrid.parent as RectTransform)?.rect.width ?? 640f;
+            if (viewW < 32f)
+                viewW = 640f;
+
+            const float pad = 8f;
+            var cellW = Mathf.Min(
+                UpgradeCardWidth,
+                (viewW - pad * 2f - UpgradeCardSpacing * (UpgradeCardColumns - 1)) / UpgradeCardColumns);
+            cellW = Mathf.Max(140f, cellW);
+            var cellH = cellW * (UpgradeCardHeight / UpgradeCardWidth);
+
+            var count = Mathf.Max(itemCount, _upgradeCardGrid.childCount);
+            for (var i = 0; i < _upgradeCardGrid.childCount; i++)
+            {
+                var rt = _upgradeCardGrid.GetChild(i) as RectTransform;
+                if (rt == null)
+                    continue;
+
+                var row = i / UpgradeCardColumns;
+                var col = i % UpgradeCardColumns;
+                rt.anchorMin = new Vector2(0f, 1f);
+                rt.anchorMax = new Vector2(0f, 1f);
+                rt.pivot = new Vector2(0f, 1f);
+                rt.sizeDelta = new Vector2(cellW, cellH);
+                rt.anchoredPosition = new Vector2(
+                    pad + col * (cellW + UpgradeCardSpacing),
+                    -(pad + row * (cellH + UpgradeCardSpacing)));
+
+                var cardView = rt.GetComponentInChildren<CardView>(true);
+                if (cardView != null)
+                    CardView.CenterInParent(cardView);
+            }
+
+            var rows = count > 0 ? (count + UpgradeCardColumns - 1) / UpgradeCardColumns : 0;
+            var height = pad * 2f
+                         + rows * cellH
+                         + Mathf.Max(0, rows - 1) * UpgradeCardSpacing;
+            _upgradeCardGrid.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, Mathf.Max(height, 1f));
+
+            if (_upgradeCardScroll != null)
+                _upgradeCardScroll.verticalNormalizedPosition = 1f;
+        }
+
         static Image CreateCardHolder(Transform parent, bool selected, float width, float height)
         {
             var holder = CreatePanel("CardHolder", parent, selected ? AccentGreenBg : CardBg, Border);
@@ -1223,10 +1653,10 @@ namespace Grimhand.Presentation.Battle
             return holder;
         }
 
-        void SpawnCardVisual(Transform parent, CardTemplate template, string ownerId, float scale)
+        CardView SpawnCardVisual(Transform parent, CardTemplate template, string ownerId, float scale)
         {
             if (_cardPrefab == null || template == null)
-                return;
+                return null;
 
             _definitions.TryGetValue(template.DefinitionId, out var definition);
             var cardView = Instantiate(_cardPrefab, parent);
@@ -1238,6 +1668,7 @@ namespace Grimhand.Presentation.Battle
             var cg = cardView.GetComponent<CanvasGroup>();
             if (cg != null)
                 cg.blocksRaycasts = false;
+            return cardView;
         }
 
         string BuildCardEffectDescription(CardDefinitionSO def, int upgradeLevel)
@@ -1297,29 +1728,6 @@ namespace Grimhand.Presentation.Battle
             return null;
         }
 
-        static string ResolveRegionName(int layer)
-        {
-            if (layer >= ExpeditionRegionRules.AbyssStartLayer)
-                return "海渊";
-            if (layer >= ExpeditionRegionRules.DungeonStartLayer)
-                return "地牢";
-            return "洞穴";
-        }
-
-        static Color ResolveMemberColor(string memberId) => memberId switch
-        {
-            "char_mage" => new Color(0.35f, 0.45f, 0.82f, 1f),
-            "char_ranger" => new Color(0.55f, 0.35f, 0.72f, 1f),
-            _ => new Color(0.78f, 0.32f, 0.28f, 1f)
-        };
-
-        static string ResolveMemberBadge(string memberId) => memberId switch
-        {
-            "char_mage" => "P",
-            "char_ranger" => "D",
-            _ => "W"
-        };
-
         void NavigateBack()
         {
             _screen = _screen switch
@@ -1333,10 +1741,14 @@ namespace Grimhand.Presentation.Battle
 
         void EnsureBuilt(Transform parent)
         {
-            if (_built)
+            if (_built && _builtVersion == LayoutVersion)
                 return;
 
+            if (_built && _root != null)
+                DestroyImmediate(_root.gameObject);
+
             _built = true;
+            _builtVersion = LayoutVersion;
             var go = new GameObject("ExpeditionAltarOverlay", typeof(RectTransform), typeof(Image));
             go.transform.SetParent(parent, false);
             _root = go.GetComponent<RectTransform>();
@@ -1344,25 +1756,53 @@ namespace Grimhand.Presentation.Battle
             go.GetComponent<Image>().color = BgOverlay;
 
             var panelGo = CreatePanel("Panel", go.transform, PanelBg, Border);
-            var panelRt = panelGo.GetComponent<RectTransform>();
-            panelRt.anchorMin = new Vector2(0.06f, 0.05f);
-            panelRt.anchorMax = new Vector2(0.94f, 0.95f);
-            panelRt.offsetMin = Vector2.zero;
-            panelRt.offsetMax = Vector2.zero;
-            panelGo.GetComponent<Image>().raycastTarget = true;
+            _panelImage = panelGo;
+            _panelRt = panelGo.GetComponent<RectTransform>();
+            // 模板 1537×1023
+            const float HubAspect = 1488f / 995f;
+            FitPanelToAspect(_panelRt, HubAspect, 0.92f, 0.90f);
+            _panelImage.raycastTarget = true;
             _tooltip = panelGo.gameObject.AddComponent<InventoryTooltipView>();
-            _tooltip.Initialize(panelRt, _uiIcons);
+            _tooltip.Initialize(_panelRt, _uiIcons);
 
-            BuildHeader(panelRt);
-            _contentHost = CreateRect("Content", panelRt);
+            BuildHeader(_panelRt);
+            BuildHubLayer(_panelRt);
+            _contentHost = CreateRect("Content", _panelRt);
             SetAnchoredBand(_contentHost, 0.13f, 0.74f);
-            BuildNavBar(panelRt);
-            BuildFooter(panelRt);
+            BuildNavBar(_panelRt);
+            BuildFooter(_panelRt);
 
             // 导航栏必须在内容区之后创建，确保返回按钮可点击。
             _navBar.SetAsLastSibling();
+            ApplyChromeForScreen();
 
             go.SetActive(false);
+        }
+
+        static void FitPanelToAspect(RectTransform rt, float aspect, float maxWidthFrac, float maxHeightFrac)
+        {
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = Vector2.zero;
+
+            var parent = rt.parent as RectTransform;
+            var parentW = parent != null ? parent.rect.width : Screen.width;
+            var parentH = parent != null ? parent.rect.height : Screen.height;
+            if (parentW < 8f) parentW = 1920f;
+            if (parentH < 8f) parentH = 1080f;
+
+            var maxW = parentW * maxWidthFrac;
+            var maxH = parentH * maxHeightFrac;
+            var width = maxW;
+            var height = width / aspect;
+            if (height > maxH)
+            {
+                height = maxH;
+                width = height * aspect;
+            }
+
+            rt.sizeDelta = new Vector2(width, height);
         }
 
         void BuildNavBar(RectTransform panelRt)
@@ -1370,106 +1810,208 @@ namespace Grimhand.Presentation.Battle
             _navBar = CreateRect("NavBar", panelRt);
             SetAnchoredBand(_navBar, 0.74f, 0.84f);
 
-            _backButton = CreateAnchoredActionButton(
-                _navBar, "← 返回祭坛", BtnNeutral, TextMain,
-                new Vector2(0f, 0.5f), new Vector2(240f, ActionButtonHeight), true, NavigateBack);
-            var backRt = _backButton.GetComponent<RectTransform>();
+            var backGo = CreateRect("Back", _navBar);
+            var backRt = backGo;
             backRt.anchorMin = new Vector2(0f, 0.5f);
             backRt.anchorMax = new Vector2(0f, 0.5f);
             backRt.pivot = new Vector2(0f, 0.5f);
-            backRt.anchoredPosition = new Vector2(8f, 0f);
+            backRt.sizeDelta = new Vector2(200f, 68f);
+            backRt.anchoredPosition = new Vector2(28f, 0f);
+
+            var backImg = backGo.gameObject.AddComponent<Image>();
+            backImg.raycastTarget = true;
+            backImg.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiButton2 != null)
+            {
+                backImg.sprite = _uiIcons.UiButton2;
+                backImg.color = Color.white;
+            }
+            else
+            {
+                backImg.color = BtnNeutral;
+            }
+
+            var backLabel = CreateStaticText(backGo, "← 返回祭坛", 20, FontStyle.Bold, TextAnchor.MiddleCenter);
+            StretchFull(backLabel.rectTransform);
+            backLabel.color = new Color(0.96f, 0.92f, 0.78f, 1f);
+
+            var backGroup = backGo.gameObject.AddComponent<CanvasGroup>();
+            backGroup.alpha = 1f;
+            backGroup.blocksRaycasts = true;
+            backGroup.interactable = true;
+            var backHover = backGo.gameObject.AddComponent<CampBuildingHoverView>();
+            backHover.Bind(backRt, backGroup, HubButtonHoverScale, hideWhenIdle: false);
+
+            _backButton = backGo.gameObject.AddComponent<Button>();
+            _backButton.targetGraphic = backImg;
+            _backButton.transition = Selectable.Transition.None;
+            _backButton.onClick.AddListener(NavigateBack);
+            UiAudioHooks.WireButton(_backButton);
             _navBar.gameObject.SetActive(false);
+        }
+
+        bool IsDistributeFamilyScreen() =>
+            _screen is AltarScreen.DistributeXp
+                or AltarScreen.UpgradeHp
+                or AltarScreen.UpgradeEnergy
+                or AltarScreen.UpgradeHand
+                or AltarScreen.UpgradeCards;
+
+        float GetPanelAspect()
+        {
+            // 分配经验等二级页也与一级 UI 同框尺寸；event_plate 拉伸铺满
+            return 1488f / 995f;
         }
 
         void BuildHeader(RectTransform panelRt)
         {
-            var left = CreateStaticText(panelRt, "🔥 祭坛", 26, FontStyle.Bold, TextAnchor.MiddleLeft);
-            left.rectTransform.anchorMin = new Vector2(0.03f, 0.86f);
-            left.rectTransform.anchorMax = new Vector2(0.28f, 0.97f);
-            left.color = TitleGold;
+            _titleLeftText = CreateStaticText(panelRt, "祭坛", 26, FontStyle.Bold, TextAnchor.MiddleLeft);
+            _titleLeftText.color = TitleGold;
 
-            var currencyHost = CreateRect("CurrencyHeader", panelRt);
-            var currencyRt = currencyHost;
-            currencyRt.anchorMin = new Vector2(0.5f, 0.865f);
-            currencyRt.anchorMax = new Vector2(0.5f, 0.965f);
-            currencyRt.pivot = new Vector2(0.5f, 0.5f);
-            currencyRt.sizeDelta = new Vector2(520f, 44f);
+            _xpHeaderIcon = CreateHeaderIcon(panelRt, "XpIcon");
+            _xpHeaderText = CreateStaticText(panelRt, "0", 24, FontStyle.Bold, TextAnchor.MiddleLeft);
+            _xpHeaderText.color = AccentGreen;
 
-            var currencyRowGo = new GameObject("CurrencyRow", typeof(RectTransform), typeof(HorizontalLayoutGroup));
-            currencyRowGo.transform.SetParent(currencyHost, false);
-            var currencyRowRt = currencyRowGo.GetComponent<RectTransform>();
-            StretchFull(currencyRowRt);
-            var currencyLayout = currencyRowGo.GetComponent<HorizontalLayoutGroup>();
-            currencyLayout.spacing = 56f;
-            currencyLayout.childAlignment = TextAnchor.MiddleCenter;
-            currencyLayout.childControlWidth = false;
-            currencyLayout.childControlHeight = true;
-            currencyLayout.childForceExpandWidth = false;
-            currencyLayout.childForceExpandHeight = true;
-
-            CreateHeaderCurrencyBadge(currencyRowGo.transform, out _xpHeaderIcon, out _xpHeaderText, AccentGreen);
-            CreateHeaderCurrencyBadge(currencyRowGo.transform, out _goldHeaderIcon, out _goldHeaderText, TitleGold);
+            _goldHeaderIcon = CreateHeaderIcon(panelRt, "GoldIcon");
+            _goldHeaderText = CreateStaticText(panelRt, "0", 24, FontStyle.Bold, TextAnchor.MiddleLeft);
+            _goldHeaderText.color = TitleGold;
 
             _layerHeaderText = CreateStaticText(panelRt, "", 18, FontStyle.Normal, TextAnchor.MiddleRight);
-            _layerHeaderText.rectTransform.anchorMin = new Vector2(0.58f, 0.86f);
-            _layerHeaderText.rectTransform.anchorMax = new Vector2(0.97f, 0.97f);
             _layerHeaderText.color = TextMuted;
+            _layerHeaderText.gameObject.SetActive(false);
         }
 
-        static void CreateHeaderCurrencyBadge(
-            Transform parent,
-            out Image icon,
-            out Text amount,
-            Color textColor)
+        static Image CreateHeaderIcon(Transform parent, string name)
         {
-            var groupGo = new GameObject("CurrencyBadge", typeof(RectTransform), typeof(HorizontalLayoutGroup));
-            groupGo.transform.SetParent(parent, false);
-            var groupLayout = groupGo.GetComponent<HorizontalLayoutGroup>();
-            groupLayout.spacing = 10f;
-            groupLayout.childAlignment = TextAnchor.MiddleCenter;
-            groupLayout.childControlWidth = false;
-            groupLayout.childControlHeight = true;
-            groupLayout.childForceExpandWidth = false;
-            groupLayout.childForceExpandHeight = true;
-            groupGo.AddComponent<LayoutElement>().preferredHeight = 40f;
-
-            var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
-            iconGo.transform.SetParent(groupGo.transform, false);
-            iconGo.GetComponent<LayoutElement>().preferredWidth = 34f;
-            iconGo.GetComponent<LayoutElement>().preferredHeight = 34f;
-            icon = iconGo.GetComponent<Image>();
-            icon.preserveAspect = true;
-            icon.raycastTarget = false;
-
-            var textGo = new GameObject("Amount", typeof(RectTransform), typeof(Text), typeof(LayoutElement));
-            textGo.transform.SetParent(groupGo.transform, false);
-            textGo.GetComponent<LayoutElement>().preferredWidth = 96f;
-            amount = textGo.GetComponent<Text>();
-            amount.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            amount.fontSize = 26;
-            amount.fontStyle = FontStyle.Bold;
-            amount.alignment = TextAnchor.MiddleLeft;
-            amount.color = textColor;
-            amount.text = "0";
-            amount.raycastTarget = false;
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+            var img = go.GetComponent<Image>();
+            img.preserveAspect = true;
+            img.raycastTarget = false;
+            img.color = Color.white;
+            return img;
         }
 
         void BuildFooter(RectTransform panelRt)
         {
             _footerHintText = CreateStaticText(panelRt, "祭坛操作完成后点击离开", 16, FontStyle.Normal, TextAnchor.MiddleLeft);
-            _footerHintText.rectTransform.anchorMin = new Vector2(0.03f, 0.03f);
-            _footerHintText.rectTransform.anchorMax = new Vector2(0.5f, 0.1f);
             _footerHintText.color = TextMuted;
+            _footerHintText.gameObject.SetActive(false);
 
-            _leaveButton = CreateAnchoredActionButton(
-                panelRt, "离开祭坛", BtnGreen, AccentGreen,
-                new Vector2(1f, 0.065f), new Vector2(240f, ActionButtonHeight), true,
-                () => _session.LeaveAltar());
-            var leaveRt = _leaveButton.GetComponent<RectTransform>();
-            leaveRt.anchorMin = new Vector2(1f, 0.065f);
-            leaveRt.anchorMax = new Vector2(1f, 0.065f);
-            leaveRt.pivot = new Vector2(1f, 0.5f);
-            leaveRt.anchoredPosition = new Vector2(-12f, 0f);
+            var leaveGo = CreateRect("LeaveAltar", panelRt);
+            var leaveImg = leaveGo.gameObject.AddComponent<Image>();
+            leaveImg.color = Color.white;
+            leaveImg.raycastTarget = true;
+            leaveImg.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiButton6 != null)
+                leaveImg.sprite = _uiIcons.UiButton6;
+            else
+                leaveImg.color = BtnGreen;
+
+            var leaveLabel = CreateStaticText(leaveGo, "离开祭坛", 22, FontStyle.Bold, TextAnchor.MiddleCenter);
+            StretchFull(leaveLabel.rectTransform);
+            leaveLabel.color = new Color(0.96f, 0.92f, 0.78f, 1f);
+
+            var leaveGroup = leaveGo.gameObject.AddComponent<CanvasGroup>();
+            leaveGroup.alpha = 1f;
+            leaveGroup.blocksRaycasts = true;
+            leaveGroup.interactable = true;
+            var leaveHover = leaveGo.gameObject.AddComponent<CampBuildingHoverView>();
+            leaveHover.Bind(leaveGo, leaveGroup, HubButtonHoverScale, hideWhenIdle: false);
+
+            _leaveButton = leaveGo.gameObject.AddComponent<Button>();
+            _leaveButton.targetGraphic = leaveImg;
+            _leaveButton.transition = Selectable.Transition.None;
+            _leaveButton.onClick.AddListener(() => _session.LeaveAltar());
+            UiAudioHooks.WireButton(_leaveButton);
+        }
+
+        void ApplyChromeForScreen()
+        {
+            var hub = _screen == AltarScreen.Hub;
+            var distributeFamily = IsDistributeFamilyScreen();
+            if (_hubLayer != null)
+                _hubLayer.gameObject.SetActive(hub);
+
+            if (_panelImage != null)
+            {
+                var outline = _panelImage.GetComponent<Outline>();
+                if (hub && _uiIcons != null && _uiIcons.UiExpeditionAltarHubBackground != null)
+                {
+                    _panelImage.sprite = _uiIcons.UiExpeditionAltarHubBackground;
+                    _panelImage.color = Color.white;
+                    _panelImage.type = Image.Type.Simple;
+                    _panelImage.preserveAspect = false;
+                    if (outline != null)
+                        outline.enabled = false;
+                }
+                else if (distributeFamily && _uiIcons != null && _uiIcons.UiEventPlate != null)
+                {
+                    _panelImage.sprite = _uiIcons.UiEventPlate;
+                    _panelImage.color = Color.white;
+                    _panelImage.type = Image.Type.Simple;
+                    _panelImage.preserveAspect = false;
+                    if (outline != null)
+                        outline.enabled = false;
+                }
+                else
+                {
+                    _panelImage.sprite = null;
+                    _panelImage.color = PanelBg;
+                    if (outline != null)
+                    {
+                        outline.enabled = true;
+                        outline.effectColor = Border;
+                        outline.effectDistance = new Vector2(1f, -1f);
+                    }
+                }
+            }
+
+            // 全祭坛界面：XP/金币/离开与一级 UI 同热区
+            if (_titleLeftText != null)
+            {
+                ApplyHubNormRect(_titleLeftText.rectTransform, HubZoneTitleLeft);
+                _titleLeftText.gameObject.SetActive(true);
+            }
+
+            if (_xpHeaderIcon != null)
+                ApplyHubNormRect(_xpHeaderIcon.rectTransform, HubZoneXpIcon);
+            if (_xpHeaderText != null)
+                ApplyHubNormRect(_xpHeaderText.rectTransform, HubZoneXpText);
+            if (_goldHeaderIcon != null)
+                ApplyHubNormRect(_goldHeaderIcon.rectTransform, HubZoneGoldIcon);
+            if (_goldHeaderText != null)
+                ApplyHubNormRect(_goldHeaderText.rectTransform, HubZoneGoldText);
+
+            if (_layerHeaderText != null)
+                _layerHeaderText.gameObject.SetActive(false);
+            if (_footerHintText != null)
+                _footerHintText.gameObject.SetActive(false);
+
+            if (_leaveButton != null)
+                ApplyHubNormRect(_leaveButton.GetComponent<RectTransform>(), HubZoneLeave);
+
+            if (_contentHost != null)
+            {
+                if (hub)
+                {
+                    _contentHost.gameObject.SetActive(false);
+                }
+                else
+                {
+                    SetAnchoredBand(_contentHost, 0.13f, 0.74f);
+                    _contentHost.gameObject.SetActive(true);
+                }
+            }
+        }
+
+        static void ApplyHubNormRect(RectTransform rt, HubNormRect zone)
+        {
+            rt.anchorMin = new Vector2(zone.XMin, zone.YMin);
+            rt.anchorMax = new Vector2(zone.XMax, zone.YMax);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            rt.pivot = new Vector2(0.5f, 0.5f);
         }
 
         void AddTitle(
@@ -1612,12 +2154,12 @@ namespace Grimhand.Presentation.Battle
             var scrollRt = scrollGo.GetComponent<RectTransform>();
             StretchFull(scrollRt);
 
-            var viewportGo = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(Mask));
+            var viewportGo = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(RectMask2D));
             viewportGo.transform.SetParent(scrollGo.transform, false);
             var viewportRt = viewportGo.GetComponent<RectTransform>();
             StretchFull(viewportRt);
-            viewportGo.GetComponent<Image>().color = new Color(0.08f, 0.09f, 0.12f, 0.45f);
-            viewportGo.GetComponent<Mask>().showMaskGraphic = false;
+            viewportGo.GetComponent<Image>().color = Color.clear;
+            viewportGo.GetComponent<Image>().raycastTarget = true;
 
             var gridGo = new GameObject("Grid", typeof(RectTransform), typeof(GridLayoutGroup), typeof(ContentSizeFitter));
             gridGo.transform.SetParent(viewportGo.transform, false);
@@ -1634,14 +2176,41 @@ namespace Grimhand.Presentation.Battle
             grid.spacing = new Vector2(spacing, spacing);
             grid.padding = new RectOffset(8, 8, 8, 8);
             grid.childAlignment = TextAnchor.UpperCenter;
-            gridGo.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            grid.startCorner = GridLayoutGroup.Corner.UpperLeft;
+            grid.startAxis = GridLayoutGroup.Axis.Horizontal;
+            var fitter = gridGo.GetComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             var scroll = scrollGo.GetComponent<ScrollRect>();
             scroll.horizontal = false;
             scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = 40f;
             scroll.viewport = viewportRt;
             scroll.content = gridRt;
             return gridRt;
+        }
+
+        static void FinalizeScrollGridContent(RectTransform gridRt, ScrollRect scroll, int itemCount)
+        {
+            if (gridRt == null)
+                return;
+
+            var grid = gridRt.GetComponent<GridLayoutGroup>();
+            if (grid != null && itemCount > 0)
+            {
+                var cols = Mathf.Max(1, grid.constraintCount);
+                var rows = (itemCount + cols - 1) / cols;
+                var height = grid.padding.top + grid.padding.bottom
+                             + rows * grid.cellSize.y
+                             + Mathf.Max(0, rows - 1) * grid.spacing.y;
+                gridRt.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height);
+            }
+
+            LayoutRebuilder.ForceRebuildLayoutImmediate(gridRt);
+            if (scroll != null)
+                scroll.verticalNormalizedPosition = 1f;
         }
 
         static void ConfigureHorizontalLayout(HorizontalLayoutGroup layout, float spacing)
@@ -1686,6 +2255,62 @@ namespace Grimhand.Presentation.Battle
                 parent, label, bg, textColor,
                 new Vector2(0.5f, 0.5f), size, interactable, onClick,
                 anchoredPosition);
+        }
+
+        Button CreateButton1(
+            Transform parent,
+            string label,
+            Vector2 anchor,
+            Vector2 size,
+            bool interactable,
+            System.Action onClick,
+            Vector2? anchoredPosition = null)
+        {
+            var go = CreateRect(label + "Btn", parent);
+            var rt = go;
+            rt.anchorMin = anchor;
+            rt.anchorMax = anchor;
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = size;
+            if (anchoredPosition.HasValue)
+                rt.anchoredPosition = anchoredPosition.Value;
+
+            var img = go.gameObject.AddComponent<Image>();
+            img.raycastTarget = true;
+            img.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiButton1 != null)
+            {
+                img.sprite = _uiIcons.UiButton1;
+                img.color = interactable ? Color.white : new Color(0.45f, 0.45f, 0.48f, 1f);
+            }
+            else
+            {
+                img.color = interactable ? BtnGreen : DisabledCardBg;
+            }
+
+            var text = CreateStaticText(go, label, 22, FontStyle.Bold, TextAnchor.MiddleCenter);
+            StretchFull(text.rectTransform);
+            text.color = interactable
+                ? new Color(0.96f, 0.92f, 0.78f, 1f)
+                : new Color(0.55f, 0.55f, 0.58f, 1f);
+
+            var group = go.gameObject.AddComponent<CanvasGroup>();
+            group.alpha = 1f;
+            group.blocksRaycasts = true;
+            group.interactable = interactable;
+            if (interactable)
+            {
+                var hover = go.gameObject.AddComponent<CampBuildingHoverView>();
+                hover.Bind(rt, group, HubButtonHoverScale, hideWhenIdle: false);
+            }
+
+            var btn = go.gameObject.AddComponent<Button>();
+            btn.targetGraphic = img;
+            btn.transition = Selectable.Transition.None;
+            btn.interactable = interactable;
+            btn.onClick.AddListener(() => onClick?.Invoke());
+            UiAudioHooks.WireButton(btn);
+            return btn;
         }
 
         static Button CreateAnchoredActionButton(

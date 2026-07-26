@@ -91,6 +91,8 @@ namespace Grimhand.Editor
                 ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/button6.png");
             catalog.UiButton5 = LoadNamedSprite(NewUiRoot + "interactables_and_ui/button5.png", "button5_0")
                 ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/button5.png");
+            catalog.UiButton7 = LoadNamedSprite(NewUiRoot + "interactables_and_ui/button7.png", "button7_0")
+                ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/button7.png");
             catalog.UiSettingButton = LoadNamedSprite(
                 NewUiRoot + "interactables_and_ui/setting_button.png", "setting_button_0")
                 ?? LoadFirstSprite(NewUiRoot + "interactables_and_ui/setting_button.png");
@@ -165,6 +167,8 @@ namespace Grimhand.Editor
             catalog.TalentAltarBuilding = LoadNamedSprite(CampArtRoot + "talent_alter.png", "talent_alter_0");
             catalog.UiTalentAltarBackground = LoadFirstSprite(
                 NewUiRoot + "templates/天赋祭坛概念图-模板.png");
+            catalog.UiExpeditionAltarHubBackground = LoadFirstSprite(
+                NewUiRoot + "templates/局内祭坛1级UI概念图-模板.png");
             catalog.UiLibraryCodexBackground = LoadFirstSprite(
                 NewUiRoot + "templates/图鉴概念图-模板.png");
             catalog.UiExpeditionStartBackground = LoadFirstSprite(

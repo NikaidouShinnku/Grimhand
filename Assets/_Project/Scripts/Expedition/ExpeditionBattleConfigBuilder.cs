@@ -483,6 +483,22 @@ namespace Grimhand.Expedition
                 party.Add(snap);
             }
 
+            // 战斗里玩家位少于远征编队时，补回未入场/未捕获的队员，避免祭坛等 UI 只剩一人的牌组。
+            if (existingParty != null)
+            {
+                foreach (var existing in existingParty)
+                {
+                    if (existing == null || string.IsNullOrEmpty(existing.CharacterDefinitionId))
+                        continue;
+                    if (party.Count >= CampRosterState.PartySize)
+                        break;
+                    if (FindExistingMember(party, existing.CharacterDefinitionId) != null)
+                        continue;
+
+                    party.Add(CloneExpeditionMember(existing));
+                }
+            }
+
             return party;
         }
 

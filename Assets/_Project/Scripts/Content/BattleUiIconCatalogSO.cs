@@ -46,6 +46,8 @@ namespace Grimhand.Content
         public Sprite UiButton6;
         /// <summary>通用 UI 按钮框：interactables_and_ui/button5.png（战斗侧栏等）</summary>
         public Sprite UiButton5;
+        /// <summary>方形选项板：interactables_and_ui/button7.png（祭坛一级三选项等）</summary>
+        public Sprite UiButton7;
         /// <summary>战斗设置：interactables_and_ui/setting_button.png</summary>
         public Sprite UiSettingButton;
         /// <summary>战斗倍速：interactables_and_ui/change_gamespeed_button.png</summary>
@@ -98,6 +100,8 @@ namespace Grimhand.Content
         public Sprite TalentAltarBuilding;
         /// <summary>局外天赋祭坛：templates/天赋祭坛概念图-模板.png</summary>
         public Sprite UiTalentAltarBackground;
+        /// <summary>局内祭坛一级：templates/局内祭坛1级UI概念图-模板.png</summary>
+        public Sprite UiExpeditionAltarHubBackground;
         /// <summary>局外图书馆图鉴：templates/图鉴概念图-模板.png</summary>
         public Sprite UiLibraryCodexBackground;
         /// <summary>局外开启远征：templates/远征开启概念图-模板.png</summary>

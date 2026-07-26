@@ -14,6 +14,7 @@ namespace Grimhand.Core
             public int CostReductionPerLevel { get; set; }
             public int PoisonStacksPerLevel { get; set; }
             public int SlowStacksPerLevel { get; set; }
+            public int DrawPerLevel { get; set; }
             public int XpCostPerLevel { get; set; }
         }
 
@@ -97,10 +98,18 @@ namespace Grimhand.Core
             ["毒雾弥漫"] = new() { MaxUpgrades = 3, DamagePerLevel = 0, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 1, SlowStacksPerLevel = 0, XpCostPerLevel = 10 },
             ["女王之吻"] = new() { MaxUpgrades = 5, DamagePerLevel = 0, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 3, SlowStacksPerLevel = 0, XpCostPerLevel = 30 },
             ["万蛇噬心"] = new() { MaxUpgrades = 6, DamagePerLevel = 5, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 30 },
+            // 毒蛇女王初始组（Excel 卡牌表）
+            ["蛇牙撕咬"] = new() { MaxUpgrades = 5, DamagePerLevel = 1, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 8 },
+            ["蟒蛇守护"] = new() { MaxUpgrades = 5, DamagePerLevel = 0, BlockPerLevel = 1, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 8 },
+            ["剧毒之触"] = new() { MaxUpgrades = 5, DamagePerLevel = 1, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 8 },
+            ["女王威信"] = new() { MaxUpgrades = 1, DamagePerLevel = 0, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, DrawPerLevel = 1, XpCostPerLevel = 8 },
             ["灵质护盾"] = new() { MaxUpgrades = 5, DamagePerLevel = 0, BlockPerLevel = 1, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 8 },
             ["灵能箭雨"] = new() { MaxUpgrades = 5, DamagePerLevel = 1, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 10 },
             ["灵界封印"] = new() { MaxUpgrades = 1, DamagePerLevel = 0, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 1, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 15 },
             ["灵魂强化"] = new() { MaxUpgrades = 5, DamagePerLevel = 0, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 15 },
+            // 巫妖女王初始组（Excel 卡牌表；虚化形态/聚能不可升级）
+            ["幽灵爪击"] = new() { MaxUpgrades = 5, DamagePerLevel = 1, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 8 },
+            ["灵魂风暴"] = new() { MaxUpgrades = 5, DamagePerLevel = 1, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 15 },
         };
     }
 }

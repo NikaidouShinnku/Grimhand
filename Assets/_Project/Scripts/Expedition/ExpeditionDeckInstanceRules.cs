@@ -38,22 +38,30 @@ namespace Grimhand.Expedition
         static int ResolveBaseDeckSlotCount(ExpeditionConfig config, PartyMemberSnapshot member)
         {
             if (member.UsesCampDeckAsBattleBase)
-            {
-                var filled = 0;
-                foreach (var cardId in member.CampDeckCardIds)
-                {
-                    if (!string.IsNullOrEmpty(cardId))
-                        filled++;
-                }
+                return CountCampDeckSlots(member);
 
-                return System.Math.Max(filled, member.CampDeckCardIds.Count);
-            }
+            var encounterCount = ExpeditionRunDeckCatalog.GetCharacterBaseDeckCount(
+                config, member.CharacterDefinitionId);
+            if (encounterCount > 0)
+                return encounterCount;
 
-            var baseDecks = BuildBaseDeckLookup(config.CombatEncounters[0]);
-            if (!baseDecks.TryGetValue(member.CharacterDefinitionId, out var baseDeck) || baseDeck == null)
+            // 遭遇模板没有该角色基组时，按军营携带牌槽位数预留实例 id。
+            return CountCampDeckSlots(member);
+        }
+
+        static int CountCampDeckSlots(PartyMemberSnapshot member)
+        {
+            if (member?.CampDeckCardIds == null)
                 return 0;
 
-            return baseDeck.Count;
+            var filled = 0;
+            foreach (var cardId in member.CampDeckCardIds)
+            {
+                if (!string.IsNullOrEmpty(cardId))
+                    filled++;
+            }
+
+            return System.Math.Max(filled, member.CampDeckCardIds.Count);
         }
 
         public static string ResolveBaseDeckInstanceId(PartyMemberSnapshot member, int slotIndex)
@@ -82,24 +90,6 @@ namespace Grimhand.Expedition
                 return;
 
             member.CardUpgradeLevels.Remove(deckInstanceId);
-        }
-
-        static Dictionary<string, List<CardTemplate>> BuildBaseDeckLookup(BattleConfig encounter)
-        {
-            var lookup = new Dictionary<string, List<CardTemplate>>();
-            if (encounter?.Combatants == null)
-                return lookup;
-
-            foreach (var cc in encounter.Combatants)
-            {
-                if (cc.Team != TeamSide.Player || string.IsNullOrEmpty(cc.CharacterDefinitionId))
-                    continue;
-
-                if (!lookup.ContainsKey(cc.CharacterDefinitionId))
-                    lookup[cc.CharacterDefinitionId] = cc.DeckTemplates;
-            }
-
-            return lookup;
         }
     }
 }

@@ -458,6 +458,27 @@ namespace Grimhand.Presentation.Battle
             view.statsText.lineSpacing = 1f;
         }
 
+        /// <summary>祭坛强化卡牌列表：放大名称/描述/费用等字号。</summary>
+        public static void ConfigureForAltarUpgradePresentation(CardView view)
+        {
+            if (view == null)
+                return;
+
+            view.EnsureLowerPanelLayout();
+            if (view.nameText != null)
+                view.nameText.fontSize = 18;
+            if (view.statsText != null)
+            {
+                view.statsText.fontSize = 15;
+                view.statsText.lineSpacing = 1.05f;
+            }
+
+            if (view.ownerText != null)
+                view.ownerText.fontSize = 14;
+            if (view.costText != null)
+                view.costText.fontSize = 20;
+        }
+
         public static void ApplyHandPresentationScaleCentered(CardView view, float scale)
         {
             ApplyHandPresentationScale(view, scale);

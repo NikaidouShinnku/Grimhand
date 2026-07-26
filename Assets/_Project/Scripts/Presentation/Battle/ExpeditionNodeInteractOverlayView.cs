@@ -92,7 +92,9 @@ namespace Grimhand.Presentation.Battle
                 var label = string.IsNullOrEmpty(choice.Description)
                     ? choice.Label
                     : $"{choice.Label} / {choice.Description}";
-                AddChoiceButton(label, () => _session.ResolveEventChoice(index));
+                var canAfford = choice.RequiredGold <= 0
+                    || _session.Expedition.Run.Gold >= choice.RequiredGold;
+                AddChoiceButton(label, () => _session.ResolveEventChoice(index), canAfford);
             }
         }
 
@@ -112,7 +114,7 @@ namespace Grimhand.Presentation.Battle
             AddChoiceButton("确定", () => _session.ConfirmEventAftermath());
         }
 
-        void AddChoiceButton(string label, System.Action onClick)
+        void AddChoiceButton(string label, System.Action onClick, bool interactable = true)
         {
             var go = new GameObject("Choice", typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
             go.transform.SetParent(_choiceRow, false);
@@ -131,12 +133,16 @@ namespace Grimhand.Presentation.Battle
             if (_icons != null && _icons.UiEventOptionPlate != null)
             {
                 img.sprite = _icons.UiEventOptionPlate;
-                img.color = Color.white;
+                img.color = interactable
+                    ? Color.white
+                    : new Color(0.45f, 0.45f, 0.48f, 1f);
             }
             else
             {
                 img.sprite = null;
-                img.color = new Color(0.22f, 0.20f, 0.18f, 0.96f);
+                img.color = interactable
+                    ? new Color(0.22f, 0.20f, 0.18f, 0.96f)
+                    : new Color(0.12f, 0.12f, 0.14f, 0.75f);
             }
 
             var textGo = new GameObject("Text", typeof(RectTransform), typeof(Text));
@@ -152,7 +158,9 @@ namespace Grimhand.Presentation.Battle
             text.fontStyle = FontStyle.Bold;
             text.lineSpacing = 1.05f;
             text.alignment = TextAnchor.MiddleCenter;
-            text.color = OptionText;
+            text.color = interactable
+                ? OptionText
+                : new Color(0.55f, 0.55f, 0.58f, 1f);
             text.supportRichText = false;
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.verticalOverflow = VerticalWrapMode.Truncate;
@@ -161,9 +169,13 @@ namespace Grimhand.Presentation.Battle
 
             var btn = go.GetComponent<Button>();
             btn.targetGraphic = img;
-            btn.onClick.AddListener(() => onClick?.Invoke());
-            BattleButtonPressFeedback.Apply(btn);
-            UiAudioHooks.WireButton(btn);
+            btn.interactable = interactable;
+            if (interactable)
+            {
+                btn.onClick.AddListener(() => onClick?.Invoke());
+                BattleButtonPressFeedback.Apply(btn);
+                UiAudioHooks.WireButton(btn);
+            }
         }
 
         void ClearChoices()

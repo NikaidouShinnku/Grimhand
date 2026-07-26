@@ -65,6 +65,7 @@ namespace Grimhand.Expedition
             var poison = spec.PoisonStacksPerLevel * upgradeLevel;
             var slow = spec.SlowStacksPerLevel * upgradeLevel;
             var costReduce = spec.CostReductionPerLevel * upgradeLevel;
+            var draw = spec.DrawPerLevel * upgradeLevel;
 
             if (costReduce > 0)
                 template.Cost = Math.Max(0, template.Cost - costReduce);
@@ -90,6 +91,10 @@ namespace Grimhand.Expedition
                         break;
                     case EffectActionType.ApplyStatus when action.StatusId == "slow" && slow > 0:
                         action.Stacks += slow;
+                        break;
+                    case EffectActionType.DrawCards when draw > 0:
+                    case EffectActionType.DrawCardsNextTurn when draw > 0:
+                        action.Value += draw;
                         break;
                 }
             }

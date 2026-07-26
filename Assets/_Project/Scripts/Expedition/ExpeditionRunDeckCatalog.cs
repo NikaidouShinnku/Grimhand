@@ -46,44 +46,118 @@ namespace Grimhand.Expedition
                 return entries;
             }
 
-            var baseDecks = BuildBaseDeckLookup(config.CombatEncounters[0]);
-            if (baseDecks.TryGetValue(member.CharacterDefinitionId, out var baseDeck))
+            var baseDeck = FindCharacterBaseDeck(config, member.CharacterDefinitionId);
+            if (baseDeck != null)
+                AppendEncounterBaseDeckEntries(member, baseDeck, entries, removedLeft);
+
+            // 遭遇模板缺该角色基组时，回退军营携带牌，避免祭坛/背包只剩一名角色的牌。
+            if (entries.Count == 0 && member.CampDeckCardIds.Count > 0)
             {
-                for (var slot = 0; slot < baseDeck.Count; slot++)
-                {
-                    var template = baseDeck[slot];
-                    if (template == null || string.IsNullOrEmpty(template.DefinitionId))
-                        continue;
-
-                    if (removedLeft.TryGetValue(template.DefinitionId, out var left) && left > 0)
-                    {
-                        removedLeft[template.DefinitionId] = left - 1;
-                        continue;
-                    }
-
-                    var instanceId = ExpeditionDeckInstanceRules.ResolveBaseDeckInstanceId(member, slot);
-                    if (string.IsNullOrEmpty(instanceId))
-                        continue;
-
-                    var copy = ExpeditionBattleConfigBuilder.CloneTemplate(template);
-                    copy.DeckInstanceId = instanceId;
-                    if (string.IsNullOrEmpty(copy.OwnerCharacterId))
-                        copy.OwnerCharacterId = member.CharacterDefinitionId;
-                    else if (copy.OwnerCharacterId != member.CharacterDefinitionId)
-                        continue;
-
-                    ApplyCardUpgrades(copy, member);
-                    entries.Add(new DeckEntry
-                    {
-                        Key = instanceId,
-                        Template = copy,
-                        IsBonus = false
-                    });
-                }
+                ExpeditionDeckInstanceRules.EnsureBaseDeckInstances(config, member);
+                AppendCampDeckEntries(config, member, entries, removedLeft);
             }
 
             AppendBonusDeckEntries(config, member, entries);
             return entries;
+        }
+
+        static void AppendEncounterBaseDeckEntries(
+            PartyMemberSnapshot member,
+            IReadOnlyList<CardTemplate> baseDeck,
+            List<DeckEntry> entries,
+            Dictionary<string, int> removedLeft)
+        {
+            if (member == null || baseDeck == null || entries == null)
+                return;
+
+            for (var slot = 0; slot < baseDeck.Count; slot++)
+            {
+                var template = baseDeck[slot];
+                if (template == null || string.IsNullOrEmpty(template.DefinitionId))
+                    continue;
+
+                if (removedLeft != null
+                    && removedLeft.TryGetValue(template.DefinitionId, out var left)
+                    && left > 0)
+                {
+                    removedLeft[template.DefinitionId] = left - 1;
+                    continue;
+                }
+
+                var instanceId = ExpeditionDeckInstanceRules.ResolveBaseDeckInstanceId(member, slot);
+                if (string.IsNullOrEmpty(instanceId))
+                    continue;
+
+                var copy = ExpeditionBattleConfigBuilder.CloneTemplate(template);
+                copy.DeckInstanceId = instanceId;
+                // 基组已按角色取出；纠偏归属，避免错误 Owner 导致整张被跳过。
+                copy.OwnerCharacterId = member.CharacterDefinitionId;
+
+                ApplyCardUpgrades(copy, member);
+                entries.Add(new DeckEntry
+                {
+                    Key = instanceId,
+                    Template = copy,
+                    IsBonus = false
+                });
+            }
+        }
+
+        static List<CardTemplate> FindCharacterBaseDeck(ExpeditionConfig config, string characterId)
+        {
+            if (config?.CombatEncounters == null || string.IsNullOrEmpty(characterId))
+                return null;
+
+            foreach (var candidateId in EnumerateCharacterIdAliases(characterId))
+            {
+                foreach (var encounter in config.CombatEncounters)
+                {
+                    if (encounter?.Combatants == null)
+                        continue;
+
+                    foreach (var cc in encounter.Combatants)
+                    {
+                        if (cc == null
+                            || cc.Team != TeamSide.Player
+                            || cc.CharacterDefinitionId != candidateId
+                            || cc.DeckTemplates == null
+                            || cc.DeckTemplates.Count == 0)
+                            continue;
+
+                        return cc.DeckTemplates;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>角色 ID 别名（旧资源 / 演示配置偶发混用）。</summary>
+        static string[] EnumerateCharacterIdAliases(string characterId)
+        {
+            if (string.IsNullOrEmpty(characterId))
+                return System.Array.Empty<string>();
+
+            return characterId switch
+            {
+                "char_warrior" => new[] { characterId, "char_knight" },
+                "char_knight" => new[] { characterId, "char_warrior" },
+                "char_pharaoh" => new[] { characterId, "char_mage" },
+                "char_mage" => new[] { characterId, "char_pharaoh" },
+                "char_demon" => new[] { characterId, "char_ranger" },
+                "char_ranger" => new[] { characterId, "char_demon" },
+                "char_viper_queen" => new[] { characterId, "char_snake_queen" },
+                "char_snake_queen" => new[] { characterId, "char_viper_queen" },
+                "char_lich" => new[] { characterId, "char_lich_queen" },
+                "char_lich_queen" => new[] { characterId, "char_lich" },
+                _ => new[] { characterId }
+            };
+        }
+
+        public static int GetCharacterBaseDeckCount(ExpeditionConfig config, string characterId)
+        {
+            var deck = FindCharacterBaseDeck(config, characterId);
+            return deck?.Count ?? 0;
         }
 
         static void AppendCampDeckEntries(

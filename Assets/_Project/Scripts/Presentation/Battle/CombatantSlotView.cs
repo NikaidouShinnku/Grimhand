@@ -71,6 +71,8 @@ namespace Grimhand.Presentation.Battle
         bool _isValidTarget;
         bool _displayAlive = true;
         bool _showExpBar;
+        float _hoverLeftAt = -1f;
+        const float HoverStaleHideSeconds = 1f;
         Vector3 _basePortraitScale = Vector3.one;
         float _presentationYOffsetLocal;
         string _hpBarLayoutCombatantId;
@@ -190,6 +192,9 @@ namespace Grimhand.Presentation.Battle
 
         void LateUpdate()
         {
+            // 战斗结束/遮罩盖住时 PointerExit 可能丢失，超时清掉残留信息框
+            SyncHoverWithPointer();
+
             if (_portraitView == null || _currentUnit == null)
                 return;
 
@@ -890,13 +895,25 @@ namespace Grimhand.Presentation.Battle
 
         void SyncHoverWithPointer()
         {
-            if (!_hovered || _portraitHit == null)
+            if (!_hovered)
+            {
+                _hoverLeftAt = -1f;
                 return;
+            }
 
-            if (UiPointerUtility.IsOverRectTransform(_portraitHit, UiPointerUtility.GetEventCamera(_portraitHit)))
+            var over = _portraitHit != null
+                && UiPointerUtility.IsOverRectTransform(_portraitHit, UiPointerUtility.GetEventCamera(_portraitHit));
+            if (over)
+            {
+                _hoverLeftAt = -1f;
                 return;
+            }
 
-            OnPortraitPointerExit();
+            if (_hoverLeftAt < 0f)
+                _hoverLeftAt = Time.unscaledTime;
+
+            if (Time.unscaledTime - _hoverLeftAt >= HoverStaleHideSeconds)
+                OnPortraitPointerExit();
         }
 
         void AlignStatusBelowPortrait()
@@ -998,6 +1015,7 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             _hovered = true;
+            _hoverLeftAt = -1f;
             ApplyTargetVisuals();
             if (_targetMode && _isValidTarget && _currentUnit != null)
                 _hoverPreviewEnter?.Invoke(_currentUnit);
@@ -1047,6 +1065,7 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             _hovered = false;
+            _hoverLeftAt = -1f;
             ApplyTargetVisuals();
             if (_targetMode && _isValidTarget)
                 _hoverPreviewExit?.Invoke();

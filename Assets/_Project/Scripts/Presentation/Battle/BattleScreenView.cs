@@ -6,6 +6,7 @@ using Grimhand.Battle.Rules;
 using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
+using Grimhand.Presentation;
 using Grimhand.Presentation.Audio;
 using UnityEngine;
 using UnityEngine.UI;
@@ -42,6 +43,9 @@ namespace Grimhand.Presentation.Battle
         [Header("Tooltip")]
         [SerializeField] GameObject keywordTooltipPanel;
         [SerializeField] Text keywordTooltipText;
+        RectTransform _keywordTooltipAnchor;
+        float _keywordTooltipLeftAt = -1f;
+        const float KeywordTooltipStaleHideSeconds = 1f;
 
         [Header("Expedition Overlay")]
         [SerializeField] GameObject expeditionOverlay;
@@ -1903,6 +1907,13 @@ namespace Grimhand.Presentation.Battle
             }
 
             _postBattleOverlay.Refresh();
+            // 奖励/选路遮罩出现时清掉战斗悬停信息框，避免残留
+            if (_session.Expedition?.Run?.Phase is ExpeditionPhase.RewardPickup
+                or ExpeditionPhase.RouteSelect)
+            {
+                HideKeywordTooltip();
+                ClearCombatantHoverDetails();
+            }
         }
 
         void UpdateExpeditionAudio(bool expedition, int layer)
@@ -2048,6 +2059,8 @@ namespace Grimhand.Presentation.Battle
 
             var battleRoot = transform;
             CombatantTooltipLayer.MountToFront(panel, battleRoot);
+            _keywordTooltipAnchor = anchor;
+            _keywordTooltipLeftAt = -1f;
         }
 
         void PositionTooltipBesideCard(RectTransform panel, RectTransform anchor)
@@ -2160,6 +2173,34 @@ namespace Grimhand.Presentation.Battle
         {
             if (keywordTooltipPanel != null)
                 keywordTooltipPanel.SetActive(false);
+            _keywordTooltipAnchor = null;
+            _keywordTooltipLeftAt = -1f;
+        }
+
+        void LateUpdate()
+        {
+            if (keywordTooltipPanel == null || !keywordTooltipPanel.activeSelf)
+                return;
+
+            if (_keywordTooltipAnchor == null || !_keywordTooltipAnchor.gameObject.activeInHierarchy)
+            {
+                HideKeywordTooltip();
+                return;
+            }
+
+            if (UiPointerUtility.IsOverRectTransform(
+                    _keywordTooltipAnchor,
+                    UiPointerUtility.GetEventCamera(_keywordTooltipAnchor)))
+            {
+                _keywordTooltipLeftAt = -1f;
+                return;
+            }
+
+            if (_keywordTooltipLeftAt < 0f)
+                _keywordTooltipLeftAt = Time.unscaledTime;
+
+            if (Time.unscaledTime - _keywordTooltipLeftAt >= KeywordTooltipStaleHideSeconds)
+                HideKeywordTooltip();
         }
 
         void RefreshFelskullChoice(BattleState state)

@@ -42,6 +42,7 @@ MonoBehaviour:
   UiButton4: {fileID: 9144582269909938847, guid: ef10e47b9b2ae804a9a0ffd37082d925, type: 3}
   UiButton6: {fileID: 7568152274879746454, guid: 62190e57d27c1084e87ce0d668ebc28b, type: 3}
   UiButton5: {fileID: -2202143836880063414, guid: 2319da3c58786a844be496a38d760f27, type: 3}
+  UiButton7: {fileID: 7059245495682053050, guid: 09dee4d43ae64a44da7217cad80ccf1e, type: 3}
   UiSettingButton: {fileID: 3822675230927641974, guid: a5a8b0ca941ea684fbb186be83faca9f, type: 3}
   UiChangeGamespeedButton: {fileID: -7120287032070845733, guid: ea45f0eb7474120489f254fd28d0016c, type: 3}
   ChampionCampTeamBackground: {fileID: 5994488411133315561, guid: 3f3696689d9c0684dac38c7a2fa31792, type: 3}
@@ -77,6 +78,7 @@ MonoBehaviour:
   - {fileID: -2851821248087912490, guid: 8eea5bbb263a8ff4aa420f493afa4e49, type: 3}
   TalentAltarBuilding: {fileID: -7883540776455437975, guid: 25365cd805f3d9845a027898103047dd, type: 3}
   UiTalentAltarBackground: {fileID: 5357591938430817483, guid: ca2e39c3277ef6949acdf83cdb6484a9, type: 3}
+  UiExpeditionAltarHubBackground: {fileID: 1725204271313825274, guid: bc75380715ee28b4995ecdbbcf119737, type: 3}
   UiLibraryCodexBackground: {fileID: -2091795795522694761, guid: 4e37280d484db664fa248d7ed23cee93, type: 3}
   UiExpeditionStartBackground: {fileID: 6381289981265433941, guid: 229b96b5dff2028429b659d8d77f1669, type: 3}
   UiChoosingPathLocationPlate: {fileID: -4953475700974519502, guid: 2508cc26dbc774a4a82d2f148dee3e1e, type: 3}

@@ -8,6 +8,8 @@ namespace Grimhand.Expedition.Events
         public string Label { get; set; } = "";
         public string Description { get; set; } = "";
         public string AfterChoiceText { get; set; } = "";
+        /// <summary>选项所需金币；不足时灰显不可选。</summary>
+        public int RequiredGold { get; set; }
     }
 
     public sealed class ExpeditionEventDefinition
@@ -48,7 +50,8 @@ namespace Grimhand.Expedition.Events
                 Evt(ExpeditionEventIds.MysteriousTraveler, "神秘旅者",
                     "戴兜帽的旅者摊开手掌，展示发光的物品。\n「交易，还是离开？」",
                     Choice("A", "用 30 金币购买", "随机卡牌奖励",
-                        "你掏出金币换得一张卡牌，旅者满意地收下，转身离去。"),
+                        "你掏出金币换得一张卡牌，旅者满意地收下，转身离去。",
+                        requiredGold: 30),
                     Choice("B", "接受礼物", "随机遗物 + 牌组加入诅咒牌「混沌之触」",
                         "你伸手接过礼物的瞬间，一道阴影般的诅咒悄悄爬进了你的牌组。"),
                     Choice("C", "拒绝离开", "无事发生",
@@ -206,12 +209,18 @@ namespace Grimhand.Expedition.Events
             return evt;
         }
 
-        static ExpeditionEventChoiceDefinition Choice(string label, string title, string desc, string afterChoiceText = "") =>
+        static ExpeditionEventChoiceDefinition Choice(
+            string label,
+            string title,
+            string desc,
+            string afterChoiceText = "",
+            int requiredGold = 0) =>
             new()
             {
                 Label = label,
                 Description = $"{title}：{desc}",
-                AfterChoiceText = afterChoiceText ?? ""
+                AfterChoiceText = afterChoiceText ?? "",
+                RequiredGold = requiredGold
             };
     }
 }

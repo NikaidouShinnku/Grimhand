@@ -209,13 +209,37 @@ namespace Grimhand.Battle.Effects
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
                 case EffectActionType.RemoveStatus:
-                    if (target != null)
+                    if (action.Target == EffectTarget.AllAllies)
+                        ExecuteRemoveStatusToAllAllies(state, actor, action, events);
+                    else if (target != null)
                         StatusRules.RemoveStatus(target, action.StatusId, action.Stacks, events);
                     break;
                 case EffectActionType.SwapPositionWithFrontAlly:
                     PositionRules.SwapWithAdjacentAlly(state, actor, -1, events);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     break;
+                case EffectActionType.SwapPositionWithSelectedAlly:
+                {
+                    var ally = target;
+                    if (ally == null)
+                    {
+                        ally = TargetRules.ResolveTarget(
+                            state, actor, EffectTarget.FrontAlly, card.InstanceId, rng, action);
+                    }
+
+                    if (ally != null && ally.IsAlive)
+                        PositionRules.SwapWithSelectedAlly(state, actor, ally, events);
+                    state.LastAction = new LastActionSnapshot(
+                        actor.Id, ActionKind.Status, ally?.Id ?? actor.Id, false, 0);
+                    break;
+                }
+                case EffectActionType.SwapBackEnemyWithRandomOther:
+                {
+                    var enemyTeam = actor.Team == TeamSide.Player ? TeamSide.Enemy : TeamSide.Player;
+                    PositionRules.SwapBackEnemyWithRandomOther(state, enemyTeam, rng, events);
+                    state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
+                    break;
+                };
                 case EffectActionType.SwapTargetWithBehind:
                 {
                     // 先伤后换：优先用上一动作的目标（伤害目标），勿重新抽 DefaultEnemy
@@ -1151,6 +1175,25 @@ namespace Grimhand.Battle.Effects
             }
         }
 
+        static void ExecuteRemoveStatusToAllAllies(
+            BattleState state,
+            CombatantState actor,
+            EffectActionSpec action,
+            List<BattleEvent> events)
+        {
+            if (actor == null || action == null || string.IsNullOrEmpty(action.StatusId))
+                return;
+
+            foreach (var targetId in PositionRules.SnapshotAliveCombatantIds(state, actor.Team))
+            {
+                var target = state.GetCombatant(targetId);
+                if (target == null || !target.IsAlive)
+                    continue;
+
+                StatusRules.RemoveStatus(target, action.StatusId, action.Stacks, events);
+            }
+        }
+
         static void ApplyStatusWithTalents(
             BattleState state,
             CombatantState actor,
@@ -1181,6 +1224,15 @@ namespace Grimhand.Battle.Effects
                 duration = TalentBattleRules.AdjustPoisonDuration(state, actor, duration);
             }
             StatusRules.ApplyStatus(state, target, action.StatusId, stacks, duration, events);
+
+            if (action.StatusId == StatusCatalog.BloodPuppetShelter
+                && actor != null
+                && target != null)
+            {
+                var shelter = StatusRules.FindStatus(target, StatusCatalog.BloodPuppetShelter);
+                if (shelter != null)
+                    shelter.SourceCombatantId = actor.Id;
+            }
 
             if (!action.SplashBehindTarget || target == null)
                 return;

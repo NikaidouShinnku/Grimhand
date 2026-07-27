@@ -26,16 +26,16 @@ namespace Grimhand.Battle.Demo
 
             var mageCards = new[]
             {
-                Card("m_bolt", "魔弹", "char_mage", 1, CardType.Attack, CardEffectKind.DealDamage, 7),
-                Card("m_bolt2", "魔弹", "char_mage", 1, CardType.Attack, CardEffectKind.DealDamage, 7),
+                Card("p_sand_ray", "沙暴射线", "char_mage", 1, CardType.Attack, CardEffectKind.DealDamage, 7),
+                Card("p_sand_ray2", "沙暴射线", "char_mage", 1, CardType.Attack, CardEffectKind.DealDamage, 7),
                 Card("m_shield", "魔盾", "char_mage", 1, CardType.Defense, CardEffectKind.GainBlock, 5),
                 Card("m_shield2", "魔盾", "char_mage", 1, CardType.Defense, CardEffectKind.GainBlock, 5),
                 Card("m_fire", "火球", "char_mage", 2, CardType.Attack, CardEffectKind.DealDamage, 16),
                 Card("m_fire2", "火球", "char_mage", 2, CardType.Attack, CardEffectKind.DealDamage, 16),
                 Card("m_mend", "愈合", "char_mage", 2, CardType.Status, CardEffectKind.Heal, 8),
                 Card("m_mend2", "愈合", "char_mage", 2, CardType.Status, CardEffectKind.Heal, 8),
-                Card("m_focus", "毒云", "char_mage", 2, CardType.Status, CardEffectKind.Heal, 0),
                 Card("m_focus2", "专注", "char_mage", 1, CardType.Status, CardEffectKind.DrawCards, 1),
+                Card("m_focus3", "专注", "char_mage", 1, CardType.Status, CardEffectKind.DrawCards, 1),
             };
 
             var rangerCards = new[]
@@ -162,19 +162,6 @@ namespace Grimhand.Battle.Demo
                         Target = EffectTarget.LastActionActor,
                         Value = 200,
                         Condition = ReactionConditionType.LastActionAttackOnSelf
-                    });
-            }
-
-            if (id == "m_focus")
-            {
-                return CardTemplate.Create(id, name, owner, cost, type,
-                    new EffectActionSpec
-                    {
-                        Type = EffectActionType.ApplyStatus,
-                        Target = EffectTarget.DefaultEnemy,
-                        StatusId = StatusCatalog.Poison,
-                        Stacks = 10,
-                        Duration = -1
                     });
             }
 

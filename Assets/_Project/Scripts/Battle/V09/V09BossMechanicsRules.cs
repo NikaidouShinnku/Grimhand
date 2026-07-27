@@ -333,16 +333,7 @@ namespace Grimhand.Battle.V09
 
                 var a = alive[aIndex];
                 var b = alive[bIndex];
-                var temp = a.Slot;
-                a.Slot = b.Slot;
-                b.Slot = temp;
-
-                events.Add(new BattleEvent(BattleEventKind.PositionSwapped, "站位交换")
-                {
-                    CombatantId = a.Id,
-                    TargetId = b.Id
-                });
-                MinionTraitRules.OnPositionsSwapped(state, a, b, events);
+                PositionRules.SwapCombatants(state, a, b, events, "站位交换");
 
                 if (!string.IsNullOrEmpty(applyStatusId) && applyStacks > 0)
                 {

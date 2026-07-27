@@ -14,6 +14,9 @@ namespace Grimhand.Presentation.Battle
 {
     public sealed class CombatantSlotView : MonoBehaviour
     {
+        /// <summary>显示点击判定框（PortraitHit）与站位槽带宽，便于核对站位。</summary>
+        public static bool ShowJudgmentGhosts = false;
+
         static readonly Color ValidTargetTintEnemy = new(1.18f, 1.02f, 0.48f, 1f);
         static readonly Color ValidTargetTintAlly = new(0.62f, 0.98f, 1.18f, 1f);
         static readonly Color ValidTargetHoverMul = new(1.1f, 1.1f, 1.1f, 1f);
@@ -39,6 +42,13 @@ namespace Grimhand.Presentation.Battle
         const float HoverScaleMul = 1.07f;
         const float TargetScaleMul = 1.05f;
         const float HitboxPadding = 2f;
+        /// <summary>判定框相对立绘可视宽度的比例（贴近身体，避免邻槽误点）。</summary>
+        const float JudgmentWidthScale = 0.68f;
+        const float JudgmentHeightScale = 0.88f;
+        /// <summary>判定框最大不超过 PortraitRoot 宽度的该比例。</summary>
+        const float JudgmentMaxWidthRatio = 0.36f;
+        /// <summary>战士立绘重心偏右，判定框略右移以盖住躯干。</summary>
+        const float WarriorJudgmentOffsetX = 12f;
 
         [SerializeField] Image background;
         [SerializeField] Image targetHighlight;
@@ -54,6 +64,9 @@ namespace Grimhand.Presentation.Battle
 
         RectTransform _portraitHit;
         Outline _targetOutline;
+        Image _hitboxGhostFill;
+        Image _slotGhostBorder;
+        Text _slotGhostLabel;
         CombatantDetailPopupView _detailPopup;
         Action<CombatantState> _hoverPreviewEnter;
         Action _hoverPreviewExit;
@@ -282,6 +295,114 @@ namespace Grimhand.Presentation.Battle
             selectButton.transition = Selectable.Transition.None;
 
             EnsureHoverEvents(hit.gameObject);
+            EnsureJudgmentGhostVisuals();
+        }
+
+        void EnsureJudgmentGhostVisuals()
+        {
+            if (_portraitHit == null)
+                return;
+
+            if (_hitboxGhostFill == null)
+            {
+                var existing = _portraitHit.Find("HitboxGhost");
+                if (existing != null)
+                    _hitboxGhostFill = existing.GetComponent<Image>();
+                else
+                {
+                    var go = new GameObject("HitboxGhost", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                    go.transform.SetParent(_portraitHit, false);
+                    var rt = go.GetComponent<RectTransform>();
+                    rt.anchorMin = Vector2.zero;
+                    rt.anchorMax = Vector2.one;
+                    rt.offsetMin = Vector2.zero;
+                    rt.offsetMax = Vector2.zero;
+                    _hitboxGhostFill = go.GetComponent<Image>();
+                    _hitboxGhostFill.raycastTarget = false;
+                    var outline = go.AddComponent<Outline>();
+                    outline.effectColor = new Color(0.15f, 1f, 0.45f, 0.95f);
+                    outline.effectDistance = new Vector2(2f, -2f);
+                }
+            }
+
+            _hitboxGhostFill.color = new Color(0.2f, 1f, 0.45f, 0.22f);
+
+            var slotRt = transform as RectTransform;
+            if (slotRt != null && _slotGhostBorder == null)
+            {
+                var existing = transform.Find("SlotBandGhost");
+                if (existing != null)
+                    _slotGhostBorder = existing.GetComponent<Image>();
+                else
+                {
+                    var go = new GameObject("SlotBandGhost", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                    go.transform.SetParent(transform, false);
+                    go.transform.SetAsFirstSibling();
+                    var rt = go.GetComponent<RectTransform>();
+                    rt.anchorMin = Vector2.zero;
+                    rt.anchorMax = Vector2.one;
+                    rt.offsetMin = Vector2.zero;
+                    rt.offsetMax = Vector2.zero;
+                    _slotGhostBorder = go.GetComponent<Image>();
+                    _slotGhostBorder.raycastTarget = false;
+                    var outline = go.AddComponent<Outline>();
+                    outline.effectColor = new Color(1f, 0.85f, 0.2f, 0.9f);
+                    outline.effectDistance = new Vector2(3f, -3f);
+                }
+            }
+
+            if (_slotGhostBorder != null)
+                _slotGhostBorder.color = new Color(1f, 0.9f, 0.2f, 0.08f);
+
+            if (_slotGhostLabel == null && slotRt != null)
+            {
+                var existing = transform.Find("SlotBandGhostLabel");
+                if (existing != null)
+                    _slotGhostLabel = existing.GetComponent<Text>();
+                else
+                {
+                    var go = new GameObject("SlotBandGhostLabel", typeof(RectTransform), typeof(Text));
+                    go.transform.SetParent(transform, false);
+                    var rt = go.GetComponent<RectTransform>();
+                    rt.anchorMin = new Vector2(0.5f, 1f);
+                    rt.anchorMax = new Vector2(0.5f, 1f);
+                    rt.pivot = new Vector2(0.5f, 1f);
+                    rt.anchoredPosition = new Vector2(0f, -4f);
+                    rt.sizeDelta = new Vector2(220f, 36f);
+                    _slotGhostLabel = go.GetComponent<Text>();
+                    _slotGhostLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                    _slotGhostLabel.fontSize = 18;
+                    _slotGhostLabel.fontStyle = FontStyle.Bold;
+                    _slotGhostLabel.alignment = TextAnchor.UpperCenter;
+                    _slotGhostLabel.color = new Color(1f, 0.95f, 0.35f, 0.95f);
+                    _slotGhostLabel.raycastTarget = false;
+                    var outline = go.AddComponent<Outline>();
+                    outline.effectColor = new Color(0f, 0f, 0f, 0.85f);
+                    outline.effectDistance = new Vector2(1f, -1f);
+                }
+            }
+
+            RefreshJudgmentGhostVisuals(null);
+        }
+
+        void RefreshJudgmentGhostVisuals(CombatantState unit)
+        {
+            var show = ShowJudgmentGhosts && unit != null;
+            if (_hitboxGhostFill != null)
+                _hitboxGhostFill.gameObject.SetActive(show);
+            // 槽带宽虚影易误导；只显示真正的点击判定框。
+            if (_slotGhostBorder != null)
+                _slotGhostBorder.gameObject.SetActive(false);
+            if (_slotGhostLabel != null)
+            {
+                _slotGhostLabel.gameObject.SetActive(show);
+                if (show)
+                {
+                    var slotName = BattleUiFormatters.SlotLabel(formationSlot);
+                    var hitSize = _portraitHit != null ? _portraitHit.rect.size : Vector2.zero;
+                    _slotGhostLabel.text = $"{slotName} 判定 {hitSize.x:0}×{hitSize.y:0}";
+                }
+            }
         }
 
         void EnsureHoverEvents(GameObject hitObject)
@@ -855,7 +976,7 @@ namespace Grimhand.Presentation.Battle
                 _footStatusIcons?.Refresh(presentation.GetFootStatuses(unit.Id), uiIcons);
             else
                 _footStatusIcons?.Refresh(unit, uiIcons);
-            _portraitView?.SetDamageFloaterBelow(statsRow != null ? statsRow.transform as RectTransform : null);
+            _portraitView?.SetDamageFloaterAbovePortrait();
 
             _showExpBar = showExpBar;
 
@@ -962,7 +1083,22 @@ namespace Grimhand.Presentation.Battle
             if (portraitRoot == null || _portraitHit == null)
                 return;
 
-            UiSpriteBounds.FitCentered(portraitRoot, _portraitHit, sprite, HitboxPadding);
+            UiSpriteBounds.FitJudgmentBox(
+                portraitRoot,
+                _portraitHit,
+                sprite,
+                JudgmentWidthScale,
+                JudgmentHeightScale,
+                JudgmentMaxWidthRatio,
+                HitboxPadding);
+
+            var offsetX = 0f;
+            var characterId = _currentUnit?.CharacterDefinitionId;
+            if (characterId is "char_knight" or "char_warrior")
+                offsetX = WarriorJudgmentOffsetX;
+            _portraitHit.anchoredPosition = new Vector2(offsetX, 0f);
+
+            RefreshJudgmentGhostVisuals(_currentUnit);
         }
 
         void ApplyTargetVisuals()
@@ -1084,13 +1220,16 @@ namespace Grimhand.Presentation.Battle
 
             foreach (var c in state.Combatants)
             {
-                if (c == null || c.Team != team || c.Slot != formationSlot)
+                if (c == null || c.Team != team)
                     continue;
 
-                // 演出锁定期：只显示快照已登记单位，避免召唤物/替换精英在点出牌瞬间刷出
+                // 演出锁定期：站位以快照为准，避免逻辑已换位时 Refresh 先瞬移再播动画。
                 if (_presentation != null)
                 {
                     if (!_presentation.IsTracked(c.Id))
+                        continue;
+
+                    if (!_presentation.TryGetSlot(c.Id, out var presentedSlot) || presentedSlot != formationSlot)
                         continue;
 
                     if (_presentation.IsAlive(c.Id))
@@ -1100,6 +1239,9 @@ namespace Grimhand.Presentation.Battle
                     continue;
                 }
 
+                if (c.Slot != formationSlot)
+                    continue;
+
                 if (c.IsAlive)
                     liveAlive ??= c;
                 else
@@ -1108,6 +1250,16 @@ namespace Grimhand.Presentation.Battle
 
             if (_presentation != null)
                 return trackedAlive ?? trackedDead;
+
+            // 无快照但已锁演出：冻结本槽当前展示单位，防止逻辑换位后 Refresh 瞬移。
+            if (_session != null
+                && _session.PresentationLocked
+                && !string.IsNullOrEmpty(_combatantId))
+            {
+                var frozen = state.GetCombatant(_combatantId);
+                if (frozen != null && frozen.Team == team)
+                    return frozen;
+            }
 
             return liveAlive ?? liveDead;
         }

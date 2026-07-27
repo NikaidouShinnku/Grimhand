@@ -95,6 +95,7 @@ namespace Grimhand.Battle.Effects
                 && cardType == CardType.Attack)
             {
                 V091MechanicsRules.OnAttacked(state, recipient, actor, events, rng);
+                PassiveCardMechanicsRules.TryTriggerBloodPuppetShelter(state, recipient, events);
             }
 
             var afterBlock = raw - blocked;

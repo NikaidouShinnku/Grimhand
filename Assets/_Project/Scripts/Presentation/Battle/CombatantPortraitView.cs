@@ -50,6 +50,21 @@ namespace Grimhand.Presentation.Battle
         public bool IsDeadDisplay => _isDead;
         public string CombatantId { get; private set; }
 
+        public Vector3 HomeWorldPosition
+        {
+            get
+            {
+                CaptureHomeIfNeeded();
+                return _homeWorldPosition;
+            }
+        }
+
+        public Vector3 CurrentWorldPosition =>
+            portraitRoot != null ? portraitRoot.position : transform.position;
+
+        public Image PortraitImage => portraitImage;
+        public RectTransform PortraitRootRect => portraitRoot;
+
         public void Bind(
             CharacterVisualCatalogSO visuals,
             Image portrait,
@@ -125,6 +140,9 @@ namespace Grimhand.Presentation.Battle
             _awayFromHome = false;
             _poseFlipX = false;
             RestoreHomePosition();
+            SetPortraitVisible(true);
+            if (_damageFloater != null)
+                _damageFloater.gameObject.SetActive(false);
         }
 
         void OnDisable()
@@ -185,6 +203,37 @@ namespace Grimhand.Presentation.Battle
             // 仅 X 轴移到战场中央，Y 保持与站位时相同水平线。
             var target = new Vector3(centerWorld.x, _homeWorldPosition.y, _homeWorldPosition.z);
             yield return TweenWorldPosition(portraitRoot, target, MoveDuration);
+        }
+
+        /// <summary>平移到指定世界坐标（换位等）；保留已捕获的 home，便于结束后归位。</summary>
+        public IEnumerator MoveToWorldPosition(Vector3 worldPos)
+        {
+            if (portraitRoot == null)
+                yield break;
+
+            _isAnimating = true;
+            _awayFromHome = true;
+            StopIdleLoop();
+            CaptureHomeIfNeeded();
+            yield return TweenWorldPosition(portraitRoot, worldPos, MoveDuration);
+        }
+
+        public void SetPortraitVisible(bool visible)
+        {
+            if (portraitImage != null)
+                portraitImage.enabled = visible;
+        }
+
+        public void SnapToHomeImmediate()
+        {
+            if (portraitRoot == null)
+                return;
+
+            RestoreHomePosition();
+            _awayFromHome = false;
+            _isAnimating = false;
+            if (!_isDead)
+                ApplyIdleStill();
         }
 
         public void ShowPose(PortraitPoseKind pose)
@@ -593,6 +642,27 @@ namespace Grimhand.Presentation.Battle
             rt.sizeDelta = new Vector2(140f, 44f);
         }
 
+        /// <summary>掉血/掉盾飘字挂在立绘头顶，避免挤在血条右侧看不清。</summary>
+        public void SetDamageFloaterAbovePortrait()
+        {
+            EnsureDamageFloater();
+            if (_damageFloater == null)
+                return;
+
+            var parent = portraitRoot != null ? portraitRoot : transform as RectTransform;
+            if (parent == null)
+                return;
+
+            var rt = _damageFloater.rectTransform;
+            rt.SetParent(parent, false);
+            rt.SetAsLastSibling();
+            rt.anchorMin = new Vector2(0.5f, 1f);
+            rt.anchorMax = new Vector2(0.5f, 1f);
+            rt.pivot = new Vector2(0.5f, 0f);
+            rt.anchoredPosition = new Vector2(0f, 12f);
+            rt.sizeDelta = new Vector2(160f, 44f);
+        }
+
         void CaptureHomeIfNeeded()
         {
             if (_homeCaptured || portraitRoot == null)
@@ -607,18 +677,20 @@ namespace Grimhand.Presentation.Battle
             if (_damageFloater != null)
                 return;
 
-            var anchor = _damageFloaterAnchor != null ? _damageFloaterAnchor : transform as RectTransform;
+            var anchor = portraitRoot != null
+                ? portraitRoot
+                : (_damageFloaterAnchor != null ? _damageFloaterAnchor : transform as RectTransform);
             if (anchor == null)
                 return;
 
             var go = new GameObject("DamageFloater", typeof(RectTransform), typeof(Text));
             go.transform.SetParent(anchor, false);
             var rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0.5f, 0f);
-            rt.anchorMax = new Vector2(0.5f, 0f);
-            rt.pivot = new Vector2(0.5f, 1f);
-            rt.anchoredPosition = new Vector2(0f, -6f);
-            rt.sizeDelta = new Vector2(140f, 44f);
+            rt.anchorMin = new Vector2(0.5f, 1f);
+            rt.anchorMax = new Vector2(0.5f, 1f);
+            rt.pivot = new Vector2(0.5f, 0f);
+            rt.anchoredPosition = new Vector2(0f, 12f);
+            rt.sizeDelta = new Vector2(160f, 44f);
 
             _damageFloater = go.GetComponent<Text>();
             _damageFloater.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");

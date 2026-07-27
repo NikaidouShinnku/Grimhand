@@ -45,6 +45,7 @@ namespace Grimhand.Content.Editor
             catalog.CardPackCommon = LoadSprite("Assets/The Grimhands Asset/card/cardpack_common.png");
             catalog.CardPackAdvanced = LoadSprite("Assets/The Grimhands Asset/card/cardpack_advanced.png");
             catalog.CardPackMaster = LoadSprite("Assets/The Grimhands Asset/card/cardpack_master.png");
+            catalog.UpgradeCardLimit = LoadSprite("Assets/The Grimhands Asset/card/upgrade_card_limit.png");
 
             var paths = new Sprite[CavePathAssetPaths.Length];
             for (var i = 0; i < CavePathAssetPaths.Length; i++)

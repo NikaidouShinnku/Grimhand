@@ -115,7 +115,11 @@ namespace Grimhand.Battle.Model
         /// <summary>使目标与其身后同队存活单位交换站位。</summary>
         SwapTargetWithBehind,
         /// <summary>真实伤害：按目标 StatusId 层数 × Stacks 直扣 HP（无视护甲/减伤/易伤等）。</summary>
-        DealTrueDamagePerStatusStack
+        DealTrueDamagePerStatusStack,
+        /// <summary>与选中友方交换站位（血肉置换）。</summary>
+        SwapPositionWithSelectedAlly,
+        /// <summary>后排敌人与随机另一名敌人交换站位；无后排则无事发生（灵体置换）。</summary>
+        SwapBackEnemyWithRandomOther
     }
 
     public enum EffectTarget

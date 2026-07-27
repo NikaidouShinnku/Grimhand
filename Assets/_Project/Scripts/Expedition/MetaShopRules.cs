@@ -11,7 +11,7 @@ namespace Grimhand.Expedition
         public List<CardPackChoice> Choices { get; } = new();
     }
 
-    /// <summary>局外商店：扣 AccountGold、开包 roll、卡牌入库。</summary>
+    /// <summary>局外商店：扣 AccountGold、开包 roll、卡牌入库、收藏上限升级。</summary>
     public static class MetaShopRules
     {
         public static bool TryBuyPack(
@@ -43,7 +43,7 @@ namespace Grimhand.Expedition
             if (CampCollectionRules.BlocksShopCardPack(collection, collectionCapacity))
             {
                 var count = collection?.Count ?? 0;
-                message = $"军营收藏已超出上限（{count}/{collectionCapacity}），请先整理后再购买。";
+                message = $"军营收藏已满（{count}/{collectionCapacity}），请先整理后再购买。";
                 return false;
             }
 
@@ -77,6 +77,31 @@ namespace Grimhand.Expedition
             };
             pending.Choices.AddRange(choices);
             message = $"已购买{CardPackIds.GetDisplayName(packId)}，请过目并收下卡牌。";
+            return true;
+        }
+
+        public static bool TryBuyCollectionCapacityUpgrade(
+            ref int accountGold,
+            ref int collectionCapacity,
+            out string message)
+        {
+            message = "";
+            if (collectionCapacity >= CampCollectionState.MaxCapacity)
+            {
+                message = $"军营收藏上限已达最大值（{CampCollectionState.MaxCapacity}）。";
+                return false;
+            }
+
+            var price = MetaShopCatalog.CollectionCapacityUpgradePrice;
+            if (accountGold < price)
+            {
+                message = $"局外金币不足（需要 {price}，当前 {accountGold}）。";
+                return false;
+            }
+
+            accountGold -= price;
+            collectionCapacity++;
+            message = $"军营收藏上限已提升至 {collectionCapacity}/{CampCollectionState.MaxCapacity}。";
             return true;
         }
 

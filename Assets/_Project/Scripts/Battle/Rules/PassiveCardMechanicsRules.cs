@@ -36,6 +36,8 @@ namespace Grimhand.Battle.Rules
         public const int BloodFrenzyAttackPercent = 5;
         public const int BloodSharingAllyHealPercent = 30;
         public const int PlagueSpreadChancePercent = 30;
+        public const int BloodPuppetShelterDamageReductionStacks = 25;
+        public const int BloodPuppetShelterDamageReductionDuration = 2;
         public const string HolyInfusionCardId = "p_holy_infusion";
 
         public static int GetEndlessBladeDamageMultiplierPercent(BattleState state, int cardInstanceId)
@@ -413,6 +415,92 @@ namespace Grimhand.Battle.Rules
             StatusRules.ApplyStatus(
                 state, target, StatusCatalog.AttackUpPercent,
                 BattleWillAttackPercentPerHit, -1, events);
+        }
+
+        /// <summary>
+        /// 借机攻击架势：任意两名敌人交换位置时，对双方造成层数伤害。
+        /// </summary>
+        public static void OnPositionsSwapped(
+            BattleState state,
+            CombatantState a,
+            CombatantState b,
+            List<BattleEvent> events)
+        {
+            if (state == null || a == null || b == null || events == null)
+                return;
+            if (a.Team != TeamSide.Enemy || b.Team != TeamSide.Enemy)
+                return;
+
+            foreach (var holder in state.GetTeam(TeamSide.Player))
+            {
+                if (holder == null || !holder.IsAlive)
+                    continue;
+
+                var damage = StatusRules.GetStatusStacks(holder, StatusCatalog.OpportunisticStance);
+                if (damage <= 0)
+                    continue;
+
+                if (a.IsAlive)
+                {
+                    DamageRules.ApplyDamage(
+                        state, holder, a, damage, CardType.Status, events, canTriggerParry: false);
+                }
+
+                if (b.IsAlive)
+                {
+                    DamageRules.ApplyDamage(
+                        state, holder, b, damage, CardType.Status, events, canTriggerParry: false);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 鲜血傀儡庇护：受庇护友方下次受到攻击后，与施法者换位并给施法者 25% 减伤（2 回合）。
+        /// </summary>
+        public static void TryTriggerBloodPuppetShelter(
+            BattleState state,
+            CombatantState recipient,
+            List<BattleEvent> events)
+        {
+            if (state == null || recipient == null || events == null)
+                return;
+
+            var shelter = StatusRules.FindStatus(recipient, StatusCatalog.BloodPuppetShelter);
+            if (shelter == null || shelter.Stacks <= 0)
+                return;
+
+            var sourceId = shelter.SourceCombatantId;
+            StatusRules.RemoveStatus(
+                recipient, StatusCatalog.BloodPuppetShelter, shelter.Stacks, events);
+
+            var source = string.IsNullOrEmpty(sourceId) ? null : state.GetCombatant(sourceId);
+            if (source == null || !source.IsAlive || source.Id == recipient.Id)
+            {
+                if (source != null && source.IsAlive)
+                {
+                    StatusRules.ApplyStatus(
+                        state,
+                        source,
+                        StatusCatalog.DamageReduction,
+                        BloodPuppetShelterDamageReductionStacks,
+                        BloodPuppetShelterDamageReductionDuration,
+                        events);
+                }
+
+                return;
+            }
+
+            PositionRules.SwapCombatants(state, recipient, source, events, "鲜血傀儡庇护换位");
+            if (source.IsAlive)
+            {
+                StatusRules.ApplyStatus(
+                    state,
+                    source,
+                    StatusCatalog.DamageReduction,
+                    BloodPuppetShelterDamageReductionStacks,
+                    BloodPuppetShelterDamageReductionDuration,
+                    events);
+            }
         }
 
         /// <summary>重甲强化：获得护甲时额外+20%。返回放大后的护甲值。</summary>

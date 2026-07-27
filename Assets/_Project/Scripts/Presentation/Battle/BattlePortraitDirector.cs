@@ -180,10 +180,7 @@ namespace Grimhand.Presentation.Battle
                             HandleStatusRemoved(e);
                             break;
                         case BattleEventKind.PositionSwapped:
-                            RebuildLookup();
-                            _screen?.InvalidateAllEnemyHpBarLayouts();
-                            _screen?.Refresh();
-                            yield return null;
+                            yield return HandlePositionSwapped(e, card);
                             break;
                         case BattleEventKind.DamageApplied:
                             card?.MarkDamage();
@@ -314,6 +311,63 @@ namespace Grimhand.Presentation.Battle
             _screen?.Refresh();
         }
 
+        IEnumerator HandlePositionSwapped(BattleEvent e, CardPlayContext card)
+        {
+            RebuildLookup();
+            if (e == null
+                || string.IsNullOrEmpty(e.CombatantId)
+                || string.IsNullOrEmpty(e.TargetId)
+                || !_portraits.TryGetValue(e.CombatantId, out var viewA)
+                || !_portraits.TryGetValue(e.TargetId, out var viewB))
+            {
+                _session.PresentationSnapshot?.ApplyPositionSwap(e?.CombatantId, e?.TargetId);
+                _screen?.InvalidateAllEnemyHpBarLayouts();
+                _screen?.Refresh();
+                yield return null;
+                yield break;
+            }
+
+            // 直接横向走到对方站位（保持各自当前 Y，避免 home 异常导致飞出屏幕）。
+            var startA = viewA.CurrentWorldPosition;
+            var startB = viewB.CurrentWorldPosition;
+            var destA = new Vector3(viewB.HomeWorldPosition.x, startA.y, startA.z);
+            var destB = new Vector3(viewA.HomeWorldPosition.x, startB.y, startB.z);
+            yield return RunParallel(new List<IEnumerator>
+            {
+                viewA.MoveToWorldPosition(destA),
+                viewB.MoveToWorldPosition(destB)
+            });
+
+            // 到位后再换绑：隐藏一帧避免看到回弹，再推进演出站位并 Refresh。
+            viewA.SetPortraitVisible(false);
+            viewB.SetPortraitVisible(false);
+            viewA.SnapToHomeImmediate();
+            viewB.SnapToHomeImmediate();
+
+            if (card != null
+                && (card.ActorId == e.CombatantId || card.ActorId == e.TargetId))
+                card.ActorAtCenter = false;
+
+            _session.PresentationSnapshot?.ApplyPositionSwap(e.CombatantId, e.TargetId);
+            _screen?.InvalidateAllEnemyHpBarLayouts();
+            _screen?.Refresh();
+            RebuildLookup();
+
+            if (_portraits.TryGetValue(e.CombatantId, out var settledA))
+            {
+                settledA.RecaptureHomePosition();
+                settledA.SetPortraitVisible(true);
+            }
+
+            if (_portraits.TryGetValue(e.TargetId, out var settledB))
+            {
+                settledB.RecaptureHomePosition();
+                settledB.SetPortraitVisible(true);
+            }
+
+            yield return null;
+        }
+
         IEnumerator BeginCardPlay(CardPlayContext card)
         {
             if (!_portraits.TryGetValue(card.ActorId, out var actor))
@@ -329,7 +383,10 @@ namespace Grimhand.Presentation.Battle
             yield return actor.MoveToCenter(center);
             actor.ShowPose(pose);
             PlayCardCastSfx(card);
+            // 状态/防御牌：先完成施法姿态，再进入 StatusApplied，避免脚标早于卡面演出。
             if (pose == PortraitPoseKind.Attack)
+                yield return actor.HoldPose(AttackWindUpDuration);
+            else if (card.CardType is CardType.Status or CardType.Defense)
                 yield return actor.HoldPose(AttackWindUpDuration);
         }
 
@@ -470,7 +527,9 @@ namespace Grimhand.Presentation.Battle
             if (_session.PresentationSnapshot == null || string.IsNullOrEmpty(e.CombatantId))
                 return;
 
-            _session.PresentationSnapshot.SyncFootStatusesFromLive(_session.Engine?.State, e.CombatantId);
+            // 只揭示本事件对应状态，禁止 Sync 实况（否则会把同卡后续状态一并提前显示）。
+            if (!string.IsNullOrEmpty(e.TargetId) && e.Amount > 0)
+                _session.PresentationSnapshot.ApplyFootStatusApplied(e.CombatantId, e.TargetId, e.Amount);
             _screen?.Refresh();
         }
 
@@ -479,7 +538,10 @@ namespace Grimhand.Presentation.Battle
             if (_session.PresentationSnapshot == null || string.IsNullOrEmpty(e.CombatantId))
                 return;
 
-            _session.PresentationSnapshot.SyncFootStatusesFromLive(_session.Engine?.State, e.CombatantId);
+            if (!string.IsNullOrEmpty(e.TargetId) && e.Amount > 0)
+                _session.PresentationSnapshot.ApplyFootStatusRemoved(e.CombatantId, e.TargetId, e.Amount);
+            else if (!string.IsNullOrEmpty(e.TargetId))
+                _session.PresentationSnapshot.ApplyFootStatusRemoved(e.CombatantId, e.TargetId, int.MaxValue);
             _screen?.Refresh();
         }
 

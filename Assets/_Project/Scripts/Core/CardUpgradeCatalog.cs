@@ -15,6 +15,7 @@ namespace Grimhand.Core
             public int PoisonStacksPerLevel { get; set; }
             public int SlowStacksPerLevel { get; set; }
             public int DrawPerLevel { get; set; }
+            public int DamageReductionPerLevel { get; set; }
             public int XpCostPerLevel { get; set; }
         }
 
@@ -110,6 +111,9 @@ namespace Grimhand.Core
             // 巫妖女王初始组（Excel 卡牌表；虚化形态/聚能不可升级）
             ["幽灵爪击"] = new() { MaxUpgrades = 5, DamagePerLevel = 1, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 8 },
             ["灵魂风暴"] = new() { MaxUpgrades = 5, DamagePerLevel = 1, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 15 },
+            // v0.92 新增可升级卡
+            ["借机攻击架势"] = new() { MaxUpgrades = 5, DamagePerLevel = 2, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, XpCostPerLevel = 20 },
+            ["刀枪不入"] = new() { MaxUpgrades = 5, DamagePerLevel = 0, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, DamageReductionPerLevel = 2, XpCostPerLevel = 15 },
         };
     }
 }

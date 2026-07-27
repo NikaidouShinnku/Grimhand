@@ -91,6 +91,12 @@ namespace Grimhand.Battle.Status
         public const string PsionicMastery = "psionic_mastery";
         public const string SoulBond = "soul_bond";
 
+        // v0.92 新增卡牌状态
+        /// <summary>借机攻击架势：本场战斗中敌人换位时对其造成 Stacks 伤害。</summary>
+        public const string OpportunisticStance = "opportunistic_stance";
+        /// <summary>鲜血傀儡庇护：下次受到攻击后与施法者换位，并给施法者减伤。</summary>
+        public const string BloodPuppetShelter = "blood_puppet_shelter";
+
         // v0.9 Boss：典狱长 / 腐化海洋女神
         public const string BrandMark = "brand_mark";
         public const string RisingTide = "rising_tide";
@@ -657,6 +663,18 @@ namespace Grimhand.Battle.Status
                 DisplayName = "灵魂纽带",
                 DurationKind = StatusDurationKind.Turns,
                 DefaultDuration = 1
+            };
+            map[OpportunisticStance] = new StatusDefinition
+            {
+                Id = OpportunisticStance,
+                DisplayName = "借机攻击架势",
+                DurationKind = StatusDurationKind.Permanent
+            };
+            map[BloodPuppetShelter] = new StatusDefinition
+            {
+                Id = BloodPuppetShelter,
+                DisplayName = "鲜血傀儡庇护",
+                DurationKind = StatusDurationKind.Permanent
             };
             return map;
         }

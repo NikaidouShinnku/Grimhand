@@ -104,8 +104,16 @@ namespace Grimhand.Persistence
             var profile = new PlayerProfileState
             {
                 AccountGold = dto.accountGold,
-                CollectionCapacity = dto.collectionCapacity
+                CollectionCapacity = dto.collectionCapacity > 0
+                    ? dto.collectionCapacity
+                    : CampCollectionState.DefaultCapacity
             };
+
+            // 旧档默认 30 → 抬到新开局上限 40；已手动升级的更高值保留。
+            if (profile.CollectionCapacity < CampCollectionState.DefaultCapacity)
+                profile.CollectionCapacity = CampCollectionState.DefaultCapacity;
+            if (profile.CollectionCapacity > CampCollectionState.MaxCapacity)
+                profile.CollectionCapacity = CampCollectionState.MaxCapacity;
 
             if (dto.collectionEntries != null)
             {

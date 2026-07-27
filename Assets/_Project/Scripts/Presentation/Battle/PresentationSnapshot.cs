@@ -30,6 +30,7 @@ namespace Grimhand.Presentation.Battle
         readonly Dictionary<string, int> _maxHp = new();
         readonly Dictionary<string, int> _block = new();
         readonly Dictionary<string, int> _ironWallPendingAttackBonus = new();
+        readonly Dictionary<string, FormationSlot> _slots = new();
         readonly Dictionary<string, CombatantDisplayStats> _displayStats = new();
         readonly Dictionary<string, List<FootStatusEntry>> _footStatuses = new();
         readonly Dictionary<int, Dictionary<string, CombatantDisplayStats>> _eventCheckpoints = new();
@@ -56,6 +57,7 @@ namespace Grimhand.Presentation.Battle
                 snap._maxHp[c.Id] = c.MaxHp;
                 snap._block[c.Id] = c.Block;
                 snap._ironWallPendingAttackBonus[c.Id] = c.TalentIronWallPendingDamageBonus;
+                snap._slots[c.Id] = c.Slot;
                 snap._displayStats[c.Id] = BuildDisplayStats(c, state);
                 snap._footStatuses[c.Id] = CaptureFootStatuses(c);
                 if (!c.IsAlive)
@@ -121,6 +123,28 @@ namespace Grimhand.Presentation.Battle
             }
 
             return result;
+        }
+
+        /// <summary>演出中展示的站位（与逻辑层解耦，换位动画播完后再推进）。</summary>
+        public bool TryGetSlot(string combatantId, out FormationSlot slot)
+        {
+            if (!string.IsNullOrEmpty(combatantId) && _slots.TryGetValue(combatantId, out slot))
+                return true;
+
+            slot = default;
+            return false;
+        }
+
+        public void ApplyPositionSwap(string combatantIdA, string combatantIdB)
+        {
+            if (string.IsNullOrEmpty(combatantIdA)
+                || string.IsNullOrEmpty(combatantIdB)
+                || !_slots.TryGetValue(combatantIdA, out var slotA)
+                || !_slots.TryGetValue(combatantIdB, out var slotB))
+                return;
+
+            _slots[combatantIdA] = slotB;
+            _slots[combatantIdB] = slotA;
         }
 
         public bool IsAlive(string combatantId)
@@ -258,6 +282,7 @@ namespace Grimhand.Presentation.Battle
             _maxHp[combatant.Id] = combatant.MaxHp;
             _block[combatant.Id] = combatant.Block;
             _ironWallPendingAttackBonus[combatant.Id] = combatant.TalentIronWallPendingDamageBonus;
+            _slots[combatant.Id] = combatant.Slot;
             _displayStats[combatant.Id] = BuildDisplayStats(combatant, state);
             _footStatuses[combatant.Id] = CaptureFootStatuses(combatant);
             if (combatant.IsAlive)

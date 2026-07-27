@@ -138,6 +138,8 @@ namespace Grimhand.Content
         public Sprite CardPackAdvanced;
         /// <summary>Assets/The Grimhands Asset/card/cardpack_master.png</summary>
         public Sprite CardPackMaster;
+        /// <summary>Assets/The Grimhands Asset/card/upgrade_card_limit.png</summary>
+        public Sprite UpgradeCardLimit;
         public Sprite[] CavePathVariants = System.Array.Empty<Sprite>();
         public Sprite DungeonBackground;
         public Sprite[] DungeonPathVariants = System.Array.Empty<Sprite>();

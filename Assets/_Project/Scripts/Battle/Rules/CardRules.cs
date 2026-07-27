@@ -122,6 +122,7 @@ namespace Grimhand.Battle.Rules
                 case EffectActionType.ApplyDelayedDamage:
                 case EffectActionType.SettlePoisonAndClear:
                 case EffectActionType.DoubleStatusStacks:
+                case EffectActionType.SwapPositionWithSelectedAlly:
                     return true;
                 default:
                     return false;

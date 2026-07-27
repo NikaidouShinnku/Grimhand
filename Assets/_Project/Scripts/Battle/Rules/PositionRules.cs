@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
+using Grimhand.Core;
 
 namespace Grimhand.Battle.Rules
 {
@@ -145,16 +146,7 @@ namespace Grimhand.Battle.Rules
             if (partner == null)
                 return;
 
-            var temp = actor.Slot;
-            actor.Slot = partner.Slot;
-            partner.Slot = temp;
-
-            events.Add(new BattleEvent(BattleEventKind.PositionSwapped, "Position swapped")
-            {
-                CombatantId = actor.Id,
-                TargetId = partner.Id
-            });
-            MinionTraitRules.OnPositionsSwapped(state, actor, partner, events);
+            SwapCombatants(state, actor, partner, events, "Position swapped");
         }
 
         /// <summary>目标与其身后同队存活单位交换站位（麻痹之电等）。</summary>
@@ -170,16 +162,77 @@ namespace Grimhand.Battle.Rules
             if (behind == null || !behind.IsAlive)
                 return;
 
-            var temp = target.Slot;
-            target.Slot = behind.Slot;
-            behind.Slot = temp;
+            SwapCombatants(state, target, behind, events, "与身后交换站位");
+        }
 
-            events.Add(new BattleEvent(BattleEventKind.PositionSwapped, "与身后交换站位")
+        /// <summary>与指定友方交换站位（血肉置换）。</summary>
+        public static void SwapWithSelectedAlly(
+            BattleState state,
+            CombatantState actor,
+            CombatantState ally,
+            List<BattleEvent> events)
+        {
+            if (state == null || actor == null || ally == null || events == null)
+                return;
+            if (!actor.IsAlive || !ally.IsAlive || actor.Id == ally.Id)
+                return;
+            if (actor.Team != ally.Team)
+                return;
+
+            SwapCombatants(state, actor, ally, events, "与友方交换站位");
+        }
+
+        /// <summary>后排敌人与随机另一名敌人交换；无后排则无事发生（灵体置换）。</summary>
+        public static void SwapBackEnemyWithRandomOther(
+            BattleState state,
+            TeamSide enemyTeam,
+            BattleRng rng,
+            List<BattleEvent> events)
+        {
+            if (state == null || rng == null || events == null)
+                return;
+
+            var back = PickCombatantInSlot(state, enemyTeam, FormationSlot.Back);
+            if (back == null || !back.IsAlive)
+                return;
+
+            var candidates = new List<CombatantState>();
+            foreach (var unit in GetAliveSortedByPhysicalSlot(state, enemyTeam))
             {
-                CombatantId = target.Id,
-                TargetId = behind.Id
+                if (unit.Id != back.Id)
+                    candidates.Add(unit);
+            }
+
+            if (candidates.Count == 0)
+                return;
+
+            var other = candidates[rng.NextIndex(candidates.Count)];
+            SwapCombatants(state, back, other, events, "后排与随机敌人交换站位");
+        }
+
+        public static void SwapCombatants(
+            BattleState state,
+            CombatantState a,
+            CombatantState b,
+            List<BattleEvent> events,
+            string message)
+        {
+            if (state == null || a == null || b == null || events == null)
+                return;
+            if (!a.IsAlive || !b.IsAlive || a.Id == b.Id)
+                return;
+
+            var temp = a.Slot;
+            a.Slot = b.Slot;
+            b.Slot = temp;
+
+            events.Add(new BattleEvent(BattleEventKind.PositionSwapped, message ?? "站位交换")
+            {
+                CombatantId = a.Id,
+                TargetId = b.Id
             });
-            MinionTraitRules.OnPositionsSwapped(state, target, behind, events);
+            MinionTraitRules.OnPositionsSwapped(state, a, b, events);
+            PassiveCardMechanicsRules.OnPositionsSwapped(state, a, b, events);
         }
 
         /// <summary>有效阵型中，比 target 更深的一格（Front→Middle→Back）。</summary>

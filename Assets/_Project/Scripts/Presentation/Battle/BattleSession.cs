@@ -292,14 +292,21 @@ namespace Grimhand.Presentation.Battle
             if (Engine.Draft.IsAwaitingConsumableTarget)
                 Engine.CancelConsumableTargeting();
 
+            BeginPresentation(PresentationSnapshot.Capture(Engine.State));
+            Engine.PresentationCheckpointRecorder = (eventIndex, kind, state) =>
+                _presentationSnapshot?.RecordEventCheckpoint(eventIndex, kind, state);
             var ok = Engine.TryResolveQuickStartCard(instanceId);
+            Engine.PresentationCheckpointRecorder = null;
             if (ok)
             {
                 GameAudioService.Instance.PlayBattleCardSelect();
                 DrainEvents();
             }
             else
+            {
+                EndPresentation();
                 NotifyChanged();
+            }
 
             return ok;
         }
@@ -517,8 +524,22 @@ namespace Grimhand.Presentation.Battle
 
             if (Engine.Draft.TryConsumePendingQuickStart(out var quickStartId))
             {
+                if (!PresentationLocked)
+                {
+                    BeginPresentation(PresentationSnapshot.Capture(Engine.State));
+                    Engine.PresentationCheckpointRecorder = (eventIndex, kind, state) =>
+                        _presentationSnapshot?.RecordEventCheckpoint(eventIndex, kind, state);
+                }
+
                 if (!Engine.TryResolveQuickStartCard(quickStartId))
+                {
+                    Engine.PresentationCheckpointRecorder = null;
+                    if (PresentationLocked && !BattleEventPlayback.ContainsPresentationEvents(Engine.Events))
+                        EndPresentation();
                     return false;
+                }
+
+                Engine.PresentationCheckpointRecorder = null;
             }
 
             DrainEvents();

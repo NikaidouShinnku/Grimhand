@@ -98,6 +98,7 @@ MonoBehaviour:
   CardPackCommon: {fileID: -1519921318013341297, guid: f9c629a5861cd3840af134456581a6af, type: 3}
   CardPackAdvanced: {fileID: 7870305510674209257, guid: 363591c490d1a994bb0d37ff7494d241, type: 3}
   CardPackMaster: {fileID: 1098162604486348374, guid: 83eec4659098dca4e81ce7f8642f5ce1, type: 3}
+  UpgradeCardLimit: {fileID: -1110281106048717792, guid: 203a54852cd5cdb4caa5c09e30b3ba7e, type: 3}
   CavePathVariants:
   - {fileID: -1454770268901060879, guid: d74fa96289368f64ead4a2ca6985e497, type: 3}
   - {fileID: -8336492127322243437, guid: 46ba8011886997b4faedacbc1dccfa5d, type: 3}

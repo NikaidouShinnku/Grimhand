@@ -593,6 +593,12 @@ namespace Grimhand.Presentation.Battle
                     return prefix + PrefixTarget(target, "清除状态");
                 case EffectActionType.SwapPositionWithFrontAlly:
                     return prefix + "与前排队友交换位置";
+                case EffectActionType.SwapPositionWithSelectedAlly:
+                    return prefix + "与选中友方交换位置";
+                case EffectActionType.SwapBackEnemyWithRandomOther:
+                    return prefix + "使后排敌人与随机另一名敌人交换位置";
+                case EffectActionType.SwapRandomEnemies:
+                    return prefix + "使随机两名敌人交换位置";
                 case EffectActionType.ApplyAnubisAvatar:
                     return prefix + "本场战斗生命上限、攻击、防御 +50%\n接下来 2 回合无法出牌";
                 case EffectActionType.LockRandomPlayerPlaysThisTurn:
@@ -1021,6 +1027,12 @@ namespace Grimhand.Presentation.Battle
                     return prefix + "清除状态";
                 case EffectActionType.SwapPositionWithFrontAlly:
                     return prefix + "与前排队友换位";
+                case EffectActionType.SwapPositionWithSelectedAlly:
+                    return prefix + "与选中友方换位";
+                case EffectActionType.SwapBackEnemyWithRandomOther:
+                    return prefix + "后排敌人与随机敌人换位";
+                case EffectActionType.SwapRandomEnemies:
+                    return prefix + $"随机交换{System.Math.Max(1, action.Value)}对敌人站位";
                 case EffectActionType.LockRandomPlayerPlaysThisTurn:
                     return prefix + "下回合无法出牌";
                 case EffectActionType.ReducePlayerEnergyRegenNextTurn:

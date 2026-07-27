@@ -622,7 +622,7 @@ namespace Grimhand.Presentation.Camp
             if (CampCollectionRules.BlocksExpeditionStart(_collection, _profile.CollectionCapacity))
             {
                 campScreen?.ShowToast(
-                    $"军营收藏 {_collection.Count}/{_profile.CollectionCapacity} 超出上限，请整理后再出发。");
+                    $"军营收藏超出上限（{_collection.Count}/{_profile.CollectionCapacity}），请整理后再出发。");
                 ShowCamp();
                 return;
             }

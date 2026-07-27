@@ -37,6 +37,31 @@ namespace Grimhand.Presentation.Battle
             StretchCenter(target, width, height);
         }
 
+        /// <summary>
+        /// 点击判定框：先按立绘可视区域 letterbox，再收窄到身体宽度，避免邻槽误点。
+        /// </summary>
+        public static void FitJudgmentBox(
+            RectTransform container,
+            RectTransform target,
+            Sprite sprite,
+            float widthScale,
+            float heightScale,
+            float maxWidthRatioOfContainer,
+            float padding = 0f)
+        {
+            if (container == null || target == null)
+                return;
+
+            FitCentered(container, target, sprite, padding);
+
+            var size = target.sizeDelta;
+            var containerWidth = Mathf.Max(1f, container.rect.width);
+            size.x = Mathf.Max(20f, size.x * Mathf.Clamp01(widthScale));
+            size.y = Mathf.Max(32f, size.y * Mathf.Clamp01(heightScale));
+            size.x = Mathf.Min(size.x, containerWidth * Mathf.Clamp(maxWidthRatioOfContainer, 0.08f, 1f));
+            StretchCenter(target, size.x, size.y);
+        }
+
         static void StretchCenter(RectTransform target, float width, float height)
         {
             target.anchorMin = new Vector2(0.5f, 0.5f);

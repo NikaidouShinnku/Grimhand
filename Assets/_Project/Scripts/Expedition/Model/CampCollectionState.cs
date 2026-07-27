@@ -5,7 +5,10 @@ namespace Grimhand.Expedition.Model
     /// <summary>军营共用收藏库（全角色计数；允许重复 cardId）。</summary>
     public sealed class CampCollectionState
     {
-        public const int DefaultCapacity = 30;
+        /// <summary>新档开局收藏上限。</summary>
+        public const int DefaultCapacity = 40;
+        /// <summary>商店「升级卡牌收藏上限」可升到的最大值。</summary>
+        public const int MaxCapacity = 100;
 
         public List<string> Entries { get; } = new();
 

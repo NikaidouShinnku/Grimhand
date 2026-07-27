@@ -485,12 +485,16 @@ namespace Grimhand.Presentation.Battle
             if (dummyPlayButton != null && dummyPlayButton.parent != null)
                 monsterButton.SetParent(dummyPlayButton.parent, false);
 
+            // 相对「假人出牌」再右移约一整按钮身位，避免盖住假人出牌
             var monsterWidth = InventoryButtonSize + 40f;
+            var extraGap = InventoryButtonSize + CodexButtonGap;
             var left = SettingsButtonGap + SettingsButtonSize + CodexButtonGap + InventoryButtonSize
-                       + CodexButtonGap + (InventoryButtonSize + 40f) + CodexButtonGap;
+                       + CodexButtonGap + (InventoryButtonSize + 40f) + CodexButtonGap + extraGap;
             if (dummyPlayButton != null)
+            {
                 left = SettingsButtonGap + SettingsButtonSize + CodexButtonGap + InventoryButtonSize
-                       + CodexButtonGap + dummyPlayButton.sizeDelta.x + CodexButtonGap;
+                       + CodexButtonGap + dummyPlayButton.sizeDelta.x + CodexButtonGap + extraGap;
+            }
 
             PinTopLeft(monsterButton, left, CodexButtonGap, monsterWidth, InventoryButtonSize);
         }
@@ -535,6 +539,9 @@ namespace Grimhand.Presentation.Battle
             LayoutDummyPlayButton(
                 chromeRoot.Find("DummyPlayButton") as RectTransform,
                 chromeRoot.Find("CodexButton") as RectTransform);
+            LayoutMonsterSpawnButton(
+                chromeRoot.Find("MonsterSpawnButton") as RectTransform,
+                chromeRoot.Find("DummyPlayButton") as RectTransform);
             LayoutPresentationSpeedButton(chromeRoot.Find("PresentationSpeedButton") as RectTransform);
             LayoutSettingsButton(chromeRoot.Find("BattleSettingsButton") as RectTransform);
             FixHandArea(chromeRoot.Find("HandArea"));

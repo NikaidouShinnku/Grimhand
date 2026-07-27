@@ -18,7 +18,7 @@ namespace Grimhand.Presentation.Camp
     [DisallowMultipleComponent]
     public sealed class MetaShopOverlayView : MonoBehaviour
     {
-        const int LayoutVersion = 14;
+        const int LayoutVersion = 16;
         const float CardScale = 1.05f;
         const float ButtonHoverScale = 1.08f;
         const float GoldIconSize = 20f;
@@ -88,6 +88,9 @@ namespace Grimhand.Presentation.Camp
         Button _closeButton;
         Button _pickCollectButton;
         InventoryTooltipView _tooltip;
+        GameObject _toastPanel;
+        Text _toastText;
+        Coroutine _toastRoutine;
         bool _built;
         int _builtVersion;
         readonly List<GameObject> _dynamicObjects = new();
@@ -172,7 +175,7 @@ namespace Grimhand.Presentation.Camp
             var scrollY = ScrollRectNavigation.CaptureVertical(_offerScroll);
             _tooltip?.Hide();
             ClearDynamic();
-            foreach (var offer in MetaShopCatalog.DemoCardPacks)
+            foreach (var offer in MetaShopCatalog.AllOffers)
                 BuildOfferRow(offer);
             Canvas.ForceUpdateCanvases();
             SyncOfferRowHeights();
@@ -199,7 +202,7 @@ namespace Grimhand.Presentation.Camp
 
         void BuildOfferRow(MetaShopCatalog.Offer offer)
         {
-            var rowGo = CampUiRuntime.CreateRect($"Offer_{offer.PackId}", _offerContent);
+            var rowGo = CampUiRuntime.CreateRect($"Offer_{offer.OfferId}", _offerContent);
             var rowRt = rowGo.GetComponent<RectTransform>();
             var layout = rowGo.AddComponent<LayoutElement>();
             layout.minHeight = 96f;
@@ -228,18 +231,25 @@ namespace Grimhand.Presentation.Camp
             var icon = CampUiRuntime.CreateImage("Icon", rowGo.transform, Color.white);
             icon.preserveAspect = true;
             icon.raycastTarget = false;
-            icon.sprite = CardPackVisuals.GetPackIcon(offer.PackId, _uiIcons);
+            icon.sprite = ResolveOfferIcon(offer);
             if (icon.sprite == null)
                 icon.color = new Color(0.85f, 0.75f, 0.45f, 1f);
             SetZone(icon.rectTransform, RowIcon);
 
             var title = CampUiRuntime.CreateText(
-                rowGo.transform, CardPackIds.GetDisplayName(offer.PackId), 26, FontStyle.Bold, TextAnchor.MiddleLeft);
+                rowGo.transform, MetaShopCatalog.GetDisplayName(offer), 26, FontStyle.Bold, TextAnchor.MiddleLeft);
             SetZone(title.rectTransform, RowTitle);
             title.color = ValueText;
             title.raycastTarget = false;
 
-            var hint = CampUiRuntime.CreateText(rowGo.transform, offer.Hint, 16, FontStyle.Normal, TextAnchor.UpperLeft);
+            var hintText = offer.Hint;
+            if (offer.Kind == MetaShopOfferKind.CollectionCapacityUpgrade && _profile != null)
+            {
+                hintText =
+                    $"花费金币将军营收藏上限 +1（当前 {_profile.CollectionCapacity}/{CampCollectionState.MaxCapacity}）。";
+            }
+
+            var hint = CampUiRuntime.CreateText(rowGo.transform, hintText, 16, FontStyle.Normal, TextAnchor.UpperLeft);
             SetZone(hint.rectTransform, RowDesc);
             hint.color = BodyText;
             hint.raycastTarget = false;
@@ -248,13 +258,38 @@ namespace Grimhand.Presentation.Camp
 
             BuildPriceOnRow(rowGo.transform, offer.Price);
 
-            var canBuy = _profile.AccountGold >= offer.Price
-                         && !CampCollectionRules.BlocksShopCardPack(_profile.Collection, _profile.CollectionCapacity);
-            var buyBtn = CreateBuyButton(rowGo.transform, canBuy && _pendingPack == null, offer.PackId);
+            // 始终可点：金币不足/收藏已满时弹出 toast，而不是灰掉无法点击
+            var visuallyAffordable = CanBuyOffer(offer);
+            var buyBtn = CreateBuyButton(rowGo.transform, visuallyAffordable, offer, _pendingPack == null);
 
             _dynamicObjects.Add(rowGo);
             ScrollRectNavigation.WireForwarding(rowGo, _offerScroll);
             ScrollRectNavigation.WireForwarding(buyBtn.gameObject, _offerScroll);
+        }
+
+        Sprite ResolveOfferIcon(MetaShopCatalog.Offer offer)
+        {
+            if (offer == null || _uiIcons == null)
+                return null;
+
+            if (offer.Kind == MetaShopOfferKind.CollectionCapacityUpgrade)
+                return _uiIcons.UpgradeCardLimit;
+
+            return CardPackVisuals.GetPackIcon(offer.PackId, _uiIcons);
+        }
+
+        bool CanBuyOffer(MetaShopCatalog.Offer offer)
+        {
+            if (_profile == null || offer == null)
+                return false;
+
+            if (_profile.AccountGold < offer.Price)
+                return false;
+
+            if (offer.Kind == MetaShopOfferKind.CollectionCapacityUpgrade)
+                return _profile.CollectionCapacity < CampCollectionState.MaxCapacity;
+
+            return !CampCollectionRules.BlocksShopCardPack(_profile.Collection, _profile.CollectionCapacity);
         }
 
         void BuildPriceOnRow(Transform row, int price)
@@ -294,7 +329,7 @@ namespace Grimhand.Presentation.Camp
             textLe.preferredWidth = 48f;
         }
 
-        Button CreateBuyButton(Transform row, bool interactable, string packId)
+        Button CreateBuyButton(Transform row, bool visuallyAffordable, MetaShopCatalog.Offer offer, bool clickable)
         {
             var go = CampUiRuntime.CreateRect("Buy", row);
             var rt = go.GetComponent<RectTransform>();
@@ -305,8 +340,8 @@ namespace Grimhand.Presentation.Camp
             img.preserveAspect = false;
             if (_uiIcons != null && _uiIcons.UiButton2 != null)
                 img.sprite = _uiIcons.UiButton2;
-            // 买不起：不透明灰色，避免透出底板
-            img.color = interactable
+            // 买不起：灰色外观，但仍可点击以弹出 toast
+            img.color = visuallyAffordable && clickable
                 ? Color.white
                 : new Color(0.42f, 0.42f, 0.45f, 1f);
 
@@ -314,31 +349,50 @@ namespace Grimhand.Presentation.Camp
             CampUiRuntime.StretchFull(label.rectTransform);
             label.rectTransform.offsetMin = new Vector2(4f, 2f);
             label.rectTransform.offsetMax = new Vector2(-4f, -6f);
-            label.color = interactable
+            label.color = visuallyAffordable && clickable
                 ? ValueText
                 : new Color(0.62f, 0.62f, 0.66f, 1f);
             label.raycastTarget = false;
 
             var group = go.AddComponent<CanvasGroup>();
             group.alpha = 1f;
-            group.blocksRaycasts = true;
-            group.interactable = interactable;
+            group.blocksRaycasts = clickable;
+            group.interactable = clickable;
             var hover = go.AddComponent<CampBuildingHoverView>();
             hover.Bind(rt, group, ButtonHoverScale, hideWhenIdle: false);
 
             var btn = go.AddComponent<Button>();
             btn.targetGraphic = img;
             btn.transition = Selectable.Transition.None;
-            btn.interactable = interactable;
-            btn.onClick.AddListener(() => TryBuy(packId));
+            btn.interactable = clickable;
+            btn.onClick.AddListener(() => TryBuy(offer));
             UiAudioHooks.WireButton(btn);
             return btn;
         }
 
-        void TryBuy(string packId)
+        void TryBuy(MetaShopCatalog.Offer offer)
         {
-            if (_profile == null || _pendingPack != null)
+            if (_profile == null || _pendingPack != null || offer == null)
                 return;
+
+            if (offer.Kind == MetaShopOfferKind.CollectionCapacityUpgrade)
+            {
+                TryBuyCapacityUpgrade();
+                return;
+            }
+
+            if (_profile.AccountGold < offer.Price)
+            {
+                ShowToast($"局外金币不足（需要 {offer.Price}，当前 {_profile.AccountGold}）。");
+                return;
+            }
+
+            if (CampCollectionRules.BlocksShopCardPack(_profile.Collection, _profile.CollectionCapacity))
+            {
+                ShowToast(
+                    $"军营收藏已满（{_profile.Collection.Count}/{_profile.CollectionCapacity}），请先整理后再购买。");
+                return;
+            }
 
             var accountGold = _profile.AccountGold;
             if (!MetaShopRules.TryBuyPack(
@@ -347,13 +401,12 @@ namespace Grimhand.Presentation.Camp
                     _profile.CollectionCapacity,
                     _config,
                     _characterIds,
-                    packId,
+                    offer.PackId,
                     _rng,
                     out _pendingPack,
                     out var message))
             {
-                if (_messageText != null)
-                    _messageText.text = message;
+                ShowToast(message);
                 RefreshShopPanel();
                 return;
             }
@@ -363,7 +416,89 @@ namespace Grimhand.Presentation.Camp
                 _messageText.text = message;
             GameAudioService.Instance.PlayUiCardPackOpen();
             _onProfileChanged?.Invoke();
+            RefreshShopPanel();
             RefreshPickPanel();
+        }
+
+        void TryBuyCapacityUpgrade()
+        {
+            if (_profile.AccountGold < MetaShopCatalog.CollectionCapacityUpgradePrice)
+            {
+                ShowToast(
+                    $"局外金币不足（需要 {MetaShopCatalog.CollectionCapacityUpgradePrice}，当前 {_profile.AccountGold}）。");
+                return;
+            }
+
+            if (_profile.CollectionCapacity >= CampCollectionState.MaxCapacity)
+            {
+                ShowToast($"军营收藏上限已达最大值（{CampCollectionState.MaxCapacity}）。");
+                return;
+            }
+
+            var accountGold = _profile.AccountGold;
+            var capacity = _profile.CollectionCapacity;
+            if (!MetaShopRules.TryBuyCollectionCapacityUpgrade(ref accountGold, ref capacity, out var message))
+            {
+                ShowToast(message);
+                RefreshShopPanel();
+                return;
+            }
+
+            _profile.AccountGold = accountGold;
+            _profile.CollectionCapacity = capacity;
+            if (_messageText != null)
+                _messageText.text = message;
+            ShowToast(message);
+            _onProfileChanged?.Invoke();
+            RefreshShopPanel();
+        }
+
+        void ShowToast(string message)
+        {
+            if (string.IsNullOrEmpty(message))
+                return;
+
+            EnsureToast();
+            if (_toastPanel == null || _toastText == null)
+            {
+                if (_messageText != null)
+                    _messageText.text = message;
+                return;
+            }
+
+            _toastText.text = message;
+            _toastPanel.SetActive(true);
+            _toastPanel.transform.SetAsLastSibling();
+            if (_toastRoutine != null)
+                StopCoroutine(_toastRoutine);
+            _toastRoutine = StartCoroutine(HideToastAfterDelay());
+        }
+
+        System.Collections.IEnumerator HideToastAfterDelay()
+        {
+            yield return new WaitForSecondsRealtime(2.2f);
+            if (_toastPanel != null)
+                _toastPanel.SetActive(false);
+            _toastRoutine = null;
+        }
+
+        void EnsureToast()
+        {
+            if (_toastPanel != null || _overlayRoot == null)
+                return;
+
+            _toastPanel = CampUiRuntime.CreateImage(
+                "Toast", _overlayRoot, new Color(0.08f, 0.1f, 0.14f, 0.94f)).gameObject;
+            var toastRt = _toastPanel.GetComponent<RectTransform>();
+            toastRt.anchorMin = new Vector2(0.5f, 0.12f);
+            toastRt.anchorMax = new Vector2(0.5f, 0.12f);
+            toastRt.pivot = new Vector2(0.5f, 0f);
+            toastRt.sizeDelta = new Vector2(560f, 56f);
+            _toastText = CampUiRuntime.CreateText(_toastPanel.transform, "", 17, FontStyle.Normal);
+            CampUiRuntime.Stretch(_toastText.rectTransform, 16f, 8f, -16f, -8f);
+            _toastText.alignment = TextAnchor.MiddleCenter;
+            _toastText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _toastPanel.SetActive(false);
         }
 
         void BuildPickChoice(CardPackChoice choice, int choiceIndex)

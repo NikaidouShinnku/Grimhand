@@ -80,7 +80,7 @@ MonoBehaviour:
     AttackPortrait: {fileID: -7546124878013289674, guid: 4e9517047cbe912459dca45a57e6de36, type: 3}
     DefensePortrait: {fileID: -7546124878013289674, guid: 4e9517047cbe912459dca45a57e6de36, type: 3}
     HitPortrait: {fileID: -7546124878013289674, guid: 4e9517047cbe912459dca45a57e6de36, type: 3}
-    HitPortraitFacesRight: 1
+    HitPortraitFacesRight: 0
     DeathPortrait: {fileID: -7546124878013289674, guid: 4e9517047cbe912459dca45a57e6de36, type: 3}
     CardProfilePortrait: {fileID: 4184236464657936751, guid: 2c1321573efc25142a3b5c3dab630560, type: 3}
     IdleAnimationFrames: []
@@ -92,7 +92,7 @@ MonoBehaviour:
     AttackPortrait: {fileID: -4708950253590393852, guid: 9a1fd1640af3b18418cce79790a1436c, type: 3}
     DefensePortrait: {fileID: -4708950253590393852, guid: 9a1fd1640af3b18418cce79790a1436c, type: 3}
     HitPortrait: {fileID: -4708950253590393852, guid: 9a1fd1640af3b18418cce79790a1436c, type: 3}
-    HitPortraitFacesRight: 1
+    HitPortraitFacesRight: 0
     DeathPortrait: {fileID: -4708950253590393852, guid: 9a1fd1640af3b18418cce79790a1436c, type: 3}
     CardProfilePortrait: {fileID: -7035764072366969669, guid: 25ef857479e362a4691b0a94eb894d54, type: 3}
     IdleAnimationFrames: []
@@ -104,7 +104,7 @@ MonoBehaviour:
     AttackPortrait: {fileID: 3727514190393640177, guid: c21823f0fb8c8e642805cf4373333346, type: 3}
     DefensePortrait: {fileID: 3727514190393640177, guid: c21823f0fb8c8e642805cf4373333346, type: 3}
     HitPortrait: {fileID: 3727514190393640177, guid: c21823f0fb8c8e642805cf4373333346, type: 3}
-    HitPortraitFacesRight: 1
+    HitPortraitFacesRight: 0
     DeathPortrait: {fileID: 3727514190393640177, guid: c21823f0fb8c8e642805cf4373333346, type: 3}
     CardProfilePortrait: {fileID: 2158319399315796298, guid: 6076179b4a0616c4390707f3bcbea189, type: 3}
     IdleAnimationFrames: []
@@ -116,7 +116,7 @@ MonoBehaviour:
     AttackPortrait: {fileID: -4373429155611144609, guid: 52300e792c63f1746867e2527049d77a, type: 3}
     DefensePortrait: {fileID: -4373429155611144609, guid: 52300e792c63f1746867e2527049d77a, type: 3}
     HitPortrait: {fileID: -4373429155611144609, guid: 52300e792c63f1746867e2527049d77a, type: 3}
-    HitPortraitFacesRight: 1
+    HitPortraitFacesRight: 0
     DeathPortrait: {fileID: -4373429155611144609, guid: 52300e792c63f1746867e2527049d77a, type: 3}
     CardProfilePortrait: {fileID: 3303813836338851837, guid: 99d35babf686ba3438d120a931b79534, type: 3}
     IdleAnimationFrames: []
@@ -128,7 +128,7 @@ MonoBehaviour:
     AttackPortrait: {fileID: -9055158821392389110, guid: d288c1460a6d0d644b4a5de3cdd479a1, type: 3}
     DefensePortrait: {fileID: -9055158821392389110, guid: d288c1460a6d0d644b4a5de3cdd479a1, type: 3}
     HitPortrait: {fileID: -9055158821392389110, guid: d288c1460a6d0d644b4a5de3cdd479a1, type: 3}
-    HitPortraitFacesRight: 1
+    HitPortraitFacesRight: 0
     DeathPortrait: {fileID: -9055158821392389110, guid: d288c1460a6d0d644b4a5de3cdd479a1, type: 3}
     CardProfilePortrait: {fileID: -6332521608607882563, guid: 2b3b5311b339213479025e8724dcf356, type: 3}
     IdleAnimationFrames: []
@@ -140,7 +140,7 @@ MonoBehaviour:
     AttackPortrait: {fileID: 7205583530371514723, guid: b8dc1a03eb9a90542ba3079d1a53112f, type: 3}
     DefensePortrait: {fileID: 7205583530371514723, guid: b8dc1a03eb9a90542ba3079d1a53112f, type: 3}
     HitPortrait: {fileID: 7205583530371514723, guid: b8dc1a03eb9a90542ba3079d1a53112f, type: 3}
-    HitPortraitFacesRight: 1
+    HitPortraitFacesRight: 0
     DeathPortrait: {fileID: 7205583530371514723, guid: b8dc1a03eb9a90542ba3079d1a53112f, type: 3}
     CardProfilePortrait: {fileID: 3907831295718284920, guid: a1516cf7fa49cd34696ad97544e7b6f5, type: 3}
     IdleAnimationFrames: []
@@ -152,7 +152,7 @@ MonoBehaviour:
     AttackPortrait: {fileID: 5295359454719549343, guid: bc89064ee1ea8a14dba85a552906f774, type: 3}
     DefensePortrait: {fileID: 5295359454719549343, guid: bc89064ee1ea8a14dba85a552906f774, type: 3}
     HitPortrait: {fileID: 5295359454719549343, guid: bc89064ee1ea8a14dba85a552906f774, type: 3}
-    HitPortraitFacesRight: 0
+    HitPortraitFacesRight: 1
     DeathPortrait: {fileID: 5295359454719549343, guid: bc89064ee1ea8a14dba85a552906f774, type: 3}
     CardProfilePortrait: {fileID: 5486796201341914652, guid: 0e86ba50733acd24c997692166505642, type: 3}
     IdleAnimationFrames: []
@@ -171,6 +171,18 @@ MonoBehaviour:
     IdleAnimationGifPath: 
     PreserveOriginalFacing: 1
     PortraitScaleMultiplier: 1
+  - CharacterId: char_dummy
+    IdlePortrait: {fileID: -4805414172715895107, guid: 718995b9f8a351340b21b867a9f0421d, type: 3}
+    AttackPortrait: {fileID: -4805414172715895107, guid: 718995b9f8a351340b21b867a9f0421d, type: 3}
+    DefensePortrait: {fileID: 6164663794067433229, guid: c3f0e868c98a16f46b9d6237600cf426, type: 3}
+    HitPortrait: {fileID: 6164663794067433229, guid: c3f0e868c98a16f46b9d6237600cf426, type: 3}
+    HitPortraitFacesRight: 1
+    DeathPortrait: {fileID: -4805414172715895107, guid: 718995b9f8a351340b21b867a9f0421d, type: 3}
+    CardProfilePortrait: {fileID: -4413528818337973118, guid: 6f690f14ac187ed4b84f915768663da4, type: 3}
+    IdleAnimationFrames: []
+    IdleAnimationGifPath: 
+    PreserveOriginalFacing: 1
+    PortraitScaleMultiplier: 1.8
   - CharacterId: char_skeleton_king
     IdlePortrait: {fileID: -7880434421887366650, guid: e43a809f508935f48b66e38eea252908, type: 3}
     AttackPortrait: {fileID: 8548173571865743955, guid: 5fb9fb3c9b2d367448f94935786f1849, type: 3}
@@ -387,15 +399,3 @@ MonoBehaviour:
     IdleAnimationGifPath: The Grimhands Asset/monsters/corrupted oceangoddess/corrupted_oceangoddess_idle_anime.gif
     PreserveOriginalFacing: 1
     PortraitScaleMultiplier: 1
-  - CharacterId: char_dummy
-    IdlePortrait: {fileID: -4805414172715895107, guid: 718995b9f8a351340b21b867a9f0421d, type: 3}
-    AttackPortrait: {fileID: -4805414172715895107, guid: 718995b9f8a351340b21b867a9f0421d, type: 3}
-    DefensePortrait: {fileID: -4805414172715895107, guid: 718995b9f8a351340b21b867a9f0421d, type: 3}
-    HitPortrait: {fileID: 6164663794067433229, guid: c3f0e868c98a16f46b9d6237600cf426, type: 3}
-    HitPortraitFacesRight: 0
-    DeathPortrait: {fileID: -4805414172715895107, guid: 718995b9f8a351340b21b867a9f0421d, type: 3}
-    CardProfilePortrait: {fileID: -4413528818337973118, guid: 6f690f14ac187ed4b84f915768663da4, type: 3}
-    IdleAnimationFrames: []
-    IdleAnimationGifPath: 
-    PreserveOriginalFacing: 1
-    PortraitScaleMultiplier: 1.8

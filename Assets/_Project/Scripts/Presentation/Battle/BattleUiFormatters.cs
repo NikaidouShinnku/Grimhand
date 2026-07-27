@@ -2017,13 +2017,13 @@ namespace Grimhand.Presentation.Battle
                 return false;
 
             // 目录按 CardId 命中则直接采用（蛇神回应等 token 与 SO 默认 Reach 等可能不一致）。
+            // 但已升级/改写过的实例必须走动态描述，否则当前/升级后效果会显示成同一句静态文案。
             var hasIdEntry = CardDescriptionCatalog.TryGetByCardId(card.DefinitionId, out var excelText);
             if (!hasIdEntry
                 && !CardDescriptionCatalog.TryGetByDisplayName(card.DisplayName, out excelText))
                 return false;
 
-            if (!hasIdEntry
-                && definitions != null
+            if (definitions != null
                 && definitions.TryGetValue(card.DefinitionId, out var def)
                 && def != null
                 && !CardVisualResolver.MatchesDefinitionBaseline(card, def))

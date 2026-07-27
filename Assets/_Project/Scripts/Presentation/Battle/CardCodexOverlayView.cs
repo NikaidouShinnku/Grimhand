@@ -2,13 +2,14 @@ using System;
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
 using Grimhand.Content;
+using Grimhand.Expedition;
 using Grimhand.Presentation;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Battle
 {
-    /// <summary>测试图鉴：左上角入口，分类展示全部玩家/敌人卡牌。</summary>
+    /// <summary>测试图鉴：左上角入口，分类展示全部玩家/敌人卡牌与遗物。</summary>
     [DisallowMultipleComponent]
     public sealed class CardCodexOverlayView : MonoBehaviour
     {
@@ -17,15 +18,21 @@ namespace Grimhand.Presentation.Battle
         const float CardScale = 0.72f;
         const int CardsPerRow = 5;
         const float CardGridHorizontalPadding = 20f;
+        const int RelicColumns = 5;
+        const float RelicPlateW = 168f;
+        const float RelicPlateH = 182f;
 
         CardView _cardPrefab;
         CardVisualCatalogSO _cardCatalog;
         CharacterVisualCatalogSO _characterVisuals;
+        RelicVisualCatalogSO _relicCatalog;
         BattleUiIconCatalogSO _uiIcons;
         Dictionary<string, CardDefinitionSO> _definitions = new();
         Action<CardDefinitionSO> _onAddToHand;
+        Action<RelicDefinition> _onGrantRelic;
         string _titleHint;
         bool _closeOnSelect;
+        bool _showRelics = true;
 
         RectTransform _panel;
         RectTransform _content;
@@ -46,13 +53,17 @@ namespace Grimhand.Presentation.Battle
             Dictionary<string, CardDefinitionSO> definitions,
             Action<CardDefinitionSO> onAddToHand = null,
             string titleHint = null,
-            bool closeOnSelect = true)
+            bool closeOnSelect = true,
+            RelicVisualCatalogSO relicCatalog = null,
+            Action<RelicDefinition> onGrantRelic = null)
         {
             _cardPrefab = cardPrefab;
             _cardCatalog = cardCatalog;
             _characterVisuals = characterVisuals;
             _uiIcons = uiIcons;
+            _relicCatalog = relicCatalog;
             _definitions = definitions ?? new Dictionary<string, CardDefinitionSO>();
+            _onGrantRelic = onGrantRelic;
             ConfigureSelection(onAddToHand, titleHint, closeOnSelect);
             EnsureBuilt(root);
         }
@@ -61,12 +72,20 @@ namespace Grimhand.Presentation.Battle
         public void ConfigureSelection(
             Action<CardDefinitionSO> onSelect,
             string titleHint = null,
-            bool closeOnSelect = true)
+            bool closeOnSelect = true,
+            bool showRelics = true)
         {
             _onAddToHand = onSelect;
             _titleHint = titleHint;
             _closeOnSelect = closeOnSelect;
+            _showRelics = showRelics;
         }
+
+        public void SetRelicGrantHandler(Action<RelicDefinition> onGrantRelic) =>
+            _onGrantRelic = onGrantRelic;
+
+        public void SetRelicCatalog(RelicVisualCatalogSO relicCatalog) =>
+            _relicCatalog = relicCatalog;
 
         public void RefreshCardPrefab(CardView cardPrefab)
         {
@@ -155,31 +174,184 @@ namespace Grimhand.Presentation.Battle
             ClearDynamicObjects();
             _tooltip?.Hide();
 
-            if (_cardPrefab == null)
-            {
-                AddWarningRow("卡牌预制体未就绪，无法展示图鉴。");
-                ForceLayoutRefresh();
-                return;
-            }
-
             var groups = CardCodexCatalog.BuildGroupedCatalog();
             var totalCards = 0;
             foreach (var group in groups)
                 totalCards += group.Cards.Count;
 
-            _titleText.text = !string.IsNullOrEmpty(_titleHint)
-                ? $"{_titleHint}共 {totalCards} 张"
-                : _onAddToHand != null
-                    ? $"卡牌图鉴（测试）— 共 {totalCards} 张　点击卡牌直接置入手牌"
-                    : $"卡牌图鉴（测试）— 共 {totalCards} 张";
-
-            foreach (var group in groups)
+            var relicCount = 0;
+            if (_showRelics)
             {
-                AddCategoryHeader($"{group.Label}（{group.Cards.Count}）");
-                AddCategoryGrid(group.Cards);
+                foreach (var relic in RelicDatabase.All)
+                {
+                    if (relic != null && !string.IsNullOrEmpty(relic.Id))
+                        relicCount++;
+                }
             }
 
+            if (!string.IsNullOrEmpty(_titleHint))
+            {
+                _titleText.text = $"{_titleHint}共 {totalCards} 张";
+            }
+            else if (_onAddToHand != null || _onGrantRelic != null)
+            {
+                _titleText.text = relicCount > 0
+                    ? $"测试图鉴 — 卡牌 {totalCards} / 遗物 {relicCount}　点击卡牌加手牌，点击遗物立即获取"
+                    : $"卡牌图鉴（测试）— 共 {totalCards} 张　点击卡牌直接置入手牌";
+            }
+            else
+            {
+                _titleText.text = $"卡牌图鉴（测试）— 共 {totalCards} 张";
+            }
+
+            if (_cardPrefab == null)
+                AddWarningRow("卡牌预制体未就绪，无法展示卡牌。");
+            else
+            {
+                foreach (var group in groups)
+                {
+                    AddCategoryHeader($"{group.Label}（{group.Cards.Count}）");
+                    AddCategoryGrid(group.Cards);
+                }
+            }
+
+            if (_showRelics)
+                AddRelicsSection(relicCount);
+
             ForceLayoutRefresh();
+        }
+
+        void AddRelicsSection(int relicCount)
+        {
+            if (relicCount <= 0)
+            {
+                AddCategoryHeader("遗物（0）");
+                AddWarningRow("暂无遗物数据。");
+                return;
+            }
+
+            var relics = new List<RelicDefinition>(RelicDatabase.All);
+            relics.Sort((a, b) =>
+            {
+                var rarity = a.Rarity.CompareTo(b.Rarity);
+                if (rarity != 0)
+                    return rarity;
+                return string.CompareOrdinal(a.DisplayName, b.DisplayName);
+            });
+
+            AddCategoryHeader($"遗物（{relics.Count}）— 点击立即获取");
+            var grid = CreateRelicGrid(_content);
+
+            foreach (var relic in relics)
+            {
+                if (relic == null || string.IsNullOrEmpty(relic.Id))
+                    continue;
+
+                CreateRelicCell(grid, relic);
+            }
+        }
+
+        RectTransform CreateRelicGrid(Transform parent)
+        {
+            var go = new GameObject("RelicGrid", typeof(RectTransform), typeof(GridLayoutGroup), typeof(LayoutElement), typeof(ContentSizeFitter));
+            go.transform.SetParent(parent, false);
+            _dynamicObjects.Add(go);
+
+            var le = go.GetComponent<LayoutElement>();
+            le.flexibleWidth = 1f;
+
+            var fitter = go.GetComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            var grid = go.GetComponent<GridLayoutGroup>();
+            grid.cellSize = new Vector2(RelicPlateW, RelicPlateH);
+            grid.spacing = new Vector2(12f, 12f);
+            grid.padding = new RectOffset(
+                (int)CardGridHorizontalPadding,
+                (int)CardGridHorizontalPadding,
+                4,
+                8);
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            grid.constraintCount = RelicColumns;
+            grid.childAlignment = TextAnchor.UpperLeft;
+            grid.startCorner = GridLayoutGroup.Corner.UpperLeft;
+            grid.startAxis = GridLayoutGroup.Axis.Horizontal;
+
+            return go.GetComponent<RectTransform>();
+        }
+
+        void CreateRelicCell(Transform parent, RelicDefinition relic)
+        {
+            var go = new GameObject($"Relic_{relic.Id}", typeof(RectTransform), typeof(Image), typeof(LayoutElement), typeof(Button));
+            go.transform.SetParent(parent, false);
+            _dynamicObjects.Add(go);
+
+            var le = go.GetComponent<LayoutElement>();
+            le.preferredWidth = RelicPlateW;
+            le.preferredHeight = RelicPlateH;
+
+            var bg = go.GetComponent<Image>();
+            bg.color = Color.white;
+            bg.raycastTarget = true;
+            bg.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiEventPlate != null)
+                bg.sprite = _uiIcons.UiEventPlate;
+            else
+                bg.color = new Color(0.08f, 0.09f, 0.12f, 0.85f);
+
+            var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+            iconGo.transform.SetParent(go.transform, false);
+            var iconRt = iconGo.GetComponent<RectTransform>();
+            iconRt.anchorMin = new Vector2(0.18f, 0.32f);
+            iconRt.anchorMax = new Vector2(0.82f, 0.88f);
+            iconRt.offsetMin = Vector2.zero;
+            iconRt.offsetMax = Vector2.zero;
+            var icon = iconGo.GetComponent<Image>();
+            icon.preserveAspect = true;
+            icon.raycastTarget = false;
+            icon.sprite = _relicCatalog?.GetIcon(relic.Id);
+            icon.color = icon.sprite != null
+                ? Color.white
+                : new Color(0.55f, 0.48f, 0.35f, 1f);
+
+            var labelGo = new GameObject("Label", typeof(RectTransform), typeof(Text));
+            labelGo.transform.SetParent(go.transform, false);
+            var labelRt = labelGo.GetComponent<RectTransform>();
+            labelRt.anchorMin = new Vector2(0.08f, 0.06f);
+            labelRt.anchorMax = new Vector2(0.92f, 0.28f);
+            labelRt.offsetMin = Vector2.zero;
+            labelRt.offsetMax = Vector2.zero;
+            var label = labelGo.GetComponent<Text>();
+            StyleText(label, 14, TextAnchor.MiddleCenter);
+            label.fontStyle = FontStyle.Bold;
+            label.color = new Color(0.96f, 0.92f, 0.78f, 1f);
+            label.text = relic.DisplayName;
+            label.raycastTarget = false;
+
+            var rarity = relic.Rarity switch
+            {
+                RelicRarity.Epic => "史诗",
+                RelicRarity.Rare => "稀有",
+                _ => "普通"
+            };
+            var body = string.IsNullOrWhiteSpace(relic.Description)
+                ? rarity
+                : $"{rarity}\n{relic.Description}";
+            _tooltip?.BindHover(go, relic.DisplayName, body, showTitle: true);
+
+            var btn = go.GetComponent<Button>();
+            btn.targetGraphic = bg;
+            btn.transition = Selectable.Transition.None;
+            if (_onGrantRelic != null)
+            {
+                var captured = relic;
+                btn.onClick.AddListener(() => OnCodexRelicClicked(captured));
+            }
+            else
+            {
+                btn.interactable = false;
+            }
         }
 
         void ForceLayoutRefresh(bool resetScroll = false)
@@ -416,6 +588,16 @@ namespace Grimhand.Presentation.Battle
             _tooltip?.Hide();
             if (_closeOnSelect)
                 Hide();
+        }
+
+        void OnCodexRelicClicked(RelicDefinition relic)
+        {
+            if (relic == null)
+                return;
+
+            _onGrantRelic?.Invoke(relic);
+            _tooltip?.Hide();
+            // 测试用：连续点取多个遗物时保持图鉴打开
         }
 
         void BindCardTooltip(GameObject target, CardInstanceState card)

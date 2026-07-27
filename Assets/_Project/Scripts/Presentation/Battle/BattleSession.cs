@@ -1129,8 +1129,33 @@ namespace Grimhand.Presentation.Battle
 
         public bool ClaimChestRelic() => ClaimRewardRelic();
 
-        public bool TryGrantRelic(string relicId) =>
-            Expedition?.TryAddRelic(relicId) ?? false;
+        public bool TryGrantRelic(string relicId)
+        {
+            if (Expedition == null)
+            {
+                AddLog("仅远征模式可获取遗物。");
+                NotifyChanged();
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(relicId) || !RelicDatabase.TryGet(relicId, out var relic))
+            {
+                AddLog("未知遗物。");
+                NotifyChanged();
+                return false;
+            }
+
+            if (!Expedition.TryAddRelic(relicId))
+            {
+                AddLog($"未能获取「{relic.DisplayName}」（可能已拥有）。");
+                NotifyChanged();
+                return false;
+            }
+
+            AddLog($"图鉴测试获取遗物：{relic.DisplayName}");
+            NotifyChanged();
+            return true;
+        }
 
         public void RestartRunOrBattle()
         {

@@ -40,12 +40,12 @@ namespace Grimhand.Presentation.Battle
         static readonly Color BtnGreen = new(0.18f, 0.38f, 0.28f, 1f);
         static readonly Color BtnNeutral = new(0.22f, 0.24f, 0.3f, 1f);
 
-        const float SummonCardScale = 1.02f;
-        const float SummonReplaceCardScale = 0.78f;
+        const float SummonCardScale = 0.78f;
+        const float SummonReplaceCardScale = 0.72f;
         const float UpgradeCardScale = 0.92f;
         const float HubTileMinHeight = 280f;
         const float ActionButtonHeight = 56f;
-        const int LayoutVersion = 13;
+        const int LayoutVersion = 23;
         const float HubButtonHoverScale = 1.08f;
         // button6 原生 512×216
         const float Button6Aspect = 512f / 216f;
@@ -79,13 +79,13 @@ namespace Grimhand.Presentation.Battle
         // 离开：保持此前已对齐位置，不再挪动
         static readonly HubNormRect HubZoneLeave = new(0.755f, 0.018f, 0.958f, 0.128f);
 
-        const float SummonCardWidth = 208f;
-        const float SummonCardHeight = 292f;
-        const float SummonReplaceCardWidth = 156f;
-        const float SummonReplaceCardHeight = 220f;
-        const int SummonCollectionColumns = 7;
-        const float SummonCollectionGridSpacing = 10f;
-        const float SummonReplaceCardSpacing = 18f;
+        const float SummonCardWidth = 158f;
+        const float SummonCardHeight = 222f;
+        const float SummonReplaceCardWidth = 150f;
+        const float SummonReplaceCardHeight = 210f;
+        const int SummonCollectionColumns = 5;
+        const float SummonCollectionGridSpacing = 12f;
+        const float SummonReplaceCardSpacing = 14f;
         const float UpgradeCardWidth = 210f;
         const float UpgradeCardHeight = 300f;
         const int UpgradeCardColumns = 3;
@@ -122,7 +122,6 @@ namespace Grimhand.Presentation.Battle
         RectTransform _summonReplaceHost;
         RectTransform _summonReplaceRow;
         Text _summonReplaceLabel;
-        Text _summonPreviewText;
         Button _summonConfirmButton;
 
         RectTransform _upgradeCardGrid;
@@ -144,20 +143,8 @@ namespace Grimhand.Presentation.Battle
         string _selectedUpgradeDisplayName;
         bool _built;
 
-        struct RestOptionUi
-        {
-            public Image Row;
-            public CanvasGroup Group;
-            public Button Button;
-            public Text Icon;
-            public Text Title;
-            public Text Cost;
-            public Text Detail;
-        }
-
-        RestOptionUi _restGoldOption;
-        RestOptionUi _restXpOption;
-        RectTransform _restSummaryMembersRow;
+        Button _restGoldButton;
+        Button _restXpButton;
         Text _restHintText;
 
         public void Initialize(
@@ -197,16 +184,14 @@ namespace Grimhand.Presentation.Battle
             _root.SetAsLastSibling();
             if (_panelRt != null)
                 FitPanelToAspect(_panelRt, GetPanelAspect(), 0.92f, 0.90f);
+            if (_summonConfirmButton != null && _screen == AltarScreen.SummonCards)
+                _summonConfirmButton.transform.SetAsLastSibling();
+            if (_leaveButton != null)
+                _leaveButton.transform.SetAsLastSibling();
             if (_navBar != null && _screen != AltarScreen.Hub)
                 _navBar.SetAsLastSibling();
             RefreshHeader(run);
             UpdateBackLabel();
-            if (_screen == AltarScreen.RestRecovery && _restGoldOption.Row != null)
-            {
-                ApplyRestRecoveryState(run);
-                return;
-            }
-
             RebuildContent(run);
         }
 
@@ -253,10 +238,15 @@ namespace Grimhand.Presentation.Battle
             if (_footerHintText != null)
                 _footerHintText.gameObject.SetActive(false);
 
+            // 召唤页：左上返回祭坛 + 右下离开；确认取出单独叠在离开上方
             if (_backButton != null)
                 _backButton.gameObject.SetActive(_screen != AltarScreen.Hub);
             if (_navBar != null)
                 _navBar.gameObject.SetActive(_screen != AltarScreen.Hub);
+            if (_leaveButton != null)
+                _leaveButton.gameObject.SetActive(true);
+            if (_summonConfirmButton != null)
+                _summonConfirmButton.gameObject.SetActive(_screen == AltarScreen.SummonCards);
         }
 
         void RebuildContent(ExpeditionRunState run)
@@ -393,231 +383,168 @@ namespace Grimhand.Presentation.Battle
 
         void BuildRestRecoveryScreen(RectTransform parent, ExpeditionRunState run)
         {
-            AddTitle(parent, "休息回复", "选择一种方式，为全体角色恢复 25% 最大生命");
-            BuildPartyRestSummaryShell(parent);
+            AddTitle(
+                parent,
+                "休息回复",
+                $"选择回复方式，全队恢复 {ExpeditionAltarUpgradeRules.RestHealPercent}% 最大生命",
+                titleMinY: 0.90f,
+                titleMaxY: 0.995f,
+                subtitleMinY: 0.845f,
+                subtitleMaxY: 0.90f);
 
-            var list = CreateVerticalList(parent, "RestOptions", 0.14f, 0.62f, 16f);
-            _restGoldOption = CreateRestOptionRow(
-                list,
-                "◎",
-                "金币休息",
-                $"花费 {ExpeditionAltarUpgradeRules.RestHealGoldCost} 金币",
-                "",
-                false,
+            // 与升级血量同款：event_plate 角色行（仅展示，按钮在底部）
+            var list = CreateVerticalList(parent, "RestList", 0.16f, 0.82f, 14f);
+            foreach (var member in run.Party)
+            {
+                if (member == null)
+                    continue;
+                CreateRestMemberRow(list, member, run);
+            }
+
+            var bottom = CreateRect("RestBottom", parent);
+            SetAnchoredBand(bottom, 0.02f, 0.14f);
+
+            var needsHeal = ExpeditionAltarUpgradeRules.PartyHasRestHealableMember(run);
+            var canXp = needsHeal && run.SharedXpPool >= ExpeditionAltarUpgradeRules.RestHealXpCost;
+            var canGold = needsHeal && run.Gold >= ExpeditionAltarUpgradeRules.RestHealGoldCost;
+
+            _restXpButton = CreateButton1(
+                bottom,
+                $"经验回复（{ExpeditionAltarUpgradeRules.RestHealXpCost}）",
+                new Vector2(0.28f, 0.5f),
+                new Vector2(280f, 64f),
+                canXp,
+                OnRestHealWithXp);
+            _restGoldButton = CreateButton1(
+                bottom,
+                $"金币回复（{ExpeditionAltarUpgradeRules.RestHealGoldCost}）",
+                new Vector2(0.72f, 0.5f),
+                new Vector2(280f, 64f),
+                canGold,
                 OnRestHealWithGold);
 
-            _restXpOption = CreateRestOptionRow(
-                list,
-                "★",
-                "经验休息",
-                $"花费 {ExpeditionAltarUpgradeRules.RestHealXpCost} 经验",
-                "",
-                false,
-                OnRestHealWithXp);
-
-            _restHintText = CreateBandText(parent, "", 16, 0.08f, 0.12f, TextMuted);
+            _restHintText = CreateBandText(
+                parent,
+                needsHeal ? "点击后立即生效，不会离开祭坛" : "当前无需回复",
+                16, 0.14f, 0.18f, TextMuted);
             _restHintText.alignment = TextAnchor.MiddleCenter;
+        }
 
-            ApplyRestRecoveryState(run);
+        void CreateRestMemberRow(RectTransform parent, PartyMemberSnapshot member, ExpeditionRunState run)
+        {
+            ExpeditionPartyStatsRules.GetDisplayHp(
+                member, run.Party, run.Relics, run.RelicGrowthTiers, out var hp, out var maxHp);
+            var healAmount = hp > 0 ? ExpeditionAltarUpgradeRules.ComputeRestHealAmount(member, run) : 0;
+            var afterHp = hp > 0 ? System.Math.Min(maxHp, hp + healAmount) : 0;
+            var memberId = member.CharacterDefinitionId;
+            var canHeal = hp > 0 && hp < maxHp;
+
+            var go = CreateRect("RestRow", parent);
+            var le = go.gameObject.AddComponent<LayoutElement>();
+            le.preferredHeight = 148f;
+            le.flexibleWidth = 1f;
+
+            var bg = go.gameObject.AddComponent<Image>();
+            bg.raycastTarget = false;
+            bg.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiEventPlate != null)
+            {
+                bg.sprite = _uiIcons.UiEventPlate;
+                bg.color = Color.white;
+            }
+            else
+            {
+                bg.color = CardBg;
+            }
+
+            var portraitGo = new GameObject("Portrait", typeof(RectTransform), typeof(Image));
+            portraitGo.transform.SetParent(go, false);
+            var portraitRt = portraitGo.GetComponent<RectTransform>();
+            portraitRt.anchorMin = new Vector2(0f, 0.5f);
+            portraitRt.anchorMax = new Vector2(0f, 0.5f);
+            portraitRt.pivot = new Vector2(0f, 0.5f);
+            portraitRt.sizeDelta = new Vector2(112f, 112f);
+            portraitRt.anchoredPosition = new Vector2(24f, 0f);
+            var portrait = portraitGo.GetComponent<Image>();
+            portrait.preserveAspect = true;
+            portrait.raycastTarget = false;
+            portrait.sprite = _characterVisuals?.GetPortrait(memberId)
+                ?? _characterVisuals?.GetPortraitReference(memberId);
+            portrait.color = portrait.sprite != null ? Color.white : new Color(0.35f, 0.38f, 0.45f, 1f);
+
+            var name = CreateStaticText(go, member.DisplayName ?? "", 20, FontStyle.Bold, TextAnchor.MiddleLeft);
+            name.rectTransform.anchorMin = new Vector2(0f, 0.62f);
+            name.rectTransform.anchorMax = new Vector2(0.72f, 0.92f);
+            name.rectTransform.offsetMin = new Vector2(152f, 0f);
+            name.rectTransform.offsetMax = new Vector2(-8f, 0f);
+            name.color = TextMain;
+            name.alignment = TextAnchor.MiddleLeft;
+
+            var hpLabel = CreateStaticText(go, $"♥ 当前 HP  {hp} / {maxHp}", 18, FontStyle.Bold, TextAnchor.MiddleLeft);
+            hpLabel.rectTransform.anchorMin = new Vector2(0f, 0.38f);
+            hpLabel.rectTransform.anchorMax = new Vector2(0.72f, 0.62f);
+            hpLabel.rectTransform.offsetMin = new Vector2(152f, 0f);
+            hpLabel.rectTransform.offsetMax = new Vector2(-8f, 0f);
+            hpLabel.color = hp <= 0 ? TextMuted : TextMain;
+            hpLabel.alignment = TextAnchor.MiddleLeft;
+
+            var barBgGo = new GameObject("HpBarBg", typeof(RectTransform), typeof(Image));
+            barBgGo.transform.SetParent(go, false);
+            var barBgRt = barBgGo.GetComponent<RectTransform>();
+            barBgRt.anchorMin = new Vector2(0f, 0.22f);
+            barBgRt.anchorMax = new Vector2(0.55f, 0.36f);
+            barBgRt.offsetMin = new Vector2(152f, 0f);
+            barBgRt.offsetMax = Vector2.zero;
+            var barBg = barBgGo.GetComponent<Image>();
+            barBg.color = new Color(0.12f, 0.1f, 0.1f, 0.95f);
+            barBg.raycastTarget = false;
+
+            var barFillGo = new GameObject("HpBarFill", typeof(RectTransform), typeof(Image));
+            barFillGo.transform.SetParent(barBgGo.transform, false);
+            var barFillRt = barFillGo.GetComponent<RectTransform>();
+            StretchFull(barFillRt);
+            var fillRatio = maxHp > 0 ? Mathf.Clamp01(hp / (float)maxHp) : 0f;
+            barFillRt.anchorMax = new Vector2(fillRatio, 1f);
+            var barFill = barFillGo.GetComponent<Image>();
+            barFill.color = new Color(0.78f, 0.22f, 0.22f, 1f);
+            barFill.raycastTarget = false;
+
+            var preview = CreateStaticText(
+                go,
+                hp <= 0
+                    ? "角色已倒下，无法回复"
+                    : canHeal
+                        ? $"回复 +{healAmount} → {afterHp} / {maxHp}"
+                        : "已满血",
+                18,
+                FontStyle.Normal,
+                TextAnchor.MiddleRight);
+            preview.rectTransform.anchorMin = new Vector2(0.55f, 0.18f);
+            preview.rectTransform.anchorMax = new Vector2(0.98f, 0.82f);
+            preview.rectTransform.offsetMin = Vector2.zero;
+            preview.rectTransform.offsetMax = Vector2.zero;
+            preview.color = canHeal ? AccentGreen : TextMuted;
+            preview.alignment = TextAnchor.MiddleRight;
+            preview.horizontalOverflow = HorizontalWrapMode.Wrap;
         }
 
         void OnRestHealWithGold()
         {
             _session.AltarRestHealWithGold();
-            var run = _session.Expedition.Run;
-            RefreshHeader(run);
-            ApplyRestRecoveryState(run);
+            Refresh();
         }
 
         void OnRestHealWithXp()
         {
             _session.AltarRestHealWithXp();
-            var run = _session.Expedition.Run;
-            RefreshHeader(run);
-            ApplyRestRecoveryState(run);
-        }
-
-        void ApplyRestRecoveryState(ExpeditionRunState run)
-        {
-            if (_restGoldOption.Row == null)
-                return;
-
-            RebuildPartyRestSummaryContent(run);
-
-            var needsHeal = ExpeditionAltarUpgradeRules.PartyHasRestHealableMember(run);
-            var canGold = needsHeal && run.Gold >= ExpeditionAltarUpgradeRules.RestHealGoldCost;
-            var canXp = needsHeal && run.SharedXpPool >= ExpeditionAltarUpgradeRules.RestHealXpCost;
-
-            SetRestOptionUiState(
-                ref _restGoldOption,
-                canGold,
-                needsHeal
-                    ? $"全队回复 {ExpeditionAltarUpgradeRules.RestHealPercent}% 最大生命\n当前金币：{run.Gold}"
-                    : "全队已满血，无需回复");
-
-            SetRestOptionUiState(
-                ref _restXpOption,
-                canXp,
-                needsHeal
-                    ? $"全队回复 {ExpeditionAltarUpgradeRules.RestHealPercent}% 最大生命\n当前经验：{run.SharedXpPool}"
-                    : "全队已满血，无需回复");
-
-            if (_restHintText != null)
-                _restHintText.text = needsHeal ? "点击后立即生效，不会离开祭坛" : "当前无需回复";
-        }
-
-        static void SetRestOptionUiState(ref RestOptionUi ui, bool canBuy, string detail)
-        {
-            if (ui.Row == null)
-                return;
-
-            ui.Row.color = canBuy ? CardBg : DisabledCardBg;
-            if (ui.Icon != null)
-                ui.Icon.color = canBuy ? TitleGold : TextMuted;
-            if (ui.Title != null)
-                ui.Title.color = canBuy ? TextMain : TextMuted;
-            if (ui.Detail != null)
-            {
-                ui.Detail.text = detail;
-                ui.Detail.color = canBuy ? AccentGreen : TextMuted;
-            }
-
-            if (ui.Button != null)
-                ui.Button.interactable = canBuy;
-            if (ui.Group != null)
-            {
-                ui.Group.alpha = canBuy ? 1f : 0.42f;
-                ui.Group.interactable = canBuy;
-                ui.Group.blocksRaycasts = canBuy;
-            }
+            Refresh();
         }
 
         void ClearRestRecoveryRefs()
         {
-            _restGoldOption = default;
-            _restXpOption = default;
-            _restSummaryMembersRow = null;
+            _restGoldButton = null;
+            _restXpButton = null;
             _restHintText = null;
-        }
-
-        void BuildPartyRestSummaryShell(RectTransform parent)
-        {
-            var summaryHost = CreateRect("RestSummary", parent);
-            SetAnchoredBand(summaryHost, 0.62f, 0.74f);
-            var summaryBg = CreatePanel("SummaryBg", summaryHost, CardBg, Border);
-            StretchFull(summaryBg.GetComponent<RectTransform>());
-
-            var rowGo = new GameObject("Members", typeof(RectTransform), typeof(HorizontalLayoutGroup));
-            rowGo.transform.SetParent(summaryBg.transform, false);
-            _restSummaryMembersRow = rowGo.GetComponent<RectTransform>();
-            StretchFull(_restSummaryMembersRow);
-            var layout = rowGo.GetComponent<HorizontalLayoutGroup>();
-            layout.spacing = 12f;
-            layout.padding = new RectOffset(16, 16, 10, 10);
-            layout.childAlignment = TextAnchor.MiddleCenter;
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = true;
-            layout.childForceExpandHeight = true;
-        }
-
-        void RebuildPartyRestSummaryContent(ExpeditionRunState run)
-        {
-            if (_restSummaryMembersRow == null)
-                return;
-
-            ClearChildren(_restSummaryMembersRow);
-            foreach (var member in run.Party)
-            {
-                if (member == null)
-                    continue;
-
-                ExpeditionPartyStatsRules.GetDisplayHp(
-                    member, run.Party, run.Relics, run.RelicGrowthTiers, out var hp, out var maxHp);
-                var healAmount = hp > 0
-                    ? ExpeditionAltarUpgradeRules.ComputeRestHealAmount(member, run)
-                    : 0;
-                var afterHp = hp > 0 ? System.Math.Min(maxHp, hp + healAmount) : 0;
-
-                var tile = CreatePanel("MemberSummary", _restSummaryMembersRow, new Color(0.12f, 0.14f, 0.19f, 0.92f), Border);
-                var name = CreateStaticText(tile.transform, member.DisplayName, 18, FontStyle.Bold, TextAnchor.UpperCenter);
-                StretchBand(name.rectTransform, 0.58f, 0.92f);
-                name.color = TextMain;
-
-                var hpText = CreateStaticText(tile.transform,
-                    hp <= 0 ? "已倒下" : $"♥ {hp} / {maxHp}",
-                    16, FontStyle.Normal, TextAnchor.MiddleCenter);
-                StretchBand(hpText.rectTransform, 0.28f, 0.58f);
-                hpText.color = member.Hp <= 0 ? TextMuted : TextMain;
-
-                var preview = CreateStaticText(tile.transform,
-                    hp <= 0 ? "—" : $"回复后：{afterHp} / {maxHp}",
-                    15, FontStyle.Normal, TextAnchor.LowerCenter);
-                StretchBand(preview.rectTransform, 0.06f, 0.28f);
-                preview.color = hp >= maxHp ? TextMuted : AccentGreen;
-            }
-        }
-
-        RestOptionUi CreateRestOptionRow(
-            RectTransform parent,
-            string icon,
-            string title,
-            string costLine,
-            string detail,
-            bool canBuy,
-            System.Action onClick)
-        {
-            var go = CreatePanel("RestOption", parent, canBuy ? CardBg : DisabledCardBg, Border);
-            var le = go.gameObject.AddComponent<LayoutElement>();
-            le.preferredHeight = 112f;
-
-            var iconText = CreateStaticText(go.transform, icon, 34, FontStyle.Normal, TextAnchor.MiddleCenter);
-            iconText.rectTransform.anchorMin = new Vector2(0f, 0.5f);
-            iconText.rectTransform.anchorMax = new Vector2(0f, 0.5f);
-            iconText.rectTransform.pivot = new Vector2(0f, 0.5f);
-            iconText.rectTransform.sizeDelta = new Vector2(72f, 72f);
-            iconText.rectTransform.anchoredPosition = new Vector2(12f, 0f);
-            iconText.color = TitleGold;
-
-            var titleText = CreateStaticText(go.transform, title, 24, FontStyle.Bold, TextAnchor.MiddleLeft);
-            titleText.rectTransform.anchorMin = new Vector2(0f, 0.5f);
-            titleText.rectTransform.anchorMax = new Vector2(0.52f, 1f);
-            titleText.rectTransform.offsetMin = new Vector2(88f, 8f);
-            titleText.rectTransform.offsetMax = new Vector2(-8f, -8f);
-            titleText.color = TextMain;
-            titleText.alignment = TextAnchor.LowerLeft;
-
-            var costText = CreateStaticText(go.transform, costLine, 18, FontStyle.Normal, TextAnchor.MiddleLeft);
-            costText.rectTransform.anchorMin = new Vector2(0f, 0f);
-            costText.rectTransform.anchorMax = new Vector2(0.52f, 0.5f);
-            costText.rectTransform.offsetMin = new Vector2(88f, 8f);
-            costText.rectTransform.offsetMax = new Vector2(-8f, -8f);
-            costText.color = TextMuted;
-            costText.alignment = TextAnchor.UpperLeft;
-
-            var detailText = CreateStaticText(go.transform, detail, 17, FontStyle.Normal, TextAnchor.MiddleRight);
-            detailText.rectTransform.anchorMin = new Vector2(0.52f, 0f);
-            detailText.rectTransform.anchorMax = new Vector2(1f, 1f);
-            detailText.rectTransform.offsetMin = new Vector2(8f, 12f);
-            detailText.rectTransform.offsetMax = new Vector2(-16f, -12f);
-            detailText.color = AccentGreen;
-            detailText.alignment = TextAnchor.MiddleRight;
-
-            var ui = new RestOptionUi
-            {
-                Row = go,
-                Icon = iconText,
-                Title = titleText,
-                Cost = costText,
-                Detail = detailText,
-                Group = go.gameObject.AddComponent<CanvasGroup>(),
-                Button = go.gameObject.AddComponent<Button>()
-            };
-            ui.Button.targetGraphic = go;
-            ui.Button.onClick.AddListener(() => onClick?.Invoke());
-            UiAudioHooks.WireButton(ui.Button);
-            SetRestOptionUiState(ref ui, canBuy, detail);
-            return ui;
         }
 
         void BuildDistributeXpScreen(RectTransform parent, ExpeditionRunState run)
@@ -949,7 +876,7 @@ namespace Grimhand.Presentation.Battle
                 _upgradeCardCurrentText.text = "";
                 _upgradeCardNextText.text = "";
                 _upgradeCardMetaText.text = "";
-                _upgradeCardButton.interactable = false;
+                SetUpgradeCardButtonInteractable(false);
                 var idleImg = _upgradeCardButton.targetGraphic as Image;
                 if (idleImg != null)
                 {
@@ -999,7 +926,7 @@ namespace Grimhand.Presentation.Battle
             _upgradeCardNextText.color = AccentGreen;
             _upgradeCardMetaText.text = $"剩余次数: {max - level} / {max}\n{cost} XP";
             _upgradeCardMetaText.color = TextMuted;
-            _upgradeCardButton.interactable = canBuy;
+            SetUpgradeCardButtonInteractable(canBuy);
             var btnImg = _upgradeCardButton.targetGraphic as Image;
             if (btnImg != null)
             {
@@ -1031,81 +958,67 @@ namespace Grimhand.Presentation.Battle
             Refresh();
         }
 
+        /// <summary>
+        /// CreateButton1 同时挂了 Button + CanvasGroup；仅改 Button.interactable 时
+        /// CanvasGroup.interactable 仍为 false，会吞掉点击导致强化无效。
+        /// </summary>
+        void SetUpgradeCardButtonInteractable(bool canBuy)
+        {
+            if (_upgradeCardButton == null)
+                return;
+
+            _upgradeCardButton.interactable = canBuy;
+            var group = _upgradeCardButton.GetComponent<CanvasGroup>();
+            if (group != null)
+                group.interactable = canBuy;
+        }
+
         void BuildSummonScreen(RectTransform parent, ExpeditionRunState run)
         {
             AddTitle(parent, "召唤卡牌", null, 0.90f, 0.98f);
-            var intro = CreateBandText(
-                parent,
-                "从军营收藏中取出卡牌加入远征卡组。每个角色可单独确认取出一张；确认后该角色卡牌变暗不可再选。点「离开祭坛」才结束访问。",
-                17, 0.82f, 0.90f, TextMuted);
-            intro.alignment = TextAnchor.UpperCenter;
-            intro.horizontalOverflow = HorizontalWrapMode.Wrap;
 
-            var memberRowGo = new GameObject("Members", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+            // 三角色靠上；卡牌在其下完整显示，绝不裁切
+            var memberRowGo = new GameObject("MemberButtons", typeof(RectTransform), typeof(HorizontalLayoutGroup));
             memberRowGo.transform.SetParent(parent, false);
             _summonMemberRow = memberRowGo.GetComponent<RectTransform>();
-            SetAnchoredBand(_summonMemberRow, 0.72f, 0.82f);
+            SetAnchoredBand(_summonMemberRow, 0.78f, 0.88f);
             var memberLayout = memberRowGo.GetComponent<HorizontalLayoutGroup>();
-            memberLayout.spacing = 16f;
-            memberLayout.padding = new RectOffset(24, 24, 0, 0);
+            memberLayout.spacing = 14f;
+            memberLayout.padding = new RectOffset(10, 10, 2, 2);
             memberLayout.childAlignment = TextAnchor.MiddleCenter;
-            memberLayout.childControlWidth = false;
-            memberLayout.childControlHeight = false;
+            memberLayout.childControlWidth = true;
+            memberLayout.childControlHeight = true;
+            memberLayout.childForceExpandWidth = true;
+            memberLayout.childForceExpandHeight = true;
 
-            var collectionLabel = CreateBandText(parent, "军营收藏 — 选择要取出的卡牌", 18, 0.68f, 0.72f, TextMuted);
-            collectionLabel.alignment = TextAnchor.MiddleLeft;
-
+            // 卡牌区：上方弹性空白把 5×2 网格顶到下方，保证整卡可见
             _summonCollectionHost = CreateRect("CollectionHost", parent);
-            SetAnchoredBand(_summonCollectionHost, 0.10f, 0.68f);
-            _summonCollectionGrid = BuildScrollGrid(_summonCollectionHost, SummonCollectionColumns,
-                new Vector2(SummonCardWidth, SummonCardHeight), SummonCollectionGridSpacing);
+            SetAnchoredBand(_summonCollectionHost, 0.02f, 0.76f);
+            _summonCollectionGrid = BuildSummonCollectionGrid(_summonCollectionHost);
 
             _summonReplaceHost = CreateRect("ReplaceHost", parent);
-            SetAnchoredBand(_summonReplaceHost, 0.04f, 0.44f);
+            SetAnchoredBand(_summonReplaceHost, 0.0f, 0.14f);
             var replaceBg = CreatePanel("ReplaceBg", _summonReplaceHost, CardBg, Border);
             StretchFull(replaceBg.GetComponent<RectTransform>());
             _summonReplaceLabel = CreateStaticText(replaceBg.transform,
-                "卡组已满，请选择要替换的卡牌", 17, FontStyle.Bold, TextAnchor.UpperLeft);
+                "卡组已满，请选择要替换的卡牌", 16, FontStyle.Bold, TextAnchor.UpperLeft);
             var replaceLabelRt = _summonReplaceLabel.rectTransform;
-            replaceLabelRt.anchorMin = new Vector2(0f, 0.82f);
+            replaceLabelRt.anchorMin = new Vector2(0f, 0.78f);
             replaceLabelRt.anchorMax = new Vector2(1f, 1f);
-            replaceLabelRt.offsetMin = new Vector2(16f, 0f);
-            replaceLabelRt.offsetMax = new Vector2(-16f, -4f);
+            replaceLabelRt.offsetMin = new Vector2(12f, 0f);
+            replaceLabelRt.offsetMax = new Vector2(-12f, -2f);
             _summonReplaceLabel.color = TextMuted;
             _summonReplaceLabel.alignment = TextAnchor.MiddleLeft;
 
             var replaceScrollHost = CreateRect("ReplaceScrollHost", replaceBg.transform);
             var replaceScrollRt = replaceScrollHost.GetComponent<RectTransform>();
             replaceScrollRt.anchorMin = Vector2.zero;
-            replaceScrollRt.anchorMax = new Vector2(1f, 0.82f);
-            replaceScrollRt.offsetMin = new Vector2(10f, 12f);
-            replaceScrollRt.offsetMax = new Vector2(-10f, -4f);
+            replaceScrollRt.anchorMax = new Vector2(1f, 0.78f);
+            replaceScrollRt.offsetMin = new Vector2(8f, 6f);
+            replaceScrollRt.offsetMax = new Vector2(-8f, -2f);
             _summonReplaceRow = BuildScrollRowInternal(replaceScrollRt, 0f, 1f, horizontal: true,
-                spacing: SummonReplaceCardSpacing, padding: new RectOffset(16, 16, 12, 12));
+                spacing: SummonReplaceCardSpacing, padding: new RectOffset(10, 10, 6, 6));
             _summonReplaceHost.gameObject.SetActive(false);
-
-            var bottomHost = CreateRect("SummonBottom", parent);
-            SetAnchoredBand(bottomHost, 0.02f, 0.10f);
-
-            _summonPreviewText = CreateStaticText(bottomHost, "从收藏中选择一张尚未取出的卡牌。", 17,
-                FontStyle.Normal, TextAnchor.MiddleLeft);
-            var previewRt = _summonPreviewText.rectTransform;
-            previewRt.anchorMin = new Vector2(0f, 0f);
-            previewRt.anchorMax = new Vector2(0.58f, 1f);
-            previewRt.offsetMin = new Vector2(8f, 0f);
-            previewRt.offsetMax = new Vector2(-8f, 0f);
-            _summonPreviewText.color = TextMuted;
-            _summonPreviewText.horizontalOverflow = HorizontalWrapMode.Wrap;
-
-            _summonConfirmButton = CreateAnchoredActionButton(
-                bottomHost, "确认取出", BtnGreen, AccentGreen,
-                new Vector2(1f, 0.5f), new Vector2(300f, ActionButtonHeight), false,
-                ConfirmActiveMemberSummon);
-            var confirmRt = _summonConfirmButton.GetComponent<RectTransform>();
-            confirmRt.anchorMin = new Vector2(1f, 0.5f);
-            confirmRt.anchorMax = new Vector2(1f, 0.5f);
-            confirmRt.pivot = new Vector2(1f, 0.5f);
-            confirmRt.anchoredPosition = new Vector2(-8f, 0f);
 
             if (_activeMemberIndex >= run.Party.Count)
                 _activeMemberIndex = 0;
@@ -1119,15 +1032,19 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             ClearChildren(_summonMemberRow);
-            ClearChildren(_summonCollectionGrid);
-            ClearChildren(_summonReplaceRow);
+            if (_summonCollectionGrid != null)
+                ClearChildren(_summonCollectionGrid);
+            if (_summonReplaceRow != null)
+                ClearChildren(_summonReplaceRow);
 
             for (var i = 0; i < run.Party.Count; i++)
             {
                 var index = i;
                 var member = run.Party[i];
-                var active = index == _activeMemberIndex;
-                CreateMemberTab(member, active, () =>
+                if (member == null)
+                    continue;
+
+                CreateSummonMemberButton(member, index == _activeMemberIndex, () =>
                 {
                     _activeMemberIndex = index;
                     RebuildSummonContent(run);
@@ -1137,10 +1054,208 @@ namespace Grimhand.Presentation.Battle
             if (run.Party.Count == 0)
                 return;
 
-            var activeMember = run.Party[_activeMemberIndex];
-            RebuildSummonCollection(activeMember);
+            var activeMember = run.Party[Mathf.Clamp(_activeMemberIndex, 0, run.Party.Count - 1)];
+            FillSummonCollectionCards(activeMember);
             RebuildSummonReplace(activeMember);
             RefreshSummonStatus(activeMember);
+        }
+
+        void CreateSummonMemberButton(PartyMemberSnapshot member, bool active, System.Action onFocus)
+        {
+            var go = CreateRect($"Member_{member.CharacterDefinitionId}", _summonMemberRow);
+            var le = go.gameObject.AddComponent<LayoutElement>();
+            le.flexibleWidth = 1f;
+            le.flexibleHeight = 1f;
+            le.minWidth = 200f;
+
+            var bg = go.gameObject.AddComponent<Image>();
+            bg.raycastTarget = true;
+            bg.preserveAspect = false;
+            bg.type = Image.Type.Simple;
+            if (_uiIcons != null && _uiIcons.UiButton7 != null)
+            {
+                bg.sprite = _uiIcons.UiButton7;
+                bg.color = active ? Color.white : new Color(0.72f, 0.72f, 0.76f, 1f);
+            }
+            else
+            {
+                bg.sprite = null;
+                bg.color = active ? AccentGreenBg : CardBg;
+            }
+
+            var group = go.gameObject.AddComponent<CanvasGroup>();
+            group.alpha = 1f;
+            group.blocksRaycasts = true;
+            group.interactable = true;
+            var hover = go.gameObject.AddComponent<CampBuildingHoverView>();
+            hover.Bind(go, group, HubButtonHoverScale, hideWhenIdle: false);
+
+            var btn = go.gameObject.AddComponent<Button>();
+            btn.targetGraphic = bg;
+            btn.transition = Selectable.Transition.None;
+            btn.onClick.AddListener(() => onFocus?.Invoke());
+            UiAudioHooks.WireButton(btn);
+
+            var portraitGo = CreateRect("Portrait", go);
+            StretchBand(portraitGo, 0.22f, 0.92f);
+            var portrait = portraitGo.gameObject.AddComponent<Image>();
+            portrait.preserveAspect = true;
+            portrait.raycastTarget = false;
+            portrait.sprite = _characterVisuals?.GetPortrait(member.CharacterDefinitionId)
+                              ?? _characterVisuals?.GetPortraitReference(member.CharacterDefinitionId);
+            portrait.color = portrait.sprite != null
+                ? Color.white
+                : new Color(0.35f, 0.32f, 0.28f, 1f);
+
+            var name = CreateStaticText(go, member.DisplayName ?? "", 20, FontStyle.Bold, TextAnchor.MiddleCenter);
+            StretchBand(name.rectTransform, 0.02f, 0.20f);
+            name.color = active ? TitleGold : TextMuted;
+            name.raycastTarget = false;
+        }
+
+        void FillSummonCollectionCards(PartyMemberSnapshot member)
+        {
+            if (_summonCollectionGrid == null || member == null)
+                return;
+
+            var run = _session.Expedition.Run;
+            var config = _session.Expedition.Config;
+            var draft = GetDraft(member);
+            var locked = draft.Confirmed;
+            var ids = ExpeditionRunDeckRules.GetCampCollectionCardIds(run, member);
+            var slotCount = Mathf.Max(CampRosterState.DeckSize, ids?.Count ?? 0);
+
+            for (var index = 0; index < slotCount; index++)
+            {
+                var cardId = ids != null && index < ids.Count ? ids[index] : "";
+                if (string.IsNullOrEmpty(cardId))
+                {
+                    CreateEmptySummonSlot(_summonCollectionGrid);
+                    continue;
+                }
+
+                var template = ExpeditionRunDeckCatalog.ResolveCampCollectionCard(
+                    config, cardId, member.CharacterDefinitionId);
+                if (template == null)
+                {
+                    CreateEmptySummonSlot(_summonCollectionGrid);
+                    continue;
+                }
+
+                var extracted = CampCollectionProgress.IsExtracted(run, member.CharacterDefinitionId, index);
+                var selected = !locked && draft.CollectionCardIndex == index;
+                var capturedIndex = index;
+                var capturedMemberId = member.CharacterDefinitionId;
+
+                // 已取出：视觉上消失（留空槽保布局）
+                if (extracted)
+                {
+                    CreateEmptySummonSlot(_summonCollectionGrid);
+                    continue;
+                }
+
+                // 本角色本趟已确认取出：其余牌变暗不可再选
+                if (locked)
+                {
+                    SpawnSummonCard(_summonCollectionGrid, template, member.CharacterDefinitionId,
+                        selected: false, onClick: null, dimmed: true);
+                    continue;
+                }
+
+                SpawnSummonCard(_summonCollectionGrid, template, member.CharacterDefinitionId, selected, () =>
+                {
+                    var party = _session.Expedition.Run.Party;
+                    for (var i = 0; i < party.Count; i++)
+                    {
+                        if (party[i]?.CharacterDefinitionId == capturedMemberId)
+                        {
+                            _activeMemberIndex = i;
+                            break;
+                        }
+                    }
+
+                    var currentMember = party[Mathf.Clamp(_activeMemberIndex, 0, party.Count - 1)];
+                    var current = GetDraft(currentMember);
+                    if (current.Confirmed)
+                        return;
+
+                    var needsReplace = ExpeditionRunDeckRules.NeedsReplace(config, currentMember);
+                    var collectionIndex = current.CollectionCardIndex == capturedIndex ? -1 : capturedIndex;
+                    var replaceKey = needsReplace && collectionIndex >= 0 ? current.ReplaceDeckCardKey : "";
+                    _session.SetCardAltarDraft(capturedMemberId, collectionIndex, replaceKey);
+                    RebuildSummonContent(_session.Expedition.Run);
+                });
+            }
+
+            LayoutRebuilder.ForceRebuildLayoutImmediate(_summonCollectionGrid);
+        }
+
+        /// <summary>
+        /// 召唤卡牌区：上方弹性空白 + 固定高度 5×2 网格贴底。
+        /// 不裁切，确保十张卡完整可见。
+        /// </summary>
+        static RectTransform BuildSummonCollectionGrid(RectTransform host)
+        {
+            // 去掉可能残留的裁剪，避免上排被切掉
+            var existingMask = host.gameObject.GetComponent<RectMask2D>();
+            if (existingMask != null)
+                UnityEngine.Object.Destroy(existingMask);
+
+            var column = host.gameObject.GetComponent<VerticalLayoutGroup>();
+            if (column == null)
+                column = host.gameObject.AddComponent<VerticalLayoutGroup>();
+            column.spacing = 0f;
+            column.padding = new RectOffset(8, 8, 4, 8);
+            column.childAlignment = TextAnchor.LowerCenter;
+            column.childControlWidth = true;
+            column.childControlHeight = true;
+            column.childForceExpandWidth = true;
+            column.childForceExpandHeight = false;
+
+            var spacerGo = new GameObject("TopSpacer", typeof(RectTransform), typeof(LayoutElement));
+            spacerGo.transform.SetParent(host, false);
+            var spacerLe = spacerGo.GetComponent<LayoutElement>();
+            spacerLe.flexibleHeight = 1f;
+            spacerLe.minHeight = 0f;
+            spacerLe.preferredHeight = 0f;
+
+            var gridHeight = SummonCardHeight * 2f
+                             + SummonCollectionGridSpacing
+                             + 8f;
+
+            var gridGo = new GameObject("CampDeckGrid", typeof(RectTransform), typeof(GridLayoutGroup), typeof(LayoutElement));
+            gridGo.transform.SetParent(host, false);
+            var gridLe = gridGo.GetComponent<LayoutElement>();
+            gridLe.preferredHeight = gridHeight;
+            gridLe.minHeight = gridHeight;
+            gridLe.flexibleHeight = 0f;
+            gridLe.flexibleWidth = 1f;
+
+            var gridRt = gridGo.GetComponent<RectTransform>();
+            var grid = gridGo.GetComponent<GridLayoutGroup>();
+            grid.cellSize = new Vector2(SummonCardWidth, SummonCardHeight);
+            grid.spacing = new Vector2(SummonCollectionGridSpacing, SummonCollectionGridSpacing);
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            grid.constraintCount = SummonCollectionColumns;
+            grid.childAlignment = TextAnchor.MiddleCenter;
+            grid.padding = new RectOffset(4, 4, 0, 0);
+            grid.startCorner = GridLayoutGroup.Corner.UpperLeft;
+            grid.startAxis = GridLayoutGroup.Axis.Horizontal;
+            return gridRt;
+        }
+
+        static void CreateEmptySummonSlot(Transform parent)
+        {
+            var go = new GameObject("EmptySlot", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
+            go.transform.SetParent(parent, false);
+            var le = go.GetComponent<LayoutElement>();
+            le.preferredWidth = SummonCardWidth;
+            le.preferredHeight = SummonCardHeight;
+            var img = go.GetComponent<Image>();
+            // 空槽：透明占位，不要蓝虚影底板
+            img.color = Color.clear;
+            img.raycastTarget = false;
+            go.GetComponent<CanvasRenderer>().cullTransparentMesh = false;
         }
 
         void ConfirmActiveMemberSummon()
@@ -1167,7 +1282,10 @@ namespace Grimhand.Presentation.Battle
             var needsReplace = !locked && ExpeditionRunDeckRules.NeedsReplace(config, member);
             var showReplace = needsReplace && draft.HasSelection;
             _summonReplaceHost.gameObject.SetActive(showReplace);
-            UpdateSummonCollectionBand(showReplace);
+            if (_summonCollectionHost != null)
+                SetAnchoredBand(_summonCollectionHost, showReplace ? 0.16f : 0.02f, 0.76f);
+            if (_summonMemberRow != null)
+                SetAnchoredBand(_summonMemberRow, 0.78f, 0.88f);
 
             if (!showReplace)
                 return;
@@ -1195,131 +1313,38 @@ namespace Grimhand.Presentation.Battle
             }
         }
 
-        void UpdateSummonCollectionBand(bool showReplace)
-        {
-            if (_summonCollectionHost == null)
-                return;
-
-            SetAnchoredBand(_summonCollectionHost, showReplace ? 0.46f : 0.10f, 0.68f);
-        }
-
-        void RebuildSummonCollection(PartyMemberSnapshot member)
-        {
-            var run = _session.Expedition.Run;
-            var config = _session.Expedition.Config;
-            var draft = GetDraft(member);
-            var locked = draft.Confirmed;
-            var needsReplace = !locked && ExpeditionRunDeckRules.NeedsReplace(config, member);
-            var indices = ExpeditionRunDeckRules.GetAvailableCollectionIndices(run, member);
-
-            if (locked)
-            {
-                // 已取出的卡消失；剩余收藏变暗不可再选。
-                foreach (var index in indices)
-                {
-                    var template = ExpeditionRunDeckCatalog.TryResolveCampCollectionCard(config, run, member, index);
-                    if (template == null)
-                        continue;
-
-                    SpawnSummonCard(_summonCollectionGrid, template, member.CharacterDefinitionId,
-                        selected: false, onClick: null, dimmed: true);
-                }
-
-                if (_summonCollectionGrid.childCount == 0)
-                {
-                    var done = CreateStaticText(_summonCollectionGrid,
-                        $"{member.DisplayName} 本趟已取出卡牌，可切换其他角色继续，或离开祭坛。",
-                        18, FontStyle.Normal, TextAnchor.MiddleCenter);
-                    StretchFull(done.rectTransform);
-                    done.color = TextMuted;
-                }
-
-                return;
-            }
-
-            if (indices.Count == 0)
-            {
-                var empty = CreateStaticText(_summonCollectionGrid, "该角色军营收藏中已无可取出的卡牌。", 18,
-                    FontStyle.Normal, TextAnchor.MiddleCenter);
-                StretchFull(empty.rectTransform);
-                empty.color = TextMuted;
-                return;
-            }
-
-            foreach (var index in indices)
-            {
-                var cardId = ExpeditionRunDeckCatalog.GetCampCollectionCardId(run, member, index);
-                if (string.IsNullOrEmpty(cardId))
-                    continue;
-
-                var template = ExpeditionRunDeckCatalog.TryResolveCampCollectionCard(config, run, member, index);
-                var capturedIndex = index;
-                var selected = draft.CollectionCardIndex == capturedIndex;
-                SpawnSummonCard(_summonCollectionGrid, template, member.CharacterDefinitionId, selected, () =>
-                {
-                    var current = GetDraft(member);
-                    if (current.Confirmed)
-                        return;
-                    var collectionIndex = current.CollectionCardIndex == capturedIndex ? -1 : capturedIndex;
-                    var replaceKey = needsReplace && collectionIndex >= 0 ? current.ReplaceDeckCardKey : "";
-                    _session.SetCardAltarDraft(member.CharacterDefinitionId, collectionIndex, replaceKey);
-                    RebuildSummonContent(_session.Expedition.Run);
-                });
-            }
-
-            var scroll = _summonCollectionGrid != null
-                ? _summonCollectionGrid.GetComponentInParent<ScrollRect>()
-                : null;
-            FinalizeScrollGridContent(
-                _summonCollectionGrid,
-                scroll,
-                _summonCollectionGrid != null ? _summonCollectionGrid.childCount : 0);
-        }
-
         void RefreshSummonStatus(PartyMemberSnapshot member)
         {
-            var config = _session.Expedition.Config;
-            var draft = GetDraft(member);
-            var needsReplace = ExpeditionRunDeckRules.NeedsReplace(config, member);
+            SetSummonConfirmInteractable(HasValidDraftForMember(member));
+        }
 
-            if (draft.Confirmed)
-            {
-                _summonPreviewText.text =
-                    $"{member.DisplayName} 本趟已取出卡牌。可切换其他角色继续取出，或点「离开祭坛」。";
-            }
-            else if (!draft.HasSelection)
-            {
-                _summonPreviewText.text = needsReplace
-                    ? "从收藏中选择一张卡牌；卡组已满时将提示选择替换目标。"
-                    : "从收藏中选择一张卡牌（将直接加入卡组）。";
-            }
-            else
-            {
-                var newTemplate = ExpeditionRunDeckCatalog.TryResolveCampCollectionCard(
-                    config, _session.Expedition.Run, member, draft.CollectionCardIndex);
-                var newName = newTemplate?.DisplayName ?? "未知卡牌";
-                if (needsReplace)
-                {
-                    CardTemplate oldTemplate = null;
-                    if (!string.IsNullOrEmpty(draft.ReplaceDeckCardKey)
-                        && ExpeditionRunDeckRules.TryFindMemberDeckEntryByKey(config, member, draft.ReplaceDeckCardKey, out var oldEntry))
-                    {
-                        oldTemplate = oldEntry.Template;
-                    }
+        void SetSummonConfirmInteractable(bool canConfirm)
+        {
+            if (_summonConfirmButton == null)
+                return;
 
-                    var oldName = oldTemplate?.DisplayName ?? "（请选择要替换的卡牌）";
-                    _summonPreviewText.text = string.IsNullOrEmpty(draft.ReplaceDeckCardKey)
-                        ? $"将取出：{newName}\n请在下方选择卡组中要替换的卡牌。"
-                        : $"替换：{oldName}  →  {newName}";
-                }
+            _summonConfirmButton.interactable = canConfirm;
+            var group = _summonConfirmButton.GetComponent<CanvasGroup>();
+            if (group != null)
+                group.interactable = canConfirm;
+
+            var img = _summonConfirmButton.targetGraphic as Image;
+            if (img != null)
+            {
+                if (_uiIcons != null && _uiIcons.UiButton1 != null)
+                    img.color = canConfirm ? Color.white : new Color(0.45f, 0.45f, 0.48f, 1f);
                 else
-                {
-                    _summonPreviewText.text = $"将加入卡组：{newName}";
-                }
+                    img.color = canConfirm ? BtnGreen : DisabledCardBg;
             }
 
-            if (_summonConfirmButton != null)
-                _summonConfirmButton.interactable = HasValidDraftForMember(member);
+            var label = _summonConfirmButton.GetComponentInChildren<Text>();
+            if (label != null)
+            {
+                label.text = "确认取出";
+                label.color = canConfirm
+                    ? new Color(0.96f, 0.92f, 0.78f, 1f)
+                    : new Color(0.55f, 0.55f, 0.58f, 1f);
+            }
         }
 
         bool HasValidDraftForMember(PartyMemberSnapshot member)
@@ -1458,21 +1483,6 @@ namespace Grimhand.Presentation.Battle
             amountText.raycastTarget = false;
         }
 
-        void CreateMemberTab(PartyMemberSnapshot member, bool active, System.Action onClick)
-        {
-            var go = CreatePanel("MemberTab", _summonMemberRow, active ? AccentGreenBg : CardBg, Border);
-            var le = go.gameObject.AddComponent<LayoutElement>();
-            le.preferredWidth = 220f;
-            le.preferredHeight = 56f;
-            var btn = go.gameObject.AddComponent<Button>();
-            btn.targetGraphic = go;
-            btn.onClick.AddListener(() => onClick?.Invoke());
-            UiAudioHooks.WireButton(btn);
-            var label = CreateStaticText(go.transform, member.DisplayName, 22, FontStyle.Bold, TextAnchor.MiddleCenter);
-            StretchFull(label.rectTransform);
-            label.color = TextMain;
-        }
-
         void SpawnUpgradeCardButton(CardTemplate template, string ownerId, bool selected, System.Action onClick)
         {
             var holder = CreateUpgradeCardHolder(_upgradeCardGrid, UpgradeCardWidth, UpgradeCardHeight);
@@ -1492,21 +1502,25 @@ namespace Grimhand.Presentation.Battle
             float width = SummonCardWidth, float height = SummonCardHeight, float scale = SummonCardScale,
             bool dimmed = false)
         {
-            var holder = CreateCardHolder(parent, selected && !dimmed, width, height);
+            // 透明点击区，无蓝虚影底板；选中只靠 CardView 高亮
+            var holder = CreateSummonCardHolder(parent, width, height);
             if (onClick != null && !dimmed)
             {
                 var btn = holder.gameObject.AddComponent<Button>();
                 btn.targetGraphic = holder;
+                btn.transition = Selectable.Transition.None;
                 btn.onClick.AddListener(() => onClick.Invoke());
                 UiAudioHooks.WireButton(btn);
             }
 
             ScrollRectNavigation.WireForwarding(holder.gameObject);
-            SpawnCardVisual(holder.transform, template, ownerId, scale);
+            var cardView = SpawnCardVisual(holder.transform, template, ownerId, scale);
+            CardView.ConfigureForAltarUpgradePresentation(cardView);
+            if (cardView != null)
+                cardView.SetSelected(selected && !dimmed);
 
             if (dimmed)
             {
-                holder.color = new Color(0.12f, 0.13f, 0.16f, 0.92f);
                 var cg = holder.gameObject.GetComponent<CanvasGroup>();
                 if (cg == null)
                     cg = holder.gameObject.AddComponent<CanvasGroup>();
@@ -1514,6 +1528,27 @@ namespace Grimhand.Presentation.Battle
                 cg.interactable = false;
                 cg.blocksRaycasts = false;
             }
+        }
+
+        /// <summary>召唤/替换卡牌：透明点击区，无虚影底板；选中由 CardView 高亮。</summary>
+        static Image CreateSummonCardHolder(Transform parent, float width, float height)
+        {
+            var go = new GameObject("CardHolder", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
+            go.transform.SetParent(parent, false);
+            var holder = go.GetComponent<Image>();
+            holder.color = Color.clear;
+            holder.raycastTarget = true;
+            go.GetComponent<CanvasRenderer>().cullTransparentMesh = false;
+
+            var le = go.GetComponent<LayoutElement>();
+            le.preferredWidth = width;
+            le.preferredHeight = height;
+            le.minWidth = width;
+            le.minHeight = height;
+
+            var rt = go.GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(width, height);
+            return holder;
         }
 
         /// <summary>强化卡牌列表：透明点击区，无虚影底板；选中由 CardView 高亮。</summary>
@@ -1924,12 +1959,27 @@ namespace Grimhand.Presentation.Battle
             _leaveButton.transition = Selectable.Transition.None;
             _leaveButton.onClick.AddListener(() => _session.LeaveAltar());
             UiAudioHooks.WireButton(_leaveButton);
+
+            // 召唤页：确认取出叠在离开正上方；右缘与离开齐平，宽度略窄
+            _summonConfirmButton = CreateButton1(
+                panelRt,
+                "确认取出",
+                new Vector2(HubZoneLeave.XMax, 0.140f),
+                new Vector2(220f, 64f),
+                false,
+                ConfirmActiveMemberSummon);
+            var confirmRt = _summonConfirmButton.GetComponent<RectTransform>();
+            confirmRt.pivot = new Vector2(1f, 0f);
+            confirmRt.anchoredPosition = Vector2.zero;
+            _summonConfirmButton.gameObject.SetActive(false);
         }
 
         void ApplyChromeForScreen()
         {
             var hub = _screen == AltarScreen.Hub;
             var distributeFamily = IsDistributeFamilyScreen();
+            var summon = _screen == AltarScreen.SummonCards;
+            var eventPlateChrome = distributeFamily || summon || _screen == AltarScreen.RestRecovery;
             if (_hubLayer != null)
                 _hubLayer.gameObject.SetActive(hub);
 
@@ -1945,7 +1995,7 @@ namespace Grimhand.Presentation.Battle
                     if (outline != null)
                         outline.enabled = false;
                 }
-                else if (distributeFamily && _uiIcons != null && _uiIcons.UiEventPlate != null)
+                else if (eventPlateChrome && _uiIcons != null && _uiIcons.UiEventPlate != null)
                 {
                     _panelImage.sprite = _uiIcons.UiEventPlate;
                     _panelImage.color = Color.white;
@@ -1971,7 +2021,8 @@ namespace Grimhand.Presentation.Battle
             if (_titleLeftText != null)
             {
                 ApplyHubNormRect(_titleLeftText.rectTransform, HubZoneTitleLeft);
-                _titleLeftText.gameObject.SetActive(true);
+                // 召唤页用内容区居中标题「召唤卡牌」，隐藏左侧「祭坛」
+                _titleLeftText.gameObject.SetActive(!summon);
             }
 
             if (_xpHeaderIcon != null)
@@ -1990,6 +2041,20 @@ namespace Grimhand.Presentation.Battle
 
             if (_leaveButton != null)
                 ApplyHubNormRect(_leaveButton.GetComponent<RectTransform>(), HubZoneLeave);
+            if (_summonConfirmButton != null)
+            {
+                // 右缘对齐离开按钮（XMax），宽度 220 比离开略窄
+                var confirmRt = _summonConfirmButton.GetComponent<RectTransform>();
+                confirmRt.anchorMin = new Vector2(HubZoneLeave.XMax, 0.140f);
+                confirmRt.anchorMax = new Vector2(HubZoneLeave.XMax, 0.140f);
+                confirmRt.pivot = new Vector2(1f, 0f);
+                confirmRt.sizeDelta = new Vector2(220f, 64f);
+                confirmRt.anchoredPosition = Vector2.zero;
+            }
+
+            // 召唤页：返回按钮置顶左上，避免挡住三角色区
+            if (_navBar != null)
+                SetAnchoredBand(_navBar, summon ? 0.88f : 0.74f, summon ? 0.98f : 0.84f);
 
             if (_contentHost != null)
             {
@@ -1999,7 +2064,10 @@ namespace Grimhand.Presentation.Battle
                 }
                 else
                 {
-                    SetAnchoredBand(_contentHost, 0.13f, 0.74f);
+                    // 召唤页：内容区避开顶部返回与右下确认/离开；略下延给卡牌腾位
+                    var contentMin = summon ? 0.20f : 0.13f;
+                    var contentMax = summon ? 0.88f : 0.74f;
+                    SetAnchoredBand(_contentHost, contentMin, contentMax);
                     _contentHost.gameObject.SetActive(true);
                 }
             }
@@ -2266,6 +2334,36 @@ namespace Grimhand.Presentation.Battle
             System.Action onClick,
             Vector2? anchoredPosition = null)
         {
+            return CreateCatalogActionButton(
+                parent, label, anchor, size, interactable, onClick, anchoredPosition,
+                _uiIcons != null ? _uiIcons.UiButton1 : null, BtnGreen);
+        }
+
+        Button CreateButton2(
+            Transform parent,
+            string label,
+            Vector2 anchor,
+            Vector2 size,
+            bool interactable,
+            System.Action onClick,
+            Vector2? anchoredPosition = null)
+        {
+            return CreateCatalogActionButton(
+                parent, label, anchor, size, interactable, onClick, anchoredPosition,
+                _uiIcons != null ? _uiIcons.UiButton2 : null, BtnNeutral);
+        }
+
+        Button CreateCatalogActionButton(
+            Transform parent,
+            string label,
+            Vector2 anchor,
+            Vector2 size,
+            bool interactable,
+            System.Action onClick,
+            Vector2? anchoredPosition,
+            Sprite sprite,
+            Color fallbackColor)
+        {
             var go = CreateRect(label + "Btn", parent);
             var rt = go;
             rt.anchorMin = anchor;
@@ -2278,14 +2376,14 @@ namespace Grimhand.Presentation.Battle
             var img = go.gameObject.AddComponent<Image>();
             img.raycastTarget = true;
             img.preserveAspect = false;
-            if (_uiIcons != null && _uiIcons.UiButton1 != null)
+            if (sprite != null)
             {
-                img.sprite = _uiIcons.UiButton1;
+                img.sprite = sprite;
                 img.color = interactable ? Color.white : new Color(0.45f, 0.45f, 0.48f, 1f);
             }
             else
             {
-                img.color = interactable ? BtnGreen : DisabledCardBg;
+                img.color = interactable ? fallbackColor : DisabledCardBg;
             }
 
             var text = CreateStaticText(go, label, 22, FontStyle.Bold, TextAnchor.MiddleCenter);

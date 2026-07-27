@@ -17,7 +17,7 @@ namespace Grimhand.Presentation.Battle
         const float HoverScale = 1.14f;
         const float ScaleLerpDuration = 0.1f;
 
-        static readonly Color SelectedHighlightColor = new(1f, 1f, 1f, 0.26f);
+        static readonly Color SelectedOutlineColor = new(1f, 0.86f, 0.28f, 1f);
 
         [SerializeField] Image frameImage;
         [SerializeField] Image artImage;
@@ -48,6 +48,7 @@ namespace Grimhand.Presentation.Battle
         int _instanceId;
         bool _selected;
         bool _hovered;
+        Outline _selectionOutlineFx;
         bool _interactable = true;
         /// <summary>行动条等：不可点击，但允许悬停显示效果。</summary>
         bool _orderBarHoverOnly;
@@ -288,8 +289,9 @@ namespace Grimhand.Presentation.Battle
                 rt.offsetMin = Vector2.zero;
                 rt.offsetMax = Vector2.zero;
                 selectedHighlight = go.GetComponent<Image>();
-                selectedHighlight.color = SelectedHighlightColor;
+                selectedHighlight.color = Color.clear;
                 selectedHighlight.raycastTarget = false;
+                go.SetActive(false);
             }
 
             if (_scaleRoot != null)
@@ -623,14 +625,23 @@ namespace Grimhand.Presentation.Battle
 
         void ApplyVisualState(bool immediate = false)
         {
+            // 不用半透明白框盖住卡面；选中改用描边高亮
             if (selectedHighlight != null)
-            {
-                selectedHighlight.gameObject.SetActive(_selected);
-                selectedHighlight.color = SelectedHighlightColor;
-            }
+                selectedHighlight.gameObject.SetActive(false);
 
             if (selectedOutline != null)
-                selectedOutline.enabled = false;
+                selectedOutline.gameObject.SetActive(false);
+
+            EnsureSelectionOutlineFx();
+            if (_selectionOutlineFx != null)
+            {
+                _selectionOutlineFx.enabled = _selected;
+                if (_selected)
+                {
+                    _selectionOutlineFx.effectColor = SelectedOutlineColor;
+                    _selectionOutlineFx.effectDistance = new Vector2(5f, -5f);
+                }
+            }
 
             if (statsText != null)
             {
@@ -652,6 +663,21 @@ namespace Grimhand.Presentation.Battle
                 scaleTarget.localScale = Vector3.one * targetScale;
             else
                 _scaleRoutine = StartCoroutine(LerpScale(scaleTarget, targetScale));
+        }
+
+        void EnsureSelectionOutlineFx()
+        {
+            var target = frameImage != null ? frameImage.gameObject : gameObject;
+            if (_selectionOutlineFx != null && _selectionOutlineFx.gameObject == target)
+                return;
+
+            _selectionOutlineFx = target.GetComponent<Outline>();
+            if (_selectionOutlineFx == null)
+                _selectionOutlineFx = target.AddComponent<Outline>();
+            _selectionOutlineFx.useGraphicAlpha = true;
+            _selectionOutlineFx.effectColor = SelectedOutlineColor;
+            _selectionOutlineFx.effectDistance = new Vector2(5f, -5f);
+            _selectionOutlineFx.enabled = false;
         }
 
         IEnumerator LerpScale(RectTransform scaleTarget, float targetScale)

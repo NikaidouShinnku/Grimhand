@@ -611,7 +611,9 @@ namespace Grimhand.Presentation.Battle
                 _definitions,
                 OnCodexCardAddToHand,
                 titleHint: null,
-                closeOnSelect: true);
+                closeOnSelect: true,
+                relicCatalog: _relicCatalog,
+                onGrantRelic: OnCodexGrantRelic);
 
             ApplyCodexButtonLayout();
         }
@@ -746,6 +748,15 @@ namespace Grimhand.Presentation.Battle
                 Refresh();
         }
 
+        void OnCodexGrantRelic(RelicDefinition relic)
+        {
+            if (relic == null || _session == null)
+                return;
+
+            _session.TryGrantRelic(relic.Id);
+            Refresh();
+        }
+
         void OnDummyPlayCardSelected(CardDefinitionSO def)
         {
             if (def == null || _session == null)
@@ -816,7 +827,7 @@ namespace Grimhand.Presentation.Battle
             if (willOpen)
             {
                 CloseOtherOverlays(_codexOverlay);
-                _codexOverlay?.ConfigureSelection(OnCodexCardAddToHand, titleHint: null, closeOnSelect: true);
+                _codexOverlay?.ConfigureSelection(OnCodexCardAddToHand, titleHint: null, closeOnSelect: true, showRelics: true);
             }
 
             _codexOverlay?.RefreshCardPrefab(handPanel?.CardPrefab);
@@ -837,7 +848,8 @@ namespace Grimhand.Presentation.Battle
             _codexOverlay.ConfigureSelection(
                 OnDummyPlayCardSelected,
                 titleHint: "假人出牌 — 点击按序加入意图　",
-                closeOnSelect: false);
+                closeOnSelect: false,
+                showRelics: false);
             _codexOverlay.RefreshCardPrefab(handPanel?.CardPrefab);
 
             if (opening)
@@ -2208,8 +2220,9 @@ namespace Grimhand.Presentation.Battle
             if (_felskullChoice == null)
             {
                 _felskullChoice = gameObject.AddComponent<FelskullBattleChoiceView>();
-                _felskullChoice.EnsureBuilt(transform);
             }
+
+            _felskullChoice.EnsureBuilt(transform, _uiIcons);
 
             if (state != null && state.AwaitingFelskullChoice)
             {

@@ -1,8 +1,11 @@
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
+using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
+using Grimhand.Presentation.Battle;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace Grimhand.Battle.Tests
 {
@@ -100,6 +103,42 @@ namespace Grimhand.Battle.Tests
             var before = template.Actions[0].Value;
             CardUpgradeRules.ApplyToTemplate(template, member);
             Assert.Greater(template.Actions[0].Value, before);
+        }
+
+        [Test]
+        public void UpgradedCardPreview_DoesNotReuseStaticCatalogTextWhenDefinitionsProvided()
+        {
+            var def = ScriptableObject.CreateInstance<CardDefinitionSO>();
+            def.CardId = "l_ghost_claw";
+            def.DisplayName = "幽灵爪击";
+            def.Cost = 1;
+            def.CardType = CardType.Attack;
+            def.Actions.Add(new EffectActionDefinition
+            {
+                Type = EffectActionType.DealDamage,
+                Target = EffectTarget.DefaultEnemy,
+                Value = 7,
+                Reach = TargetReach.Any
+            });
+
+            var definitions = new Dictionary<string, CardDefinitionSO>
+            {
+                [def.CardId] = def
+            };
+
+            var baseTemplate = def.ToTemplate();
+            var basePreview = CardVisualResolver.CreatePreviewInstanceFromTemplate(baseTemplate, def);
+            var baseText = BattleUiFormatters.BuildCardStatsLinePreview(basePreview, definitions);
+
+            var upgraded = def.ToTemplate();
+            CardUpgradeRules.ApplyToTemplate(upgraded, 1);
+            var upgradedPreview = CardVisualResolver.CreatePreviewInstanceFromTemplate(upgraded, def);
+            var upgradedText = BattleUiFormatters.BuildCardStatsLinePreview(upgradedPreview, definitions);
+
+            StringAssert.Contains("7", baseText);
+            StringAssert.Contains("8", upgradedText);
+            Assert.AreNotEqual(baseText, upgradedText);
+            Object.DestroyImmediate(def);
         }
 
         [Test]

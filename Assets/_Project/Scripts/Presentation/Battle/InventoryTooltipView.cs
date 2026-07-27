@@ -1,4 +1,3 @@
-using System.Collections;
 using Grimhand.Content;
 using Grimhand.Presentation;
 using UnityEngine;
@@ -9,7 +8,10 @@ namespace Grimhand.Presentation.Battle
 {
     public sealed class InventoryTooltipView : MonoBehaviour
     {
-        /// <summary>指针离开目标后，超过该秒数仍未回到目标则强制隐藏（防战斗切换等残留）。</summary>
+        /// <summary>
+        /// 仅作保险：PointerExit 丢失时，指针离开目标超过该秒数才强制隐藏。
+        /// 正常离开物品应立刻消失，不走此延迟。
+        /// </summary>
         const float StaleHideSeconds = 1f;
         const float TitleBodySpacing = 6f;
 
@@ -20,8 +22,6 @@ namespace Grimhand.Presentation.Battle
         Text _body;
         bool _built;
         GameObject _activeTarget;
-        GameObject _pendingHideTarget;
-        Coroutine _hideRoutine;
         float _leftTargetAt = -1f;
 
         public void Initialize(RectTransform parent, BattleUiIconCatalogSO icons = null)
@@ -105,7 +105,8 @@ namespace Grimhand.Presentation.Battle
             trigger.triggers.Add(enter);
 
             var exit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
-            exit.callback.AddListener(_ => ScheduleHide(target));
+            // 离开物品立刻隐藏；1 秒兜底仅用于 PointerExit 丢失（见 LateUpdate）
+            exit.callback.AddListener(_ => HideIfTarget(target));
             trigger.triggers.Add(exit);
         }
 
@@ -114,7 +115,6 @@ namespace Grimhand.Presentation.Battle
             if (_panel == null || anchor == null)
                 return;
 
-            CancelHide();
             _leftTargetAt = -1f;
             _activeTarget = target;
 
@@ -253,23 +253,10 @@ namespace Grimhand.Presentation.Battle
                 _panel.position += shift;
         }
 
-        void ScheduleHide(GameObject target)
+        void HideIfTarget(GameObject target)
         {
             if (_activeTarget != target)
                 return;
-
-            _pendingHideTarget = target;
-            CancelHide();
-            _hideRoutine = StartCoroutine(HideAfterDelay());
-        }
-
-        IEnumerator HideAfterDelay()
-        {
-            var target = _pendingHideTarget;
-            yield return new WaitForSecondsRealtime(StaleHideSeconds);
-            _hideRoutine = null;
-            if (_activeTarget != target)
-                yield break;
 
             HideImmediate();
         }
@@ -279,26 +266,10 @@ namespace Grimhand.Presentation.Battle
             if (_panel != null)
                 _panel.gameObject.SetActive(false);
             _activeTarget = null;
-            _pendingHideTarget = null;
             _leftTargetAt = -1f;
         }
 
-        void CancelHide()
-        {
-            if (_hideRoutine != null)
-            {
-                StopCoroutine(_hideRoutine);
-                _hideRoutine = null;
-            }
-
-            _pendingHideTarget = null;
-        }
-
-        public void Hide()
-        {
-            CancelHide();
-            HideImmediate();
-        }
+        public void Hide() => HideImmediate();
 
         void LateUpdate()
         {
@@ -325,13 +296,14 @@ namespace Grimhand.Presentation.Battle
                 return;
             }
 
+            // 指针仍在目标上：清掉滞留计时
             if (UiPointerUtility.IsOverRectTransform(rt, UiPointerUtility.GetEventCamera(rt)))
             {
                 _leftTargetAt = -1f;
-                CancelHide();
                 return;
             }
 
+            // PointerExit 可能丢失（遮罩/切场景等）：离开满 1 秒再强制隐藏作保险
             if (_leftTargetAt < 0f)
                 _leftTargetAt = Time.unscaledTime;
 

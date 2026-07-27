@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Grimhand.Battle.Consumables;
 using Grimhand.Battle.Model;
@@ -16,14 +17,13 @@ namespace Grimhand.Presentation.Battle
     [DisallowMultipleComponent]
     public sealed class ExpeditionPostBattleOverlayView : MonoBehaviour
     {
-        const int LayoutVersion = 7;
+        const int LayoutVersion = 9;
         const float DoorWidth = 286f;
         const float DoorHeight = 364f;
         const float DoorLabelHeight = 36f;
         // 门框中心距加大，整组仍居中
         const float DoorSpacing = 400f;
         const float RewardCardScale = 0.68f;
-        const float ChestRewardCardScale = 0.92f;
         const float RewardCardSpacing = 200f;
         const float RewardIconSpacing = 200f;
         const float RewardPlateWidth = 168f;
@@ -31,10 +31,10 @@ namespace Grimhand.Presentation.Battle
         const float SkipButtonWidth = 280f;
         // button6 原生 512×216
         const float Button6Aspect = 512f / 216f;
-        const float ChestPanelWidth = 920f;
-        const float ChestPanelHeight = 560f;
         const float DoorHoverScale = 1.16f;
-        const float ChestOpenArtAlpha = 0.8f;
+        const float ChestRevealDelaySeconds = 1f;
+        const float ChestArtWidth = 280f;
+        const float ChestArtHeight = 240f;
         static readonly Color LocationTitleColor = new(0.93f, 0.86f, 0.68f, 1f);
         static readonly Color LocationFloorColor = new(0.82f, 0.78f, 0.72f, 1f);
         static readonly Color PathTitleColor = new(0.90f, 0.78f, 0.42f, 1f);
@@ -58,14 +58,15 @@ namespace Grimhand.Presentation.Battle
         Text _locationFloor;
         RectTransform _chestPanel;
         RectTransform _chestClosedLayer;
-        Image _chestPanelBackground;
-        Image _chestOpenArtImage;
+        Image _closedChestImage;
+        Button _closedChestButton;
         Text _headerText;
         Button _skipVictoryButton;
-        Button _chestSkipButton;
         InventoryTooltipView _tooltip;
         bool _chestRevealed;
+        bool _chestOpening;
         string _chestRewardKey = "";
+        Coroutine _chestOpenRoutine;
         readonly List<Button> _rewardButtons = new();
         readonly List<Button> _doorButtons = new();
         bool _built;
@@ -127,58 +128,79 @@ namespace Grimhand.Presentation.Battle
             var rewards = _session.Expedition.Run.PendingRewardPickup;
             var isChest = phase == ExpeditionPhase.RewardPickup && rewards?.Kind == RewardPickupKind.Chest;
             _chestRevealed = isChest && _session.Expedition.Run.ChestRewardRevealed;
+            var showChestStage = isChest && !_chestRevealed;
+            var showRewardClaims = phase == ExpeditionPhase.RewardPickup
+                                   && !packPickActive
+                                   && (!isChest || _chestRevealed);
 
-            _chestPanel.gameObject.SetActive(isChest);
-            _rewardRow.gameObject.SetActive(phase == ExpeditionPhase.RewardPickup && !isChest && !packPickActive);
+            if (_chestPanel != null)
+                _chestPanel.gameObject.SetActive(showChestStage);
+            _rewardRow.gameObject.SetActive(showRewardClaims);
             _doorRow.gameObject.SetActive(phase == ExpeditionPhase.RouteSelect);
             if (_locationPlate != null)
                 _locationPlate.gameObject.SetActive(phase == ExpeditionPhase.RouteSelect);
             if (_headerText != null)
-                _headerText.gameObject.SetActive(phase != ExpeditionPhase.RouteSelect);
+            {
+                // 开箱阶段不显示顶部黄字；领取奖励时与战斗胜利一致
+                _headerText.gameObject.SetActive(showRewardClaims);
+            }
+
             if (_dimImage != null)
             {
                 _dimImage.color = phase == ExpeditionPhase.RouteSelect
                     ? new Color(0f, 0f, 0f, 0f)
                     : new Color(0f, 0f, 0f, 0.42f);
             }
+
             if (_skipVictoryButton != null)
             {
                 // 属性/强固等强制增益不可放弃：仅当仍有可跳过奖励时显示放弃钮
-                var showSkip = phase == ExpeditionPhase.RewardPickup && HasSkippableRemainingRewards(rewards);
-                _skipVictoryButton.gameObject.SetActive(showSkip && !isChest);
-                if (_chestSkipButton != null)
-                    _chestSkipButton.gameObject.SetActive(showSkip && isChest && _chestRevealed);
+                var showSkip = showRewardClaims && HasSkippableRemainingRewards(rewards);
+                _skipVictoryButton.gameObject.SetActive(showSkip);
             }
 
             if (isChest)
             {
                 var rewardKey = BuildChestRewardKey(rewards);
                 if (_chestRewardKey != rewardKey)
+                {
                     _chestRewardKey = rewardKey;
+                    StopChestOpenRoutine();
+                    _chestOpening = false;
+                }
 
                 // 新宝箱或同局刷新：始终与跑局标志同步，避免沿用上一只宝箱的开启态。
                 _chestRevealed = _session.Expedition.Run.ChestRewardRevealed;
 
-                if (!_chestRevealed)
-                    ResetChestOpenArt();
+                if (_chestRevealed)
+                {
+                    StopChestOpenRoutine();
+                    _chestOpening = false;
+                    SetClosedChestVisual(open: false, interactable: false);
+                }
+                else if (_chestOpening)
+                {
+                    SetClosedChestVisual(open: true, interactable: false);
+                }
                 else
-                    ShowChestOpenArt();
+                {
+                    SetClosedChestVisual(open: false, interactable: true);
+                }
             }
             else
             {
+                StopChestOpenRoutine();
                 _chestRevealed = false;
+                _chestOpening = false;
                 _chestRewardKey = "";
-                ResetChestOpenArt();
+                SetClosedChestVisual(open: false, interactable: false);
             }
 
             if (_chestClosedLayer != null)
-                _chestClosedLayer.gameObject.SetActive(isChest && !_chestRevealed);
+                _chestClosedLayer.gameObject.SetActive(showChestStage);
 
-            if (isChest && _chestPanel != null)
+            if (showChestStage && _chestPanel != null)
                 _chestPanel.SetAsLastSibling();
-
-            if (isChest && !_chestRevealed)
-                _headerText.text = "宝箱\n点击宝箱开启";
 
             if (phase == ExpeditionPhase.RewardPickup)
                 RefreshRewardPickup(isChest);
@@ -244,7 +266,7 @@ namespace Grimhand.Presentation.Battle
             _doorRow.pivot = new Vector2(0.5f, 0.5f);
             _doorRow.sizeDelta = new Vector2(1180f, DoorHeight + DoorLabelHeight + 40f);
 
-            _chestPanel = BuildChestPanel(_root);
+            _chestPanel = BuildChestStage(_root);
             overlayGo.SetActive(false);
 
             _tooltip = overlayGo.AddComponent<InventoryTooltipView>();
@@ -301,96 +323,29 @@ namespace Grimhand.Presentation.Battle
             plateGo.SetActive(false);
         }
 
-        RectTransform BuildChestPanel(RectTransform parent)
+        /// <summary>
+        /// 开箱舞台：与战斗胜利奖励行同锚点/尺寸，仅展示宝箱立绘与「点击宝箱开启」。
+        /// 开启后切到共用的 RewardRow + 放弃按钮，布局与战后奖励一致。
+        /// </summary>
+        RectTransform BuildChestStage(RectTransform parent)
         {
-            var panelGo = new GameObject("ChestPanel", typeof(RectTransform), typeof(Image));
+            var panelGo = new GameObject("ChestStage", typeof(RectTransform));
             panelGo.transform.SetParent(parent, false);
             var rt = panelGo.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0.5f, 0.5f);
-            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            // 与 _rewardRow 对齐，避免独立大框「又小又歪」
+            rt.anchorMin = new Vector2(0.5f, 0.54f);
+            rt.anchorMax = new Vector2(0.5f, 0.54f);
             rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.sizeDelta = new Vector2(ChestPanelWidth, ChestPanelHeight);
-            _chestPanelBackground = panelGo.GetComponent<Image>();
-            _chestPanelBackground.color = new Color(0.1f, 0.11f, 0.16f, 0.96f);
-            _chestPanelBackground.raycastTarget = true;
-
-            _chestOpenArtImage = CreateChestOpenArt(panelGo.transform);
-
-            var titleGo = new GameObject("Title", typeof(RectTransform), typeof(Text));
-            titleGo.transform.SetParent(panelGo.transform, false);
-            var titleRt = titleGo.GetComponent<RectTransform>();
-            titleRt.anchorMin = new Vector2(0f, 1f);
-            titleRt.anchorMax = new Vector2(1f, 1f);
-            titleRt.pivot = new Vector2(0.5f, 1f);
-            titleRt.anchoredPosition = new Vector2(0f, -16f);
-            titleRt.sizeDelta = new Vector2(-24f, 40f);
-            var title = titleGo.GetComponent<Text>();
-            StyleText(title, 28, TextAnchor.UpperCenter);
-            title.text = "宝箱";
-
-            var rowGo = new GameObject("RewardRow", typeof(RectTransform));
-            rowGo.transform.SetParent(panelGo.transform, false);
-            var rowRt = rowGo.GetComponent<RectTransform>();
-            rowRt.anchorMin = new Vector2(0.5f, 0.56f);
-            rowRt.anchorMax = new Vector2(0.5f, 0.56f);
-            rowRt.pivot = new Vector2(0.5f, 0.5f);
-            rowRt.sizeDelta = new Vector2(760f, 320f);
-            rowGo.name = "ChestRewardRow";
+            rt.sizeDelta = new Vector2(920f, RewardPlateHeight + 24f);
 
             _chestClosedLayer = BuildChestClosedLayer(rt);
-            _chestSkipButton = CreateSkipVictoryButton(rt, new Vector2(0.5f, 0.08f), "ChestSkipVictoryRewards");
-
             panelGo.SetActive(false);
             return rt;
         }
 
-        static Image CreateChestOpenArt(Transform parent)
-        {
-            var go = new GameObject("ChestOpenArt", typeof(RectTransform), typeof(Image));
-            go.transform.SetParent(parent, false);
-            go.transform.SetAsFirstSibling();
-            var rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0.5f, 0.5f);
-            rt.anchorMax = new Vector2(0.5f, 0.5f);
-            rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.anchoredPosition = new Vector2(0f, -12f);
-            rt.sizeDelta = new Vector2(ChestPanelWidth - 72f, ChestPanelHeight - 72f);
-
-            var image = go.GetComponent<Image>();
-            image.preserveAspect = true;
-            image.type = Image.Type.Simple;
-            image.raycastTarget = false;
-            image.gameObject.SetActive(false);
-            return image;
-        }
-
-        void ResetChestOpenArt()
-        {
-            if (_chestOpenArtImage != null)
-                _chestOpenArtImage.gameObject.SetActive(false);
-
-            if (_chestPanelBackground == null)
-                return;
-
-            _chestPanelBackground.sprite = null;
-            _chestPanelBackground.preserveAspect = false;
-            _chestPanelBackground.color = new Color(0.1f, 0.11f, 0.16f, 0.96f);
-        }
-
-        void ShowChestOpenArt()
-        {
-            if (_chestOpenArtImage == null)
-                return;
-
-            _chestOpenArtImage.sprite = _icons?.TreasureChestOpen;
-            _chestOpenArtImage.color = new Color(1f, 1f, 1f, ChestOpenArtAlpha);
-            _chestOpenArtImage.gameObject.SetActive(true);
-            _chestOpenArtImage.transform.SetAsFirstSibling();
-        }
-
         RectTransform BuildChestClosedLayer(Transform parent)
         {
-            var go = new GameObject("ChestClosedLayer", typeof(RectTransform), typeof(Image));
+            var go = new GameObject("ChestClosedLayer", typeof(RectTransform));
             go.transform.SetParent(parent, false);
             var rt = go.GetComponent<RectTransform>();
             rt.anchorMin = Vector2.zero;
@@ -398,59 +353,102 @@ namespace Grimhand.Presentation.Battle
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
 
-            var dim = go.GetComponent<Image>();
-            dim.color = new Color(0.04f, 0.05f, 0.08f, 0.72f);
-            dim.raycastTarget = false;
-
             var chestGo = new GameObject("ClosedChest", typeof(RectTransform), typeof(Image), typeof(Button));
             chestGo.transform.SetParent(go.transform, false);
             var chestRt = chestGo.GetComponent<RectTransform>();
             chestRt.anchorMin = new Vector2(0.5f, 0.5f);
             chestRt.anchorMax = new Vector2(0.5f, 0.5f);
             chestRt.pivot = new Vector2(0.5f, 0.5f);
-            chestRt.sizeDelta = new Vector2(280f, 240f);
-            var chestImg = chestGo.GetComponent<Image>();
-            chestImg.sprite = _icons?.TreasureChestClosed;
-            chestImg.preserveAspect = true;
-            chestImg.color = Color.white;
-            chestImg.raycastTarget = true;
+            chestRt.anchoredPosition = new Vector2(0f, 12f);
+            chestRt.sizeDelta = new Vector2(ChestArtWidth, ChestArtHeight);
+            _closedChestImage = chestGo.GetComponent<Image>();
+            _closedChestImage.sprite = _icons?.TreasureChestClosed;
+            _closedChestImage.preserveAspect = true;
+            _closedChestImage.color = Color.white;
+            _closedChestImage.raycastTarget = true;
 
             var hintGo = new GameObject("Hint", typeof(RectTransform), typeof(Text));
             hintGo.transform.SetParent(go.transform, false);
             var hintRt = hintGo.GetComponent<RectTransform>();
-            hintRt.anchorMin = new Vector2(0.5f, 0.18f);
-            hintRt.anchorMax = new Vector2(0.5f, 0.18f);
-            hintRt.pivot = new Vector2(0.5f, 0.5f);
-            hintRt.sizeDelta = new Vector2(520f, 40f);
+            hintRt.anchorMin = new Vector2(0.5f, 0f);
+            hintRt.anchorMax = new Vector2(0.5f, 0f);
+            hintRt.pivot = new Vector2(0.5f, 0f);
+            hintRt.anchoredPosition = new Vector2(0f, 4f);
+            hintRt.sizeDelta = new Vector2(520f, 36f);
             var hint = hintGo.GetComponent<Text>();
             StyleText(hint, 20, TextAnchor.MiddleCenter);
             hint.text = "点击宝箱开启";
 
-            var btn = chestGo.GetComponent<Button>();
-            btn.targetGraphic = chestImg;
-            btn.transition = Selectable.Transition.None;
-            btn.onClick.AddListener(RevealChest);
-            WireHoverScale(chestRt, chestImg, DoorHoverScale, addOutline: true);
+            _closedChestButton = chestGo.GetComponent<Button>();
+            _closedChestButton.targetGraphic = _closedChestImage;
+            _closedChestButton.transition = Selectable.Transition.None;
+            _closedChestButton.onClick.AddListener(RevealChest);
+            WireHoverScale(chestRt, _closedChestImage, DoorHoverScale, addOutline: true);
             return rt;
         }
 
         void RevealChest()
         {
+            if (_chestRevealed || _chestOpening)
+                return;
+
+            if (_session?.Expedition?.Run == null
+                || _session.Expedition.Run.PendingRewardPickup?.Kind != RewardPickupKind.Chest)
+                return;
+
+            _chestOpening = true;
+            SetClosedChestVisual(open: true, interactable: false);
+            GameAudioService.Instance.PlayUiChestOpen();
+
+            StopChestOpenRoutine();
+            _chestOpenRoutine = StartCoroutine(RevealChestAfterDelay());
+        }
+
+        IEnumerator RevealChestAfterDelay()
+        {
+            yield return new WaitForSecondsRealtime(ChestRevealDelaySeconds);
+
+            _chestOpenRoutine = null;
+            _chestOpening = false;
             _chestRevealed = true;
             if (_session?.Expedition?.Run != null)
                 _session.Expedition.Run.ChestRewardRevealed = true;
-            ShowChestOpenArt();
-            GameAudioService.Instance.PlayUiChestOpen();
 
+            if (_chestPanel != null)
+                _chestPanel.gameObject.SetActive(false);
             if (_chestClosedLayer != null)
                 _chestClosedLayer.gameObject.SetActive(false);
 
-            if (_chestSkipButton != null && _session?.Expedition?.Run?.PendingRewardPickup != null)
-                _chestSkipButton.gameObject.SetActive(
-                    HasSkippableRemainingRewards(_session.Expedition.Run.PendingRewardPickup));
-
-            RefreshRewardPickup(useChestPanel: true);
+            RefreshRewardPickup(isChest: true);
             _session?.RequestRefresh();
+        }
+
+        void StopChestOpenRoutine()
+        {
+            if (_chestOpenRoutine == null)
+                return;
+
+            StopCoroutine(_chestOpenRoutine);
+            _chestOpenRoutine = null;
+        }
+
+        void SetClosedChestVisual(bool open, bool interactable)
+        {
+            if (_closedChestImage != null)
+            {
+                var sprite = open
+                    ? _icons?.TreasureChestOpen
+                    : _icons?.TreasureChestClosed;
+                if (sprite != null)
+                    _closedChestImage.sprite = sprite;
+                _closedChestImage.color = Color.white;
+
+                if (!open)
+                    _closedChestImage.rectTransform.localScale = Vector3.one;
+            }
+
+            if (_closedChestButton != null)
+                _closedChestButton.interactable = interactable;
         }
 
         static string BuildChestRewardKey(ExpeditionRewardPickup rewards)
@@ -466,7 +464,7 @@ namespace Grimhand.Presentation.Battle
             return key;
         }
 
-        void RefreshRewardPickup(bool useChestPanel)
+        void RefreshRewardPickup(bool isChest)
         {
             ClearButtons(_rewardButtons);
 
@@ -475,41 +473,24 @@ namespace Grimhand.Presentation.Battle
             if (rewards == null)
                 return;
 
-            if (useChestPanel && !_chestRevealed)
+            if (isChest && !_chestRevealed)
                 return;
 
-            if (rewards.Kind == RewardPickupKind.BattleVictory)
-            {
-                _headerText.text = "点击领取奖励";
-                _headerText.color = HeaderGold;
-            }
-            else if (!string.IsNullOrEmpty(rewards.HeaderText))
-            {
-                _headerText.text = rewards.HeaderText;
-                _headerText.color = HeaderGold;
-            }
-            else
-            {
-                _headerText.text = "点击领取奖励";
-                _headerText.color = HeaderGold;
-            }
+            // 战斗胜利 / 宝箱开启后共用同一套领取 UI
+            _headerText.text = "点击领取奖励";
+            _headerText.color = HeaderGold;
+            if (_headerText != null)
+                _headerText.gameObject.SetActive(true);
+            if (_rewardRow != null)
+                _rewardRow.gameObject.SetActive(true);
 
-            var parent = useChestPanel
-                ? _chestPanel.Find("ChestRewardRow")
-                : (Transform)_rewardRow;
-
+            var parent = (Transform)_rewardRow;
             if (parent == null)
                 return;
 
-            if (useChestPanel)
-            {
-                foreach (Transform child in parent)
-                    Destroy(child.gameObject);
-            }
-
-            var x = useChestPanel ? -260f : -220f;
-            var spacing = useChestPanel ? RewardCardSpacing : RewardIconSpacing;
-            var cardScale = useChestPanel ? ChestRewardCardScale : RewardCardScale;
+            var x = -220f;
+            var spacing = RewardIconSpacing;
+            var cardScale = RewardCardScale;
 
             if (rewards.HasGold && !rewards.GoldClaimed && !rewards.GoldSkipped)
             {
@@ -618,6 +599,9 @@ namespace Grimhand.Presentation.Battle
                         () => _session.ClaimRewardStat());
                 }
             }
+
+            if (_skipVictoryButton != null)
+                _skipVictoryButton.gameObject.SetActive(HasSkippableRemainingRewards(rewards));
         }
 
         static bool IsGrantXpOnlyStatReward(ExpeditionRewardPickup rewards)
@@ -780,7 +764,7 @@ namespace Grimhand.Presentation.Battle
             CardDefinitionSO definition,
             Action onClaim)
         {
-            var container = CreateRewardContainer(parent, new Vector2(x, 0f), useChestPanel: cardScale >= ChestRewardCardScale - 0.01f);
+            var container = CreateRewardContainer(parent, new Vector2(x, 0f));
             var btn = CreateCardRewardButton(container, Vector2.zero, definitionId, ownerCharacterId, displayName, definition, onClaim, cardScale);
             _rewardButtons.Add(btn);
             x += spacing;
@@ -797,7 +781,7 @@ namespace Grimhand.Presentation.Battle
             AddRewardButton(parent, ref x, label, CardPackVisuals.GetPackIcon(packId, _icons), onClaim);
         }
 
-        static RectTransform CreateRewardContainer(Transform parent, Vector2 pos, bool useChestPanel = false)
+        static RectTransform CreateRewardContainer(Transform parent, Vector2 pos)
         {
             var go = new GameObject("RewardSlot", typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -806,9 +790,7 @@ namespace Grimhand.Presentation.Battle
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = pos;
-            rt.sizeDelta = useChestPanel
-                ? new Vector2(220f, 300f)
-                : new Vector2(RewardPlateWidth, RewardPlateHeight);
+            rt.sizeDelta = new Vector2(RewardPlateWidth, RewardPlateHeight);
             return rt;
         }
 
@@ -851,7 +833,7 @@ namespace Grimhand.Presentation.Battle
 
         void RefreshChest()
         {
-            RefreshRewardPickup(useChestPanel: true);
+            RefreshRewardPickup(isChest: true);
         }
 
         void AddRewardButton(Transform parent, ref float x, string label, Sprite icon, Action onClick, float localX = float.NaN)
@@ -1396,11 +1378,21 @@ namespace Grimhand.Presentation.Battle
 
         void SetVisible(bool visible)
         {
-            if (!visible && _tooltip != null)
-                _tooltip.Hide();
+            if (!visible)
+            {
+                StopChestOpenRoutine();
+                _chestOpening = false;
+                if (_tooltip != null)
+                    _tooltip.Hide();
+            }
 
             if (_root != null)
                 _root.gameObject.SetActive(visible);
+        }
+
+        void OnDestroy()
+        {
+            StopChestOpenRoutine();
         }
 
         static void StyleText(Text text, int size, TextAnchor anchor)

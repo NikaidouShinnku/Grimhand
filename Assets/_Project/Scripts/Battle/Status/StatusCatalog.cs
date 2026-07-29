@@ -99,6 +99,8 @@ namespace Grimhand.Battle.Status
 
         // v0.9 Boss：典狱长 / 腐化海洋女神
         public const string BrandMark = "brand_mark";
+        /// <summary>脚标展示用：闪避率（非真实 StatusInstance，由 FootStatusIconAggregator 合成）。</summary>
+        public const string DodgeChance = "dodge_chance";
         public const string RisingTide = "rising_tide";
         /// <summary>踏潮守卫被动「浪潮」：同位置速度优势带来的攻击增伤（层数=增伤百分比）。</summary>
         public const string WaveSurge = "wave_surge";

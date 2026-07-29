@@ -64,12 +64,30 @@ namespace Grimhand.Expedition
                 if (string.IsNullOrEmpty(talentId))
                     continue;
 
+                // 旧存档：微献保护从槽位2迁到槽位1
+                if (talentId == "talent_ranger_s2_lv3")
+                {
+                    progress.SetSelectedTalentId(slot, "");
+                    if (string.IsNullOrEmpty(progress.GetSelectedTalentId(1)))
+                        progress.SetSelectedTalentId(1, "talent_ranger_s1_lv3");
+                    continue;
+                }
+
                 var talent = TalentCatalog.Get(talentId);
                 if (talent == null
                     || talent.CharacterId != progress.CharacterDefinitionId
                     || !IsUnlocked(talent, progress))
                 {
                     progress.SetSelectedTalentId(slot, "");
+                    continue;
+                }
+
+                // 槽位与定义不一致时纠正到正确槽（并清空错误槽）
+                if (talent.Slot != slot)
+                {
+                    progress.SetSelectedTalentId(slot, "");
+                    if (string.IsNullOrEmpty(progress.GetSelectedTalentId(talent.Slot)))
+                        progress.SetSelectedTalentId(talent.Slot, talent.Id);
                 }
             }
         }

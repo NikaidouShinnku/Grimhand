@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Text;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
 using Grimhand.Battle.Status;
@@ -6,12 +8,37 @@ namespace Grimhand.Presentation.Battle
 {
     public static class MinionTraitDisplayFormatter
     {
+        /// <summary>属性框用：列出静态特性名称与描述（富文本）。</summary>
+        public static string FormatTraitDescriptions(CombatantState combatant)
+        {
+            if (combatant?.Traits == null || combatant.Traits.Count == 0)
+                return "";
+
+            var sb = new StringBuilder();
+            var seen = new HashSet<string>();
+            foreach (var traitId in combatant.Traits)
+            {
+                if (string.IsNullOrEmpty(traitId) || !seen.Add(traitId))
+                    continue;
+
+                if (!CharacterTraitDisplayCatalog.TryGet(traitId, out var entry))
+                    continue;
+
+                if (sb.Length > 0)
+                    sb.Append('\n');
+                sb.Append("<b>").Append(entry.Title).Append("</b>\n");
+                sb.Append(entry.Description);
+            }
+
+            return sb.ToString();
+        }
+
         public static string FormatFootnote(CombatantState combatant, BattleState state = null)
         {
             if (combatant == null || !combatant.IsAlive)
                 return "";
 
-            var lines = new System.Collections.Generic.List<string>(4);
+            var lines = new List<string>(4);
 
             var bloodRage = BattleUiFormatters.FormatBloodRageDisplay(combatant.BloodRageStacks);
             if (!string.IsNullOrEmpty(bloodRage))
@@ -26,8 +53,7 @@ namespace Grimhand.Presentation.Battle
             if (combatant.LowHpSpeedBonusApplied > 0)
                 lines.Add($"低血迅捷 +{combatant.LowHpSpeedBonusApplied} 速度");
 
-            if (HasTrait(combatant, MinionTraitCatalog.BatFirstHitDodge) && combatant.FirstHitDodgePending)
-                lines.Add($"首击{MinionTraitCatalog.BatFirstHitDodgeChancePercent}%闪避");
+            // 巨翼蝙蝠首击闪避改由脚标 evade + 50% 展示，不再叠立绘旁红字
 
             if (HasTrait(combatant, MinionTraitCatalog.SkeletonCardDef)
                 || HasTrait(combatant, MinionTraitCatalog.SkeletonEliteCardStats))

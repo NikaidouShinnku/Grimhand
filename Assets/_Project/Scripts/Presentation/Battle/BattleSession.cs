@@ -956,6 +956,7 @@ namespace Grimhand.Presentation.Battle
             if (!string.IsNullOrEmpty(Expedition.Run.PendingCardOffer?.Template?.DisplayName))
                 AddLog("卡组已满 — 请选择要替换的卡牌");
 
+            SyncBattleRunModifiersFromExpeditionRelics();
             NotifyChanged();
             return true;
         }
@@ -1012,6 +1013,7 @@ namespace Grimhand.Presentation.Battle
 
             if (RelicDatabase.TryGet(relicId, out var relic))
                 AddLog($"获得遗物：{relic.DisplayName}");
+            SyncBattleRunModifiersFromExpeditionRelics();
             NotifyChanged();
             return true;
         }
@@ -1173,9 +1175,43 @@ namespace Grimhand.Presentation.Battle
                 return false;
             }
 
+            SyncBattleRunModifiersFromExpeditionRelics();
             AddLog($"图鉴测试获取遗物：{relic.DisplayName}");
             NotifyChanged();
             return true;
+        }
+
+        /// <summary>局内获取遗物后立刻刷新战斗修饰符，便于训练场即时测试。</summary>
+        public void SyncBattleRunModifiersFromExpeditionRelics()
+        {
+            if (Expedition?.Run == null || Engine?.State?.Config == null)
+                return;
+
+            var previous = Engine.State.Config.RunModifiers;
+            var previousHpBonus = previous?.TeamHpBonus ?? 0;
+            Engine.State.Config.RunModifiers = RelicDatabase.RebuildModifiersPreservingRuntime(
+                previous,
+                Expedition.Run.Relics,
+                Expedition.Run.RelicGrowthTiers);
+            var newHpBonus = Engine.State.Config.RunModifiers?.TeamHpBonus ?? 0;
+            // 角斗士之盔等：MaxHp 只在捡起时加一次，不开战再叠。
+            RelicBattleRules.ApplyTeamHpBonusDelta(Engine.State, newHpBonus - previousHpBonus);
+
+            // 奇迹之叶：局内获取时补齐次数
+            if (Expedition.Run.Relics != null
+                && Expedition.Run.Relics.Contains(RelicIds.LeafOfMiracle)
+                && Expedition.Run.MiracleLeafUsesRemaining < 0)
+            {
+                Expedition.Run.MiracleLeafUsesRemaining = 2;
+            }
+
+            if (Expedition.Run.MiracleLeafUsesRemaining >= 0)
+            {
+                Engine.State.MiracleLeafRevivesRemaining = Expedition.Run.MiracleLeafUsesRemaining;
+                Engine.State.Config.MiracleLeafRevivesRemaining = Expedition.Run.MiracleLeafUsesRemaining;
+            }
+
+            RelicBattleRules.RefreshAllDerivedStats(Engine.State);
         }
 
         public void RestartRunOrBattle()

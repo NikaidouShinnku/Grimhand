@@ -54,6 +54,7 @@ namespace Grimhand.Battle.Rules
                 }
             }
 
+            clone.UpgradeLevel = source.UpgradeLevel + bonusLevels;
             return clone;
         }
 

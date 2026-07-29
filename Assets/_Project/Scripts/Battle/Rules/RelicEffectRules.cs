@@ -114,8 +114,9 @@ namespace Grimhand.Battle.Rules
                     if (!enemy.IsAlive)
                         continue;
 
+                    // 永久灼烧用 -1：同持续时间分桶合并，避免 999 每回合剩回合数不同拆成多桶
                     StatusRules.ApplyStatus(state, enemy, StatusCatalog.Burn,
-                        mods.TurnStartEnemyBurnStacks, 999, events);
+                        mods.TurnStartEnemyBurnStacks, -1, events);
                 }
             }
 
@@ -285,7 +286,7 @@ namespace Grimhand.Battle.Rules
             List<BattleEvent> events,
             BattleRng rng)
         {
-            if (state == null || killer == null || state.JadeDaggerFirstKillConsumed || rng == null)
+            if (state == null || killer == null || state.JadeDaggerFirstKillConsumed)
                 return;
 
             var mods = state.Config?.RunModifiers;
@@ -293,13 +294,14 @@ namespace Grimhand.Battle.Rules
                 return;
 
             state.JadeDaggerFirstKillConsumed = true;
-            DeckRules.DrawCards(state, TeamSide.Player, rng, 1, events);
-            EnergyRules.Restore(state, 2);
-            events.Add(new BattleEvent(BattleEventKind.EnergyChanged, "翡翠短刀：首杀奖励")
+            // 下回合额外抽 1 / 回 2 能量（非当场）
+            state.PendingDrawNextTurn += 1;
+            state.PendingEnergyNextTurn += 2;
+            events.Add(new BattleEvent(BattleEventKind.StatusApplied,
+                "翡翠短刀：下回合额外抽1张牌并回复2点能量")
             {
-                Energy = state.EnergyCurrent,
-                EnergyMax = state.EnergyMax,
-                EnergyRemaining = state.EnergyCurrent
+                CombatantId = killer.Id,
+                Amount = 1
             });
         }
 
@@ -373,12 +375,15 @@ namespace Grimhand.Battle.Rules
             state.MiracleLeafRevivesRemaining--;
             var restore = Math.Max(1, (int)Math.Round(
                 target.MaxHp * (state.Config?.RunModifiers?.MiracleLeafReviveHpPercent ?? 20) / 100f));
+            // 例：10/100 吃到 20 伤 → 不会掉到负，直接落到 20% MaxHp
             target.Hp = restore;
-            target.InvulnerableTurnsRemaining = 1;
+            target.InvulnerableTurnsRemaining = System.Math.Max(target.InvulnerableTurnsRemaining, 1);
             hpDamage = 0;
 
+            StatusRules.ApplyStatus(state, target, StatusCatalog.Invulnerable, 1, 1, events);
+
             events.Add(new BattleEvent(BattleEventKind.CharacterRevived,
-                $"{target.DisplayName} 奇迹之叶")
+                $"{target.DisplayName} 奇迹之叶（剩余 {state.MiracleLeafRevivesRemaining} 次）")
             {
                 CombatantId = target.Id,
                 Amount = restore

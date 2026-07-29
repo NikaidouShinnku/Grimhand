@@ -126,3 +126,5 @@ MonoBehaviour:
   StatusPoisoning: {fileID: 2342332266118351040, guid: 8d473d75aa365124c9f9909406a0f2ee, type: 3}
   StatusBurning: {fileID: 4247683407508846134, guid: 619a1dac6cf5d8c42b90cef4cda03fe6, type: 3}
   StatusBrandMark: {fileID: 5541937304964931132, guid: d36167ab2e6963646b7d3d87b532b5bc, type: 3}
+  StatusEvade: {fileID: -8258305677121168927, guid: 1e8889f35babf794cb0b344dbceef54d, type: 3}
+  StatusBurningLongsword: {fileID: -1830969459474465023, guid: 7b5034f454ae1614597d5f2cacf133e9, type: 3}

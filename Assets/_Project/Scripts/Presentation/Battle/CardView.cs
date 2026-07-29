@@ -193,6 +193,7 @@ namespace Grimhand.Presentation.Battle
             if (statsText != null)
             {
                 statsText.gameObject.SetActive(true);
+                statsText.supportRichText = true;
                 statsText.text = _statsBaseLine;
                 statsText.color = new Color(0.95f, 0.92f, 0.86f, 1f);
                 statsText.fontStyle = FontStyle.Normal;
@@ -612,6 +613,7 @@ namespace Grimhand.Presentation.Battle
             statsText.alignment = TextAnchor.UpperCenter;
             statsText.horizontalOverflow = HorizontalWrapMode.Wrap;
             statsText.verticalOverflow = VerticalWrapMode.Overflow;
+            statsText.supportRichText = true;
             statsText.fontSize = DescriptionFontNormal;
             statsText.fontStyle = FontStyle.Normal;
             statsText.color = new Color(0.95f, 0.92f, 0.86f, 1f);

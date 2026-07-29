@@ -1357,17 +1357,23 @@ namespace Grimhand.Battle.Effects
             if (target == null || !target.IsAlive)
                 return;
 
-            var primaryPower = CombatMechanicsRules.ComputeActionValueForTarget(state, action, actor, target);
-            primaryPower = TargetReachRules.AdjustPowerForTarget(state, action, target, primaryPower);
-            primaryPower = CombatMechanicsRules.ComputeConditionalDamageBonus(
-                state, action, target, primaryPower, actor);
-            primaryPower = PassiveCardMechanicsRules.ApplyEndlessBladeMultiplier(state, card, primaryPower);
-            // 须在最终算伤之后：虚化加成/祛除不能被上面的重算覆盖
-            primaryPower = V09NewMechanicsRules.AdjustRealmBurstDamage(
-                state, actor, card, primaryPower, events);
+            // 献祭自伤已在上层按遗物削减过；勿用未削减的卡面 Value 重算覆盖。
+            var primaryPower = isSacrificeSelfDamage
+                ? value
+                : CombatMechanicsRules.ComputeActionValueForTarget(state, action, actor, target);
+            if (!isSacrificeSelfDamage)
+            {
+                primaryPower = TargetReachRules.AdjustPowerForTarget(state, action, target, primaryPower);
+                primaryPower = CombatMechanicsRules.ComputeConditionalDamageBonus(
+                    state, action, target, primaryPower, actor);
+                primaryPower = PassiveCardMechanicsRules.ApplyEndlessBladeMultiplier(state, card, primaryPower);
+                // 须在最终算伤之后：虚化加成/祛除不能被上面的重算覆盖
+                primaryPower = V09NewMechanicsRules.AdjustRealmBurstDamage(
+                    state, actor, card, primaryPower, events);
 
-            if (card.Keywords.Contains("respond_status") && state.PlayerRespondStatusUsedThisTurn)
-                primaryPower = System.Math.Max(1, primaryPower * 3);
+                if (card.Keywords.Contains("respond_status") && state.PlayerRespondStatusUsedThisTurn)
+                    primaryPower = System.Math.Max(1, primaryPower * 3);
+            }
 
             var lifestealPercent = action.LifestealPercent;
             if (lifestealPercent <= 0 && !action.LifestealUnblockedOnly)

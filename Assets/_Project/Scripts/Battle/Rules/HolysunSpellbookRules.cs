@@ -13,6 +13,7 @@ namespace Grimhand.Battle.Rules
             return displayName.IndexOf('阳') >= 0 || displayName.IndexOf('日') >= 0;
         }
 
+        /// <summary>结算与卡面展示共用：把额外等级写入数值与 UpgradeLevel。</summary>
         public static CardInstanceState ApplyForResolution(
             RunModifierSnapshot mods,
             CombatantState actor,
@@ -30,6 +31,17 @@ namespace Grimhand.Battle.Rules
             return CardInstanceUpgradeApplier.ApplyBonusLevels(
                 card,
                 mods.HolysunSpellbookBonusUpgradeLevels);
+        }
+
+        /// <summary>手牌/横幅/提示用：按当前战斗修饰符生成展示用卡牌实例。</summary>
+        public static CardInstanceState ApplyForDisplay(BattleState state, CardInstanceState card)
+        {
+            if (state == null || card == null)
+                return card;
+
+            var ownerId = PositionRules.GetOwnerCombatantId(state, card);
+            var owner = !string.IsNullOrEmpty(ownerId) ? state.GetCombatant(ownerId) : null;
+            return ApplyForResolution(state.Config?.RunModifiers, owner, card);
         }
     }
 }

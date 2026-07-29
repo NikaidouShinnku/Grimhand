@@ -28,7 +28,7 @@ MonoBehaviour:
   - RelicId: burning_boots
     Icon: {fileID: 4154943913991736008, guid: 2c1bbaca209a1a54fbd5b8a5530bf84e, type: 3}
   - RelicId: crimson_burning_boots
-    Icon: {fileID: 6615825786097920244, guid: d1b70eacdb70f404c9a7bc448e875ede, type: 3}
+    Icon: {fileID: -6967642853037097647, guid: d1b70eacdb70f404c9a7bc448e875ede, type: 3}
   - RelicId: flame_sword
     Icon: {fileID: 2853317181407726274, guid: 043fd17c11eef1e4a803e424a7754aa3, type: 3}
   - RelicId: iron_armor

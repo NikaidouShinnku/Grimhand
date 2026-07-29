@@ -8,7 +8,9 @@ namespace Grimhand.Battle.Model
         public HashSet<string> ActiveTalentIds { get; } = new();
         public bool MageReviveAvailable { get; set; }
         public int RangerBloodDebtAttackBonus { get; set; }
+        /// <summary>开战时快照：非 Boss 且开局仅 1 敌。孤猎运行时改为动态数敌，此字段仅兼容旧逻辑。</summary>
         public bool NonBossSoloEnemyBattle { get; set; }
+        public bool IsBossBattle { get; set; }
 
         public bool Has(string talentId) =>
             !string.IsNullOrEmpty(talentId) && ActiveTalentIds.Contains(talentId);

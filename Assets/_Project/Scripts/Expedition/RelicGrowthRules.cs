@@ -51,14 +51,25 @@ namespace Grimhand.Expedition
             TransferGrowthTiers(run.RelicGrowthTiers, fromRelicId, toRelicId);
 
             if (!run.Relics.Contains(toRelicId))
-            {
                 run.Relics.Add(toRelicId);
-                var floor = System.Math.Max(1, run.Map?.NodesCompleted ?? 0);
-                OnRelicAcquired(run.RelicGrowthTiers, toRelicId, floor);
-            }
 
+            // 保留已转移档位，再按当前层数抬升（避免 OnRelicAcquired 用偏低层数覆盖深层成长）。
+            SyncFloorGrowth(run.RelicGrowthTiers, run.Relics, ResolveEvolutionFloor(run));
             ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(run.Party, run.Relics, run.RelicGrowthTiers);
             return true;
+        }
+
+        static int ResolveEvolutionFloor(ExpeditionRunState run)
+        {
+            if (run?.Map == null)
+                return 1;
+
+            // 战斗/事件奖励阶段：节点已结算，NodesCompleted 即当前层。
+            if (run.Phase == ExpeditionPhase.RewardPickup)
+                return System.Math.Max(1, run.Map.NodesCompleted);
+
+            // 事件/商店等进行中：当前层 = NodesCompleted + 1。
+            return System.Math.Max(1, run.Map.NodesCompleted + 1);
         }
 
         public static void SyncFloorGrowth(IDictionary<string, int> growthTiers, IReadOnlyList<string> relicIds, int floor)

@@ -247,7 +247,12 @@ namespace Grimhand.Battle.Rules
             || statusId == StatusCatalog.Weaken
             || statusId == StatusCatalog.ArmorDown
             || statusId == StatusCatalog.Slow
-            || statusId == StatusCatalog.SpeedUp;
+            || statusId == StatusCatalog.SpeedUp
+            // 灼烧等 DoT：不同剩余回合分桶，避免叠层后整段都按更高层数结算
+            || statusId == StatusCatalog.Burn
+            || statusId == StatusCatalog.NecroticPoison
+            || statusId == StatusCatalog.Constrict
+            || statusId == StatusCatalog.DelayedDamage;
 
         static int ResolveAppliedDurationTurns(BattleState state, int durationOverride)
         {

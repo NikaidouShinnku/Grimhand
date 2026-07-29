@@ -89,7 +89,7 @@ namespace Grimhand.Battle.Reactions
                     CombatantId = actor.Id,
                     CardInstanceId = card.InstanceId
                 });
-                TalentBattleRules.OnRespondSuccess(state, actor);
+                TalentBattleRules.OnRespondSuccess(state, actor, context, events);
                 if (state.RespondSuccessCount < int.MaxValue)
                     state.RespondSuccessCount++;
                 if (state.Config?.RunModifiers != null)

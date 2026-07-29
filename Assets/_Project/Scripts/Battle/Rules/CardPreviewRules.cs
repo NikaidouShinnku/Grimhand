@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Grimhand.Battle.Effects;
 using Grimhand.Battle.Model;
+using Grimhand.Battle.Status;
 
 namespace Grimhand.Battle.Rules
 {
@@ -30,14 +31,126 @@ namespace Grimhand.Battle.Rules
             var cost = card?.Cost ?? 0;
             var isSacrifice = card != null && card.Keywords.Contains("sacrifice");
 
-            return RelicBattleRules.ComputeOutgoingPower(
-                state,
-                owner,
-                cardType,
-                basePower,
-                isSacrifice,
-                cost,
-                applyPositionMultiplier: false);
+            return PeekOutgoingPower(state, owner, cardType, basePower, isSacrifice, cost);
+        }
+
+        /// <summary>预览用：不消耗铁壁转化/复仇等一次性 flat bonus。</summary>
+        static int PeekOutgoingPower(
+            BattleState state,
+            CombatantState owner,
+            CardType cardType,
+            int basePower,
+            bool isSacrifice,
+            int cost)
+        {
+            if (owner == null)
+            {
+                return RelicBattleRules.ComputeOutgoingPower(
+                    state, owner, cardType, basePower, isSacrifice, cost, applyPositionMultiplier: false);
+            }
+
+            var ironWall = owner.TalentIronWallPendingDamageBonus;
+            var revenge = owner.PendingRevengeAttackBonus;
+            try
+            {
+                return RelicBattleRules.ComputeOutgoingPower(
+                    state, owner, cardType, basePower, isSacrifice, cost, applyPositionMultiplier: false);
+            }
+            finally
+            {
+                owner.TalentIronWallPendingDamageBonus = ironWall;
+                owner.PendingRevengeAttackBonus = revenge;
+            }
+        }
+
+        /// <summary>卡面基础伤害（不含遗物/状态 outgoing 加成）。</summary>
+        public static int ComputeBaselineDamage(CombatantState owner, EffectActionSpec action) =>
+            action == null || action.Type != EffectActionType.DealDamage
+                ? 0
+                : CardPowerRules.ComputeActionValue(action, owner);
+
+        /// <summary>预期获得护甲（含强固、太极首防、法老加成等；铁壁转化时返回将转化的数值）。</summary>
+        public static int ComputeExpectedBlock(
+            BattleState state,
+            CombatantState owner,
+            EffectActionSpec action)
+        {
+            if (action == null || action.Type != EffectActionType.GainBlock)
+                return 0;
+
+            var block = CardPowerRules.ComputeActionValue(action, owner);
+            if (state == null || owner == null)
+                return block;
+
+            RelicBattleRules.RefreshDerivedStats(state, owner, state.Config?.RunModifiers);
+            block += RelicBattleRules.GetOutgoingDefenseFlatBonus(state.Config?.RunModifiers, owner);
+            block = RelicBattleRules.ApplyPharaohBlockBonus(state.Config?.RunModifiers, owner, block);
+            block = CombatModifierRules.ApplyBlockGainModifiers(owner, block);
+            block = PassiveCardMechanicsRules.ApplyHeavyArmorBlockBonus(owner, block);
+            return System.Math.Max(0, block);
+        }
+
+        public static int ComputeBaselineBlock(CombatantState owner, EffectActionSpec action) =>
+            action == null || action.Type != EffectActionType.GainBlock
+                ? 0
+                : CardPowerRules.ComputeActionValue(action, owner);
+
+        public static int ComputeExpectedHeal(
+            BattleState state,
+            CombatantState owner,
+            EffectActionSpec action)
+        {
+            if (action == null || action.Type != EffectActionType.Heal)
+                return 0;
+
+            return CardPowerRules.ComputeActionValue(action, owner);
+        }
+
+        public static int ComputeBaselineHeal(CombatantState owner, EffectActionSpec action) =>
+            ComputeExpectedHeal(null, owner, action);
+
+        /// <summary>状态持续回合预览（含银月等 StatusDurationBonusTurns）。永久为 -1。</summary>
+        public static int PreviewStatusDurationTurns(
+            BattleState state,
+            EffectActionSpec action,
+            CombatantState owner = null)
+        {
+            if (action == null)
+                return 1;
+
+            int baseline;
+            if (action.Duration >= 0)
+                baseline = action.Duration;
+            else
+                baseline = StatusCatalog.Get(action.StatusId)?.DefaultDuration ?? 1;
+
+            if (baseline < 0)
+                return -1;
+
+            if (action.StatusId == StatusCatalog.Poison && state != null && owner != null)
+            {
+                var adjusted = TalentBattleRules.AdjustPoisonDuration(state, owner, baseline);
+                if (adjusted < 0)
+                    return -1;
+                baseline = adjusted;
+            }
+
+            if (baseline == 0)
+                return 0;
+
+            var bonus = state?.Config?.RunModifiers?.StatusDurationBonusTurns ?? 0;
+            return baseline + bonus;
+        }
+
+        public static int BaselineStatusDurationTurns(EffectActionSpec action)
+        {
+            if (action == null)
+                return 1;
+
+            if (action.Duration >= 0)
+                return action.Duration;
+
+            return StatusCatalog.Get(action.StatusId)?.DefaultDuration ?? 1;
         }
 
         /// <summary>对指定目标预览最终 HP 伤害（含站位 incoming、护甲、DEF；不修改战斗状态）。</summary>
@@ -307,14 +420,13 @@ namespace Grimhand.Battle.Rules
             var recipient = CombatMechanicsRules.ResolveDamageRecipient(state, owner, intendedTarget);
             var redirectedByGuard = recipient.Id != intendedTarget.Id;
 
-            var outgoing = RelicBattleRules.ComputeOutgoingPower(
+            var outgoing = PeekOutgoingPower(
                 state,
                 owner,
                 card.CardType,
                 primaryPower,
                 isSacrificeSelfDamage,
-                card.Cost,
-                applyPositionMultiplier: false);
+                card.Cost);
 
             var effectiveBlock = CombatModifierRules.ComputeEffectiveBlock(recipient, action.IgnoreDefPercent);
             var blocked = System.Math.Min(effectiveBlock, outgoing);

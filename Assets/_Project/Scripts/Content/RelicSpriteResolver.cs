@@ -10,7 +10,8 @@ namespace Grimhand.Content
             if (assets == null || assets.Length == 0)
                 return null;
 
-            var preferredName = string.IsNullOrEmpty(relicId) ? null : $"{relicId}_1";
+            // 主图约定为 {id}_0；旧逻辑优先 _1，会误绑到色块碎片（如赤红烈焰靴）。
+            var preferredName = string.IsNullOrEmpty(relicId) ? null : $"{relicId}_0";
             Sprite best = null;
             var bestArea = 0f;
 

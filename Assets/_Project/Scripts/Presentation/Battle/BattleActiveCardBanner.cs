@@ -88,10 +88,11 @@ namespace Grimhand.Presentation.Battle
             }
 
             var visual = CardVisualResolver.Resolve(card, _catalog, _characterVisuals, _definitions);
+            var displayCard = HolysunSpellbookRules.ApplyForDisplay(state, card);
             var stats = BattleUiFormatters.BuildCardStatsLine(state, null, card, definitions: _definitions);
 
             _cardView.BindWithCard(
-                card,
+                displayCard,
                 visual,
                 selected: false,
                 polluted: CardRules.IsPolluted(card),

@@ -39,6 +39,28 @@ namespace Grimhand.Expedition
             return mods;
         }
 
+        /// <summary>
+        /// 局内获得遗物后重建修饰符，并保留战斗中已推进的运行时计数（不重复套用开战一次性效果）。
+        /// </summary>
+        public static RunModifierSnapshot RebuildModifiersPreservingRuntime(
+            RunModifierSnapshot existing,
+            IReadOnlyList<string> relicIds,
+            IReadOnlyDictionary<string, int> growthTiers = null)
+        {
+            var rebuilt = BuildModifiers(relicIds, growthTiers);
+            if (existing == null)
+                return rebuilt;
+
+            rebuilt.EtherealEntryCount = existing.EtherealEntryCount;
+            rebuilt.ExpeditionRespondSuccessCount = existing.ExpeditionRespondSuccessCount;
+            rebuilt.SandSpearExhaustCardsPlayed = existing.SandSpearExhaustCardsPlayed;
+            rebuilt.FirstPlayerAttackPending = existing.FirstPlayerAttackPending;
+            rebuilt.FelskullOutgoingDamagePercentBonus = existing.FelskullOutgoingDamagePercentBonus;
+            rebuilt.RequiresFelskullChoice = existing.RequiresFelskullChoice;
+            rebuilt.ExtraEnergyCap = System.Math.Max(rebuilt.ExtraEnergyCap, existing.ExtraEnergyCap);
+            return rebuilt;
+        }
+
         public static bool CanAppearInRewardPool(RelicDefinition relic, IReadOnlyList<PartyMemberSnapshot> party)
         {
             if (relic == null || relic.EvolutionOnly)
@@ -181,7 +203,7 @@ namespace Grimhand.Expedition
                     "每回合开始时，全队获得3点护甲。被攻击时15%概率完全闪避（不受任何伤害）。",
                     "evolved_from_jade_stone", evolutionOnly: true),
                 Def(RelicIds.JadeDagger, "翡翠短刀", RelicRarity.Rare, "翡翠系列·攻击进化",
-                    "全队获得5%增伤。每场战斗首次击杀敌人时，抽1张牌并回复2点能量。",
+                    "全队获得5%增伤（永久）。每场战斗首次击杀敌人时，下回合额外抽1张牌，额外回复2点能量。",
                     "evolved_from_jade_stone", evolutionOnly: true, atkPercent: 5),
                 Def(RelicIds.BurningBoots, "燃烬之靴", RelicRarity.Common, "烈焰系列·基础",
                     "每场战斗第一回合，全队SPD临时+2（仅影响第一回合结算顺序）。",
@@ -208,7 +230,7 @@ namespace Grimhand.Expedition
                     "全队获得10%增伤。任何角色打出费用≥3的卡牌时，该卡牌伤害额外+15%。",
                     "cost3_plus_15pct", atkPercent: 10),
                 Def(RelicIds.PaladinShield, "圣骑之盾", RelicRarity.Rare, "通用",
-                    "全队获得10%强固。每回合第一个受到伤害的角色，受伤减少30%",
+                    "全队获得10%强固。每回合第一个受到攻击的友方角色，受伤减少30%",
                     "first_hit_minus_30pct", blockGainPercent: 10),
                 Def(RelicIds.SilverMoonPendant, "银月项链", RelicRarity.Rare, "通用",
                     "每回合结束时回复全队2HP。所有增益/减益状态持续时间+1回合（含中毒、灼烧等）。",

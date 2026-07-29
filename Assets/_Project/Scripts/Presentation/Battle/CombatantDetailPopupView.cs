@@ -56,11 +56,12 @@ namespace Grimhand.Presentation.Battle
                 _bodyText = textGo.GetComponent<Text>();
                 _bodyText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
                 _bodyText.fontSize = FontSize;
-                _bodyText.fontStyle = FontStyle.Bold;
+                _bodyText.fontStyle = FontStyle.Normal;
                 _bodyText.color = Color.white;
                 _bodyText.alignment = TextAnchor.UpperLeft;
                 _bodyText.horizontalOverflow = HorizontalWrapMode.Wrap;
                 _bodyText.verticalOverflow = VerticalWrapMode.Overflow;
+                _bodyText.supportRichText = true;
                 _bodyText.raycastTarget = false;
 
                 var textOutline = textGo.AddComponent<Outline>();
@@ -219,7 +220,8 @@ namespace Grimhand.Presentation.Battle
             PartyMemberSnapshot expeditionMember = null,
             IReadOnlyList<string> runRelics = null,
             PresentationSnapshot presentation = null,
-            ExpeditionConfig expeditionConfig = null)
+            ExpeditionConfig expeditionConfig = null,
+            BattleState battleState = null)
         {
             if (_bodyText == null)
                 return;
@@ -233,10 +235,16 @@ namespace Grimhand.Presentation.Battle
             ApplyInformationPlate(_panel, icons);
             ApplyInformationPlate(_statusPanel, icons);
 
-            var statusTooltip = BattleUiFormatters.FormatStatusTooltipDescriptions(unit);
+            var statusTooltip = BattleUiFormatters.FormatStatusTooltipDescriptions(unit, battleState);
             var speed = CombatantDisplayHelper.GetSpeed(unit, presentation);
             var showExp = showExpBar && unit.Team == TeamSide.Player;
             var traitFootnote = CombatantDisplayHelper.GetTraitFootnote(unit, presentation);
+            var talentBlock = unit.Team == TeamSide.Player
+                ? TalentDisplayFormatter.FormatSelectedTalents(expeditionMember)
+                : "";
+            var traitBlock = unit.Team == TeamSide.Enemy
+                ? MinionTraitDisplayFormatter.FormatTraitDescriptions(unit)
+                : "";
 
             var lines = CharacterProgression.FormatLevelLabel(unit.Level);
             if (showExp)
@@ -247,20 +255,22 @@ namespace Grimhand.Presentation.Battle
             {
                 lines += $"\n增伤 +{expeditionMember.PersonalAttackBonus}";
             }
-            if (!string.IsNullOrEmpty(traitFootnote))
-                lines += $"\n{traitFootnote}";
 
-            if (runRelics != null && runRelics.Count > 0 && unit.Team == TeamSide.Player)
+            if (!string.IsNullOrEmpty(talentBlock))
+                lines += $"\n\n<b>天赋</b>\n{talentBlock}";
+
+            if (!string.IsNullOrEmpty(traitBlock))
+                lines += $"\n\n<b>特性</b>\n{traitBlock}";
+
+            if (!string.IsNullOrEmpty(traitFootnote))
             {
-                lines += "\n遗物";
-                foreach (var relicId in runRelics)
-                {
-                    if (RelicDatabase.TryGet(relicId, out var relic))
-                        lines += $"\n· {relic.DisplayName}";
-                }
+                if (!string.IsNullOrEmpty(talentBlock) || !string.IsNullOrEmpty(traitBlock))
+                    lines += "\n";
+                lines += $"\n{traitFootnote}";
             }
 
             _bodyText.text = lines;
+            _bodyText.supportRichText = true;
 
             if (_expRow != null)
             {
@@ -273,7 +283,10 @@ namespace Grimhand.Presentation.Battle
                 }
             }
 
-            var panelW = UiInfoPlateMetrics.MinWidth + 40f;
+            var hasExtraBlock = !string.IsNullOrEmpty(talentBlock) || !string.IsNullOrEmpty(traitBlock);
+            var panelW = hasExtraBlock
+                ? Mathf.Clamp(UiInfoPlateMetrics.MinWidth + 100f, UiInfoPlateMetrics.MinWidth, UiInfoPlateMetrics.MaxWidth)
+                : UiInfoPlateMetrics.MinWidth + 40f;
             var innerW = UiInfoPlateMetrics.InnerWidth(panelW);
             var bodyH = UiInfoPlateMetrics.MeasureHeight(_bodyText, lines, innerW);
             var topReserve = showExp ? 56f : UiInfoPlateMetrics.PadY;

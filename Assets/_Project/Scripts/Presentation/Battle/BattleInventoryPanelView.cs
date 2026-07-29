@@ -28,7 +28,8 @@ namespace Grimhand.Presentation.Battle
         const float CharacterCardHeight = 318f;
         const float CharacterPortraitSize = 168f;
 
-        const int InventoryLayoutVersion = 10;
+        const int InventoryLayoutVersion = 11;
+        const int RelicsPerRow = 8;
 
         BattleSession _session;
         Transform _battleRoot;
@@ -56,7 +57,7 @@ namespace Grimhand.Presentation.Battle
         RectTransform _mainContent;
         RectTransform _consumableStrip;
         RectTransform _characterRow;
-        RectTransform _relicRow;
+        RectTransform _relicArea;
         RectTransform _cardArea;
         ScrollRect _scroll;
         InventoryTooltipView _tooltip;
@@ -328,15 +329,22 @@ namespace Grimhand.Presentation.Battle
 
         void RefreshRelics()
         {
-            if (!_session.IsExpeditionMode)
+            if (!_session.IsExpeditionMode || _relicArea == null)
                 return;
 
+            ClearChildren(_relicArea);
+            RectTransform currentRow = null;
+            var index = 0;
             foreach (var relicId in _session.Expedition.Run.Relics)
             {
                 if (!RelicDatabase.TryGet(relicId, out var relic))
                     continue;
 
-                CreateRelicSlot(_relicRow, relic);
+                if (currentRow == null || index % RelicsPerRow == 0)
+                    currentRow = CreateHorizontalRow(_relicArea, RelicSlotHeight + 12f);
+
+                CreateRelicSlot(currentRow, relic);
+                index++;
             }
         }
 
@@ -742,7 +750,7 @@ namespace Grimhand.Presentation.Battle
                 _mainContent = null;
                 _consumableStrip = null;
                 _characterRow = null;
-                _relicRow = null;
+                _relicArea = null;
                 _cardArea = null;
                 _scroll = null;
                 _goldRow = null;
@@ -802,7 +810,10 @@ namespace Grimhand.Presentation.Battle
             CreateSectionHeader(_mainContent, "角色");
             _characterRow = CreateHorizontalRow(_mainContent, CharacterCardHeight + 12f);
             CreateSectionHeader(_mainContent, "遗物");
-            _relicRow = CreateHorizontalRow(_mainContent, RelicSlotHeight + 12f);
+            _relicArea = CreateVerticalContent(_mainContent, "Relics");
+            var relicAreaLayout = _relicArea.GetComponent<VerticalLayoutGroup>();
+            relicAreaLayout.spacing = 4f;
+            relicAreaLayout.padding = new RectOffset(0, 0, 0, 4);
             CreateSectionHeader(_mainContent, "卡牌");
             _cardArea = CreateVerticalContent(_mainContent, "Cards");
             var cardAreaLayout = _cardArea.GetComponent<VerticalLayoutGroup>();
@@ -1252,7 +1263,7 @@ namespace Grimhand.Presentation.Battle
             _dynamicObjects.Clear();
 
             ClearChildren(_characterRow);
-            ClearChildren(_relicRow);
+            ClearChildren(_relicArea);
             ClearChildren(_cardArea);
             ClearChildren(_consumableStrip, keepFirst: 1);
         }

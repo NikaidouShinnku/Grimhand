@@ -77,6 +77,7 @@ namespace Grimhand.Presentation.Battle
 
                 view.gameObject.SetActive(true);
                 var card = handCards[i];
+                var displayCard = HolysunSpellbookRules.ApplyForDisplay(state, card);
                 var draft = session.Engine.Draft;
                 var awaiting = draft.AwaitingTargetCardId;
                 var isAwaitingTarget = awaiting == card.InstanceId;
@@ -100,7 +101,7 @@ namespace Grimhand.Presentation.Battle
                 var quickStartImmediate = card.Keywords.Contains("quick_start")
                     && !CardRules.ShouldPromptForTarget(state, card, owner);
 
-                view.BindWithCard(card, visual, showSelected, polluted, interactable, badge, stats,
+                view.BindWithCard(displayCard, visual, showSelected, polluted, interactable, badge, stats,
                     uiIcons, characterVisuals, onCardClick, onHoverEnter, onHoverExit, playCost,
                     quickStartImmediate ? onQuickStart : null);
             }

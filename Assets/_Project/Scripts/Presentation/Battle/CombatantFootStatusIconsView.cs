@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Status;
 using Grimhand.Content;
+using Grimhand.Expedition.Model;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -82,8 +83,8 @@ namespace Grimhand.Presentation.Battle
             _row.sizeDelta = new Vector2(MaxRowWidth, IconSize + 4f);
         }
 
-        public void Refresh(CombatantState unit, BattleUiIconCatalogSO icons) =>
-            RefreshInternal(CollectVisible(unit), icons);
+        public void Refresh(CombatantState unit, BattleUiIconCatalogSO icons, BattleState state = null) =>
+            RefreshInternal(CollectVisible(unit, state), icons);
 
         public void Refresh(IReadOnlyList<FootStatusEntry> entries, BattleUiIconCatalogSO icons) =>
             RefreshInternal(CollectVisible(entries), icons);
@@ -126,8 +127,13 @@ namespace Grimhand.Presentation.Battle
 
         static List<VisibleStatus> CollectVisible(CombatantState unit)
         {
+            return CollectVisible(unit, null);
+        }
+
+        static List<VisibleStatus> CollectVisible(CombatantState unit, BattleState state)
+        {
             var list = new List<VisibleStatus>();
-            foreach (var entry in FootStatusIconAggregator.Aggregate(unit))
+            foreach (var entry in FootStatusIconAggregator.Aggregate(unit, state))
             {
                 list.Add(new VisibleStatus
                 {
@@ -310,12 +316,16 @@ namespace Grimhand.Presentation.Battle
             if (stacks <= 0)
                 return "";
 
+            if (statusId == RelicIds.BurningLongsword)
+                return "";
+
             if (statusId == StatusCatalog.DefenseDownPercent
                 || statusId == StatusCatalog.DefenseUpPercent
                 || statusId == StatusCatalog.AttackUpPercent
                 || statusId == StatusCatalog.Vulnerable
                 || statusId == StatusCatalog.DamageReduction
-                || statusId == StatusCatalog.ArmorDown)
+                || statusId == StatusCatalog.ArmorDown
+                || statusId == StatusCatalog.DodgeChance)
                 return $"{stacks}%";
 
             if (statusId == StatusCatalog.Invulnerable)
@@ -332,6 +342,8 @@ namespace Grimhand.Presentation.Battle
         static float MeasureStackTextWidth(string statusId, int stacks)
         {
             var label = FormatStackLabel(statusId, stacks);
+            if (string.IsNullOrEmpty(label))
+                return 0f;
             return Mathf.Max(24f, 8f + label.Length * 8f);
         }
     }

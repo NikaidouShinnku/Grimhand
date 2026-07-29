@@ -601,6 +601,8 @@ namespace Grimhand.Presentation.Battle
             }
 
             ApplySnapshotAfterBlockGain(e.CombatantId, e.Amount);
+            if (!string.IsNullOrEmpty(e.CombatantId))
+                _session.PresentationSnapshot?.SyncFootStatusesFromLive(_session.Engine?.State, e.CombatantId);
             ApplyEventDisplayCheckpoint(e);
         }
 

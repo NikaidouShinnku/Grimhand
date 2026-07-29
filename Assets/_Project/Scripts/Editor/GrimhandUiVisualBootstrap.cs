@@ -258,6 +258,12 @@ namespace Grimhand.Editor
             catalog.StatusBurning = LoadNamedSprite(
                 "Assets/The Grimhands Asset/effects/burning_effect.png", "burning_effect_1");
             catalog.StatusBrandMark = LoadFirstSprite(IconRoot + "warden_brand.png");
+            catalog.StatusEvade = LoadNamedSprite(IconRoot + "evade.png", "evade_0")
+                ?? LoadFirstSprite(IconRoot + "evade.png");
+            catalog.StatusBurningLongsword = LoadNamedSprite(
+                    "Assets/The Grimhands Asset/relics/burning_longsword.png",
+                    "burning_longsword_0")
+                ?? LoadFirstSprite("Assets/The Grimhands Asset/relics/burning_longsword.png");
 
             EditorUtility.SetDirty(catalog);
         }

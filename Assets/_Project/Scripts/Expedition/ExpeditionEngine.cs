@@ -660,13 +660,23 @@ namespace Grimhand.Expedition
             _run.V09SandSpearExhaustCardsPlayed = state.Config.RunModifiers.SandSpearExhaustCardsPlayed;
         }
 
+        void SyncMiracleLeafUsesFromBattle(BattleState state)
+        {
+            if (state == null)
+                return;
+
+            if (_run.Relics != null && _run.Relics.Contains(RelicIds.LeafOfMiracle))
+                _run.MiracleLeafUsesRemaining = System.Math.Max(0, state.MiracleLeafRevivesRemaining);
+            else if (_run.MiracleLeafUsesRemaining >= 0)
+                _run.MiracleLeafUsesRemaining = state.MiracleLeafRevivesRemaining;
+        }
+
         public void OnBattleFinished(BattleState state)
         {
             if (state == null)
                 return;
 
-            if (_run.MiracleLeafUsesRemaining >= 0)
-                _run.MiracleLeafUsesRemaining = state.MiracleLeafRevivesRemaining;
+            SyncMiracleLeafUsesFromBattle(state);
 
             // CaptureParty 必须在 Clear 之前调用：previousParty 若与 _run.Party 为同一列表，
             // 先 Clear 会导致 existingParty 为空，BonusCards / 收藏进度等远征卡组数据全部丢失。
@@ -684,8 +694,7 @@ namespace Grimhand.Expedition
             if (state.Outcome == BattleOutcome.PlayerVictory)
                 ApplyPostBattleRelicHeals(_run);
 
-            if (_run.MiracleLeafUsesRemaining >= 0)
-                _run.MiracleLeafUsesRemaining = state.MiracleLeafRevivesRemaining;
+            SyncMiracleLeafUsesFromBattle(state);
 
             if (state.Outcome == BattleOutcome.PlayerDefeat)
             {
@@ -2035,8 +2044,18 @@ namespace Grimhand.Expedition
             if (_run.PendingEventAftermath?.SourceLayer > 0)
                 return _run.PendingEventAftermath.SourceLayer;
 
+            if (_run.PendingEvent?.SourceLayer > 0)
+                return _run.PendingEvent.SourceLayer;
+
             if (_run.Phase == ExpeditionPhase.RewardPickup && _run.Map != null)
+            {
+                // 宝箱在 CompleteCurrentNode 之前领奖，当前层 = NodesCompleted + 1。
+                if (_run.PendingRewardPickup?.Kind == RewardPickupKind.Chest)
+                    return System.Math.Max(1, _run.Map.NodesCompleted + 1);
+
+                // 战斗/事件奖励：节点已结算，NodesCompleted 即当前层。
                 return System.Math.Max(1, _run.Map.NodesCompleted);
+            }
 
             return System.Math.Max(1, (_run.Map?.NodesCompleted ?? 0) + 1);
         }
@@ -2102,6 +2121,7 @@ namespace Grimhand.Expedition
 
             if (_run.Map.NodesCompleted >= _run.Map.ChapterLayerCount)
             {
+                ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
                 _run.Phase = ExpeditionPhase.RunComplete;
                 _run.PendingRoutes.Clear();
                 return;
@@ -2111,12 +2131,17 @@ namespace Grimhand.Expedition
             {
                 _run.Modifiers.SkipNextRouteSelect = false;
                 _run.Map.NodesCompleted++;
+                RelicGrowthRules.SyncFloorGrowth(_run.RelicGrowthTiers, _run.Relics, _run.Map.NodesCompleted);
                 if (_run.Map.NodesCompleted >= _run.Map.ChapterLayerCount)
                 {
+                    ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
                     _run.Phase = ExpeditionPhase.RunComplete;
                     _run.PendingRoutes.Clear();
+                    return;
                 }
             }
+
+            ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
         }
 
         void LoadRoutesForNextLayer()

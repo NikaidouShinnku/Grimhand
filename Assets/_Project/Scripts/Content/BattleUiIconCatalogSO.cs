@@ -160,5 +160,9 @@ namespace Grimhand.Content
         public Sprite StatusBurning;
         /// <summary>烙印（Assets/The Grimhands Asset/icon/warden_brand.png）</summary>
         public Sprite StatusBrandMark;
+        /// <summary>闪避率（Assets/The Grimhands Asset/icon/evade.png）</summary>
+        public Sprite StatusEvade;
+        /// <summary>烈火长剑脚标（Assets/The Grimhands Asset/relics/burning_longsword.png）</summary>
+        public Sprite StatusBurningLongsword;
     }
 }

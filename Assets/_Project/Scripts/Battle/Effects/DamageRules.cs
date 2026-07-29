@@ -82,6 +82,11 @@ namespace Grimhand.Battle.Effects
             if (raw > 0)
                 BossTraitRules.TryApplyFirstHitBlock(state, recipient, events);
 
+            // 圣骑之盾：本回合首次被攻击的友方，整段伤害（含打甲）-30%
+            raw = RelicBattleRules.ApplyTeamFirstAttackDamageReduction(
+                state, actor, recipient, cardType, isSacrificeDamage, raw);
+
+            var blockBeforeHit = recipient.Block;
             var effectiveBlock = CombatModifierRules.ComputeEffectiveBlock(recipient, ignoreDefPercent);
             var blocked = Math.Min(effectiveBlock, raw);
             // 无视 N% 护甲：按有效护甲折算格挡量，仍扣减真实护甲（例：10 护甲 + 50% 无视 + 10 伤 → 护甲 -5，HP -5）
@@ -107,7 +112,7 @@ namespace Grimhand.Battle.Effects
                 hpDamage = CombatMechanicsRules.ApplyGuardReduction(hpDamage);
 
             hpDamage = RelicBattleRules.ApplyIncomingDamageRelics(
-                state, actor, recipient, hpDamage, rng, events);
+                state, actor, recipient, hpDamage, rng, events, blockBeforeHit);
 
             var beforeRespondMitigation = hpDamage;
             hpDamage = RespondEffectExecutor.ApplyMitigation(
@@ -120,7 +125,7 @@ namespace Grimhand.Battle.Effects
 
             if (StatusRules.HasStatus(recipient, StatusCatalog.Ethereal) && hpDamage > 0)
             {
-                // v0.9 巫妖 s1_lv4：虚化中受伤改为0并回3HP（接管 ethereal 封顶1）
+                // v0.9 巫妖 s1_lv4：虚化中受伤改为0并回2HP（接管 ethereal 封顶1）
                 if (!TalentBattleRules.TryHandleEtherealDamage(state, recipient, ref hpDamage, events))
                     hpDamage = 1;
             }
@@ -250,6 +255,11 @@ namespace Grimhand.Battle.Effects
 
             var wasAlive = recipient.IsAlive;
             PassiveCardMechanicsRules.TryTriggerLastStand(state, recipient, ref amount, events);
+            if (amount <= 0)
+                return;
+
+            // 奇迹之叶：真实伤害致死时同样可救
+            RelicEffectRules.TryMiracleLeafSave(state, recipient, events, ref amount);
             if (amount <= 0)
                 return;
 

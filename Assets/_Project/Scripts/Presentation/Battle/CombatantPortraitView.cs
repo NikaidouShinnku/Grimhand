@@ -19,7 +19,7 @@ namespace Grimhand.Presentation.Battle
         const float PoseHoldDuration = 1f;
         const float IdleFrameInterval = 0.13f;
         const float HitFlashDuration = 1f;
-        const float DamageFloaterFontSize = 34f;
+        const float DamageFloaterFontSize = 28f;
         const float ActionEffectDuration = 0.55f;
         const float ActionEffectAlpha = 0.6f;
 
@@ -642,7 +642,7 @@ namespace Grimhand.Presentation.Battle
             rt.sizeDelta = new Vector2(140f, 44f);
         }
 
-        /// <summary>掉血/掉盾飘字挂在立绘头顶，避免挤在血条右侧看不清。</summary>
+        /// <summary>掉血/掉盾飘字：贴在立绘可视区域顶部略上方（红框位置），勿挂到槽位容器顶。</summary>
         public void SetDamageFloaterAbovePortrait()
         {
             EnsureDamageFloater();
@@ -656,11 +656,36 @@ namespace Grimhand.Presentation.Battle
             var rt = _damageFloater.rectTransform;
             rt.SetParent(parent, false);
             rt.SetAsLastSibling();
-            rt.anchorMin = new Vector2(0.5f, 1f);
-            rt.anchorMax = new Vector2(0.5f, 1f);
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0f);
-            rt.anchoredPosition = new Vector2(0f, 12f);
-            rt.sizeDelta = new Vector2(160f, 44f);
+            rt.sizeDelta = new Vector2(160f, 40f);
+            rt.anchoredPosition = new Vector2(0f, ResolveSpriteTopLocalY(parent) + 6f);
+        }
+
+        /// <summary>立绘 Image 在 portraitRoot 内 letterbox 后的可视顶边（相对根中心）。</summary>
+        float ResolveSpriteTopLocalY(RectTransform parent)
+        {
+            if (parent == null)
+                return 40f;
+
+            var rect = parent.rect;
+            if (rect.height <= 1f)
+                return 40f;
+
+            var sprite = portraitImage != null ? portraitImage.sprite : _referenceSprite;
+            if (sprite == null || sprite.rect.height <= 0f || sprite.rect.width <= 0f)
+                return rect.height * 0.5f;
+
+            var spriteAspect = sprite.rect.width / sprite.rect.height;
+            var rectAspect = rect.width / Mathf.Max(1f, rect.height);
+            float visualHeight;
+            if (spriteAspect > rectAspect)
+                visualHeight = rect.width / spriteAspect;
+            else
+                visualHeight = rect.height;
+
+            return visualHeight * 0.5f;
         }
 
         void CaptureHomeIfNeeded()
@@ -675,7 +700,11 @@ namespace Grimhand.Presentation.Battle
         void EnsureDamageFloater()
         {
             if (_damageFloater != null)
+            {
+                // 已存在时同步最新字号与锚点（热重载/旧实例）
+                _damageFloater.fontSize = (int)DamageFloaterFontSize;
                 return;
+            }
 
             var anchor = portraitRoot != null
                 ? portraitRoot
@@ -686,17 +715,17 @@ namespace Grimhand.Presentation.Battle
             var go = new GameObject("DamageFloater", typeof(RectTransform), typeof(Text));
             go.transform.SetParent(anchor, false);
             var rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0.5f, 1f);
-            rt.anchorMax = new Vector2(0.5f, 1f);
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0f);
-            rt.anchoredPosition = new Vector2(0f, 12f);
-            rt.sizeDelta = new Vector2(160f, 44f);
+            rt.anchoredPosition = new Vector2(0f, ResolveSpriteTopLocalY(anchor) + 6f);
+            rt.sizeDelta = new Vector2(160f, 40f);
 
             _damageFloater = go.GetComponent<Text>();
             _damageFloater.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             _damageFloater.fontSize = (int)DamageFloaterFontSize;
             _damageFloater.fontStyle = FontStyle.Bold;
-            _damageFloater.alignment = TextAnchor.UpperCenter;
+            _damageFloater.alignment = TextAnchor.LowerCenter;
             _damageFloater.color = new Color(1f, 0.28f, 0.28f, 1f);
             _damageFloater.raycastTarget = false;
             _damageFloater.gameObject.SetActive(false);

@@ -265,12 +265,16 @@ namespace Grimhand.Presentation.Battle
             if (card == null)
                 return "";
 
+            card = HolysunSpellbookRules.ApplyForDisplay(state, card);
+
             var ownerId = state != null ? PositionRules.GetOwnerCombatantId(state, card) : null;
             var owner = ownerId != null ? state.GetCombatant(ownerId) : null;
             if (TryBuildCurseCardStatsLine(card, out var curseLine))
                 return curseLine;
 
-            if (TryBuildExcelDescriptionLine(state, draft, card, definitions, out var excelLine))
+            // 战斗内用手牌结算预览，不用 Excel 静态文案（商店/图鉴等 state==null 时仍可用）。
+            if (state == null
+                && TryBuildExcelDescriptionLine(state, draft, card, definitions, out var excelLine))
                 return excelLine;
 
             var pickSide = CardRules.GetRequiredTargetPick(card);
@@ -294,7 +298,7 @@ namespace Grimhand.Presentation.Battle
                 lines.Add(aoeLine);
                 normalActions = remaining;
             }
-            else if (TryDescribeAllAllyTeamEffect(normalActions, owner, preferFormulas, out var allyLine, out remaining))
+            else if (TryDescribeAllAllyTeamEffect(state, normalActions, owner, preferFormulas, out var allyLine, out remaining))
             {
                 lines.Add(allyLine);
                 normalActions = remaining;
@@ -508,13 +512,17 @@ namespace Grimhand.Presentation.Battle
                                 ? $"最大生命 {action.HealMaxHpPercent}%"
                                 : CardPowerRules.ComputeActionValue(action, owner).ToString();
                         }
+                        else if (state != null && owner != null && card != null && !preferFormulas)
+                        {
+                            var expected = CardPreviewRules.ComputeExpectedDamage(state, owner, card, action);
+                            var baseline = CardPreviewRules.ComputeBaselineDamage(owner, action);
+                            selfDmg = CardFaceNumberFormatter.Format(expected, baseline);
+                        }
                         else
                         {
                             selfDmg = preferFormulas && owner == null && CardActionValueText.HasScaledComponent(action)
                                 ? CardActionValueText.FormatPlain(action, useDefense: false)
-                                : (state != null && owner != null && card != null
-                                    ? CardPreviewRules.ComputeExpectedDamage(state, owner, card, action)
-                                    : CardPowerRules.ComputeActionValue(action, owner)).ToString();
+                                : CardPowerRules.ComputeActionValue(action, owner).ToString();
                         }
 
                         return prefix + $"对自身造成 {selfDmg} 点伤害{damageExtras}";
@@ -528,10 +536,17 @@ namespace Grimhand.Presentation.Battle
                         && card != null
                         && CardPreviewRules.CanPreviewDamageAgainstTarget(state, owner, card, action, previewTarget))
                     {
-                        body = $"造成 {CardPreviewRules.PreviewHpDamageAgainstTarget(state, owner, card, action, previewTarget)} 点伤害";
+                        var settled = CardPreviewRules.PreviewHpDamageAgainstTarget(
+                            state, owner, card, action, previewTarget);
+                        var baseline = CardPreviewRules.ComputeBaselineDamage(owner, action);
+                        body = $"造成 {CardFaceNumberFormatter.Format(settled, baseline)} 点伤害";
                     }
                     else if (owner != null && state != null && card != null && !preferFormulas)
-                        body = $"造成 {CardPreviewRules.ComputeExpectedDamage(state, owner, card, action)} 点伤害";
+                    {
+                        var expected = CardPreviewRules.ComputeExpectedDamage(state, owner, card, action);
+                        var baseline = CardPreviewRules.ComputeBaselineDamage(owner, action);
+                        body = $"造成 {CardFaceNumberFormatter.Format(expected, baseline)} 点伤害";
+                    }
                     else
                     {
                         body = CardActionValueText.DescribeDamage(action, owner, preferFormulas);
@@ -542,6 +557,21 @@ namespace Grimhand.Presentation.Battle
                 }
                 case EffectActionType.GainBlock:
                 {
+                    if (owner != null && state != null && !preferFormulas)
+                    {
+                        var expected = CardPreviewRules.ComputeExpectedBlock(state, owner, action);
+                        var baseline = CardPreviewRules.ComputeBaselineBlock(owner, action);
+                        var amountText = CardFaceNumberFormatter.Format(expected, baseline);
+                        if (owner.TalentDisableBlockGain
+                            && TalentBattleRules.HasTalent(state, "talent_knight_s2_lv10"))
+                        {
+                            return prefix + reachTag + PrefixTarget(
+                                target, $"下张攻击伤害 +{amountText}（铁壁转化）");
+                        }
+
+                        return prefix + reachTag + PrefixTarget(target, $"获得 {amountText} 点护甲");
+                    }
+
                     var body = CardActionValueText.DescribeBlock(action, owner, preferFormulas);
                     return prefix + reachTag + PrefixTarget(target, body);
                 }
@@ -558,8 +588,20 @@ namespace Grimhand.Presentation.Battle
                         if (preferFormulas && owner == null && action.ScaleWithAttack)
                             return prefix + $"恢复自身 {CardActionValueText.FormatPlain(action, useDefense: false)} 的生命";
 
-                        var selfHeal = CardPowerRules.ComputeActionValue(action, owner);
-                        return prefix + $"恢复 {selfHeal} 点生命";
+                        var selfHeal = CardPreviewRules.ComputeExpectedHeal(state, owner, action);
+                        var baseHeal = CardPreviewRules.ComputeBaselineHeal(owner, action);
+                        var healText = state != null
+                            ? CardFaceNumberFormatter.Format(selfHeal, baseHeal)
+                            : selfHeal.ToString();
+                        return prefix + $"恢复 {healText} 点生命";
+                    }
+
+                    if (owner != null && state != null && !preferFormulas)
+                    {
+                        var heal = CardPreviewRules.ComputeExpectedHeal(state, owner, action);
+                        var baseHeal = CardPreviewRules.ComputeBaselineHeal(owner, action);
+                        return prefix + reachTag + PrefixTarget(
+                            target, $"恢复 {CardFaceNumberFormatter.Format(heal, baseHeal)} 点生命");
                     }
 
                     var body = CardActionValueText.DescribeHeal(action, owner, preferFormulas);
@@ -580,15 +622,24 @@ namespace Grimhand.Presentation.Battle
                     if (action.Target == EffectTarget.RandomEnemies)
                     {
                         var count = action.Value > 0 ? action.Value : 1;
+                        var stacks = PreviewStatusStacks(state, owner, action);
+                        var dur = FormatDurationSuffix(action, state, owner);
                         if (action.StatusId == StatusCatalog.Slow)
-                            return prefix + $"随机使 {count} 名敌人获得减速 {action.Stacks} 层{FormatDurationSuffix(action)}";
+                            return prefix + $"随机使 {count} 名敌人获得减速 {stacks} 层{dur}";
 
                         var def = StatusCatalog.Get(action.StatusId);
                         var name = def?.DisplayName ?? action.StatusId;
-                        return prefix + $"随机使 {count} 名敌人获得{name} {action.Stacks} 层{FormatDurationSuffix(action)}";
+                        return prefix + $"随机使 {count} 名敌人获得{name} {stacks} 层{dur}";
                     }
 
-                    return prefix + reachTag + DescribeStatusEffectClause(action, target, usesPick);
+                    if (action.Target == EffectTarget.AllAllies
+                        && (IsTeamWideAttackBuffStatus(action.StatusId)
+                            || IsTeamWideDefenseBuffStatus(action.StatusId)))
+                    {
+                        return prefix + FormatTeamWideStatusLine(action, state, owner);
+                    }
+
+                    return prefix + reachTag + DescribeStatusEffectClause(action, target, usesPick, state, owner);
                 case EffectActionType.RemoveStatus:
                     return prefix + PrefixTarget(target, "清除状态");
                 case EffectActionType.SwapPositionWithFrontAlly:
@@ -685,7 +736,8 @@ namespace Grimhand.Presentation.Battle
 
             var clause = DescribeEffectClause(
                 first, owner, usesPick: false, TargetPickSide.None, state, card, reaction: false, preferFormulas);
-            line = string.IsNullOrEmpty(clause) ? "" : $"{clause}，重复 {actions.Count} 次";
+            // 多段只展示单段结算伤害（剑刃风暴等），不写「重复 N 次」。
+            line = clause ?? "";
             remaining = new List<EffectActionSpec>();
             return !string.IsNullOrEmpty(line);
         }
@@ -718,11 +770,13 @@ namespace Grimhand.Presentation.Battle
             {
                 if (owner != null && state != null && card != null && !preferFormulas)
                 {
-                    var perEnemy = CardPreviewRules.FormatAoeDamagePerEnemy(state, owner, card);
-                    if (!string.IsNullOrEmpty(perEnemy))
-                        return $"对全体敌人：{perEnemy}{DescribeDamageExtras(action)}";
+                    var perEnemyLine = FormatBattleAoeDamageLine(state, owner, card, action);
+                    if (!string.IsNullOrEmpty(perEnemyLine))
+                        return perEnemyLine + DescribeDamageExtras(action);
 
-                    return $"对全体敌人各造成 {CardPreviewRules.ComputeExpectedDamage(state, owner, card, action)} 点伤害{DescribeDamageExtras(action)}";
+                    var expected = CardPreviewRules.ComputeExpectedDamage(state, owner, card, action);
+                    var baseline = CardPreviewRules.ComputeBaselineDamage(owner, action);
+                    return $"对全体敌人各造成 {CardFaceNumberFormatter.Format(expected, baseline)} 点伤害{DescribeDamageExtras(action)}";
                 }
 
                 return $"对全体敌人各{CardActionValueText.DescribeDamage(action, owner, preferFormulas)}{DescribeDamageExtras(action)}";
@@ -781,27 +835,97 @@ namespace Grimhand.Presentation.Battle
             return true;
         }
 
-        static string DescribeStatusEffectClause(EffectActionSpec action, string target, bool usesPick)
+        /// <summary>
+        /// AOE 伤害文案：各目标最终值相同时写「各造成 X」；不同时才分列 名(伤)。
+        /// </summary>
+        static string FormatBattleAoeDamageLine(
+            BattleState state,
+            CombatantState owner,
+            CardInstanceState card,
+            EffectActionSpec action)
         {
+            if (state == null || owner == null || card == null || action == null)
+                return "";
+
+            List<(CombatantState target, int damage)> parts;
+            if (action.Target == EffectTarget.AllEnemies)
+            {
+                parts = CardPreviewRules.PreviewAoeDamagePerEnemy(state, owner, card, action);
+            }
+            else
+            {
+                parts = new List<(CombatantState target, int damage)>();
+                foreach (var enemy in PositionRules.GetAliveSortedByPhysicalSlot(state, TeamSide.Enemy))
+                {
+                    if (!CardPreviewRules.CanPreviewDamageAgainstTarget(state, owner, card, action, enemy))
+                        continue;
+                    parts.Add((enemy, CardPreviewRules.PreviewHpDamageAgainstTarget(state, owner, card, action, enemy)));
+                }
+            }
+
+            if (parts == null || parts.Count == 0)
+                return "";
+
+            var baseline = CardPreviewRules.ComputeBaselineDamage(owner, action);
+            var allSame = true;
+            for (var i = 1; i < parts.Count; i++)
+            {
+                if (parts[i].damage != parts[0].damage)
+                {
+                    allSame = false;
+                    break;
+                }
+            }
+
+            if (allSame)
+            {
+                return $"对全体敌人各造成 {CardFaceNumberFormatter.Format(parts[0].damage, baseline)} 点伤害";
+            }
+
+            var sb = new StringBuilder("对全体敌人：");
+            for (var i = 0; i < parts.Count; i++)
+            {
+                if (i > 0)
+                    sb.Append(' ');
+                sb.Append(FormatCombatantDisambiguatedName(state, parts[i].target))
+                    .Append('(')
+                    .Append(CardFaceNumberFormatter.Format(parts[i].damage, baseline))
+                    .Append(')');
+            }
+
+            return sb.ToString();
+        }
+
+        static string DescribeStatusEffectClause(
+            EffectActionSpec action,
+            string target,
+            bool usesPick,
+            BattleState state = null,
+            CombatantState owner = null)
+        {
+            var stacks = PreviewStatusStacks(state, owner, action);
+            var stacksText = CardFaceNumberFormatter.Format(stacks, action.Stacks);
+            var dur = FormatDurationSuffix(action, state, owner);
+
             switch (action.StatusId)
             {
                 case StatusCatalog.AttackUp:
                 case StatusCatalog.DamageUp:
-                    return PrefixTarget(usesPick ? "" : target, $"攻击伤害 +{action.Stacks}（本回合）");
+                    return PrefixTarget(usesPick ? "" : target, $"攻击伤害 +{stacksText}（本回合）");
                 case StatusCatalog.DefenseUp:
                 case StatusCatalog.ArmorUp:
-                    return PrefixTarget(usesPick ? "" : target, $"护甲获取 +{action.Stacks}（本回合）");
+                    return PrefixTarget(usesPick ? "" : target, $"护甲获取 +{stacksText}（本回合）");
                 case StatusCatalog.AttackDown:
                 case StatusCatalog.Weaken:
-                    return PrefixTarget(usesPick ? "" : target, $"施加 {action.Stacks}% 虚弱（造成的伤害减少）{FormatDurationSuffix(action)}");
+                    return PrefixTarget(usesPick ? "" : target, $"施加 {stacksText}% 虚弱（造成的伤害减少）{dur}");
                 case StatusCatalog.Vulnerable:
-                    return PrefixTarget(usesPick ? "" : target, $"施加 {action.Stacks}% 易伤{FormatDurationSuffix(action)}");
+                    return PrefixTarget(usesPick ? "" : target, $"施加 {stacksText}% 易伤{dur}");
                 case StatusCatalog.Taunt:
                     return "所有敌人下一行动强制攻击自身";
                 case StatusCatalog.Guard:
                     return "本回合队友伤害转移给自身，减伤 50%";
                 case StatusCatalog.VampAura:
-                    return $"直到本回合结束，攻击回复造成伤害 {action.Stacks}% 的生命";
+                    return $"直到本回合结束，攻击回复造成伤害 {stacksText}% 的生命";
                 case StatusCatalog.ReviveBlessing:
                     return PrefixTarget(usesPick ? "" : target, "附加复活：HP 归零时恢复 25% HP（每场 1 次）");
                 case StatusCatalog.Unyielding:
@@ -811,44 +935,74 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.GodDescends:
                     return "本场战斗中，获得护甲时对全体敌人造成 8 伤害";
                 case StatusCatalog.NecroticPoison:
-                    return PrefixTarget(usesPick ? "" : target, $"附加中毒 {action.Stacks} 层{FormatDurationSuffix(action)}");
+                case StatusCatalog.Poison:
+                    return PrefixTarget(usesPick ? "" : target, $"附加中毒 {stacksText} 层{dur}");
                 case StatusCatalog.Slow:
-                    return PrefixTarget(usesPick ? "" : target, $"施加减速 {action.Stacks} 层{FormatDurationSuffix(action)}");
+                    return PrefixTarget(usesPick ? "" : target, $"施加减速 {stacksText} 层{dur}");
+                case StatusCatalog.Burn:
+                    return PrefixTarget(usesPick ? "" : target, $"施加灼烧 {stacksText} 层{dur}");
                 default:
                 {
                     var def = StatusCatalog.Get(action.StatusId);
                     var name = def?.DisplayName ?? action.StatusId;
-                    return PrefixTarget(usesPick ? "" : target, $"施加 {name} {action.Stacks} 层{FormatDurationSuffix(action)}");
+                    return PrefixTarget(usesPick ? "" : target, $"施加 {name} {stacksText} 层{dur}");
                 }
             }
         }
 
-        static string FormatDuration(EffectActionSpec action)
+        static int PreviewStatusStacks(BattleState state, CombatantState owner, EffectActionSpec action)
         {
-            var duration = action.Duration >= 0 ? action.Duration : StatusCatalog.Get(action.StatusId)?.DefaultDuration ?? 1;
-            return duration > 0 ? $"{duration} 回合" : "本回合";
+            if (action == null)
+                return 0;
+
+            var stacks = action.Stacks;
+            if (state != null && owner != null && action.StatusId == StatusCatalog.Poison)
+                TalentBattleRules.AdjustPoisonStacks(state, owner, ref stacks);
+
+            return stacks;
         }
 
-        static string FormatDurationSuffix(EffectActionSpec action)
+        static string FormatDuration(EffectActionSpec action, BattleState state = null, CombatantState owner = null)
         {
-            var text = FormatDuration(action);
+            var baseline = CardPreviewRules.BaselineStatusDurationTurns(action);
+            if (baseline < 0)
+                return "永久";
+
+            var settled = CardPreviewRules.PreviewStatusDurationTurns(state, action, owner);
+            if (settled < 0)
+                return CardFaceNumberFormatter.FormatDurationTurns(settled, baseline);
+
+            if (settled <= 0 && baseline <= 0)
+                return "本回合";
+
+            return CardFaceNumberFormatter.FormatDurationTurns(settled, baseline);
+        }
+
+        static string FormatDurationSuffix(EffectActionSpec action, BattleState state = null, CombatantState owner = null)
+        {
+            var text = FormatDuration(action, state, owner);
             return string.IsNullOrEmpty(text) ? "" : $"（{text}）";
         }
 
         static bool TryDescribeAllAllyTeamEffect(
+            BattleState state,
             List<EffectActionSpec> actions,
             CombatantState owner,
             bool preferFormulas,
             out string line,
             out List<EffectActionSpec> remaining)
         {
-            if (TryDescribeAllAllyBlock(actions, owner, preferFormulas, out line, out remaining))
+            if (TryDescribeAllAllyBlock(state, actions, owner, preferFormulas, out line, out remaining))
                 return true;
 
-            return TryDescribeAllAllyAttackUp(actions, owner, out line, out remaining);
+            if (TryDescribeAllAllyAttackUp(actions, owner, state, out line, out remaining))
+                return true;
+
+            return TryDescribeAllAllyDefenseUp(actions, owner, state, out line, out remaining);
         }
 
         static bool TryDescribeAllAllyBlock(
+            BattleState state,
             List<EffectActionSpec> actions,
             CombatantState owner,
             bool preferFormulas,
@@ -894,11 +1048,17 @@ namespace Grimhand.Presentation.Battle
                 return false;
 
             if (preferFormulas && owner == null && front.ScaleWithDefense)
-                line = $"三名队友各获得 {CardActionValueText.FormatPlain(front, useDefense: true)} 的护甲";
+                line = $"全队获得 {CardActionValueText.FormatPlain(front, useDefense: true)} 的护甲";
+            else if (state != null && owner != null && !preferFormulas)
+            {
+                var expected = CardPreviewRules.ComputeExpectedBlock(state, owner, front);
+                var baseline = CardPreviewRules.ComputeBaselineBlock(owner, front);
+                line = $"全队获得 {CardFaceNumberFormatter.Format(expected, baseline)} 点护甲";
+            }
             else
             {
                 var block = CardPowerRules.ComputeActionValue(front, owner);
-                line = $"三名队友各获得 {block} 点护甲";
+                line = $"全队获得 {block} 点护甲";
             }
             remaining = new List<EffectActionSpec>();
             foreach (var action in actions)
@@ -914,6 +1074,7 @@ namespace Grimhand.Presentation.Battle
         static bool TryDescribeAllAllyAttackUp(
             List<EffectActionSpec> actions,
             CombatantState owner,
+            BattleState state,
             out string line,
             out List<EffectActionSpec> remaining)
         {
@@ -928,7 +1089,7 @@ namespace Grimhand.Presentation.Battle
             {
                 if (action.Type != EffectActionType.ApplyStatus)
                     continue;
-                if (action.StatusId != StatusCatalog.AttackUp && action.StatusId != StatusCatalog.DamageUp)
+                if (!IsTeamWideAttackBuffStatus(action.StatusId))
                     continue;
 
                 switch (action.Target)
@@ -942,10 +1103,107 @@ namespace Grimhand.Presentation.Battle
             if (front == null || middle == null || back == null)
                 return false;
 
+            if (front.StatusId != middle.StatusId || front.StatusId != back.StatusId)
+                return false;
+
             if (front.Stacks != middle.Stacks || front.Stacks != back.Stacks)
                 return false;
 
-            line = $"全队攻击伤害 +{front.Stacks}（本回合）";
+            if (front.Duration != middle.Duration || front.Duration != back.Duration)
+                return false;
+
+            line = FormatTeamWideStatusLine(front, state, owner);
+            remaining = new List<EffectActionSpec>();
+            foreach (var action in actions)
+            {
+                if (action == front || action == middle || action == back)
+                    continue;
+                remaining.Add(action);
+            }
+
+            return true;
+        }
+
+        static bool IsTeamWideAttackBuffStatus(string statusId) =>
+            statusId == StatusCatalog.AttackUp
+            || statusId == StatusCatalog.DamageUp
+            || statusId == StatusCatalog.AttackUpPercent;
+
+        static bool IsTeamWideDefenseBuffStatus(string statusId) =>
+            statusId == StatusCatalog.DefenseUp
+            || statusId == StatusCatalog.ArmorUp
+            || statusId == StatusCatalog.DefenseUpPercent;
+
+        static string FormatTeamWideStatusLine(
+            EffectActionSpec action,
+            BattleState state,
+            CombatantState owner)
+        {
+            var stacks = PreviewStatusStacks(state, owner, action);
+            var stacksText = CardFaceNumberFormatter.Format(stacks, action.Stacks);
+            var dur = FormatDurationSuffix(action, state, owner);
+
+            if (IsTeamWideAttackBuffStatus(action.StatusId))
+            {
+                if (action.StatusId == StatusCatalog.AttackUpPercent)
+                    return $"全队获得 {stacksText}% 增伤{dur}";
+                return $"全队攻击伤害 +{stacksText}{dur}";
+            }
+
+            if (IsTeamWideDefenseBuffStatus(action.StatusId))
+            {
+                if (action.StatusId == StatusCatalog.DefenseUpPercent)
+                    return $"全队获得 {stacksText}% 强固{dur}";
+                return $"全队护甲获取 +{stacksText}{dur}";
+            }
+
+            var def = StatusCatalog.Get(action.StatusId);
+            var name = def?.DisplayName ?? action.StatusId;
+            return $"全队获得 {name} {stacksText} 层{dur}";
+        }
+
+        static bool TryDescribeAllAllyDefenseUp(
+            List<EffectActionSpec> actions,
+            CombatantState owner,
+            BattleState state,
+            out string line,
+            out List<EffectActionSpec> remaining)
+        {
+            line = "";
+            remaining = actions;
+
+            EffectActionSpec front = null;
+            EffectActionSpec middle = null;
+            EffectActionSpec back = null;
+
+            foreach (var action in actions)
+            {
+                if (action.Type != EffectActionType.ApplyStatus)
+                    continue;
+                if (!IsTeamWideDefenseBuffStatus(action.StatusId))
+                    continue;
+
+                switch (action.Target)
+                {
+                    case EffectTarget.AllyFrontSlot: front = action; break;
+                    case EffectTarget.AllyMiddleSlot: middle = action; break;
+                    case EffectTarget.AllyBackSlot: back = action; break;
+                }
+            }
+
+            if (front == null || middle == null || back == null)
+                return false;
+
+            if (front.StatusId != middle.StatusId || front.StatusId != back.StatusId)
+                return false;
+
+            if (front.Stacks != middle.Stacks || front.Stacks != back.Stacks)
+                return false;
+
+            if (front.Duration != middle.Duration || front.Duration != back.Duration)
+                return false;
+
+            line = FormatTeamWideStatusLine(front, state, owner);
             remaining = new List<EffectActionSpec>();
             foreach (var action in actions)
             {
@@ -1164,7 +1422,7 @@ namespace Grimhand.Presentation.Battle
         }
 
         /// <summary>悬停角色时，独立状态框的炉石式描述（含天神下凡等特殊状态）。</summary>
-        public static string FormatStatusTooltipDescriptions(CombatantState unit)
+        public static string FormatStatusTooltipDescriptions(CombatantState unit, BattleState state = null)
         {
             if (unit == null)
                 return "";
@@ -1179,12 +1437,63 @@ namespace Grimhand.Presentation.Battle
             AppendStatusTooltipEntry(sb, unit.BloodRageStacks > 0,
                 "血怒", $"下一张攻击 +{unit.BloodRageStacks * MinionTraitCatalog.OgreBloodRageDamagePercentPerStack}%");
             AppendStatusTooltipEntry(sb, unit.SacrificeAttackStacks > 0,
-                "献祭增伤", $"出站伤害 +{unit.SacrificeAttackStacks}%（血祭坛等）");
+                "献祭增伤", $"增伤 +{unit.SacrificeAttackStacks}%（血祭坛等）");
             AppendStatusTooltipEntry(sb, unit.NextAttackFlatBonus > 0,
                 "下次攻击", $"额外 +{unit.NextAttackFlatBonus} 伤害");
             AppendStatusTooltipEntry(sb, unit.MermaidZeroCostAttackBonusPercent > 0,
                 "增伤",
                 $"打出费用为 0 的卡牌时获得（永久，上限 100%）；当前 +{unit.MermaidZeroCostAttackBonusPercent}%，提升所有攻击牌伤害");
+
+            if (FootStatusIconAggregator.IsBurningLongswordActive(state, unit))
+            {
+                AppendStatusTooltipEntry(sb, true,
+                    "烈火长剑",
+                    "前排专属：对拥有灼烧的敌人造成 1.5 倍伤害");
+            }
+
+            var dodgePct = FootStatusIconAggregator.ResolveDodgeChancePercent(state, unit);
+            if (dodgePct > 0)
+            {
+                var dodgeDesc = unit.FirstHitDodgePending
+                    && MinionTraitRules.HasTrait(unit, MinionTraitCatalog.BatFirstHitDodge)
+                    ? $"本回合首次受击有 {dodgePct}% 概率完全闪避伤害"
+                    : $"受击时有 {dodgePct}% 概率完全闪避伤害";
+                AppendStatusTooltipEntry(sb, true, "闪避", dodgeDesc);
+            }
+
+            var blockGainPct = 0;
+            if (unit.Team == TeamSide.Player
+                && state?.Config?.RunModifiers != null
+                && state.Config.RunModifiers.TeamBlockGainBonusPercent > 0f)
+                blockGainPct = (int)System.Math.Round(state.Config.RunModifiers.TeamBlockGainBonusPercent);
+            AppendStatusTooltipEntry(sb, blockGainPct > 0,
+                "强固",
+                $"获得护甲 +{blockGainPct}%（铁壁战甲/圣骑之盾等）");
+
+            if (unit.Team == TeamSide.Player
+                && unit.Block > 0
+                && unit.CharacterDefinitionId is RelicEffectRules.WarriorCharacterId or "char_warrior"
+                && state?.Config?.RunModifiers != null
+                && state.Config.RunModifiers.WarriorBlockDamageReductionPercent > 0f)
+            {
+                var castlePct = (int)System.Math.Round(state.Config.RunModifiers.WarriorBlockDamageReductionPercent);
+                AppendStatusTooltipEntry(sb, true,
+                    "城堡骑士",
+                    $"拥有护甲期间受伤减少 {castlePct}%");
+            }
+
+            if (unit.Team == TeamSide.Player
+                && state != null
+                && state.TeamFirstHitReductionPending
+                && unit.FirstHitReductionPending
+                && state.Config?.RunModifiers != null
+                && state.Config.RunModifiers.FirstHitDamageReductionPercent > 0f)
+            {
+                var firstPct = (int)System.Math.Round(state.Config.RunModifiers.FirstHitDamageReductionPercent);
+                AppendStatusTooltipEntry(sb, true,
+                    "圣骑之盾",
+                    $"本回合第一个受到攻击的友方，该次受伤减少 {firstPct}%");
+            }
 
             foreach (var s in unit.Statuses)
             {
@@ -1244,7 +1553,7 @@ namespace Grimhand.Presentation.Battle
                         $"受到的伤害增加 {status.Stacks}%（每层 +1%）",
                         status, def);
                 case StatusCatalog.LastStand:
-                    return "出站伤害 +20%；HP 将降至 0 以下时保留 1 HP";
+                    return "增伤 +20%；HP 将降至 0 以下时保留 1 HP";
                 case StatusCatalog.Taunt:
                     return "敌人下一行动强制攻击自身";
                 case StatusCatalog.ReviveBlessing:

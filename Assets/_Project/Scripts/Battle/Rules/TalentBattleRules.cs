@@ -56,20 +56,40 @@ namespace Grimhand.Battle.Rules
                 {
                     DamageRules.ApplyBlock(combatant, 2, events, state);
                 }
+
+                if (combatant.TalentRespondNextTurnBlock > 0
+                    && combatant.CharacterDefinitionId == KnightId
+                    && HasTalent(state, "talent_knight_s2_lv2"))
+                {
+                    var block = combatant.TalentRespondNextTurnBlock;
+                    combatant.TalentRespondNextTurnBlock = 0;
+                    DamageRules.ApplyBlock(combatant, block, events, state);
+                }
             }
         }
 
         public static void ProcessEndOfTurn(BattleState state, List<BattleEvent> events)
         {
-            if (state == null || !HasTalent(state, "talent_knight_s1_lv5"))
+            if (state == null)
                 return;
 
-            foreach (var ally in CollectAlivePlayerTeam(state))
+            if (HasTalent(state, "talent_knight_s1_lv5"))
             {
-                if (ally.CharacterDefinitionId != KnightId || ally.Block <= 0)
-                    continue;
+                foreach (var ally in CollectAlivePlayerTeam(state))
+                {
+                    if (ally.CharacterDefinitionId != KnightId || ally.Block <= 0)
+                        continue;
 
-                DamageRules.ApplyHeal(state, ally, 2, events, ally);
+                    DamageRules.ApplyHeal(state, ally, 2, events, ally);
+                }
+            }
+
+            // 巫妖 s1_lv9：本回合全为巫妖牌 → 下回合全体敌人 10 伤
+            if (HasTalent(state, "talent_lich_s1_lv9")
+                && state.TalentLichCardsPlayedThisTurn > 0
+                && state.TalentLichAllCardsLichOwnedThisTurn)
+            {
+                state.TalentLichPendingEnemyAoeNextTurn = 10;
             }
         }
 
@@ -130,7 +150,7 @@ namespace Grimhand.Battle.Rules
                 }
 
                 if (HasTalent(state, "talent_ranger_s2_lv8")
-                    && state.Config?.Talents?.NonBossSoloEnemyBattle == true)
+                    && IsNonBossSoloEnemyActive(state))
                 {
                     combatant.OutgoingDamagePercentBonus += 30;
                 }
@@ -167,20 +187,8 @@ namespace Grimhand.Battle.Rules
             if (state == null || actor == null || cardType != CardType.Attack)
                 return 1f;
 
-            var mul = 1f;
-            if (actor.TalentRespondAttackBonusPending && HasTalent(state, "talent_knight_s2_lv3"))
-            {
-                mul *= 1.2f;
-                actor.TalentRespondAttackBonusPending = false;
-            }
-
-            if (actor.TalentIronWallPendingDamageBonus > 0 && HasTalent(state, "talent_knight_s2_lv10"))
-            {
-                // 铁壁转化：下一张伤害牌额外 +N（N=被转化的护甲量）
-                // 通过 flat bonus 在 GetOutgoingDamageFlatBonus 处理
-            }
-
-            return mul;
+            // 铁壁转化改为 flat bonus（GetOutgoingDamageFlatBonus）
+            return 1f;
         }
 
         public static int GetOutgoingDamageFlatBonus(
@@ -209,12 +217,6 @@ namespace Grimhand.Battle.Rules
         {
             if (target == null || hpDamage <= 0)
                 return hpDamage;
-
-            if (target.TalentRespondDamageReductionPending && HasTalent(state, "talent_knight_s2_lv2"))
-            {
-                target.TalentRespondDamageReductionPending = false;
-                hpDamage = (int)Math.Round(hpDamage * 0.8f);
-            }
 
             if (hpDamage > 0 && target.Hp - hpDamage <= 0)
                 TryKnightLastStand(state, target, events, ref hpDamage);
@@ -254,7 +256,20 @@ namespace Grimhand.Battle.Rules
 
         public static void OnCharacterDied(BattleState state, CombatantState combatant, List<BattleEvent> events)
         {
-            if (state == null || combatant == null || combatant.Team != TeamSide.Player)
+            if (state == null || combatant == null)
+                return;
+
+            // 孤猎：敌方减员后动态刷新恶魔增伤
+            if (combatant.Team == TeamSide.Enemy && HasTalent(state, "talent_ranger_s2_lv8"))
+            {
+                foreach (var ally in CollectAlivePlayerTeam(state))
+                {
+                    if (ally.CharacterDefinitionId == RangerId)
+                        RelicBattleRules.RefreshDerivedStats(state, ally, state.Config?.RunModifiers);
+                }
+            }
+
+            if (combatant.Team != TeamSide.Player)
                 return;
 
             if (combatant.CharacterDefinitionId != MageId || !HasTalent(state, "talent_mage_s1_lv10"))
@@ -271,16 +286,51 @@ namespace Grimhand.Battle.Rules
             });
         }
 
-        public static void OnRespondSuccess(BattleState state, CombatantState actor)
+        public static void OnRespondSuccess(
+            BattleState state,
+            CombatantState actor,
+            RespondTriggerContext context,
+            List<BattleEvent> events)
         {
             if (state == null || actor == null || actor.CharacterDefinitionId != KnightId)
                 return;
 
-            if (HasTalent(state, "talent_knight_s2_lv2"))
-                actor.TalentRespondDamageReductionPending = true;
+            var enemyCard = state.GetCard(context.EnemyCardInstanceId);
+            var respondedToAttack = enemyCard != null && enemyCard.CardType == CardType.Attack;
 
-            if (HasTalent(state, "talent_knight_s2_lv3"))
-                actor.TalentRespondAttackBonusPending = true;
+            // 应对护甲：仅「应对攻击」成功后，下回合开始 +5 护甲
+            if (respondedToAttack && HasTalent(state, "talent_knight_s2_lv2"))
+                actor.TalentRespondNextTurnBlock += 5;
+
+            // 应对增伤：仅「应对攻击」成功后，20% 增伤（2 回合）
+            if (respondedToAttack && HasTalent(state, "talent_knight_s2_lv3") && events != null)
+                StatusRules.ApplyStatus(state, actor, StatusCatalog.AttackUpPercent, 20, 2, events);
+        }
+
+        /// <summary>
+        /// 出牌效果结算前调用：连击计数在伤害前生效，使第三张攻击立刻吃到 33% 增伤。
+        /// </summary>
+        public static void OnCardAboutToResolve(
+            BattleState state,
+            CombatantState actor,
+            CardInstanceState card)
+        {
+            if (state == null || actor == null || card == null)
+                return;
+
+            if (actor.CharacterDefinitionId != KnightId || !HasTalent(state, "talent_knight_s2_lv8"))
+                return;
+
+            if (IsWarriorAttackCard(actor, card))
+            {
+                actor.TalentAttackCardsThisTurn++;
+                if (actor.TalentAttackCardsThisTurn >= 3)
+                    RelicBattleRules.RefreshDerivedStats(state, actor, state.Config?.RunModifiers);
+            }
+            else
+            {
+                actor.TalentAttackCardsThisTurn = 0;
+            }
         }
 
         public static void OnCardResolved(
@@ -292,13 +342,36 @@ namespace Grimhand.Battle.Rules
             if (state == null || actor == null || card == null)
                 return;
 
-            if (card.CardType == CardType.Attack
-                && actor.CharacterDefinitionId == KnightId
-                && HasTalent(state, "talent_knight_s2_lv8"))
-            {
-                actor.TalentAttackCardsThisTurn++;
-                RelicBattleRules.RefreshDerivedStats(state, actor, state.Config?.RunModifiers);
-            }
+            if (actor.Team != TeamSide.Player || !HasTalent(state, "talent_lich_s1_lv9"))
+                return;
+
+            state.TalentLichCardsPlayedThisTurn++;
+            if (!IsLichOwnedCard(actor, card))
+                state.TalentLichAllCardsLichOwnedThisTurn = false;
+        }
+
+        static bool IsLichOwnedCard(CombatantState actor, CardInstanceState card)
+        {
+            if (!string.IsNullOrEmpty(card.OwnerCharacterId))
+                return card.OwnerCharacterId == LichQueenId;
+
+            return actor != null && actor.CharacterDefinitionId == LichQueenId;
+        }
+
+        static bool IsWarriorAttackCard(CombatantState actor, CardInstanceState card)
+        {
+            if (card.CardType != CardType.Attack)
+                return false;
+
+            if (actor.CharacterDefinitionId != KnightId)
+                return false;
+
+            // 无 Owner 时视为该角色自有牌；有 Owner 则必须是战士牌。
+            if (!string.IsNullOrEmpty(card.OwnerCharacterId)
+                && card.OwnerCharacterId != KnightId)
+                return false;
+
+            return true;
         }
 
         public static void OnSacrificeHpSpent(BattleState state, CombatantState actor, int hpSpent)
@@ -340,7 +413,8 @@ namespace Grimhand.Battle.Rules
                 }
             }
 
-            if (HasTalent(state, "talent_ranger_s2_lv3") && damage < 5)
+            if ((HasTalent(state, "talent_ranger_s1_lv3") || HasTalent(state, "talent_ranger_s2_lv3"))
+                && damage < 5)
                 return 0;
 
             return Math.Max(1, damage);
@@ -365,7 +439,6 @@ namespace Grimhand.Battle.Rules
             }
 
             if (state.TalentMageFirstStatusDiscountPending
-                && owner.CharacterDefinitionId == MageId
                 && card.CardType == CardType.Status
                 && HasTalent(state, "talent_mage_s2_lv2"))
             {
@@ -447,7 +520,7 @@ namespace Grimhand.Battle.Rules
                 DamageRules.ApplyHeal(state, target, 3, events, target);
             }
 
-            // 巫妖女王 s1_lv4：虚化中受伤不掉血且回 3HP —— 由 DamageRules 的 ethereal 分支处理，此处不重复。
+            // 巫妖女王 s1_lv4：虚化中受伤不掉血且回 2HP —— 由 DamageRules 的 ethereal 分支处理，此处不重复。
         }
 
         public static void OnMageDamageDealt(
@@ -467,7 +540,7 @@ namespace Grimhand.Battle.Rules
                 return;
 
             state.TalentMageFirstHitSlowPending = false;
-            StatusRules.ApplyStatus(state, target, StatusCatalog.Slow, 1, 1, events);
+            StatusRules.ApplyStatus(state, target, StatusCatalog.Slow, 1, -1, events);
         }
 
         static void TryKnightLastStand(
@@ -533,11 +606,59 @@ namespace Grimhand.Battle.Rules
             return null;
         }
 
-        /// <summary>回合开始时触发的 v0.9 天赋（蛇 s1_lv4 / s2_lv4，巫妖 s1_lv7）。</summary>
+        static CombatantState FindAlivePlayerCharacterAny(BattleState state)
+        {
+            foreach (var c in state.Combatants)
+            {
+                if (c != null && c.Team == TeamSide.Player && c.IsAlive)
+                    return c;
+            }
+            return null;
+        }
+
+        /// <summary>回合开始时触发的 v0.9 天赋（蛇 / 巫妖）。</summary>
         public static void ProcessTurnStartV09Talents(BattleState state, List<BattleEvent> events)
         {
             if (state == null)
                 return;
+
+            // 巫妖 s1_lv9：上回合齐奏 → 本回合开始全体敌人 10 伤
+            if (state.TalentLichPendingEnemyAoeNextTurn > 0 && HasTalent(state, "talent_lich_s1_lv9"))
+            {
+                var amount = state.TalentLichPendingEnemyAoeNextTurn;
+                state.TalentLichPendingEnemyAoeNextTurn = 0;
+                var source = FindAlivePlayerCharacter(state, LichQueenId)
+                    ?? FindAlivePlayerCharacterAny(state);
+                if (source != null)
+                {
+                    foreach (var enemy in state.Combatants)
+                    {
+                        if (enemy == null || enemy.Team != TeamSide.Enemy || !enemy.IsAlive)
+                            continue;
+
+                        DamageRules.ApplyDamage(
+                            state,
+                            source,
+                            enemy,
+                            amount,
+                            CardType.Status,
+                            events);
+                    }
+                }
+            }
+
+            state.TalentLichCardsPlayedThisTurn = 0;
+            state.TalentLichAllCardsLichOwnedThisTurn = true;
+
+            // 巫妖 s2_lv8：每 4 回合获得虚化 1 回合
+            if (HasTalent(state, "talent_lich_s2_lv8")
+                && state.TurnNumber > 0
+                && state.TurnNumber % 4 == 0)
+            {
+                var lich = FindAlivePlayerCharacter(state, LichQueenId);
+                if (lich != null)
+                    StatusRules.ApplyStatus(state, lich, StatusCatalog.Ethereal, 1, 1, events);
+            }
 
             // 巫妖女王 s1_lv7：回合开始能量为0则+1
             if (state.EnergyCurrent == 0 && HasTalent(state, "talent_lich_s1_lv7"))
@@ -579,6 +700,29 @@ namespace Grimhand.Battle.Rules
                     }
                 }
             }
+        }
+
+        static bool IsNonBossSoloEnemyActive(BattleState state)
+        {
+            if (state?.Config?.Talents?.IsBossBattle == true)
+                return false;
+
+            return CountAliveEnemies(state) == 1;
+        }
+
+        static int CountAliveEnemies(BattleState state)
+        {
+            var count = 0;
+            if (state == null)
+                return 0;
+
+            foreach (var c in state.Combatants)
+            {
+                if (c != null && c.Team == TeamSide.Enemy && c.IsAlive)
+                    count++;
+            }
+
+            return count;
         }
 
         static bool AnyEnemyHasPoison(BattleState state)
@@ -676,7 +820,7 @@ namespace Grimhand.Battle.Rules
         {
             if (state == null || combatant == null || status == null || status.StatusId != StatusCatalog.Poison)
                 return false;
-            if (combatant.CharacterDefinitionId != SnakeQueenId || !HasTalent(state, "talent_snake_s2_lv10"))
+            if (!HasTalent(state, "talent_snake_s2_lv10"))
                 return false;
             if (status.Stacks <= 1)
                 return false;
@@ -693,7 +837,7 @@ namespace Grimhand.Battle.Rules
             return true;
         }
 
-        /// <summary>巫妖 s1_lv4：虚化中受伤改为0并回3HP。返回 true 表示已接管 ethereal 分支。</summary>
+        /// <summary>巫妖 s1_lv4：虚化中受伤改为0并回2HP。返回 true 表示已接管 ethereal 分支。</summary>
         public static bool TryHandleEtherealDamage(BattleState state, CombatantState recipient, ref int hpDamage, List<BattleEvent> events)
         {
             if (state == null || recipient == null || hpDamage <= 0)
@@ -704,8 +848,66 @@ namespace Grimhand.Battle.Rules
                 return false;
 
             hpDamage = 0;
-            DamageRules.ApplyHeal(state, recipient, 3, events, recipient);
+            DamageRules.ApplyHeal(state, recipient, 2, events, recipient);
             return true;
+        }
+
+        /// <summary>巫妖 s2_lv10：封印成功时将被封印卡克隆入手牌（消耗 + 费用+1）。</summary>
+        public static void OnEnemyCardSealed(
+            BattleState state,
+            CardInstanceState sealedCard,
+            List<BattleEvent> events)
+        {
+            if (state == null || sealedCard == null || events == null)
+                return;
+            if (!HasTalent(state, "talent_lich_s2_lv10"))
+                return;
+
+            var clone = new CardInstanceState
+            {
+                InstanceId = state.NextCardInstanceId++,
+                DefinitionId = sealedCard.DefinitionId,
+                Cost = sealedCard.Cost + 1,
+                BaseCost = sealedCard.BaseCost != 0 || sealedCard.Cost == 0
+                    ? sealedCard.BaseCost + 1
+                    : sealedCard.Cost + 1,
+                CardType = sealedCard.CardType,
+                IsUsable = true,
+                DisplayName = sealedCard.DisplayName,
+                UpgradeLevel = sealedCard.UpgradeLevel
+            };
+
+            foreach (var keyword in sealedCard.Keywords)
+            {
+                if (!clone.Keywords.Contains(keyword))
+                    clone.Keywords.Add(keyword);
+            }
+
+            if (!clone.Keywords.Contains("exhaust"))
+                clone.Keywords.Add("exhaust");
+
+            foreach (var action in sealedCard.Actions)
+                clone.Actions.Add(EffectActionSpec.Clone(action));
+
+            var lich = FindAlivePlayerCharacter(state, LichQueenId);
+            if (lich != null)
+            {
+                clone.OwnerCharacterId = LichQueenId;
+                clone.OwnerCombatantId = lich.Id;
+            }
+            else
+            {
+                clone.OwnerCharacterId = sealedCard.OwnerCharacterId;
+                clone.OwnerCombatantId = sealedCard.OwnerCombatantId;
+            }
+
+            state.CardsById[clone.InstanceId] = clone;
+            state.PlayerHand.Add(clone);
+            events.Add(new BattleEvent(BattleEventKind.CardDrawn, $"{clone.DisplayName}（封印夺取）")
+            {
+                CardInstanceId = clone.InstanceId,
+                CombatantId = lich?.Id
+            });
         }
     }
 }

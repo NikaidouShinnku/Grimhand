@@ -975,7 +975,7 @@ namespace Grimhand.Presentation.Battle
             if (presentation != null && unit != null)
                 _footStatusIcons?.Refresh(presentation.GetFootStatuses(unit.Id), uiIcons);
             else
-                _footStatusIcons?.Refresh(unit, uiIcons);
+                _footStatusIcons?.Refresh(unit, uiIcons, state);
             _portraitView?.SetDamageFloaterAbovePortrait();
 
             _showExpBar = showExpBar;
@@ -993,17 +993,17 @@ namespace Grimhand.Presentation.Battle
 
             if (!allowHoverDetail)
             {
-                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp, expeditionMember, runRelics, presentation, expeditionConfig);
+                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp, expeditionMember, runRelics, presentation, expeditionConfig, state);
                 _detailPopup?.SetVisible(false);
             }
             else if (!_hovered)
             {
-                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp, expeditionMember, runRelics, presentation, expeditionConfig);
+                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp, expeditionMember, runRelics, presentation, expeditionConfig, state);
                 _detailPopup?.SetVisible(false);
             }
             else if (!_targetMode || !_isValidTarget)
             {
-                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp, expeditionMember, runRelics, presentation, expeditionConfig);
+                _detailPopup?.Refresh(unit, uiIcons, showExpBar, xp, expeditionMember, runRelics, presentation, expeditionConfig, state);
                 _detailPopup?.SetVisible(unit != null);
             }
             else
@@ -1165,7 +1165,9 @@ namespace Grimhand.Presentation.Battle
                     _currentUnit.Xp,
                     member,
                     relics,
-                    _presentation);
+                    _presentation,
+                    _session?.IsExpeditionMode == true ? _session.Expedition?.Config : null,
+                    _session?.Engine?.State);
                 _detailPopup?.SetVisible(true);
             }
         }

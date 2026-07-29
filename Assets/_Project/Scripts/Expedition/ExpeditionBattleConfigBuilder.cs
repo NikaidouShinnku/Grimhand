@@ -30,7 +30,8 @@ namespace Grimhand.Expedition
                 {
                     MageReviveAvailable = source.Talents.MageReviveAvailable,
                     RangerBloodDebtAttackBonus = source.Talents.RangerBloodDebtAttackBonus,
-                    NonBossSoloEnemyBattle = source.Talents.NonBossSoloEnemyBattle
+                    NonBossSoloEnemyBattle = source.Talents.NonBossSoloEnemyBattle,
+                    IsBossBattle = source.Talents.IsBossBattle
                 };
                 foreach (var id in source.Talents.ActiveTalentIds)
                     clone.Talents.ActiveTalentIds.Add(id);
@@ -135,7 +136,8 @@ namespace Grimhand.Expedition
                 config.RunModifiers.SoulRiftBattleStartRandomHpLoss =
                     expeditionModifiers.SoulRiftBattleStartRandomHpLoss;
             }
-            config.MiracleLeafRevivesRemaining = miracleLeafUsesRemaining;
+            config.MiracleLeafRevivesRemaining = ResolveMiracleLeafUsesRemaining(
+                relicIds, miracleLeafUsesRemaining);
 
             var playerCap = party != null && party.Count > 0
                 ? System.Math.Min(party.Count, CampRosterState.PartySize)
@@ -167,6 +169,25 @@ namespace Grimhand.Expedition
                 runWideBonusCards);
 
             return config;
+        }
+
+        static int ResolveMiracleLeafUsesRemaining(
+            IReadOnlyList<string> relicIds,
+            int miracleLeafUsesRemaining)
+        {
+            if (miracleLeafUsesRemaining >= 0)
+                return miracleLeafUsesRemaining;
+
+            if (relicIds == null)
+                return -1;
+
+            foreach (var id in relicIds)
+            {
+                if (id == RelicIds.LeafOfMiracle)
+                    return 2;
+            }
+
+            return -1;
         }
 
         static void ApplyPlayerPartyProgress(

@@ -1,5 +1,6 @@
 using Grimhand.Battle.Status;
 using Grimhand.Content;
+using Grimhand.Expedition.Model;
 using UnityEngine;
 
 namespace Grimhand.Presentation.Battle
@@ -77,6 +78,14 @@ namespace Grimhand.Presentation.Battle
 
                 case StatusCatalog.Burn:
                     return icons.StatusBurning;
+
+                case StatusCatalog.DodgeChance:
+                    return icons.StatusEvade != null ? icons.StatusEvade : icons.StatusSpdUp;
+
+                case RelicIds.BurningLongsword:
+                    return icons.StatusBurningLongsword != null
+                        ? icons.StatusBurningLongsword
+                        : icons.StatusBurning;
 
                 case StatusCatalog.BrandMark:
                     return icons.StatusBrandMark != null ? icons.StatusBrandMark : icons.NoteIcon;

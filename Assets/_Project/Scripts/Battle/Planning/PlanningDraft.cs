@@ -489,7 +489,6 @@ namespace Grimhand.Battle.Planning
             if (owner.TalentNextSacrificeEnergyDiscount)
                 owner.TalentNextSacrificeEnergyDiscount = false;
             else if (_state.TalentMageFirstStatusDiscountPending
-                     && owner.CharacterDefinitionId == TalentBattleRules.MageId
                      && card.CardType == CardType.Status)
             {
                 _state.TalentMageFirstStatusDiscountPending = false;

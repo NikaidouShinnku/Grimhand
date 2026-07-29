@@ -20,6 +20,9 @@ namespace Grimhand.Battle.Model
         /// <summary>下回合额外抽到的牌费用减免（召唤卡牌之灵等，仅作用于 PendingDrawNextTurn 那几张）。</summary>
         public int PendingDrawNextTurnCostReduction { get; set; }
 
+        /// <summary>下回合开始时额外回复的能量（翡翠短刀等）。</summary>
+        public int PendingEnergyNextTurn { get; set; }
+
         public List<CombatantState> Combatants { get; } = new();
         public List<CardInstanceState> PlayerDrawPile { get; } = new();
         public List<CardInstanceState> PlayerHand { get; } = new();
@@ -122,6 +125,15 @@ namespace Grimhand.Battle.Model
 
         /// <summary>巫妖女王 s2_lv5：本场战斗首张消耗牌 -1 费（待消耗）。</summary>
         public bool TalentLichFirstExhaustDiscountPending { get; set; }
+
+        /// <summary>巫妖 s1_lv9：本回合已打出的玩家牌数量。</summary>
+        public int TalentLichCardsPlayedThisTurn { get; set; }
+
+        /// <summary>巫妖 s1_lv9：本回合已打出牌是否全属巫妖（无出牌时为 true）。</summary>
+        public bool TalentLichAllCardsLichOwnedThisTurn { get; set; } = true;
+
+        /// <summary>巫妖 s1_lv9：下回合开始对全体敌人造成的伤害。</summary>
+        public int TalentLichPendingEnemyAoeNextTurn { get; set; }
 
         /// <summary>v0.91：灵魂纽带伙伴映射（本回合有效，回合开始清空）。</summary>
         public Dictionary<string, string> SoulBondPartnerByCombatantId { get; } = new();

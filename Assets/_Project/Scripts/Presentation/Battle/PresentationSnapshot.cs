@@ -59,7 +59,7 @@ namespace Grimhand.Presentation.Battle
                 snap._ironWallPendingAttackBonus[c.Id] = c.TalentIronWallPendingDamageBonus;
                 snap._slots[c.Id] = c.Slot;
                 snap._displayStats[c.Id] = BuildDisplayStats(c, state);
-                snap._footStatuses[c.Id] = CaptureFootStatuses(c);
+                snap._footStatuses[c.Id] = CaptureFootStatuses(c, state);
                 if (!c.IsAlive)
                     snap._dead.Add(c.Id);
             }
@@ -237,7 +237,7 @@ namespace Grimhand.Presentation.Battle
             if (combatant == null)
                 return;
 
-            _footStatuses[combatantId] = CaptureFootStatuses(combatant);
+            _footStatuses[combatantId] = CaptureFootStatuses(combatant, state);
         }
 
         public void RecordEventCheckpoint(int eventIndex, BattleEventKind kind, BattleState state)
@@ -284,7 +284,7 @@ namespace Grimhand.Presentation.Battle
             _ironWallPendingAttackBonus[combatant.Id] = combatant.TalentIronWallPendingDamageBonus;
             _slots[combatant.Id] = combatant.Slot;
             _displayStats[combatant.Id] = BuildDisplayStats(combatant, state);
-            _footStatuses[combatant.Id] = CaptureFootStatuses(combatant);
+            _footStatuses[combatant.Id] = CaptureFootStatuses(combatant, state);
             if (combatant.IsAlive)
                 _dead.Remove(combatant.Id);
             else
@@ -310,8 +310,8 @@ namespace Grimhand.Presentation.Battle
                 TraitFootnote = MinionTraitDisplayFormatter.FormatFootnote(combatant, state)
             };
 
-        static List<FootStatusEntry> CaptureFootStatuses(CombatantState combatant) =>
-            FootStatusIconAggregator.Aggregate(combatant);
+        static List<FootStatusEntry> CaptureFootStatuses(CombatantState combatant, BattleState state = null) =>
+            FootStatusIconAggregator.Aggregate(combatant, state);
 
         public void ApplyIronWallConversion(string combatantId, int amount)
         {

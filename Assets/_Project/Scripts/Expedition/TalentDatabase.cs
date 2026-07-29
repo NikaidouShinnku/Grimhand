@@ -132,6 +132,7 @@ namespace Grimhand.Expedition
                     : 0;
             }
 
+            config.Talents.IsBossBattle = isBossBattle;
             config.Talents.NonBossSoloEnemyBattle = !isBossBattle && CountAliveEnemies(config) == 1;
             ApplyModifierFlags(config.RunModifiers ??= new RunModifierSnapshot(), config.Talents);
         }
@@ -155,6 +156,10 @@ namespace Grimhand.Expedition
         {
             if (ctx == null || string.IsNullOrEmpty(talentId))
                 return;
+
+            // 旧存档：微献保护曾挂在 s2_lv3
+            if (talentId == "talent_ranger_s2_lv3")
+                talentId = "talent_ranger_s1_lv3";
 
             var talent = TalentCatalog.Get(talentId);
             if (talent == null || !TalentRules.BelongsToCharacter(talent, ownerCharacterId))

@@ -248,6 +248,8 @@ namespace Grimhand.Battle
 
             PassiveCardMechanicsRules.ApplyEndlessBladeSacrifice(_state, actor, card, _events, _rng);
 
+            TalentBattleRules.OnCardAboutToResolve(_state, actor, card);
+
             if (SpecialCardRules.IsSpecialCard(card))
                 SpecialCardRules.TryResolve(_state, actor, card, _events, _rng);
             else
@@ -338,6 +340,8 @@ namespace Grimhand.Battle
             });
 
             PassiveCardMechanicsRules.ApplyEndlessBladeSacrifice(_state, actor, card, _events, _rng);
+
+            TalentBattleRules.OnCardAboutToResolve(_state, actor, card);
 
             if (SpecialCardRules.IsSpecialCard(card))
                 SpecialCardRules.TryResolve(_state, actor, card, _events, _rng);
@@ -498,6 +502,8 @@ namespace Grimhand.Battle
                 CardInstanceId = card.InstanceId,
                 CardType = card.CardType
             });
+
+            TalentBattleRules.OnCardAboutToResolve(_state, actor, card);
 
             // 敌方应对牌：减伤已在攻击前预武装；此处只播应对成功，勿重复武装
             if (actor.Team == TeamSide.Enemy && RespondRules.IsRespondCard(card))
@@ -664,6 +670,7 @@ namespace Grimhand.Battle
                     CombatantId = actor.Id,
                     CardInstanceId = card.InstanceId
                 });
+                TalentBattleRules.OnEnemyCardSealed(_state, card, _events);
                 DeckRules.MovePlayedCardToDiscard(_state, actor.Team, card, _events);
                 _events.Add(new BattleEvent(BattleEventKind.CardResolvedEnded, card.DisplayName)
                 {
@@ -711,6 +718,8 @@ namespace Grimhand.Battle
             });
 
             PassiveCardMechanicsRules.ApplyEndlessBladeSacrifice(_state, actor, card, _events, _rng);
+
+            TalentBattleRules.OnCardAboutToResolve(_state, actor, card);
 
             if (SpecialCardRules.IsSpecialCard(card))
                 SpecialCardRules.TryResolve(_state, actor, card, _events, _rng);
@@ -847,8 +856,22 @@ namespace Grimhand.Battle
 
             var bonusDraw = _state.PendingDrawNextTurn;
             var bonusCostReduce = _state.PendingDrawNextTurnCostReduction;
+            var bonusEnergy = _state.PendingEnergyNextTurn;
             _state.PendingDrawNextTurn = 0;
             _state.PendingDrawNextTurnCostReduction = 0;
+            _state.PendingEnergyNextTurn = 0;
+
+            if (bonusEnergy > 0)
+            {
+                EnergyRules.Restore(_state, bonusEnergy);
+                _events.Add(new BattleEvent(BattleEventKind.EnergyChanged, "翡翠短刀：下回合能量")
+                {
+                    Energy = _state.EnergyCurrent,
+                    EnergyMax = _state.EnergyMax,
+                    EnergyRemaining = _state.EnergyCurrent,
+                    Amount = bonusEnergy
+                });
+            }
 
             var backRowDraw = 0;
             var mods = _state.Config?.RunModifiers;

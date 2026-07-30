@@ -52,6 +52,8 @@ namespace Grimhand.Editor
             catalog.SpeedIcon = LoadFirstSprite(IconRoot + "SPD.png");
             catalog.EnergyIcon = LoadFirstSprite(IconRoot + "ERG.png");
             catalog.GoldIcon = LoadFirstSprite(IconRoot + "coin.png");
+            catalog.CurseCardArt = LoadNamedSprite(IconRoot + "curse.png", "curse_0")
+                ?? LoadFirstSprite(IconRoot + "curse.png");
             catalog.CampGoldIcon = LoadNamedSprite(IconRoot + "camp_gold.png", "camp_gold_0");
             catalog.XpIcon = LoadFirstSprite(IconRoot + "XP.png");
             catalog.InventoryIcon = LoadFirstSprite(IconRoot + "inventory.png");
@@ -286,6 +288,9 @@ namespace Grimhand.Editor
             AddFrameSet(catalog, CardRarity.SuperRare, "superrare");
             AddFrameSet(catalog, CardRarity.Legendary, "legendary");
 
+            catalog.CurseCardArt = LoadNamedSprite(IconRoot + "curse.png", "curse_0")
+                ?? LoadFirstSprite(IconRoot + "curse.png");
+
             var common = catalog.FrameSets.Count > 0 ? catalog.FrameSets[0] : null;
             if (common != null)
             {
@@ -294,7 +299,22 @@ namespace Grimhand.Editor
                 catalog.DefaultFrameStatus = common.StatusFrame;
             }
 
+            AssignCurseCardArt(catalog.CurseCardArt);
             EditorUtility.SetDirty(catalog);
+        }
+
+        static void AssignCurseCardArt(Sprite curseArt)
+        {
+            if (curseArt == null)
+                return;
+
+            var path = "Assets/_Project/Data/Cards/Card_curse_chaos_touch.asset";
+            var card = AssetDatabase.LoadAssetAtPath<CardDefinitionSO>(path);
+            if (card == null)
+                return;
+
+            card.CardArt = curseArt;
+            EditorUtility.SetDirty(card);
         }
 
         public static void AssignDemoCardRarities()

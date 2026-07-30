@@ -308,12 +308,16 @@ namespace Grimhand.Presentation.Camp
                 return;
             }
 
-            var liveRun = battleController?.Session?.Expedition?.Run;
-            if (_trackingExpedition && liveRun != null)
+            // 有进行中的远征：进入结算面板展示本局经验/金币，点返回营地再回营
+            if (_trackingExpedition && battleController?.Session?.Expedition != null)
             {
-                FinalizeExpeditionRun(liveRun);
+                battleController.SetBattleScreenVisible(true);
+                FindAnyObjectByType<BattleScreenView>(FindObjectsInactive.Include)?.SetEscUiSuppressed(false);
+                battleController.Session.AbandonExpeditionRun("已放弃远征。");
+                return;
             }
-            else if (_profile != null && _profile.HasActiveRun)
+
+            if (_profile != null && _profile.HasActiveRun)
             {
                 var mapStart = _profile.ActiveRun.MapStartLayer > 0
                     ? _profile.ActiveRun.MapStartLayer
@@ -346,33 +350,113 @@ namespace Grimhand.Presentation.Camp
         void Update()
         {
             var keyboard = Keyboard.current;
-            if (keyboard == null || !keyboard.escapeKey.wasPressedThisFrame)
+            if (keyboard == null)
                 return;
 
-            HandleEscapePressed();
+            if (keyboard.escapeKey.wasPressedThisFrame)
+            {
+                HandleEscapePressed();
+                return;
+            }
+
+            if (!CanUseExpeditionHotkeys())
+                return;
+
+            if (keyboard.tabKey.wasPressedThisFrame)
+                battleController?.ToggleInventoryHotkey();
+            else if (keyboard.mKey.wasPressedThisFrame)
+                battleController?.ToggleMapHotkey();
+            else if (keyboard.nKey.wasPressedThisFrame)
+                battleController?.ToggleTurnDetailHotkey();
         }
+
+        bool CanUseExpeditionHotkeys()
+        {
+            if (!(_trackingExpedition || _trackingTrainingGround))
+                return false;
+            if (!IsBattleUiVisible())
+                return false;
+            if (settingsOverlay != null && settingsOverlay.IsOpen)
+                return false;
+            if (escMenu != null && escMenu.IsOpen)
+                return false;
+            if (TryCancelOpenConfirmPromptsExists())
+                return false;
+            return true;
+        }
+
+        // 仅探测是否有打开的确认框（不执行取消）
+        bool TryCancelOpenConfirmPromptsExists() =>
+            (gameMenu != null && gameMenu.IsAbandonConfirmOpen)
+            || (escMenu != null && escMenu.IsForfeitConfirmOpen);
 
         void HandleEscapePressed()
         {
+            // 1) 是/否确认框：ESC = 否
+            if (TryCancelOpenConfirmPrompts())
+                return;
+
+            // 2) 设置页
             if (settingsOverlay != null && settingsOverlay.IsOpen)
             {
                 settingsOverlay.Hide();
                 return;
             }
 
+            // 3) ESC 菜单本身
             if (escMenu != null && escMenu.IsOpen)
             {
-                if (escMenu.IsForfeitConfirmOpen)
-                    escMenu.HideForfeitConfirm();
-                else
-                    CloseEscMenu(); // 与「返回游戏」一致
+                CloseEscMenu();
                 return;
             }
 
+            // 4) 局内浮层（背包/地图/图鉴等）逐级关闭
+            if (IsBattleUiVisible() && battleController != null && battleController.TryHandleEscapeOverlays())
+                return;
+
+            // 5) 局外营地多层界面逐级返回
+            if (TryHandleCampOverlayEscape())
+                return;
+
+            // 6) 远征/训练场：打开 ESC 菜单
             if (!CanOpenEscMenu())
                 return;
 
             OpenEscMenu();
+        }
+
+        bool TryCancelOpenConfirmPrompts()
+        {
+            if (gameMenu != null && gameMenu.IsAbandonConfirmOpen && gameMenu.TryHandleEscape())
+                return true;
+
+            if (escMenu != null && escMenu.IsForfeitConfirmOpen)
+            {
+                escMenu.HideForfeitConfirm();
+                return true;
+            }
+
+            return false;
+        }
+
+        bool TryHandleCampOverlayEscape()
+        {
+            if (championCamp != null && championCamp.IsOpen)
+                return championCamp.TryHandleEscape();
+
+            if (talentCamp != null && talentCamp.IsOpen)
+                return talentCamp.TryHandleEscape();
+
+            if (portalOverlay != null && portalOverlay.IsOpen)
+                return portalOverlay.TryHandleEscape();
+
+            if (metaShop != null && metaShop.IsOpen)
+                return metaShop.TryHandleEscape();
+
+            if (libraryCodex != null && libraryCodex.IsOpen)
+                return libraryCodex.TryHandleEscape();
+
+            return false;
         }
 
         bool CanOpenEscMenu() =>
@@ -403,7 +487,7 @@ namespace Grimhand.Presentation.Camp
             }
             else
             {
-                var layer = battleController?.Session?.Expedition?.Run?.Map?.NodesCompleted + 1 ?? 1;
+                var layer = ExpeditionPathArt.ResolvePresentationLayer(battleController?.Session?.Expedition?.Run);
                 bg = ExpeditionPathArt.ResolveRouteSelectBackground(uiIcons, layer);
             }
 

@@ -12,6 +12,8 @@ namespace Grimhand.Content
         public Sprite SpeedIcon;
         public Sprite EnergyIcon;
         public Sprite GoldIcon;
+        /// <summary>诅咒牌卡面（Assets/The Grimhands Asset/icon/curse.png）</summary>
+        public Sprite CurseCardArt;
         /// <summary>局外金币图标（Assets/The Grimhands Asset/icon/camp_gold.png）</summary>
         public Sprite CampGoldIcon;
         public Sprite XpIcon;

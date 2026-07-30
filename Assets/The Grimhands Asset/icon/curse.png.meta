@@ -1,22 +1,10 @@
 fileFormatVersion: 2
-guid: 997a8391e0932fa4f88dbb5422a20986
+guid: efd31d97c846028419efffccb6da5436
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -1923726852183345621
-    second: corrupted_oceangoddess_hit_1024_0
-  - first:
-      213: -4412570525504154985
-    second: corrupted_oceangoddess_hit_1024_1
-  - first:
-      213: -7390531267505104010
-    second: corrupted_oceangoddess_hit_1024_2
-  - first:
-      213: 4601995232358370788
-    second: corrupted_oceangoddess_hit_1024_3
-  - first:
-      213: 5396073260894225675
-    second: corrupted_oceangoddess_hit_1024_4
+      213: 6894929934875589815
+    second: curse_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -125,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: corrupted_oceangoddess_hit_1024_0
+      name: curse_0
       rect:
         serializedVersion: 2
-        x: 39
-        y: 11
-        width: 854
-        height: 978
+        x: 15
+        y: 7
+        width: 101
+        height: 114
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -140,96 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: b263bbace9c8d45e0800000000000000
-      internalID: -1923726852183345621
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: corrupted_oceangoddess_hit_1024_1
-      rect:
-        serializedVersion: 2
-        x: 875
-        y: 923
-        width: 22
-        height: 62
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 79257f06c7663c2c0800000000000000
-      internalID: -4412570525504154985
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: corrupted_oceangoddess_hit_1024_2
-      rect:
-        serializedVersion: 2
-        x: 731
-        y: 383
-        width: 202
-        height: 214
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 67bd0fa08fe8f6990800000000000000
-      internalID: -7390531267505104010
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: corrupted_oceangoddess_hit_1024_3
-      rect:
-        serializedVersion: 2
-        x: 907
-        y: 419
-        width: 46
-        height: 54
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 4ed03ca08429ddf30800000000000000
-      internalID: 4601995232358370788
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: corrupted_oceangoddess_hit_1024_4
-      rect:
-        serializedVersion: 2
-        x: 687
-        y: 143
-        width: 230
-        height: 234
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: b0585998a04b2ea40800000000000000
-      internalID: 5396073260894225675
+      spriteID: 7bc777fae36bfaf50800000000000000
+      internalID: 6894929934875589815
       vertices: []
       indices: 
       edges: []
@@ -248,11 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      corrupted_oceangoddess_hit_1024_0: -1923726852183345621
-      corrupted_oceangoddess_hit_1024_1: -4412570525504154985
-      corrupted_oceangoddess_hit_1024_2: -7390531267505104010
-      corrupted_oceangoddess_hit_1024_3: 4601995232358370788
-      corrupted_oceangoddess_hit_1024_4: 5396073260894225675
+      curse_0: 6894929934875589815
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

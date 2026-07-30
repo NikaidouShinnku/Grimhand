@@ -84,6 +84,24 @@ namespace Grimhand.Presentation.Camp
         public bool IsDetailOpen => _detailView != null && _detailView.IsOpen;
         public bool IsOpen => _panel != null && _panel.gameObject.activeSelf;
 
+        /// <summary>ESC：确认框→否；卡牌详情→回列表；否则交由上层关闭收藏页。</summary>
+        public bool TryHandleEscape()
+        {
+            if (!IsOpen)
+                return false;
+
+            if (_confirmPrompt != null && _confirmPrompt.TryCancelViaEscape())
+                return true;
+
+            if (IsDetailOpen)
+            {
+                ShowListPanel();
+                return true;
+            }
+
+            return false;
+        }
+
         public void Initialize(
             BattleSetupSO battleSetup,
             CardView cardPrefab,

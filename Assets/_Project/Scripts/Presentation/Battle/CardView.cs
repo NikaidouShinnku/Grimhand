@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using Grimhand.Battle.Model;
+using Grimhand.Battle.Rules;
 using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Presentation;
@@ -16,6 +17,7 @@ namespace Grimhand.Presentation.Battle
         const float NormalScale = 1f;
         const float HoverScale = 1.14f;
         const float ScaleLerpDuration = 0.1f;
+        const int CostFontSize = 20;
 
         static readonly Color SelectedOutlineColor = new(1f, 0.86f, 0.28f, 1f);
 
@@ -134,10 +136,22 @@ namespace Grimhand.Presentation.Battle
 
             if (artImage != null)
             {
-                var portrait = characterVisuals != null
-                    ? characterVisuals.GetCardPortrait(card.OwnerCharacterId)
-                    : null;
-                var art = portrait ?? visual.Art;
+                // 诅咒牌无角色归属：禁止走 GetCardPortrait（空 Id 会落到怪物通用立绘/空图）
+                Sprite art = null;
+                if (CardRules.IsCurseCard(card))
+                {
+                    art = visual.Art;
+                    if (art == null && uiIcons != null)
+                        art = uiIcons.CurseCardArt;
+                }
+                else
+                {
+                    var portrait = characterVisuals != null
+                        ? characterVisuals.GetCardPortrait(card.OwnerCharacterId)
+                        : null;
+                    art = portrait ?? visual.Art;
+                }
+
                 artImage.enabled = true;
                 artImage.sprite = art;
                 artImage.color = art != null ? Color.white : new Color(0.25f, 0.27f, 0.35f, 1f);
@@ -157,6 +171,12 @@ namespace Grimhand.Presentation.Battle
                 costIconImage.enabled = energyIcon != null;
                 costIconImage.preserveAspect = true;
                 costIconImage.color = Color.white;
+                // 略放大费用水晶，便于看清数字
+                var costRt = costIconImage.rectTransform;
+                costRt.anchorMin = new Vector2(0.01f, 0.82f);
+                costRt.anchorMax = new Vector2(0.30f, 1f);
+                costRt.offsetMin = Vector2.zero;
+                costRt.offsetMax = Vector2.zero;
             }
 
             if (costText != null)
@@ -172,6 +192,10 @@ namespace Grimhand.Presentation.Battle
                 var baseCost = card?.BaseCost ?? shownCost;
                 if (card != null && card.BaseCost == 0 && card.Cost > 0)
                     baseCost = card.Cost;
+
+                costText.fontStyle = FontStyle.Bold;
+                costText.fontSize = CostFontSize;
+                costText.resizeTextForBestFit = false;
 
                 if (shownCost < baseCost)
                     costText.color = new Color(0.12f, 0.62f, 0.22f, 1f);

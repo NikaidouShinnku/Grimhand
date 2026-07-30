@@ -83,7 +83,8 @@ namespace Grimhand.Battle.Rules
             CombatantState actor,
             CardType cardType,
             bool isSacrificeDamage,
-            int cardCost = 0)
+            int cardCost = 0,
+            CardInstanceState card = null)
         {
             var mods = state.Config?.RunModifiers;
             if (mods == null || actor == null)
@@ -91,8 +92,15 @@ namespace Grimhand.Battle.Rules
 
             var mul = 1f;
 
-            if (isSacrificeDamage && mods.SacrificeDamageBonusPercent > 0f)
+            // 血怒献祭等：仅加成献祭类攻击牌的伤害，不作用于献祭自伤扣血
+            if (!isSacrificeDamage
+                && cardType == CardType.Attack
+                && card?.Keywords != null
+                && card.Keywords.Contains("sacrifice")
+                && mods.SacrificeDamageBonusPercent > 0f)
+            {
                 mul *= 1f + mods.SacrificeDamageBonusPercent / 100f;
+            }
 
             if (cardType == CardType.Attack
                 && actor.Team == TeamSide.Player
@@ -160,12 +168,13 @@ namespace Grimhand.Battle.Rules
             int basePower,
             bool isSacrificeDamage,
             int cardCost,
-            bool applyPositionMultiplier)
+            bool applyPositionMultiplier,
+            CardInstanceState card = null)
         {
             if (basePower <= 0)
                 return 0;
 
-            var mul = GetOutgoingDamageMultiplier(state, actor, cardType, isSacrificeDamage, cardCost);
+            var mul = GetOutgoingDamageMultiplier(state, actor, cardType, isSacrificeDamage, cardCost, card);
             mul *= TalentBattleRules.GetOutgoingDamageMultiplier(state, actor, cardType);
             // 灵界专注：卡牌伤害也走非战斗增伤（灵能体仍只走 DoT 钩子，保持原行为）
             if (actor != null && actor.Team == TeamSide.Player)
@@ -262,8 +271,10 @@ namespace Grimhand.Battle.Rules
             int hpDamage,
             BattleRng rng,
             System.Collections.Generic.List<BattleEvent> events,
+            out int extraBlocked,
             int blockBeforeHit = -1)
         {
+            extraBlocked = 0;
             if (target == null || hpDamage <= 0)
                 return hpDamage;
 
@@ -331,7 +342,8 @@ namespace Grimhand.Battle.Rules
 
             RelicEffectRules.TryMiracleLeafSave(state, target, events, ref hpDamage);
             TalentBattleRules.TryMageRevive(state, target, events, ref hpDamage);
-            hpDamage = TalentBattleRules.ApplyIncomingDamageTalents(state, target, hpDamage, events);
+            hpDamage = TalentBattleRules.ApplyIncomingDamageTalents(
+                state, target, hpDamage, events, ref extraBlocked);
 
             return hpDamage;
         }

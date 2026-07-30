@@ -48,7 +48,8 @@ namespace Grimhand.Battle.Effects
                 power,
                 isSacrificeDamage,
                 cardCost,
-                applyPositionMultiplier: false);
+                applyPositionMultiplier: false,
+                sourceCardInstanceId > 0 ? state?.GetCard(sourceCardInstanceId) : null);
 
             RelicEffectRules.AdjustRelicOutgoingDamage(
                 state, actor, recipient, cardType, ref outgoingPower, ref ignoreDefPercent);
@@ -112,7 +113,9 @@ namespace Grimhand.Battle.Effects
                 hpDamage = CombatMechanicsRules.ApplyGuardReduction(hpDamage);
 
             hpDamage = RelicBattleRules.ApplyIncomingDamageRelics(
-                state, actor, recipient, hpDamage, rng, events, blockBeforeHit);
+                state, actor, recipient, hpDamage, rng, events, out var talentBlocked, blockBeforeHit);
+            if (talentBlocked > 0)
+                blocked += talentBlocked;
 
             var beforeRespondMitigation = hpDamage;
             hpDamage = RespondEffectExecutor.ApplyMitigation(

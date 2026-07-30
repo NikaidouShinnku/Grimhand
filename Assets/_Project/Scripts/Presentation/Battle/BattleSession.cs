@@ -1241,6 +1241,18 @@ namespace Grimhand.Presentation.Battle
             RestartRunOrBattle();
         }
 
+        /// <summary>ESC 放弃远征：切到失败结算态并刷新 UI（不立刻回营）。</summary>
+        public void AbandonExpeditionRun(string message = "已放弃远征。")
+        {
+            if (!IsExpeditionMode || Expedition == null)
+                return;
+
+            EndPresentation();
+            Expedition.AbandonRun(message);
+            _battleEndHandled = true;
+            NotifyChanged();
+        }
+
         /// <summary>回营/放弃后清掉局内远征/战斗引用，避免失败态 UI 残留或旧战果污染新局。</summary>
         public void ClearExpeditionSessionAfterLeave()
         {

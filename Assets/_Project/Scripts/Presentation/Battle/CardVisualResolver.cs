@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Grimhand.Battle;
 using Grimhand.Battle.Model;
+using Grimhand.Battle.Rules;
 using Grimhand.Content;
 
 namespace Grimhand.Presentation.Battle
@@ -17,6 +18,7 @@ namespace Grimhand.Presentation.Battle
                 return CardVisual.Empty;
 
             var rarity = CardRarityTable.GetOrDefault(card.DefinitionId);
+            var isCurse = CardRules.IsCurseCard(card);
             if (definitionsById != null &&
                 definitionsById.TryGetValue(card.DefinitionId, out var def) &&
                 def != null)
@@ -26,8 +28,16 @@ namespace Grimhand.Presentation.Battle
                 var frame = def.CardFrame;
                 var icon = def.CardIcon;
 
-                if (art == null && characterVisuals != null)
+                // 诅咒牌优先用专属卡图，不要回落到角色/怪物立绘
+                if (isCurse)
+                {
+                    if (art == null && catalog != null)
+                        art = catalog.CurseCardArt;
+                }
+                else if (art == null && characterVisuals != null)
+                {
                     art = characterVisuals.GetCardPortrait(card.OwnerCharacterId);
+                }
 
                 if (catalog != null)
                 {
@@ -40,14 +50,18 @@ namespace Grimhand.Presentation.Battle
                 return new CardVisual(art, frame, icon);
             }
 
-            var fallbackArt = characterVisuals != null
-                ? characterVisuals.GetCardPortrait(card.OwnerCharacterId)
+            var fallbackArt = isCurse && catalog != null
+                ? catalog.CurseCardArt
                 : null;
+            if (fallbackArt == null && characterVisuals != null)
+                fallbackArt = characterVisuals.GetCardPortrait(card.OwnerCharacterId);
 
             if (catalog != null)
             {
                 var resolved = catalog.Resolve(card.DefinitionId, card.CardType, rarity);
                 if (fallbackArt != null && resolved.Art == null)
+                    return new CardVisual(fallbackArt, resolved.Frame, resolved.Icon);
+                if (fallbackArt != null && isCurse)
                     return new CardVisual(fallbackArt, resolved.Frame, resolved.Icon);
                 return resolved;
             }

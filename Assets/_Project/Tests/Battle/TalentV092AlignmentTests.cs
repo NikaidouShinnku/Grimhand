@@ -152,31 +152,52 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
-        public void Lich_S2Lv10_SealedCardGoesToHandWithExhaustAndCostPlusOne()
+        public void Lich_S2Lv10_SealedCardGoesToHandTemporaryCostPlusOneFullEffects()
         {
             var state = MakeState("talent_lich_s2_lv10", TalentBattleRules.LichQueenId);
+            state.TurnNumber = 2;
             var sealedCard = new CardInstanceState
             {
                 InstanceId = 5,
-                DefinitionId = "m_bite",
-                DisplayName = "撕咬",
+                DefinitionId = "g_blood_scratch",
+                OwnerCharacterId = "char_goblin",
+                DisplayName = "嗜血抓挠",
                 CardType = CardType.Attack,
-                Cost = 2,
-                BaseCost = 2
+                Cost = 1,
+                BaseCost = 1
             };
             sealedCard.Actions.Add(new EffectActionSpec
             {
                 Type = EffectActionType.DealDamage,
-                Value = 6
+                Target = EffectTarget.DefaultEnemy,
+                Value = 4
+            });
+            sealedCard.Actions.Add(new EffectActionSpec
+            {
+                Type = EffectActionType.ApplyStatus,
+                Target = EffectTarget.Self,
+                StatusId = StatusCatalog.AttackUp,
+                Stacks = 3,
+                Duration = 1
             });
             state.CardsById[sealedCard.InstanceId] = sealedCard;
 
             TalentBattleRules.OnEnemyCardSealed(state, sealedCard, new List<BattleEvent>());
             Assert.AreEqual(1, state.PlayerHand.Count);
             var taken = state.PlayerHand[0];
-            Assert.AreEqual(3, taken.Cost);
-            Assert.IsTrue(taken.Keywords.Contains("exhaust"));
-            Assert.AreEqual(TalentBattleRules.LichQueenId, taken.OwnerCharacterId);
+            Assert.AreEqual(2, taken.Cost);
+            Assert.IsFalse(taken.Keywords.Contains("exhaust"));
+            Assert.IsTrue(taken.IsBonusHandCard);
+            Assert.AreEqual(2, taken.BonusHandGrantedTurn);
+            Assert.AreEqual("char_goblin", taken.OwnerCharacterId);
+            Assert.AreEqual("p1", taken.OwnerCombatantId);
+            Assert.AreEqual("g_blood_scratch", taken.DefinitionId);
+            Assert.AreEqual(2, taken.Actions.Count);
+            Assert.AreEqual(EffectActionType.DealDamage, taken.Actions[0].Type);
+            Assert.AreEqual(4, taken.Actions[0].Value);
+            Assert.AreEqual(EffectActionType.ApplyStatus, taken.Actions[1].Type);
+            Assert.AreEqual(StatusCatalog.AttackUp, taken.Actions[1].StatusId);
+            Assert.AreEqual(3, taken.Actions[1].Stacks);
         }
 
         [Test]

@@ -71,6 +71,7 @@ namespace Grimhand.Battle.Rules
                 CardType = source.CardType,
                 IsUsable = source.IsUsable,
                 IsBonusHandCard = source.IsBonusHandCard,
+                BonusHandGrantedTurn = source.BonusHandGrantedTurn,
                 DisplayName = source.DisplayName,
                 UpgradeLevel = source.UpgradeLevel
             };

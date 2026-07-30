@@ -35,9 +35,9 @@ namespace Grimhand.Presentation.Camp
         static readonly Vector4 ZonePortrait = new(0.090f, 0.470f, 0.255f, 0.825f);
         // 角色名略右，落在平台铭牌视觉中心
         static readonly Vector4 ZoneName = new(0.108f, 0.408f, 0.263f, 0.450f);
-        // 等级/经验：贴齐左侧竖线后再略右约 1mm
+        // 等级/经验：贴齐左侧竖线后再略右约 1mm；满级绿条需顶到模板细槽右缘
         static readonly Vector4 ZoneLevel = new(0.106f, 0.372f, 0.261f, 0.405f);
-        static readonly Vector4 ZoneXpBar = new(0.106f, 0.348f, 0.261f, 0.368f);
+        static readonly Vector4 ZoneXpBar = new(0.106f, 0.348f, 0.278f, 0.368f);
         // 隐形热区：左恢复原对齐；右再略右移
         static readonly Vector4 ZoneCharPrev = new(0.038f, 0.095f, 0.070f, 0.200f);
         static readonly Vector4 ZoneCharNext = new(0.316f, 0.095f, 0.348f, 0.200f);
@@ -98,6 +98,15 @@ namespace Grimhand.Presentation.Camp
         readonly List<GameObject> _dynamicObjects = new();
 
         public bool IsOpen => _overlayRoot != null && _overlayRoot.gameObject.activeSelf;
+
+        public bool TryHandleEscape()
+        {
+            if (!IsOpen)
+                return false;
+
+            CloseOverlay();
+            return true;
+        }
 
         public void Initialize(
             BattleSetupSO battleSetup,
@@ -257,8 +266,8 @@ namespace Grimhand.Presentation.Camp
             var fillRt = _xpFill.rectTransform;
             fillRt.anchorMin = Vector2.zero;
             fillRt.anchorMax = new Vector2(0f, 1f);
-            fillRt.offsetMin = new Vector2(1f, 1f);
-            fillRt.offsetMax = new Vector2(-1f, -1f);
+            fillRt.offsetMin = Vector2.zero;
+            fillRt.offsetMax = Vector2.zero;
             fillRt.pivot = new Vector2(0f, 0.5f);
             _xpFill.raycastTarget = false;
 

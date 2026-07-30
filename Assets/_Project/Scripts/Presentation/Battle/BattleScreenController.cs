@@ -170,6 +170,35 @@ namespace Grimhand.Presentation.Battle
             screenView?.BindOpenSettings(openSettings);
         }
 
+        /// <summary>ESC：关闭背包/地图等局内浮层。</summary>
+        public bool TryHandleEscapeOverlays()
+        {
+            if (screenView == null)
+                screenView = FindAnyObjectByType<BattleScreenView>(FindObjectsInactive.Include);
+            return screenView != null && screenView.TryHandleEscapeOverlays();
+        }
+
+        public void ToggleInventoryHotkey()
+        {
+            if (screenView == null)
+                screenView = FindAnyObjectByType<BattleScreenView>(FindObjectsInactive.Include);
+            screenView?.ToggleInventoryPanelHotkey();
+        }
+
+        public void ToggleMapHotkey()
+        {
+            if (screenView == null)
+                screenView = FindAnyObjectByType<BattleScreenView>(FindObjectsInactive.Include);
+            screenView?.ToggleMapPanelHotkey();
+        }
+
+        public void ToggleTurnDetailHotkey()
+        {
+            if (screenView == null)
+                screenView = FindAnyObjectByType<BattleScreenView>(FindObjectsInactive.Include);
+            screenView?.ToggleTurnDetailPanelHotkey();
+        }
+
         public void SetCampRoster(CampRosterState roster) => _session.SetCampRoster(roster);
         public void SetCampMeta(CampMetaState meta) => _session.SetCampMeta(meta);
 
@@ -186,6 +215,7 @@ namespace Grimhand.Presentation.Battle
         public void ResetPresentationForLeave()
         {
             _portraitDirector?.AbortPlayback();
+            screenView?.ForceCloseAllExpeditionOverlays();
             screenView?.SetEscUiSuppressed(false);
             screenView?.StopAllPortraitIdleLoops();
             if (screenView == null)

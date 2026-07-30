@@ -248,7 +248,7 @@ namespace Grimhand.Battle
 
             PassiveCardMechanicsRules.ApplyEndlessBladeSacrifice(_state, actor, card, _events, _rng);
 
-            TalentBattleRules.OnCardAboutToResolve(_state, actor, card);
+            TalentBattleRules.OnCardAboutToResolve(_state, actor, card, _events);
 
             if (SpecialCardRules.IsSpecialCard(card))
                 SpecialCardRules.TryResolve(_state, actor, card, _events, _rng);
@@ -341,7 +341,7 @@ namespace Grimhand.Battle
 
             PassiveCardMechanicsRules.ApplyEndlessBladeSacrifice(_state, actor, card, _events, _rng);
 
-            TalentBattleRules.OnCardAboutToResolve(_state, actor, card);
+            TalentBattleRules.OnCardAboutToResolve(_state, actor, card, _events);
 
             if (SpecialCardRules.IsSpecialCard(card))
                 SpecialCardRules.TryResolve(_state, actor, card, _events, _rng);
@@ -385,6 +385,11 @@ namespace Grimhand.Battle
             foreach (var pair in plan.EnergySpentPerCard)
                 _state.EnergySpentByCardInstanceId[pair.Key] = pair.Value;
 
+            // 已提交出牌：先声/魂火节流占用不再可取消恢复（Pending 已为 false，本场不再回档）
+            _state.TalentMageFirstStatusDiscountReservedInstanceId = 0;
+            _state.TalentLichFirstExhaustDiscountReservedInstanceId = 0;
+            TalentBattleRules.SyncSoulFireThrottleStatus(_state);
+
             var enemyResolutionTargets = new Dictionary<int, string>();
             foreach (var cardId in _state.EnemyPlan.PlayQueue)
             {
@@ -421,6 +426,9 @@ namespace Grimhand.Battle
             _state.PendingParryStrikes.Clear();
             _state.SuppressedEnemyCardInstanceIds.Clear();
             _state.PlayerRespondStatusUsedThisTurn = false;
+
+            // 连击：计划中 ≥3 张战士攻击 → 结算开始即挂增伤，本回合全部攻击生效
+            TalentBattleRules.TryApplyComboFromCommittedPlan(_state, _events);
 
             var baseline = SpeedResolver.BuildResolutionOrder(
                 _state, _state.PlayerPlan, _state.EnemyPlan, _rng);
@@ -503,7 +511,7 @@ namespace Grimhand.Battle
                 CardType = card.CardType
             });
 
-            TalentBattleRules.OnCardAboutToResolve(_state, actor, card);
+            TalentBattleRules.OnCardAboutToResolve(_state, actor, card, _events);
 
             // 敌方应对牌：减伤已在攻击前预武装；此处只播应对成功，勿重复武装
             if (actor.Team == TeamSide.Enemy && RespondRules.IsRespondCard(card))
@@ -719,7 +727,7 @@ namespace Grimhand.Battle
 
             PassiveCardMechanicsRules.ApplyEndlessBladeSacrifice(_state, actor, card, _events, _rng);
 
-            TalentBattleRules.OnCardAboutToResolve(_state, actor, card);
+            TalentBattleRules.OnCardAboutToResolve(_state, actor, card, _events);
 
             if (SpecialCardRules.IsSpecialCard(card))
                 SpecialCardRules.TryResolve(_state, actor, card, _events, _rng);
@@ -797,6 +805,9 @@ namespace Grimhand.Battle
 
             MinionTraitRules.PrepareTurnEndArmorRetain(_state);
 
+            // 养精蓄锐等：依赖清甲前的护甲值
+            TalentBattleRules.ProcessEndOfTurnBeforeBlockClear(_state, _events);
+
             foreach (var c in _state.Combatants)
             {
                 // v0.9 最终壁垒：回合末仅清除50%护甲，保留 GetFinalBulwarkRetainedBlock 返回的部分
@@ -824,6 +835,8 @@ namespace Grimhand.Battle
 
         void ProcessDrawPhase()
         {
+            var energyBeforeRegen = _state.EnergyCurrent;
+            var isFirstPlayerTurn = _state.IsFirstPlayerTurn;
             EnergyRules.ApplyTurnStartRegen(_state);
             StatusRules.ProcessTurnStartStatuses(_state, _events, _rng);
             RelicEffectRules.ProcessTurnStart(_state, _rng, _events);
@@ -834,8 +847,9 @@ namespace Grimhand.Battle
             // v0.9 毒蛇/巫妖新机制：缠绕/延迟伤害/永恒虚无/祈求远古蛇神
             V09NewMechanicsRules.ProcessTurnStart(_state, _events, _rng);
             V091MechanicsRules.ProcessTurnStart(_state, _events, _rng);
-            // v0.9 天赋：蛇 s1_lv4/s2_lv4、巫妖 s1_lv7
-            TalentBattleRules.ProcessTurnStartV09Talents(_state, _events);
+            // v0.9 天赋：蛇 s1_lv4/s2_lv4、巫妖 s1_lv7 / 封印武装交付
+            TalentBattleRules.ProcessTurnStartV09Talents(
+                _state, _events, energyBeforeRegen, isFirstPlayerTurn);
             foreach (var combatant in _state.Combatants)
                 AnubisAvatarRules.ProcessTurnStart(combatant);
             // 持续回合在跳伤/缠绕/延迟伤害之后结算：先生效，再扣减并到期移除
@@ -920,6 +934,8 @@ namespace Grimhand.Battle
                     }
                 }
             }
+
+            TalentBattleRules.ProcessAfterHandDrawn(_state, _rng, _events);
 
             DeckRules.DrawCards(_state, TeamSide.Enemy, _rng, ResolveEnemyDrawCount(), _events);
             SummonRules.GrantSkullSelfDestructHands(_state, _events);

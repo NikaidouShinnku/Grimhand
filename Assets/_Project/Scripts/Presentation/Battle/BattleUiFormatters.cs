@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Grimhand.Battle.Effects;
@@ -272,9 +273,9 @@ namespace Grimhand.Presentation.Battle
             if (TryBuildCurseCardStatsLine(card, out var curseLine))
                 return curseLine;
 
-            // 战斗内用手牌结算预览，不用 Excel 静态文案（商店/图鉴等 state==null 时仍可用）。
-            if (state == null
-                && TryBuildExcelDescriptionLine(state, draft, card, definitions, out var excelLine))
+            // 与 SO 基线一致时用目录文案（含延迟伤害/封印等动态描述尚未覆盖的动作）；
+            // 已升级/改写实例则走下方结算预览。
+            if (TryBuildExcelDescriptionLine(state, draft, card, definitions, out var excelLine))
                 return excelLine;
 
             var pickSide = CardRules.GetRequiredTargetPick(card);
@@ -658,6 +659,35 @@ namespace Grimhand.Presentation.Battle
                     return prefix + $"下回合玩家能量回复 -{action.Value}";
                 case EffectActionType.ArmRespondDamageRedirect:
                     return prefix + "应对成功时格挡，并将所受伤害×2转嫁给随机一名队友";
+                case EffectActionType.ApplyDelayedDamage:
+                {
+                    var amount = action.Value;
+                    if (action.Target == EffectTarget.AllEnemies)
+                        return prefix + reachTag + $"下回合开始时，对全体敌人各造成 {amount} 点伤害";
+                    return prefix + reachTag + PrefixTarget(target, $"下回合开始时，造成 {amount} 点伤害");
+                }
+                case EffectActionType.SealNextEnemyCard:
+                    return prefix + "使敌方使用的下一张卡失效";
+                case EffectActionType.EtherealCountBonusDamage:
+                    return prefix + reachTag + PrefixTarget(
+                        target,
+                        $"造成 {action.Value} 点伤害（本场远征每进入过一次虚化 +{Math.Max(1, action.Stacks)}）");
+                case EffectActionType.BuffAllOtherAllies:
+                    return prefix + reachTag + DescribeStatusEffectClause(action, "其他友方", usesPick, state, owner);
+                case EffectActionType.DrawCardsIfEthereal:
+                    return prefix + $"下回合抽 {action.Value} 张牌（虚化时改为抽 {action.AlternateValue} 张）";
+                case EffectActionType.GainEnergy:
+                    return prefix + $"获得 {action.Value} 点能量";
+                case EffectActionType.DrawToHandLimit:
+                    return prefix + "抽牌至手牌上限";
+                case EffectActionType.ShuffleHandCosts:
+                    return prefix + "将手牌费用随机打乱";
+                case EffectActionType.LockSelfCards:
+                    return prefix + $"自身 {Math.Max(1, action.Value)} 回合无法出牌";
+                case EffectActionType.RevealEnemyIntent:
+                    return prefix + "看破敌人意图";
+                case EffectActionType.AddTokenCardToHand:
+                    return prefix + "将一张牌置入玩家手牌";
                 default:
                     return "";
             }
@@ -1716,6 +1746,22 @@ namespace Grimhand.Presentation.Battle
                     return $"攻击伤害 +{status.Stacks}%（敌方有角色死亡或血量低于 25% 时）";
                 case StatusCatalog.PhantomCaptainFrenzyVuln:
                     return $"受到的伤害 +{status.Stacks}%（敌方有角色死亡或血量低于 25% 时）";
+                case StatusCatalog.KnightAssaultStanceAtk:
+                    return $"攻击伤害 +{status.Stacks}%（突击姿态：非前排）";
+                case StatusCatalog.KnightAssaultStanceVuln:
+                    return $"受到的伤害 +{status.Stacks}%（突击姿态：非前排）";
+                case StatusCatalog.KnightBackToWallAtk:
+                    return $"攻击伤害 +{status.Stacks}%（背水一战：护甲超过HP）";
+                case StatusCatalog.RangerLowHpFuryAtk:
+                    return $"攻击伤害 +{status.Stacks}%（低血狂怒：HP低于30%）";
+                case StatusCatalog.RangerSoloHuntAtk:
+                    return $"攻击伤害 +{status.Stacks}%（孤猎：非Boss且敌方仅剩一人）";
+                case StatusCatalog.KnightComboAtk:
+                    return AppendStatusDurationLine(
+                        $"攻击伤害 +{status.Stacks}%（连击：本回合连续打出三张战士攻击牌）",
+                        status, def);
+                case StatusCatalog.RangerBloodDebtAtk:
+                    return $"攻击伤害 +{status.Stacks}%（血债累击：远征献祭累计）";
                 case StatusCatalog.EbbingTide:
                     return AppendStatusDurationLine(
                         $"无法获得涨潮；受到的伤害 +{status.Stacks * (def?.IncomingDamagePercentPerStack ?? 50)}%",
@@ -2378,8 +2424,8 @@ namespace Grimhand.Presentation.Battle
 
             line = card.DefinitionId switch
             {
-                "curse_chaos_touch" => "【诅咒】\n无法被打出。占用牌库与手牌位以污染牌组，可通过弃牌/摧毁类事件移除。",
-                _ => "【诅咒】\n占用手牌位，可通过商人删牌或祭坛献祭移除。"
+                "curse_chaos_touch" => "【诅咒】无法被打出，但会被正常抽取和弃牌",
+                _ => "【诅咒】无法被打出，但会被正常抽取和弃牌"
             };
             return true;
         }

@@ -30,6 +30,7 @@ namespace Grimhand.Expedition
                 {
                     MageReviveAvailable = source.Talents.MageReviveAvailable,
                     RangerBloodDebtAttackBonus = source.Talents.RangerBloodDebtAttackBonus,
+                    RangerSacrificeHpTotalAtBattleStart = source.Talents.RangerSacrificeHpTotalAtBattleStart,
                     NonBossSoloEnemyBattle = source.Talents.NonBossSoloEnemyBattle,
                     IsBossBattle = source.Talents.IsBossBattle
                 };
@@ -635,7 +636,10 @@ namespace Grimhand.Expedition
                 return;
 
             if (run != null)
+            {
                 run.SharedXpPool += amount;
+                run.TotalXpGained += amount;
+            }
         }
 
         public static void GrantXpToMember(

@@ -4,6 +4,7 @@ using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Planning;
 using Grimhand.Battle.Rules;
+using Grimhand.Battle.Status;
 
 namespace Grimhand.Presentation.Battle
 {
@@ -63,6 +64,9 @@ namespace Grimhand.Presentation.Battle
                 if (!c.IsAlive)
                     snap._dead.Add(c.Id);
             }
+
+            foreach (var c in state.Combatants)
+                snap.SyncHpBlockConditionalTalentFootStatuses(c.Id, state);
 
             foreach (var card in state.PlayerHand)
                 snap._playerHandInstanceIds.Add(card.InstanceId);
@@ -238,6 +242,30 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             _footStatuses[combatantId] = CaptureFootStatuses(combatant, state);
+            // 背水一战跟演出 HP/护甲，勿被 live 整表覆盖提前显示
+            SyncHpBlockConditionalTalentFootStatuses(combatantId, state);
+        }
+
+        /// <summary>
+        /// 背水一战：仅当演出快照上护甲超过当前 HP 时显示增伤脚标。
+        /// </summary>
+        public void SyncHpBlockConditionalTalentFootStatuses(string combatantId, BattleState state)
+        {
+            if (string.IsNullOrEmpty(combatantId))
+                return;
+
+            var combatant = state?.GetCombatant(combatantId);
+            var active = combatant != null
+                && combatant.IsAlive
+                && combatant.Team == TeamSide.Player
+                && combatant.CharacterDefinitionId == TalentBattleRules.KnightId
+                && TalentBattleRules.HasTalent(state, "talent_knight_s1_lv7")
+                && GetHp(combatantId) < GetBlock(combatantId);
+
+            if (active)
+                ApplyFootStatusApplied(combatantId, StatusCatalog.KnightBackToWallAtk, 20);
+            else
+                ApplyFootStatusRemoved(combatantId, StatusCatalog.KnightBackToWallAtk, int.MaxValue);
         }
 
         public void RecordEventCheckpoint(int eventIndex, BattleEventKind kind, BattleState state)
@@ -310,8 +338,19 @@ namespace Grimhand.Presentation.Battle
                 TraitFootnote = MinionTraitDisplayFormatter.FormatFootnote(combatant, state)
             };
 
-        static List<FootStatusEntry> CaptureFootStatuses(CombatantState combatant, BattleState state = null) =>
-            FootStatusIconAggregator.Aggregate(combatant, state);
+        static List<FootStatusEntry> CaptureFootStatuses(CombatantState combatant, BattleState state = null)
+        {
+            var list = FootStatusIconAggregator.Aggregate(combatant, state);
+            // 背水一战由演出快照 HP/护甲驱动，捕获时剔除，避免回合结算后提前露馅
+            for (var i = list.Count - 1; i >= 0; i--)
+            {
+                if (list[i].StatusId == StatusCatalog.KnightBackToWallAtk)
+                    list.RemoveAt(i);
+            }
+
+            // 若开场时快照上已是护甲>HP，再按快照补一次（承接上一回合残留）
+            return list;
+        }
 
         public void ApplyIronWallConversion(string combatantId, int amount)
         {

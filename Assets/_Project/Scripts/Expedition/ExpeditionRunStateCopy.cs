@@ -30,6 +30,8 @@ namespace Grimhand.Expedition
             target.Gold = source.Gold;
             target.LastGoldReward = source.LastGoldReward;
             target.LastXpReward = source.LastXpReward;
+            target.TotalGoldGained = source.TotalGoldGained;
+            target.TotalXpGained = source.TotalXpGained;
             target.SharedXpPool = source.SharedXpPool;
             target.LastBattleWasElite = source.LastBattleWasElite;
             target.LastBattleWasBoss = source.LastBattleWasBoss;

@@ -7,7 +7,9 @@ namespace Grimhand.Battle.Model
     {
         public HashSet<string> ActiveTalentIds { get; } = new();
         public bool MageReviveAvailable { get; set; }
-        public int RangerBloodDebtAttackBonus { get; set; }
+        public int RangerBloodDebtAttackBonus { get; set; } // 血债累击：增伤百分比（每50献祭+2，上限20）
+        /// <summary>开战时远征累计献祭 HP，供战斗内献祭后即时重算血债。</summary>
+        public int RangerSacrificeHpTotalAtBattleStart { get; set; }
         /// <summary>开战时快照：非 Boss 且开局仅 1 敌。孤猎运行时改为动态数敌，此字段仅兼容旧逻辑。</summary>
         public bool NonBossSoloEnemyBattle { get; set; }
         public bool IsBossBattle { get; set; }

@@ -138,7 +138,7 @@ namespace Grimhand.Battle.Model
         public bool TalentLastStandBlockUsed { get; set; }
         /// <summary>天赋：不再获得护甲，转为伤害加成。</summary>
         public bool TalentDisableBlockGain { get; set; }
-        /// <summary>天赋：献祭后下一张牌减费。</summary>
+        /// <summary>旧版血祭节流字段（已改为下回合随机手牌减费，保留兼容）。</summary>
         public bool TalentNextSacrificeEnergyDiscount { get; set; }
 
         /// <summary>v0.9：本回合是否回复过生命（鲜血撕咬等）。</summary>

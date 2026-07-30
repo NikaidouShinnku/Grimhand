@@ -62,6 +62,16 @@ namespace Grimhand.Presentation.Camp
 
         public bool IsOpen => _overlayRoot != null && _overlayRoot.gameObject.activeSelf;
 
+        public bool TryHandleEscape()
+        {
+            if (!IsOpen)
+                return false;
+
+            Hide();
+            _onClose?.Invoke();
+            return true;
+        }
+
         public void Initialize(
             BattleSetupSO battleSetup,
             CharacterVisualCatalogSO characterVisuals,

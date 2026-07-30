@@ -62,6 +62,8 @@ namespace Grimhand.Battle.Events
         public bool HadRespondDefense { get; set; }
         /// <summary>应对格挡演出目标（转嫁时为原防御者，与 TargetId 伤害落点可不同）。</summary>
         public string RespondBlockerId { get; set; } = "";
+        /// <summary>绝地格挡等：BlockGained 演出用应对成功 Blocking 特效。</summary>
+        public bool IsRespondStyleBlock { get; set; }
         public bool IsSacrificeDamage { get; set; }
         public bool IsAoEWave { get; set; }
         /// <summary>吸血回复（用于播放专属治疗特效）。</summary>

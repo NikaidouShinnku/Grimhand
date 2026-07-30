@@ -57,6 +57,11 @@ namespace Grimhand.Presentation.Battle
         [SerializeField] Text runEndTitleText;
         [SerializeField] Text runEndBodyText;
         [SerializeField] Button runRestartButton;
+        RectTransform _runEndStatsRow;
+        Text _runEndXpValueText;
+        Text _runEndGoldValueText;
+        Image _runEndXpIcon;
+        Image _runEndGoldIcon;
 
         readonly List<Button> _routeButtons = new();
         BattleActiveCardBanner _activeCardBanner;
@@ -1008,6 +1013,30 @@ namespace Grimhand.Presentation.Battle
                 _mapPanel.Refresh();
         }
 
+        /// <summary>快捷键 M：打开/关闭地图。</summary>
+        public void ToggleMapPanelHotkey()
+        {
+            if (_mapButton == null || !_mapButton.gameObject.activeInHierarchy)
+                return;
+            ToggleMapPanel();
+        }
+
+        /// <summary>快捷键 Tab：打开/关闭背包。</summary>
+        public void ToggleInventoryPanelHotkey()
+        {
+            if (_inventoryButton == null || !_inventoryButton.gameObject.activeInHierarchy)
+                return;
+            ToggleInventoryPanel();
+        }
+
+        /// <summary>快捷键 N：打开/关闭明细。</summary>
+        public void ToggleTurnDetailPanelHotkey()
+        {
+            if (_turnLogButton == null || !_turnLogButton.gameObject.activeInHierarchy)
+                return;
+            ToggleTurnDetailPanel();
+        }
+
         void ApplyMapButtonLayout()
         {
             if (_mapButton == null)
@@ -1887,11 +1916,81 @@ namespace Grimhand.Presentation.Battle
             ClearCombatantHoverDetails();
         }
 
+        /// <summary>返回营地前关掉所有远征内浮层（背包/地图/图鉴/战后等），避免卡在背包界面。</summary>
+        public void ForceCloseAllExpeditionOverlays()
+        {
+            if (_inventoryPanel != null && _inventoryPanel.IsOpen)
+            {
+                _inventoryPanel.Hide();
+                ApplyInventoryBackdrop(false);
+            }
+
+            if (_mapPanel != null && _mapPanel.IsOpen)
+                _mapPanel.Hide();
+            if (_codexOverlay != null && _codexOverlay.IsOpen)
+                _codexOverlay.Hide();
+            if (_turnDetailPanel != null && _turnDetailPanel.IsOpen)
+                _turnDetailPanel.Hide();
+            if (_monsterSpawnOverlay != null && _monsterSpawnOverlay.IsOpen)
+                _monsterSpawnOverlay.Hide();
+
+            _altarOverlay?.Refresh();
+            _postBattleOverlay?.Hide();
+            if (runEndPanel != null)
+                runEndPanel.SetActive(false);
+            if (expeditionOverlay != null)
+                expeditionOverlay.SetActive(false);
+
+            ClearCombatantHoverDetails();
+            HideKeywordTooltip();
+            SetEscUiSuppressed(false);
+        }
+
+        /// <summary>ESC 逐级关闭局内浮层；无浮层时返回 false。</summary>
+        public bool TryHandleEscapeOverlays()
+        {
+            if (_inventoryPanel != null && _inventoryPanel.IsOpen)
+            {
+                if (_inventoryPanel.TryHandleEscape())
+                {
+                    if (!_inventoryPanel.IsOpen)
+                        ApplyInventoryBackdrop(false);
+                    return true;
+                }
+            }
+
+            if (_mapPanel != null && _mapPanel.IsOpen)
+            {
+                _mapPanel.Hide();
+                return true;
+            }
+
+            if (_codexOverlay != null && _codexOverlay.IsOpen)
+            {
+                _codexOverlay.Hide();
+                return true;
+            }
+
+            if (_turnDetailPanel != null && _turnDetailPanel.IsOpen)
+            {
+                _turnDetailPanel.Hide();
+                return true;
+            }
+
+            if (_monsterSpawnOverlay != null && _monsterSpawnOverlay.IsOpen)
+            {
+                _monsterSpawnOverlay.Hide();
+                return true;
+            }
+
+            return false;
+        }
+
         void RefreshExpeditionPresentation()
         {
             var expedition = _session.IsExpeditionMode;
             var training = _session.Expedition?.Run?.IsTrainingGround == true;
-            var layer = _session.Expedition?.Run?.Map?.NodesCompleted + 1 ?? 1;
+            var layer = ExpeditionPathArt.ResolvePresentationLayer(_session.Expedition?.Run);
             var phase = _session.Expedition?.Run?.Phase;
             var bg = training
                 ? _uiIcons?.TrainingGroundBackground
@@ -1988,27 +2087,272 @@ namespace Grimhand.Presentation.Battle
                 {
                     routeSelectPanel?.SetActive(false);
                     runEndPanel?.SetActive(true);
+                    EnsureRunEndChrome();
 
                     if (phase == ExpeditionPhase.RunComplete)
                     {
                         var run = _session.Expedition.Run;
-                        var completed = run.Map?.NodesCompleted ?? run.BattlesWon;
-                        var total = run.Map?.ChapterLayerCount ?? ExpeditionRegionRules.FullLayerCount;
-                        runEndTitleText.text = "远征完成";
-                        runEndBodyText.text =
-                            $"恭喜通关 {completed}/{total} 层！\n{BattleUiFormatters.FormatPartySummary(run.Party, run.Gold)}";
+                        runEndTitleText.text = "远征胜利";
+                        if (runEndBodyText != null)
+                        {
+                            runEndBodyText.text = "";
+                            runEndBodyText.gameObject.SetActive(false);
+                        }
+
+                        SetRunEndStatsVisible(true);
+                        SetRunEndStatValues(run.TotalXpGained, run.TotalGoldGained);
                         SetRunEndButtonLabel("返回营地");
                     }
                     else if (phase == ExpeditionPhase.RunFailed)
                     {
-                        runEndTitleText.text = "远征失败";
-                        runEndBodyText.text = string.IsNullOrEmpty(_session.Expedition.Run.LastEventMessage)
-                            ? "队伍已无法继续作战。"
-                            : _session.Expedition.Run.LastEventMessage;
-                        SetRunEndButtonLabel("传送回营地");
+                        var run = _session.Expedition.Run;
+                        var abandoned = !string.IsNullOrEmpty(run.LastEventMessage)
+                            && run.LastEventMessage.Contains("放弃");
+                        runEndTitleText.text = abandoned ? "远征结束" : "远征失败";
+                        if (runEndBodyText != null)
+                        {
+                            // 放弃：不展示额外说明；战败：保留失败原因
+                            if (abandoned)
+                            {
+                                runEndBodyText.text = "";
+                                runEndBodyText.gameObject.SetActive(false);
+                            }
+                            else
+                            {
+                                runEndBodyText.gameObject.SetActive(true);
+                                runEndBodyText.text = string.IsNullOrEmpty(run.LastEventMessage)
+                                    ? "队伍已无法继续作战。"
+                                    : run.LastEventMessage;
+                            }
+                        }
+
+                        SetRunEndStatsVisible(true);
+                        SetRunEndStatValues(run.TotalXpGained, run.TotalGoldGained);
+                        SetRunEndButtonLabel("返回营地");
                     }
                 }
             }
+        }
+
+        void EnsureRunEndChrome()
+        {
+            if (runEndPanel == null)
+                return;
+
+            var panelRt = runEndPanel.transform as RectTransform;
+            if (panelRt != null)
+            {
+                // event_plate 约 1203×1308
+                const float width = 620f;
+                const float aspect = 1203f / 1308f;
+                panelRt.sizeDelta = new Vector2(width, width / aspect);
+            }
+
+            var panelImage = runEndPanel.GetComponent<Image>();
+            if (panelImage != null)
+            {
+                var plate = _uiIcons != null ? _uiIcons.UiEventPlate : null;
+                if (plate != null)
+                {
+                    panelImage.sprite = plate;
+                    panelImage.type = Image.Type.Simple;
+                    panelImage.preserveAspect = false;
+                    panelImage.color = Color.white;
+                }
+            }
+
+            if (runEndTitleText != null)
+            {
+                var titleRt = runEndTitleText.rectTransform;
+                titleRt.anchorMin = new Vector2(0.08f, 0.72f);
+                titleRt.anchorMax = new Vector2(0.92f, 0.88f);
+                titleRt.offsetMin = Vector2.zero;
+                titleRt.offsetMax = Vector2.zero;
+                runEndTitleText.alignment = TextAnchor.MiddleCenter;
+                runEndTitleText.fontSize = 36;
+                runEndTitleText.fontStyle = FontStyle.Bold;
+                runEndTitleText.color = new Color(0.96f, 0.92f, 0.78f, 1f);
+            }
+
+            if (runEndBodyText != null)
+            {
+                var bodyRt = runEndBodyText.rectTransform;
+                bodyRt.anchorMin = new Vector2(0.1f, 0.42f);
+                bodyRt.anchorMax = new Vector2(0.9f, 0.68f);
+                bodyRt.offsetMin = Vector2.zero;
+                bodyRt.offsetMax = Vector2.zero;
+                runEndBodyText.alignment = TextAnchor.MiddleCenter;
+                runEndBodyText.fontSize = 20;
+                runEndBodyText.color = new Color(0.90f, 0.86f, 0.78f, 1f);
+            }
+
+            EnsureRunEndStatsRow();
+
+            if (runRestartButton != null)
+            {
+                const float buttonWidth = 300f;
+                const float button6Aspect = 512f / 216f;
+                var btnRt = runRestartButton.transform as RectTransform;
+                if (btnRt != null)
+                {
+                    btnRt.anchorMin = new Vector2(0.5f, 0.08f);
+                    btnRt.anchorMax = new Vector2(0.5f, 0.08f);
+                    btnRt.pivot = new Vector2(0.5f, 0f);
+                    btnRt.anchoredPosition = Vector2.zero;
+                    btnRt.sizeDelta = new Vector2(buttonWidth, buttonWidth / button6Aspect);
+                }
+
+                var plate = _uiIcons != null ? _uiIcons.UiButton6 : null;
+                var bg = runRestartButton.GetComponent<Image>();
+                if (bg != null)
+                {
+                    bg.sprite = plate;
+                    bg.type = Image.Type.Simple;
+                    bg.preserveAspect = false;
+                    bg.color = plate != null ? Color.white : new Color(0.24f, 0.26f, 0.32f, 1f);
+                }
+
+                runRestartButton.targetGraphic = bg;
+                runRestartButton.transition = Selectable.Transition.None;
+
+                var label = runRestartButton.GetComponentInChildren<Text>();
+                if (label != null)
+                {
+                    label.fontSize = 24;
+                    label.fontStyle = FontStyle.Bold;
+                    label.alignment = TextAnchor.MiddleCenter;
+                    label.color = new Color(0.96f, 0.92f, 0.78f, 1f);
+                    var labelRt = label.rectTransform;
+                    labelRt.anchorMin = Vector2.zero;
+                    labelRt.anchorMax = Vector2.one;
+                    labelRt.offsetMin = new Vector2(16f, 8f);
+                    labelRt.offsetMax = new Vector2(-16f, -12f);
+                }
+            }
+        }
+
+        void EnsureRunEndStatsRow()
+        {
+            if (runEndPanel == null)
+                return;
+
+            if (_runEndStatsRow == null)
+            {
+                var existing = runEndPanel.transform.Find("RunEndStatsRow");
+                if (existing != null)
+                    _runEndStatsRow = existing as RectTransform;
+            }
+
+            if (_runEndStatsRow == null)
+            {
+                var go = new GameObject("RunEndStatsRow", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+                go.transform.SetParent(runEndPanel.transform, false);
+                _runEndStatsRow = go.GetComponent<RectTransform>();
+                var layout = go.GetComponent<HorizontalLayoutGroup>();
+                layout.spacing = 48f;
+                layout.childAlignment = TextAnchor.MiddleCenter;
+                layout.childControlWidth = false;
+                layout.childControlHeight = false;
+                layout.childForceExpandWidth = false;
+                layout.childForceExpandHeight = false;
+
+                CreateRunEndStatItem(_runEndStatsRow, "XpStat", out _runEndXpIcon, out _runEndXpValueText);
+                CreateRunEndStatItem(_runEndStatsRow, "GoldStat", out _runEndGoldIcon, out _runEndGoldValueText);
+            }
+            else
+            {
+                if (_runEndXpIcon == null || _runEndXpValueText == null)
+                {
+                    var xp = _runEndStatsRow.Find("XpStat");
+                    if (xp != null)
+                    {
+                        _runEndXpIcon = xp.Find("Icon")?.GetComponent<Image>();
+                        _runEndXpValueText = xp.Find("Value")?.GetComponent<Text>();
+                    }
+                }
+
+                if (_runEndGoldIcon == null || _runEndGoldValueText == null)
+                {
+                    var gold = _runEndStatsRow.Find("GoldStat");
+                    if (gold != null)
+                    {
+                        _runEndGoldIcon = gold.Find("Icon")?.GetComponent<Image>();
+                        _runEndGoldValueText = gold.Find("Value")?.GetComponent<Text>();
+                    }
+                }
+            }
+
+            _runEndStatsRow.anchorMin = new Vector2(0.12f, 0.36f);
+            _runEndStatsRow.anchorMax = new Vector2(0.88f, 0.58f);
+            _runEndStatsRow.offsetMin = Vector2.zero;
+            _runEndStatsRow.offsetMax = Vector2.zero;
+
+            if (_runEndXpIcon != null)
+            {
+                _runEndXpIcon.sprite = _uiIcons != null ? _uiIcons.XpIcon : null;
+                _runEndXpIcon.enabled = _runEndXpIcon.sprite != null;
+                _runEndXpIcon.color = Color.white;
+                _runEndXpIcon.preserveAspect = true;
+            }
+
+            if (_runEndGoldIcon != null)
+            {
+                _runEndGoldIcon.sprite = _uiIcons != null ? _uiIcons.GoldIcon : null;
+                _runEndGoldIcon.enabled = _runEndGoldIcon.sprite != null;
+                _runEndGoldIcon.color = Color.white;
+                _runEndGoldIcon.preserveAspect = true;
+            }
+        }
+
+        static void CreateRunEndStatItem(
+            Transform parent,
+            string name,
+            out Image icon,
+            out Text value)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(HorizontalLayoutGroup));
+            go.transform.SetParent(parent, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(180f, 56f);
+            var layout = go.GetComponent<HorizontalLayoutGroup>();
+            layout.spacing = 10f;
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.childControlWidth = false;
+            layout.childControlHeight = false;
+
+            var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+            iconGo.transform.SetParent(go.transform, false);
+            var iconRt = iconGo.GetComponent<RectTransform>();
+            iconRt.sizeDelta = new Vector2(48f, 48f);
+            icon = iconGo.GetComponent<Image>();
+            icon.raycastTarget = false;
+
+            var valueGo = new GameObject("Value", typeof(RectTransform), typeof(Text));
+            valueGo.transform.SetParent(go.transform, false);
+            var valueRt = valueGo.GetComponent<RectTransform>();
+            valueRt.sizeDelta = new Vector2(110f, 48f);
+            value = valueGo.GetComponent<Text>();
+            value.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            value.fontSize = 28;
+            value.fontStyle = FontStyle.Bold;
+            value.alignment = TextAnchor.MiddleLeft;
+            value.color = new Color(0.96f, 0.92f, 0.78f, 1f);
+            value.raycastTarget = false;
+            value.text = "0";
+        }
+
+        void SetRunEndStatsVisible(bool visible)
+        {
+            if (_runEndStatsRow != null)
+                _runEndStatsRow.gameObject.SetActive(visible);
+        }
+
+        void SetRunEndStatValues(int xp, int gold)
+        {
+            if (_runEndXpValueText != null)
+                _runEndXpValueText.text = xp.ToString();
+            if (_runEndGoldValueText != null)
+                _runEndGoldValueText.text = gold.ToString();
         }
 
         void SetRunEndButtonLabel(string label)

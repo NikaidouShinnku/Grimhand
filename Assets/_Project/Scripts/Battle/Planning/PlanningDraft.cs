@@ -314,6 +314,7 @@ namespace Grimhand.Battle.Planning
             }
 
             _state.EnergyCurrent += refund;
+            RestoreTalentDiscountIfNeeded(card);
             EmitEnergyEvent(BattleEventKind.CardDeselectedFromPlay, card.DisplayName, instanceId);
             return true;
         }
@@ -483,21 +484,48 @@ namespace Grimhand.Battle.Planning
 
         void ConsumeTalentDiscountIfApplied(CombatantState owner, CardInstanceState card, int cost)
         {
-            if (owner == null || card == null || cost >= card.Cost)
+            if (card == null)
                 return;
 
-            if (owner.TalentNextSacrificeEnergyDiscount)
-                owner.TalentNextSacrificeEnergyDiscount = false;
-            else if (_state.TalentMageFirstStatusDiscountPending
-                     && card.CardType == CardType.Status)
+            if (card.CardType == CardType.Status
+                && _state.TalentMageFirstStatusDiscountPending
+                && TalentBattleRules.HasTalent(_state, "talent_mage_s2_lv2")
+                && cost < card.Cost)
             {
                 _state.TalentMageFirstStatusDiscountPending = false;
+                _state.TalentMageFirstStatusDiscountReservedInstanceId = card.InstanceId;
+                return;
             }
-            else if (_state.TalentLichFirstExhaustDiscountPending
-                     && owner.CharacterDefinitionId == TalentBattleRules.LichQueenId
-                     && card.Keywords != null && card.Keywords.Contains("exhaust"))
+
+            // 魂火节流：点选即占用（可取消恢复）；该牌经 Reserved 保持 -1，避免取消时按原费退款刷能量
+            // 不要求 cost < card.Cost：0 费牌减费后仍为 0，也必须占用名额
+            if (TalentBattleRules.IsLichSoulFireDiscountEligible(_state, owner, card)
+                && _state.TalentLichFirstExhaustDiscountPending)
             {
                 _state.TalentLichFirstExhaustDiscountPending = false;
+                _state.TalentLichFirstExhaustDiscountReservedInstanceId = card.InstanceId;
+                TalentBattleRules.SyncSoulFireThrottleStatus(_state);
+            }
+        }
+
+        void RestoreTalentDiscountIfNeeded(CardInstanceState card)
+        {
+            if (card == null)
+                return;
+
+            if (_state.TalentMageFirstStatusDiscountReservedInstanceId == card.InstanceId)
+            {
+                _state.TalentMageFirstStatusDiscountReservedInstanceId = 0;
+                if (TalentBattleRules.HasTalent(_state, "talent_mage_s2_lv2"))
+                    _state.TalentMageFirstStatusDiscountPending = true;
+            }
+
+            if (_state.TalentLichFirstExhaustDiscountReservedInstanceId == card.InstanceId)
+            {
+                _state.TalentLichFirstExhaustDiscountReservedInstanceId = 0;
+                if (TalentBattleRules.HasTalent(_state, "talent_lich_s2_lv5"))
+                    _state.TalentLichFirstExhaustDiscountPending = true;
+                TalentBattleRules.SyncSoulFireThrottleStatus(_state);
             }
         }
     }

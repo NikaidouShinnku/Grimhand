@@ -127,8 +127,9 @@ namespace Grimhand.Expedition
             {
                 config.Talents.MageReviveAvailable = HasTalent(config.Talents, "talent_mage_s1_lv5")
                     && !talentRun.MageReviveUsed;
+                config.Talents.RangerSacrificeHpTotalAtBattleStart = talentRun.RangerSacrificeHpTotal;
                 config.Talents.RangerBloodDebtAttackBonus = HasTalent(config.Talents, "talent_ranger_s1_lv10")
-                    ? ComputeBloodDebtAttackBonus(talentRun)
+                    ? ComputeBloodDebtAttackBonus(talentRun.RangerSacrificeHpTotal)
                     : 0;
             }
 
@@ -183,14 +184,18 @@ namespace Grimhand.Expedition
             }
         }
 
-        static int ComputeBloodDebtAttackBonus(ExpeditionTalentRunState talentRun)
+        public static int ComputeBloodDebtAttackBonus(int sacrificeHpTotal)
         {
-            if (talentRun == null || talentRun.RangerSacrificeHpTotal < 50)
+            if (sacrificeHpTotal < 50)
                 return 0;
 
-            var stacks = talentRun.RangerSacrificeHpTotal / 50;
-            return System.Math.Min(10, stacks);
+            // 每 50 点献祭累计 → +2% 增伤，上限 20%
+            var stacks = sacrificeHpTotal / 50;
+            return System.Math.Min(20, stacks * 2);
         }
+
+        static int ComputeBloodDebtAttackBonus(ExpeditionTalentRunState talentRun) =>
+            talentRun == null ? 0 : ComputeBloodDebtAttackBonus(talentRun.RangerSacrificeHpTotal);
 
         static int CountAliveEnemies(BattleConfig config)
         {

@@ -102,6 +102,23 @@ namespace Grimhand.Presentation.Camp
 
         public bool IsOpen => _overlayRoot != null && _overlayRoot.gameObject.activeSelf;
 
+        /// <summary>ESC：卡牌详情 → 图鉴列表 → 关闭。</summary>
+        public bool TryHandleEscape()
+        {
+            if (!IsOpen)
+                return false;
+
+            if (_cardDetail != null && _cardDetail.IsOpen)
+            {
+                _cardDetail.Hide();
+                return true;
+            }
+
+            Hide();
+            _onClose?.Invoke();
+            return true;
+        }
+
         public void Initialize(
             CardView cardPrefab,
             CardVisualCatalogSO cardCatalog,

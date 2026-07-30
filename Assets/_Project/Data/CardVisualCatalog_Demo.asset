@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: CardVisualCatalog_Demo
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.CardVisualCatalogSO
   DefaultCardArt: {fileID: 0}
+  CurseCardArt: {fileID: 6894929934875589815, guid: efd31d97c846028419efffccb6da5436, type: 3}
   DefaultFrameAttack: {fileID: 3687884420444632601, guid: aaae759847617d749a0e0c262d10063e, type: 3}
   DefaultFrameDefense: {fileID: -5382582309188734258, guid: f40b44cbb8bfa68498ccc21ec2f75816, type: 3}
   DefaultFrameStatus: {fileID: -3208813810830078809, guid: 85fc978eee6148441a85b3e5432327ca, type: 3}

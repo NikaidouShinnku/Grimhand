@@ -98,6 +98,15 @@ namespace Grimhand.Presentation.Camp
 
         public bool IsOpen => _overlayRoot != null && _overlayRoot.gameObject.activeSelf;
 
+        public bool TryHandleEscape()
+        {
+            if (!IsOpen)
+                return false;
+
+            TryClose();
+            return true;
+        }
+
         public void Initialize(
             ExpeditionSetupSO expeditionSetup,
             BattleSetupSO battleSetup,

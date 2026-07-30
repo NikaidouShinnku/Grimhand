@@ -27,6 +27,20 @@ namespace Grimhand.Presentation.Camp
         public bool IsOpen => _root != null && _root.gameObject.activeSelf;
         public bool IsForfeitConfirmOpen => _forfeitConfirm != null && _forfeitConfirm.IsOpen;
 
+        /// <summary>ESC：有确认框则取消（否），否则关闭菜单。</summary>
+        public bool TryHandleEscape()
+        {
+            if (!IsOpen)
+                return false;
+
+            if (_forfeitConfirm != null && _forfeitConfirm.TryCancelViaEscape())
+                return true;
+
+            Hide();
+            _onReturnToGame?.Invoke();
+            return true;
+        }
+
         public void ConfigureArt(BattleUiIconCatalogSO icons) => uiIcons = icons;
 
         public void Initialize(

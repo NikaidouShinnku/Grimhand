@@ -117,14 +117,28 @@ namespace Grimhand.Battle.Model
         /// <summary>法师天赋：本局首张状态牌 -1 费（待消耗）。</summary>
         public bool TalentMageFirstStatusDiscountPending { get; set; }
 
+        /// <summary>法师天赋：已点选占用先声减费的状态牌 InstanceId（取消选择后恢复 Pending）。</summary>
+        public int TalentMageFirstStatusDiscountReservedInstanceId { get; set; }
+
         public bool PlayerRespondStatusUsedThisTurn { get; set; }
         public bool TalentMageFirstHitSlowPending { get; set; }
         public bool TalentMageReviveAvailable { get; set; }
         public int TalentRangerBloodDebtAttackBonus { get; set; }
         public int TalentSacrificeHpAccumulatedBattle { get; set; }
+        /// <summary>开战时远征累计献祭 HP（不含本场已献祭）。</summary>
+        public int TalentRangerSacrificeHpBaseline { get; set; }
 
-        /// <summary>巫妖女王 s2_lv5：本场战斗首张消耗牌 -1 费（待消耗）。</summary>
+        /// <summary>血祭节流：本回合结束后，下回合抽牌后随机 1 张手牌 -1 费。</summary>
+        public bool TalentRangerPendingRandomCostDiscountNextTurn { get; set; }
+
+        /// <summary>血祭节流：本回合获得减费的手牌 InstanceId（0 表示无）。</summary>
+        public int TalentRangerDiscountedCardInstanceId { get; set; }
+
+        /// <summary>魂火节流：本场尚可对全部巫妖牌 -1 费（点选一张后变 false；取消该牌可恢复）。</summary>
         public bool TalentLichFirstExhaustDiscountPending { get; set; }
+
+        /// <summary>魂火节流：已点选占用减费的巫妖牌 InstanceId（该牌保持 -1，直至取消或提交）。</summary>
+        public int TalentLichFirstExhaustDiscountReservedInstanceId { get; set; }
 
         /// <summary>巫妖 s1_lv9：本回合已打出的玩家牌数量。</summary>
         public int TalentLichCardsPlayedThisTurn { get; set; }
@@ -134,6 +148,9 @@ namespace Grimhand.Battle.Model
 
         /// <summary>巫妖 s1_lv9：下回合开始对全体敌人造成的伤害。</summary>
         public int TalentLichPendingEnemyAoeNextTurn { get; set; }
+
+        /// <summary>封印武装：兼容旧路径的待交付列表（现行逻辑为封印时立即临时入手）。</summary>
+        public List<CardInstanceState> TalentLichSealedCardsPendingNextTurn { get; } = new();
 
         /// <summary>v0.91：灵魂纽带伙伴映射（本回合有效，回合开始清空）。</summary>
         public Dictionary<string, string> SoulBondPartnerByCombatantId { get; } = new();

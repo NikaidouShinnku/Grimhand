@@ -617,7 +617,11 @@ namespace Grimhand.Battle.Effects
                         var duration = targetSlower
                             ? (action.Duration < 0 ? -1 : Math.Max(1, action.Duration))
                             : (action.AlternateValue > 0 ? action.AlternateValue : 3);
-                        StatusRules.ApplyStatus(state, target, StatusCatalog.Poison, stacks, duration, events);
+                        TalentBattleRules.AdjustPoisonStacks(state, actor, ref stacks);
+                        duration = TalentBattleRules.AdjustPoisonDuration(state, actor, duration);
+                        var poisonId = TalentBattleRules.ResolveAppliedStatusId(
+                            state, actor, StatusCatalog.Poison);
+                        StatusRules.ApplyStatus(state, target, poisonId, stacks, duration, events);
                     }
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Attack, target?.Id, false, 0);
                     break;
@@ -1039,7 +1043,7 @@ namespace Grimhand.Battle.Effects
                 sourceCardInstanceId: sourceCardInstanceId);
             if (state.LastAction.DamageAmount > 0)
             {
-                TalentBattleRules.OnSacrificeHpSpent(state, actor, state.LastAction.DamageAmount);
+                TalentBattleRules.OnSacrificeHpSpent(state, actor, state.LastAction.DamageAmount, events);
                 PassiveCardMechanicsRules.TryTriggerBloodFrenzyOnSacrifice(state, actor, events);
             }
         }
@@ -1218,12 +1222,15 @@ namespace Grimhand.Battle.Effects
             stacks = V09NewMechanicsRules.AdjustPoisonStacksForVenomSac(actor, action.StatusId, stacks);
 
             var duration = action.Duration;
-            if (action.StatusId == StatusCatalog.Poison)
+            var statusId = action.StatusId;
+            if (statusId == StatusCatalog.Poison)
             {
                 TalentBattleRules.AdjustPoisonStacks(state, actor, ref stacks);
                 duration = TalentBattleRules.AdjustPoisonDuration(state, actor, duration);
+                statusId = TalentBattleRules.ResolveAppliedStatusId(state, actor, statusId);
             }
-            StatusRules.ApplyStatus(state, target, action.StatusId, stacks, duration, events);
+
+            StatusRules.ApplyStatus(state, target, statusId, stacks, duration, events);
 
             if (action.StatusId == StatusCatalog.BloodPuppetShelter
                 && actor != null
@@ -1401,7 +1408,7 @@ namespace Grimhand.Battle.Effects
 
             var hpDamage = state.LastAction.DamageAmount;
             if (isSacrificeSelfDamage && hpDamage > 0)
-                TalentBattleRules.OnSacrificeHpSpent(state, actor, hpDamage);
+                TalentBattleRules.OnSacrificeHpSpent(state, actor, hpDamage, events);
 
             if (action.LifestealUnblockedOnly && hpDamage > 0)
                 DamageRules.ApplyHeal(state, actor, hpDamage, events, actor, isLifesteal: true);

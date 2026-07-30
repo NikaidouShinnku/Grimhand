@@ -798,7 +798,7 @@ namespace Grimhand.Presentation.Battle
         {
             ClearDoorRow();
             var run = _session.Expedition.Run;
-            var layer = run.Map?.NodesCompleted + 1 ?? run.BattlesWon + 1;
+            var layer = ExpeditionPathArt.ResolvePresentationLayer(run);
             var total = run.Map?.ChapterLayerCount ?? run.TargetBattleCount;
             if (_locationTitle != null)
                 _locationTitle.text = ExpeditionPathArt.ResolveRegionDisplayName(layer);

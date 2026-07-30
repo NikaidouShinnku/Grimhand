@@ -221,6 +221,8 @@ namespace Grimhand.Battle.Rules
             if (state == null || actor == null || card == null || !card.Keywords.Contains("sacrifice"))
                 return;
 
+            TalentBattleRules.OnSacrificeCardPlayed(state, actor, card);
+
             PassiveCardMechanicsRules.TryTriggerFinalBloodRitualOnSacrifice(
                 state, actor, card, events, rng);
             PassiveCardMechanicsRules.TryTriggerBloodFrenzyOnSacrifice(state, actor, events);

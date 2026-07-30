@@ -17,6 +17,11 @@ namespace Grimhand.Battle.Model
         public string OwnerCombatantId { get; set; } = "";
         /// <summary>回合开始注入的手牌，不占抽牌上限；回合末移除。</summary>
         public bool IsBonusHandCard { get; set; }
+        /// <summary>
+        /// 额外手牌获得时所在回合号。&gt;0 时：获得当回合结束不清除（封印武装等同回合入手），
+        /// 下一回合结束仍未打出则清除。0 表示按普通 IsBonusHandCard 于当回合末清除。
+        /// </summary>
+        public int BonusHandGrantedTurn { get; set; }
         /// <summary>已废弃：请使用 Keywords 中的 inherit。保留字段仅为序列化兼容。</summary>
         public bool RetainInHandOverTurnEnd { get; set; }
         public string DisplayName { get; set; } = "";

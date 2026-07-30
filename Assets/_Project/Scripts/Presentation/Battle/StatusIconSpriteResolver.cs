@@ -19,6 +19,12 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.DamageUp:
                 case StatusCatalog.WaveSurge:
                 case StatusCatalog.PhantomCaptainFrenzyAtk:
+                case StatusCatalog.KnightAssaultStanceAtk:
+                case StatusCatalog.KnightBackToWallAtk:
+                case StatusCatalog.RangerLowHpFuryAtk:
+                case StatusCatalog.RangerSoloHuntAtk:
+                case StatusCatalog.KnightComboAtk:
+                case StatusCatalog.RangerBloodDebtAtk:
                 case StatusCatalog.BloodFrenzy:
                 case StatusCatalog.ImmortalShed:
                 case StatusCatalog.HandCostZero:
@@ -41,6 +47,7 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.Vulnerable:
                 case StatusCatalog.SpiderPoisonVulnerable:
                 case StatusCatalog.PhantomCaptainFrenzyVuln:
+                case StatusCatalog.KnightAssaultStanceVuln:
                     return icons.StatusDefenseDown;
 
                 case StatusCatalog.DamageReduction:

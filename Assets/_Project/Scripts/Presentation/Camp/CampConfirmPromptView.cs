@@ -39,6 +39,18 @@ namespace Grimhand.Presentation.Camp
 
         public bool IsOpen => _root != null && _root.activeSelf;
 
+        /// <summary>ESC / 返回：等价于点「取消/否」。</summary>
+        public bool TryCancelViaEscape()
+        {
+            if (!IsOpen)
+                return false;
+
+            var cb = _onCancel;
+            Hide();
+            cb?.Invoke();
+            return true;
+        }
+
         public static CampConfirmPromptView Create(
             Transform parent,
             BattleUiIconCatalogSO icons,

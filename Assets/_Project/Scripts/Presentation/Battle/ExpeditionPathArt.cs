@@ -7,6 +7,41 @@ namespace Grimhand.Presentation.Battle
 {
     public static class ExpeditionPathArt
     {
+        /// <summary>
+        /// 表现用层数：战后领奖留在刚打完的层（含 20/40 Boss），道路选择才进下一层。
+        /// </summary>
+        public static int ResolvePresentationLayer(ExpeditionRunState run)
+        {
+            if (run?.Map == null)
+                return System.Math.Max(1, run?.LastBattleFloor ?? 1);
+
+            var nodesCompleted = run.Map.NodesCompleted;
+            switch (run.Phase)
+            {
+                case ExpeditionPhase.RewardPickup:
+                    // 宝箱：节点尚未结算，当前层 = NodesCompleted + 1
+                    if (run.PendingRewardPickup?.Kind == RewardPickupKind.Chest)
+                        return System.Math.Max(1, nodesCompleted + 1);
+                    // 战斗/事件奖励：节点已结算，留在刚完成的层（避免 20→21 提前切背景）
+                    if (run.LastBattleFloor > 0)
+                        return run.LastBattleFloor;
+                    return System.Math.Max(1, nodesCompleted);
+
+                case ExpeditionPhase.RunComplete:
+                case ExpeditionPhase.RunFailed:
+                    if (run.LastBattleFloor > 0)
+                        return run.LastBattleFloor;
+                    return System.Math.Max(1, nodesCompleted);
+
+                case ExpeditionPhase.RouteSelect:
+                    return System.Math.Max(1, nodesCompleted + 1);
+
+                default:
+                    // InBattle / Shop / Event / Altar：当前进行中的层
+                    return System.Math.Max(1, nodesCompleted + 1);
+            }
+        }
+
         public static Sprite ResolveBackground(BattleUiIconCatalogSO icons, int layerNumber)
         {
             if (icons == null)

@@ -212,6 +212,11 @@ namespace Grimhand.Battle.Rules
 
                 if (card.IsBonusHandCard)
                 {
+                    // 封印武装等：封印当回合入手，需留到下一回合规划期才能打出
+                    if (card.BonusHandGrantedTurn > 0
+                        && card.BonusHandGrantedTurn == state.TurnNumber)
+                        continue;
+
                     hand.RemoveAt(i);
                     card.IsUsable = false;
                     events.Add(new BattleEvent(BattleEventKind.CardDiscarded, "Bonus hand cleared")

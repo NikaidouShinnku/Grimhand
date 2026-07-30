@@ -44,6 +44,22 @@ namespace Grimhand.Battle.Status
         public const string PhantomCaptainFrenzyAtk = "phantom_captain_frenzy_atk";
         /// <summary>鬼灵海盗船长被动：条件满足时 +20% 易伤（不叠多次）。</summary>
         public const string PhantomCaptainFrenzyVuln = "phantom_captain_frenzy_vuln";
+        /// <summary>战士突击姿态：非前排时 +33% 增伤（天赋同步，不可净化）。</summary>
+        public const string KnightAssaultStanceAtk = "knight_assault_stance_atk";
+        /// <summary>战士突击姿态：非前排时 +33% 易伤（天赋同步，不可净化）。</summary>
+        public const string KnightAssaultStanceVuln = "knight_assault_stance_vuln";
+        /// <summary>战士背水一战：HP低于护甲时 +20% 增伤（天赋同步，不可净化）。</summary>
+        public const string KnightBackToWallAtk = "knight_back_to_wall_atk";
+        /// <summary>恶魔低血狂怒：HP低于30%时 +25% 增伤（天赋同步，不可净化）。</summary>
+        public const string RangerLowHpFuryAtk = "ranger_low_hp_fury_atk";
+        /// <summary>恶魔孤猎：非Boss且敌方仅剩1人时 +30% 增伤（天赋同步，不可净化）。</summary>
+        public const string RangerSoloHuntAtk = "ranger_solo_hunt_atk";
+        /// <summary>战士连击：当回合 +33% 增伤（1 回合）。</summary>
+        public const string KnightComboAtk = "knight_combo_atk";
+        /// <summary>恶魔血债累击：远征累计献祭换取的增伤%（天赋同步，不可净化）。</summary>
+        public const string RangerBloodDebtAtk = "ranger_blood_debt_atk";
+        /// <summary>巫妖魂火节流：本场首张巫妖牌 -1 费（天赋同步，不可净化，不显示脚标）。</summary>
+        public const string LichSoulFireThrottle = "lich_soul_fire_throttle";
         /// <summary>潮汐之力：劈砍/破浪斩费用 -1（持续回合）。</summary>
         public const string MermaidTidalCostCut = "mermaid_tidal_cost_cut";
         public const string DamageReduction = "damage_reduction";
@@ -371,6 +387,62 @@ namespace Grimhand.Battle.Status
                 DisplayName = "狂怒易伤",
                 DurationKind = StatusDurationKind.Permanent,
                 IncomingDamagePercentPerStack = 1
+            };
+            map[KnightAssaultStanceAtk] = new StatusDefinition
+            {
+                Id = KnightAssaultStanceAtk,
+                DisplayName = "突击增伤",
+                DurationKind = StatusDurationKind.Permanent,
+                AttackPercentBonusPerStack = 1
+            };
+            map[KnightAssaultStanceVuln] = new StatusDefinition
+            {
+                Id = KnightAssaultStanceVuln,
+                DisplayName = "突击易伤",
+                DurationKind = StatusDurationKind.Permanent,
+                IncomingDamagePercentPerStack = 1
+            };
+            map[KnightBackToWallAtk] = new StatusDefinition
+            {
+                Id = KnightBackToWallAtk,
+                DisplayName = "背水增伤",
+                DurationKind = StatusDurationKind.Permanent,
+                AttackPercentBonusPerStack = 1
+            };
+            map[RangerLowHpFuryAtk] = new StatusDefinition
+            {
+                Id = RangerLowHpFuryAtk,
+                DisplayName = "低血狂怒",
+                DurationKind = StatusDurationKind.Permanent,
+                AttackPercentBonusPerStack = 1
+            };
+            map[RangerSoloHuntAtk] = new StatusDefinition
+            {
+                Id = RangerSoloHuntAtk,
+                DisplayName = "孤猎",
+                DurationKind = StatusDurationKind.Permanent,
+                AttackPercentBonusPerStack = 1
+            };
+            map[KnightComboAtk] = new StatusDefinition
+            {
+                Id = KnightComboAtk,
+                DisplayName = "连击",
+                DurationKind = StatusDurationKind.Turns,
+                DefaultDuration = 1,
+                AttackPercentBonusPerStack = 1
+            };
+            map[RangerBloodDebtAtk] = new StatusDefinition
+            {
+                Id = RangerBloodDebtAtk,
+                DisplayName = "血债累击",
+                DurationKind = StatusDurationKind.Permanent,
+                AttackPercentBonusPerStack = 1
+            };
+            map[LichSoulFireThrottle] = new StatusDefinition
+            {
+                Id = LichSoulFireThrottle,
+                DisplayName = "魂火节流",
+                DurationKind = StatusDurationKind.Permanent
             };
             map[MermaidTidalCostCut] = new StatusDefinition
             {

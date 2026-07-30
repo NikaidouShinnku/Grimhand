@@ -29,9 +29,12 @@ namespace Grimhand.Battle.Rules
 
             var cardType = card?.CardType ?? CardType.Attack;
             var cost = card?.Cost ?? 0;
-            var isSacrifice = card != null && card.Keywords.Contains("sacrifice");
+            var isSacrificeSelf = card != null
+                && action.Target == EffectTarget.Self
+                && card.Keywords != null
+                && card.Keywords.Contains("sacrifice");
 
-            return PeekOutgoingPower(state, owner, cardType, basePower, isSacrifice, cost);
+            return PeekOutgoingPower(state, owner, cardType, basePower, isSacrificeSelf, cost, card);
         }
 
         /// <summary>预览用：不消耗铁壁转化/复仇等一次性 flat bonus。</summary>
@@ -40,13 +43,15 @@ namespace Grimhand.Battle.Rules
             CombatantState owner,
             CardType cardType,
             int basePower,
-            bool isSacrifice,
-            int cost)
+            bool isSacrificeSelfDamage,
+            int cost,
+            CardInstanceState card = null)
         {
             if (owner == null)
             {
                 return RelicBattleRules.ComputeOutgoingPower(
-                    state, owner, cardType, basePower, isSacrifice, cost, applyPositionMultiplier: false);
+                    state, owner, cardType, basePower, isSacrificeSelfDamage, cost,
+                    applyPositionMultiplier: false, card);
             }
 
             var ironWall = owner.TalentIronWallPendingDamageBonus;
@@ -54,7 +59,8 @@ namespace Grimhand.Battle.Rules
             try
             {
                 return RelicBattleRules.ComputeOutgoingPower(
-                    state, owner, cardType, basePower, isSacrifice, cost, applyPositionMultiplier: false);
+                    state, owner, cardType, basePower, isSacrificeSelfDamage, cost,
+                    applyPositionMultiplier: false, card);
             }
             finally
             {
@@ -426,7 +432,8 @@ namespace Grimhand.Battle.Rules
                 card.CardType,
                 primaryPower,
                 isSacrificeSelfDamage,
-                card.Cost);
+                card.Cost,
+                card);
 
             var effectiveBlock = CombatModifierRules.ComputeEffectiveBlock(recipient, action.IgnoreDefPercent);
             var blocked = System.Math.Min(effectiveBlock, outgoing);

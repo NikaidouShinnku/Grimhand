@@ -56,6 +56,18 @@ namespace Grimhand.Presentation.Camp
                 _continueButton.interactable = canContinue;
         }
 
+        public bool IsOpen => _root != null && _root.gameObject.activeSelf;
+        public bool IsAbandonConfirmOpen => _abandonConfirm != null && _abandonConfirm.IsOpen;
+
+        /// <summary>ESC：有「放弃远征」确认则取消（否）。</summary>
+        public bool TryHandleEscape()
+        {
+            if (!IsOpen)
+                return false;
+
+            return _abandonConfirm != null && _abandonConfirm.TryCancelViaEscape();
+        }
+
         public void Hide()
         {
             HideAbandonConfirm();

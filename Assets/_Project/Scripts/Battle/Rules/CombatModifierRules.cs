@@ -32,6 +32,9 @@ namespace Grimhand.Battle.Rules
             combatant.Attack = 0;
             combatant.Defense = 0;
 
+            // 突击姿态等条件状态需在读取 Status 列表前同步，避免与 ApplyStatus 递归刷新
+            TalentBattleRules.SyncConditionalTalentStatuses(state, combatant);
+
             foreach (var status in combatant.Statuses)
             {
                 var def = StatusCatalog.Get(status.StatusId);

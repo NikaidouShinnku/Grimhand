@@ -63,7 +63,7 @@ MonoBehaviour:
     Value: 0
     StatusId: attack_up_pct
     Stacks: 10
-    Duration: 1
+    Duration: 2
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100
@@ -101,7 +101,7 @@ MonoBehaviour:
     Value: 0
     StatusId: defense_up_pct
     Stacks: 10
-    Duration: 1
+    Duration: 2
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100

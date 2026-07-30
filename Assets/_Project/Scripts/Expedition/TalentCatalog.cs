@@ -75,10 +75,10 @@ namespace Grimhand.Expedition
                 "如果处于前排，回合开始时获得2护甲");
             yield return Def(KnightId, 1, 3, "talent_knight_s1_lv3", "突击姿态",
                 "当不处于前排时，获得33%易伤和33%增伤");
-            yield return Def(KnightId, 1, 5, "talent_knight_s1_lv5", "余护甲回血",
+            yield return Def(KnightId, 1, 5, "talent_knight_s1_lv5", "养精蓄锐",
                 "回合结束时如果护甲量大于0，则回复2HP");
             yield return Def(KnightId, 1, 7, "talent_knight_s1_lv7", "背水一战",
-                "当HP低于护甲时，获得20%增伤");
+                "当护甲超过HP时，获得20%增伤");
             yield return Def(KnightId, 1, 10, "talent_knight_s1_lv10", "绝地格挡",
                 "每场战斗第一次即将受到致死攻击时，获得50点护甲");
 
@@ -89,7 +89,7 @@ namespace Grimhand.Expedition
             yield return Def(KnightId, 2, 6, "talent_knight_s2_lv6", "战阵鼓舞",
                 "战士场上存活时，全队最大HP+10");
             yield return Def(KnightId, 2, 8, "talent_knight_s2_lv8", "连击",
-                "如果一回合中连续使用三张战士的攻击牌，当回合获得33%增伤（点击出牌后立刻获得）");
+                "如果一回合中连续使用三张战士的攻击牌，当回合获得33%增伤（不包括快速启动牌）");
             yield return Def(KnightId, 2, 10, "talent_knight_s2_lv10", "铁壁转化",
                 "不再获得护甲，每当获取护甲时变为下一张攻击牌增加护甲量的伤害");
         }
@@ -111,8 +111,8 @@ namespace Grimhand.Expedition
                 "施加的中毒层数+2");
             yield return Def(MageId, 2, 6, "talent_mage_s2_lv6", "初击减速",
                 "每场战斗中，受到法老伤害的第一个敌人获得1层减速（永久）");
-            yield return Def(MageId, 2, 10, "talent_mage_s2_lv10", "永驻毒蚀",
-                "所有施加的中毒层数-1，但持续时间全部变为永久");
+            yield return Def(MageId, 2, 10, "talent_mage_s2_lv10", "烈日焚心",
+                "法老施加的中毒都变为灼烧，且当敌人被灼烧掉血时，使随机友方角色回复2HP");
         }
 
         static IEnumerable<TalentDefinition> BuildRanger()
@@ -120,18 +120,18 @@ namespace Grimhand.Expedition
             yield return Def(RangerId, 1, 1, "talent_ranger_s1_lv1", "温和献祭",
                 "献祭类卡牌减少25%的血量消耗");
             yield return Def(RangerId, 1, 3, "talent_ranger_s1_lv3", "微献保护",
-                "献祭生命值小于5时不会扣血");
+                "献祭生命值小于等于5时不会扣血");
             yield return Def(RangerId, 1, 5, "talent_ranger_s1_lv5", "血怒献祭",
-                "献祭类卡牌增加30%伤害，但同时增加40%血量消耗");
+                "献祭类攻击卡增加30%伤害，但同时增加40%血量消耗");
             yield return Def(RangerId, 1, 7, "talent_ranger_s1_lv7", "低血狂怒",
                 "当HP低于30%时，获得25%增伤");
             yield return Def(RangerId, 1, 10, "talent_ranger_s1_lv10", "血债累击",
-                "献祭总血量每达到50点所有攻击牌增加1点伤害，最多可增加10点（整场远征累计）");
+                "献祭总血量每达到50点（整场远征累计），恶魔便获得2%增伤，最多20%");
 
             yield return Def(RangerId, 2, 2, "talent_ranger_s2_lv2", "嗜血护甲",
                 "吸血效果超出HP上限时，溢出转化为等量护甲");
             yield return Def(RangerId, 2, 4, "talent_ranger_s2_lv4", "血祭节流",
-                "每次献祭后，下一张牌能量消耗-1（最低0）");
+                "使用献祭牌后，下一回合随机1张牌能量消耗-1（最低0）");
             yield return Def(RangerId, 2, 6, "talent_ranger_s2_lv6", "无尽血刃",
                 "远征开始时，将一张「无尽血刃」置入该角色牌组");
             yield return Def(RangerId, 2, 8, "talent_ranger_s2_lv8", "孤猎",
@@ -173,11 +173,11 @@ namespace Grimhand.Expedition
             yield return Def(LichQueenId, 2, 2, "talent_lich_s2_lv2", "灵界专注",
                 "自身在非战斗回合造成的伤害拥有10%增伤");
             yield return Def(LichQueenId, 2, 5, "talent_lich_s2_lv5", "魂火节流",
-                "巫妖女王每场战斗使用的第一张消耗牌能量消耗-1");
+                "每场战斗开始时，巫妖女王的所有卡牌能量消耗-1；点选一张后效果消失，但该牌保持减费（取消选择可恢复）；提交出牌后本场不再触发");
             yield return Def(LichQueenId, 2, 8, "talent_lich_s2_lv8", "周期虚化",
                 "每4回合巫妖女王会获得虚化（1回合）");
             yield return Def(LichQueenId, 2, 10, "talent_lich_s2_lv10", "封印武装",
-                "远征开始时，将一张「灵界封印」置入该角色牌组。当成功封印时，将被封印的卡加入玩家手牌，但是其获得消耗关键词并且费用+1");
+                "远征开始时，将一张「灵界封印」置入该角色牌组。当成功封印时，将被封印的卡临时加入玩家手牌，但是能量消耗+1");
         }
 
         static TalentDefinition Def(

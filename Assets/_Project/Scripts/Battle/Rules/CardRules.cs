@@ -15,7 +15,7 @@ namespace Grimhand.Battle.Rules
     {
         public static bool IsPolluted(CardInstanceState card) => !card.IsUsable;
 
-        /// <summary>诅咒牌（如混沌之触）：占用牌库/手牌位但无法被打出，只能通过弃牌/摧毁事件移除。</summary>
+        /// <summary>诅咒牌（如混沌之触）：无法打出，但会正常抽取与弃牌。</summary>
         public static bool IsCurseCard(CardInstanceState card)
         {
             if (card == null)

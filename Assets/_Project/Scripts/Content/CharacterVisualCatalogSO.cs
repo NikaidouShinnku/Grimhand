@@ -74,6 +74,9 @@ namespace Grimhand.Content
         /// <summary>卡面立绘：优先角色专属 card_profile；否则 Idle / Default。</summary>
         public Sprite GetCardPortrait(string characterDefinitionId)
         {
+            if (string.IsNullOrEmpty(characterDefinitionId))
+                return null;
+
             var entry = GetEntry(characterDefinitionId);
             if (entry?.CardProfilePortrait != null)
                 return entry.CardProfilePortrait;
@@ -114,14 +117,6 @@ namespace Grimhand.Content
             // 战斗立绘：128×128 完整图可用；过小碎切片才回退 idle
             if (sprite != null && !IsValidCombatPortrait(sprite))
                 sprite = entry.IdlePortrait;
-
-            if (sprite != null && entry.IdlePortrait != null && pose != PortraitPoseKind.Idle)
-            {
-                var poseArea = sprite.rect.width * sprite.rect.height;
-                var idleArea = entry.IdlePortrait.rect.width * entry.IdlePortrait.rect.height;
-                if (idleArea > 0f && poseArea < idleArea * 0.45f)
-                    sprite = entry.IdlePortrait;
-            }
 
             if (sprite != null)
                 return sprite;

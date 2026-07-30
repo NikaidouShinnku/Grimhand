@@ -126,9 +126,14 @@ namespace Grimhand.Content.Editor
                     null, CardRarity.Rare, AtkDmg(6, 100, lifestealPercent: 50)),
                 Decree = SaveCard("p_decree", "法老权令", "char_mage", 2, CardType.Status,
                     null, CardRarity.Rare,
-                    Draw(2),
-                    ApplyStat(StatusCatalog.AttackUp, 3, 1, EffectTarget.FrontAlly),
-                    ApplyStat(StatusCatalog.DefenseUp, 2, 1, EffectTarget.FrontAlly)),
+                    new EffectActionDefinition
+                    {
+                        Type = EffectActionType.DrawCardsNextTurn,
+                        Target = EffectTarget.Self,
+                        Value = 2
+                    },
+                    ApplyStat(StatusCatalog.AttackUpPercent, 10, 2, EffectTarget.FrontAlly),
+                    ApplyStat(StatusCatalog.DefenseUpPercent, 10, 2, EffectTarget.FrontAlly)),
                 UndeadCurse = SaveCard("p_undead_curse", "亡灵诅咒", "char_mage", 3, CardType.Attack,
                     Kw("poison"), CardRarity.Epic,
                     AtkDmg(7, 120, reach: TargetReach.Any),

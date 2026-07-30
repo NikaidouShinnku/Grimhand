@@ -290,19 +290,35 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             _session.PresentationSnapshot?.ApplyBlockConsumed(combatantId, amount);
+            SyncHpBlockConditionalTalentFootStatuses(combatantId);
             _screen?.Refresh();
         }
 
         void ApplySnapshotAfterDamage(string combatantId, int amount)
         {
             _session.PresentationSnapshot?.ApplyDamage(combatantId, amount);
+            SyncHpBlockConditionalTalentFootStatuses(combatantId);
             _screen?.Refresh();
         }
 
         void ApplySnapshotAfterHeal(string combatantId, int amount)
         {
             _session.PresentationSnapshot?.ApplyHeal(combatantId, amount);
+            SyncHpBlockConditionalTalentFootStatuses(combatantId);
             _screen?.Refresh();
+        }
+
+        /// <summary>
+        /// 背水一战等：按演出快照的 HP/护甲在「数字跳变的那一刻」揭示/移除脚标，
+        /// 禁止 SyncFootStatusesFromLive 把整段 live 状态提前刷上。
+        /// </summary>
+        void SyncHpBlockConditionalTalentFootStatuses(string combatantId)
+        {
+            if (string.IsNullOrEmpty(combatantId))
+                return;
+
+            _session.PresentationSnapshot?.SyncHpBlockConditionalTalentFootStatuses(
+                combatantId, _session.Engine?.State);
         }
 
         void ApplySnapshotAfterDeath(string combatantId)
@@ -587,22 +603,41 @@ namespace Grimhand.Presentation.Battle
                 }
                 else
                     _session.PresentationSnapshot?.ClearBlock(e.CombatantId);
+                SyncHpBlockConditionalTalentFootStatuses(e.CombatantId);
                 _screen?.Refresh();
                 ApplyEventDisplayCheckpoint(e);
                 yield break;
             }
 
+            var blockGainAppliedEarly = false;
             if (ShouldPlayBlockGainOverlay(e)
                 && IsCombatantPresentationActive(e.CombatantId)
                 && _portraits.TryGetValue(e.CombatantId, out var target))
             {
+                // 绝地格挡等：先刷新护甲数值，再播 Blocking/护甲 icon，保证「先有甲再挨打」
+                if (e.IsRespondStyleBlock && e.Amount > 0)
+                {
+                    ApplySnapshotAfterBlockGain(e.CombatantId, e.Amount);
+                    SyncHpBlockConditionalTalentFootStatuses(e.CombatantId);
+                    blockGainAppliedEarly = true;
+                }
+
+                if (e.IsRespondStyleBlock)
+                {
+                    GameAudioService.Instance.PlayBattleBlocking();
+                    var blockingSprite = _effects?.Blocking;
+                    if (blockingSprite != null && target.isActiveAndEnabled && target.gameObject.activeInHierarchy)
+                        target.StartCoroutine(target.PlayOverlayEffect(blockingSprite));
+                    yield return target.PlayInPlacePose(PortraitPoseKind.Defense, DefenseReactDuration);
+                }
+
                 GameAudioService.Instance.PlayBattleGainArmor();
                 yield return PlayBlockGainOverlay(target);
             }
 
-            ApplySnapshotAfterBlockGain(e.CombatantId, e.Amount);
-            if (!string.IsNullOrEmpty(e.CombatantId))
-                _session.PresentationSnapshot?.SyncFootStatusesFromLive(_session.Engine?.State, e.CombatantId);
+            if (!blockGainAppliedEarly)
+                ApplySnapshotAfterBlockGain(e.CombatantId, e.Amount);
+            SyncHpBlockConditionalTalentFootStatuses(e.CombatantId);
             ApplyEventDisplayCheckpoint(e);
         }
 

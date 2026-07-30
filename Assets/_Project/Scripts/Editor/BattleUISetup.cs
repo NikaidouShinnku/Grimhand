@@ -283,13 +283,13 @@ namespace Grimhand.Editor
             routeBtnPrefab.gameObject.SetActive(false);
 
             var runEndPanel = CreatePanel("RunEndPanel", overlay.transform, new Color(0.14f, 0.15f, 0.2f, 0.98f));
-            CenterPanel(runEndPanel, 520, 220);
+            CenterPanel(runEndPanel, 620, 670);
             runEndPanel.SetActive(false);
-            var runTitle = CreateText("Title", runEndPanel.transform, "远征完成", 24, FontStyle.Bold);
+            var runTitle = CreateText("Title", runEndPanel.transform, "远征胜利", 24, FontStyle.Bold);
             AnchorTop(runTitle, 16, -48, -16, -16);
             var runBody = CreateText("Body", runEndPanel.transform, "", 16, FontStyle.Normal);
             AnchorTop(runBody, 16, 60, -16, 100);
-            var runRestart = CreateButton("Restart", runEndPanel.transform, "重新开始远征", new Vector2(0.5f, 0.15f));
+            var runRestart = CreateButton("Restart", runEndPanel.transform, "返回营地", new Vector2(0.5f, 0.15f));
 
             AssignView(view, title, subtitle, energyIcon.GetComponent<Image>(), energyValue, playerSlots, enemySlots, handPanel, intentText, intentPanel,
                 queueText, queuePanel, targetText, targetPanel, confirm, skip, restart,
@@ -473,14 +473,14 @@ namespace Grimhand.Editor
 
             var costBg = CreateImage("CostBadge", scaleRoot.transform, new Color(1f, 1f, 1f, 0f));
             var costRt = costBg.GetComponent<RectTransform>();
-            costRt.anchorMin = new Vector2(0.02f, 0.86f);
-            costRt.anchorMax = new Vector2(0.24f, 0.99f);
+            costRt.anchorMin = new Vector2(0.01f, 0.82f);
+            costRt.anchorMax = new Vector2(0.30f, 1f);
             costRt.offsetMin = Vector2.zero;
             costRt.offsetMax = Vector2.zero;
             var costIconImg = costBg.GetComponent<Image>();
             costIconImg.preserveAspect = true;
             costIconImg.raycastTarget = false;
-            var costText = CreateText("Cost", costBg.transform, "1", 16, FontStyle.Bold);
+            var costText = CreateText("Cost", costBg.transform, "1", 20, FontStyle.Bold);
             StretchFull(costText);
             costText.alignment = TextAnchor.MiddleCenter;
 

@@ -27,6 +27,8 @@ namespace Grimhand.Content
     public class CardVisualCatalogSO : ScriptableObject
     {
         public Sprite DefaultCardArt;
+        /// <summary>诅咒牌（如混沌之触）卡面插图。</summary>
+        public Sprite CurseCardArt;
         public Sprite DefaultFrameAttack;
         public Sprite DefaultFrameDefense;
         public Sprite DefaultFrameStatus;
@@ -48,11 +50,16 @@ namespace Grimhand.Content
                     entry.CardIcon);
             }
 
+            var art = IsCurseCardId(cardId) && CurseCardArt != null ? CurseCardArt : DefaultCardArt;
             return new CardVisual(
-                DefaultCardArt,
+                art,
                 GetFrame(cardType, rarity),
                 null);
         }
+
+        static bool IsCurseCardId(string cardId) =>
+            !string.IsNullOrEmpty(cardId) && cardId.StartsWith("curse_");
+
 
         public Sprite GetDefaultFrame(CardType cardType) => GetFrame(cardType, CardRarity.Common);
 

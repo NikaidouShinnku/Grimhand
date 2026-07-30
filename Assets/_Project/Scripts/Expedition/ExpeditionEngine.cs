@@ -305,6 +305,8 @@ namespace Grimhand.Expedition
             _run.Gold = 0;
             _run.LastGoldReward = 0;
             _run.LastXpReward = 0;
+            _run.TotalGoldGained = 0;
+            _run.TotalXpGained = 0;
             _run.SharedXpPool = 0;
             _run.LastEventMessage = "";
             _run.Party.Clear();
@@ -486,6 +488,8 @@ namespace Grimhand.Expedition
             _run.Gold = 0;
             _run.LastGoldReward = 0;
             _run.LastXpReward = 0;
+            _run.TotalGoldGained = 0;
+            _run.TotalXpGained = 0;
             _run.SharedXpPool = 0;
             _run.LastEventMessage = "";
             _run.Party.Clear();
@@ -706,10 +710,8 @@ namespace Grimhand.Expedition
                 return;
 
             _run.BattlesWon++;
-            CompleteCurrentNode();
-
-            if (_run.Phase == ExpeditionPhase.RunComplete)
-                return;
+            // 终局胜利也要先发奖：只推进层数，RunComplete 延后到奖励领完
+            CompleteCurrentNode(allowRunComplete: false);
 
             _run.LastXpReward = RollCombatXp();
             ExpeditionBattleConfigBuilder.GrantXpToPool(_run, _run.LastXpReward);
@@ -740,8 +742,7 @@ namespace Grimhand.Expedition
                     return;
                 }
 
-                LoadRoutesForNextLayer();
-                _run.Phase = ExpeditionPhase.RouteSelect;
+                EnterPostRewardPhase();
                 return;
             }
 
@@ -756,6 +757,23 @@ namespace Grimhand.Expedition
             _run.Phase = ExpeditionPhase.RewardPickup;
         }
 
+        /// <summary>ESC 放弃远征：进入结算面板（不立刻清档回营）。</summary>
+        public void AbandonRun(string message = "已放弃远征。")
+        {
+            if (_run.Phase is ExpeditionPhase.RunComplete or ExpeditionPhase.RunFailed)
+                return;
+
+            _run.Phase = ExpeditionPhase.RunFailed;
+            _run.LastEventMessage = message ?? "已放弃远征。";
+            _run.PendingRoutes.Clear();
+            _run.PendingRewardPickup = null;
+            _run.PendingEvent = null;
+            _run.PendingCardOffer = null;
+            _run.PendingCardPackOffer = null;
+            _run.PendingConsumableOfferId = "";
+            _run.ChestRewardRevealed = false;
+        }
+
         public bool TryClaimRewardGold()
         {
             var rewards = _run.PendingRewardPickup;
@@ -765,6 +783,8 @@ namespace Grimhand.Expedition
 
             rewards.GoldClaimed = true;
             _run.Gold += rewards.Gold;
+            if (rewards.Gold > 0)
+                _run.TotalGoldGained += rewards.Gold;
             if (rewards.EnableDivinePunishment)
                 _run.Modifiers.DivinePunishmentActive = true;
             TryAdvanceFromRewardPickup();
@@ -1554,8 +1574,7 @@ namespace Grimhand.Expedition
             if (_run.Phase == ExpeditionPhase.RunComplete)
                 return true;
 
-            LoadRoutesForNextLayer();
-            _run.Phase = ExpeditionPhase.RouteSelect;
+            EnterPostRewardPhase();
             return true;
         }
 
@@ -1972,8 +1991,8 @@ namespace Grimhand.Expedition
             _run.LastEventMessage = "你离开了商店。";
             _run.Shop.Clear();
             CompleteCurrentNode();
-            LoadRoutesForNextLayer();
-            _run.Phase = ExpeditionPhase.RouteSelect;
+            if (_run.Phase != ExpeditionPhase.RunComplete)
+                EnterPostRewardPhase();
             return true;
         }
 
@@ -2110,7 +2129,7 @@ namespace Grimhand.Expedition
                 layer.ChosenOptionIndex = route.MapOptionIndex;
         }
 
-        void CompleteCurrentNode()
+        void CompleteCurrentNode(bool allowRunComplete = true)
         {
             if (_run.Map == null)
                 return;
@@ -2122,8 +2141,12 @@ namespace Grimhand.Expedition
             if (_run.Map.NodesCompleted >= _run.Map.ChapterLayerCount)
             {
                 ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
-                _run.Phase = ExpeditionPhase.RunComplete;
-                _run.PendingRoutes.Clear();
+                if (allowRunComplete)
+                {
+                    _run.Phase = ExpeditionPhase.RunComplete;
+                    _run.PendingRoutes.Clear();
+                }
+
                 return;
             }
 
@@ -2135,13 +2158,33 @@ namespace Grimhand.Expedition
                 if (_run.Map.NodesCompleted >= _run.Map.ChapterLayerCount)
                 {
                     ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
-                    _run.Phase = ExpeditionPhase.RunComplete;
-                    _run.PendingRoutes.Clear();
+                    if (allowRunComplete)
+                    {
+                        _run.Phase = ExpeditionPhase.RunComplete;
+                        _run.PendingRoutes.Clear();
+                    }
+
                     return;
                 }
             }
 
             ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
+        }
+
+        bool IsChapterCleared() =>
+            _run.Map != null && _run.Map.NodesCompleted >= _run.Map.ChapterLayerCount;
+
+        void EnterPostRewardPhase()
+        {
+            if (IsChapterCleared())
+            {
+                _run.Phase = ExpeditionPhase.RunComplete;
+                _run.PendingRoutes.Clear();
+                return;
+            }
+
+            LoadRoutesForNextLayer();
+            _run.Phase = ExpeditionPhase.RouteSelect;
         }
 
         void LoadRoutesForNextLayer()
@@ -2215,14 +2258,9 @@ namespace Grimhand.Expedition
             _run.ChestRewardRevealed = false;
 
             if (kind == RewardPickupKind.Chest)
-            {
                 CompleteCurrentNode();
-                if (_run.Phase == ExpeditionPhase.RunComplete)
-                    return;
-            }
 
-            LoadRoutesForNextLayer();
-            _run.Phase = ExpeditionPhase.RouteSelect;
+            EnterPostRewardPhase();
         }
 
         CardTemplate BuildCardTemplateForGrant(string ownerCharacterId, string definitionId, string displayName)
@@ -2306,7 +2344,10 @@ namespace Grimhand.Expedition
             }
 
             if (outcome.AdvanceNode)
-                CompleteCurrentNode();
+            {
+                var deferComplete = outcome.PendingRewardPickup != null && outcome.PendingRewardPickup.HasAnyReward;
+                CompleteCurrentNode(allowRunComplete: !deferComplete);
+            }
 
             if (_run.Phase == ExpeditionPhase.RunComplete)
                 return true;
@@ -2314,8 +2355,7 @@ namespace Grimhand.Expedition
             if (TryEnterRewardPickupPhase(outcome.PendingRewardPickup))
                 return true;
 
-            LoadRoutesForNextLayer();
-            _run.Phase = ExpeditionPhase.RouteSelect;
+            EnterPostRewardPhase();
             return true;
         }
 

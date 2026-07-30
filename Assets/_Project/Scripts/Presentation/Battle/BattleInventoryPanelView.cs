@@ -66,6 +66,22 @@ namespace Grimhand.Presentation.Battle
         public bool IsOpen => _panel != null && _panel.gameObject.activeSelf;
         public Action OnConsumableUseStarted;
 
+        /// <summary>ESC：消耗品详情 → 关闭背包。</summary>
+        public bool TryHandleEscape()
+        {
+            if (!IsOpen)
+                return false;
+
+            if (_consumableDetailRoot != null && _consumableDetailRoot.gameObject.activeSelf)
+            {
+                HideConsumableDetail();
+                return true;
+            }
+
+            Hide();
+            return true;
+        }
+
         public void Initialize(
             BattleSession session,
             Transform root,

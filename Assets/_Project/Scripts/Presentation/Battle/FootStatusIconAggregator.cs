@@ -33,6 +33,9 @@ namespace Grimhand.Presentation.Battle
             {
                 if (status == null || status.Stacks <= 0 || string.IsNullOrEmpty(status.StatusId))
                     continue;
+                // 魂火节流：机制状态，不显示脚标
+                if (status.StatusId == StatusCatalog.LichSoulFireThrottle)
+                    continue;
 
                 if (!byId.ContainsKey(status.StatusId))
                     byId[status.StatusId] = 0;
@@ -48,11 +51,18 @@ namespace Grimhand.Presentation.Battle
             byId.Remove(StatusCatalog.AttackUpPercent);
             byId.Remove(StatusCatalog.WaveSurge);
             byId.Remove(StatusCatalog.PhantomCaptainFrenzyAtk);
+            byId.Remove(StatusCatalog.KnightAssaultStanceAtk);
+            byId.Remove(StatusCatalog.KnightBackToWallAtk);
+            byId.Remove(StatusCatalog.RangerLowHpFuryAtk);
+            byId.Remove(StatusCatalog.RangerSoloHuntAtk);
+            byId.Remove(StatusCatalog.KnightComboAtk);
+            byId.Remove(StatusCatalog.RangerBloodDebtAtk);
             byId.Remove(StatusCatalog.DamageReduction);
             byId.Remove(StatusCatalog.TideEmpower);
             byId.Remove(StatusCatalog.Vulnerable);
             byId.Remove(StatusCatalog.SpiderPoisonVulnerable);
             byId.Remove(StatusCatalog.PhantomCaptainFrenzyVuln);
+            byId.Remove(StatusCatalog.KnightAssaultStanceVuln);
             byId.Remove(StatusCatalog.DefenseUpPercent);
             // 退潮本身仍显示（无法涨潮），其 50% 易伤另并入易伤 icon
 
@@ -147,6 +157,18 @@ namespace Grimhand.Presentation.Battle
                 total += wave;
             if (byId.TryGetValue(StatusCatalog.PhantomCaptainFrenzyAtk, out var frenzy))
                 total += frenzy;
+            if (byId.TryGetValue(StatusCatalog.KnightAssaultStanceAtk, out var assaultAtk))
+                total += assaultAtk;
+            if (byId.TryGetValue(StatusCatalog.KnightBackToWallAtk, out var backToWall))
+                total += backToWall;
+            if (byId.TryGetValue(StatusCatalog.RangerLowHpFuryAtk, out var lowHpFury))
+                total += lowHpFury;
+            if (byId.TryGetValue(StatusCatalog.RangerSoloHuntAtk, out var soloHunt))
+                total += soloHunt;
+            if (byId.TryGetValue(StatusCatalog.KnightComboAtk, out var combo))
+                total += combo;
+            if (byId.TryGetValue(StatusCatalog.RangerBloodDebtAtk, out var bloodDebt))
+                total += bloodDebt;
 
             var tide = StatusRules.GetStatusStacks(combatant, StatusCatalog.RisingTide);
             if (tide > 0)
@@ -253,6 +275,8 @@ namespace Grimhand.Presentation.Battle
                 total += spider;
             if (byId.TryGetValue(StatusCatalog.PhantomCaptainFrenzyVuln, out var frenzy))
                 total += frenzy;
+            if (byId.TryGetValue(StatusCatalog.KnightAssaultStanceVuln, out var assaultVuln))
+                total += assaultVuln;
 
             // 退潮：每层 50% 易伤
             if (byId.TryGetValue(StatusCatalog.EbbingTide, out var ebb) && ebb > 0)

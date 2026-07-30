@@ -138,6 +138,31 @@ namespace Grimhand.Presentation.Camp
 
         public bool IsOpen => _overlayRoot != null && _overlayRoot.gameObject.activeSelf;
 
+        /// <summary>ESC 逐级返回：收藏详情/确认 → 收藏列表 → 编队 → 枢纽 → 关闭回营地。</summary>
+        public bool TryHandleEscape()
+        {
+            if (!IsOpen)
+                return false;
+
+            if (_collectionManageView != null && _collectionManageView.IsOpen)
+            {
+                if (_collectionManageView.TryHandleEscape())
+                    return true;
+
+                ShowHub();
+                return true;
+            }
+
+            if (_body != null && _body.gameObject.activeSelf)
+            {
+                ShowHub();
+                return true;
+            }
+
+            CloseToCamp();
+            return true;
+        }
+
         public void Initialize(
             BattleSetupSO battleSetup,
             ExpeditionSetupSO expeditionSetup,

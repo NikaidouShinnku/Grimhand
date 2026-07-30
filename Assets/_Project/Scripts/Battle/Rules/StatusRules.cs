@@ -53,9 +53,10 @@ namespace Grimhand.Battle.Rules
             if (def == null || target == null || !target.IsAlive || stacks <= 0)
                 return;
 
-            // 减益免疫：拦截新减益（免疫自身、船长被动狂怒易伤不算外来减益）
+            // 减益免疫：拦截新减益（免疫自身、船长/战士天赋同步易伤不算外来减益）
             if (statusId != StatusCatalog.DebuffImmune
                 && statusId != StatusCatalog.PhantomCaptainFrenzyVuln
+                && statusId != StatusCatalog.KnightAssaultStanceVuln
                 && HasStatus(target, StatusCatalog.DebuffImmune)
                 && IsDebuffDefinition(def))
                 return;
@@ -240,6 +241,7 @@ namespace Grimhand.Battle.Rules
         static bool UsesDurationBuckets(string statusId) =>
             statusId == StatusCatalog.MermaidTidalCostCut
             || statusId == StatusCatalog.AttackUpPercent
+            || statusId == StatusCatalog.KnightComboAtk
             || statusId == StatusCatalog.DamageReduction
             || statusId == StatusCatalog.DefenseUpPercent
             || statusId == StatusCatalog.DefenseDownPercent
@@ -392,7 +394,7 @@ namespace Grimhand.Battle.Rules
             if (combatant == null || damage <= 0)
                 return;
 
-            // v0.9 天赋：中毒跳伤前判定（免疫 / 转治疗 / 敌人中_dt毒回血）
+            // v0.9 天赋：中毒跳伤前判定（免疫 / 转治疗 / 敌人中毒回血）
             if (statusId == StatusCatalog.Poison)
                 TalentBattleRules.OnPoisonTick(state, combatant, ref damage, events);
             if (damage <= 0)
@@ -411,6 +413,13 @@ namespace Grimhand.Battle.Rules
                 Amount = damage,
                 TargetId = statusId
             });
+
+            // 毒息汲取：必须在 StatusTickDamage 之后入队，演出才是「先掉血再回血」
+            if (statusId == StatusCatalog.Poison && combatant.Team == TeamSide.Enemy && damage > 0)
+                TalentBattleRules.AfterEnemyPoisonTickDamage(state, combatant, events);
+
+            if (statusId == StatusCatalog.Burn && damage > 0)
+                TalentBattleRules.OnBurnTickHpDamage(state, combatant, damage, events, rng);
 
             // v0.9 瘟疫蔓延：敌人因中毒受伤时触发传染判定
             if (statusId == StatusCatalog.Poison && combatant.Team == TeamSide.Enemy && damage > 0 && rng != null)
@@ -627,6 +636,11 @@ namespace Grimhand.Battle.Rules
             if (def == null)
                 return false;
 
+            // 天赋/机制同步的易伤：对伤害生效，但不可被净化/驱散清除
+            if (def.Id is StatusCatalog.PhantomCaptainFrenzyVuln
+                or StatusCatalog.KnightAssaultStanceVuln)
+                return false;
+
             return def.TurnStartDamagePerStack > 0
                    || def.TurnEndDamagePerStack > 0
                    || def.SpeedModifierPerStack < 0
@@ -664,7 +678,15 @@ namespace Grimhand.Battle.Rules
                 or StatusCatalog.MermaidTidalCostCut
                 or StatusCatalog.HandCostZero
                 or StatusCatalog.PhantomCaptainFrenzyAtk
-                or StatusCatalog.PhantomCaptainFrenzyVuln)
+                or StatusCatalog.PhantomCaptainFrenzyVuln
+                or StatusCatalog.KnightAssaultStanceAtk
+                or StatusCatalog.KnightAssaultStanceVuln
+                or StatusCatalog.KnightBackToWallAtk
+                or StatusCatalog.RangerLowHpFuryAtk
+                or StatusCatalog.RangerSoloHuntAtk
+                or StatusCatalog.KnightComboAtk
+                or StatusCatalog.RangerBloodDebtAtk
+                or StatusCatalog.LichSoulFireThrottle)
                 return false;
 
             return def.SpeedModifierPerStack > 0
@@ -693,7 +715,15 @@ namespace Grimhand.Battle.Rules
         /// <summary>不可被驱散/偷取的机制增益（幽灵女王之怒等）。</summary>
         public static bool IsUnclearedBuff(string statusId) =>
             statusId == StatusCatalog.GhostQueenWrath
-            || statusId == StatusCatalog.BoneWorkshop;
+            || statusId == StatusCatalog.BoneWorkshop
+            || statusId == StatusCatalog.KnightAssaultStanceAtk
+            || statusId == StatusCatalog.KnightAssaultStanceVuln
+            || statusId == StatusCatalog.KnightBackToWallAtk
+            || statusId == StatusCatalog.RangerLowHpFuryAtk
+            || statusId == StatusCatalog.RangerSoloHuntAtk
+            || statusId == StatusCatalog.KnightComboAtk
+            || statusId == StatusCatalog.RangerBloodDebtAtk
+            || statusId == StatusCatalog.LichSoulFireThrottle;
 
         public static void ClearAllDebuffs(CombatantState target, List<BattleEvent> events)
         {
@@ -706,7 +736,7 @@ namespace Grimhand.Battle.Rules
                 if (existing == null || existing.Stacks <= 0)
                     continue;
                 var def = StatusCatalog.Get(existing.StatusId);
-                if (!IsDebuffDefinition(def))
+                if (!IsDebuffDefinition(def) || IsUnclearedBuff(existing.StatusId))
                     continue;
                 RemoveAllStatus(target, existing.StatusId, events);
             }

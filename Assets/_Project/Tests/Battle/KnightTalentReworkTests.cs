@@ -21,7 +21,7 @@ namespace Grimhand.Battle.Tests
                 "成功应对攻击后，获得20%增伤（2回合）",
                 TalentCatalog.Get("talent_knight_s2_lv3").Description);
             Assert.AreEqual(
-                "如果一回合中连续使用三张战士的攻击牌，当回合获得33%增伤（点击出牌后立刻获得）",
+                "如果一回合中连续使用三张战士的攻击牌，当回合获得33%增伤（不包括快速启动牌）",
                 TalentCatalog.Get("talent_knight_s2_lv8").Description);
         }
 
@@ -134,10 +134,12 @@ namespace Grimhand.Battle.Tests
             TalentBattleRules.OnCardAboutToResolve(state, knight, attack);
             TalentBattleRules.OnCardAboutToResolve(state, knight, attack);
             Assert.AreEqual(2, knight.TalentAttackCardsThisTurn);
-            Assert.Less(knight.OutgoingDamagePercentBonus, 33);
+            Assert.AreEqual(0, StatusRules.GetStatusStacks(knight, StatusCatalog.KnightComboAtk));
 
             TalentBattleRules.OnCardAboutToResolve(state, knight, attack);
             Assert.AreEqual(3, knight.TalentAttackCardsThisTurn);
+            Assert.AreEqual(33, StatusRules.GetStatusStacks(knight, StatusCatalog.KnightComboAtk));
+            RelicBattleRules.RefreshDerivedStats(state, knight, state.Config?.RunModifiers);
             Assert.GreaterOrEqual(knight.OutgoingDamagePercentBonus, 33);
         }
 

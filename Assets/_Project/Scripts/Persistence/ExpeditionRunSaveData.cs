@@ -14,6 +14,8 @@ namespace Grimhand.Persistence
         public int gold;
         public int lastGoldReward;
         public int lastXpReward;
+        public int totalGoldGained;
+        public int totalXpGained;
         public int sharedXpPool;
         public bool lastBattleWasElite;
         public bool lastBattleWasBoss;

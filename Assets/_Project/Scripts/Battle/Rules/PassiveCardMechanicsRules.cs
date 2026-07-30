@@ -96,7 +96,7 @@ namespace Grimhand.Battle.Rules
                 canTriggerParry: false, isSacrificeDamage: true, rng: rng,
                 sourceCardInstanceId: card.InstanceId);
             if (state.LastAction.DamageAmount > 0)
-                TalentBattleRules.OnSacrificeHpSpent(state, actor, state.LastAction.DamageAmount);
+                TalentBattleRules.OnSacrificeHpSpent(state, actor, state.LastAction.DamageAmount, events);
         }
 
         public static void TryTriggerFinalBloodRitualOnSacrifice(

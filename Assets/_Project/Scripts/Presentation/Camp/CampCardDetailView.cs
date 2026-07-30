@@ -98,7 +98,8 @@ namespace Grimhand.Presentation.Camp
             bool showSell,
             Action onBack,
             Action onSell = null,
-            string factionOverride = null)
+            string factionOverride = null,
+            bool isEngraved = false)
         {
             EnsureBuilt();
             ApplyTemplateBackground();
@@ -111,6 +112,8 @@ namespace Grimhand.Presentation.Camp
             if (_sellButton != null)
                 _sellButton.gameObject.SetActive(showSell);
 
+            // isEngraved 仅保留兼容调用方；不再在稀有度上展示「已刻印」
+            _ = isEngraved;
             Bind(definition, cardId, showSell, factionOverride);
         }
 

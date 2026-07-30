@@ -512,6 +512,7 @@ namespace Grimhand.Presentation.Camp
                 return;
             }
 
+            battleController.Session.BindMetaProfile(_profile);
             _trackingExpedition = true;
             _runEndHandled = false;
             _lastCheckpointPhase = battleController.Session.Expedition?.Run.Phase;
@@ -720,6 +721,7 @@ namespace Grimhand.Presentation.Camp
             var engine = battleController.Session.Expedition;
             if (engine != null)
             {
+                battleController.Session.BindMetaProfile(_profile);
                 ActiveRunPersistence.BeginNewRun(_profile, engine, _activeMapStartLayer);
                 _trackingExpedition = true;
                 _runEndHandled = false;

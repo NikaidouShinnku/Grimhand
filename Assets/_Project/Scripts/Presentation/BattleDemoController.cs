@@ -227,18 +227,22 @@ namespace Grimhand.Presentation
                     {
                         var selected = _engine.Draft.IsSelected(card.InstanceId);
                         var polluted = CardRules.IsPolluted(card);
+                        var engravingLocked = CardRules.HasEngravingLock(card);
                         var canAfford = _engine.Draft.EnergyRemaining >= card.Cost;
-                        GUI.enabled = !expeditionBlocksInput && state.Phase == TurnPhase.Planning && !polluted && (selected || canAfford);
+                        GUI.enabled = !expeditionBlocksInput && state.Phase == TurnPhase.Planning
+                            && !polluted && !engravingLocked && (selected || canAfford);
 
                         var label = BuildCardLabelCompact(card);
                         if (polluted)
                             label = "[污]" + label;
+                        else if (engravingLocked)
+                            label = "[刻]" + label;
                         if (selected)
                             label = InsertSelectionOrderBadge(card, label);
 
                         var cardRect = new Rect(hx, 0, cardW, cardH);
                         var prevBg = GUI.backgroundColor;
-                        if (polluted)
+                        if (polluted || engravingLocked)
                             GUI.backgroundColor = new Color(0.42f, 0.42f, 0.42f, 1f);
 
                         if (GUI.Button(cardRect, label, _cardButtonStyle))

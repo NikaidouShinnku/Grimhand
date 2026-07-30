@@ -44,6 +44,8 @@ namespace Grimhand.Expedition.Model
     public sealed class ExpeditionCardAltarState
     {
         public int SourceLayer { get; set; }
+        /// <summary>本祭坛是否已用过一次刻印（任意方式）。</summary>
+        public bool EngraveSlotUsed { get; set; }
 
         public Dictionary<string, ExpeditionCardAltarMemberDraft> Drafts { get; } = new();
 

@@ -71,5 +71,14 @@ namespace Grimhand.Expedition
         public bool ChestRewardRevealed { get; set; }
         /// <summary>营地训练场：不走远征结算/存档，仅用于卡组测试。</summary>
         public bool IsTrainingGround { get; set; }
+
+        /// <summary>本局已成功刻印过的牌实例 Id（不可再刻）。</summary>
+        public HashSet<string> EngravedDeckInstanceIds { get; } = new();
+
+        /// <summary>本局从祭坛收藏提取出的牌实例 Id（不可刻印）。</summary>
+        public HashSet<string> AltarExtractedDeckInstanceIds { get; } = new();
+
+        /// <summary>战斗进度刻印进行中。</summary>
+        public List<PendingCardEngraving> PendingCardEngravings { get; } = new();
     }
 }

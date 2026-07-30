@@ -21,6 +21,7 @@ namespace Grimhand.Presentation.Battle
             SummonCards,
             DistributeXp,
             RestRecovery,
+            Engraving,
             UpgradeHp,
             UpgradeEnergy,
             UpgradeHand,
@@ -43,9 +44,11 @@ namespace Grimhand.Presentation.Battle
         const float SummonCardScale = 0.78f;
         const float SummonReplaceCardScale = 0.72f;
         const float UpgradeCardScale = 0.92f;
+        // 与背包 BattleInventoryPanelView.CardScale 一致
+        const float EngraveCardScale = 0.98f;
         const float HubTileMinHeight = 280f;
         const float ActionButtonHeight = 56f;
-        const int LayoutVersion = 23;
+        const int LayoutVersion = 29;
         const float HubButtonHoverScale = 1.08f;
         // button6 原生 512×216
         const float Button6Aspect = 512f / 216f;
@@ -67,10 +70,11 @@ namespace Grimhand.Presentation.Battle
             }
         }
 
-        // 三选项：竖直约 1.5× 盖住模板框；休息回复略左收，与左中间距一致
-        static readonly HubNormRect HubZoneSummon = new(0.095f, 0.175f, 0.350f, 0.590f);
-        static readonly HubNormRect HubZoneDistribute = new(0.375f, 0.175f, 0.630f, 0.590f);
-        static readonly HubNormRect HubZoneRest = new(0.645f, 0.175f, 0.900f, 0.590f);
+        // 一级四服务 2×2：压低高度，避开「选择一项祭坛服务」
+        static readonly HubNormRect HubZoneSummon = new(0.120f, 0.340f, 0.480f, 0.575f);
+        static readonly HubNormRect HubZoneDistribute = new(0.520f, 0.340f, 0.880f, 0.575f);
+        static readonly HubNormRect HubZoneRest = new(0.120f, 0.080f, 0.480f, 0.315f);
+        static readonly HubNormRect HubZoneEngraving = new(0.520f, 0.080f, 0.880f, 0.315f);
         static readonly HubNormRect HubZoneXpIcon = new(0.415f, 0.900f, 0.455f, 0.960f);
         static readonly HubNormRect HubZoneXpText = new(0.458f, 0.905f, 0.520f, 0.955f);
         static readonly HubNormRect HubZoneGoldIcon = new(0.530f, 0.895f, 0.575f, 0.960f);
@@ -90,6 +94,11 @@ namespace Grimhand.Presentation.Battle
         const float UpgradeCardHeight = 300f;
         const int UpgradeCardColumns = 3;
         const float UpgradeCardSpacing = 12f;
+        // 168×236 × 0.98 + 8 内边距，与背包格子一致；一行 6 张铺满
+        const float EngraveCardWidth = 168f * EngraveCardScale + 8f;
+        const float EngraveCardHeight = 236f * EngraveCardScale + 8f;
+        const int EngraveCardColumns = 6;
+        const float EngraveCardSpacing = 12f;
 
         BattleSession _session;
         CardView _cardPrefab;
@@ -142,6 +151,16 @@ namespace Grimhand.Presentation.Battle
         string _selectedUpgradeDeckInstanceId;
         string _selectedUpgradeDisplayName;
         bool _built;
+
+        // 刻印
+        string _engraveTargetKey = "";
+        string _engraveTargetMemberId = "";
+        CardEngravingRules.EngraveMethod? _engraveMethod;
+        readonly List<string> _engraveSacrificeKeys = new();
+        bool _engravePopupOpen;
+        ScrollRect _engraveScroll;
+        RectTransform _engraveGrid;
+        float _engraveScrollY = 1f;
 
         Button _restGoldButton;
         Button _restXpButton;
@@ -206,7 +225,8 @@ namespace Grimhand.Presentation.Battle
 
             label.text = _screen switch
             {
-                AltarScreen.DistributeXp or AltarScreen.SummonCards or AltarScreen.RestRecovery => "← 返回祭坛",
+                AltarScreen.DistributeXp or AltarScreen.SummonCards or AltarScreen.RestRecovery
+                    or AltarScreen.Engraving => "← 返回祭坛",
                 AltarScreen.UpgradeHp or AltarScreen.UpgradeEnergy or AltarScreen.UpgradeHand or AltarScreen.UpgradeCards => "← 返回分配经验",
                 _ => "← 返回"
             };
@@ -256,6 +276,8 @@ namespace Grimhand.Presentation.Battle
 
             if (_screen == AltarScreen.UpgradeCards && _upgradeCardScroll != null)
                 _upgradeCardScrollY = ScrollRectNavigation.CaptureVertical(_upgradeCardScroll);
+            if (_screen == AltarScreen.Engraving && _engraveScroll != null)
+                _engraveScrollY = ScrollRectNavigation.CaptureVertical(_engraveScroll);
 
             if (_upgradeCardLayoutRoutine != null)
             {
@@ -266,6 +288,8 @@ namespace Grimhand.Presentation.Battle
             ClearChildren(_contentHost);
             _upgradeCardScroll = null;
             _upgradeCardGrid = null;
+            _engraveScroll = null;
+            _engraveGrid = null;
 
             if (_hubLayer != null)
                 _hubLayer.gameObject.SetActive(_screen == AltarScreen.Hub);
@@ -283,6 +307,10 @@ namespace Grimhand.Presentation.Battle
                     break;
                 case AltarScreen.RestRecovery:
                     BuildRestRecoveryScreen(_contentHost, run);
+                    break;
+                case AltarScreen.Engraving:
+                    BuildEngravingScreen(_contentHost, run);
+                    ScrollRectNavigation.RestoreVertical(_engraveScroll, _engraveScrollY);
                     break;
                 case AltarScreen.UpgradeHp:
                     BuildUpgradeHpScreen(_contentHost, run);
@@ -317,6 +345,15 @@ namespace Grimhand.Presentation.Battle
                 _hubLayer, "Rest", HubZoneRest, "♥", "休息回复",
                 "花费金币或经验，恢复全队生命",
                 () => { _screen = AltarScreen.RestRecovery; Refresh(); });
+            CreateHubOptionButton(
+                _hubLayer, "Engraving", HubZoneEngraving, "◆", "刻印",
+                "将局内卡牌带出至军营收藏",
+                () =>
+                {
+                    ClearEngravingSelection();
+                    _screen = AltarScreen.Engraving;
+                    Refresh();
+                });
         }
 
         void CreateHubOptionButton(
@@ -352,15 +389,15 @@ namespace Grimhand.Presentation.Battle
                 Debug.LogWarning($"[ExpeditionAltar] 缺少 UiButton7，请执行 Grimhand → Content → Refresh UI Visual Catalogs。选项：{id}");
             }
 
-            var iconText = CreateStaticText(visualGo, icon, 42, FontStyle.Normal, TextAnchor.UpperCenter);
+            var iconText = CreateStaticText(visualGo, icon, 34, FontStyle.Normal, TextAnchor.UpperCenter);
             StretchBand(iconText.rectTransform, 0.62f, 0.92f);
             iconText.color = TitleGold;
 
-            var titleText = CreateStaticText(visualGo, title, 26, FontStyle.Bold, TextAnchor.UpperCenter);
+            var titleText = CreateStaticText(visualGo, title, 22, FontStyle.Bold, TextAnchor.UpperCenter);
             StretchBand(titleText.rectTransform, 0.42f, 0.62f);
             titleText.color = TextMain;
 
-            var descText = CreateStaticText(visualGo, desc, 15, FontStyle.Normal, TextAnchor.UpperCenter);
+            var descText = CreateStaticText(visualGo, desc, 14, FontStyle.Normal, TextAnchor.UpperCenter);
             StretchBand(descText.rectTransform, 0.06f, 0.40f);
             descText.color = TextMuted;
             descText.horizontalOverflow = HorizontalWrapMode.Wrap;
@@ -428,6 +465,580 @@ namespace Grimhand.Presentation.Battle
                 needsHeal ? "点击后立即生效，不会离开祭坛" : "当前无需回复",
                 16, 0.14f, 0.18f, TextMuted);
             _restHintText.alignment = TextAnchor.MiddleCenter;
+        }
+
+        void ClearEngravingSelection()
+        {
+            _engraveTargetKey = "";
+            _engraveTargetMemberId = "";
+            _engraveMethod = null;
+            _engraveSacrificeKeys.Clear();
+            _engravePopupOpen = false;
+        }
+
+        public bool IsOpen => _root != null && _root.gameObject.activeSelf;
+
+        /// <summary>
+        /// ESC：子界面返回上一层 / 取消弹层；一级 Hub 不消费（交给菜单）。
+        /// </summary>
+        public bool TryHandleEscape()
+        {
+            if (!IsOpen)
+                return false;
+            if (_screen == AltarScreen.Hub)
+                return false;
+
+            if (_engravePopupOpen || IsEngraveSacrificePicking())
+            {
+                ClearEngravingSelection();
+                Refresh();
+                return true;
+            }
+
+            NavigateBack();
+            return true;
+        }
+
+        void BuildEngravingScreen(RectTransform parent, ExpeditionRunState run)
+        {
+            var canOffer = CardEngravingRules.CanOfferEngraving(run, out var offerBlockReason);
+            var subtitle = IsEngraveSacrificePicking()
+                ? $"献祭刻印：再选 {_engraveSacrificeKeys.Count}/{CardEngravingRules.SacrificeCountRequired} 张同稀有度卡"
+                : canOffer
+                    ? "本祭坛仅可刻印一次 · 点击卡牌选择方式"
+                    : offerBlockReason;
+            AddTitle(
+                parent,
+                "刻印",
+                subtitle,
+                titleMinY: 0.90f,
+                titleMaxY: 0.995f,
+                subtitleMinY: 0.845f,
+                subtitleMaxY: 0.90f);
+
+            if (run.PendingCardEngravings.Count > 0)
+            {
+                var pendingLines = new List<string>();
+                foreach (var p in run.PendingCardEngravings)
+                {
+                    if (p == null)
+                        continue;
+                    pendingLines.Add($"{p.DisplayName} {p.BattlesCompleted}/{p.BattlesRequired}");
+                }
+
+                if (pendingLines.Count > 0)
+                {
+                    var pendingText = CreateBandText(
+                        parent,
+                        "进行中：" + string.Join("；", pendingLines) + "（完成前不可再刻）",
+                        14, 0.80f, 0.845f, AccentGreen);
+                    pendingText.alignment = TextAnchor.MiddleCenter;
+                }
+            }
+
+            var gridHost = CreateRect("EngraveGridHost", parent);
+            SetAnchoredBand(gridHost, 0.06f, 0.82f);
+            var gridHostRt = gridHost.GetComponent<RectTransform>();
+            gridHostRt.offsetMin = new Vector2(10f, 0f);
+            gridHostRt.offsetMax = new Vector2(-36f, 0f);
+
+            _engraveGrid = BuildScrollGrid(
+                gridHost,
+                EngraveCardColumns,
+                new Vector2(EngraveCardWidth, EngraveCardHeight),
+                EngraveCardSpacing);
+            _engraveScroll = _engraveGrid != null
+                ? _engraveGrid.GetComponentInParent<ScrollRect>()
+                : null;
+            AttachEngraveScrollbar(parent, _engraveScroll);
+
+            var cards = ExpeditionRunDeckMutations.ListSelectableCards(_session.Expedition.Config, run);
+            var spawned = 0;
+            foreach (var entry in cards)
+            {
+                if (entry?.Template == null)
+                    continue;
+                SpawnEngraveCard(_engraveGrid, run, entry);
+                spawned++;
+            }
+
+            FinalizeScrollGridContent(_engraveGrid, _engraveScroll, spawned);
+
+            if (IsEngraveSacrificePicking()
+                && _engraveSacrificeKeys.Count == CardEngravingRules.SacrificeCountRequired)
+            {
+                CreateButton1(
+                    parent,
+                    "确认献祭刻印",
+                    new Vector2(0.5f, 0.04f),
+                    new Vector2(300f, 56f),
+                    true,
+                    OnConfirmEngraving);
+            }
+
+            if (_engravePopupOpen && !string.IsNullOrEmpty(_engraveTargetKey))
+            {
+                var target = FindEngraveEntry(cards, _engraveTargetKey);
+                if (target != null)
+                    BuildEngraveMethodPopup(parent, run, target);
+                else
+                    _engravePopupOpen = false;
+            }
+        }
+
+        void AttachEngraveScrollbar(RectTransform parent, ScrollRect scroll)
+        {
+            if (scroll == null || parent == null)
+                return;
+
+            var barGo = CreateRect("EngraveScrollbar", parent);
+            var barRt = barGo.GetComponent<RectTransform>();
+            barRt.anchorMin = new Vector2(0.955f, 0.12f);
+            barRt.anchorMax = new Vector2(0.985f, 0.78f);
+            barRt.offsetMin = Vector2.zero;
+            barRt.offsetMax = Vector2.zero;
+
+            var barImg = barGo.gameObject.AddComponent<Image>();
+            barImg.color = Color.white;
+            barImg.raycastTarget = true;
+            barImg.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiSliderBar != null)
+                barImg.sprite = _uiIcons.UiSliderBar;
+            else
+                barImg.color = new Color(0.12f, 0.11f, 0.1f, 0.95f);
+
+            var slidingArea = CreateRect("Sliding Area", barGo);
+            StretchFull(slidingArea);
+            slidingArea.offsetMin = new Vector2(1f, 10f);
+            slidingArea.offsetMax = new Vector2(-1f, -10f);
+
+            var handleGo = CreateRect("Handle", slidingArea);
+            StretchFull(handleGo);
+            var handleImg = handleGo.gameObject.AddComponent<Image>();
+            handleImg.color = Color.white;
+            handleImg.raycastTarget = true;
+            handleImg.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiSlider != null)
+                handleImg.sprite = _uiIcons.UiSlider;
+            else
+                handleImg.color = new Color(0.42f, 0.34f, 0.28f, 1f);
+
+            var scrollbar = barGo.gameObject.AddComponent<Scrollbar>();
+            scrollbar.handleRect = handleGo;
+            scrollbar.targetGraphic = handleImg;
+            scrollbar.direction = Scrollbar.Direction.BottomToTop;
+            scrollbar.value = 1f;
+            scrollbar.size = 1f;
+            scrollbar.numberOfSteps = 0;
+
+            scroll.verticalScrollbar = scrollbar;
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
+            scroll.verticalScrollbarSpacing = 0f;
+        }
+
+        void SpawnEngraveCard(
+            RectTransform parent,
+            ExpeditionRunState run,
+            ExpeditionRunDeckMutations.DeckCardEntry entry)
+        {
+            var canTarget = CardEngravingRules.CanSelectAsEngraveTarget(run, entry);
+            var pending = CardEngravingRules.FindPending(run, entry.Template.DeckInstanceId);
+            var selectedTarget = _engraveTargetKey == entry.Key;
+            var selectedSacrifice = _engraveSacrificeKeys.Contains(entry.Key);
+            var sacrificePick = IsEngraveSacrificePicking() && entry.Key != _engraveTargetKey;
+            var dimmed = !canTarget && !sacrificePick;
+
+            System.Action onClick = null;
+            if (canTarget || sacrificePick)
+                onClick = () => OnEngraveCardClicked(run, entry);
+
+            // 与背包同呈现：不走祭坛强化字号改写
+            SpawnSummonCard(
+                parent,
+                entry.Template,
+                entry.MemberId,
+                selectedTarget || selectedSacrifice,
+                onClick,
+                EngraveCardWidth,
+                EngraveCardHeight,
+                EngraveCardScale,
+                dimmed,
+                applyAltarUpgradePresentation: false);
+
+            if (_engraveScroll != null)
+                ScrollRectNavigation.WireForwarding(parent.GetChild(parent.childCount - 1).gameObject, _engraveScroll);
+
+            // 状态角标
+            if (parent.childCount == 0)
+                return;
+            var holder = parent.GetChild(parent.childCount - 1) as RectTransform;
+            if (holder == null)
+                return;
+
+            string badge = null;
+            if (pending != null)
+                badge = $"{pending.BattlesCompleted}/{pending.BattlesRequired}";
+            else if (selectedTarget)
+                badge = "目标";
+            else if (selectedSacrifice)
+                badge = "献祭";
+
+            if (string.IsNullOrEmpty(badge))
+                return;
+
+            var badgeText = CreateStaticText(holder, badge, 14, FontStyle.Bold, TextAnchor.UpperRight);
+            var badgeRt = badgeText.rectTransform;
+            badgeRt.anchorMin = new Vector2(0.55f, 0.82f);
+            badgeRt.anchorMax = new Vector2(0.98f, 0.98f);
+            badgeRt.offsetMin = Vector2.zero;
+            badgeRt.offsetMax = Vector2.zero;
+            badgeText.color = TitleGold;
+            badgeText.raycastTarget = false;
+        }
+
+        void BuildEngraveMethodPopup(
+            RectTransform parent,
+            ExpeditionRunState run,
+            ExpeditionRunDeckMutations.DeckCardEntry target)
+        {
+            var dim = CreateRect("EngravePopupDim", parent);
+            StretchFull(dim);
+            var dimImg = dim.gameObject.AddComponent<Image>();
+            dimImg.color = new Color(0f, 0f, 0f, 0.55f);
+            dimImg.raycastTarget = true;
+
+            // prompt_plate：与确认框同比例
+            const float plateW = 920f;
+            const float plateAspect = 1356f / 1057f;
+            var panel = CreateRect("EngravePopup", dim);
+            panel.anchorMin = new Vector2(0.5f, 0.5f);
+            panel.anchorMax = new Vector2(0.5f, 0.5f);
+            panel.pivot = new Vector2(0.5f, 0.5f);
+            panel.sizeDelta = new Vector2(plateW, plateW / plateAspect);
+            var panelImg = panel.gameObject.AddComponent<Image>();
+            panelImg.raycastTarget = true;
+            panelImg.preserveAspect = true;
+            if (_uiIcons != null && _uiIcons.UiPromptPlate != null)
+            {
+                panelImg.sprite = _uiIcons.UiPromptPlate;
+                panelImg.color = Color.white;
+                panelImg.type = Image.Type.Simple;
+            }
+            else
+                panelImg.color = CardBg;
+
+            var rarity = CardEngravingRules.ResolveRarity(target.Template);
+            var rarityLabel = CardEngravingRules.DescribeRarity(rarity);
+            var goldCost = CardEngravingRules.GetAccountGoldCost(rarity);
+            var battles = CardEngravingRules.GetBattlesRequired(rarity);
+            var accountGold = _session.Expedition.MetaProfile?.AccountGold ?? 0;
+
+            var title = CreateStaticText(
+                panel,
+                $"{target.MemberName} · {target.Template.DisplayName}",
+                26,
+                FontStyle.Bold,
+                TextAnchor.MiddleCenter);
+            SetNormalizedZone(title.rectTransform, 0.14f, 0.82f, 0.86f, 0.92f);
+            title.color = TitleGold;
+
+            var sub = CreateStaticText(
+                panel,
+                $"{rarityLabel}稀有度 · 选择刻印方式",
+                16,
+                FontStyle.Normal,
+                TextAnchor.MiddleCenter);
+            SetNormalizedZone(sub.rectTransform, 0.14f, 0.76f, 0.86f, 0.82f);
+            sub.color = TextMuted;
+
+            var methods = CreateRect("Methods", panel);
+            SetNormalizedZone(methods, 0.08f, 0.30f, 0.92f, 0.74f);
+            var methodGrid = methods.gameObject.AddComponent<GridLayoutGroup>();
+            methodGrid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            methodGrid.constraintCount = 3;
+            methodGrid.spacing = new Vector2(12f, 12f);
+            methodGrid.cellSize = new Vector2(250f, 180f);
+            methodGrid.childAlignment = TextAnchor.MiddleCenter;
+            methodGrid.padding = new RectOffset(8, 8, 4, 4);
+
+            CreateEngraveOptionTile(
+                methods,
+                "局外金刻印",
+                $"{goldCost} 局外金（现有 {accountGold}）\n立刻写入收藏",
+                _engraveMethod == CardEngravingRules.EngraveMethod.AccountGold,
+                () =>
+                {
+                    _engraveMethod = CardEngravingRules.EngraveMethod.AccountGold;
+                    _engraveSacrificeKeys.Clear();
+                    Refresh();
+                });
+            CreateEngraveOptionTile(
+                methods,
+                "战斗刻印",
+                $"胜利 {battles} 场后自动刻印\n期间该牌无法使用",
+                _engraveMethod == CardEngravingRules.EngraveMethod.BattleProgress,
+                () =>
+                {
+                    _engraveMethod = CardEngravingRules.EngraveMethod.BattleProgress;
+                    _engraveSacrificeKeys.Clear();
+                    Refresh();
+                });
+            CreateEngraveOptionTile(
+                methods,
+                "献祭刻印",
+                $"再选 2 张同为{rarityLabel}的卡摧毁",
+                _engraveMethod == CardEngravingRules.EngraveMethod.SacrificeSameRarity,
+                () =>
+                {
+                    _engraveMethod = CardEngravingRules.EngraveMethod.SacrificeSameRarity;
+                    _engraveSacrificeKeys.Clear();
+                    _engravePopupOpen = false;
+                    Refresh();
+                });
+
+            var canConfirm = CanConfirmEngraving(run, target, rarity)
+                && _engraveMethod is CardEngravingRules.EngraveMethod.AccountGold
+                    or CardEngravingRules.EngraveMethod.BattleProgress;
+
+            // 与 CampConfirmPromptView 同槽位：铺满盖住 prompt_plate 预绘钮
+            CreateEngravePlateButton(
+                panel,
+                "取消",
+                new Vector4(0.088f, 0.108f, 0.495f, 0.265f),
+                _uiIcons != null ? _uiIcons.UiButton3 : null,
+                true,
+                () =>
+                {
+                    ClearEngravingSelection();
+                    Refresh();
+                });
+            CreateEngravePlateButton(
+                panel,
+                "确认刻印",
+                new Vector4(0.505f, 0.108f, 0.912f, 0.265f),
+                _uiIcons != null ? _uiIcons.UiButton1 : null,
+                canConfirm,
+                OnConfirmEngraving);
+        }
+
+        void CreateEngravePlateButton(
+            RectTransform parent,
+            string label,
+            Vector4 zone,
+            Sprite sprite,
+            bool interactable,
+            System.Action onClick)
+        {
+            var go = CreateRect(label + "Btn", parent);
+            SetNormalizedZone(go, zone.x, zone.y, zone.z, zone.w);
+
+            var img = go.gameObject.AddComponent<Image>();
+            img.raycastTarget = true;
+            img.preserveAspect = false;
+            if (sprite != null)
+            {
+                img.sprite = sprite;
+                img.color = interactable ? Color.white : new Color(0.45f, 0.45f, 0.48f, 1f);
+            }
+            else
+                img.color = interactable ? BtnGreen : DisabledCardBg;
+
+            var text = CreateStaticText(go, label, 22, FontStyle.Bold, TextAnchor.MiddleCenter);
+            StretchFull(text.rectTransform);
+            text.rectTransform.offsetMin = new Vector2(6f, 4f);
+            text.rectTransform.offsetMax = new Vector2(-6f, -8f);
+            text.color = new Color(0.96f, 0.92f, 0.78f, 1f);
+            text.raycastTarget = false;
+
+            var btn = go.gameObject.AddComponent<Button>();
+            btn.targetGraphic = img;
+            btn.transition = Selectable.Transition.None;
+            btn.interactable = interactable;
+            if (interactable)
+                btn.onClick.AddListener(() => onClick?.Invoke());
+            UiAudioHooks.WireButton(btn);
+        }
+
+        void CreateEngraveOptionTile(
+            RectTransform parent,
+            string title,
+            string desc,
+            bool selected,
+            System.Action onClick)
+        {
+            var go = CreateRect("EngraveOption", parent);
+            var le = go.gameObject.AddComponent<LayoutElement>();
+            le.flexibleWidth = 1f;
+            le.flexibleHeight = 1f;
+
+            var img = go.gameObject.AddComponent<Image>();
+            img.raycastTarget = true;
+            img.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiButton7 != null)
+            {
+                img.sprite = _uiIcons.UiButton7;
+                img.color = selected
+                    ? new Color(1.12f, 1.05f, 0.82f, 1f)
+                    : Color.white;
+            }
+            else
+                img.color = selected ? AccentGreenBg : CardBg;
+
+            var titleText = CreateStaticText(go, title, 24, FontStyle.Bold, TextAnchor.UpperCenter);
+            StretchBand(titleText.rectTransform, 0.58f, 0.88f);
+            titleText.color = TextMain;
+
+            var descText = CreateStaticText(go, desc, 16, FontStyle.Normal, TextAnchor.UpperCenter);
+            StretchBand(descText.rectTransform, 0.10f, 0.56f);
+            descText.color = TextMuted;
+            descText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            descText.verticalOverflow = VerticalWrapMode.Truncate;
+
+            var btn = go.gameObject.AddComponent<Button>();
+            btn.targetGraphic = img;
+            btn.transition = Selectable.Transition.None;
+            btn.onClick.AddListener(() => onClick?.Invoke());
+            UiAudioHooks.WireButton(btn);
+        }
+
+        static void SetNormalizedZone(RectTransform rt, float xMin, float yMin, float xMax, float yMax)
+        {
+            if (rt == null)
+                return;
+            rt.anchorMin = new Vector2(xMin, yMin);
+            rt.anchorMax = new Vector2(xMax, yMax);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            rt.pivot = new Vector2(0.5f, 0.5f);
+        }
+
+        bool IsEngraveSacrificePicking() =>
+            _engraveMethod == CardEngravingRules.EngraveMethod.SacrificeSameRarity
+            && !string.IsNullOrEmpty(_engraveTargetKey)
+            && !_engravePopupOpen;
+
+        void OnEngraveCardClicked(ExpeditionRunState run, ExpeditionRunDeckMutations.DeckCardEntry entry)
+        {
+            if (entry == null)
+                return;
+
+            if (IsEngraveSacrificePicking() && entry.Key != _engraveTargetKey)
+            {
+                var target = FindEngraveEntry(
+                    ExpeditionRunDeckMutations.ListSelectableCards(_session.Expedition.Config, run),
+                    _engraveTargetKey);
+                if (target == null)
+                    return;
+
+                var targetRarity = CardEngravingRules.ResolveRarity(target.Template);
+                var rarity = CardEngravingRules.ResolveRarity(entry.Template);
+                if (rarity != targetRarity)
+                {
+                    _session.AppendSessionLog(
+                        $"需选择同为{CardEngravingRules.DescribeRarity(targetRarity)}的卡作为献祭。");
+                    return;
+                }
+
+                if (_engraveSacrificeKeys.Contains(entry.Key))
+                    _engraveSacrificeKeys.Remove(entry.Key);
+                else if (_engraveSacrificeKeys.Count < CardEngravingRules.SacrificeCountRequired)
+                    _engraveSacrificeKeys.Add(entry.Key);
+
+                Refresh();
+                return;
+            }
+
+            if (!CardEngravingRules.CanOfferEngraving(run, out var offerReason))
+            {
+                _session.AppendSessionLog(offerReason);
+                return;
+            }
+
+            if (!CardEngravingRules.CanSelectAsEngraveTarget(run, entry))
+                return;
+
+            _engraveTargetKey = entry.Key;
+            _engraveTargetMemberId = entry.MemberId;
+            _engraveMethod = null;
+            _engraveSacrificeKeys.Clear();
+            _engravePopupOpen = true;
+            Refresh();
+        }
+
+        bool CanConfirmEngraving(
+            ExpeditionRunState run,
+            ExpeditionRunDeckMutations.DeckCardEntry target,
+            CardRarity rarity)
+        {
+            if (target == null || _engraveMethod == null)
+                return false;
+            if (!CardEngravingRules.CanSelectAsEngraveTarget(run, target))
+                return false;
+
+            switch (_engraveMethod.Value)
+            {
+                case CardEngravingRules.EngraveMethod.AccountGold:
+                    var profile = _session.Expedition.MetaProfile;
+                    return profile != null
+                        && profile.AccountGold >= CardEngravingRules.GetAccountGoldCost(rarity);
+                case CardEngravingRules.EngraveMethod.BattleProgress:
+                    return true;
+                case CardEngravingRules.EngraveMethod.SacrificeSameRarity:
+                    return _engraveSacrificeKeys.Count == CardEngravingRules.SacrificeCountRequired;
+                default:
+                    return false;
+            }
+        }
+
+        void OnConfirmEngraving()
+        {
+            var engine = _session.Expedition;
+            if (engine == null || _engraveMethod == null || string.IsNullOrEmpty(_engraveTargetKey))
+                return;
+
+            var ok = _engraveMethod.Value switch
+            {
+                CardEngravingRules.EngraveMethod.AccountGold =>
+                    engine.TryEngraveCardWithAccountGold(
+                        _engraveTargetMemberId, _engraveTargetKey),
+                CardEngravingRules.EngraveMethod.BattleProgress =>
+                    engine.TryStartEngraveCardByBattles(
+                        _engraveTargetMemberId, _engraveTargetKey),
+                CardEngravingRules.EngraveMethod.SacrificeSameRarity =>
+                    _engraveSacrificeKeys.Count == 2
+                    && engine.TryEngraveCardBySacrifice(
+                        _engraveTargetMemberId,
+                        _engraveTargetKey,
+                        _engraveSacrificeKeys[0],
+                        _engraveSacrificeKeys[1]),
+                _ => false
+            };
+
+            if (!string.IsNullOrEmpty(engine.Run.LastEventMessage))
+                _session.AppendSessionLog(engine.Run.LastEventMessage);
+
+            if (ok)
+            {
+                ClearEngravingSelection();
+                _session.NotifyMetaChanged();
+            }
+
+            Refresh();
+        }
+
+        static ExpeditionRunDeckMutations.DeckCardEntry FindEngraveEntry(
+            List<ExpeditionRunDeckMutations.DeckCardEntry> cards,
+            string key)
+        {
+            if (cards == null || string.IsNullOrEmpty(key))
+                return null;
+            foreach (var entry in cards)
+            {
+                if (entry != null && entry.Key == key)
+                    return entry;
+            }
+
+            return null;
         }
 
         void CreateRestMemberRow(RectTransform parent, PartyMemberSnapshot member, ExpeditionRunState run)
@@ -1500,7 +2111,7 @@ namespace Grimhand.Presentation.Battle
 
         void SpawnSummonCard(RectTransform parent, CardTemplate template, string ownerId, bool selected, System.Action onClick,
             float width = SummonCardWidth, float height = SummonCardHeight, float scale = SummonCardScale,
-            bool dimmed = false)
+            bool dimmed = false, bool applyAltarUpgradePresentation = true)
         {
             // 透明点击区，无蓝虚影底板；选中只靠 CardView 高亮
             var holder = CreateSummonCardHolder(parent, width, height);
@@ -1515,7 +2126,8 @@ namespace Grimhand.Presentation.Battle
 
             ScrollRectNavigation.WireForwarding(holder.gameObject);
             var cardView = SpawnCardVisual(holder.transform, template, ownerId, scale);
-            CardView.ConfigureForAltarUpgradePresentation(cardView);
+            if (applyAltarUpgradePresentation)
+                CardView.ConfigureForAltarUpgradePresentation(cardView);
             if (cardView != null)
                 cardView.SetSelected(selected && !dimmed);
 
@@ -1694,6 +2306,8 @@ namespace Grimhand.Presentation.Battle
                 return null;
 
             _definitions.TryGetValue(template.DefinitionId, out var definition);
+            if (definition != null && string.IsNullOrWhiteSpace(template.DisplayName))
+                template.DisplayName = definition.DisplayName;
             var cardView = Instantiate(_cardPrefab, parent);
             CardView.ApplyHandPresentationScaleCentered(cardView, scale);
             var preview = CardVisualResolver.CreatePreviewInstanceFromTemplate(template, definition);
@@ -1765,9 +2379,13 @@ namespace Grimhand.Presentation.Battle
 
         void NavigateBack()
         {
+            if (_screen == AltarScreen.Engraving)
+                ClearEngravingSelection();
+
             _screen = _screen switch
             {
-                AltarScreen.SummonCards or AltarScreen.DistributeXp or AltarScreen.RestRecovery => AltarScreen.Hub,
+                AltarScreen.SummonCards or AltarScreen.DistributeXp or AltarScreen.RestRecovery
+                    or AltarScreen.Engraving => AltarScreen.Hub,
                 AltarScreen.UpgradeHp or AltarScreen.UpgradeEnergy or AltarScreen.UpgradeHand or AltarScreen.UpgradeCards => AltarScreen.DistributeXp,
                 _ => AltarScreen.Hub
             };
@@ -1979,7 +2597,9 @@ namespace Grimhand.Presentation.Battle
             var hub = _screen == AltarScreen.Hub;
             var distributeFamily = IsDistributeFamilyScreen();
             var summon = _screen == AltarScreen.SummonCards;
-            var eventPlateChrome = distributeFamily || summon || _screen == AltarScreen.RestRecovery;
+            var engraving = _screen == AltarScreen.Engraving;
+            var eventPlateChrome = distributeFamily || summon || engraving
+                || _screen == AltarScreen.RestRecovery;
             if (_hubLayer != null)
                 _hubLayer.gameObject.SetActive(hub);
 
@@ -2017,12 +2637,15 @@ namespace Grimhand.Presentation.Battle
                 }
             }
 
+            var rest = _screen == AltarScreen.RestRecovery;
+            // 二级页统一：隐藏左上「祭坛」，返回钮与召唤同位置
+            var secondaryChrome = summon || engraving || distributeFamily || rest;
+
             // 全祭坛界面：XP/金币/离开与一级 UI 同热区
             if (_titleLeftText != null)
             {
                 ApplyHubNormRect(_titleLeftText.rectTransform, HubZoneTitleLeft);
-                // 召唤页用内容区居中标题「召唤卡牌」，隐藏左侧「祭坛」
-                _titleLeftText.gameObject.SetActive(!summon);
+                _titleLeftText.gameObject.SetActive(!secondaryChrome);
             }
 
             if (_xpHeaderIcon != null)
@@ -2052,9 +2675,8 @@ namespace Grimhand.Presentation.Battle
                 confirmRt.anchoredPosition = Vector2.zero;
             }
 
-            // 召唤页：返回按钮置顶左上，避免挡住三角色区
             if (_navBar != null)
-                SetAnchoredBand(_navBar, summon ? 0.88f : 0.74f, summon ? 0.98f : 0.84f);
+                SetAnchoredBand(_navBar, secondaryChrome ? 0.82f : 0.74f, secondaryChrome ? 0.92f : 0.84f);
 
             if (_contentHost != null)
             {
@@ -2064,9 +2686,8 @@ namespace Grimhand.Presentation.Battle
                 }
                 else
                 {
-                    // 召唤页：内容区避开顶部返回与右下确认/离开；略下延给卡牌腾位
-                    var contentMin = summon ? 0.20f : 0.13f;
-                    var contentMax = summon ? 0.88f : 0.74f;
+                    var contentMin = secondaryChrome ? 0.18f : 0.13f;
+                    var contentMax = secondaryChrome ? 0.82f : 0.74f;
                     SetAnchoredBand(_contentHost, contentMin, contentMax);
                     _contentHost.gameObject.SetActive(true);
                 }
@@ -2277,8 +2898,28 @@ namespace Grimhand.Presentation.Battle
             }
 
             LayoutRebuilder.ForceRebuildLayoutImmediate(gridRt);
-            if (scroll != null)
+            if (scroll == null)
+                return;
+
+            Canvas.ForceUpdateCanvases();
+            var viewH = scroll.viewport != null ? scroll.viewport.rect.height : 0f;
+            var contentH = gridRt.rect.height;
+            if (viewH > 1f && contentH > 1f && contentH < viewH - 2f)
+            {
+                // 内容未撑满视口时垂直居中
+                gridRt.anchorMin = new Vector2(0f, 0.5f);
+                gridRt.anchorMax = new Vector2(1f, 0.5f);
+                gridRt.pivot = new Vector2(0.5f, 0.5f);
+                gridRt.anchoredPosition = Vector2.zero;
+            }
+            else
+            {
+                gridRt.anchorMin = new Vector2(0f, 1f);
+                gridRt.anchorMax = new Vector2(1f, 1f);
+                gridRt.pivot = new Vector2(0.5f, 1f);
+                gridRt.anchoredPosition = Vector2.zero;
                 scroll.verticalNormalizedPosition = 1f;
+            }
         }
 
         static void ConfigureHorizontalLayout(HorizontalLayoutGroup layout, float spacing)
@@ -2351,6 +2992,20 @@ namespace Grimhand.Presentation.Battle
             return CreateCatalogActionButton(
                 parent, label, anchor, size, interactable, onClick, anchoredPosition,
                 _uiIcons != null ? _uiIcons.UiButton2 : null, BtnNeutral);
+        }
+
+        Button CreateButton3(
+            Transform parent,
+            string label,
+            Vector2 anchor,
+            Vector2 size,
+            bool interactable,
+            System.Action onClick,
+            Vector2? anchoredPosition = null)
+        {
+            return CreateCatalogActionButton(
+                parent, label, anchor, size, interactable, onClick, anchoredPosition,
+                _uiIcons != null ? _uiIcons.UiButton3 : null, BtnNeutral);
         }
 
         Button CreateCatalogActionButton(

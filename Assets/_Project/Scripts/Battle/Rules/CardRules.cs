@@ -13,7 +13,12 @@ namespace Grimhand.Battle.Rules
 
     public static class CardRules
     {
-        public static bool IsPolluted(CardInstanceState card) => !card.IsUsable;
+        /// <summary>污染：无法使用且非诅咒/刻印锁定（后两者同样 IsUsable=false，但不算污染）。</summary>
+        public static bool IsPolluted(CardInstanceState card) =>
+            card != null
+            && !card.IsUsable
+            && !IsCurseCard(card)
+            && !HasEngravingLock(card);
 
         /// <summary>诅咒牌（如混沌之触）：无法打出，但会正常抽取与弃牌。</summary>
         public static bool IsCurseCard(CardInstanceState card)
@@ -24,6 +29,12 @@ namespace Grimhand.Battle.Rules
                 return true;
             return !string.IsNullOrEmpty(card.DefinitionId) && card.DefinitionId.StartsWith("curse_");
         }
+
+        /// <summary>刻印战斗进度锁定：无法打出，会正常抽取与弃牌。</summary>
+        public const string EngravingLockKeyword = "engraving_lock";
+
+        public static bool HasEngravingLock(CardInstanceState card) =>
+            card?.Keywords != null && card.Keywords.Contains(EngravingLockKeyword);
 
         /// <summary>继承牌：回合结束时保留在手牌中，不占用下回合抽牌数。被污染时继承失效。</summary>
         public static bool HasInheritKeyword(CardInstanceState card) =>

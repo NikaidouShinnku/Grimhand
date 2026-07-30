@@ -1949,6 +1949,10 @@ namespace Grimhand.Presentation.Battle
         /// <summary>ESC 逐级关闭局内浮层；无浮层时返回 false。</summary>
         public bool TryHandleEscapeOverlays()
         {
+            // 祭坛子界面返回/取消；一级 Hub 不消费，继续打开 ESC 菜单
+            if (_altarOverlay != null && _altarOverlay.TryHandleEscape())
+                return true;
+
             if (_inventoryPanel != null && _inventoryPanel.IsOpen)
             {
                 if (_inventoryPanel.TryHandleEscape())

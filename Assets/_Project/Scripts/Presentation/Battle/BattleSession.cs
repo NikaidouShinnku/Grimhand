@@ -1513,8 +1513,18 @@ namespace Grimhand.Presentation.Battle
                 _log.RemoveAt(0);
         }
 
+        public void AppendSessionLog(string msg) => AddLog(msg);
+
         void NotifyChanged() => Changed?.Invoke();
 
         public void RequestRefresh() => NotifyChanged();
+
+        public void NotifyMetaChanged() => NotifyChanged();
+
+        public void BindMetaProfile(PlayerProfileState profile)
+        {
+            if (Expedition != null)
+                Expedition.MetaProfile = profile;
+        }
     }
 }

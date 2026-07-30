@@ -35,6 +35,7 @@ namespace Grimhand.Presentation.Camp
             public string CardId;
             public CardDefinitionSO Definition;
             public string OwnerCharacterId;
+            public bool IsEngraved;
         }
 
         CardView _cardPrefab;
@@ -203,7 +204,8 @@ namespace Grimhand.Presentation.Camp
                     Index = i,
                     CardId = cardId,
                     Definition = definition,
-                    OwnerCharacterId = ownerId
+                    OwnerCharacterId = ownerId,
+                    IsEngraved = _collection.IsEngravedAt(i)
                 });
             }
 
@@ -353,7 +355,9 @@ namespace Grimhand.Presentation.Camp
                 cardId,
                 showSell: true,
                 onBack: ShowListPanel,
-                onSell: TrySellCurrent);
+                onSell: TrySellCurrent,
+                factionOverride: null,
+                isEngraved: _collection.IsEngravedAt(_detailEntryIndex));
         }
 
         void TrySellCurrent()

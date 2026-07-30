@@ -208,7 +208,12 @@ namespace Grimhand.Presentation.Battle
             if (nameText != null)
             {
                 var name = CardUpgradeRules.FormatDisplayName(card.DisplayName, card.UpgradeLevel);
-                nameText.text = polluted ? "[污] " + name : name;
+                if (polluted)
+                    nameText.text = "[污] " + name;
+                else if (CardRules.HasEngravingLock(card))
+                    nameText.text = "[刻] " + name;
+                else
+                    nameText.text = name;
                 nameText.color = Color.white;
                 nameText.fontStyle = FontStyle.Bold;
                 nameText.fontSize = NameFontSize;
@@ -240,7 +245,14 @@ namespace Grimhand.Presentation.Battle
                 pollutedOverlay.enabled = polluted;
 
             if (canvasGroup != null)
-                canvasGroup.alpha = polluted ? 0.55f : interactable ? 1f : 0.72f;
+            {
+                if (polluted)
+                    canvasGroup.alpha = 0.55f;
+                else if (CardRules.HasEngravingLock(card) || !interactable)
+                    canvasGroup.alpha = 0.72f;
+                else
+                    canvasGroup.alpha = 1f;
+            }
 
             if (button != null)
             {
@@ -485,7 +497,7 @@ namespace Grimhand.Presentation.Battle
             view.statsText.lineSpacing = 1f;
         }
 
-        /// <summary>祭坛强化卡牌列表：放大名称/描述/费用等字号。</summary>
+        /// <summary>祭坛强化卡牌列表：放大名称/描述/费用等字号（颜色仍走 BindWithCard）。</summary>
         public static void ConfigureForAltarUpgradePresentation(CardView view)
         {
             if (view == null)

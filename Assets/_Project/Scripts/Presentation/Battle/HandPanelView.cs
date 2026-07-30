@@ -84,12 +84,13 @@ namespace Grimhand.Presentation.Battle
                 var isQueued = draft.IsSelected(card.InstanceId);
                 var showSelected = isQueued;
                 var polluted = CardRules.IsPolluted(card);
+                var engravingLocked = CardRules.HasEngravingLock(card);
                 var ownerId = PositionRules.GetOwnerCombatantId(state, card);
                 var owner = ownerId != null ? state.GetCombatant(ownerId) : null;
                 var playCost = draft.GetPlayCost(card);
                 var canAfford = draft.EnergyRemaining >= playCost;
                 var canSelect = draft.IsCardSelectable(card.InstanceId);
-                var interactable = session.CanInteractWithBattle() && !polluted
+                var interactable = session.CanInteractWithBattle() && !polluted && !engravingLocked
                     && (isAwaitingTarget || isQueued || canSelect);
                 var visual = CardVisualResolver.Resolve(card, catalog, characterVisuals, definitions);
                 var stats = BattleUiFormatters.BuildCardStatsLineForHand(

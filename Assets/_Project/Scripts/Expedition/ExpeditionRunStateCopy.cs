@@ -72,6 +72,9 @@ namespace Grimhand.Expedition
             CopyTalentRun(source.TalentRun, target.TalentRun);
             CopyRunWideBonusCards(source.RunWideBonusCards, target.RunWideBonusCards, config, hydrate);
             target.CardAltar = CopyCardAltar(source.CardAltar);
+            CopyStringHashSet(source.EngravedDeckInstanceIds, target.EngravedDeckInstanceIds);
+            CopyStringHashSet(source.AltarExtractedDeckInstanceIds, target.AltarExtractedDeckInstanceIds);
+            CopyPendingCardEngravings(source.PendingCardEngravings, target.PendingCardEngravings);
             target.PendingCardOffer = CopyPendingCardOffer(source.PendingCardOffer, config, hydrate);
             target.PendingCardPackOffer = CopyPendingCardPackOffer(source.PendingCardPackOffer, config, hydrate);
             CopyRunStartCampDecks(source.RunStartCampDecks, target.RunStartCampDecks);
@@ -364,7 +367,11 @@ namespace Grimhand.Expedition
             if (source == null)
                 return null;
 
-            var copy = new ExpeditionCardAltarState { SourceLayer = source.SourceLayer };
+            var copy = new ExpeditionCardAltarState
+            {
+                SourceLayer = source.SourceLayer,
+                EngraveSlotUsed = source.EngraveSlotUsed
+            };
             foreach (var pair in source.Drafts)
             {
                 var draft = pair.Value;
@@ -598,6 +605,31 @@ namespace Grimhand.Expedition
 
             foreach (var value in source)
                 target.Add(value);
+        }
+
+        static void CopyPendingCardEngravings(
+            IReadOnlyList<PendingCardEngraving> source,
+            List<PendingCardEngraving> target)
+        {
+            target.Clear();
+            if (source == null)
+                return;
+
+            foreach (var pending in source)
+            {
+                if (pending == null || string.IsNullOrEmpty(pending.DeckInstanceId))
+                    continue;
+
+                target.Add(new PendingCardEngraving
+                {
+                    MemberId = pending.MemberId ?? "",
+                    DeckInstanceId = pending.DeckInstanceId ?? "",
+                    DefinitionId = pending.DefinitionId ?? "",
+                    DisplayName = pending.DisplayName ?? "",
+                    BattlesRequired = pending.BattlesRequired,
+                    BattlesCompleted = pending.BattlesCompleted
+                });
+            }
         }
     }
 }

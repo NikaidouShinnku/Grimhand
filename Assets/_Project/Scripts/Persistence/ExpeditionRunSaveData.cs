@@ -56,6 +56,9 @@ namespace Grimhand.Persistence
         public ExpeditionTalentRunSaveData talentRun = new();
         public SimplifiedCardRef[] runWideBonusCards = Array.Empty<SimplifiedCardRef>();
         public ExpeditionCardAltarSaveData cardAltar;
+        public string[] engravedDeckInstanceIds = Array.Empty<string>();
+        public string[] altarExtractedDeckInstanceIds = Array.Empty<string>();
+        public PendingCardEngravingSaveData[] pendingCardEngravings = Array.Empty<PendingCardEngravingSaveData>();
         public ExpeditionPendingCardOfferSaveData pendingCardOffer;
         public ExpeditionPendingCardPackOfferSaveData pendingCardPackOffer;
         public StringStringListPair[] runStartCampDecks = Array.Empty<StringStringListPair>();
@@ -296,6 +299,7 @@ namespace Grimhand.Persistence
     public sealed class ExpeditionCardAltarSaveData
     {
         public int sourceLayer;
+        public bool engraveSlotUsed;
         public ExpeditionCardAltarMemberDraftSaveData[] drafts = Array.Empty<ExpeditionCardAltarMemberDraftSaveData>();
     }
 
@@ -306,6 +310,17 @@ namespace Grimhand.Persistence
         public int collectionCardIndex = -1;
         public string replaceDeckCardKey = "";
         public bool confirmed;
+    }
+
+    [Serializable]
+    public sealed class PendingCardEngravingSaveData
+    {
+        public string memberId = "";
+        public string deckInstanceId = "";
+        public string definitionId = "";
+        public string displayName = "";
+        public int battlesRequired;
+        public int battlesCompleted;
     }
 
     [Serializable]

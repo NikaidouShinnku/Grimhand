@@ -165,7 +165,7 @@ namespace Grimhand.Battle.Rules
                     continue;
                 }
 
-                if (skipPolluted && !card.IsUsable)
+                if (skipPolluted && CardRules.IsPolluted(card))
                 {
                     draw.Add(card);
                     continue;

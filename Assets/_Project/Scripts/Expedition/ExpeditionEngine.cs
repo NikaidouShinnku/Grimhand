@@ -26,6 +26,8 @@ namespace Grimhand.Expedition
 
         public ExpeditionRunState Run => _run;
         public ExpeditionConfig Config => _config;
+        /// <summary>局外档案（刻印扣局外金 / 写入收藏）。由 BattleSession 绑定。</summary>
+        public IExpeditionMetaProfile MetaProfile { get; set; }
 
         public ulong RngState
         {
@@ -712,6 +714,11 @@ namespace Grimhand.Expedition
             _run.BattlesWon++;
             // 终局胜利也要先发奖：只推进层数，RunComplete 延后到奖励领完
             CompleteCurrentNode(allowRunComplete: false);
+
+            var engraveDone = new List<string>();
+            CardEngravingRules.OnBattleVictory(_run, MetaProfile, engraveDone);
+            if (engraveDone.Count > 0)
+                _run.LastEventMessage = string.Join("\n", engraveDone);
 
             _run.LastXpReward = RollCombatXp();
             ExpeditionBattleConfigBuilder.GrantXpToPool(_run, _run.LastXpReward);
@@ -1592,6 +1599,204 @@ namespace Grimhand.Expedition
             return null;
         }
 
+        public bool TryEngraveCardWithAccountGold(string memberId, string deckCardKey)
+        {
+            if (_run.Phase != ExpeditionPhase.ShrineChoice || MetaProfile == null)
+            {
+                _run.LastEventMessage = "当前无法刻印。";
+                return false;
+            }
+
+            if (!CardEngravingRules.CanOfferEngraving(_run, out var offerReason))
+            {
+                _run.LastEventMessage = offerReason;
+                return false;
+            }
+
+            if (!TryFindDeckCard(memberId, deckCardKey, out var entry))
+            {
+                _run.LastEventMessage = "未找到要刻印的卡牌。";
+                return false;
+            }
+
+            if (!CardEngravingRules.CanSelectAsEngraveTarget(_run, entry))
+            {
+                _run.LastEventMessage = "该卡无法刻印（已刻印、收藏提取或刻印进行中）。";
+                return false;
+            }
+
+            var rarity = CardEngravingRules.ResolveRarity(entry.Template);
+            var cost = CardEngravingRules.GetAccountGoldCost(rarity);
+            if (MetaProfile.AccountGold < cost)
+            {
+                _run.LastEventMessage =
+                    $"局外金币不足（需要 {cost}，当前 {MetaProfile.AccountGold}）。";
+                return false;
+            }
+
+            MetaProfile.AccountGold -= cost;
+            if (!CardEngravingRules.TryCompleteEngraveToCollection(
+                    _run,
+                    MetaProfile,
+                    entry.Template.DefinitionId,
+                    entry.Template.DeckInstanceId,
+                    out var message))
+            {
+                MetaProfile.AccountGold += cost;
+                _run.LastEventMessage = message;
+                return false;
+            }
+
+            CardEngravingRules.MarkAltarEngraveSlotUsed(_run);
+            _run.LastEventMessage = $"{entry.Template.DisplayName}：花费 {cost} 局外金。" + message;
+            return true;
+        }
+
+        public bool TryStartEngraveCardByBattles(string memberId, string deckCardKey)
+        {
+            if (_run.Phase != ExpeditionPhase.ShrineChoice)
+            {
+                _run.LastEventMessage = "当前无法刻印。";
+                return false;
+            }
+
+            if (!TryFindDeckCard(memberId, deckCardKey, out var entry))
+            {
+                _run.LastEventMessage = "未找到要刻印的卡牌。";
+                return false;
+            }
+
+            var rarity = CardEngravingRules.ResolveRarity(entry.Template);
+            if (!CardEngravingRules.TryStartBattleProgressEngrave(_run, entry, rarity, out var message))
+            {
+                _run.LastEventMessage = message;
+                return false;
+            }
+
+            _run.LastEventMessage = message;
+            return true;
+        }
+
+        public bool TryEngraveCardBySacrifice(
+            string memberId,
+            string targetDeckCardKey,
+            string sacrificeKeyA,
+            string sacrificeKeyB)
+        {
+            if (_run.Phase != ExpeditionPhase.ShrineChoice || MetaProfile == null)
+            {
+                _run.LastEventMessage = "当前无法刻印。";
+                return false;
+            }
+
+            if (!CardEngravingRules.CanOfferEngraving(_run, out var offerReason))
+            {
+                _run.LastEventMessage = offerReason;
+                return false;
+            }
+
+            if (!TryFindDeckCard(memberId, targetDeckCardKey, out var target)
+                || !TryFindDeckCard(null, sacrificeKeyA, out var sacA)
+                || !TryFindDeckCard(null, sacrificeKeyB, out var sacB))
+            {
+                _run.LastEventMessage = "献祭刻印需要目标牌与 2 张同稀有度卡牌。";
+                return false;
+            }
+
+            if (sacA.Key == target.Key || sacB.Key == target.Key || sacA.Key == sacB.Key)
+            {
+                _run.LastEventMessage = "献祭卡不能与目标相同，且两张献祭卡须不同。";
+                return false;
+            }
+
+            if (!CardEngravingRules.CanSelectAsEngraveTarget(_run, target))
+            {
+                _run.LastEventMessage = "该卡无法刻印（已刻印、收藏提取或刻印进行中）。";
+                return false;
+            }
+
+            var targetRarity = CardEngravingRules.ResolveRarity(target.Template);
+            var rarityA = CardEngravingRules.ResolveRarity(sacA.Template);
+            var rarityB = CardEngravingRules.ResolveRarity(sacB.Template);
+            if (rarityA != targetRarity || rarityB != targetRarity)
+            {
+                _run.LastEventMessage =
+                    $"献祭卡必须与目标同为{CardEngravingRules.DescribeRarity(targetRarity)}稀有度。";
+                return false;
+            }
+
+            if (!ExpeditionRunDeckMutations.TryRemoveExactEntry(_run, sacA))
+            {
+                _run.LastEventMessage = "献祭失败：无法移除第一张献祭卡。";
+                return false;
+            }
+
+            // 第一张移除后 BonusIndex 可能失效，按 InstanceId 重找
+            if (!TryFindDeckCardByInstance(sacB.Template?.DeckInstanceId, out sacB)
+                || !ExpeditionRunDeckMutations.TryRemoveExactEntry(_run, sacB))
+            {
+                _run.LastEventMessage = "献祭失败：无法移除第二张献祭卡。";
+                return false;
+            }
+
+            if (!CardEngravingRules.TryCompleteEngraveToCollection(
+                    _run,
+                    MetaProfile,
+                    target.Template.DefinitionId,
+                    target.Template.DeckInstanceId,
+                    out var message))
+            {
+                _run.LastEventMessage = message;
+                return false;
+            }
+
+            CardEngravingRules.MarkAltarEngraveSlotUsed(_run);
+            _run.LastEventMessage =
+                $"{target.Template.DisplayName}：献祭 2 张{CardEngravingRules.DescribeRarity(targetRarity)}卡。" + message;
+            return true;
+        }
+
+        bool TryFindDeckCard(
+            string memberId,
+            string deckCardKey,
+            out ExpeditionRunDeckMutations.DeckCardEntry entry)
+        {
+            entry = null;
+            if (string.IsNullOrEmpty(deckCardKey))
+                return false;
+
+            foreach (var candidate in ExpeditionRunDeckMutations.ListSelectableCards(_config, _run))
+            {
+                if (candidate == null || candidate.Key != deckCardKey)
+                    continue;
+                if (!string.IsNullOrEmpty(memberId) && candidate.MemberId != memberId)
+                    continue;
+                entry = candidate;
+                return true;
+            }
+
+            return false;
+        }
+
+        bool TryFindDeckCardByInstance(
+            string deckInstanceId,
+            out ExpeditionRunDeckMutations.DeckCardEntry entry)
+        {
+            entry = null;
+            if (string.IsNullOrEmpty(deckInstanceId))
+                return false;
+
+            foreach (var candidate in ExpeditionRunDeckMutations.ListSelectableCards(_config, _run))
+            {
+                if (candidate?.Template == null || candidate.Template.DeckInstanceId != deckInstanceId)
+                    continue;
+                entry = candidate;
+                return true;
+            }
+
+            return false;
+        }
+
         public bool TryConfirmCardAltar(string memberId = null)
         {
             if (_run.Phase != ExpeditionPhase.ShrineChoice || _run.CardAltar == null)
@@ -1744,6 +1949,9 @@ namespace Grimhand.Expedition
                 ExpeditionDeckInstanceRules.PrepareNewDeckCard(member, template);
                 member.BonusCards.Add(template);
             }
+
+            if (!string.IsNullOrEmpty(template.DeckInstanceId))
+                _run.AltarExtractedDeckInstanceIds.Add(template.DeckInstanceId);
 
             CampCollectionProgress.MarkExtracted(_run, member.CharacterDefinitionId, draft.CollectionCardIndex);
             member.ExtractedCampCardIndices.Add(draft.CollectionCardIndex);
@@ -2446,7 +2654,42 @@ namespace Grimhand.Expedition
             config.RunModifiers.EtherealEntryCount = _run.V09EtherealEntryCount;
             config.RunModifiers.ExpeditionRespondSuccessCount = _run.V09ExpeditionRespondSuccessCount;
             config.RunModifiers.SandSpearExhaustCardsPlayed = _run.V09SandSpearExhaustCardsPlayed;
+            ApplyEngravingLocksToBattle(config);
             return config;
+        }
+
+        void ApplyEngravingLocksToBattle(BattleConfig config)
+        {
+            if (config?.Combatants == null || _run.PendingCardEngravings == null
+                || _run.PendingCardEngravings.Count == 0)
+                return;
+
+            var locked = new HashSet<string>();
+            foreach (var pending in _run.PendingCardEngravings)
+            {
+                if (pending != null && !string.IsNullOrEmpty(pending.DeckInstanceId))
+                    locked.Add(pending.DeckInstanceId);
+            }
+
+            if (locked.Count == 0)
+                return;
+
+            foreach (var cc in config.Combatants)
+            {
+                if (cc?.DeckTemplates == null)
+                    continue;
+                foreach (var template in cc.DeckTemplates)
+                {
+                    if (template == null || string.IsNullOrEmpty(template.DeckInstanceId))
+                        continue;
+                    if (!locked.Contains(template.DeckInstanceId))
+                        continue;
+                    if (template.Keywords == null)
+                        continue;
+                    if (!template.Keywords.Contains(CardEngravingRules.LockKeyword))
+                        template.Keywords.Add(CardEngravingRules.LockKeyword);
+                }
+            }
         }
 
         BattleConfig BuildBossBattle(bool applyPartyHp)
@@ -2518,6 +2761,7 @@ namespace Grimhand.Expedition
             config.RunModifiers.EtherealEntryCount = _run.V09EtherealEntryCount;
             config.RunModifiers.ExpeditionRespondSuccessCount = _run.V09ExpeditionRespondSuccessCount;
             config.RunModifiers.SandSpearExhaustCardsPlayed = _run.V09SandSpearExhaustCardsPlayed;
+            ApplyEngravingLocksToBattle(config);
             return config;
         }
 

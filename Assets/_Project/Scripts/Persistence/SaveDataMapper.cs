@@ -18,7 +18,10 @@ namespace Grimhand.Persistence
                 lastSavedUtc = DateTime.UtcNow.ToString("o"),
                 accountGold = profile.AccountGold,
                 collectionCapacity = profile.CollectionCapacity,
-                collectionEntries = profile.Collection?.Entries?.ToArray() ?? Array.Empty<string>()
+                collectionEntries = profile.Collection?.Entries?.ToArray() ?? Array.Empty<string>(),
+                collectionEngravedFlags = profile.Collection != null
+                    ? ToEngravedFlagsArray(profile.Collection)
+                    : Array.Empty<bool>()
             };
 
             var characters = new List<CharacterMetaProgressDto>();
@@ -117,9 +120,17 @@ namespace Grimhand.Persistence
 
             if (dto.collectionEntries != null)
             {
-                foreach (var entry in dto.collectionEntries)
-                    profile.Collection.TryAddEntry(entry);
+                for (var i = 0; i < dto.collectionEntries.Length; i++)
+                {
+                    var entry = dto.collectionEntries[i];
+                    var engraved = dto.collectionEngravedFlags != null
+                        && i < dto.collectionEngravedFlags.Length
+                        && dto.collectionEngravedFlags[i];
+                    profile.Collection.TryAddEntry(entry, engraved);
+                }
             }
+
+            profile.Collection.EnsureEngravedFlagsAligned();
 
             if (dto.characters != null)
             {
@@ -193,6 +204,15 @@ namespace Grimhand.Persistence
             FillCodexSet(profile.Codex.SeenRelicIds, dto.seenRelicIds);
 
             return profile;
+        }
+
+        static bool[] ToEngravedFlagsArray(CampCollectionState collection)
+        {
+            if (collection == null)
+                return Array.Empty<bool>();
+
+            collection.EnsureEngravedFlagsAligned();
+            return collection.EngravedFlags.ToArray();
         }
 
         static void FillCodexSet(HashSet<string> target, string[] source)

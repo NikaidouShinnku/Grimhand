@@ -96,6 +96,9 @@ namespace Grimhand.Persistence
                 shop = ToShopDto(run.Shop),
                 talentRun = ToTalentRunDto(run.TalentRun),
                 cardAltar = ToCardAltarDto(run.CardAltar),
+                engravedDeckInstanceIds = ToStringArray(run.EngravedDeckInstanceIds),
+                altarExtractedDeckInstanceIds = ToStringArray(run.AltarExtractedDeckInstanceIds),
+                pendingCardEngravings = ToPendingEngravingsDto(run.PendingCardEngravings),
                 pendingCardOffer = ToPendingCardOfferDto(run.PendingCardOffer),
                 pendingCardPackOffer = ToPendingCardPackOfferDto(run.PendingCardPackOffer)
             };
@@ -160,6 +163,42 @@ namespace Grimhand.Persistence
             FromShopDto(dto.shop, run.Shop);
             FromTalentRunDto(dto.talentRun, run.TalentRun);
             run.CardAltar = FromCardAltarDto(dto.cardAltar);
+            if (dto.engravedDeckInstanceIds != null)
+            {
+                foreach (var id in dto.engravedDeckInstanceIds)
+                {
+                    if (!string.IsNullOrEmpty(id))
+                        run.EngravedDeckInstanceIds.Add(id);
+                }
+            }
+
+            if (dto.altarExtractedDeckInstanceIds != null)
+            {
+                foreach (var id in dto.altarExtractedDeckInstanceIds)
+                {
+                    if (!string.IsNullOrEmpty(id))
+                        run.AltarExtractedDeckInstanceIds.Add(id);
+                }
+            }
+
+            if (dto.pendingCardEngravings != null)
+            {
+                foreach (var pendingDto in dto.pendingCardEngravings)
+                {
+                    if (pendingDto == null || string.IsNullOrEmpty(pendingDto.deckInstanceId))
+                        continue;
+                    run.PendingCardEngravings.Add(new PendingCardEngraving
+                    {
+                        MemberId = pendingDto.memberId ?? "",
+                        DeckInstanceId = pendingDto.deckInstanceId ?? "",
+                        DefinitionId = pendingDto.definitionId ?? "",
+                        DisplayName = pendingDto.displayName ?? "",
+                        BattlesRequired = pendingDto.battlesRequired,
+                        BattlesCompleted = pendingDto.battlesCompleted
+                    });
+                }
+            }
+
             run.PendingCardOffer = FromPendingCardOfferDto(dto.pendingCardOffer, config);
             run.PendingCardPackOffer = FromPendingCardPackOfferDto(dto.pendingCardPackOffer, config);
 
@@ -800,7 +839,11 @@ namespace Grimhand.Persistence
             if (altar == null)
                 return null;
 
-            var dto = new ExpeditionCardAltarSaveData { sourceLayer = altar.SourceLayer };
+            var dto = new ExpeditionCardAltarSaveData
+            {
+                sourceLayer = altar.SourceLayer,
+                engraveSlotUsed = altar.EngraveSlotUsed
+            };
             if (altar.Drafts.Count == 0)
                 return dto;
 
@@ -827,7 +870,11 @@ namespace Grimhand.Persistence
             if (dto == null)
                 return null;
 
-            var altar = new ExpeditionCardAltarState { SourceLayer = dto.sourceLayer };
+            var altar = new ExpeditionCardAltarState
+            {
+                SourceLayer = dto.sourceLayer,
+                EngraveSlotUsed = dto.engraveSlotUsed
+            };
             if (dto.drafts == null)
                 return altar;
 
@@ -845,6 +892,45 @@ namespace Grimhand.Persistence
             }
 
             return altar;
+        }
+
+        static string[] ToStringArray(HashSet<string> source)
+        {
+            if (source == null || source.Count == 0)
+                return Array.Empty<string>();
+
+            var list = new List<string>(source.Count);
+            foreach (var id in source)
+            {
+                if (!string.IsNullOrEmpty(id))
+                    list.Add(id);
+            }
+
+            return list.ToArray();
+        }
+
+        static PendingCardEngravingSaveData[] ToPendingEngravingsDto(List<PendingCardEngraving> source)
+        {
+            if (source == null || source.Count == 0)
+                return Array.Empty<PendingCardEngravingSaveData>();
+
+            var list = new List<PendingCardEngravingSaveData>(source.Count);
+            foreach (var pending in source)
+            {
+                if (pending == null || string.IsNullOrEmpty(pending.DeckInstanceId))
+                    continue;
+                list.Add(new PendingCardEngravingSaveData
+                {
+                    memberId = pending.MemberId ?? "",
+                    deckInstanceId = pending.DeckInstanceId ?? "",
+                    definitionId = pending.DefinitionId ?? "",
+                    displayName = pending.DisplayName ?? "",
+                    battlesRequired = pending.BattlesRequired,
+                    battlesCompleted = pending.BattlesCompleted
+                });
+            }
+
+            return list.ToArray();
         }
 
         static ExpeditionPendingCardOfferSaveData ToPendingCardOfferDto(ExpeditionPendingCardOffer offer)

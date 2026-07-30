@@ -1,9 +1,10 @@
+using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 
 namespace Grimhand.Persistence
 {
     /// <summary>运行时玩家档案（局外 Meta；ActiveRun 留 P2）。</summary>
-    public sealed class PlayerProfileState
+    public sealed class PlayerProfileState : IExpeditionMetaProfile
     {
         public const int CurrentSaveVersion = 4;
 

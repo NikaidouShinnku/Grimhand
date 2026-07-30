@@ -11,6 +11,7 @@ namespace Grimhand.Persistence
         public int accountGold;
         public int collectionCapacity;
         public string[] collectionEntries = Array.Empty<string>();
+        public bool[] collectionEngravedFlags = Array.Empty<bool>();
         public CharacterMetaProgressDto[] characters = Array.Empty<CharacterMetaProgressDto>();
         public CampMemberLoadoutDto[] rosterMembers = Array.Empty<CampMemberLoadoutDto>();
         public bool hasActiveRun;

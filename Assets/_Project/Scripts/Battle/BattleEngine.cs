@@ -1237,7 +1237,7 @@ namespace Grimhand.Battle
             foreach (var action in template.Actions)
                 card.Actions.Add(CloneAction(action));
             card.Keywords.AddRange(template.Keywords);
-            if (CardRules.IsCurseCard(card))
+            if (CardRules.IsCurseCard(card) || CardRules.HasEngravingLock(card))
                 card.IsUsable = false;
             _state.CardsById[id] = card;
             return card;

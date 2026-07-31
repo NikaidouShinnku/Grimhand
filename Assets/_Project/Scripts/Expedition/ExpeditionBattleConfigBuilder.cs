@@ -136,6 +136,8 @@ namespace Grimhand.Expedition
                     expeditionModifiers.TeamBlockGainBonusPercent;
                 config.RunModifiers.SoulRiftBattleStartRandomHpLoss =
                     expeditionModifiers.SoulRiftBattleStartRandomHpLoss;
+                config.RunModifiers.EnemyOutgoingDamagePercentBonus =
+                    expeditionModifiers.EnemyOutgoingDamagePercentBonus;
             }
             config.MiracleLeafRevivesRemaining = ResolveMiracleLeafUsesRemaining(
                 relicIds, miracleLeafUsesRemaining);
@@ -730,6 +732,7 @@ namespace Grimhand.Expedition
                 JadeDaggerFirstKillBonus = source.JadeDaggerFirstKillBonus,
                 MiracleLeafReviveHpPercent = source.MiracleLeafReviveHpPercent,
                 SoulRiftBattleStartRandomHpLoss = source.SoulRiftBattleStartRandomHpLoss,
+                EnemyOutgoingDamagePercentBonus = source.EnemyOutgoingDamagePercentBonus,
                 PostBattleTeamHealPercent = source.PostBattleTeamHealPercent,
                 FrontRowBurnTargetDamageMultiplier = source.FrontRowBurnTargetDamageMultiplier,
                 FrontRowIgnoreArmorDamagePercent = source.FrontRowIgnoreArmorDamagePercent,

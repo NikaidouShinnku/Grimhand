@@ -80,8 +80,27 @@ namespace Grimhand.Battle.Effects
 
             var respondBlockerId = hadDefenderArm ? originalRecipientId : "";
 
+            // 无敌/闪避必须在扣甲与「首击加甲」之前：完全不受伤害时不应消耗或凭空叠甲。
+            if (raw > 0
+                && !isSacrificeDamage
+                && TryNegateIncomingBeforeBlock(
+                    state, actor, recipient, cardType, rng, events,
+                    respondBlockerId, defenderMitigated, hadDefenderArm,
+                    sourceCardInstanceId, isAoEWave))
+            {
+                return;
+            }
+
             if (raw > 0)
                 BossTraitRules.TryApplyFirstHitBlock(state, recipient, events);
+
+            // 城堡骑士：先加本回合首击护甲，再进入打甲结算（否则会变成「打完后凭空多出护甲」）。
+            if (raw > 0
+                && !isSacrificeDamage
+                && cardType == CardType.Attack)
+            {
+                RelicBattleRules.TryApplyWarriorFirstHitBlock(state, recipient, actor, events);
+            }
 
             // 圣骑之盾：本回合首次被攻击的友方，整段伤害（含打甲）-30%
             raw = RelicBattleRules.ApplyTeamFirstAttackDamageReduction(
@@ -131,22 +150,6 @@ namespace Grimhand.Battle.Effects
                 // v0.9 巫妖 s1_lv4：虚化中受伤改为0并回2HP（接管 ethereal 封顶1）
                 if (!TalentBattleRules.TryHandleEtherealDamage(state, recipient, ref hpDamage, events))
                     hpDamage = 1;
-            }
-
-            if (hpDamage > 0 && rng != null)
-            {
-                var mods = state.Config?.RunModifiers;
-                if (RelicBattleRules.TryWarriorBlockOnHit(recipient, mods, rng))
-                {
-                    var relicBlock = Math.Min(hpDamage, mods.WarriorBlockAmountOnHit);
-                    hpDamage -= relicBlock;
-                    blocked += relicBlock;
-                    events.Add(new BattleEvent(BattleEventKind.BlockGained, $"{recipient.DisplayName} 不动明王格挡")
-                    {
-                        CombatantId = recipient.Id,
-                        Amount = relicBlock
-                    });
-                }
             }
 
             if (!isSacrificeDamage && cardType == CardType.Attack && actor != null && actor.Id != recipient.Id)
@@ -303,6 +306,64 @@ namespace Grimhand.Battle.Effects
                 if (recipient.Team == TeamSide.Enemy && actor != null)
                     RelicEffectRules.OnEnemyKilled(state, actor, events, null);
             }
+        }
+
+        /// <summary>
+        /// 无敌/闪避：在扣甲与首击加甲前完全取消本次伤害。
+        /// </summary>
+        static bool TryNegateIncomingBeforeBlock(
+            BattleState state,
+            CombatantState actor,
+            CombatantState recipient,
+            CardType cardType,
+            BattleRng rng,
+            List<BattleEvent> events,
+            string respondBlockerId,
+            int defenderMitigated,
+            bool hadDefenderArm,
+            int sourceCardInstanceId,
+            bool isAoEWave)
+        {
+            if (recipient == null)
+                return false;
+
+            string message = null;
+            if (recipient.InvulnerableTurnsRemaining > 0 || recipient.InvulnerableRestOfTurn)
+            {
+                message = $"{recipient.DisplayName} 无敌";
+            }
+            else if (MinionTraitRules.TryFirstHitDodge(state, recipient, rng, events))
+            {
+                // TryFirstHitDodge 已写入闪避事件
+                return true;
+            }
+            else if (rng != null
+                     && RelicEffectRules.TryDodgeIncoming(
+                         state, state?.Config?.RunModifiers, recipient, rng))
+            {
+                message = $"{recipient.DisplayName} 闪避";
+            }
+
+            if (string.IsNullOrEmpty(message))
+                return false;
+
+            events?.Add(new BattleEvent(BattleEventKind.DamageApplied, message)
+            {
+                CombatantId = actor?.Id,
+                TargetId = recipient.Id,
+                Amount = 0,
+                BlockedAmount = 0,
+                RespondMitigatedAmount = defenderMitigated,
+                HadRespondDefense = hadDefenderArm
+                    || RespondEffectExecutor.HasRespondDefenseForHit(
+                        state, sourceCardInstanceId, recipient.Id),
+                RespondBlockerId = respondBlockerId,
+                IsSacrificeDamage = false,
+                IsAoEWave = isAoEWave,
+                CardType = cardType,
+                CardInstanceId = sourceCardInstanceId
+            });
+            return true;
         }
 
         public static void ApplyBlock(

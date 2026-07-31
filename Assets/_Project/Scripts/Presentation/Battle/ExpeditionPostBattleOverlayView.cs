@@ -701,9 +701,9 @@ namespace Grimhand.Presentation.Battle
             if (rewards.GrantXp > 0)
                 lines.Add($"经验 +{rewards.GrantXp}");
             if (rewards.EnableSoulRiftBattleStartRandomHpLoss)
-                lines.Add("战前随机失血");
+                lines.Add("每场战斗开始随机 1 人 -3% HP");
             if (rewards.EnableDivinePunishment)
-                lines.Add("神罚激活");
+                lines.Add("下场战斗敌人 +20% 增伤（永久）");
 
             return lines.Count > 0 ? string.Join("\n", lines) : "属性奖励";
         }

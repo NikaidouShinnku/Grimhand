@@ -264,6 +264,34 @@ namespace Grimhand.Battle.Rules
             return (int)System.Math.Round(amount * (1f + mods.HealBonusPercent / 100f));
         }
 
+        /// <summary>
+        /// 城堡骑士：本回合首次被敌方攻击前，先获得固定护甲，再走正常打甲/破甲流程。
+        /// 必须在护甲吸收之前调用。
+        /// </summary>
+        public static void TryApplyWarriorFirstHitBlock(
+            BattleState state,
+            CombatantState recipient,
+            CombatantState actor,
+            System.Collections.Generic.List<BattleEvent> events)
+        {
+            if (recipient == null || !recipient.IsAlive || !recipient.WarriorFirstHitBlockPending)
+                return;
+
+            if (actor != null && actor.Team == recipient.Team)
+                return;
+
+            if (recipient.CharacterDefinitionId is not (
+                    RelicEffectRules.WarriorCharacterId or "char_warrior"))
+                return;
+
+            var mods = state?.Config?.RunModifiers;
+            if (mods == null || mods.WarriorFirstHitBlockAmount <= 0)
+                return;
+
+            recipient.WarriorFirstHitBlockPending = false;
+            DamageRules.ApplyBlock(recipient, mods.WarriorFirstHitBlockAmount, events, state);
+        }
+
         public static int ApplyIncomingDamageRelics(
             BattleState state,
             CombatantState actor,
@@ -280,24 +308,7 @@ namespace Grimhand.Battle.Rules
 
             var mods = state?.Config?.RunModifiers;
 
-            if (target.InvulnerableTurnsRemaining > 0 || target.InvulnerableRestOfTurn)
-                return 0;
-
-            if (MinionTraitRules.TryFirstHitDodge(state, target, rng, events))
-                return 0;
-
-            if (rng != null && RelicEffectRules.TryDodgeIncoming(state, mods, target, rng))
-            {
-                events?.Add(new BattleEvent(BattleEventKind.DamageApplied,
-                    $"{target.DisplayName} 闪避")
-                {
-                    TargetId = target.Id,
-                    Amount = 0
-                });
-                return 0;
-            }
-
-            // 圣骑之盾首击减伤已在 DamageRules 对 raw 结算（按「受到攻击」）
+            // 无敌/闪避已在 DamageRules 扣甲前处理；此处只处理仍要命中的伤害修饰。
 
             var hadBlock = blockBeforeHit >= 0 ? blockBeforeHit > 0 : target.Block > 0;
             if (mods != null
@@ -318,18 +329,6 @@ namespace Grimhand.Battle.Rules
             {
                 hpDamage = (int)System.Math.Round(
                     hpDamage * (100f - mods.WarriorTauntDamageReductionPercent) / 100f);
-            }
-
-            if (target.WarriorFirstHitBlockPending
-                && mods != null
-                && mods.WarriorFirstHitBlockAmount > 0
-                && target.CharacterDefinitionId == RelicEffectRules.WarriorCharacterId
-                && hpDamage > 0)
-            {
-                target.WarriorFirstHitBlockPending = false;
-                var block = System.Math.Min(hpDamage, mods.WarriorFirstHitBlockAmount);
-                hpDamage -= block;
-                DamageRules.ApplyBlock(target, block, events, state);
             }
 
             if (mods != null
@@ -386,19 +385,5 @@ namespace Grimhand.Battle.Rules
             });
         }
 
-        public static bool TryWarriorBlockOnHit(CombatantState target, RunModifierSnapshot mods, BattleRng rng)
-        {
-            if (mods == null || target == null || mods.WarriorBlockAmountOnHit <= 0 || rng == null)
-                return false;
-
-            if (target.CharacterDefinitionId is not ("char_knight" or "char_warrior"))
-                return false;
-
-            if (mods.WarriorBlockChanceOnHit <= 0f)
-                return false;
-
-            var roll = rng.NextUInt() % 1000u / 1000f;
-            return roll < mods.WarriorBlockChanceOnHit;
-        }
     }
 }

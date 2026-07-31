@@ -139,6 +139,7 @@ namespace Grimhand.Persistence
         public bool skipNextRouteSelect;
         public bool lootedInjuredAdventurer;
         public bool divinePunishmentActive;
+        public int enemyOutgoingDamagePercentBonus;
         public int soulRiftBattleStartRandomHpLoss;
     }
 
@@ -369,6 +370,7 @@ namespace Grimhand.Persistence
         public string pendingPrimaryCardKey = "";
         public string pendingSecondaryCardKey = "";
         public int pendingUpgradeBonus;
+        public string[] pendingCardKeys = Array.Empty<string>();
     }
 
     [Serializable]

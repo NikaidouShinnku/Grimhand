@@ -182,17 +182,11 @@ namespace Grimhand.Battle.Rules
             TalentBattleRules.ProcessEndOfTurn(state, events);
         }
 
-        public static int GetBattleSpeedBonus(BattleState state, CombatantState combatant)
-        {
-            var mods = state?.Config?.RunModifiers;
-            if (mods == null || combatant == null || combatant.Team != TeamSide.Player)
-                return 0;
-
-            if (mods.BattleStartSpeedBonus <= 0 || mods.BattleStartSpeedBonusTurns <= 0)
-                return 0;
-
-            return state.TurnNumber <= mods.BattleStartSpeedBonusTurns ? mods.BattleStartSpeedBonus : 0;
-        }
+        /// <summary>
+        /// 开局速度加成已改为挂 SpeedUp 状态（见 BattleEngine.ApplyBattleStartRelicEffects），
+        /// 此处保留接口兼容，避免与状态重复加算。
+        /// </summary>
+        public static int GetBattleSpeedBonus(BattleState state, CombatantState combatant) => 0;
 
         public static int AdjustSacrificeSelfDamage(
             RunModifierSnapshot mods,

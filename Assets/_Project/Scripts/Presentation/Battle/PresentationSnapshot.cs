@@ -247,7 +247,7 @@ namespace Grimhand.Presentation.Battle
         }
 
         /// <summary>
-        /// 背水一战：仅当演出快照上护甲超过当前 HP 时显示增伤脚标。
+        /// 背水一战 / 城堡骑士减伤：跟演出快照上的 HP、护甲刷新脚标。
         /// </summary>
         public void SyncHpBlockConditionalTalentFootStatuses(string combatantId, BattleState state)
         {
@@ -255,6 +255,27 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             var combatant = state?.GetCombatant(combatantId);
+
+            // 城堡骑士等：减伤 icon 是否显示取决于「演出护甲」而非 live 最终态
+            if (combatant != null)
+            {
+                var desiredDr = 0;
+                foreach (var entry in FootStatusIconAggregator.Aggregate(
+                             combatant, state, GetBlock(combatantId)))
+                {
+                    if (entry.StatusId == StatusCatalog.DamageReduction)
+                    {
+                        desiredDr = entry.Stacks;
+                        break;
+                    }
+                }
+
+                if (desiredDr > 0)
+                    ApplyFootStatusApplied(combatantId, StatusCatalog.DamageReduction, desiredDr);
+                else
+                    ApplyFootStatusRemoved(combatantId, StatusCatalog.DamageReduction, int.MaxValue);
+            }
+
             var active = combatant != null
                 && combatant.IsAlive
                 && combatant.Team == TeamSide.Player

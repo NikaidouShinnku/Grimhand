@@ -86,9 +86,16 @@ namespace Grimhand.Expedition
         static ExpeditionEventOutcome PlanTravelerGift(ExpeditionRunState run, ExpeditionConfig config, BattleRng rng)
         {
             var relicId = ExpeditionRewardPickupFactory.RollRelicId(run, rng);
-            var curseOwnerId = "";
+
+            // 立刻标记待塞入诅咒（用任一队员 ID 作非空哨兵）。
+            // 不能只靠 DeferredRunAction：引擎会先 ApplyPendingTravelerGift 再跑 DeferredOutcome 动作，会导致漏加。
             if (run?.Party != null && run.Party.Count > 0)
-                curseOwnerId = run.Party[rng.NextIndex(run.Party.Count)].CharacterDefinitionId;
+                run.PendingTravelerGiftCurseOwnerId = run.Party[rng.NextIndex(run.Party.Count)].CharacterDefinitionId;
+
+            // 选 B 后本远征不再出现神秘旅者（含地图上未访问的预分配节点）
+            run.UsedEventIds.Add(ExpeditionEventIds.MysteriousTraveler);
+            run.EventFlags.Add(ExpeditionEventRoller.TravelerGiftResolvedFlag);
+            ScrubBlockedEventsFromMap(run, rng);
 
             ExpeditionRewardPickup pickup = null;
             if (!string.IsNullOrEmpty(relicId))
@@ -98,11 +105,7 @@ namespace Grimhand.Expedition
                 pickup != null
                     ? "旅者赠予一件遗物，请点击领取；同时一张诅咒牌被塞入了牌组……"
                     : "一张诅咒牌被塞入了牌组……",
-                pickup,
-                state =>
-                {
-                    state.PendingTravelerGiftCurseOwnerId = curseOwnerId;
-                });
+                pickup);
         }
 
         static ExpeditionEventOutcome PlanAncientTemple(ExpeditionRunState run, int choice, ExpeditionConfig config)
@@ -111,7 +114,7 @@ namespace Grimhand.Expedition
             {
                 0 => PlanAncientTemplePray(run, config),
                 1 => MessageThenReward(
-                    "亵渎圣堂获得 50 金币，但神罚将至。",
+                    "亵渎圣堂获得 50 金币；下场战斗敌人将获得 20% 增伤。",
                     ExpeditionRewardPickupFactory.Gold(50, "亵渎圣堂", enableDivinePunishment: true)),
                 _ => Leave("你静默离开神殿。")
             };
@@ -119,7 +122,7 @@ namespace Grimhand.Expedition
 
         static ExpeditionEventOutcome PlanAncientTemplePray(ExpeditionRunState run, ExpeditionConfig config)
         {
-            const string message = "祈祷生效：状态牌升级并全队获得经验，请点击领取。";
+            const string message = "祈祷生效：状态牌已各升 1 级；全队经验请点击领取。";
 
             return TeamHpThen(
                 run,
@@ -144,8 +147,9 @@ namespace Grimhand.Expedition
                         }
                     }
 
-                    if (upgraded > 0)
-                        state.LastEventMessage = $"祈祷生效：{upgraded} 张状态牌各升 1 级，全队获得 +5 经验。";
+                    state.LastEventMessage = upgraded > 0
+                        ? $"祈祷生效：{upgraded} 张状态牌已各升 1 级；全队经验请点击领取。"
+                        : "祈祷生效：没有可升级的状态牌；全队经验请点击领取。";
                 },
                 percentFromMaxHp: true);
         }
@@ -204,32 +208,38 @@ namespace Grimhand.Expedition
 
             var roll = Roll100(run, rng);
             if (roll < 60)
-                return TeamHealThen(run, 25, "泉水治愈了队伍。");
+            {
+                return TeamHealThen(
+                    run,
+                    25,
+                    "泉水如温暖的光流过全身，全队的伤势迅速愈合。");
+            }
 
             if (roll < 85)
             {
-                var outcome = new ExpeditionEventOutcome { Message = "泉水迸发出奇异的力量，一名角色感到自己变得更强。" };
+                const string buffMessage = "泉水迸发出奇异的力量注入肌肉，一名角色感到自己变得更强。";
+                var outcome = new ExpeditionEventOutcome { Message = buffMessage };
                 outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
                 {
-                    Kind = ExpeditionEventStepKind.PickMemberForBuff
+                    Kind = ExpeditionEventStepKind.PickMemberForBuff,
+                    Message = "选择一名角色，从其卡组中挑选最多三张可升级卡牌各升一级。"
                 });
-                for (var i = 0; i < 3; i++)
+                outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
                 {
-                    outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
-                    {
-                        Kind = ExpeditionEventStepKind.PickCardUpgrade
-                    });
-                }
-
+                    Kind = ExpeditionEventStepKind.PickThreeCardsUpgrade
+                });
                 outcome.InteractionSteps.Add(new ExpeditionEventInteractionStep
                 {
                     Kind = ExpeditionEventStepKind.ShowMessage,
-                    Message = "三张卡牌在泉水中闪烁，各自提升了一级。"
+                    Message = buffMessage
                 });
                 return outcome;
             }
 
-            return TeamHpThen(run, -15, "泉水有毒，全队失去 15% HP。");
+            return TeamHpThen(
+                run,
+                -15,
+                "泉水突然变得灼热刺骨，全队被烫伤后退。");
         }
 
         static ExpeditionEventOutcome PlanGamblerDice(ExpeditionRunState run, int choice, BattleRng rng)
@@ -294,7 +304,7 @@ namespace Grimhand.Expedition
             BattleRng rng)
         {
             run.PendingEventBattleVictoryReward = null;
-            run.PendingEventBattleBonusXp = 5;
+            run.PendingEventBattleBonusXp = 20;
             if (config != null &&
                 ExpeditionCardPool.TryRollCardReward(config, run, CardRarity.SuperRare, rng, out var card, out var owner))
             {
@@ -336,7 +346,7 @@ namespace Grimhand.Expedition
 
             var idx = rng.NextIndex(run.Party.Count);
             var member = run.Party[idx];
-            var message = $"{member.DisplayName} 失去 10 HP，获得一张蓝色卡牌。请点击领取。";
+            var message = $"{member.DisplayName} 失去 10 HP，获得一张蓝色卡牌与全队经验。请点击领取。";
 
             ExpeditionRewardPickup pickup = null;
             if (config != null &&
@@ -347,9 +357,9 @@ namespace Grimhand.Expedition
             }
 
             if (pickup != null)
-                pickup.GrantXp = 5;
+                pickup.GrantXp = 10;
             else
-                pickup = ExpeditionRewardPickupFactory.TeamStats("古书奖励", grantXp: 5);
+                pickup = ExpeditionRewardPickupFactory.TeamStats("古书奖励", grantXp: 10);
 
             return SingleMemberHpThen(
                 run,
@@ -381,9 +391,9 @@ namespace Grimhand.Expedition
                     EventBattleKey = AdventurerRevengeEncounterBuilder.BattleKey
                 }.Also(() =>
                 {
-                    run.PendingEventBattleBonusXp = 8;
-                    run.PendingEventBattleVictoryReward =
-                        ExpeditionRewardPickupFactory.Gold(30, "复仇战利品");
+                    // 胜利后走同层普通战斗胜利奖励（非事件专属金币/经验）
+                    run.PendingEventBattleBonusXp = 0;
+                    run.PendingEventBattleVictoryReward = null;
                 }),
                 _ => TeamHpThen(run, -5, "你在混乱中逃离。")
             };
@@ -696,13 +706,8 @@ namespace Grimhand.Expedition
                     if (entry?.Template == null)
                         continue;
 
-                    if (CardUpgradeRules.CanUpgrade(
-                            ranger,
-                            entry.Template.DeckInstanceId,
-                            entry.Template.DisplayName))
-                    {
+                    if (CardUpgradeRules.CanUpgrade(ranger, entry.Template))
                         candidates.Add(entry);
-                    }
                 }
 
                 if (candidates.Count == 0)
@@ -908,12 +913,36 @@ namespace Grimhand.Expedition
             if (run.Map == null)
                 return;
 
-            var start = run.Map.NodesCompleted + 1;
+            // 跳过当前事件层与即将前往的下一层：例如在 41 层触发时揭示 43/44/45
+            var start = run.Map.NodesCompleted + 3;
             for (var i = 0; i < run.Modifiers.ForeseenLayerCount; i++)
             {
                 var layer = run.Map.GetLayer(start + i);
                 if (layer != null)
                     layer.IsRevealed = true;
+            }
+        }
+
+        static void ScrubBlockedEventsFromMap(ExpeditionRunState run, BattleRng rng)
+        {
+            if (run?.Map?.Layers == null || rng == null)
+                return;
+
+            foreach (var layer in run.Map.Layers)
+            {
+                if (layer?.Options == null)
+                    continue;
+
+                foreach (var option in layer.Options)
+                {
+                    if (option == null || string.IsNullOrEmpty(option.EventId))
+                        continue;
+
+                    if (!ExpeditionEventRoller.IsEventBlockedForVisit(run, option.EventId))
+                        continue;
+
+                    option.EventId = ExpeditionEventRoller.PickEventId(run, rng);
+                }
             }
         }
 

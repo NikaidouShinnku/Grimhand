@@ -1456,7 +1456,7 @@ namespace Grimhand.Presentation.Battle
                 {
                     var template = entry.Template;
                     if (template == null
-                        || !CardUpgradeRules.CanUpgrade(member, template.DeckInstanceId, template.DisplayName))
+                        || !CardUpgradeRules.CanUpgrade(member, template))
                         continue;
 
                     var memberId = member.CharacterDefinitionId;

@@ -34,6 +34,8 @@ namespace Grimhand.Presentation.Battle
             StatusCatalog.DamageReduction,
             StatusCatalog.Vulnerable,
             StatusCatalog.SpiderPoisonVulnerable,
+            StatusCatalog.DarkKnightPoisonVulnerable,
+            StatusCatalog.DivinePunishmentAtk,
             StatusCatalog.MermaidTidalCostCut,
             StatusCatalog.AttackUpPercent,
             StatusCatalog.AttackUp,
@@ -322,6 +324,7 @@ namespace Grimhand.Presentation.Battle
             if (statusId == StatusCatalog.DefenseDownPercent
                 || statusId == StatusCatalog.DefenseUpPercent
                 || statusId == StatusCatalog.AttackUpPercent
+                || statusId == StatusCatalog.DivinePunishmentAtk
                 || statusId == StatusCatalog.Vulnerable
                 || statusId == StatusCatalog.DamageReduction
                 || statusId == StatusCatalog.ArmorDown

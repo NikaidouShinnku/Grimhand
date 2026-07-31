@@ -12,7 +12,9 @@ namespace Grimhand.Expedition.Events
         PickCardRemove,
         PickCardUpgrade,
         PickTwoCardsForFusion,
-        ShowMessage
+        ShowMessage,
+        /// <summary>从已选角色卡组中一次多选最多 3 张可升级卡，确认后各升 1 级。</summary>
+        PickThreeCardsUpgrade
     }
 
     public sealed class ExpeditionEventInteractionStep
@@ -47,6 +49,8 @@ namespace Grimhand.Expedition.Events
         public string PendingPrimaryCardKey { get; set; } = "";
         public string PendingSecondaryCardKey { get; set; } = "";
         public int PendingUpgradeBonus { get; set; }
+        /// <summary>多选升级等：待应用的卡牌键列表。</summary>
+        public List<string> PendingCardKeys { get; } = new();
     }
 
     /// <summary>卡牌在选牌 UI 中的唯一键：deckInstanceId（memberId|guid）。</summary>

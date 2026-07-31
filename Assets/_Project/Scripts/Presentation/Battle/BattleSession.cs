@@ -865,9 +865,14 @@ namespace Grimhand.Presentation.Battle
         public bool CompleteEventInteractionStep(
             string selectedCharacterId = null,
             string selectedCardKey = null,
-            string selectedSecondCardKey = null)
+            string selectedSecondCardKey = null,
+            IReadOnlyList<string> selectedCardKeys = null)
         {
-            if (Expedition?.CompleteEventInteractionStep(selectedCharacterId, selectedCardKey, selectedSecondCardKey) != true)
+            if (Expedition?.CompleteEventInteractionStep(
+                    selectedCharacterId,
+                    selectedCardKey,
+                    selectedSecondCardKey,
+                    selectedCardKeys) != true)
                 return false;
 
             if (!string.IsNullOrEmpty(Expedition.Run.LastEventMessage))

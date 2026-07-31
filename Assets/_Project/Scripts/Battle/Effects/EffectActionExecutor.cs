@@ -441,6 +441,7 @@ namespace Grimhand.Battle.Effects
                     DoubleTargetStatusStacks(target, StatusCatalog.Poison, events);
                     DoubleTargetStatusStacks(target, StatusCatalog.Burn, events);
                     MinionTraitRules.SyncSpiderPoisonVulnerability(state, target, events);
+                    V09BossMechanicsRules.SyncDarkKnightPoisonVulnerability(state, target, events);
                     state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, target.Id, false, 0);
                     break;
                 }

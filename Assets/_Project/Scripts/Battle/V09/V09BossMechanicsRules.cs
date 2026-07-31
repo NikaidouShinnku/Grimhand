@@ -65,12 +65,17 @@ namespace Grimhand.Battle.V09
                     StatusRules.ApplyStatus(state, player, StatusCatalog.Poison, 1, -1, events);
                 }
             }
+
+            SyncAllDarkKnightPoisonVulnerability(state, events);
         }
 
         public static void OnCharacterDied(BattleState state, CombatantState combatant, List<BattleEvent> events, BattleRng rng)
         {
             if (state == null || combatant == null)
                 return;
+
+            if (BossTraitRules.HasTrait(combatant, CharacterTraitCatalog.DarkKnightPoisonAura))
+                SyncAllDarkKnightPoisonVulnerability(state, events);
 
             if (!BossTraitRules.HasTrait(combatant, CharacterTraitCatalog.PrisonCage))
                 return;
@@ -201,14 +206,74 @@ namespace Grimhand.Battle.V09
                 combatant.IncomingDamageReductionPercent += tideStacks * 5;
         }
 
-        public static void ApplyDarkKnightPoisonVulnerability(CombatantState recipient)
+        /// <summary>
+        /// 场上有黑暗骑士时，玩家每层中毒同步为 1 层可见易伤（+1% 受伤）。
+        /// 伤害由 <see cref="StatusCatalog.DarkKnightPoisonVulnerable"/> 经 CombatModifierRules 结算。
+        /// </summary>
+        public static void SyncDarkKnightPoisonVulnerability(
+            BattleState state,
+            CombatantState target,
+            List<BattleEvent> events)
         {
-            if (recipient == null || recipient.Team != TeamSide.Player)
+            if (target == null || target.Team != TeamSide.Player)
                 return;
 
-            var poisonStacks = StatusRules.GetStatusStacks(recipient, StatusCatalog.Poison);
-            if (poisonStacks > 0)
-                recipient.IncomingDamagePercentBonus += poisonStacks;
+            var poisonStacks = StatusRules.GetStatusStacks(target, StatusCatalog.Poison);
+            var desired = 0;
+            if (target.IsAlive)
+            {
+                if (state != null)
+                {
+                    if (IsDarkKnightPoisonAuraActive(state))
+                        desired = poisonStacks;
+                }
+                else
+                {
+                    // 无 BattleState 时暂按中毒层数保留；带 state 的同步会校正（Boss 死亡等）
+                    desired = poisonStacks;
+                }
+            }
+
+            var current = StatusRules.GetStatusStacks(target, StatusCatalog.DarkKnightPoisonVulnerable);
+            if (desired == current)
+                return;
+
+            if (desired <= 0)
+            {
+                StatusRules.RemoveAllStatus(target, StatusCatalog.DarkKnightPoisonVulnerable, events);
+                CombatantRules.RefreshDerivedStats(target);
+                RelicBattleRules.RefreshDerivedStats(state, target, state?.Config?.RunModifiers);
+                return;
+            }
+
+            var existing = StatusRules.FindStatus(target, StatusCatalog.DarkKnightPoisonVulnerable);
+            if (existing == null)
+            {
+                StatusRules.ApplyStatusInternal(
+                    state, target, StatusCatalog.DarkKnightPoisonVulnerable, desired, -1, events,
+                    mirrorChainWraith: false);
+                return;
+            }
+
+            existing.Stacks = desired;
+            existing.RemainingTurns = -1;
+            events?.Add(new BattleEvent(BattleEventKind.StatusApplied, "易伤")
+            {
+                CombatantId = target.Id,
+                Amount = desired,
+                TargetId = StatusCatalog.DarkKnightPoisonVulnerable
+            });
+            CombatantRules.RefreshDerivedStats(target);
+            RelicBattleRules.RefreshDerivedStats(state, target, state?.Config?.RunModifiers);
+        }
+
+        public static void SyncAllDarkKnightPoisonVulnerability(BattleState state, List<BattleEvent> events)
+        {
+            if (state == null)
+                return;
+
+            foreach (var unit in state.GetTeam(TeamSide.Player))
+                SyncDarkKnightPoisonVulnerability(state, unit, events);
         }
 
         public static bool IsDarkKnightPoisonAuraActive(BattleState state)

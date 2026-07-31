@@ -341,6 +341,7 @@ namespace Grimhand.Persistence
                 skipNextRouteSelect = modifiers.SkipNextRouteSelect,
                 lootedInjuredAdventurer = modifiers.LootedInjuredAdventurer,
                 divinePunishmentActive = modifiers.DivinePunishmentActive,
+                enemyOutgoingDamagePercentBonus = modifiers.EnemyOutgoingDamagePercentBonus,
                 soulRiftBattleStartRandomHpLoss = modifiers.SoulRiftBattleStartRandomHpLoss
             };
         }
@@ -363,6 +364,7 @@ namespace Grimhand.Persistence
             modifiers.SkipNextRouteSelect = dto.skipNextRouteSelect;
             modifiers.LootedInjuredAdventurer = dto.lootedInjuredAdventurer;
             modifiers.DivinePunishmentActive = dto.divinePunishmentActive;
+            modifiers.EnemyOutgoingDamagePercentBonus = dto.enemyOutgoingDamagePercentBonus;
             modifiers.SoulRiftBattleStartRandomHpLoss = dto.soulRiftBattleStartRandomHpLoss;
         }
 
@@ -1053,7 +1055,10 @@ namespace Grimhand.Persistence
                 hasPendingCardAction = interaction.HasPendingCardAction,
                 pendingPrimaryCardKey = interaction.PendingPrimaryCardKey ?? "",
                 pendingSecondaryCardKey = interaction.PendingSecondaryCardKey ?? "",
-                pendingUpgradeBonus = interaction.PendingUpgradeBonus
+                pendingUpgradeBonus = interaction.PendingUpgradeBonus,
+                pendingCardKeys = interaction.PendingCardKeys != null && interaction.PendingCardKeys.Count > 0
+                    ? interaction.PendingCardKeys.ToArray()
+                    : Array.Empty<string>()
             };
         }
 
@@ -1124,6 +1129,15 @@ namespace Grimhand.Persistence
                 PendingSecondaryCardKey = dto.pendingSecondaryCardKey ?? "",
                 PendingUpgradeBonus = dto.pendingUpgradeBonus
             };
+
+            if (dto.pendingCardKeys != null)
+            {
+                foreach (var key in dto.pendingCardKeys)
+                {
+                    if (!string.IsNullOrEmpty(key))
+                        interaction.PendingCardKeys.Add(key);
+                }
+            }
 
             FromInteractionStepsDto(dto.steps, interaction.Steps);
             return interaction;

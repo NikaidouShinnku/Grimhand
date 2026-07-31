@@ -199,6 +199,8 @@ namespace Grimhand.Battle.Rules
                 combatant.BossFirstHitBlockPending = true;
 
             state.Combatants.Add(combatant);
+            if (combatant.Team == TeamSide.Enemy)
+                DivinePunishmentRules.TryApplyToEnemy(state, combatant, events);
             RelicBattleRules.RefreshDerivedStats(state, combatant, state.Config?.RunModifiers);
 
             events.Add(new BattleEvent(BattleEventKind.CombatantSpawned, combatant.DisplayName)
@@ -263,6 +265,7 @@ namespace Grimhand.Battle.Rules
             combatant.RatPackAttackBonusPercent =
                 state.RatDeathsThisBattle * MinionTraitCatalog.RatPackAttackBonusPercentPerDeath;
             state.Combatants.Add(combatant);
+            DivinePunishmentRules.TryApplyToEnemy(state, combatant, events);
             RelicBattleRules.RefreshDerivedStats(state, combatant, state.Config?.RunModifiers);
 
             events.Add(new BattleEvent(BattleEventKind.CombatantSpawned, $"{combatant.DisplayName}（鼠群呼唤）")

@@ -40,6 +40,10 @@ namespace Grimhand.Battle.Status
         public const string Vulnerable = "vulnerable";
         /// <summary>蜘蛛贵妇：按玩家中毒层数同步的易伤展示/结算（每层 +1% 受伤）。</summary>
         public const string SpiderPoisonVulnerable = "spider_poison_vulnerable";
+        /// <summary>黑暗骑士：玩家中毒层数 1:1 同步为易伤（每层 +1% 受伤）。</summary>
+        public const string DarkKnightPoisonVulnerable = "dark_knight_poison_vulnerable";
+        /// <summary>古老神殿亵渎：敌人永久增伤（每层 +1%）。</summary>
+        public const string DivinePunishmentAtk = "divine_punishment_atk";
         /// <summary>鬼灵海盗船长被动：条件满足时 +33% 增伤（不叠多次）。</summary>
         public const string PhantomCaptainFrenzyAtk = "phantom_captain_frenzy_atk";
         /// <summary>鬼灵海盗船长被动：条件满足时 +20% 易伤（不叠多次）。</summary>
@@ -373,6 +377,20 @@ namespace Grimhand.Battle.Status
                 DisplayName = "易伤",
                 DurationKind = StatusDurationKind.Permanent,
                 IncomingDamagePercentPerStack = 1
+            };
+            map[DarkKnightPoisonVulnerable] = new StatusDefinition
+            {
+                Id = DarkKnightPoisonVulnerable,
+                DisplayName = "易伤",
+                DurationKind = StatusDurationKind.Permanent,
+                IncomingDamagePercentPerStack = 1
+            };
+            map[DivinePunishmentAtk] = new StatusDefinition
+            {
+                Id = DivinePunishmentAtk,
+                DisplayName = "神罚",
+                DurationKind = StatusDurationKind.Permanent,
+                AttackPercentBonusPerStack = 1
             };
             map[PhantomCaptainFrenzyAtk] = new StatusDefinition
             {

@@ -273,10 +273,13 @@ namespace Grimhand.Presentation.Battle
             if (TryBuildCurseCardStatsLine(card, out var curseLine))
                 return curseLine;
 
-            // 与 SO 基线一致时用目录文案（含延迟伤害/封印等动态描述尚未覆盖的动作）；
-            // 已升级/改写实例则走下方结算预览。
-            if (TryBuildExcelDescriptionLine(state, draft, card, definitions, out var excelLine))
-                return excelLine;
+            // 战斗中有持有者时始终走动态预览，以反映增伤/虚弱等状态对数值的影响。
+            // 静态总览文案只用于图鉴/军营等无战斗上下文的展示。
+            if (state == null || owner == null)
+            {
+                if (TryBuildExcelDescriptionLine(state, draft, card, definitions, out var excelLine))
+                    return excelLine;
+            }
 
             var pickSide = CardRules.GetRequiredTargetPick(card);
             var previewTarget = ResolveDamagePreviewTarget(state, draft, card, owner, damagePreviewTarget);
@@ -1598,6 +1601,10 @@ namespace Grimhand.Presentation.Battle
                     return AppendStatusDurationLine(
                         $"受到的伤害增加 {status.Stacks}%（蜘蛛贵妇：每 5 层中毒视为 10% 易伤）",
                         status, def);
+                case StatusCatalog.DarkKnightPoisonVulnerable:
+                    return AppendStatusDurationLine(
+                        $"受到的伤害增加 {status.Stacks}%（黑暗骑士：每层中毒视为 1 层易伤）",
+                        status, def);
                 case StatusCatalog.HandCostZero:
                     return AppendStatusDurationLine("己方手牌费用变为 0", status, def);
                 case StatusCatalog.Slow:
@@ -1707,6 +1714,10 @@ namespace Grimhand.Presentation.Battle
                         $"所有攻击牌伤害 +{status.Stacks * (def?.OutgoingDamageFlatPerStack ?? 1)}（每层 +{def?.OutgoingDamageFlatPerStack ?? 1}）",
                         status, def);
                 case StatusCatalog.AttackUpPercent:
+                    return AppendStatusDurationLine(
+                        $"所有攻击牌伤害 +{status.Stacks * (def?.AttackPercentBonusPerStack ?? 1)}%（每层 +{def?.AttackPercentBonusPerStack ?? 1}%）",
+                        status, def);
+                case StatusCatalog.DivinePunishmentAtk:
                     return AppendStatusDurationLine(
                         $"所有攻击牌伤害 +{status.Stacks * (def?.AttackPercentBonusPerStack ?? 1)}%（每层 +{def?.AttackPercentBonusPerStack ?? 1}%）",
                         status, def);

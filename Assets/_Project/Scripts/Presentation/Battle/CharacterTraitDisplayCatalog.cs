@@ -108,7 +108,7 @@ namespace Grimhand.Presentation.Battle
                     "回合开始自伤；死亡时召唤精英并清除玩家烙印。"),
                 [CharacterTraitCatalog.DarkKnightPoisonAura] = new(
                     "毒雾光环",
-                    "回合开始全体玩家+1永久中毒；玩家中毒层数视为易伤。"),
+                    "回合开始全体玩家+1永久中毒；玩家每层中毒视为 1 层易伤。"),
                 [CharacterTraitCatalog.OceanGoddessTide] = new(
                     "潮汐主宰",
                     "腐化海洋女神：涨潮/退潮机制。")

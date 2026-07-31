@@ -72,6 +72,25 @@ namespace Grimhand.Presentation.Battle
             ApplyVisualState(immediate: true);
         }
 
+        public void SetInteractable(bool interactable)
+        {
+            _interactable = interactable;
+            if (button != null)
+                button.interactable = interactable;
+            if (canvasGroup != null)
+            {
+                var polluted = pollutedOverlay != null && pollutedOverlay.enabled;
+                if (polluted)
+                    canvasGroup.alpha = 0.55f;
+                else if (!_interactable)
+                    canvasGroup.alpha = 0.72f;
+                else
+                    canvasGroup.alpha = 1f;
+            }
+
+            ApplyVisualState(immediate: true);
+        }
+
         void Awake()
         {
             RemoveStaleHoverCanvas();

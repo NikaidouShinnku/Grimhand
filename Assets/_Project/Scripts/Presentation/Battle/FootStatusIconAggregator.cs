@@ -61,6 +61,7 @@ namespace Grimhand.Presentation.Battle
             byId.Remove(StatusCatalog.TideEmpower);
             byId.Remove(StatusCatalog.Vulnerable);
             byId.Remove(StatusCatalog.SpiderPoisonVulnerable);
+            byId.Remove(StatusCatalog.DarkKnightPoisonVulnerable);
             byId.Remove(StatusCatalog.PhantomCaptainFrenzyVuln);
             byId.Remove(StatusCatalog.KnightAssaultStanceVuln);
             byId.Remove(StatusCatalog.DefenseUpPercent);
@@ -273,6 +274,8 @@ namespace Grimhand.Presentation.Battle
                 total += vuln;
             if (byId.TryGetValue(StatusCatalog.SpiderPoisonVulnerable, out var spider))
                 total += spider;
+            if (byId.TryGetValue(StatusCatalog.DarkKnightPoisonVulnerable, out var darkKnight))
+                total += darkKnight;
             if (byId.TryGetValue(StatusCatalog.PhantomCaptainFrenzyVuln, out var frenzy))
                 total += frenzy;
             if (byId.TryGetValue(StatusCatalog.KnightAssaultStanceVuln, out var assaultVuln))

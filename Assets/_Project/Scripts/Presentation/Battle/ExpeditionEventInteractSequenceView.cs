@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Grimhand.Battle;
 using Grimhand.Battle.Model;
 using Grimhand.Content;
 using Grimhand.Expedition;
@@ -58,6 +59,7 @@ namespace Grimhand.Presentation.Battle
         readonly List<GameObject> _dynamicObjects = new();
         readonly Dictionary<string, CardView> _cardViews = new();
         readonly Dictionary<string, CardType> _cardTypesByKey = new();
+        readonly Dictionary<string, CardRarity> _cardRaritiesByKey = new();
         readonly Dictionary<string, Text> _portraitHpTexts = new();
         readonly Dictionary<string, Text> _portraitFloaters = new();
         readonly Dictionary<string, Image> _characterPlateImages = new();
@@ -127,10 +129,6 @@ namespace Grimhand.Presentation.Battle
         void RebuildForCurrentStep(ExpeditionEventInteractionState interaction)
         {
             ClearContent();
-            _portraitHpTexts.Clear();
-            _portraitFloaters.Clear();
-            _cardViews.Clear();
-            _cardTypesByKey.Clear();
 
             var step = interaction.Steps[interaction.StepIndex];
             switch (step.Kind)
@@ -162,9 +160,12 @@ namespace Grimhand.Presentation.Battle
                         break;
                     }
 
-                    _promptText.text = step.PersonalAttackBonus > 0
-                        ? $"选择一名队员获得增伤 +{step.PersonalAttackBonus}"
-                        : "选择一名队员获得增伤 +2";
+                    if (!string.IsNullOrEmpty(step.Message))
+                        _promptText.text = step.Message;
+                    else if (step.PersonalAttackBonus > 0)
+                        _promptText.text = $"选择一名队员获得增伤 +{step.PersonalAttackBonus}";
+                    else
+                        _promptText.text = "选择一名队员获得增伤 +2";
                     BuildCharacterRow(selectable: true, onPick: PickMemberForBuff);
                     break;
                 case ExpeditionEventStepKind.PickCardRemove:
@@ -177,9 +178,19 @@ namespace Grimhand.Presentation.Battle
                     _promptText.text = "选择一张卡牌强化";
                     BuildCardGrid(interaction, step);
                     break;
+                case ExpeditionEventStepKind.PickThreeCardsUpgrade:
+                    ApplyPromptLayout(centered: false);
+                    BuildCardGrid(interaction, step);
+                    var upgradeableCount = CountVisibleUpgradeCards();
+                    _promptText.text = upgradeableCount == 0
+                        ? "该角色没有可升级的卡牌。"
+                        : upgradeableCount < 3
+                            ? $"选择全部 {upgradeableCount} 张可升级卡牌，确认后各升一级"
+                            : "选择三张可升级卡牌，确认后各升一级";
+                    break;
                 case ExpeditionEventStepKind.PickTwoCardsForFusion:
                     ApplyPromptLayout(centered: false);
-                    _promptText.text = "选择两张同类型卡牌进行融合（可跨角色）";
+                    _promptText.text = "选择两张同稀有度卡牌进行融合（可跨角色）";
                     BuildCardGrid(interaction, step);
                     break;
                 case ExpeditionEventStepKind.ShowMessage:
@@ -366,7 +377,10 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             var cards = ExpeditionRunDeckMutations.ListSelectableCards(_session.Expedition.Config, _session.Expedition.Run);
-            var isUpgradeStep = step.Kind == ExpeditionEventStepKind.PickCardUpgrade;
+            var isUpgradeStep = step.Kind is ExpeditionEventStepKind.PickCardUpgrade
+                or ExpeditionEventStepKind.PickThreeCardsUpgrade;
+            var isMultiSelect = step.Kind is ExpeditionEventStepKind.PickTwoCardsForFusion
+                or ExpeditionEventStepKind.PickThreeCardsUpgrade;
             var cardWidth = 168f * CardScale;
             var cardHeight = 236f * CardScale;
 
@@ -386,14 +400,8 @@ namespace Grimhand.Presentation.Battle
                 {
                     var owner = _session.Expedition.Run.Party.Find(m =>
                         m?.CharacterDefinitionId == entry.MemberId);
-                    if (owner == null
-                        || !CardUpgradeRules.CanUpgrade(
-                            owner,
-                            entry.Template.DeckInstanceId,
-                            entry.Template.DisplayName))
-                    {
+                    if (owner == null || !CardUpgradeRules.CanUpgrade(owner, entry.Template))
                         continue;
-                    }
                 }
 
                 _definitions.TryGetValue(entry.Template.DefinitionId, out var definition);
@@ -408,14 +416,25 @@ namespace Grimhand.Presentation.Battle
                 var preview = CardVisualResolver.CreatePreviewInstanceFromTemplate(entry.Template, definition);
                 var visual = CardVisualResolver.Resolve(preview, _cardCatalog, _characterVisuals, _definitions);
                 var key = entry.Key;
-                var selected = step.Kind == ExpeditionEventStepKind.PickTwoCardsForFusion
+                var selected = isMultiSelect
                     ? _selectedCardKeys.Contains(key)
                     : key == _selectedCardKey;
                 var ownerMember = _session.Expedition.Run.Party.Find(m =>
-                    m?.CharacterDefinitionId == entry.Template.OwnerCharacterId);
-                var upgradeLevel = ownerMember != null
-                    ? CardUpgradeRules.GetLevel(ownerMember, entry.Template.DeckInstanceId)
-                    : 0;
+                    m?.CharacterDefinitionId == entry.MemberId)
+                    ?? _session.Expedition.Run.Party.Find(m =>
+                        m?.CharacterDefinitionId == entry.Template.OwnerCharacterId);
+                var upgradeLevel = 0;
+                if (ownerMember != null)
+                {
+                    upgradeLevel = CardUpgradeRules.GetLevel(ownerMember, entry.Template.DeckInstanceId);
+                    if (entry.Template.UpgradeLevel > upgradeLevel)
+                        upgradeLevel = entry.Template.UpgradeLevel;
+                }
+                else
+                {
+                    upgradeLevel = entry.Template.UpgradeLevel;
+                }
+
                 var upgradeSlots = CardUpgradeRules.FormatUpgradeSlots(entry.Template.DisplayName, upgradeLevel);
                 var statsLine = BattleUiFormatters.BuildCardStatsLinePreview(preview, _definitions);
                 if (!string.IsNullOrEmpty(upgradeSlots))
@@ -437,8 +456,12 @@ namespace Grimhand.Presentation.Battle
 
                 _cardViews[key] = view;
                 _cardTypesByKey[key] = entry.Template.CardType;
+                _cardRaritiesByKey[key] = CardRarityTable.GetOrDefault(entry.Template.DefinitionId);
                 _dynamicObjects.Add(holder);
             }
+
+            if (step.Kind == ExpeditionEventStepKind.PickTwoCardsForFusion)
+                RefreshFusionCardInteractable();
 
             LayoutRebuilder.ForceRebuildLayoutImmediate(_cardGrid);
         }
@@ -456,8 +479,28 @@ namespace Grimhand.Presentation.Battle
             if (step.Kind == ExpeditionEventStepKind.PickTwoCardsForFusion)
             {
                 if (_selectedCardKeys.Contains(key))
+                {
                     _selectedCardKeys.Remove(key);
+                }
                 else if (_selectedCardKeys.Count < 2)
+                {
+                    if (_selectedCardKeys.Count == 1
+                        && TryGetFirstSelectedCardKey(out var lockedKey)
+                        && _cardRaritiesByKey.TryGetValue(lockedKey, out var locked)
+                        && _cardRaritiesByKey.TryGetValue(key, out var candidate)
+                        && locked != candidate)
+                    {
+                        return;
+                    }
+
+                    _selectedCardKeys.Add(key);
+                }
+            }
+            else if (step.Kind == ExpeditionEventStepKind.PickThreeCardsUpgrade)
+            {
+                if (_selectedCardKeys.Contains(key))
+                    _selectedCardKeys.Remove(key);
+                else if (_selectedCardKeys.Count < 3)
                     _selectedCardKeys.Add(key);
             }
             else
@@ -467,13 +510,53 @@ namespace Grimhand.Presentation.Battle
 
             foreach (var pair in _cardViews)
             {
-                var selected = step.Kind == ExpeditionEventStepKind.PickTwoCardsForFusion
+                var selected = step.Kind is ExpeditionEventStepKind.PickTwoCardsForFusion
+                    or ExpeditionEventStepKind.PickThreeCardsUpgrade
                     ? _selectedCardKeys.Contains(pair.Key)
                     : pair.Key == _selectedCardKey;
                 pair.Value.SetSelected(selected);
             }
 
+            if (step.Kind == ExpeditionEventStepKind.PickTwoCardsForFusion)
+                RefreshFusionCardInteractable();
+
             UpdateConfirmButton(interaction);
+        }
+
+        void RefreshFusionCardInteractable()
+        {
+            CardRarity? lockedRarity = null;
+            if (_selectedCardKeys.Count >= 1
+                && TryGetFirstSelectedCardKey(out var lockedKey)
+                && _cardRaritiesByKey.TryGetValue(lockedKey, out var rarity))
+            {
+                lockedRarity = rarity;
+            }
+
+            foreach (var pair in _cardViews)
+            {
+                if (pair.Value == null)
+                    continue;
+
+                var selected = _selectedCardKeys.Contains(pair.Key);
+                var matches = !lockedRarity.HasValue
+                              || selected
+                              || (_cardRaritiesByKey.TryGetValue(pair.Key, out var cardRarity)
+                                  && cardRarity == lockedRarity.Value);
+                pair.Value.SetInteractable(matches);
+            }
+        }
+
+        bool TryGetFirstSelectedCardKey(out string key)
+        {
+            foreach (var selected in _selectedCardKeys)
+            {
+                key = selected;
+                return true;
+            }
+
+            key = "";
+            return false;
         }
 
         void UpdateConfirmButton(ExpeditionEventInteractionState interaction)
@@ -492,6 +575,7 @@ namespace Grimhand.Presentation.Battle
 
             var needsCard = step.Kind is ExpeditionEventStepKind.PickCardRemove
                 or ExpeditionEventStepKind.PickCardUpgrade
+                or ExpeditionEventStepKind.PickThreeCardsUpgrade
                 or ExpeditionEventStepKind.PickTwoCardsForFusion;
 
             if (!needsCard)
@@ -509,35 +593,47 @@ namespace Grimhand.Presentation.Battle
             {
                 _confirmButton.interactable = !_stepBusy
                                               && _selectedCardKeys.Count == 2
-                                              && TryGetSelectedFusionType(out _);
+                                              && TryGetSelectedFusionRarity(out _);
+                return;
+            }
+
+            if (step.Kind == ExpeditionEventStepKind.PickThreeCardsUpgrade)
+            {
+                var available = CountVisibleUpgradeCards();
+                var required = available >= 3 ? 3 : available;
+                _confirmButton.interactable = !_stepBusy
+                                              && ((required == 0 && _selectedCardKeys.Count == 0)
+                                                  || (_selectedCardKeys.Count == required && required > 0));
                 return;
             }
 
             _confirmButton.interactable = !string.IsNullOrEmpty(_selectedCardKey) && !_stepBusy;
         }
 
-        bool TryGetSelectedFusionType(out CardType cardType)
+        int CountVisibleUpgradeCards() => _cardViews.Count;
+
+        bool TryGetSelectedFusionRarity(out CardRarity rarity)
         {
-            cardType = default;
+            rarity = default;
             if (_selectedCardKeys.Count != 2)
                 return false;
 
-            CardType? firstType = null;
+            CardRarity? firstRarity = null;
             foreach (var key in _selectedCardKeys)
             {
-                if (!_cardTypesByKey.TryGetValue(key, out var type))
-                    continue;
+                if (!_cardRaritiesByKey.TryGetValue(key, out var cardRarity))
+                    return false;
 
-                if (firstType == null)
-                    firstType = type;
-                else if (firstType.Value != type)
+                if (firstRarity == null)
+                    firstRarity = cardRarity;
+                else if (firstRarity.Value != cardRarity)
                     return false;
             }
 
-            if (firstType == null)
+            if (firstRarity == null)
                 return false;
 
-            cardType = firstType.Value;
+            rarity = firstRarity.Value;
             return true;
         }
 
@@ -631,10 +727,17 @@ namespace Grimhand.Presentation.Battle
                 if (member != null)
                 {
                     GetMemberDisplayHp(member, out var currentHp, out var maxHp);
+                    var previewMaxHp = maxHp;
                     var previewHp = isHeal
                         ? Mathf.Min(maxHp, currentHp + delta)
                         : Mathf.Max(1, currentHp - delta);
-                    hpText.text = $"生命 {previewHp}/{maxHp}";
+                    if (!isHeal && step.PercentFromMaxHp)
+                    {
+                        previewMaxHp = Mathf.Max(1, maxHp - delta);
+                        previewHp = Mathf.Min(previewHp, previewMaxHp);
+                    }
+
+                    hpText.text = $"生命 {previewHp}/{previewMaxHp}";
                 }
             }
         }
@@ -727,12 +830,26 @@ namespace Grimhand.Presentation.Battle
 
             if (step.Kind == ExpeditionEventStepKind.PickTwoCardsForFusion)
             {
-                if (_selectedCardKeys.Count != 2 || !TryGetSelectedFusionType(out _))
+                if (_selectedCardKeys.Count != 2 || !TryGetSelectedFusionRarity(out _))
                     return;
 
                 var keys = new List<string>(_selectedCardKeys);
                 _stepBusy = true;
                 CompleteStep(null, keys[0], keys[1]);
+                return;
+            }
+
+            if (step.Kind == ExpeditionEventStepKind.PickThreeCardsUpgrade)
+            {
+                var available = CountVisibleUpgradeCards();
+                var required = available >= 3 ? 3 : available;
+                if (required > 0 && _selectedCardKeys.Count != required)
+                    return;
+                if (required == 0 && _selectedCardKeys.Count != 0)
+                    return;
+
+                _stepBusy = true;
+                CompleteStep(null, null, null, new List<string>(_selectedCardKeys));
                 return;
             }
 
@@ -743,7 +860,11 @@ namespace Grimhand.Presentation.Battle
             CompleteStep(null, _selectedCardKey);
         }
 
-        void CompleteStep(string selectedCharacterId, string selectedCardKey, string selectedSecondCardKey = null)
+        void CompleteStep(
+            string selectedCharacterId,
+            string selectedCardKey,
+            string selectedSecondCardKey = null,
+            IReadOnlyList<string> selectedCardKeys = null)
         {
             if (_session == null)
                 return;
@@ -754,7 +875,8 @@ namespace Grimhand.Presentation.Battle
             var ok = _session.CompleteEventInteractionStep(
                 selectedCharacterId,
                 selectedCardKey,
-                selectedSecondCardKey);
+                selectedSecondCardKey,
+                selectedCardKeys);
             if (!ok)
                 return;
 
@@ -792,6 +914,7 @@ namespace Grimhand.Presentation.Battle
             _dynamicObjects.Clear();
             _cardViews.Clear();
             _cardTypesByKey.Clear();
+            _cardRaritiesByKey.Clear();
             _portraitHpTexts.Clear();
             _portraitFloaters.Clear();
             _characterPlateImages.Clear();

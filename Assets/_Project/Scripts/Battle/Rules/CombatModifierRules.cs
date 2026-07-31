@@ -92,6 +92,8 @@ namespace Grimhand.Battle.Rules
                 }
             }
 
+            // 神罚增伤由 StatusCatalog.DivinePunishmentAtk 状态结算并展示脚标。
+
             combatant.OutgoingDamageFlatBonus += combatant.PersistentOutgoingDamageFlatBonus;
             combatant.BlockGainFlatBonus += combatant.PersistentBlockGainFlatBonus;
 
@@ -99,9 +101,6 @@ namespace Grimhand.Battle.Rules
                 combatant.OutgoingDamagePercentBonus += 20;
 
             TalentBattleRules.ApplyCombatModifiers(state, combatant, mods);
-
-            if (state != null && V09BossMechanicsRules.IsDarkKnightPoisonAuraActive(state))
-                V09BossMechanicsRules.ApplyDarkKnightPoisonVulnerability(combatant);
 
             V09BossMechanicsRules.ApplyExtraTideDamageReduction(combatant);
         }

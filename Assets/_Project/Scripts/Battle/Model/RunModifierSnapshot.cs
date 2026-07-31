@@ -70,6 +70,9 @@ namespace Grimhand.Battle.Model
         /// <summary>灵魂裂隙：每场战斗开始随机 1 名队员失去 HP。</summary>
         public int SoulRiftBattleStartRandomHpLoss { get; set; }
 
+        /// <summary>古老神殿亵渎等：敌方永久增伤百分比。</summary>
+        public int EnemyOutgoingDamagePercentBonus { get; set; }
+
         /// <summary>便携篝火：战斗胜利后全队回复 HP 百分比。</summary>
         public float PostBattleTeamHealPercent { get; set; }
 

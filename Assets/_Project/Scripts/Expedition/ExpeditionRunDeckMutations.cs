@@ -137,13 +137,15 @@ namespace Grimhand.Expedition
             if (first?.Template == null || second?.Template == null)
                 return false;
 
-            if (first.Template.CardType != second.Template.CardType)
-                return false;
-
             if (first.Key == second.Key)
                 return false;
 
             if (run?.Party == null || run.Party.Count == 0)
+                return false;
+
+            var rarityA = CardRarityTable.GetOrDefault(first.Template.DefinitionId);
+            var rarityB = CardRarityTable.GetOrDefault(second.Template.DefinitionId);
+            if (rarityA != rarityB)
                 return false;
 
             foreach (var entry in OrderForRemoval(first, second))
@@ -152,22 +154,54 @@ namespace Grimhand.Expedition
                     return false;
             }
 
-            var rarityA = CardRarityTable.GetOrDefault(first.Template.DefinitionId);
-            var rarityB = CardRarityTable.GetOrDefault(second.Template.DefinitionId);
-            var current = rarityA >= rarityB ? rarityA : rarityB;
-            var next = CardRarityRules.UpgradeRarity(current);
+            var next = CardRarityRules.UpgradeRarity(rarityA);
+            owner = PickFusionOwner(run, first, second, rng);
+            if (owner == null)
+                return false;
 
-            owner = run.Party[rng.NextIndex(run.Party.Count)];
             if (!ExpeditionCardPool.TryRollCardRewardForMember(config, owner, next, rng, out result))
             {
-                result = ExpeditionBattleConfigBuilder.CloneTemplate(first.Template);
-                owner = ResolveFusionFallbackOwner(run, first, second, result, rng);
+                // 换另一名参与融合的角色再试
+                var alt = FindMember(run, first.MemberId == owner.CharacterDefinitionId
+                    ? second.MemberId
+                    : first.MemberId);
+                if (alt != null
+                    && alt.CharacterDefinitionId != owner.CharacterDefinitionId
+                    && ExpeditionCardPool.TryRollCardRewardForMember(config, alt, next, rng, out result))
+                {
+                    owner = alt;
+                }
+                else
+                {
+                    result = ExpeditionBattleConfigBuilder.CloneTemplate(first.Template);
+                    owner = ResolveFusionFallbackOwner(run, first, second, result, rng);
+                }
             }
 
             ExpeditionBattleConfigBuilder.HydrateTemplateFromCatalog(result, config?.PlayerCardCatalog);
             result.OwnerCharacterId = owner.CharacterDefinitionId;
             ExpeditionDeckInstanceRules.PrepareNewDeckCard(owner, result);
             return true;
+        }
+
+        static PartyMemberSnapshot PickFusionOwner(
+            ExpeditionRunState run,
+            DeckCardEntry first,
+            DeckCardEntry second,
+            BattleRng rng)
+        {
+            var candidates = new List<PartyMemberSnapshot>();
+            var a = FindMember(run, first.MemberId);
+            var b = FindMember(run, second.MemberId);
+            if (a != null)
+                candidates.Add(a);
+            if (b != null && (a == null || b.CharacterDefinitionId != a.CharacterDefinitionId))
+                candidates.Add(b);
+
+            if (candidates.Count == 0)
+                return null;
+
+            return candidates[rng.NextIndex(candidates.Count)];
         }
 
         static List<DeckCardEntry> OrderForRemoval(DeckCardEntry first, DeckCardEntry second)
@@ -190,29 +224,25 @@ namespace Grimhand.Expedition
             CardTemplate result,
             BattleRng rng)
         {
-            var preferred = new[]
-            {
-                FindMember(run, first.MemberId),
-                FindMember(run, second.MemberId)
-            };
+            var preferred = new List<PartyMemberSnapshot>();
+            var a = FindMember(run, first.MemberId);
+            var b = FindMember(run, second.MemberId);
+            if (a != null)
+                preferred.Add(a);
+            if (b != null && (a == null || b.CharacterDefinitionId != a.CharacterDefinitionId))
+                preferred.Add(b);
 
             foreach (var member in preferred)
             {
-                if (member != null && ExpeditionCardPool.IsCardOwnedByCharacter(result, member.CharacterDefinitionId))
+                if (ExpeditionCardPool.IsCardOwnedByCharacter(result, member.CharacterDefinitionId))
                     return member;
             }
 
-            var eligible = new List<PartyMemberSnapshot>();
-            foreach (var member in run.Party)
-            {
-                if (member != null && ExpeditionCardPool.IsCardOwnedByCharacter(result, member.CharacterDefinitionId))
-                    eligible.Add(member);
-            }
+            // 融合结果必须归属所选角色之一
+            if (preferred.Count > 0)
+                return preferred[rng.NextIndex(preferred.Count)];
 
-            if (eligible.Count > 0)
-                return eligible[rng.NextIndex(eligible.Count)];
-
-            return preferred[0] ?? preferred[1] ?? run.Party[rng.NextIndex(run.Party.Count)];
+            return run.Party.Count > 0 ? run.Party[rng.NextIndex(run.Party.Count)] : null;
         }
 
         static PartyMemberSnapshot FindMember(ExpeditionRunState run, string memberId)

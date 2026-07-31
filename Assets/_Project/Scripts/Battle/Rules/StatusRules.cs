@@ -179,6 +179,7 @@ namespace Grimhand.Battle.Rules
             RelicBattleRules.RefreshDerivedStats(state, target, state?.Config?.RunModifiers);
             V09NewMechanicsRules.OnPoisonAppliedToSelf(state, target, StatusCatalog.Poison, events);
             MinionTraitRules.SyncSpiderPoisonVulnerability(state, target, events);
+            V09BossMechanicsRules.SyncDarkKnightPoisonVulnerability(state, target, events);
 
             if (mirrorChainWraith)
                 MinionTraitRules.ShareChainWraithDebuff(
@@ -322,7 +323,10 @@ namespace Grimhand.Battle.Rules
             CombatantRules.RefreshDerivedStats(target);
 
             if (statusId == StatusCatalog.Poison)
+            {
                 MinionTraitRules.SyncSpiderPoisonVulnerability(null, target, events);
+                V09BossMechanicsRules.SyncDarkKnightPoisonVulnerability(null, target, events);
+            }
         }
 
         public static void RemoveAllStatus(CombatantState target, string statusId, List<BattleEvent> events)
@@ -341,7 +345,10 @@ namespace Grimhand.Battle.Rules
         {
             RemoveAllStatus(target, statusId, events);
             if (statusId == StatusCatalog.Poison)
+            {
                 MinionTraitRules.SyncSpiderPoisonVulnerability(state, target, events);
+                V09BossMechanicsRules.SyncDarkKnightPoisonVulnerability(state, target, events);
+            }
         }
 
         public static void ProcessTurnStartStatuses(BattleState state, List<BattleEvent> events, BattleRng rng = null)
@@ -570,6 +577,7 @@ namespace Grimhand.Battle.Rules
                     CombatantRules.RefreshDerivedStats(combatant);
                     RelicBattleRules.RefreshDerivedStats(state, combatant, state?.Config?.RunModifiers);
                     MinionTraitRules.SyncSpiderPoisonVulnerability(state, combatant, events);
+                    V09BossMechanicsRules.SyncDarkKnightPoisonVulnerability(state, combatant, events);
                     continue;
                 }
 
@@ -584,7 +592,10 @@ namespace Grimhand.Battle.Rules
                 CombatantRules.RefreshDerivedStats(combatant);
                 RelicBattleRules.RefreshDerivedStats(state, combatant, state?.Config?.RunModifiers);
                 if (expiredStatusId == StatusCatalog.Poison)
+                {
                     MinionTraitRules.SyncSpiderPoisonVulnerability(state, combatant, events);
+                    V09BossMechanicsRules.SyncDarkKnightPoisonVulnerability(state, combatant, events);
+                }
             }
         }
 
@@ -679,6 +690,7 @@ namespace Grimhand.Battle.Rules
                 or StatusCatalog.HandCostZero
                 or StatusCatalog.PhantomCaptainFrenzyAtk
                 or StatusCatalog.PhantomCaptainFrenzyVuln
+                or StatusCatalog.DivinePunishmentAtk
                 or StatusCatalog.KnightAssaultStanceAtk
                 or StatusCatalog.KnightAssaultStanceVuln
                 or StatusCatalog.KnightBackToWallAtk
@@ -716,6 +728,7 @@ namespace Grimhand.Battle.Rules
         public static bool IsUnclearedBuff(string statusId) =>
             statusId == StatusCatalog.GhostQueenWrath
             || statusId == StatusCatalog.BoneWorkshop
+            || statusId == StatusCatalog.DivinePunishmentAtk
             || statusId == StatusCatalog.KnightAssaultStanceAtk
             || statusId == StatusCatalog.KnightAssaultStanceVuln
             || statusId == StatusCatalog.KnightBackToWallAtk

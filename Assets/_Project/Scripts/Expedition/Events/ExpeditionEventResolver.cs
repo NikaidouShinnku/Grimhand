@@ -45,6 +45,10 @@ namespace Grimhand.Expedition.Events
                     run.EventFlags.Add(ExpeditionEventRoller.SoulRiftResolvedFlag);
                 }
             }
+            else if (eventId == ExpeditionEventIds.MysteriousTraveler)
+            {
+                // 仅选项 B（接受礼物）在 PlanTravelerGift 中标记，避免本远征再出现
+            }
             else
             {
                 run.UsedEventIds.Add(eventId);

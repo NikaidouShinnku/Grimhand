@@ -31,6 +31,26 @@ namespace Grimhand.Expedition
             return CardUpgradeCatalog.CanUpgrade(displayName, GetLevel(member, deckInstanceId));
         }
 
+        /// <summary>
+        /// 事件/祭坛强化列表：满级或目录中不可升级的卡不出现。
+        /// 同时参考模板上已烘焙的 UpgradeLevel，避免字典键漂移时满级卡仍可选。
+        /// </summary>
+        public static bool CanUpgrade(PartyMemberSnapshot member, CardTemplate template)
+        {
+            if (member == null || template == null || string.IsNullOrEmpty(template.DisplayName))
+                return false;
+
+            if (!CardUpgradeCatalog.TryGetByDisplayName(template.DisplayName, out var spec)
+                || spec.MaxUpgrades <= 0)
+                return false;
+
+            var level = GetLevel(member, template.DeckInstanceId);
+            if (template.UpgradeLevel > level)
+                level = template.UpgradeLevel;
+
+            return level < spec.MaxUpgrades;
+        }
+
         public static bool TryUpgradeLevel(
             PartyMemberSnapshot member,
             string deckInstanceId,

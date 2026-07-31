@@ -95,8 +95,11 @@ namespace Grimhand.Expedition.Model
         public int ForeseenLayerCount { get; set; }
         public bool SkipNextRouteSelect { get; set; }
         public bool LootedInjuredAdventurer { get; set; }
+        /// <summary>古老神殿亵渎：挂起中，下场战斗（普通/精英/Boss）消耗并仅本场生效。</summary>
         public bool DivinePunishmentActive { get; set; }
-        /// <summary>灵魂裂隙：每场战斗开始随机 1 名队员失去 MaxHp 的该百分比（至少 1）。</summary>
+        /// <summary>遗留字段：不再跨场使用；神罚增伤只写入本场 BattleConfig.RunModifiers。</summary>
+        public int EnemyOutgoingDamagePercentBonus { get; set; }
+        /// <summary>灵魂裂隙：每场战斗开始随机 1 名队员失去 MaxHp 的该百分比（默认 3，至少扣 1）。</summary>
         public int SoulRiftBattleStartRandomHpLoss { get; set; }
     }
 

@@ -155,6 +155,7 @@ namespace Grimhand.Expedition
             target.SkipNextRouteSelect = source.SkipNextRouteSelect;
             target.LootedInjuredAdventurer = source.LootedInjuredAdventurer;
             target.DivinePunishmentActive = source.DivinePunishmentActive;
+            target.EnemyOutgoingDamagePercentBonus = source.EnemyOutgoingDamagePercentBonus;
             target.SoulRiftBattleStartRandomHpLoss = source.SoulRiftBattleStartRandomHpLoss;
         }
 
@@ -477,6 +478,9 @@ namespace Grimhand.Expedition
                 PendingSecondaryCardKey = source.PendingSecondaryCardKey,
                 PendingUpgradeBonus = source.PendingUpgradeBonus
             };
+
+            foreach (var key in source.PendingCardKeys)
+                copy.PendingCardKeys.Add(key);
 
             foreach (var step in source.Steps)
             {

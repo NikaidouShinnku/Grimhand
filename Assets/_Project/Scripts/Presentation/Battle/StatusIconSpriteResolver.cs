@@ -19,6 +19,7 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.DamageUp:
                 case StatusCatalog.WaveSurge:
                 case StatusCatalog.PhantomCaptainFrenzyAtk:
+                case StatusCatalog.DivinePunishmentAtk:
                 case StatusCatalog.KnightAssaultStanceAtk:
                 case StatusCatalog.KnightBackToWallAtk:
                 case StatusCatalog.RangerLowHpFuryAtk:
@@ -46,6 +47,7 @@ namespace Grimhand.Presentation.Battle
 
                 case StatusCatalog.Vulnerable:
                 case StatusCatalog.SpiderPoisonVulnerable:
+                case StatusCatalog.DarkKnightPoisonVulnerable:
                 case StatusCatalog.PhantomCaptainFrenzyVuln:
                 case StatusCatalog.KnightAssaultStanceVuln:
                     return icons.StatusDefenseDown;

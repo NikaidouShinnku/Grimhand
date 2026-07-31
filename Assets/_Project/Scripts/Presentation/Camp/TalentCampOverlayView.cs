@@ -17,7 +17,7 @@ namespace Grimhand.Presentation.Camp
     [DisallowMultipleComponent]
     public sealed class TalentCampOverlayView : MonoBehaviour
     {
-        const int LayoutVersion = 22;
+        const int LayoutVersion = 23;
         const float TemplateW = 1672f;
         const float TemplateH = 941f;
         const float ButtonAspect = 512f / 292f;
@@ -28,6 +28,8 @@ namespace Grimhand.Presentation.Camp
         // 切换角色缩略图：从第 2 个起逐个右移；恶魔(char_ranger)/巫妖再略右
         const float ThumbProgressiveShift = 0.014f;
         const float ThumbExtraShiftDemonLich = 0.028f;
+        // 仅恶魔大立绘：相对默认肖像区略右移（框/名/经验不动）
+        const float PortraitExtraShiftDemon = 0.016f;
 
         // 模板归一化（原点左下）
         // 返回：拉长盖住模板钮，略加高（直接铺满热区，勿用 Cover/Fit 乱缩放）
@@ -408,6 +410,7 @@ namespace Grimhand.Presentation.Camp
             ClearDynamic();
             if (_ownedCharacters.Count == 0)
             {
+                ApplyPortraitZone("");
                 _portraitAnimator?.Bind(_portraitImage, _characterVisuals, "");
                 _nameText.text = "无可用角色";
                 _levelText.text = "";
@@ -420,6 +423,7 @@ namespace Grimhand.Presentation.Camp
             var character = _ownedCharacters[_selectedIndex];
             var progress = _meta.GetOrCreate(character.CharacterId);
 
+            ApplyPortraitZone(character.CharacterId);
             _portraitAnimator?.Bind(_portraitImage, _characterVisuals, character.CharacterId);
             _nameText.text = character.DisplayName;
             _levelText.text = $"Lv.{progress.OutOfRunLevel}";
@@ -742,6 +746,24 @@ namespace Grimhand.Presentation.Camp
             }
 
             _dynamicObjects.Clear();
+        }
+
+        void ApplyPortraitZone(string characterId)
+        {
+            if (_portraitImage == null)
+                return;
+
+            var zone = ZonePortrait;
+            if (characterId == TalentCatalog.RangerId)
+            {
+                zone = new Vector4(
+                    zone.x + PortraitExtraShiftDemon,
+                    zone.y,
+                    zone.z + PortraitExtraShiftDemon,
+                    zone.w);
+            }
+
+            SetZone(_portraitImage.rectTransform, zone);
         }
 
         static void SetZone(RectTransform rt, Vector4 zone) =>

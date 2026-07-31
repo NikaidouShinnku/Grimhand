@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Grimhand.Battle;
 using Grimhand.Battle.Consumables;
 using Grimhand.Battle.Model;
 using Grimhand.Core;
@@ -338,6 +339,7 @@ namespace Grimhand.Expedition
             _run.Modifiers.SkipNextRouteSelect = false;
             _run.Modifiers.LootedInjuredAdventurer = false;
             _run.Modifiers.DivinePunishmentActive = false;
+            _run.Modifiers.EnemyOutgoingDamagePercentBonus = 0;
             _run.Modifiers.SoulRiftBattleStartRandomHpLoss = 0;
             _run.PendingRoutes.Clear();
             _run.PendingRewardPickup = null;
@@ -521,6 +523,7 @@ namespace Grimhand.Expedition
             _run.Modifiers.SkipNextRouteSelect = false;
             _run.Modifiers.LootedInjuredAdventurer = false;
             _run.Modifiers.DivinePunishmentActive = false;
+            _run.Modifiers.EnemyOutgoingDamagePercentBonus = 0;
             _run.Modifiers.SoulRiftBattleStartRandomHpLoss = 0;
             _run.PendingRoutes.Clear();
             _run.PendingRewardPickup = null;
@@ -706,6 +709,7 @@ namespace Grimhand.Expedition
             if (state.Outcome == BattleOutcome.PlayerDefeat)
             {
                 ClearCurrentBattleIdentity();
+                _run.Modifiers.EnemyOutgoingDamagePercentBonus = 0;
                 FailRun("战斗失败，队伍无法继续。");
                 return;
             }
@@ -714,6 +718,7 @@ namespace Grimhand.Expedition
                 return;
 
             ClearCurrentBattleIdentity();
+            _run.Modifiers.EnemyOutgoingDamagePercentBonus = 0;
 
             _run.BattlesWon++;
             // 终局胜利也要先发奖：只推进层数，RunComplete 延后到奖励领完
@@ -729,6 +734,7 @@ namespace Grimhand.Expedition
 
             if (!string.IsNullOrEmpty(_run.PendingEventBattleKey))
             {
+                var eventBattleKey = _run.PendingEventBattleKey;
                 var eventReward = _run.PendingEventBattleVictoryReward;
                 var bonusXp = _run.PendingEventBattleBonusXp;
                 _run.PendingEventBattleKey = "";
@@ -753,8 +759,12 @@ namespace Grimhand.Expedition
                     return;
                 }
 
-                EnterPostRewardPhase();
-                return;
+                // 冒险者的复仇：无专属战利品，改为同层普通战斗胜利奖励
+                if (eventBattleKey != AdventurerRevengeEncounterBuilder.BattleKey)
+                {
+                    EnterPostRewardPhase();
+                    return;
+                }
             }
 
             _run.PendingRewardPickup = ExpeditionRewardRoller.RollVictoryRewards(
@@ -810,6 +820,10 @@ namespace Grimhand.Expedition
                 return false;
 
             rewards.GoldSkipped = true;
+            // 亵渎圣堂：即使跳过金币，下场首战仍会触发神罚
+            if (rewards.EnableDivinePunishment)
+                _run.Modifiers.DivinePunishmentActive = true;
+
             TryAdvanceFromRewardPickup();
             return true;
         }
@@ -1182,9 +1196,7 @@ namespace Grimhand.Expedition
             if (rewards.EnergyCapBonus != 0)
                 _run.Modifiers.EnergyCapBonus += rewards.EnergyCapBonus;
             if (rewards.EnableSoulRiftBattleStartRandomHpLoss)
-                _run.Modifiers.SoulRiftBattleStartRandomHpLoss = System.Math.Max(
-                    _run.Modifiers.SoulRiftBattleStartRandomHpLoss,
-                    5);
+                _run.Modifiers.SoulRiftBattleStartRandomHpLoss = 3;
             if (rewards.EnableDivinePunishment)
                 _run.Modifiers.DivinePunishmentActive = true;
 
@@ -1405,17 +1417,20 @@ namespace Grimhand.Expedition
                     if (TryFailRunIfPartyWiped())
                         return true;
 
-                    ApplyPendingTravelerGift();
-                    if (TryFailRunIfPartyWiped())
-                        return true;
-
                     if (outcome.DeferredOutcome != null)
                     {
                         var deferred = outcome.DeferredOutcome;
                         deferred.DeferredRunAction?.Invoke(_run);
+                        ApplyPendingTravelerGift();
+                        if (TryFailRunIfPartyWiped())
+                            return true;
                         ApplyEventOutcome(deferred);
                         return true;
                     }
+
+                    ApplyPendingTravelerGift();
+                    if (TryFailRunIfPartyWiped())
+                        return true;
 
                     ApplyEventOutcome(new ExpeditionEventOutcome { Message = _run.LastEventMessage });
                     return true;
@@ -2638,6 +2653,8 @@ namespace Grimhand.Expedition
                 template = MonsterEncounterBuilder.Build(standard, encounter, map);
             }
 
+            var applyDivinePunishment = !resume && ConsumePendingDivinePunishment();
+
             ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
             var config = ExpeditionBattleConfigBuilder.BuildEncounter(
                 template,
@@ -2655,18 +2672,8 @@ namespace Grimhand.Expedition
                 _run.RelicGrowthTiers,
                 _run.RunWideBonusCards);
 
-            if (_run.Modifiers.DivinePunishmentActive)
-            {
-                foreach (var cc in config.Combatants)
-                {
-                    if (cc.Team != TeamSide.Enemy)
-                        continue;
-
-                    cc.BaseDefense = 20;
-                }
-
-                _run.Modifiers.DivinePunishmentActive = false;
-            }
+            if (applyDivinePunishment && config.RunModifiers != null)
+                config.RunModifiers.EnemyOutgoingDamagePercentBonus = 20;
 
             config.EnergyCap += _run.Modifiers.EnergyCapBonus;
             // 手牌上限固定 10；旧 HandLimitBonus 与 DrawPerTurnBonus 均计入每回合抽牌。
@@ -2677,7 +2684,26 @@ namespace Grimhand.Expedition
             config.RunModifiers.ExpeditionRespondSuccessCount = _run.V09ExpeditionRespondSuccessCount;
             config.RunModifiers.SandSpearExhaustCardsPlayed = _run.V09SandSpearExhaustCardsPlayed;
             ApplyEngravingLocksToBattle(config);
+
+            if (_run.PendingEventBattleKey == MirrorPhantomEncounterBuilder.BattleKey)
+                MirrorPhantomEncounterBuilder.FinalizeMirrorEnemyLoadout(config);
+
             return config;
+        }
+
+        /// <summary>
+        /// 亵渎圣堂：消耗挂起；由调用方把本场战斗的敌人 +20% 增伤写入本场 BattleConfig（仅本场）。
+        /// </summary>
+        bool ConsumePendingDivinePunishment()
+        {
+            // 清掉旧版误写到远征的跨场增伤
+            _run.Modifiers.EnemyOutgoingDamagePercentBonus = 0;
+
+            if (!_run.Modifiers.DivinePunishmentActive)
+                return false;
+
+            _run.Modifiers.DivinePunishmentActive = false;
+            return true;
         }
 
         void ApplyEngravingLocksToBattle(BattleConfig config)
@@ -2756,6 +2782,8 @@ namespace Grimhand.Expedition
             }
 
             var seed = ResolveBattleSeed(resume);
+            var applyDivinePunishment = !resume && ConsumePendingDivinePunishment();
+
             ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
             var config = ExpeditionBattleConfigBuilder.BuildEncounter(
                 template,
@@ -2773,6 +2801,9 @@ namespace Grimhand.Expedition
                 _run.RelicGrowthTiers,
                 _run.RunWideBonusCards);
 
+            if (applyDivinePunishment && config.RunModifiers != null)
+                config.RunModifiers.EnemyOutgoingDamagePercentBonus = 20;
+
             config.EnergyCap += _run.Modifiers.EnergyCapBonus;
             // 手牌上限固定 10；旧 HandLimitBonus 与 DrawPerTurnBonus 均计入每回合抽牌。
             config.HandLimit = 10;
@@ -2782,6 +2813,10 @@ namespace Grimhand.Expedition
             config.RunModifiers.ExpeditionRespondSuccessCount = _run.V09ExpeditionRespondSuccessCount;
             config.RunModifiers.SandSpearExhaustCardsPlayed = _run.V09SandSpearExhaustCardsPlayed;
             ApplyEngravingLocksToBattle(config);
+
+            if (_run.PendingEventBattleKey == MirrorPhantomEncounterBuilder.BattleKey)
+                MirrorPhantomEncounterBuilder.FinalizeMirrorEnemyLoadout(config);
+
             return config;
         }
 
@@ -2927,7 +2962,8 @@ namespace Grimhand.Expedition
         public bool CompleteEventInteractionStep(
             string selectedCharacterId = null,
             string selectedCardKey = null,
-            string selectedSecondCardKey = null)
+            string selectedSecondCardKey = null,
+            IReadOnlyList<string> selectedCardKeys = null)
         {
             if (_run.Phase != ExpeditionPhase.EventInteraction || _run.EventInteraction == null)
                 return false;
@@ -2973,6 +3009,10 @@ namespace Grimhand.Expedition
                         return false;
                     QueuePendingCardAction(interaction, step.Kind, selectedCardKey, "", step.PersonalAttackBonus);
                     break;
+                case ExpeditionEventStepKind.PickThreeCardsUpgrade:
+                    if (!TryQueuePendingThreeCardUpgrades(interaction, selectedCardKeys))
+                        return false;
+                    break;
                 case ExpeditionEventStepKind.PickTwoCardsForFusion:
                     if (!TryResolveDeckEntry(selectedCardKey, out var firstEntry)
                         || !TryResolveDeckEntry(selectedSecondCardKey, out var secondEntry))
@@ -2980,10 +3020,12 @@ namespace Grimhand.Expedition
                         return false;
                     }
 
-                    if (firstEntry.Template.CardType != secondEntry.Template.CardType)
+                    if (firstEntry.Key == secondEntry.Key)
                         return false;
 
-                    if (firstEntry.Key == secondEntry.Key)
+                    var fusionRarityA = CardRarityTable.GetOrDefault(firstEntry.Template.DefinitionId);
+                    var fusionRarityB = CardRarityTable.GetOrDefault(secondEntry.Template.DefinitionId);
+                    if (fusionRarityA != fusionRarityB)
                         return false;
 
                     QueuePendingCardAction(
@@ -3032,6 +3074,65 @@ namespace Grimhand.Expedition
             interaction.PendingPrimaryCardKey = primaryKey ?? "";
             interaction.PendingSecondaryCardKey = secondaryKey ?? "";
             interaction.PendingUpgradeBonus = upgradeBonus;
+            interaction.PendingCardKeys.Clear();
+        }
+
+        bool TryQueuePendingThreeCardUpgrades(
+            ExpeditionEventInteractionState interaction,
+            IReadOnlyList<string> selectedCardKeys)
+        {
+            if (interaction == null)
+                return false;
+
+            // 无可升级卡时允许空确认跳过
+            if (selectedCardKeys == null || selectedCardKeys.Count == 0)
+            {
+                interaction.HasPendingCardAction = false;
+                interaction.PendingCardKeys.Clear();
+                interaction.PendingPrimaryCardKey = "";
+                interaction.PendingSecondaryCardKey = "";
+                interaction.PendingUpgradeBonus = 0;
+                return true;
+            }
+
+            if (selectedCardKeys.Count > 3)
+                return false;
+
+            if (string.IsNullOrEmpty(interaction.SelectedCharacterId))
+                return false;
+
+            var seen = new HashSet<string>();
+            interaction.PendingCardKeys.Clear();
+            foreach (var key in selectedCardKeys)
+            {
+                if (string.IsNullOrEmpty(key) || !seen.Add(key))
+                    return false;
+
+                if (!TryResolveDeckEntry(key, out var entry))
+                    return false;
+
+                if (entry.MemberId != interaction.SelectedCharacterId)
+                    return false;
+
+                if (!TryFindPartyMember(entry.MemberId, out var member))
+                    return false;
+
+                if (!CardUpgradeRules.CanUpgrade(member, entry.Template))
+                    return false;
+
+                interaction.PendingCardKeys.Add(key);
+            }
+
+            interaction.PendingApplyKind = ExpeditionEventStepKind.PickThreeCardsUpgrade;
+            interaction.HasPendingCardAction = true;
+            interaction.PendingPrimaryCardKey = interaction.PendingCardKeys.Count > 0
+                ? interaction.PendingCardKeys[0]
+                : "";
+            interaction.PendingSecondaryCardKey = interaction.PendingCardKeys.Count > 1
+                ? interaction.PendingCardKeys[1]
+                : "";
+            interaction.PendingUpgradeBonus = 1;
+            return true;
         }
 
         bool ApplyPendingCardAction(ExpeditionEventInteractionState interaction)
@@ -3058,6 +3159,17 @@ namespace Grimhand.Expedition
                             interaction.PendingUpgradeBonus > 0 ? interaction.PendingUpgradeBonus : 1))
                     {
                         return false;
+                    }
+                    break;
+                case ExpeditionEventStepKind.PickThreeCardsUpgrade:
+                    foreach (var key in interaction.PendingCardKeys)
+                    {
+                        if (!TryResolveDeckEntry(key, out var multiUpgradeEntry))
+                            return false;
+                        if (!TryFindPartyMember(multiUpgradeEntry.MemberId, out var multiMember))
+                            return false;
+                        if (!ExpeditionRunDeckMutations.TryUpgradeCard(multiMember, multiUpgradeEntry, 1))
+                            return false;
                     }
                     break;
                 case ExpeditionEventStepKind.PickTwoCardsForFusion:
@@ -3093,6 +3205,7 @@ namespace Grimhand.Expedition
             interaction.PendingPrimaryCardKey = "";
             interaction.PendingSecondaryCardKey = "";
             interaction.PendingUpgradeBonus = 0;
+            interaction.PendingCardKeys.Clear();
             return true;
         }
 
@@ -3226,14 +3339,39 @@ namespace Grimhand.Expedition
 
             _run.PendingTravelerGiftCurseOwnerId = "";
 
-            var curseTemplate = FindCardTemplate("curse_chaos_touch");
-            if (curseTemplate == null)
-                return;
+            // 已在 RunWideBonusCards 中则不再重复塞入（Continue / 重入保护）。
+            for (var i = 0; i < _run.RunWideBonusCards.Count; i++)
+            {
+                var existing = _run.RunWideBonusCards[i];
+                if (existing != null && existing.DefinitionId == "curse_chaos_touch")
+                    return;
+            }
 
+            var curseTemplate = FindCardTemplate("curse_chaos_touch") ?? CreateChaosTouchFallbackTemplate();
             var clone = ExpeditionBattleConfigBuilder.CloneTemplate(curseTemplate);
-            // 诅咒牌无归属角色：作为额外污染牌加入整场远征的公共牌池，不在任意角色牌组内。
+            // 诅咒牌无归属角色：进 RunWideBonusCards（特殊公共槽），不进升级/刻印列表，但会进抽弃循环。
             clone.OwnerCharacterId = "";
+            clone.DefinitionId = "curse_chaos_touch";
+            if (string.IsNullOrEmpty(clone.DisplayName))
+                clone.DisplayName = "混沌之触";
+            if (!clone.Keywords.Contains("curse"))
+                clone.Keywords.Add("curse");
+
             ExpeditionRunDeckRules.TryAddRunWideBonusCard(_config, _run, clone, RecordRunAcquisition);
+        }
+
+        static CardTemplate CreateChaosTouchFallbackTemplate()
+        {
+            var template = new CardTemplate
+            {
+                DefinitionId = "curse_chaos_touch",
+                DisplayName = "混沌之触",
+                OwnerCharacterId = "",
+                Cost = 1,
+                CardType = CardType.Status
+            };
+            template.Keywords.Add("curse");
+            return template;
         }
 
         void FinishEventInteractionSequence()
@@ -3245,10 +3383,6 @@ namespace Grimhand.Expedition
                 return;
 
             interaction?.DeferredRunAction?.Invoke(_run);
-            if (TryFailRunIfPartyWiped())
-                return;
-
-            ApplyPendingTravelerGift();
             if (TryFailRunIfPartyWiped())
                 return;
 
@@ -3273,9 +3407,17 @@ namespace Grimhand.Expedition
                     deferred.PendingRewardPickup.StatCharacterName = statMember.DisplayName;
                 }
 
+                ApplyPendingTravelerGift();
+                if (TryFailRunIfPartyWiped())
+                    return;
+
                 ApplyEventOutcome(deferred);
                 return;
             }
+
+            ApplyPendingTravelerGift();
+            if (TryFailRunIfPartyWiped())
+                return;
 
             ApplyEventOutcome(new ExpeditionEventOutcome { Message = _run.LastEventMessage });
         }

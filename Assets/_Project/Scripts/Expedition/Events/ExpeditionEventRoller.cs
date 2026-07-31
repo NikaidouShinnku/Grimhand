@@ -8,6 +8,7 @@ namespace Grimhand.Expedition.Events
     public static class ExpeditionEventRoller
     {
         public const string SoulRiftResolvedFlag = "soul_rift_resolved";
+        public const string TravelerGiftResolvedFlag = "traveler_gift_resolved";
 
         /// <summary>进入事件节点时解析实际事件：已消耗的一次性事件会重新抽取。</summary>
         public static string ResolveEventForVisit(ExpeditionRunState run, string assignedEventId, BattleRng rng)
@@ -28,6 +29,9 @@ namespace Grimhand.Expedition.Events
 
             if (eventId == ExpeditionEventIds.SoulRift)
                 return run.UsedEventIds.Contains(eventId) || run.EventFlags.Contains(SoulRiftResolvedFlag);
+
+            if (eventId == ExpeditionEventIds.MysteriousTraveler)
+                return run.UsedEventIds.Contains(eventId) || run.EventFlags.Contains(TravelerGiftResolvedFlag);
 
             return run.UsedEventIds.Contains(eventId);
         }

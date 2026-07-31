@@ -1161,6 +1161,24 @@ namespace Grimhand.Battle
             if (mods == null)
                 return;
 
+            // 燃烬之靴 / 赤红烈焰靴：挂「加速」状态，脚标与速度条可见，并随回合到期。
+            if (mods.BattleStartSpeedBonus > 0 && mods.BattleStartSpeedBonusTurns > 0)
+            {
+                foreach (var c in _state.Combatants)
+                {
+                    if (c.Team != TeamSide.Player || !c.IsAlive)
+                        continue;
+
+                    StatusRules.ApplyStatus(
+                        _state,
+                        c,
+                        StatusCatalog.SpeedUp,
+                        mods.BattleStartSpeedBonus,
+                        mods.BattleStartSpeedBonusTurns,
+                        _events);
+                }
+            }
+
             if (mods.BattleStartTeamHeal > 0)
             {
                 foreach (var c in _state.Combatants)
@@ -1210,6 +1228,8 @@ namespace Grimhand.Battle
                     });
                 }
             }
+
+            DivinePunishmentRules.ApplyToAllEnemies(_state, _events);
         }
 
         CardInstanceState CreateCardInstance(CardTemplate template, string ownerCombatantId = "")

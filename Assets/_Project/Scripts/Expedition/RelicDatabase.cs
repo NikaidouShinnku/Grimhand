@@ -254,7 +254,7 @@ namespace Grimhand.Expedition
                     "当使用任何名字中含有“阳”或“日”的卡牌时，使该卡牌视为等级+3（可超出卡牌升级上限）",
                     "holysun_spellbook", requiredCharacterId: "char_mage"),
                 Def(RelicIds.Felskull, "魔焰颅骨", RelicRarity.Common, "通用",
-                    "每场战斗开始时，你必须选择其一：A.所有我方角色失去5%HP，本场战斗获得1额外能量上限；B.在本场战斗中失去1点能量上限，所有我方角色的攻击牌增加10%伤害",
+                    "每场战斗开始时，你必须选择其一：A.所有我方角色失去5%HP，本场战斗获得1额外能量上限；B.在本场战斗中失去1点能量上限，所有我方角色获得10%增伤（永久）",
                     "felskull_choice")
             };
 

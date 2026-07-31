@@ -23,8 +23,8 @@ namespace Grimhand.Expedition.Model
 
         public int TreasureGoldMin { get; set; } = 20;
         public int TreasureGoldMax { get; set; } = 35;
-        public int TreasureRelicChancePercent { get; set; } = 15;
-        public int TreasureCardChancePercent { get; set; } = 60;
+        public int TreasureRelicChancePercent { get; set; } = 66;
+        public int TreasureCardChancePercent { get; set; } = 33;
         public int TreasureConsumableChancePercent { get; set; } = 33;
 
         public int CombatRouteWeight { get; set; } = 55;

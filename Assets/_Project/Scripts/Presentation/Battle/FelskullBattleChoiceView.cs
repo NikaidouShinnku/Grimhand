@@ -10,7 +10,7 @@ namespace Grimhand.Presentation.Battle
     public sealed class FelskullBattleChoiceView : MonoBehaviour
     {
         const int SortOrder = 500;
-        const int LayoutVersion = 3;
+        const int LayoutVersion = 4;
         const float PanelWidth = 720f;
         const float PanelHeight = 780f;
         const float OptionAspect = 2026f / 384f;
@@ -116,7 +116,7 @@ namespace Grimhand.Presentation.Battle
                 0);
             CreateChoiceButton(
                 choiceRow,
-                "B · 抑能狂怒\n本场战斗失去 1 点能量上限，所有我方角色攻击牌增加 10% 伤害。",
+                "B · 抑能增伤\n本场战斗失去 1 点能量上限，所有我方角色获得 10% 增伤（永久）。",
                 1);
 
             _root.SetActive(false);

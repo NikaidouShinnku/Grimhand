@@ -40,6 +40,7 @@ namespace Grimhand.Expedition
             target.LastEventMessage = source.LastEventMessage ?? "";
             target.PendingConsumableOfferId = source.PendingConsumableOfferId ?? "";
             target.MiracleLeafUsesRemaining = source.MiracleLeafUsesRemaining;
+            target.CurrentBattleSeed = source.CurrentBattleSeed;
             target.CurrentBossDisplayName = source.CurrentBossDisplayName ?? "";
             target.PendingEventBattleKey = source.PendingEventBattleKey ?? "";
             target.PendingEventBattleBonusXp = source.PendingEventBattleBonusXp;

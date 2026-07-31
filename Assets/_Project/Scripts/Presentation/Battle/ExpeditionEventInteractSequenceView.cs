@@ -14,7 +14,7 @@ namespace Grimhand.Presentation.Battle
     [DisallowMultipleComponent]
     public sealed class ExpeditionEventInteractSequenceView : MonoBehaviour
     {
-        const int LayoutVersion = 2;
+        const int LayoutVersion = 3;
         const float CardScale = 0.92f;
         const int CardsPerRow = 5;
         // character_plate 约 162×288
@@ -136,6 +136,7 @@ namespace Grimhand.Presentation.Battle
             switch (step.Kind)
             {
                 case ExpeditionEventStepKind.ShowTeamHpLoss:
+                    ApplyPromptLayout(centered: false);
                     _promptText.text = step.PercentHpDelta > 0 || step.FlatHpDelta > 0
                         ? "全队恢复生命"
                         : "全队受到伤害";
@@ -143,10 +144,12 @@ namespace Grimhand.Presentation.Battle
                     StartCoroutine(PlayTeamHpLossSequence(step));
                     break;
                 case ExpeditionEventStepKind.PickMemberHpLoss:
+                    ApplyPromptLayout(centered: false);
                     _promptText.text = "选择一名队员承受伤害";
                     BuildCharacterRow(selectable: true, onPick: PickMemberForHpLoss);
                     break;
                 case ExpeditionEventStepKind.PickMemberForBuff:
+                    ApplyPromptLayout(centered: false);
                     if (interaction.StepIndex > 0 &&
                         interaction.Steps[interaction.StepIndex - 1].Kind == ExpeditionEventStepKind.PickMemberHpLoss &&
                         !string.IsNullOrEmpty(interaction.SelectedCharacterId))
@@ -165,18 +168,22 @@ namespace Grimhand.Presentation.Battle
                     BuildCharacterRow(selectable: true, onPick: PickMemberForBuff);
                     break;
                 case ExpeditionEventStepKind.PickCardRemove:
+                    ApplyPromptLayout(centered: false);
                     _promptText.text = "选择一张卡牌移除";
                     BuildCardGrid(interaction, step);
                     break;
                 case ExpeditionEventStepKind.PickCardUpgrade:
+                    ApplyPromptLayout(centered: false);
                     _promptText.text = "选择一张卡牌强化";
                     BuildCardGrid(interaction, step);
                     break;
                 case ExpeditionEventStepKind.PickTwoCardsForFusion:
+                    ApplyPromptLayout(centered: false);
                     _promptText.text = "选择两张同类型卡牌进行融合（可跨角色）";
                     BuildCardGrid(interaction, step);
                     break;
                 case ExpeditionEventStepKind.ShowMessage:
+                    ApplyPromptLayout(centered: true);
                     _promptText.text = string.IsNullOrEmpty(step.Message) ? "……" : step.Message;
                     _characterRow.gameObject.SetActive(false);
                     _cardScrollArea.gameObject.SetActive(false);
@@ -185,6 +192,29 @@ namespace Grimhand.Presentation.Battle
             }
 
             UpdateConfirmButton(interaction);
+        }
+
+        void ApplyPromptLayout(bool centered)
+        {
+            if (_promptText == null)
+                return;
+
+            var rt = _promptText.rectTransform;
+            if (centered)
+            {
+                // 选项后续描述：占满按钮上方区域并垂直居中
+                rt.anchorMin = new Vector2(0.08f, 0.18f);
+                rt.anchorMax = new Vector2(0.92f, 0.86f);
+            }
+            else
+            {
+                rt.anchorMin = new Vector2(0.06f, 0.88f);
+                rt.anchorMax = new Vector2(0.94f, 0.98f);
+            }
+
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            _promptText.alignment = TextAnchor.MiddleCenter;
         }
 
         void PickMemberForHpLoss(string characterId)

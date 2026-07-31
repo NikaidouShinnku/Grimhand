@@ -45,8 +45,9 @@ namespace Grimhand.Expedition
             ExpeditionRunState run,
             BattleRng rng)
         {
-            var min = config.TreasureGoldMin > 0 ? config.TreasureGoldMin : 20;
-            var max = config.TreasureGoldMax >= min ? config.TreasureGoldMax : min;
+            // 宝箱在 CompleteCurrentNode 之前结算，当前层 = NodesCompleted + 1。
+            var floor = System.Math.Max(1, (run?.Map?.NodesCompleted ?? 0) + 1);
+            ResolveChestGoldRange(config, floor, out var min, out var max);
             var gold = min == max ? min : rng.NextInt(min, max + 1);
             gold = ApplyGoldRelicBonus(gold, run.Relics, run.RelicGrowthTiers);
 
@@ -57,11 +58,16 @@ namespace Grimhand.Expedition
                 Gold = gold
             };
 
-            reward.CardPacks.Add(new CardPackRewardEntry { PackId = CardPackIds.Common });
+            var cardPackChance = config.TreasureCardChancePercent > 0
+                ? config.TreasureCardChancePercent
+                : 33;
+            if (RollPercent(rng, cardPackChance))
+                reward.CardPacks.Add(new CardPackRewardEntry { PackId = CardPackIds.Common });
 
+            // 遗物 / 消耗品：各自按原概率独立 roll，但保证至少一个（池空则跳过）。
             var relicChance = config.TreasureRelicChancePercent > 0
                 ? config.TreasureRelicChancePercent
-                : 15;
+                : 66;
             if (RollPercent(rng, relicChance))
                 TryAssignRelicReward(reward, run, rng);
 
@@ -69,9 +75,47 @@ namespace Grimhand.Expedition
                 ? config.TreasureConsumableChancePercent
                 : 33;
             if (RollPercent(rng, consumableChance))
-                reward.ConsumableId = PickRandomConsumableId(rng);
+            {
+                var consumableId = PickRandomConsumableId(rng);
+                if (!string.IsNullOrEmpty(consumableId))
+                    reward.ConsumableId = consumableId;
+            }
+
+            // 没出遗物 → 必出消耗品；没出消耗品 → 必出遗物。
+            if (string.IsNullOrEmpty(reward.RelicId) && string.IsNullOrEmpty(reward.ConsumableId))
+            {
+                var consumableId = PickRandomConsumableId(rng);
+                if (!string.IsNullOrEmpty(consumableId))
+                    reward.ConsumableId = consumableId;
+            }
+
+            if (string.IsNullOrEmpty(reward.ConsumableId) && string.IsNullOrEmpty(reward.RelicId))
+                TryAssignRelicReward(reward, run, rng);
 
             return reward;
+        }
+
+        /// <summary>
+        /// 金币必出；数量按层分段：&lt;20 用配置默认，20–39 → 30–45，≥40 → 50–65。
+        /// </summary>
+        static void ResolveChestGoldRange(ExpeditionConfig config, int floor, out int min, out int max)
+        {
+            if (floor >= 40)
+            {
+                min = 50;
+                max = 65;
+                return;
+            }
+
+            if (floor >= 20)
+            {
+                min = 30;
+                max = 45;
+                return;
+            }
+
+            min = config.TreasureGoldMin > 0 ? config.TreasureGoldMin : 20;
+            max = config.TreasureGoldMax >= min ? config.TreasureGoldMax : min;
         }
 
         static void RollCardPacks(ExpeditionRewardPickup rewards, CombatRewardProfile profile, BattleRng rng)

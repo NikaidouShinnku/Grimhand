@@ -41,9 +41,9 @@ namespace Grimhand.Content
         [Header("宝箱房间")]
         public int TreasureGoldMin = 20;
         public int TreasureGoldMax = 35;
-        [Range(0, 100)] public int TreasureRelicChancePercent = 15;
-        [Tooltip("宝箱在「卡牌 / 遗物」二选一 roll 中，出卡牌的概率（默认 60%）。")]
-        [Range(0, 100)] public int TreasureCardChancePercent = 60;
+        [Range(0, 100)] public int TreasureRelicChancePercent = 66;
+        [Tooltip("宝箱掉落普通卡包的概率（默认 33%）。")]
+        [Range(0, 100)] public int TreasureCardChancePercent = 33;
         [Range(0, 100)] public int TreasureConsumableChancePercent = 33;
 
         [Tooltip("普通战斗遭遇；Demo 可只填一张并复用。")]

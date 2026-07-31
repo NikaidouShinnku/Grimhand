@@ -120,15 +120,17 @@ namespace Grimhand.Editor
             StretchFull(intentText, 10, 8, -10, -8);
             intentText.alignment = TextAnchor.UpperLeft;
 
-            // 选目标提示
-            var targetPanel = CreatePanel("TargetPromptPanel", root, new Color(0.25f, 0.2f, 0.08f, 0.95f));
-            PinTopHeight(targetPanel, 16, 16, 140, 48);
+            // 选目标提示（运行时会换成 information_plate，贴快进按钮左下）
+            var targetPanel = CreatePanel("TargetPromptPanel", root, new Color(0.08f, 0.08f, 0.1f, 0.92f));
             var targetRt = targetPanel.GetComponent<RectTransform>();
-            targetRt.anchorMin = new Vector2(0.52f, 1f);
+            targetRt.anchorMin = new Vector2(1f, 1f);
             targetRt.anchorMax = new Vector2(1f, 1f);
-            targetRt.offsetMin = new Vector2(0f, targetRt.offsetMin.y);
-            var targetText = CreateText("Text", targetPanel.transform, "请选择目标", 19, FontStyle.Bold);
-            StretchFull(targetText, 12, 8, -12, -8);
+            targetRt.pivot = new Vector2(1f, 1f);
+            targetRt.anchoredPosition = new Vector2(-20f, -116f);
+            targetRt.sizeDelta = new Vector2(280f, 88f);
+            var targetText = CreateText("Text", targetPanel.transform, "选择目标", 22, FontStyle.Bold);
+            targetText.alignment = TextAnchor.MiddleCenter;
+            StretchFull(targetText, 34, 34, -34, -34);
 
             // 左下：远征/回合/能量（堆叠）；右下：操作按钮（在出牌顺序/意图下方）
             var planningInfo = CreatePanel("PlanningInfoLeft", root, new Color(0.1f, 0.11f, 0.15f, 0.9f));

@@ -17,11 +17,14 @@ namespace Grimhand.Presentation.Battle
         /// <summary>显示点击判定框（PortraitHit）与站位槽带宽，便于核对站位。</summary>
         public static bool ShowJudgmentGhosts = false;
 
-        static readonly Color ValidTargetTintEnemy = new(1.18f, 1.02f, 0.48f, 1f);
-        static readonly Color ValidTargetTintAlly = new(0.62f, 0.98f, 1.18f, 1f);
-        static readonly Color ValidTargetHoverMul = new(1.1f, 1.1f, 1.1f, 1f);
         static readonly Color HoverTint = new(1.08f, 1.08f, 1.08f, 1f);
         static readonly Color DeadTint = new(0.35f, 0.35f, 0.35f, 1f);
+        const string TargetOutlineLayerName = "TargetWhiteOutline";
+        const string WhiteSilhouetteShaderName = "UI/GrimhandWhiteSilhouette";
+        /// <summary>可选目标：立绘等比微放大垫底。</summary>
+        const float TargetOutlineScaleMul = 1.08f;
+        static readonly Color TargetOutlineTint = new(0.78f, 0.78f, 0.80f, 1f);
+        static Material _whiteSilhouetteMaterial;
 
         const float PlayerPortraitScale = 2.28f;
         const float EnemyPortraitScale = 1.28f;
@@ -63,7 +66,7 @@ namespace Grimhand.Presentation.Battle
         [SerializeField] FormationSlot formationSlot;
 
         RectTransform _portraitHit;
-        Outline _targetOutline;
+        Image _targetOutlineImage;
         Image _hitboxGhostFill;
         Image _slotGhostBorder;
         Text _slotGhostLabel;
@@ -208,6 +211,9 @@ namespace Grimhand.Presentation.Battle
             // 战斗结束/遮罩盖住时 PointerExit 可能丢失，超时清掉残留信息框
             SyncHoverWithPointer();
 
+            if (_targetMode && _isValidTarget && _displayAlive)
+                SyncTargetOutlineLayer();
+
             if (_portraitView == null || _currentUnit == null)
                 return;
 
@@ -249,13 +255,11 @@ namespace Grimhand.Presentation.Battle
 
             portraitImage.raycastTarget = false;
 
-            _targetOutline = portraitImage.GetComponent<Outline>();
-            if (_targetOutline == null)
-                _targetOutline = portraitImage.gameObject.AddComponent<Outline>();
-            _targetOutline.effectColor = new Color(1f, 0.75f, 0.1f, 1f);
-            _targetOutline.effectDistance = new Vector2(4f, -4f);
-            _targetOutline.useGraphicAlpha = true;
-            _targetOutline.enabled = false;
+            // 立绘本体上的 Outline 会复制彩色贴图 → 虚影；改用纯白剪影层再描边
+            var legacyOutline = portraitImage.GetComponent<Outline>();
+            if (legacyOutline != null)
+                Destroy(legacyOutline);
+            EnsureTargetOutlineLayer();
 
             if (targetHighlight != null)
             {
@@ -1101,6 +1105,103 @@ namespace Grimhand.Presentation.Battle
             RefreshJudgmentGhostVisuals(_currentUnit);
         }
 
+        void EnsureTargetOutlineLayer()
+        {
+            if (portraitRoot == null || portraitImage == null)
+                return;
+
+            if (_targetOutlineImage == null)
+            {
+                var existing = portraitRoot.Find(TargetOutlineLayerName);
+                if (existing != null)
+                    _targetOutlineImage = existing.GetComponent<Image>();
+            }
+
+            if (_targetOutlineImage == null)
+            {
+                var go = new GameObject(TargetOutlineLayerName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                go.transform.SetParent(portraitRoot, false);
+                _targetOutlineImage = go.GetComponent<Image>();
+                _targetOutlineImage.gameObject.SetActive(false);
+            }
+
+            // 不用 UI Outline（半透明叠影）；用不透明白剪影放大垫在立绘下
+            var legacy = _targetOutlineImage.GetComponent<Outline>();
+            if (legacy != null)
+                Destroy(legacy);
+
+            _targetOutlineImage.raycastTarget = false;
+            _targetOutlineImage.color = TargetOutlineTint;
+            var mat = GetWhiteSilhouetteMaterial();
+            if (mat != null)
+                _targetOutlineImage.material = mat;
+        }
+
+        static Material GetWhiteSilhouetteMaterial()
+        {
+            if (_whiteSilhouetteMaterial != null)
+                return _whiteSilhouetteMaterial;
+
+            // 优先用 Resources 里的材质（保证 shader 被引用打包）
+            _whiteSilhouetteMaterial = Resources.Load<Material>("UI_GrimhandWhiteSilhouette");
+            if (_whiteSilhouetteMaterial != null)
+                return _whiteSilhouetteMaterial;
+
+            var shader = Shader.Find(WhiteSilhouetteShaderName);
+            if (shader == null)
+            {
+                Debug.LogWarning("[Grimhand] 找不到白剪影 Shader：" + WhiteSilhouetteShaderName);
+                return null;
+            }
+
+            _whiteSilhouetteMaterial = new Material(shader)
+            {
+                name = "GrimhandWhiteSilhouette (Runtime)",
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            return _whiteSilhouetteMaterial;
+        }
+
+        void SyncTargetOutlineTransform()
+        {
+            if (_targetOutlineImage == null || portraitImage == null)
+                return;
+
+            var rt = _targetOutlineImage.rectTransform;
+            var src = portraitImage.rectTransform;
+            // 与立绘同一套 stretch 布局，只等比放大 localScale（不改长宽比）
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            rt.anchoredPosition = Vector2.zero;
+            rt.localRotation = Quaternion.identity;
+            var flipX = src.localScale.x < 0f ? -1f : 1f;
+            rt.localScale = new Vector3(flipX * TargetOutlineScaleMul, TargetOutlineScaleMul, 1f);
+
+            _targetOutlineImage.sprite = portraitImage.sprite;
+            _targetOutlineImage.preserveAspect = true;
+            _targetOutlineImage.type = Image.Type.Simple;
+            var mat = GetWhiteSilhouetteMaterial();
+            if (mat != null)
+                _targetOutlineImage.material = mat;
+            _targetOutlineImage.color = TargetOutlineTint;
+
+            // 灰白剪影在彩色立绘正下方
+            var baseIdx = Mathf.Min(
+                _targetOutlineImage.transform.GetSiblingIndex(),
+                portraitImage.transform.GetSiblingIndex());
+            _targetOutlineImage.transform.SetSiblingIndex(baseIdx);
+            portraitImage.transform.SetSiblingIndex(baseIdx + 1);
+        }
+
+        void SyncTargetOutlineLayer()
+        {
+            EnsureTargetOutlineLayer();
+            SyncTargetOutlineTransform();
+        }
+
         void ApplyTargetVisuals()
         {
             var showTarget = _targetMode && _isValidTarget && _displayAlive;
@@ -1108,16 +1209,15 @@ namespace Grimhand.Presentation.Battle
             if (targetHighlight != null)
                 targetHighlight.gameObject.SetActive(false);
 
-            if (_targetOutline != null)
+            if (showTarget)
             {
-                _targetOutline.enabled = showTarget;
-                if (showTarget)
-                {
-                    _targetOutline.effectColor = team == TeamSide.Player
-                        ? new Color(0.2f, 0.95f, 1f, 1f)
-                        : new Color(1f, 0.78f, 0.08f, 1f);
-                    _targetOutline.effectDistance = new Vector2(5f, -5f);
-                }
+                SyncTargetOutlineLayer();
+                if (_targetOutlineImage != null)
+                    _targetOutlineImage.gameObject.SetActive(true);
+            }
+            else if (_targetOutlineImage != null)
+            {
+                _targetOutlineImage.gameObject.SetActive(false);
             }
 
             ApplyPortraitScale();
@@ -1134,11 +1234,6 @@ namespace Grimhand.Presentation.Battle
 
             if (!_displayAlive)
                 portraitImage.color = DeadTint;
-            else if (_targetMode && _isValidTarget)
-            {
-                var tint = team == TeamSide.Player ? ValidTargetTintAlly : ValidTargetTintEnemy;
-                portraitImage.color = _hovered ? tint * ValidTargetHoverMul : tint;
-            }
             else if (_hovered)
                 portraitImage.color = HoverTint;
             else

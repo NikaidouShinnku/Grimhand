@@ -1,9 +1,9 @@
-using System.Collections;
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
 using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
+using Grimhand.Presentation.Audio;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -13,10 +13,13 @@ namespace Grimhand.Presentation.Battle
     {
         const float CardBaseWidth = CardPortraitLayout.CardWidth;
         const float CardBaseHeight = CardPortraitLayout.CardHeight;
-        const float OfferCardScale = 0.95f;
-        const float MinDeckGap = 14f;
-        const float DeckSidePad = 28f;
-        const int LayoutVersion = 3;
+        const float OfferCardScale = 0.98f;
+        const float DeckCardScale = 0.78f;
+        const float DeckGap = 12f;
+        const int DeckColumns = 5;
+        const int LayoutVersion = 6;
+        const float ConfirmButtonWidth = 200f;
+        const float AbandonButtonWidth = 200f;
 
         BattleSession _session;
         CardView _cardPrefab;
@@ -26,19 +29,20 @@ namespace Grimhand.Presentation.Battle
         Dictionary<string, CardDefinitionSO> _definitions = new();
 
         RectTransform _root;
+        Image _panelImage;
         Text _headerText;
-        Text _hintText;
         Text _offerJoinLabel;
+        Text _deckLabel;
         RectTransform _offerCardAnchor;
-        RectTransform _deckRow;
-        RectTransform _deckViewport;
+        RectTransform _deckHost;
+        Button _confirmButton;
         Button _abandonButton;
         InventoryTooltipView _tooltip;
         bool _built;
         int _layoutVersion;
-        Coroutine _fitRoutine;
+        string _selectedDeckKey = "";
         readonly List<GameObject> _dynamicObjects = new();
-        readonly List<RectTransform> _deckHolders = new();
+        readonly Dictionary<string, CardView> _deckCardViews = new();
 
         public void Initialize(
             BattleSession session,
@@ -79,15 +83,15 @@ namespace Grimhand.Presentation.Battle
             _root.SetAsLastSibling();
             _tooltip?.Hide();
             ClearDynamic();
+            _selectedDeckKey = "";
+            RefreshConfirmInteractable();
 
-            var memberName = offer.OwnerCharacterId;
             PartyMemberSnapshot targetMember = null;
             foreach (var member in _session.Expedition.Run.Party)
             {
                 if (member.CharacterDefinitionId != offer.OwnerCharacterId)
                     continue;
 
-                memberName = member.DisplayName;
                 targetMember = member;
                 break;
             }
@@ -96,32 +100,21 @@ namespace Grimhand.Presentation.Battle
                 targetMember = _session.Expedition.Run.Party[0];
 
             _headerText.text = "卡组已满 — 选择替换";
-            _hintText.text =
-                $"获得 {offer.Template.DisplayName}（{memberName}）\n" +
-                $"当前 {ExpeditionRunDeckRules.DeckSize}/{ExpeditionRunDeckRules.DeckSize} 张 · 点击下方卡组中的一张进行替换，或放弃新卡。";
 
             SpawnOfferCardPreview(offer.Template, offer.OwnerCharacterId);
 
-            if (targetMember == null || _cardPrefab == null)
+            if (targetMember == null || _cardPrefab == null || _deckHost == null)
                 return;
 
             var config = _session.Expedition.Config;
-            foreach (var entry in ExpeditionRunDeckCatalog.CollectMemberDeckEntries(config, targetMember))
-                AddDeckCardButton(entry.Template, entry.Key, targetMember.CharacterDefinitionId);
-
-            // 立即排一次 + 下一帧再排，避免视口宽度未就绪时挤在中间叠卡
-            FitDeckCardsToRow();
-            if (_fitRoutine != null)
-                StopCoroutine(_fitRoutine);
-            _fitRoutine = StartCoroutine(FitDeckCardsNextFrame());
-        }
-
-        IEnumerator FitDeckCardsNextFrame()
-        {
-            yield return null;
-            Canvas.ForceUpdateCanvases();
-            FitDeckCardsToRow();
-            _fitRoutine = null;
+            var entries = ExpeditionRunDeckCatalog.CollectMemberDeckEntries(config, targetMember);
+            for (var i = 0; i < entries.Count; i++)
+            {
+                var entry = entries[i];
+                if (entry?.Template == null)
+                    continue;
+                AddDeckCardButton(entry.Template, entry.Key, targetMember.CharacterDefinitionId, i);
+            }
         }
 
         void SpawnOfferCardPreview(CardTemplate template, string ownerCharacterId)
@@ -132,7 +125,7 @@ namespace Grimhand.Presentation.Battle
             if (_offerJoinLabel != null)
                 _offerJoinLabel.gameObject.SetActive(true);
 
-            var holder = CreatePanelImage("OfferCard", _offerCardAnchor, new Color(0.18f, 0.34f, 0.24f, 0.2f));
+            var holder = CreatePanelImage("OfferCard", _offerCardAnchor, Color.clear);
             var holderRt = holder.GetComponent<RectTransform>();
             holderRt.anchorMin = new Vector2(0.5f, 0.5f);
             holderRt.anchorMax = new Vector2(0.5f, 0.5f);
@@ -141,117 +134,99 @@ namespace Grimhand.Presentation.Battle
             holderRt.anchoredPosition = Vector2.zero;
             _dynamicObjects.Add(holder);
 
-            SpawnReadOnlyCard(holder.transform, template, ownerCharacterId, OfferCardScale);
+            SpawnReadOnlyCard(holder.transform, template, ownerCharacterId, OfferCardScale, null);
         }
 
-        void AddDeckCardButton(CardTemplate template, string deckKey, string ownerCharacterId)
+        void AddDeckCardButton(CardTemplate template, string deckKey, string ownerCharacterId, int index)
         {
             var capturedKey = deckKey;
-            var holder = CreatePanelImage("DeckChoice", _deckRow, new Color(0.1f, 0.11f, 0.14f, 0.35f));
+            var holder = CreatePanelImage("DeckChoice", _deckHost, Color.clear);
             var holderRt = holder.GetComponent<RectTransform>();
             holderRt.localScale = Vector3.one;
             holderRt.anchorMin = new Vector2(0.5f, 0.5f);
             holderRt.anchorMax = new Vector2(0.5f, 0.5f);
             holderRt.pivot = new Vector2(0.5f, 0.5f);
-            holderRt.sizeDelta = new Vector2(CardBaseWidth, CardBaseHeight);
-            _deckHolders.Add(holderRt);
+
+            var cardW = CardBaseWidth * DeckCardScale;
+            var cardH = CardBaseHeight * DeckCardScale;
+            holderRt.sizeDelta = new Vector2(cardW, cardH);
+            holderRt.anchoredPosition = ComputeDeckSlotPosition(index, cardW, cardH);
             _dynamicObjects.Add(holder);
 
             var btn = holder.AddComponent<Button>();
             btn.targetGraphic = holder.GetComponent<Image>();
-            btn.onClick.AddListener(() => _session.ReplaceDeckCardForOffer(capturedKey));
+            btn.transition = Selectable.Transition.None;
+            btn.onClick.AddListener(() => OnDeckCardClicked(capturedKey));
+            UiAudioHooks.WireButton(btn);
 
-            SpawnReadOnlyCard(holder.transform, template, ownerCharacterId, 1f);
+            var cardView = SpawnReadOnlyCard(holder.transform, template, ownerCharacterId, DeckCardScale, capturedKey);
+            if (cardView != null)
+                _deckCardViews[capturedKey] = cardView;
         }
 
-        void FitDeckCardsToRow()
+        static Vector2 ComputeDeckSlotPosition(int index, float cardW, float cardH)
         {
-            if (_deckRow == null || _deckViewport == null || _deckHolders.Count == 0)
+            var col = index % DeckColumns;
+            var row = index / DeckColumns;
+            var totalW = DeckColumns * cardW + (DeckColumns - 1) * DeckGap;
+            var rows = 2;
+            var totalH = rows * cardH + (rows - 1) * DeckGap;
+            var startX = -totalW * 0.5f + cardW * 0.5f;
+            var startY = totalH * 0.5f - cardH * 0.5f;
+            return new Vector2(startX + col * (cardW + DeckGap), startY - row * (cardH + DeckGap));
+        }
+
+        void OnDeckCardClicked(string deckKey)
+        {
+            if (string.IsNullOrEmpty(deckKey))
                 return;
 
-            // 关掉自动布局，完全手动占位
-            var layout = _deckRow.GetComponent<HorizontalLayoutGroup>();
-            if (layout != null)
-                layout.enabled = false;
-            var fitter = _deckRow.GetComponent<ContentSizeFitter>();
-            if (fitter != null)
-                fitter.enabled = false;
+            _selectedDeckKey = _selectedDeckKey == deckKey ? "" : deckKey;
+            RefreshDeckSelectionVisuals();
+            RefreshConfirmInteractable();
+        }
 
-            _deckRow.anchorMin = Vector2.zero;
-            _deckRow.anchorMax = Vector2.one;
-            _deckRow.pivot = new Vector2(0.5f, 0.5f);
-            _deckRow.offsetMin = Vector2.zero;
-            _deckRow.offsetMax = Vector2.zero;
-            _deckRow.anchoredPosition = Vector2.zero;
-            _deckRow.localScale = Vector3.one;
-
-            Canvas.ForceUpdateCanvases();
-            LayoutRebuilder.ForceRebuildLayoutImmediate(_deckViewport);
-
-            var n = _deckHolders.Count;
-            var viewW = _deckViewport.rect.width;
-            var viewH = _deckViewport.rect.height;
-            if (viewW < 50f && _root != null)
-                viewW = Mathf.Max(viewW, _root.rect.width * 0.92f);
-            if (viewH < 50f && _root != null)
-                viewH = Mathf.Max(viewH, _root.rect.height * 0.35f);
-
-            var availW = Mathf.Max(200f, viewW - DeckSidePad * 2f);
-            var availH = Mathf.Max(180f, viewH - 8f);
-
-            // 卡宽按整行均分，保证互不重叠；高度不够再等比缩小，把多余宽度变成间隙
-            var scale = (availW - MinDeckGap * Mathf.Max(0, n - 1)) / (n * CardBaseWidth);
-            if (CardBaseHeight * scale > availH)
-                scale = availH / CardBaseHeight;
-            scale = Mathf.Clamp(scale, 0.7f, 2.4f);
-
-            var cardW = CardBaseWidth * scale;
-            var cardH = CardBaseHeight * scale;
-            var gap = n > 1
-                ? Mathf.Max(MinDeckGap, (availW - cardW * n) / (n - 1))
-                : 0f;
-
-            // 总宽度刚好铺满 availW
-            var totalW = cardW * n + gap * Mathf.Max(0, n - 1);
-            var startX = -totalW * 0.5f + cardW * 0.5f;
-
-            for (var i = 0; i < n; i++)
+        void RefreshDeckSelectionVisuals()
+        {
+            foreach (var pair in _deckCardViews)
             {
-                var holderRt = _deckHolders[i];
-                if (holderRt == null)
-                    continue;
-
-                holderRt.SetParent(_deckRow, false);
-                holderRt.localScale = Vector3.one;
-                holderRt.anchorMin = new Vector2(0.5f, 0.5f);
-                holderRt.anchorMax = new Vector2(0.5f, 0.5f);
-                holderRt.pivot = new Vector2(0.5f, 0.5f);
-                holderRt.sizeDelta = new Vector2(cardW, cardH);
-                holderRt.anchoredPosition = new Vector2(startX + i * (cardW + gap), 0f);
-
-                var cardView = holderRt.GetComponentInChildren<CardView>(true);
-                if (cardView == null)
-                    continue;
-
-                CardView.ApplyHandPresentationScaleCentered(cardView, scale);
-                var cvRt = cardView.transform as RectTransform;
-                if (cvRt != null)
-                {
-                    cvRt.sizeDelta = new Vector2(cardW, cardH);
-                    cvRt.anchoredPosition = Vector2.zero;
-                    cvRt.localScale = Vector3.one;
-                }
-
-                var scaleRoot = cardView.transform.Find("CardScaleRoot") as RectTransform;
-                if (scaleRoot != null)
-                    scaleRoot.localScale = Vector3.one;
+                if (pair.Value != null)
+                    pair.Value.SetSelected(pair.Key == _selectedDeckKey);
             }
         }
 
-        void SpawnReadOnlyCard(Transform parent, CardTemplate template, string ownerCharacterId, float scale)
+        void RefreshConfirmInteractable()
+        {
+            if (_confirmButton == null)
+                return;
+
+            var canConfirm = !string.IsNullOrEmpty(_selectedDeckKey);
+            _confirmButton.interactable = canConfirm;
+            var cg = _confirmButton.GetComponent<CanvasGroup>();
+            if (cg == null)
+                cg = _confirmButton.gameObject.AddComponent<CanvasGroup>();
+            cg.alpha = canConfirm ? 1f : 0.45f;
+            cg.interactable = canConfirm;
+            cg.blocksRaycasts = canConfirm;
+        }
+
+        void OnConfirmReplace()
+        {
+            if (string.IsNullOrEmpty(_selectedDeckKey))
+                return;
+
+            _session.ReplaceDeckCardForOffer(_selectedDeckKey);
+        }
+
+        CardView SpawnReadOnlyCard(
+            Transform parent,
+            CardTemplate template,
+            string ownerCharacterId,
+            float scale,
+            string deckKey)
         {
             if (_cardPrefab == null || template == null)
-                return;
+                return null;
 
             _definitions.TryGetValue(template.DefinitionId, out var definition);
             var ownerId = string.IsNullOrEmpty(ownerCharacterId) ? template.OwnerCharacterId : ownerCharacterId;
@@ -288,8 +263,8 @@ namespace Grimhand.Presentation.Battle
                     graphic.raycastTarget = false;
             }
 
-            // 点击靠 holder 的 Button；悬停提示挂在 holder 上即可
             BindCardTooltip(parent.gameObject, preview);
+            return cardView;
         }
 
         void BindCardTooltip(GameObject target, CardInstanceState card)
@@ -317,12 +292,6 @@ namespace Grimhand.Presentation.Battle
 
         void ClearDynamic()
         {
-            if (_fitRoutine != null)
-            {
-                StopCoroutine(_fitRoutine);
-                _fitRoutine = null;
-            }
-
             foreach (var go in _dynamicObjects)
             {
                 if (go != null)
@@ -330,11 +299,12 @@ namespace Grimhand.Presentation.Battle
             }
 
             _dynamicObjects.Clear();
-            _deckHolders.Clear();
-            ClearRowImmediate(_deckRow);
+            _deckCardViews.Clear();
+            ClearChildrenImmediate(_deckHost);
+            ClearChildrenImmediate(_offerCardAnchor);
         }
 
-        static void ClearRowImmediate(RectTransform row)
+        static void ClearChildrenImmediate(RectTransform row)
         {
             if (row == null)
                 return;
@@ -353,31 +323,45 @@ namespace Grimhand.Presentation.Battle
                 _root.gameObject.SetActive(visible);
 
             if (!visible)
+            {
                 _tooltip?.Hide();
+                _selectedDeckKey = "";
+            }
         }
 
         void EnsureBuilt(Transform parent)
         {
             if (_built && (_layoutVersion != LayoutVersion
                            || _offerJoinLabel == null
+                           || _deckLabel == null
                            || _offerCardAnchor == null
-                           || _deckViewport == null))
+                           || _deckHost == null
+                           || _confirmButton == null
+                           || _abandonButton == null
+                           || _panelImage == null))
             {
                 if (_root != null)
                     DestroyImmediate(_root.gameObject);
                 _built = false;
                 _layoutVersion = 0;
                 _root = null;
-                _deckRow = null;
-                _deckViewport = null;
+                _deckHost = null;
                 _offerCardAnchor = null;
                 _offerJoinLabel = null;
+                _deckLabel = null;
+                _confirmButton = null;
+                _abandonButton = null;
+                _panelImage = null;
                 _dynamicObjects.Clear();
-                _deckHolders.Clear();
+                _deckCardViews.Clear();
             }
 
             if (_built)
+            {
+                ApplyEventPlate();
+                ApplyFooterButtons();
                 return;
+            }
 
             _built = true;
             _layoutVersion = LayoutVersion;
@@ -392,100 +376,114 @@ namespace Grimhand.Presentation.Battle
             var panelGo = new GameObject("Panel", typeof(RectTransform), typeof(Image));
             panelGo.transform.SetParent(_root, false);
             var panelRt = panelGo.GetComponent<RectTransform>();
-            panelRt.anchorMin = new Vector2(0.02f, 0.03f);
-            panelRt.anchorMax = new Vector2(0.98f, 0.97f);
+            panelRt.anchorMin = new Vector2(0.06f, 0.06f);
+            panelRt.anchorMax = new Vector2(0.94f, 0.94f);
             panelRt.offsetMin = Vector2.zero;
             panelRt.offsetMax = Vector2.zero;
-            panelGo.GetComponent<Image>().color = new Color(0.1f, 0.11f, 0.15f, 0.98f);
+            _panelImage = panelGo.GetComponent<Image>();
+            _panelImage.raycastTarget = true;
+            ApplyEventPlate();
 
             _tooltip = panelGo.AddComponent<InventoryTooltipView>();
             _tooltip.Initialize(panelRt, _uiIcons);
 
             _headerText = CreateStaticText(panelGo.transform, "卡组替换", 30, FontStyle.Bold, TextAnchor.MiddleCenter);
-            AnchorBand(_headerText.rectTransform, 0.925f, 0.985f);
+            AnchorRect(_headerText.rectTransform, 0.08f, 0.90f, 0.92f, 0.97f);
             _headerText.color = new Color(0.95f, 0.85f, 0.55f, 1f);
 
-            _hintText = CreateStaticText(panelGo.transform, "", 20, FontStyle.Normal, TextAnchor.MiddleCenter);
-            AnchorBand(_hintText.rectTransform, 0.86f, 0.92f);
-            _hintText.color = new Color(0.82f, 0.86f, 0.94f, 1f);
-
-            _offerJoinLabel = CreateStaticText(panelGo.transform, "即将加入", 18, FontStyle.Bold, TextAnchor.MiddleCenter);
-            AnchorBand(_offerJoinLabel.rectTransform, 0.815f, 0.855f);
+            // 左列：即将加入 + 新卡
+            _offerJoinLabel = CreateStaticText(panelGo.transform, "即将加入", 20, FontStyle.Bold, TextAnchor.MiddleCenter);
+            AnchorRect(_offerJoinLabel.rectTransform, 0.04f, 0.82f, 0.34f, 0.88f);
             _offerJoinLabel.color = new Color(0.55f, 0.9f, 0.65f, 1f);
 
             var offerGo = new GameObject("OfferAnchor", typeof(RectTransform));
             offerGo.transform.SetParent(panelGo.transform, false);
             _offerCardAnchor = offerGo.GetComponent<RectTransform>();
-            AnchorBand(_offerCardAnchor, 0.56f, 0.81f);
+            AnchorRect(_offerCardAnchor, 0.04f, 0.24f, 0.34f, 0.80f);
 
-            var deckLabel = CreateStaticText(panelGo.transform, "选择要替换的卡牌", 20, FontStyle.Bold, TextAnchor.MiddleLeft);
-            AnchorBand(deckLabel.rectTransform, 0.505f, 0.55f);
-            deckLabel.rectTransform.offsetMin = new Vector2(24f, 0f);
+            // 右列：选择替换 + 2×5 网格（标签与卡区分离，避免遮挡）
+            _deckLabel = CreateStaticText(panelGo.transform, "选择要替换的卡牌", 20, FontStyle.Bold, TextAnchor.MiddleCenter);
+            AnchorRect(_deckLabel.rectTransform, 0.36f, 0.82f, 0.96f, 0.88f);
+            _deckLabel.color = new Color(0.78f, 0.72f, 0.95f, 1f);
 
-            // 给卡组行更大高度，保证卡能放大
-            _deckRow = BuildDeckRow(panelGo.transform, 0.10f, 0.50f);
+            var deckGo = new GameObject("DeckHost", typeof(RectTransform));
+            deckGo.transform.SetParent(panelGo.transform, false);
+            _deckHost = deckGo.GetComponent<RectTransform>();
+            AnchorRect(_deckHost, 0.36f, 0.24f, 0.96f, 0.80f);
 
             _abandonButton = CreateFooterButton(
                 panelGo.transform,
                 "放弃新卡牌",
-                new Vector2(0f, 24f),
-                new Vector2(260f, 52f),
-                new Color(0.24f, 0.26f, 0.32f, 1f),
-                () => _session.AbandonCardOffer());
+                new Vector2(-120f, 36f));
+            _abandonButton.onClick.AddListener(() => _session.AbandonCardOffer());
 
+            _confirmButton = CreateFooterButton(
+                panelGo.transform,
+                "确认",
+                new Vector2(120f, 36f));
+            _confirmButton.onClick.AddListener(OnConfirmReplace);
+
+            ApplyFooterButtons();
+            RefreshConfirmInteractable();
             go.SetActive(false);
         }
 
-        RectTransform BuildDeckRow(Transform parent, float yMin, float yMax)
+        void ApplyEventPlate()
         {
-            var scrollGo = new GameObject("DeckRowHost", typeof(RectTransform), typeof(Image));
-            scrollGo.transform.SetParent(parent, false);
-            var hostRt = scrollGo.GetComponent<RectTransform>();
-            AnchorBand(hostRt, yMin, yMax);
-            var hostImg = scrollGo.GetComponent<Image>();
-            hostImg.color = new Color(0.08f, 0.09f, 0.12f, 0.35f);
-            hostImg.raycastTarget = false;
-            _deckViewport = hostRt;
+            if (_panelImage == null)
+                return;
 
-            var rowGo = new GameObject("Cards", typeof(RectTransform));
-            rowGo.transform.SetParent(scrollGo.transform, false);
-            var rowRt = rowGo.GetComponent<RectTransform>();
-            StretchFull(rowRt);
-            return rowRt;
+            var plate = _uiIcons != null ? _uiIcons.UiEventPlate : null;
+            if (plate != null)
+            {
+                _panelImage.sprite = plate;
+                _panelImage.type = Image.Type.Simple;
+                _panelImage.preserveAspect = false;
+                _panelImage.color = Color.white;
+            }
+            else
+            {
+                _panelImage.sprite = null;
+                _panelImage.color = new Color(0.1f, 0.11f, 0.15f, 0.98f);
+            }
+
+            foreach (var fx in _panelImage.GetComponents<Outline>())
+                Destroy(fx);
         }
 
-        Button CreateFooterButton(
-            Transform parent,
-            string label,
-            Vector2 anchoredPos,
-            Vector2 size,
-            Color color,
-            System.Action onClick)
+        void ApplyFooterButtons()
         {
-            var go = new GameObject(label, typeof(RectTransform), typeof(Image), typeof(Button));
+            if (_uiIcons == null)
+                return;
+
+            if (_abandonButton != null)
+                PlanningActionButtonStyle.Apply(_abandonButton, _uiIcons.UiButton3, "放弃新卡牌", AbandonButtonWidth);
+            if (_confirmButton != null)
+                PlanningActionButtonStyle.Apply(_confirmButton, _uiIcons.UiButton1, "确认", ConfirmButtonWidth);
+        }
+
+        static Button CreateFooterButton(Transform parent, string label, Vector2 anchoredPos)
+        {
+            var go = new GameObject(label, typeof(RectTransform), typeof(Image), typeof(Button), typeof(CanvasGroup));
             go.transform.SetParent(parent, false);
             var rt = go.GetComponent<RectTransform>();
             rt.anchorMin = new Vector2(0.5f, 0f);
             rt.anchorMax = new Vector2(0.5f, 0f);
             rt.pivot = new Vector2(0.5f, 0f);
             rt.anchoredPosition = anchoredPos;
-            rt.sizeDelta = size;
-            go.GetComponent<Image>().color = color;
-            var btn = go.GetComponent<Button>();
-            btn.targetGraphic = go.GetComponent<Image>();
-            btn.onClick.AddListener(() => onClick?.Invoke());
-
-            var text = CreateStaticText(go.transform, label, 22, FontStyle.Bold, TextAnchor.MiddleCenter);
-            StretchFull(text.rectTransform);
-            text.color = Color.white;
-            return btn;
+            rt.sizeDelta = new Vector2(ConfirmButtonWidth, PlanningActionButtonStyle.HeightForWidth(ConfirmButtonWidth));
+            go.GetComponent<Image>().color = Color.white;
+            return go.GetComponent<Button>();
         }
 
         static GameObject CreatePanelImage(string name, Transform parent, Color color)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image));
             go.transform.SetParent(parent, false);
-            go.GetComponent<Image>().color = color;
+            var img = go.GetComponent<Image>();
+            img.color = color;
+            img.raycastTarget = true;
+            go.GetComponent<CanvasRenderer>().cullTransparentMesh = false;
             return go;
         }
 
@@ -512,10 +510,10 @@ namespace Grimhand.Presentation.Battle
             rt.offsetMax = Vector2.zero;
         }
 
-        static void AnchorBand(RectTransform rt, float yMin, float yMax)
+        static void AnchorRect(RectTransform rt, float xMin, float yMin, float xMax, float yMax)
         {
-            rt.anchorMin = new Vector2(0f, yMin);
-            rt.anchorMax = new Vector2(1f, yMax);
+            rt.anchorMin = new Vector2(xMin, yMin);
+            rt.anchorMax = new Vector2(xMax, yMax);
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
         }

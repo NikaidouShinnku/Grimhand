@@ -160,6 +160,7 @@ namespace Grimhand.Presentation.Battle
 
             HideKeywordTooltip();
             ConfigureKeywordTooltipRaycast();
+            EnsureTargetPromptPresentation();
             ApplyTypographyPolish();
             ResolveHudReferences();
             BattleUiLayoutRuntimeFix.ApplyIfNeeded(transform);
@@ -1699,6 +1700,59 @@ namespace Grimhand.Presentation.Battle
             selectedQueuePanel?.SetActive(false);
         }
 
+        void EnsureTargetPromptPresentation()
+        {
+            if (targetPromptPanel == null)
+                return;
+
+            var rt = targetPromptPanel.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                // 快进按钮左下：与 PresentationSpeedButton（右上 12px / 96px）对齐
+                const float speedGap = 12f;
+                const float speedSize = 96f;
+                rt.anchorMin = new Vector2(1f, 1f);
+                rt.anchorMax = new Vector2(1f, 1f);
+                rt.pivot = new Vector2(1f, 1f);
+                rt.anchoredPosition = new Vector2(-(speedGap + 8f), -(speedGap + speedSize + 8f));
+                rt.sizeDelta = new Vector2(UiInfoPlateMetrics.MinWidth + 40f, 88f);
+            }
+
+            var img = targetPromptPanel.GetComponent<Image>();
+            if (img == null)
+                img = targetPromptPanel.AddComponent<Image>();
+
+            var plate = _uiIcons != null ? _uiIcons.UiInformationPlate : null;
+            if (plate != null)
+            {
+                img.sprite = plate;
+                img.type = Image.Type.Simple;
+                img.preserveAspect = false;
+                img.color = Color.white;
+            }
+            else
+            {
+                img.sprite = null;
+                img.color = new Color(0.08f, 0.08f, 0.1f, 0.92f);
+            }
+
+            img.raycastTarget = false;
+            foreach (var fx in targetPromptPanel.GetComponents<Outline>())
+                Destroy(fx);
+
+            if (targetPromptText == null)
+                return;
+
+            targetPromptText.alignment = TextAnchor.MiddleCenter;
+            targetPromptText.fontStyle = FontStyle.Bold;
+            targetPromptText.fontSize = Mathf.Max(targetPromptText.fontSize, 22);
+            targetPromptText.color = new Color(0.96f, 0.93f, 0.86f, 1f);
+            targetPromptText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            targetPromptText.verticalOverflow = VerticalWrapMode.Overflow;
+            targetPromptText.raycastTarget = false;
+            UiInfoPlateMetrics.ApplyTextInsets(targetPromptText.rectTransform);
+        }
+
         void RefreshTargetPrompt(BattleState state, PlanningDraft draft)
         {
             if (targetPromptPanel == null)
@@ -1720,33 +1774,48 @@ namespace Grimhand.Presentation.Battle
             if (awaitingConsumable &&
                 ConsumableDatabase.TryGet(draft.AwaitingConsumableId, out var consumableDef))
             {
-                var consumableSideLabel = consumableDef.TargetKind switch
+                targetPromptText.text = consumableDef.TargetKind switch
                 {
-                    ConsumableTargetKind.SingleAlly => "队友",
-                    ConsumableTargetKind.SingleEnemy => "敌人",
-                    _ => "目标"
+                    ConsumableTargetKind.SingleAlly => "选择一名友军",
+                    ConsumableTargetKind.SingleEnemy => "选择一名敌军",
+                    _ => "选择一名目标"
                 };
-                targetPromptText.text =
-                    $"使用「{consumableDef.DisplayName}」— 点击高亮的{consumableSideLabel}（再点消耗品或空白处取消）";
+                FitTargetPromptPlate();
                 return;
             }
 
             var card = state.GetCard(awaiting.Value);
             if (card == null)
             {
-                targetPromptText.text = "请点击高亮单位选择目标";
+                targetPromptText.text = "选择一名目标";
+                FitTargetPromptPlate();
                 return;
             }
 
             var side = CardRules.GetRequiredTargetPick(card);
-            var sideLabel = side switch
+            targetPromptText.text = side switch
             {
-                TargetPickSide.Ally => "队友",
-                TargetPickSide.Enemy => "敌人",
-                _ => "目标"
+                TargetPickSide.Ally => "选择一名友军",
+                TargetPickSide.Enemy => "选择一名敌军",
+                _ => "选择一名目标"
             };
-            targetPromptText.text =
-                $"已选「{card.DisplayName}」— 点击高亮的{sideLabel}（再点卡牌取消）";
+            FitTargetPromptPlate();
+        }
+
+        void FitTargetPromptPlate()
+        {
+            if (targetPromptPanel == null || targetPromptText == null)
+                return;
+
+            var rt = targetPromptPanel.GetComponent<RectTransform>();
+            if (rt == null)
+                return;
+
+            var panelW = UiInfoPlateMetrics.MinWidth + 40f;
+            var innerW = UiInfoPlateMetrics.InnerWidth(panelW);
+            var h = UiInfoPlateMetrics.MeasureHeight(targetPromptText, targetPromptText.text, innerW);
+            rt.sizeDelta = UiInfoPlateMetrics.FitPanelSize(innerW, h);
+            UiInfoPlateMetrics.ApplyTextInsets(targetPromptText.rectTransform);
         }
 
         void RefreshTargetCancelBackdrop(PlanningDraft draft)

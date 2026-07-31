@@ -46,6 +46,8 @@ namespace Grimhand.Expedition
         public int MiracleLeafUsesRemaining { get; set; } = -1;
         public List<ExpeditionRouteOption> PendingRoutes { get; } = new();
         public BattleConfig CurrentBattleConfig { get; set; }
+        /// <summary>本场战斗种子（进战后写入；Continue 重建战斗时复用，避免敌人/洗牌变化）。</summary>
+        public int CurrentBattleSeed { get; set; }
         public string CurrentBossDisplayName { get; set; } = "";
         public ExpeditionRewardPickup PendingRewardPickup { get; set; }
         public ExpeditionPendingEvent PendingEvent { get; set; }

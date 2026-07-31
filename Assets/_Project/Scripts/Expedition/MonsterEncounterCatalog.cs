@@ -23,6 +23,8 @@ namespace Grimhand.Expedition
     {
         public const string GoblinTriple = "enc_goblin_triple";
         public const string GoblinSlimeSkeleton = "enc_goblin_slime_skeleton";
+        public const string GoblinSlimeGoblin = "enc_goblin_slime_goblin";
+        public const string GoblinSkeletonWraith = "enc_goblin_skeleton_wraith";
         public const string SlimeTriple = "enc_slime_triple";
         public const string SkeletonSlimeGoblin = "enc_skeleton_slime_goblin";
         public const string SkeletonWraithWraith = "enc_skeleton_wraith_wraith";
@@ -159,11 +161,15 @@ namespace Grimhand.Expedition
                     "char_goblin", "char_goblin", "char_goblin"),
                 Def(GoblinSlimeSkeleton, false, 1, 9,
                     "char_goblin", "char_slime", "char_skeleton"),
-                Def(SlimeTriple, false, 1, 9,
+                Def(GoblinSlimeGoblin, false, 1, 9,
+                    "char_goblin", "char_slime", "char_goblin"),
+                Def(GoblinSkeletonWraith, false, 1, 9,
+                    "char_goblin", "char_skeleton", "char_wraith"),
+                Def(SlimeTriple, false, 5, 14,
                     "char_slime", "char_slime", "char_slime"),
-                Def(SkeletonSlimeGoblin, false, 1, 9,
+                Def(SkeletonSlimeGoblin, false, 5, 9,
                     "char_skeleton", "char_slime", "char_goblin"),
-                Def(SkeletonWraithWraith, false, 5, 9,
+                Def(SkeletonWraithWraith, false, 5, 14,
                     "char_skeleton", "char_wraith", "char_wraith"),
                 Def(SkeletonSkeletonWraith, false, 5, 9,
                     "char_skeleton", "char_skeleton", "char_wraith"),

@@ -441,6 +441,7 @@ namespace Grimhand.Battle.Rules
 
             if (choiceIndex == 0)
             {
+                // A：全队失去 5% HP，本场 +1 能量上限
                 mods.ExtraEnergyCap += 1;
                 state.EnergyMax += 1;
                 foreach (var ally in CollectAlivePlayerTeam(state))
@@ -456,10 +457,22 @@ namespace Grimhand.Battle.Rules
             }
             else
             {
+                // B：本场 -1 能量上限，全队获得 10% 增伤（永久，脚标用增伤 icon）
                 mods.ExtraEnergyCap = Math.Max(0, mods.ExtraEnergyCap - 1);
                 state.EnergyMax = Math.Max(1, state.EnergyMax - 1);
-                mods.FelskullOutgoingDamagePercentBonus += 10;
-                RelicBattleRules.RefreshAllDerivedStats(state);
+                if (state.EnergyCurrent > state.EnergyMax)
+                    state.EnergyCurrent = state.EnergyMax;
+
+                foreach (var ally in CollectAlivePlayerTeam(state))
+                {
+                    StatusRules.ApplyStatus(
+                        state,
+                        ally,
+                        StatusCatalog.AttackUpPercent,
+                        10,
+                        -1,
+                        events);
+                }
             }
 
             mods.RequiresFelskullChoice = false;

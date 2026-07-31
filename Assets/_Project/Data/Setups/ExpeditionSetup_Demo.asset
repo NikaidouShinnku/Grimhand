@@ -25,8 +25,8 @@ MonoBehaviour:
   TreasureRouteWeight: 45
   TreasureGoldMin: 20
   TreasureGoldMax: 35
-  TreasureRelicChancePercent: 15
-  TreasureCardChancePercent: 60
+  TreasureRelicChancePercent: 66
+  TreasureCardChancePercent: 33
   TreasureConsumableChancePercent: 33
   CombatEncounters:
   - {fileID: 11400000, guid: 25b1c62db6eb6784c973484210567f6c, type: 2}

@@ -25,6 +25,7 @@ namespace Grimhand.Persistence
         public string lastEventMessage = "";
         public string pendingConsumableOfferId = "";
         public int miracleLeafUsesRemaining = -1;
+        public int currentBattleSeed;
         public string currentBossDisplayName = "";
         public string pendingEventBattleKey = "";
         public int pendingEventBattleBonusXp;

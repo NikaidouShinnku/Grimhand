@@ -229,7 +229,7 @@ namespace Grimhand.Expedition
             if (!string.IsNullOrEmpty(_run.PendingEventBattleKey))
             {
                 RecordLastBattleContext(CurrentBattleNumber, isElite: false, isBoss: false);
-                _run.CurrentBattleConfig = BuildBattleFromEncounter(0, applyPartyHp: true);
+                _run.CurrentBattleConfig = BuildBattleFromEncounter(0, applyPartyHp: true, resume: true);
                 return;
             }
 
@@ -250,7 +250,7 @@ namespace Grimhand.Expedition
             if (option.NodeType == ExpeditionNodeType.Boss)
             {
                 RecordLastBattleContext(layer.LayerNumber, isElite: false, isBoss: true);
-                _run.CurrentBattleConfig = BuildBossBattle(applyPartyHp: true);
+                _run.CurrentBattleConfig = BuildBossBattle(applyPartyHp: true, resume: true);
                 return;
             }
 
@@ -260,7 +260,8 @@ namespace Grimhand.Expedition
                 applyPartyHp: true,
                 option.MonsterEncounterId,
                 option.IsElite,
-                layer.LayerNumber);
+                layer.LayerNumber,
+                resume: true);
         }
 
         bool TryRebuildBossBattleForResume(ExpeditionMapLayer layer, int layerNumber)
@@ -268,7 +269,7 @@ namespace Grimhand.Expedition
             if (layer != null && IsBossLayer(layer))
             {
                 RecordLastBattleContext(layer.LayerNumber, isElite: false, isBoss: true);
-                _run.CurrentBattleConfig = BuildBossBattle(applyPartyHp: true);
+                _run.CurrentBattleConfig = BuildBossBattle(applyPartyHp: true, resume: true);
                 return _run.CurrentBattleConfig != null;
             }
 
@@ -276,7 +277,7 @@ namespace Grimhand.Expedition
                 && layerNumber == _config.MapStartLayer)
             {
                 RecordLastBattleContext(layerNumber, isElite: false, isBoss: true);
-                _run.CurrentBattleConfig = BuildBossBattle(applyPartyHp: true);
+                _run.CurrentBattleConfig = BuildBossBattle(applyPartyHp: true, resume: true);
                 return _run.CurrentBattleConfig != null;
             }
 
@@ -704,12 +705,15 @@ namespace Grimhand.Expedition
 
             if (state.Outcome == BattleOutcome.PlayerDefeat)
             {
+                ClearCurrentBattleIdentity();
                 FailRun("战斗失败，队伍无法继续。");
                 return;
             }
 
             if (state.Outcome != BattleOutcome.PlayerVictory)
                 return;
+
+            ClearCurrentBattleIdentity();
 
             _run.BattlesWon++;
             // 终局胜利也要先发奖：只推进层数，RunComplete 延后到奖励领完
@@ -1287,11 +1291,13 @@ namespace Grimhand.Expedition
                 case ExpeditionNodeType.Boss:
                     RecordLastBattleContext(route.LayerNumber, false, true);
                     _run.Phase = ExpeditionPhase.InBattle;
+                    _run.CurrentBattleSeed = 0;
                     _run.CurrentBattleConfig = BuildBossBattle(applyPartyHp: true);
                     return true;
                 default:
                     RecordLastBattleContext(route.LayerNumber, route.IsElite, false);
                     _run.Phase = ExpeditionPhase.InBattle;
+                    _run.CurrentBattleSeed = 0;
                     _run.CurrentBattleConfig = BuildBattleFromEncounter(
                         route.EncounterIndex,
                         applyPartyHp: true,
@@ -2547,6 +2553,7 @@ namespace Grimhand.Expedition
             {
                 RecordLastBattleContext(CurrentBattleNumber, isElite: false, isBoss: false);
                 _run.Phase = ExpeditionPhase.InBattle;
+                _run.CurrentBattleSeed = 0;
                 _run.CurrentBattleConfig = BuildBattleFromEncounter(outcome.CombatEncounterIndex, applyPartyHp: true);
                 return true;
             }
@@ -2572,7 +2579,8 @@ namespace Grimhand.Expedition
             bool applyPartyHp,
             string monsterEncounterId = "",
             bool isElite = false,
-            int battleLayer = 0)
+            int battleLayer = 0,
+            bool resume = false)
         {
             if (_config.CombatEncounters.Count == 0)
                 throw new System.InvalidOperationException("ExpeditionConfig.CombatEncounters is empty.");
@@ -2584,6 +2592,7 @@ namespace Grimhand.Expedition
 
             var standard = _config.CombatEncounters[encounterIndex % _config.CombatEncounters.Count];
             var floor = battleLayer > 0 ? battleLayer : CurrentBattleNumber;
+            var seed = ResolveBattleSeed(resume);
             BattleConfig template;
             if (_run.PendingEventBattleKey == MirrorPhantomEncounterBuilder.BattleKey)
                 template = MirrorPhantomEncounterBuilder.BuildMirrorBattle(standard, _run.Party);
@@ -2597,16 +2606,30 @@ namespace Grimhand.Expedition
             else if (_run.PendingEventBattleKey == FelFlameAltarEncounterBuilder.BattleKey)
             {
                 var map = MonsterTemplateRegistry.BuildTemplateMap(_config);
-                template = FelFlameAltarEncounterBuilder.BuildEliteBattle(standard, floor, _rng, map);
+                // Continue 重建不推进远征 RNG；敌人由本场战斗种子决定。
+                var eliteRng = resume
+                    ? new BattleRng(seed ^ unchecked((int)0xFE15A11Au))
+                    : _rng;
+                template = FelFlameAltarEncounterBuilder.BuildEliteBattle(standard, floor, eliteRng, map);
             }
             else
             {
-                var encounterId = string.IsNullOrEmpty(monsterEncounterId)
-                    ? MonsterEncounterCatalog.Roll(floor, isElite, _rng)
-                    : monsterEncounterId;
+                var encounterId = monsterEncounterId;
+                if (string.IsNullOrEmpty(encounterId))
+                {
+                    // 正常进战应从地图读到 encounterId；缺省时才 roll。Continue 不推进远征 RNG。
+                    var rollRng = resume
+                        ? new BattleRng(seed ^ unchecked((int)0xE11C011Eu))
+                        : _rng;
+                    encounterId = MonsterEncounterCatalog.Roll(floor, isElite, rollRng);
+                }
+
                 var encounter = MonsterEncounterCatalog.GetById(encounterId)
                                 ?? MonsterEncounterCatalog.GetById(
-                                    MonsterEncounterCatalog.Roll(floor, isElite, _rng));
+                                    MonsterEncounterCatalog.Roll(
+                                        floor,
+                                        isElite,
+                                        resume ? new BattleRng(seed ^ unchecked((int)0xE11C022Eu)) : _rng));
                 if (encounter == null)
                     throw new System.InvalidOperationException(
                         $"无法解析怪物组合：layer={floor}, elite={isElite}, id={encounterId}");
@@ -2615,7 +2638,6 @@ namespace Grimhand.Expedition
                 template = MonsterEncounterBuilder.Build(standard, encounter, map);
             }
 
-            var seed = _rng.NextInt(1, int.MaxValue);
             ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
             var config = ExpeditionBattleConfigBuilder.BuildEncounter(
                 template,
@@ -2692,27 +2714,28 @@ namespace Grimhand.Expedition
             }
         }
 
-        BattleConfig BuildBossBattle(bool applyPartyHp)
+        BattleConfig BuildBossBattle(bool applyPartyHp, bool resume = false)
         {
             BattleConfig template;
             var bossFloor = CurrentBattleNumber;
             var isAbyssBoss = bossFloor >= ExpeditionRegionRules.AbyssBossLayer;
             var isDungeonBoss = !isAbyssBoss && bossFloor >= ExpeditionRegionRules.DungeonBossLayer;
+            var standard = _config.CombatEncounters.Count > 0
+                ? _config.CombatEncounters[0]
+                : null;
+            var monsterTemplates = MonsterTemplateRegistry.BuildTemplateMap(_config);
 
-            if (isAbyssBoss)
+            if (resume && TryBuildBossTemplateFromSavedName(standard, monsterTemplates, out template))
             {
-                var standard = _config.CombatEncounters.Count > 0
-                    ? _config.CombatEncounters[0]
-                    : null;
+                // 沿用进战已写入的 Boss 名，不再重 roll。
+            }
+            else if (isAbyssBoss)
+            {
                 template = CorruptedOceanGoddessBossEncounterBuilder.BuildTemplate(standard);
                 _run.CurrentBossDisplayName = CorruptedOceanGoddessBossEncounterBuilder.DisplayName;
             }
             else if (isDungeonBoss)
             {
-                var standard = _config.CombatEncounters.Count > 0
-                    ? _config.CombatEncounters[0]
-                    : null;
-                var monsterTemplates = MonsterTemplateRegistry.BuildTemplateMap(_config);
                 template = Floor40BossEncounterBuilder.BuildRandomTemplate(standard, _rng, monsterTemplates);
                 _run.CurrentBossDisplayName = ResolveBossDisplayName(template);
             }
@@ -2728,14 +2751,11 @@ namespace Grimhand.Expedition
             }
             else
             {
-                var standard = _config.CombatEncounters.Count > 0
-                    ? _config.CombatEncounters[0]
-                    : null;
                 template = Floor10BossEncounterBuilder.BuildRandomTemplate(standard, _rng);
                 _run.CurrentBossDisplayName = ResolveBossDisplayName(template);
             }
 
-            var seed = _rng.NextInt(1, int.MaxValue);
+            var seed = ResolveBattleSeed(resume);
             ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
             var config = ExpeditionBattleConfigBuilder.BuildEncounter(
                 template,
@@ -2763,6 +2783,110 @@ namespace Grimhand.Expedition
             config.RunModifiers.SandSpearExhaustCardsPlayed = _run.V09SandSpearExhaustCardsPlayed;
             ApplyEngravingLocksToBattle(config);
             return config;
+        }
+
+        bool TryBuildBossTemplateFromSavedName(
+            BattleConfig standard,
+            System.Collections.Generic.IReadOnlyDictionary<string, CombatantConfig> monsterTemplates,
+            out BattleConfig template)
+        {
+            template = null;
+            var name = _run.CurrentBossDisplayName;
+            if (string.IsNullOrEmpty(name))
+                return false;
+
+            if (name == Floor10BossEncounterBuilder.GhostQueenDisplayName)
+            {
+                template = Floor10BossEncounterBuilder.BuildTemplate(standard, Floor10BossKind.GhostQueen);
+                return true;
+            }
+
+            if (name == Floor10BossEncounterBuilder.SkeletonKingDisplayName)
+            {
+                template = Floor10BossEncounterBuilder.BuildTemplate(standard, Floor10BossKind.SkeletonKing);
+                return true;
+            }
+
+            if (name == DarkKnightBossEncounterBuilder.DisplayName)
+            {
+                template = Floor40BossEncounterBuilder.BuildTemplate(
+                    standard, Floor40BossKind.DarkKnight, monsterTemplates);
+                return true;
+            }
+
+            if (name == WardenBossEncounterBuilder.DisplayName)
+            {
+                template = Floor40BossEncounterBuilder.BuildTemplate(
+                    standard, Floor40BossKind.Warden, monsterTemplates);
+                return true;
+            }
+
+            if (name == CorruptedOceanGoddessBossEncounterBuilder.DisplayName)
+            {
+                template = CorruptedOceanGoddessBossEncounterBuilder.BuildTemplate(standard);
+                return true;
+            }
+
+            if (_config.BossEncounters != null)
+            {
+                foreach (var encounter in _config.BossEncounters)
+                {
+                    if (encounter == null)
+                        continue;
+                    if (ResolveBossDisplayName(encounter) != name)
+                        continue;
+                    template = encounter;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 首次进战：从远征 RNG 取种子并写入存档；Continue 重建：复用已存种子，不推进远征 RNG。
+        /// </summary>
+        int ResolveBattleSeed(bool resume)
+        {
+            if (_run.CurrentBattleSeed > 0)
+                return _run.CurrentBattleSeed;
+
+            if (resume)
+            {
+                _run.CurrentBattleSeed = DeriveStableBattleSeed();
+                return _run.CurrentBattleSeed;
+            }
+
+            _run.CurrentBattleSeed = _rng.NextInt(1, int.MaxValue);
+            return _run.CurrentBattleSeed;
+        }
+
+        int DeriveStableBattleSeed()
+        {
+            unchecked
+            {
+                var layer = (_run.Map?.NodesCompleted ?? 0) + 1;
+                var option = 0;
+                var mapLayer = _run.Map?.GetLayer(layer);
+                if (mapLayer?.ChosenOptionIndex != null)
+                    option = mapLayer.ChosenOptionIndex.Value;
+
+                var h = (uint)_config.RunSeed;
+                h = h * 16777619u ^ (uint)layer;
+                h = h * 16777619u ^ (uint)option;
+                if (!string.IsNullOrEmpty(_run.PendingEventBattleKey))
+                    h = h * 16777619u ^ (uint)_run.PendingEventBattleKey.GetHashCode();
+                if (!string.IsNullOrEmpty(_run.CurrentBossDisplayName))
+                    h = h * 16777619u ^ (uint)_run.CurrentBossDisplayName.GetHashCode();
+                if (h == 0)
+                    h = 1;
+                return (int)(h & 0x7FFFFFFF);
+            }
+        }
+
+        void ClearCurrentBattleIdentity()
+        {
+            _run.CurrentBattleSeed = 0;
         }
 
         static string ResolveBossDisplayName(BattleConfig template)

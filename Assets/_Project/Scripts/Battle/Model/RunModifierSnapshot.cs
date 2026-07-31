@@ -82,7 +82,7 @@ namespace Grimhand.Battle.Model
         /// <summary>魔焰颅骨：战斗开始需二选一。</summary>
         public bool RequiresFelskullChoice { get; set; }
 
-        /// <summary>魔焰颅骨 B 选项：全队攻击牌 +N% 伤害。</summary>
+        /// <summary>旧版魔焰颅骨 B 的百分比加成字段（现改为挂 AttackUpPercent 状态，保留兼容）。</summary>
         public int FelskullOutgoingDamagePercentBonus { get; set; }
 
         public bool FirstPlayerAttackPending { get; set; } = true;

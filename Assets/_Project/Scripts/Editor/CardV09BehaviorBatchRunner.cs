@@ -126,6 +126,7 @@ namespace Grimhand.Editor
             var card = Instantiate(def);
             var exp = EffectExpectations.Parse(xlsxEffect);
             var issues = new List<string>();
+            issues.AddRange(VerifyReachMatchesDescription(card, catalogDesc));
 
             if (IsMonsterConditionalAttackCard(cardId, card))
             {
@@ -222,6 +223,49 @@ namespace Grimhand.Editor
             }
 
             return issues;
+        }
+
+        /// <summary>描述里的【前/中】等标签必须与 DealDamage/ApplyStatus 的 Reach 一致。</summary>
+        static List<string> VerifyReachMatchesDescription(CardInstanceState card, string desc)
+        {
+            var issues = new List<string>();
+            var expected = ParseReachFromDescription(desc);
+            if (expected == null || card?.Actions == null)
+                return issues;
+
+            foreach (var action in card.Actions)
+            {
+                if (action.Condition != ReactionConditionType.None)
+                    continue;
+                if (!CardRules.ActionRequiresCharacterPickForReach(action))
+                    continue;
+
+                if (action.Reach != expected.Value)
+                {
+                    issues.Add(
+                        $"Reach 不符: asset={action.Reach} 描述要求={expected.Value}（{desc}）");
+                }
+            }
+
+            return issues;
+        }
+
+        static TargetReach? ParseReachFromDescription(string desc)
+        {
+            if (string.IsNullOrEmpty(desc))
+                return null;
+
+            // 先匹配更长的「前/中/后」，避免被「前/中」误伤
+            if (desc.Contains("【前/中/后】") || desc.Contains("【前中后】"))
+                return TargetReach.Any;
+            if (desc.Contains("【中/后】") || desc.Contains("【中后】"))
+                return TargetReach.MiddleAndBack;
+            if (desc.Contains("【前/中】") || desc.Contains("【前中】"))
+                return TargetReach.FrontAndMiddle;
+            if (desc.Contains("【后排】"))
+                return TargetReach.BackOnly;
+
+            return null;
         }
 
         static List<string> VerifyDirectExecution(string cardId, CardInstanceState card, string desc, EffectExpectations exp)

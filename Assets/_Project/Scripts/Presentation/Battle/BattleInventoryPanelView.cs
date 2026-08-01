@@ -7,6 +7,7 @@ using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 using Grimhand.Presentation;
+using Grimhand.Presentation.Camp;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -204,29 +205,58 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             var party = _session.Expedition.Run.Party;
-            var limit = System.Math.Min(party.Count, CampRosterState.PartySize);
-            for (var i = 0; i < limit; i++)
-                BuildCharacterCardFromPartyMember(party[i]);
+            var allowDrag = CanDragSwapFormation();
+            // 左→右与战场一致：后排 → 中排 → 前排（最右为前排）
+            foreach (var memberIndex in CampFormationDisplay.VisualOrderMemberIndices)
+            {
+                if (memberIndex < 0 || memberIndex >= party.Count)
+                    continue;
+                BuildCharacterCardFromPartyMember(party[memberIndex], memberIndex, allowDrag);
+            }
         }
 
         void BuildCharacterCardsFromCombatants(IReadOnlyList<CombatantState> combatants)
         {
-            var shown = 0;
+            var bySlot = new CombatantState[3];
             foreach (var unit in combatants)
             {
-                if (unit.Team != TeamSide.Player)
+                if (unit == null || unit.Team != TeamSide.Player)
                     continue;
 
-                if (shown >= CampRosterState.PartySize)
-                    break;
+                var slotIndex = unit.Slot switch
+                {
+                    FormationSlot.Front => 0,
+                    FormationSlot.Middle => 1,
+                    FormationSlot.Back => 2,
+                    _ => -1
+                };
+                if (slotIndex < 0 || bySlot[slotIndex] != null)
+                    continue;
+                bySlot[slotIndex] = unit;
+            }
 
-                BuildCharacterCard(unit.DisplayName, unit.CharacterDefinitionId, unit.Level, unit.Xp, unit.Hp, unit.MaxHp,
-                    StatusRules.GetEffectiveSpeed(unit));
-                shown++;
+            // 左→右：后 → 中 → 前
+            foreach (var memberIndex in CampFormationDisplay.VisualOrderMemberIndices)
+            {
+                var unit = bySlot[memberIndex];
+                if (unit == null)
+                    continue;
+
+                BuildCharacterCard(
+                    unit.DisplayName,
+                    unit.CharacterDefinitionId,
+                    unit.Level,
+                    unit.Xp,
+                    unit.Hp,
+                    unit.MaxHp,
+                    StatusRules.GetEffectiveSpeed(unit),
+                    personalDamageBonus: 0,
+                    partyIndex: memberIndex,
+                    allowDragSwap: false);
             }
         }
 
-        void BuildCharacterCardFromPartyMember(PartyMemberSnapshot member)
+        void BuildCharacterCardFromPartyMember(PartyMemberSnapshot member, int partyIndex, bool allowDragSwap)
         {
             var run = _session.Expedition.Run;
             var hpBonus = ExpeditionPartyStatsRules.GetPartyMaxHpBonus(
@@ -236,9 +266,23 @@ namespace Grimhand.Presentation.Battle
             var stats = CharacterProgression.GetStatsForCharacter(member.CharacterDefinitionId, member.Level);
             var maxHp = ExpeditionPartyStatsRules.GetEffectiveMaxHp(member, hpBonus);
             var hp = System.Math.Min(member.Hp, maxHp);
-            BuildCharacterCard(member.DisplayName, member.CharacterDefinitionId, member.Level, member.Xp, hp,
-                maxHp, stats.Speed, member.PersonalAttackBonus);
+            BuildCharacterCard(
+                member.DisplayName,
+                member.CharacterDefinitionId,
+                member.Level,
+                member.Xp,
+                hp,
+                maxHp,
+                stats.Speed,
+                member.PersonalAttackBonus,
+                partyIndex,
+                allowDragSwap);
         }
+
+        bool CanDragSwapFormation() =>
+            _session != null
+            && _session.IsExpeditionMode
+            && _session.Expedition.Run.Phase != ExpeditionPhase.InBattle;
 
         void BuildCharacterCard(
             string displayName,
@@ -248,16 +292,34 @@ namespace Grimhand.Presentation.Battle
             int hp,
             int maxHp,
             int speed,
-            int personalDamageBonus = 0)
+            int personalDamageBonus = 0,
+            int partyIndex = -1,
+            bool allowDragSwap = false)
         {
             var card = CreateSectionCard(_characterRow, CharacterCardWidth, CharacterCardHeight);
+
+            if (partyIndex >= 0)
+            {
+                var slotGo = new GameObject("SlotLabel", typeof(RectTransform), typeof(Text));
+                slotGo.transform.SetParent(card, false);
+                var slotRt = slotGo.GetComponent<RectTransform>();
+                slotRt.anchorMin = new Vector2(0.06f, 0.88f);
+                slotRt.anchorMax = new Vector2(0.94f, 0.98f);
+                slotRt.offsetMin = Vector2.zero;
+                slotRt.offsetMax = Vector2.zero;
+                var slotText = slotGo.GetComponent<Text>();
+                StyleText(slotText, 14, TextAnchor.MiddleCenter);
+                slotText.color = new Color(0.85f, 0.78f, 0.55f, 1f);
+                slotText.text = CampFormationDisplay.SlotLabel(partyIndex);
+            }
+
             var portraitGo = new GameObject("Portrait", typeof(RectTransform), typeof(Image));
             portraitGo.transform.SetParent(card, false);
             var portraitRt = portraitGo.GetComponent<RectTransform>();
             portraitRt.anchorMin = new Vector2(0.5f, 1f);
             portraitRt.anchorMax = new Vector2(0.5f, 1f);
             portraitRt.pivot = new Vector2(0.5f, 1f);
-            portraitRt.anchoredPosition = new Vector2(0f, -10f);
+            portraitRt.anchoredPosition = new Vector2(0f, partyIndex >= 0 ? -28f : -10f);
             portraitRt.sizeDelta = new Vector2(CharacterPortraitSize, CharacterPortraitSize);
             var portrait = portraitGo.GetComponent<Image>();
             portrait.sprite = _characterVisuals?.GetPortraitReference(characterDefinitionId)
@@ -283,12 +345,29 @@ namespace Grimhand.Presentation.Battle
                 ? CharacterProgression.FormatXpLine(level, xp)
                 : "";
             var tooltipTitle = FormatCharacterNameWithLevel(displayName, level);
+            var slotLine = partyIndex >= 0 ? $"{CampFormationDisplay.SlotLabel(partyIndex)}\n" : "";
             var tooltipBody =
+                slotLine +
                 (string.IsNullOrEmpty(xpLine) ? "" : $"{xpLine}\n") +
                 $"生命 {hp}/{maxHp}\n速度 {speed}" +
-                (personalDamageBonus > 0 ? $"\n增伤 +{personalDamageBonus}" : "");
+                (personalDamageBonus > 0 ? $"\n增伤 +{personalDamageBonus}" : "") +
+                (allowDragSwap ? "\n拖到另一角色上可交换站位" : "");
 
             _tooltip?.BindHover(card.gameObject, tooltipTitle, tooltipBody, showTitle: false);
+
+            if (allowDragSwap && partyIndex >= 0)
+            {
+                var drag = card.gameObject.AddComponent<InventoryPartyMemberDragDrop>();
+                drag.Bind(this, partyIndex);
+            }
+        }
+
+        internal void HandlePartyMemberDrop(int fromIndex, int toIndex)
+        {
+            if (_session == null || !_session.TrySwapPartyFormation(fromIndex, toIndex))
+                return;
+
+            Rebuild();
         }
 
         void CreateCharacterStatGrid(RectTransform card, int hp, int maxHp, int speed, int personalDamageBonus)

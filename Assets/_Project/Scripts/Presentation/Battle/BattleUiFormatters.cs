@@ -144,11 +144,12 @@ namespace Grimhand.Presentation.Battle
             if (!string.IsNullOrEmpty(assignedTargetId))
             {
                 var assigned = state.GetCombatant(assignedTargetId);
-                if (assigned == null)
-                    return "?";
-                if (owner != null && assigned.Id == owner.Id)
-                    return "自己";
-                return FormatCombatantDisambiguatedName(state, assigned);
+                if (assigned != null && assigned.IsAlive)
+                {
+                    if (owner != null && assigned.Id == owner.Id)
+                        return "自己";
+                    return FormatCombatantDisambiguatedName(state, assigned);
+                }
             }
 
             if (owner != null && owner.Team == TeamSide.Enemy)

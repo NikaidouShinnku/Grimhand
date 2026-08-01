@@ -321,6 +321,16 @@ namespace Grimhand.Presentation.Battle
                 combatantId, _session.Engine?.State);
         }
 
+        void SyncDodgeChanceFootStatus(string combatantId)
+        {
+            if (string.IsNullOrEmpty(combatantId))
+                return;
+
+            _session.PresentationSnapshot?.SyncDodgeChanceFootStatus(
+                combatantId, _session.Engine?.State);
+            _screen?.Refresh();
+        }
+
         void ApplySnapshotAfterDeath(string combatantId)
         {
             _session.PresentationSnapshot?.MarkDead(combatantId);
@@ -794,6 +804,8 @@ namespace Grimhand.Presentation.Battle
                     retainPoseAfter: retainCardPose);
             }
 
+            // 首击闪避等：受击演出时同步闪避脚标（成败皆消耗后去掉 50%）
+            SyncDodgeChanceFootStatus(e.TargetId);
             ApplyEventDisplayCheckpoint(e);
         }
 

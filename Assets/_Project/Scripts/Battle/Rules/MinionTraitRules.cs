@@ -696,13 +696,17 @@ namespace Grimhand.Battle.Rules
             BattleRng rng,
             List<BattleEvent> events)
         {
-            if (target == null || rng == null || !target.FirstHitDodgePending)
+            if (target == null || !target.FirstHitDodgePending)
                 return false;
 
             if (!HasTrait(target, MinionTraitCatalog.BatFirstHitDodge))
                 return false;
 
+            // 首次受击即消耗（成败皆清）；无 rng 时仍消耗但不闪避
             target.FirstHitDodgePending = false;
+            if (rng == null)
+                return false;
+
             // 严格 50%：0..99 中 <50 成功
             var roll = (int)(rng.NextUInt() % 100u);
             if (roll >= MinionTraitCatalog.BatFirstHitDodgeChancePercent)

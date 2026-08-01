@@ -1473,6 +1473,9 @@ namespace Grimhand.Presentation.Battle
             if (Engine != null)
                 _turnLog.Feed(e, Engine.State);
 
+            if (e.Kind == BattleEventKind.PositionSwapped)
+                SyncPartyFormationFromBattle();
+
             if (e.Kind == BattleEventKind.ConsumableUsed)
             {
                 var label = string.IsNullOrEmpty(e.Message) ? "消耗品" : e.Message;
@@ -1509,6 +1512,40 @@ namespace Grimhand.Presentation.Battle
                     AddLog(BattleEventLogFormatter.Format(e, Engine.State));
                     break;
             }
+        }
+
+        /// <summary>局内换位后：Party 顺序跟随战斗站位（开战会读此顺序）。</summary>
+        public void SyncPartyFormationFromBattle()
+        {
+            if (!IsExpeditionMode || Engine?.State == null)
+                return;
+
+            ExpeditionPartyFormationRules.SyncPartyOrderFromBattle(Engine.State, Expedition.Run.Party);
+            if (_campRoster != null)
+                ExpeditionPartyFormationRules.SyncCampRosterOrderFromParty(_campRoster, Expedition.Run.Party);
+        }
+
+        /// <summary>非战斗：拖拽交换 Party 站位，并同步军营编队顺序。</summary>
+        public bool TrySwapPartyFormation(int indexA, int indexB)
+        {
+            if (!IsExpeditionMode || Expedition?.Run == null)
+                return false;
+
+            if (Expedition.Run.Phase == ExpeditionPhase.InBattle)
+                return false;
+
+            var party = Expedition.Run.Party;
+            if (indexA < 0 || indexB < 0 || indexA >= party.Count || indexB >= party.Count)
+                return false;
+            if (indexA == indexB)
+                return false;
+
+            ExpeditionPartyFormationRules.SwapPartyMembers(party, indexA, indexB);
+            if (_campRoster != null)
+                ExpeditionPartyFormationRules.SyncCampRosterOrderFromParty(_campRoster, party);
+
+            NotifyChanged();
+            return true;
         }
 
         void AddLog(string msg)

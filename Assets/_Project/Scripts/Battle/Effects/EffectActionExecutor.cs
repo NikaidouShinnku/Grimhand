@@ -145,8 +145,9 @@ namespace Grimhand.Battle.Effects
                         ExecuteDamageToAllEnemies(state, actor, card, action, value, events, rng, sourceCardInstanceId);
                     else if (target != null
                              && (action.Target == EffectTarget.Self
-                                 || TargetRules.IsTargetValidForAction(
-                                     state, target, GetEffectiveDamageReach(state, actor, card, action), action)))
+                                 || TargetRules.CanApplyActionToTarget(
+                                     state, target, GetEffectiveDamageReach(state, actor, card, action), action,
+                                     sourceCardInstanceId)))
                         ExecuteDamage(
                             state, actor, card, action, target, value, events, rng, sourceCardInstanceId,
                             isSacrificeSelfDamage: action.Target == EffectTarget.Self
@@ -199,7 +200,7 @@ namespace Grimhand.Battle.Effects
                     }
                     else if (target != null
                              && (action.Target is EffectTarget.Self or EffectTarget.LastActionActor
-                                 || TargetRules.IsTargetValidForAction(state, target, action.Reach, action)))
+                                 || TargetRules.CanApplyActionToTarget(state, target, action.Reach, action, sourceCardInstanceId)))
                         ApplyStatusWithTalents(state, actor, target, action, events, card, rng);
                     state.LastAction = new LastActionSnapshot(
                         actor.Id, ActionKind.Status, target?.Id ?? actor.Id, false, 0);
@@ -404,7 +405,7 @@ namespace Grimhand.Battle.Effects
                         });
                     }
                     var consumeDamage = blockConsumed + Math.Max(0, action.Value);
-                    if (consumeDamage > 0 && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
+                    if (consumeDamage > 0 && TargetRules.CanApplyActionToTarget(state, target, action.Reach, action, sourceCardInstanceId))
                     {
                         DamageRules.ApplyDamage(
                             state, actor, target, consumeDamage, card.CardType, events,
@@ -421,7 +422,7 @@ namespace Grimhand.Battle.Effects
                         break;
                     var count = state.Config?.RunModifiers?.ExpeditionRespondSuccessCount ?? state.RespondSuccessCount;
                     var dmg = Math.Max(0, count * action.Value);
-                    if (dmg > 0 && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
+                    if (dmg > 0 && TargetRules.CanApplyActionToTarget(state, target, action.Reach, action, sourceCardInstanceId))
                     {
                         DamageRules.ApplyDamage(
                             state, actor, target, dmg, card.CardType, events,
@@ -435,7 +436,7 @@ namespace Grimhand.Battle.Effects
                 case EffectActionType.DoubleStatusStacks:
                 {
                     if (target == null
-                        || !TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
+                        || !TargetRules.CanApplyActionToTarget(state, target, action.Reach, action, sourceCardInstanceId))
                         break;
                     // 仅翻倍层数，RemainingTurns/Duration 不变
                     DoubleTargetStatusStacks(target, StatusCatalog.Poison, events);
@@ -460,7 +461,7 @@ namespace Grimhand.Battle.Effects
                     var lostPercent = Math.Max(0, (actor.MaxHp - actor.Hp) * 100 / Math.Max(1, actor.MaxHp));
                     var steps = lostPercent / step;
                     basePower += steps * Math.Max(0, action.HpLossStepValue);
-                    if (basePower > 0 && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
+                    if (basePower > 0 && TargetRules.CanApplyActionToTarget(state, target, action.Reach, action, sourceCardInstanceId))
                     {
                         DamageRules.ApplyDamage(
                             state, actor, target, basePower, card.CardType, events,
@@ -478,7 +479,7 @@ namespace Grimhand.Battle.Effects
                     var dmg = actor.HealedThisTurn && action.AlternateValueIfHealed > 0
                         ? action.AlternateValueIfHealed
                         : value;
-                    if (dmg > 0 && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
+                    if (dmg > 0 && TargetRules.CanApplyActionToTarget(state, target, action.Reach, action, sourceCardInstanceId))
                     {
                         DamageRules.ApplyDamage(
                             state, actor, target, dmg, card.CardType, events,
@@ -495,7 +496,7 @@ namespace Grimhand.Battle.Effects
                         break;
                     var debuffStacks = CountDebuffStacks(target);
                     var dmg = value + debuffStacks * Math.Max(0, action.Stacks);
-                    if (dmg > 0 && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
+                    if (dmg > 0 && TargetRules.CanApplyActionToTarget(state, target, action.Reach, action, sourceCardInstanceId))
                     {
                         DamageRules.ApplyDamage(
                             state, actor, target, dmg, card.CardType, events,
@@ -598,7 +599,7 @@ namespace Grimhand.Battle.Effects
                 case EffectActionType.ApplyPoisonBySpeedCompare:
                 {
                     if (target != null
-                        && TargetRules.IsTargetValidForAction(state, target, action.Reach, action)
+                        && TargetRules.CanApplyActionToTarget(state, target, action.Reach, action, sourceCardInstanceId)
                         && value > 0)
                     {
                         DamageRules.ApplyDamage(
@@ -608,7 +609,7 @@ namespace Grimhand.Battle.Effects
                             sourceCardInstanceId: sourceCardInstanceId);
                     }
                     if (target != null
-                        && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
+                        && TargetRules.CanApplyActionToTarget(state, target, action.Reach, action, sourceCardInstanceId))
                     {
                         var actorSpeed = StatusRules.GetEffectiveSpeed(state, actor);
                         var targetSpeed = StatusRules.GetEffectiveSpeed(state, target);
@@ -689,7 +690,7 @@ namespace Grimhand.Battle.Effects
                         state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     }
                     else if (target != null
-                             && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
+                             && TargetRules.CanApplyActionToTarget(state, target, action.Reach, action, sourceCardInstanceId))
                     {
                         V09NewMechanicsRules.SettlePoisonAndClear(state, actor, target, events);
                         state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, target.Id, false, 0);
@@ -717,7 +718,7 @@ namespace Grimhand.Battle.Effects
                         state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
                     }
                     else if (target != null
-                             && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
+                             && TargetRules.CanApplyActionToTarget(state, target, action.Reach, action, sourceCardInstanceId))
                     {
                         StatusRules.ApplyStatus(
                             state, target, StatusCatalog.DelayedDamage, Math.Max(1, action.Value), 1, events);
@@ -774,7 +775,7 @@ namespace Grimhand.Battle.Effects
                                     sourceCardInstanceId: sourceCardInstanceId, isAoEWave: true);
                         }
                     }
-                    else if (target != null && TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
+                    else if (target != null && TargetRules.CanApplyActionToTarget(state, target, action.Reach, action, sourceCardInstanceId))
                         DamageRules.ApplyDamage(state, actor, target, dmg, card.CardType, events,
                             canTriggerParry: true, rng: rng, cardCost: card.Cost,
                             sourceCardInstanceId: sourceCardInstanceId);
@@ -980,7 +981,7 @@ namespace Grimhand.Battle.Effects
                 {
                     if (target == null || !target.IsAlive)
                         break;
-                    if (!TargetRules.IsTargetValidForAction(state, target, action.Reach, action))
+                    if (!TargetRules.CanApplyActionToTarget(state, target, action.Reach, action, sourceCardInstanceId))
                         break;
 
                     var statusId = string.IsNullOrEmpty(action.StatusId)

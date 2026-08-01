@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Grimhand.Battle.Effects;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.V09;
@@ -40,6 +41,8 @@ namespace Grimhand.Battle.Rules
             });
 
             RelicBattleRules.RefreshAllDerivedStats(state);
+            // 仅清除指向死者的锁定；换位不改变已锁定目标
+            TargetRules.RefreshResolutionTargetsAfterTargetDeath(state, rng);
         }
 
         public static void RestoreUsableCards(BattleState state, CombatantState combatant)

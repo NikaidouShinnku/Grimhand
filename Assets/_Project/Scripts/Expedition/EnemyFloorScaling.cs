@@ -3,11 +3,11 @@ using Grimhand.Core;
 
 namespace Grimhand.Expedition
 {
-    /// <summary>敌人按远征层数缩放（v0.8：伤害每3层+1，护甲每5层+1，HP每层+1.5）。</summary>
+    /// <summary>敌人按远征层数缩放：伤害每5层+1，护甲每5层+1，HP每层+1.5。</summary>
     public static class EnemyFloorScaling
     {
         public const float HpBonusPerFloor = 1.5f;
-        public const int DamageBonusEveryFloors = 3;
+        public const int DamageBonusEveryFloors = 5;
         public const int BlockBonusEveryFloors = 5;
 
         public static void Apply(CombatantConfig combatant, int floor, BattleRng rng)

@@ -365,6 +365,7 @@ namespace Grimhand.Presentation.Camp
 
         void BuildEmptySlot(Transform host, string slotLabel)
         {
+            // 未配置：不叠 plate / 白块，只留模板空框 + 提示字
             var hint = CampUiRuntime.CreateText(host, $"{slotLabel}\n未配置", 20, FontStyle.Bold,
                 TextAnchor.MiddleCenter);
             CampUiRuntime.StretchFull(hint.rectTransform);

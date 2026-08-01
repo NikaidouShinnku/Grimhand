@@ -219,6 +219,12 @@ namespace Grimhand.Battle.Rules
                 if (target.Team != victimTeam)
                     return false;
 
+                // 已锁定目标：预览与结算一致，不因换位失去 Reach
+                if (state?.ResolutionTargets != null
+                    && state.ResolutionTargets.TryGetValue(card.InstanceId, out var lockedId)
+                    && lockedId == target.Id)
+                    return true;
+
                 return state == null || owner == null
                     || TargetReachRules.CanPickUnit(state, card, target, owner);
             }

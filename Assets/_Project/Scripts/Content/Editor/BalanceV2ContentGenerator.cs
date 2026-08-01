@@ -158,7 +158,7 @@ namespace Grimhand.Content.Editor
             return new DemonCards
             {
                 ShadowClaw = SaveCard("d_shadow_claw", "暗影爪击", "char_ranger", 1, CardType.Attack,
-                    null, CardRarity.Common, AtkDmg(5, 80)),
+                    null, CardRarity.Common, AtkDmg(5, 80, reach: TargetReach.FrontAndMiddle)),
                 DevilTouch = SaveCard("d_devil_touch", "恶魔之触", "char_ranger", 1, CardType.Attack,
                     null, CardRarity.Common, AtkDmg(4, 50, lifestealPercent: 100)),
                 BloodTail = SaveCard("d_blood_tail", "血尾贯穿", "char_ranger", 2, CardType.Attack,

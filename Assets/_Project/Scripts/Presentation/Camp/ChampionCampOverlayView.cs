@@ -914,32 +914,43 @@ namespace Grimhand.Presentation.Camp
             btn.transition = Selectable.Transition.None;
             UiAudioHooks.WireButton(btn);
 
-            // 动画立绘：保比例，略缩小放入框内；顶对齐以减少底部被换人挡住
-            var portraitHost = CampUiRuntime.CreateRect("PortraitHost", go.transform);
-            ApplyLocalNormRect(portraitHost.GetComponent<RectTransform>(), zone, InsetNormRect(portraitZone, TeamPortraitInset));
+            var isEmpty = string.IsNullOrEmpty(member.CharacterDefinitionId);
 
-            var portrait = CampUiRuntime.CreateImage("Portrait", portraitHost.transform, Color.white);
-            portrait.preserveAspect = true;
-            portrait.raycastTarget = false;
-            var portraitRt = portrait.rectTransform;
-            portraitRt.anchorMin = new Vector2(0f, 0.08f);
-            portraitRt.anchorMax = new Vector2(1f, 1f);
-            portraitRt.offsetMin = Vector2.zero;
-            portraitRt.offsetMax = Vector2.zero;
-            portraitRt.pivot = new Vector2(0.5f, 1f);
-            var animator = portraitHost.AddComponent<CampIdlePortraitAnimator>();
-            animator.Bind(portrait, _characterVisuals, member.CharacterDefinitionId);
-
-            if (active)
+            // 未配置：立绘区留空，只保留模板底框
+            if (!isEmpty)
             {
-                var outline = portrait.gameObject.AddComponent<Outline>();
-                outline.effectColor = TeamSelectedOutline;
-                outline.effectDistance = new Vector2(3f, 3f);
-                outline.useGraphicAlpha = true;
+                var portraitHost = CampUiRuntime.CreateRect("PortraitHost", go.transform);
+                ApplyLocalNormRect(
+                    portraitHost.GetComponent<RectTransform>(),
+                    zone,
+                    InsetNormRect(portraitZone, TeamPortraitInset));
+
+                var portrait = CampUiRuntime.CreateImage("Portrait", portraitHost.transform, Color.white);
+                portrait.preserveAspect = true;
+                portrait.raycastTarget = false;
+                var portraitRt = portrait.rectTransform;
+                portraitRt.anchorMin = new Vector2(0f, 0.08f);
+                portraitRt.anchorMax = new Vector2(1f, 1f);
+                portraitRt.offsetMin = Vector2.zero;
+                portraitRt.offsetMax = Vector2.zero;
+                portraitRt.pivot = new Vector2(0.5f, 1f);
+
+                var animator = portraitHost.AddComponent<CampIdlePortraitAnimator>();
+                animator.Bind(portrait, _characterVisuals, member.CharacterDefinitionId);
+
+                if (active)
+                {
+                    var outline = portrait.gameObject.AddComponent<Outline>();
+                    outline.effectColor = TeamSelectedOutline;
+                    outline.effectDistance = new Vector2(3f, 3f);
+                    outline.useGraphicAlpha = true;
+                }
             }
 
             var name = CampUiRuntime.CreateText(go.transform,
-                string.IsNullOrEmpty(member.DisplayName) ? "未选择" : member.DisplayName,
+                isEmpty
+                    ? "未选择"
+                    : (string.IsNullOrEmpty(member.DisplayName) ? "未选择" : member.DisplayName),
                 22, FontStyle.Bold, TextAnchor.MiddleLeft);
             ApplyLocalNormRect(name.rectTransform, zone, nameZone);
             name.color = Color.white;

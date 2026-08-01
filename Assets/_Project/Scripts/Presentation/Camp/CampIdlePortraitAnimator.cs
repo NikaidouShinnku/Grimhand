@@ -34,7 +34,11 @@ namespace Grimhand.Presentation.Camp
             if (_visuals == null || string.IsNullOrEmpty(_characterId))
             {
                 if (_image != null)
+                {
                     _image.sprite = null;
+                    _image.color = Color.clear;
+                }
+
                 return;
             }
 

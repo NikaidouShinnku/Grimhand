@@ -289,6 +289,23 @@ namespace Grimhand.Presentation.Battle
                 ApplyFootStatusRemoved(combatantId, StatusCatalog.KnightBackToWallAtk, int.MaxValue);
         }
 
+        /// <summary>
+        /// 巨翼蝙蝠首击闪避等：按 live pending/加成重算 dodge_chance 脚标。
+        /// 首次受击消耗后应立刻去掉 50% icon（若仍有暗影闪避等加成则保留剩余百分比）。
+        /// </summary>
+        public void SyncDodgeChanceFootStatus(string combatantId, BattleState state)
+        {
+            if (string.IsNullOrEmpty(combatantId))
+                return;
+
+            var combatant = state?.GetCombatant(combatantId);
+            var percent = FootStatusIconAggregator.ResolveDodgeChancePercent(state, combatant);
+            if (percent > 0)
+                ApplyFootStatusApplied(combatantId, StatusCatalog.DodgeChance, percent);
+            else
+                ApplyFootStatusRemoved(combatantId, StatusCatalog.DodgeChance, int.MaxValue);
+        }
+
         public void RecordEventCheckpoint(int eventIndex, BattleEventKind kind, BattleState state)
         {
             if (state == null || eventIndex < 0)

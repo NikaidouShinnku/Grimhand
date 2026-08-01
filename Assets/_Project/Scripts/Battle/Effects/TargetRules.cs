@@ -43,11 +43,9 @@ namespace Grimhand.Battle.Effects
                     if (TryGetTauntForcedTarget(state, actor, action, reach, out var tauntTarget))
                         return tauntTarget;
 
-                    if (TryGetSelectedTarget(state, cardInstanceId, out var picked)
-                        && IsTargetValidForAction(state, picked, reach, action))
-                    {
+                    // 已锁定目标：结算时不因换位失效；Reach 只约束出牌/规划选目标
+                    if (TryGetSelectedTarget(state, cardInstanceId, out var picked))
                         return picked;
-                    }
 
                     if (actor.Team == TeamSide.Player)
                         return null;
@@ -127,6 +125,31 @@ namespace Grimhand.Battle.Effects
             // 嘲讽强制目标：即使不在 Reach 范围内也视为合法
             return target.Team == TeamSide.Player
                    && StatusRules.HasStatus(target, StatusCatalog.Taunt);
+        }
+
+        /// <summary>
+        /// 结算时：已锁定目标只要存活即可命中（换位不改指向）；
+        /// 未锁定则仍按 Reach 校验（用于 AOE 过滤、补掷等）。
+        /// </summary>
+        public static bool CanApplyActionToTarget(
+            BattleState state,
+            CombatantState target,
+            TargetReach reach,
+            EffectActionSpec action,
+            int cardInstanceId = 0)
+        {
+            if (target == null || !target.IsAlive)
+                return false;
+
+            if (cardInstanceId > 0
+                && state?.ResolutionTargets != null
+                && state.ResolutionTargets.TryGetValue(cardInstanceId, out var lockedId)
+                && lockedId == target.Id)
+            {
+                return true;
+            }
+
+            return IsTargetValidForAction(state, target, reach, action);
         }
 
         public static bool UsesExplicitSlotTarget(EffectTarget targetKind) =>
@@ -445,6 +468,72 @@ namespace Grimhand.Battle.Effects
                     break;
                 }
             }
+        }
+
+        /// <summary>
+        /// 目标死亡后：清除指向死者的锁定；敌方自动选敌可按当前站位重掷。
+        /// 换位不调用此方法——已锁定目标应保持指向。
+        /// </summary>
+        public static void RefreshResolutionTargetsAfterTargetDeath(BattleState state, BattleRng rng = null)
+        {
+            if (state?.ResolutionTargets == null || state.ResolutionTargets.Count == 0)
+                return;
+
+            var keys = new List<int>(state.ResolutionTargets.Keys);
+            foreach (var cardInstanceId in keys)
+            {
+                if (!state.ResolutionTargets.TryGetValue(cardInstanceId, out var targetId))
+                    continue;
+
+                var target = state.GetCombatant(targetId);
+                if (target != null && target.IsAlive)
+                    continue;
+
+                state.ResolutionTargets.Remove(cardInstanceId);
+
+                var card = state.GetCard(cardInstanceId);
+                var ownerId = PositionRules.GetOwnerCombatantId(state, card);
+                var actor = ownerId != null ? state.GetCombatant(ownerId) : null;
+                if (card == null || actor == null || !actor.IsAlive || actor.Team != TeamSide.Enemy)
+                    continue;
+
+                var primary = FindPrimaryReachAction(card);
+                if (primary == null || !UsesAutoReachRoll(primary))
+                    continue;
+
+                if (TryGetTauntForcedTarget(state, actor, primary, primary.Reach, out var forced))
+                {
+                    state.ResolutionTargets[cardInstanceId] = forced.Id;
+                    continue;
+                }
+
+                var rolled = PickRandomTargetForReach(state, actor.Team, primary.Reach, primary, rng);
+                if (rolled == null && primary.Reach == TargetReach.BackOnly)
+                {
+                    rolled = PickRandomTargetForReach(
+                        state, actor.Team, TargetReach.FrontAndMiddle, primary, rng);
+                }
+
+                if (rolled != null)
+                    state.ResolutionTargets[cardInstanceId] = rolled.Id;
+            }
+        }
+
+        static EffectActionSpec FindPrimaryReachAction(CardInstanceState card)
+        {
+            if (card?.Actions == null)
+                return null;
+
+            foreach (var action in card.Actions)
+            {
+                if (action.Condition != ReactionConditionType.None)
+                    continue;
+
+                if (CardRules.ActionRequiresCharacterPickForReach(action))
+                    return action;
+            }
+
+            return null;
         }
 
         /// <summary>规划阶段预览敌方意图时，优先使用本回合已预掷的目标。</summary>

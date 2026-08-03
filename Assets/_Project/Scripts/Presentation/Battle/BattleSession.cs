@@ -126,6 +126,30 @@ namespace Grimhand.Presentation.Battle
             NotifyChanged();
         }
 
+        public void BeginTutorial(CampRosterState campRoster = null)
+        {
+            if (campRoster != null)
+                _campRoster = campRoster;
+
+            var config = BuildExpeditionConfig(mapStartLayer: 1);
+            if (config.CombatEncounters.Count == 0)
+            {
+                Debug.LogError("远征配置无战斗遭遇，无法开始教程。");
+                Expedition = null;
+                RestartBattle();
+                return;
+            }
+
+            Expedition = new ExpeditionEngine(config);
+            Expedition.StartTutorialRun(_campRoster, _campMeta ?? CampMetaState.CreateDefaultDemo());
+            _log.Clear();
+            _turnLog.Reset();
+            _battleEndHandled = false;
+            Engine = null;
+            AddLog("新手教程开始 — 完成六个固定节点");
+            NotifyChanged();
+        }
+
         public bool ResumeExpedition(ActiveRunSnapshot snapshot)
         {
             if (snapshot == null || !snapshot.HasRun)
@@ -254,6 +278,11 @@ namespace Grimhand.Presentation.Battle
             var config = Expedition.Run.CurrentBattleConfig;
             Engine = new BattleEngine(config);
             Engine.StartBattle();
+            if (Expedition.Run.IsTutorialRun
+                && Expedition.Run.LastBattleWasElite
+                && Engine.State != null
+                && Engine.State.TurnNumber <= 1)
+                Grimhand.Expedition.Tutorial.ExpeditionTutorialBattleSetup.ApplyEliteFirstTurn(Engine);
             DrainEvents();
             _battleEndHandled = false;
             _turnLog.Reset();

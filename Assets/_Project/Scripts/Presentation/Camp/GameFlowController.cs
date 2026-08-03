@@ -40,6 +40,7 @@ namespace Grimhand.Presentation.Camp
         bool _trackingExpedition;
         bool _trackingTrainingGround;
         bool _runEndHandled;
+        bool _completedTutorialThisReturn;
         ExpeditionPhase? _lastCheckpointPhase;
         int _activeMapStartLayer = 1;
 
@@ -186,6 +187,12 @@ namespace Grimhand.Presentation.Camp
 
         void EnterCampFromMenu()
         {
+            if (_profile != null && !_profile.HasCompletedTutorial)
+            {
+                BeginTutorialExpedition();
+                return;
+            }
+
             gameMenu?.Hide();
             escMenu?.Hide();
             ShowCamp();
@@ -208,6 +215,13 @@ namespace Grimhand.Presentation.Camp
             _lastCheckpointPhase = null;
             battleController?.ClearExpeditionAfterLeave();
             gameMenu?.Hide();
+
+            if (_profile != null && !_profile.HasCompletedTutorial)
+            {
+                BeginTutorialExpedition();
+                return;
+            }
+
             ShowCamp();
             campScreen?.RefreshAccountGold(_profile.AccountGold);
             campScreen?.ShowToast("已放弃上次远征并完成结算。");
@@ -230,6 +244,8 @@ namespace Grimhand.Presentation.Camp
         void ReturnToCampFromRunEnd()
         {
             var wasTraining = _trackingTrainingGround;
+            var wasTutorialComplete = _completedTutorialThisReturn;
+            _completedTutorialThisReturn = false;
             _trackingExpedition = false;
             _trackingTrainingGround = false;
             escMenu?.Hide();
@@ -239,6 +255,8 @@ namespace Grimhand.Presentation.Camp
             campScreen?.RefreshAccountGold(_profile.AccountGold);
             if (wasTraining)
                 campScreen?.ShowToast("已返回营地。");
+            else if (wasTutorialComplete)
+                campScreen?.ShowToast("教程完成。可以在军营调整编队，再从传送门出发。");
         }
 
         void ShowBattle()
@@ -730,6 +748,39 @@ namespace Grimhand.Presentation.Camp
             }
         }
 
+        void BeginTutorialExpedition()
+        {
+            gameMenu?.Hide();
+            escMenu?.Hide();
+            campScreen?.Hide();
+            championCamp?.Hide();
+            talentCamp?.Hide();
+            portalOverlay?.Hide();
+            metaShop?.Hide();
+            libraryCodex?.Hide();
+            settingsOverlay?.Hide();
+
+            // 祭坛刻印普通卡需 100 局外金；教程保证至少 300
+            if (_profile != null && _profile.AccountGold < 300)
+                _profile.AccountGold = 300;
+
+            battleController.SetCampRoster(_roster);
+            battleController.SetCampMeta(_meta);
+            ShowBattle();
+            battleController.BeginTutorialFromCamp(_roster);
+
+            var engine = battleController.Session.Expedition;
+            if (engine != null)
+            {
+                battleController.Session.BindMetaProfile(_profile);
+                ActiveRunPersistence.BeginNewRun(_profile, engine, mapStartLayer: 1);
+                _trackingExpedition = true;
+                _runEndHandled = false;
+                _lastCheckpointPhase = engine.Run.Phase;
+                SaveProfile();
+            }
+        }
+
         void ShowComingSoon(string feature)
         {
             campScreen?.ShowToast($"{feature} — 即将开放");
@@ -782,6 +833,13 @@ namespace Grimhand.Presentation.Camp
             RunSettlementRules.ApplyRunEndMetaRewards(run, _meta);
             if (run?.Relics != null)
                 CodexProgressRules.RecordRelicsFromRun(_profile.Codex, run.Relics);
+
+            if (run != null && run.IsTutorialRun && run.Phase == ExpeditionPhase.RunComplete)
+            {
+                _profile.HasCompletedTutorial = true;
+                _completedTutorialThisReturn = true;
+            }
+
             ActiveRunPersistence.Clear(_profile);
             _trackingExpedition = false;
             _lastCheckpointPhase = null;

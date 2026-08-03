@@ -78,6 +78,7 @@ namespace Grimhand.Presentation.Battle
         BattleBackgroundView _backgroundView;
         ExpeditionPostBattleOverlayView _postBattleOverlay;
         ExpeditionShopOverlayView _shopOverlay;
+        TutorialCoachOverlayView _tutorialCoach;
         FelskullBattleChoiceView _felskullChoice;
         PsionicScryOverlayView _psionicScryOverlay;
         Button _inventoryButton;
@@ -550,7 +551,16 @@ namespace Grimhand.Presentation.Battle
                     _definitions);
             }
 
+            _altarOverlay.UiStateChanged -= OnAltarUiStateChanged;
+            _altarOverlay.UiStateChanged += OnAltarUiStateChanged;
+
             ApplyInventoryButtonLayout();
+        }
+
+        void OnAltarUiStateChanged()
+        {
+            EnsureTutorialCoach();
+            TutorialCoachDriver.TryShow(_session, this, _tutorialCoach);
         }
 
         void EnsureTurnLogHud()
@@ -1467,6 +1477,8 @@ namespace Grimhand.Presentation.Battle
             _altarOverlay?.Refresh();
 
             RefreshPlanningChromeVisibility();
+            EnsureTutorialCoach();
+            TutorialCoachDriver.TryShow(_session, this, _tutorialCoach);
 
             if (_session.Engine?.State != null
                 && ShouldShowBattlePlanningChrome()
@@ -2018,6 +2030,9 @@ namespace Grimhand.Presentation.Battle
         /// <summary>ESC 逐级关闭局内浮层；无浮层时返回 false。</summary>
         public bool TryHandleEscapeOverlays()
         {
+            if (_tutorialCoach != null && _tutorialCoach.TryDismissViaEscape())
+                return true;
+
             // 祭坛子界面返回/取消；一级 Hub 不消费，继续打开 ESC 菜单
             if (_altarOverlay != null && _altarOverlay.TryHandleEscape())
                 return true;
@@ -2763,5 +2778,231 @@ namespace Grimhand.Presentation.Battle
 
         static Vector3? GetTeamDuelReference(CombatantSlotView[] slots) =>
             GetTeamFeetReference(slots);
+
+        void EnsureTutorialCoach()
+        {
+            if (_tutorialCoach != null)
+                return;
+
+            _tutorialCoach = gameObject.AddComponent<TutorialCoachOverlayView>();
+            _tutorialCoach.Initialize(transform, _uiIcons);
+        }
+
+        RectTransform _tutorialHighlightProxy;
+
+        RectTransform EnsureTutorialHighlightProxy()
+        {
+            if (_tutorialHighlightProxy != null)
+                return _tutorialHighlightProxy;
+
+            var go = new GameObject("TutorialHighlightProxy", typeof(RectTransform));
+            go.transform.SetParent(transform, false);
+            _tutorialHighlightProxy = go.GetComponent<RectTransform>();
+            _tutorialHighlightProxy.anchorMin = new Vector2(0.5f, 0.5f);
+            _tutorialHighlightProxy.anchorMax = new Vector2(0.5f, 0.5f);
+            _tutorialHighlightProxy.pivot = new Vector2(0.5f, 0.5f);
+            var img = go.AddComponent<Image>();
+            img.color = Color.clear;
+            img.raycastTarget = false;
+            return _tutorialHighlightProxy;
+        }
+
+        RectTransform FitTutorialProxyToRects(System.Collections.Generic.List<RectTransform> targets)
+        {
+            if (targets == null || targets.Count == 0)
+                return null;
+
+            var proxy = EnsureTutorialHighlightProxy();
+            var canvas = GetComponentInParent<Canvas>();
+            var cam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+                ? canvas.worldCamera
+                : null;
+
+            var min = new Vector2(float.PositiveInfinity, float.PositiveInfinity);
+            var max = new Vector2(float.NegativeInfinity, float.NegativeInfinity);
+            var corners = new Vector3[4];
+            var any = false;
+            for (var i = 0; i < targets.Count; i++)
+            {
+                var rt = targets[i];
+                if (rt == null || !rt.gameObject.activeInHierarchy)
+                    continue;
+
+                rt.GetWorldCorners(corners);
+                for (var c = 0; c < 4; c++)
+                {
+                    var screen = RectTransformUtility.WorldToScreenPoint(cam, corners[c]);
+                    min = Vector2.Min(min, screen);
+                    max = Vector2.Max(max, screen);
+                }
+
+                any = true;
+            }
+
+            if (!any)
+                return targets[0];
+
+            var parent = proxy.parent as RectTransform;
+            if (parent == null)
+                return targets[0];
+
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, min, cam, out var localMin)
+                || !RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, max, cam, out var localMax))
+                return targets[0];
+
+            var center = (localMin + localMax) * 0.5f;
+            var size = new Vector2(
+                Mathf.Abs(localMax.x - localMin.x),
+                Mathf.Abs(localMax.y - localMin.y));
+            proxy.anchoredPosition = center;
+            proxy.sizeDelta = size;
+            proxy.gameObject.SetActive(true);
+            return proxy;
+        }
+
+        public RectTransform GetTutorialEnergyRect()
+        {
+            EnsurePlanningEnergyHud();
+            return HudRoot.Find("EnergyHud") as RectTransform;
+        }
+
+        public RectTransform GetTutorialHandRect() =>
+            handPanel != null ? handPanel.transform as RectTransform : null;
+
+        public RectTransform GetTutorialConfirmRect() =>
+            confirmButton != null ? confirmButton.transform as RectTransform : null;
+
+        public RectTransform GetTutorialPlayActionsRect()
+        {
+            var list = new System.Collections.Generic.List<RectTransform>(2);
+            if (skipButton != null)
+                list.Add(skipButton.transform as RectTransform);
+            if (confirmButton != null)
+                list.Add(confirmButton.transform as RectTransform);
+            return FitTutorialProxyToRects(list) ?? GetTutorialConfirmRect();
+        }
+
+        public RectTransform GetTutorialActionOrderRect()
+        {
+            EnsureActionOrderBar();
+            return _actionOrderBar != null ? _actionOrderBar.PanelRect : null;
+        }
+
+        public RectTransform GetTutorialFirstActionOrderEntryRect()
+        {
+            EnsureActionOrderBar();
+            if (_actionOrderBar == null)
+                return null;
+
+            var parts = new System.Collections.Generic.List<RectTransform>(3);
+            _actionOrderBar.CollectEntryHighlightRects(0, parts);
+            if (parts.Count == 0)
+                return _actionOrderBar.GetEntryRect(0);
+            return FitTutorialProxyToRects(parts) ?? _actionOrderBar.GetEntryRect(0);
+        }
+
+        public RectTransform GetTutorialHandCardRect(string definitionId)
+        {
+            if (handPanel == null || string.IsNullOrEmpty(definitionId))
+                return null;
+            return handPanel.GetCardRectByDefinitionId(definitionId, _session?.Engine?.State);
+        }
+
+        public RectTransform GetTutorialRewardRowRect()
+        {
+            EnsureExpeditionOverlays();
+            return _postBattleOverlay != null ? _postBattleOverlay.RewardRowRect : null;
+        }
+
+        public RectTransform GetTutorialRewardGoldRect()
+        {
+            EnsureExpeditionOverlays();
+            return _postBattleOverlay != null ? _postBattleOverlay.TutorialGoldClaimRect : null;
+        }
+
+        public RectTransform GetTutorialRewardPackRect()
+        {
+            EnsureExpeditionOverlays();
+            return _postBattleOverlay != null ? _postBattleOverlay.TutorialPackClaimRect : null;
+        }
+
+        public bool IsInventoryOpenForTutorial() =>
+            _inventoryPanel != null && _inventoryPanel.IsOpen;
+
+        public bool IsCardPackOverlayOpen() =>
+            _cardPackPickOverlay != null
+            && _session?.Expedition?.Run?.PendingCardPackOffer != null;
+
+        public RectTransform GetTutorialEnemyIntentRect()
+        {
+            if (enemyIntentPanel != null)
+                return enemyIntentPanel.transform as RectTransform;
+            return transform.Find("HudChromeRoot/EnemyIntentPanel") as RectTransform
+                   ?? transform.Find("EnemyIntentPanel") as RectTransform;
+        }
+
+        public RectTransform GetTutorialInventoryButtonRect() =>
+            _inventoryButton != null ? _inventoryButton.transform as RectTransform : null;
+
+        public RectTransform GetTutorialConsumableStripRect() =>
+            _inventoryPanel != null && _inventoryPanel.IsOpen
+                ? _inventoryPanel.ConsumableStripRect
+                : null;
+
+        public RectTransform GetTutorialFirstConsumableSlotRect() =>
+            _inventoryPanel != null && _inventoryPanel.IsOpen
+                ? _inventoryPanel.FirstConsumableSlotRect
+                : null;
+
+        public RectTransform GetTutorialAltarEngravingButtonRect()
+        {
+            EnsureExpeditionOverlays();
+            return _altarOverlay != null ? _altarOverlay.EngravingHubButtonRect : null;
+        }
+
+        public bool IsAltarHubForTutorial() =>
+            _altarOverlay != null && _altarOverlay.IsHubScreen;
+
+        public bool IsAltarEngravingForTutorial() =>
+            _altarOverlay != null && _altarOverlay.IsEngravingScreen;
+
+        public RectTransform GetTutorialPlayerHpHeartsRect()
+        {
+            var list = new System.Collections.Generic.List<RectTransform>(3);
+            if (playerSlots == null)
+                return null;
+
+            for (var i = 0; i < playerSlots.Length; i++)
+            {
+                var hp = playerSlots[i] != null ? playerSlots[i].GetHpChipRect() : null;
+                if (hp != null)
+                    list.Add(hp);
+            }
+
+            return FitTutorialProxyToRects(list);
+        }
+
+        public RectTransform GetTutorialPlayerFootHudRect()
+        {
+            var list = new System.Collections.Generic.List<RectTransform>(3);
+            if (playerSlots == null)
+                return null;
+
+            for (var i = 0; i < playerSlots.Length; i++)
+            {
+                var foot = playerSlots[i] != null ? playerSlots[i].GetFootHudRect() : null;
+                if (foot != null)
+                    list.Add(foot);
+            }
+
+            return FitTutorialProxyToRects(list) ?? GetTutorialPlayerHpHeartsRect();
+        }
+
+        public void OpenInventoryForTutorial()
+        {
+            EnsureInventoryHud();
+            if (_inventoryPanel != null && !_inventoryPanel.IsOpen)
+                _inventoryPanel.Show();
+        }
     }
 }

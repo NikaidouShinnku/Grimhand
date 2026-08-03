@@ -35,6 +35,7 @@ namespace Grimhand.Persistence
         public int v09ExpeditionRespondSuccessCount;
         public int v09SandSpearExhaustCardsPlayed;
         public bool chestRewardRevealed;
+        public bool isTutorialRun;
 
         public PartyMemberSaveData[] party = Array.Empty<PartyMemberSaveData>();
         public string[] relics = Array.Empty<string>();

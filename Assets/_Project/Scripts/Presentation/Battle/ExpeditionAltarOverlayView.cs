@@ -121,6 +121,7 @@ namespace Grimhand.Presentation.Battle
         Image _panelImage;
         RectTransform _panelRt;
         RectTransform _hubLayer;
+        RectTransform _engravingHubButton;
         Text _titleLeftText;
         int _builtVersion = -1;
 
@@ -165,6 +166,9 @@ namespace Grimhand.Presentation.Battle
         Button _restGoldButton;
         Button _restXpButton;
         Text _restHintText;
+
+        /// <summary>祭坛子界面切换时通知（用于教程收尾，避免只 Refresh 祭坛却不刷新教学层）。</summary>
+        public event System.Action UiStateChanged;
 
         public void Initialize(
             BattleSession session,
@@ -212,6 +216,7 @@ namespace Grimhand.Presentation.Battle
             RefreshHeader(run);
             UpdateBackLabel();
             RebuildContent(run);
+            UiStateChanged?.Invoke();
         }
 
         void UpdateBackLabel()
@@ -345,7 +350,7 @@ namespace Grimhand.Presentation.Battle
                 _hubLayer, "Rest", HubZoneRest, "♥", "休息回复",
                 "花费金币或经验，恢复全队生命",
                 () => { _screen = AltarScreen.RestRecovery; Refresh(); });
-            CreateHubOptionButton(
+            _engravingHubButton = CreateHubOptionButton(
                 _hubLayer, "Engraving", HubZoneEngraving, "◆", "刻印",
                 "将局内卡牌带出至军营收藏",
                 () =>
@@ -356,7 +361,7 @@ namespace Grimhand.Presentation.Battle
                 });
         }
 
-        void CreateHubOptionButton(
+        RectTransform CreateHubOptionButton(
             Transform parent,
             string id,
             HubNormRect zone,
@@ -416,6 +421,7 @@ namespace Grimhand.Presentation.Battle
             btn.transition = Selectable.Transition.None;
             btn.onClick.AddListener(() => onClick?.Invoke());
             UiAudioHooks.WireButton(btn);
+            return go;
         }
 
         void BuildRestRecoveryScreen(RectTransform parent, ExpeditionRunState run)
@@ -477,6 +483,15 @@ namespace Grimhand.Presentation.Battle
         }
 
         public bool IsOpen => _root != null && _root.gameObject.activeSelf;
+        public bool IsHubScreen => IsOpen && _screen == AltarScreen.Hub;
+        public bool IsEngravingScreen => IsOpen && _screen == AltarScreen.Engraving;
+
+        public RectTransform EngravingHubButtonRect =>
+            IsHubScreen
+            && _engravingHubButton != null
+            && _engravingHubButton.gameObject.activeInHierarchy
+                ? _engravingHubButton
+                : null;
 
         /// <summary>
         /// ESC：子界面返回上一层 / 取消弹层；一级 Hub 不消费（交给菜单）。

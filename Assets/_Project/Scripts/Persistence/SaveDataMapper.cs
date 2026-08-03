@@ -79,6 +79,7 @@ namespace Grimhand.Persistence
             dto.seenEnemyIds = ToIdArray(profile.Codex?.SeenEnemyIds);
             dto.seenEnemyCardIds = ToIdArray(profile.Codex?.SeenEnemyCardIds);
             dto.seenRelicIds = ToIdArray(profile.Codex?.SeenRelicIds);
+            dto.hasCompletedTutorial = profile.HasCompletedTutorial;
 
             return dto;
         }
@@ -202,6 +203,9 @@ namespace Grimhand.Persistence
             FillCodexSet(profile.Codex.SeenEnemyIds, dto.seenEnemyIds);
             FillCodexSet(profile.Codex.SeenEnemyCardIds, dto.seenEnemyCardIds);
             FillCodexSet(profile.Codex.SeenRelicIds, dto.seenRelicIds);
+
+            // 旧档（<5）视为已完成教程，避免打断已有进度；新档默认 false。
+            profile.HasCompletedTutorial = dto.saveVersion < 5 || dto.hasCompletedTutorial;
 
             return profile;
         }

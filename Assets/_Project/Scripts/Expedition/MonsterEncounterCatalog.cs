@@ -38,6 +38,11 @@ namespace Grimhand.Expedition
         public const string EliteOgreSolo = "enc_elite_ogre_solo";
         public const string EliteSkeletonBat = "enc_elite_skeleton_bat";
 
+        /// <summary>新手教程：哥布林 + 史莱姆（不进正式随机池）。</summary>
+        public const string TutorialGoblinSlime = "enc_tutorial_goblin_slime";
+        /// <summary>新手教程：单独骷髅精英（不进正式随机池）。</summary>
+        public const string TutorialSkeletonElite = "enc_tutorial_skeleton_elite";
+
         public const string DunSkeletonChainWraith = "enc_dun_skeleton_chain_wraith";
         public const string DunSkeletonBatWraith = "enc_dun_skeleton_bat_wraith";
         public const string DunRatWraithWraith = "enc_dun_rat_wraith_wraith";
@@ -189,6 +194,12 @@ namespace Grimhand.Expedition
                     "char_ogre"),
                 Def(EliteSkeletonBat, true, 10, 19,
                     "char_skeleton", "char_bat"),
+
+                // 教程专用：Weight=0，不会被 Roll 抽到
+                Def(TutorialGoblinSlime, false, 1, 1, 0, 0, 0, 0,
+                    "char_goblin", "char_slime"),
+                Def(TutorialSkeletonElite, true, 1, 1, 0, 0, 0, 0,
+                    "char_skeleton_elite"),
 
                 Def(DunSkeletonChainWraith, false, 21, 29,
                     "char_skeleton", "char_chain_wraith", "char_wraith"),

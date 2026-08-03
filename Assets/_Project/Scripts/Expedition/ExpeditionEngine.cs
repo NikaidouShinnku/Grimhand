@@ -358,6 +358,7 @@ namespace Grimhand.Expedition
             _run.PendingTravelerGiftCurseOwnerId = "";
             _run.CurrentBattleConfig = null;
             _run.IsTrainingGround = false;
+            _run.IsTutorialRun = false;
 
             _run.Map = ExpeditionMapGenerator.Generate(_config, _run, _rng);
             if (_config.MapStartLayer > 1 && _run.Map != null)
@@ -379,6 +380,19 @@ namespace Grimhand.Expedition
             ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
             LoadRoutesForNextLayer();
             TryBeginBossTestJump();
+        }
+
+        /// <summary>新手教程：固定 5 节点短途远征。</summary>
+        public void StartTutorialRun(CampRosterState campRoster = null, CampMetaState campMeta = null)
+        {
+            StartRun(campRoster, campMeta);
+            _run.IsTutorialRun = true;
+            _run.IsTrainingGround = false;
+            _run.TargetBattleCount = 2;
+            _run.Gold = Tutorial.ExpeditionTutorialRewards.StartingGold;
+            _run.Map = Tutorial.ExpeditionTutorialMapBuilder.Build();
+            _run.LastEventMessage = "新手教程 — 完成六个固定节点。";
+            LoadRoutesForNextLayer();
         }
 
         void TryBeginBossTestJump()
@@ -544,6 +558,7 @@ namespace Grimhand.Expedition
             _run.TalentRun.Reset();
             _run.RunAcquisitionLog.Clear();
             _run.IsTrainingGround = false;
+            _run.IsTutorialRun = false;
             _run.Map = skipMap ? null : ExpeditionMapGenerator.Generate(_config, _run, _rng);
         }
 
@@ -774,6 +789,14 @@ namespace Grimhand.Expedition
                 _run.LastBattleFloor,
                 _run.LastBattleWasElite,
                 _run.LastBattleWasBoss);
+
+            if (_run.IsTutorialRun)
+            {
+                _run.PendingRewardPickup = _run.LastBattleWasElite
+                    ? Tutorial.ExpeditionTutorialRewards.BuildEliteVictory()
+                    : Tutorial.ExpeditionTutorialRewards.BuildFirstBattleVictory();
+            }
+
             _run.LastGoldReward = _run.PendingRewardPickup.Gold;
             _run.Phase = ExpeditionPhase.RewardPickup;
         }
@@ -1278,7 +1301,9 @@ namespace Grimhand.Expedition
             switch (route.NodeType)
             {
                 case ExpeditionNodeType.Treasure:
-                    _run.PendingRewardPickup = ExpeditionRewardRoller.RollChestReward(_config, _run, _rng);
+                    _run.PendingRewardPickup = _run.IsTutorialRun
+                        ? Tutorial.ExpeditionTutorialRewards.BuildChestReward()
+                        : ExpeditionRewardRoller.RollChestReward(_config, _run, _rng);
                     _run.Phase = ExpeditionPhase.RewardPickup;
                     _run.ChestRewardRevealed = false;
                     return true;
@@ -2687,6 +2712,9 @@ namespace Grimhand.Expedition
 
             if (_run.PendingEventBattleKey == MirrorPhantomEncounterBuilder.BattleKey)
                 MirrorPhantomEncounterBuilder.FinalizeMirrorEnemyLoadout(config);
+
+            if (_run.IsTutorialRun)
+                config.SkipFloorScaling = true;
 
             return config;
         }

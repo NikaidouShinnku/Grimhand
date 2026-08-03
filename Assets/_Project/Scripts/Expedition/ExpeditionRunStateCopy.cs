@@ -50,6 +50,8 @@ namespace Grimhand.Expedition
             target.V09ExpeditionRespondSuccessCount = source.V09ExpeditionRespondSuccessCount;
             target.V09SandSpearExhaustCardsPlayed = source.V09SandSpearExhaustCardsPlayed;
             target.ChestRewardRevealed = source.ChestRewardRevealed;
+            target.IsTrainingGround = source.IsTrainingGround;
+            target.IsTutorialRun = source.IsTutorialRun;
             target.CurrentBattleConfig = null;
 
             CopyParty(source.Party, target.Party, config, hydrate);

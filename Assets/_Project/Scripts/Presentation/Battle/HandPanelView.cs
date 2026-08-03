@@ -165,5 +165,23 @@ namespace Grimhand.Presentation.Battle
             if (contentRoot != null)
                 LayoutRebuilder.ForceRebuildLayoutImmediate(contentRoot);
         }
+
+        public RectTransform GetCardRectByDefinitionId(string definitionId, BattleState state)
+        {
+            if (string.IsNullOrEmpty(definitionId) || state == null)
+                return null;
+
+            foreach (var view in _pool)
+            {
+                if (view == null || !view.gameObject.activeSelf)
+                    continue;
+
+                var card = state.GetCard(view.InstanceId);
+                if (card != null && card.DefinitionId == definitionId)
+                    return view.transform as RectTransform;
+            }
+
+            return null;
+        }
     }
 }

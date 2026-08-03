@@ -69,8 +69,23 @@ namespace Grimhand.Presentation.Battle
         Coroutine _chestOpenRoutine;
         readonly List<Button> _rewardButtons = new();
         readonly List<Button> _doorButtons = new();
+        RectTransform _tutorialGoldClaimRect;
+        RectTransform _tutorialPackClaimRect;
         bool _built;
         int _builtVersion = -1;
+
+        public RectTransform RewardRowRect =>
+            _rewardRow != null && _rewardRow.gameObject.activeInHierarchy ? _rewardRow : null;
+
+        public RectTransform TutorialGoldClaimRect =>
+            _tutorialGoldClaimRect != null && _tutorialGoldClaimRect.gameObject.activeInHierarchy
+                ? _tutorialGoldClaimRect
+                : null;
+
+        public RectTransform TutorialPackClaimRect =>
+            _tutorialPackClaimRect != null && _tutorialPackClaimRect.gameObject.activeInHierarchy
+                ? _tutorialPackClaimRect
+                : null;
 
         public void Initialize(
             BattleSession session,
@@ -467,6 +482,8 @@ namespace Grimhand.Presentation.Battle
         void RefreshRewardPickup(bool isChest)
         {
             ClearButtons(_rewardButtons);
+            _tutorialGoldClaimRect = null;
+            _tutorialPackClaimRect = null;
 
             var run = _session.Expedition.Run;
             var rewards = run.PendingRewardPickup;
@@ -505,6 +522,8 @@ namespace Grimhand.Presentation.Battle
                         GameAudioService.Instance.PlayUiGoldAcquire();
                         _session.ClaimRewardGold();
                     });
+                if (_rewardButtons.Count > 0)
+                    _tutorialGoldClaimRect = _rewardButtons[_rewardButtons.Count - 1].transform as RectTransform;
             }
 
             if (rewards.HasRelic && !rewards.RelicClaimed && !rewards.RelicSkipped)
@@ -558,6 +577,8 @@ namespace Grimhand.Presentation.Battle
                         GameAudioService.Instance.PlayUiCardPackOpen();
                         _session.OpenRewardCardPack(localIndex);
                     });
+                if (_tutorialPackClaimRect == null && _rewardButtons.Count > 0)
+                    _tutorialPackClaimRect = _rewardButtons[_rewardButtons.Count - 1].transform as RectTransform;
             }
 
             if (rewards.HasConsumable && !rewards.ConsumableClaimed && !rewards.ConsumableSkipped)
@@ -1323,8 +1344,15 @@ namespace Grimhand.Presentation.Battle
         {
             foreach (var btn in buttons)
             {
-                if (btn != null)
-                    Destroy(btn.gameObject);
+                if (btn == null)
+                    continue;
+
+                var go = btn.gameObject;
+                var parent = go.transform.parent;
+                if (parent != null && parent.name == "RewardSlot")
+                    Destroy(parent.gameObject);
+                else
+                    Destroy(go);
             }
 
             buttons.Clear();

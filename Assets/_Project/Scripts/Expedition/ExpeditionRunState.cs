@@ -74,6 +74,9 @@ namespace Grimhand.Expedition
         /// <summary>营地训练场：不走远征结算/存档，仅用于卡组测试。</summary>
         public bool IsTrainingGround { get; set; }
 
+        /// <summary>新手教程短途远征：固定节点与教学提示。</summary>
+        public bool IsTutorialRun { get; set; }
+
         /// <summary>本局已成功刻印过的牌实例 Id（不可再刻）。</summary>
         public HashSet<string> EngravedDeckInstanceIds { get; } = new();
 

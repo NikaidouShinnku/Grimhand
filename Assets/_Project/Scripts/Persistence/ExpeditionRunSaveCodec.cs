@@ -85,6 +85,7 @@ namespace Grimhand.Persistence
                 v09ExpeditionRespondSuccessCount = run.V09ExpeditionRespondSuccessCount,
                 v09SandSpearExhaustCardsPlayed = run.V09SandSpearExhaustCardsPlayed,
                 chestRewardRevealed = run.ChestRewardRevealed,
+                isTutorialRun = run.IsTutorialRun,
                 modifiers = ToModifiersDto(run.Modifiers),
                 map = ToMapDto(run.Map),
                 pendingRewardPickup = ToRewardPickupDto(run.PendingRewardPickup),
@@ -150,7 +151,8 @@ namespace Grimhand.Persistence
                 V09EtherealEntryCount = dto.v09EtherealEntryCount,
                 V09ExpeditionRespondSuccessCount = dto.v09ExpeditionRespondSuccessCount,
                 V09SandSpearExhaustCardsPlayed = dto.v09SandSpearExhaustCardsPlayed,
-                ChestRewardRevealed = dto.chestRewardRevealed
+                ChestRewardRevealed = dto.chestRewardRevealed,
+                IsTutorialRun = dto.isTutorialRun
             };
 
             FromModifiersDto(dto.modifiers, run.Modifiers);

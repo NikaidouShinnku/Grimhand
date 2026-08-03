@@ -763,6 +763,34 @@ namespace Grimhand.Presentation.Battle
             return transform.position;
         }
 
+        public RectTransform GetHpChipRect()
+        {
+            if (statsRow == null)
+                statsRow = GetComponentInChildren<UnitStatsRowView>(true);
+            return statsRow != null ? statsRow.HpChipRect : null;
+        }
+
+        public RectTransform GetFootHudRect()
+        {
+            var footRoot = transform.Find("FootStatusRoot") as RectTransform;
+            if (footRoot != null)
+                return footRoot;
+
+            if (statsRow == null)
+                statsRow = GetComponentInChildren<UnitStatsRowView>(true);
+            return statsRow != null ? statsRow.transform as RectTransform : null;
+        }
+
+        public RectTransform GetStatusIconsRect()
+        {
+            if (_footStatusIcons == null)
+                _footStatusIcons = GetComponent<CombatantFootStatusIconsView>();
+            var icons = _footStatusIcons != null ? _footStatusIcons.IconsRowRect : null;
+            if (icons != null)
+                return icons;
+            return GetFootHudRect();
+        }
+
         public Vector3 GetDuelReferenceWorldPosition() => GetFeetWorldPosition();
 
         public void SetHoverPreviewCallbacks(Action<CombatantState> onEnter, Action onExit)

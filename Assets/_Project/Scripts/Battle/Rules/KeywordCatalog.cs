@@ -70,7 +70,7 @@ namespace Grimhand.Battle.Rules
             ["self_destruct"] = new("self_destruct", "自爆", "使用或触发后会牺牲自身并造成相应效果"),
             ["bonus_hand"] = new("bonus_hand", "额外手牌", "额外置入手牌，不占用本回合常规抽牌名额"),
             ["usable_while_constricted"] = new("usable_while_constricted", "缠绕可用", "即使处于缠绕禁牌状态也可以打出"),
-            ["quick_start"] = new("quick_start", "快速启动", "仅限PVE，会直接生效无需等到战斗回合"),
+            ["quick_start"] = new("quick_start", "快速启动", "打出后立即生效，无需等到本回合结算"),
             ["melee"] = new("melee", "近战", "主要作用于前排与中排目标"),
             ["snipe"] = new("snipe", "狙击", "可选择后排等指定站位目标"),
             ["pierce"] = new("pierce", "贯穿", "命中主目标后可能继续影响后方单位"),

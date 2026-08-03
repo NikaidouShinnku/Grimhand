@@ -69,6 +69,46 @@ namespace Grimhand.Presentation.Battle
             _onHoverExit = onHoverExit;
         }
 
+        public RectTransform PanelRect => _panel;
+
+        public RectTransform GetEntryRect(int index)
+        {
+            if (index < 0 || index >= _pool.Count)
+                return null;
+            var slot = _pool[index];
+            if (slot?.Root == null || !slot.Root.activeSelf)
+                return null;
+            return slot.Root.transform as RectTransform;
+        }
+
+        /// <summary>教程高亮：卡面 + 下方「发起者→目标」整块。</summary>
+        public void CollectEntryHighlightRects(int index, List<RectTransform> into)
+        {
+            if (into == null || index < 0 || index >= _pool.Count)
+                return;
+
+            var slot = _pool[index];
+            if (slot?.Root == null || !slot.Root.activeSelf)
+                return;
+
+            if (slot.Card != null && slot.Card.gameObject.activeSelf)
+            {
+                var cardRt = slot.Card.transform as RectTransform;
+                if (cardRt != null)
+                    into.Add(cardRt);
+            }
+
+            if (slot.RouteLabel != null)
+                into.Add(slot.RouteLabel.rectTransform);
+
+            if (into.Count == 0)
+            {
+                var root = slot.Root.transform as RectTransform;
+                if (root != null)
+                    into.Add(root);
+            }
+        }
+
         public void SetVisible(bool visible)
         {
             if (_panel != null)
@@ -212,6 +252,8 @@ namespace Grimhand.Presentation.Battle
             {
                 var entryGo = new GameObject($"Entry_{_pool.Count}", typeof(RectTransform));
                 entryGo.transform.SetParent(_content, false);
+                var entryRt = entryGo.GetComponent<RectTransform>();
+                entryRt.sizeDelta = new Vector2(cardWidth + 16f, entryHeight);
 
                 var entryLe = entryGo.AddComponent<LayoutElement>();
                 entryLe.preferredWidth = cardWidth + 16f;

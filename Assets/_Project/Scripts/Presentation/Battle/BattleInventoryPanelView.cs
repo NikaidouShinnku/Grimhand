@@ -57,6 +57,7 @@ namespace Grimhand.Presentation.Battle
         Image _xpIcon;
         RectTransform _mainContent;
         RectTransform _consumableStrip;
+        RectTransform _firstFilledConsumableSlot;
         RectTransform _characterRow;
         RectTransform _relicArea;
         RectTransform _cardArea;
@@ -65,6 +66,36 @@ namespace Grimhand.Presentation.Battle
         readonly List<GameObject> _dynamicObjects = new();
 
         public bool IsOpen => _panel != null && _panel.gameObject.activeSelf;
+        public RectTransform ConsumableStripRect => _consumableStrip;
+
+        /// <summary>消耗品栏首个已填充槽位（布局重建后）。</summary>
+        public RectTransform FirstConsumableSlotRect
+        {
+            get
+            {
+                if (_firstFilledConsumableSlot != null
+                    && _firstFilledConsumableSlot.gameObject.activeInHierarchy)
+                    return _firstFilledConsumableSlot;
+
+                if (_consumableStrip == null || !_consumableStrip.gameObject.activeInHierarchy)
+                    return null;
+
+                LayoutRebuilder.ForceRebuildLayoutImmediate(_consumableStrip);
+                for (var i = 0; i < _consumableStrip.childCount; i++)
+                {
+                    var child = _consumableStrip.GetChild(i) as RectTransform;
+                    if (child == null || !child.name.StartsWith("ConsumableSlot_", StringComparison.Ordinal))
+                        continue;
+
+                    var icon = child.Find("Icon")?.GetComponent<Image>();
+                    if (icon != null && icon.enabled && icon.sprite != null)
+                        return child;
+                }
+
+                return null;
+            }
+        }
+
         public Action OnConsumableUseStarted;
 
         /// <summary>ESC：消耗品详情 → 关闭背包。</summary>
@@ -150,7 +181,7 @@ namespace Grimhand.Presentation.Battle
             LayoutRebuilder.ForceRebuildLayoutImmediate(_mainContent);
         }
 
-        void Show()
+        public void Show()
         {
             _panel.gameObject.SetActive(true);
             CombatantTooltipLayer.MountToFront(_panel, _battleRoot);
@@ -695,6 +726,7 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             HideConsumableDetail();
+            _firstFilledConsumableSlot = null;
             ConsumableInventory.EnsureInitialized(_session.Expedition.Run.ConsumableSlots);
             var slots = _session.Expedition.Run.ConsumableSlots;
             var inBattle = _session.Engine != null &&
@@ -722,6 +754,9 @@ namespace Grimhand.Presentation.Battle
                         icon.color = icon.sprite != null ? Color.white : new Color(0.35f, 0.4f, 0.5f, 1f);
                         icon.enabled = true;
                     }
+
+                    if (_firstFilledConsumableSlot == null)
+                        _firstFilledConsumableSlot = slotGo.GetComponent<RectTransform>();
 
                     _tooltip?.BindHover(slotGo, def.DisplayName, def.Description);
 
@@ -761,6 +796,9 @@ namespace Grimhand.Presentation.Battle
                         btn.onClick.RemoveAllListeners();
                 }
             }
+
+            if (_consumableStrip != null)
+                LayoutRebuilder.ForceRebuildLayoutImmediate(_consumableStrip);
         }
 
         void ShowConsumableDetail(int slotIndex, ConsumableDefinition def)
@@ -1305,6 +1343,12 @@ namespace Grimhand.Presentation.Battle
         {
             var go = new GameObject($"ConsumableSlot_{index}", typeof(RectTransform), typeof(Image), typeof(LayoutElement), typeof(Button));
             go.transform.SetParent(parent, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 1f);
+            rt.anchorMax = new Vector2(0.5f, 1f);
+            rt.pivot = new Vector2(0.5f, 1f);
+            rt.sizeDelta = new Vector2(ConsumableSlotSize, ConsumableSlotSize);
+
             var le = go.GetComponent<LayoutElement>();
             le.preferredWidth = ConsumableSlotSize;
             le.minWidth = ConsumableSlotSize;
@@ -1360,16 +1404,23 @@ namespace Grimhand.Presentation.Battle
             ClearChildren(_characterRow);
             ClearChildren(_relicArea);
             ClearChildren(_cardArea);
-            ClearChildren(_consumableStrip, keepFirst: 1);
+            ClearChildren(_consumableStrip, keepFirst: 1, immediate: true);
+            _firstFilledConsumableSlot = null;
         }
 
-        static void ClearChildren(RectTransform parent, int keepFirst = 0)
+        static void ClearChildren(RectTransform parent, int keepFirst = 0, bool immediate = false)
         {
             if (parent == null)
                 return;
 
             for (var i = parent.childCount - 1; i >= keepFirst; i--)
-                Destroy(parent.GetChild(i).gameObject);
+            {
+                var child = parent.GetChild(i).gameObject;
+                if (immediate)
+                    DestroyImmediate(child);
+                else
+                    Destroy(child);
+            }
         }
 
         static string FormatCharacterNameWithLevel(string displayName, int level)

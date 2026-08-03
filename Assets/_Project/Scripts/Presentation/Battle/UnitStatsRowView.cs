@@ -175,5 +175,25 @@ namespace Grimhand.Presentation.Battle
             if (chip.Root != null)
                 chip.Root.SetActive(visible);
         }
+
+        public RectTransform HpChipRect
+        {
+            get
+            {
+                EnsureBuilt();
+                return _hp.Root != null ? _hp.Root.transform as RectTransform : null;
+            }
+        }
+
+        public RectTransform ArmorChipRect
+        {
+            get
+            {
+                EnsureBuilt();
+                return _arm.Root != null && _arm.Root.activeSelf
+                    ? _arm.Root.transform as RectTransform
+                    : null;
+            }
+        }
     }
 }

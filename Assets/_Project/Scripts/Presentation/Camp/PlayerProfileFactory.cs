@@ -6,8 +6,8 @@ namespace Grimhand.Presentation.Camp
 {
     public static class PlayerProfileFactory
     {
-        /// <summary>Demo 新档默认局外金币，便于测试商店。</summary>
-        public const int DemoStartingAccountGold = 10000;
+        /// <summary>新档默认局外金币（够一次普通卡祭坛刻印）。</summary>
+        public const int DemoStartingAccountGold = 300;
 
         public static PlayerProfileState CreateNew(BattleSetupSO battleSetup, ExpeditionSetupSO expeditionSetup)
         {

@@ -24,6 +24,7 @@ namespace Grimhand.Persistence
         public string[] seenEnemyIds = Array.Empty<string>();
         public string[] seenEnemyCardIds = Array.Empty<string>();
         public string[] seenRelicIds = Array.Empty<string>();
+        public bool hasCompletedTutorial;
     }
 
     [Serializable]

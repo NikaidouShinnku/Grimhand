@@ -85,6 +85,8 @@ namespace Grimhand.Presentation.Battle
             _row.sizeDelta = new Vector2(MaxRowWidth, IconSize + 4f);
         }
 
+        public RectTransform IconsRowRect => _row;
+
         public void Refresh(CombatantState unit, BattleUiIconCatalogSO icons, BattleState state = null) =>
             RefreshInternal(CollectVisible(unit, state), icons);
 

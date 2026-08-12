@@ -43,6 +43,7 @@ namespace Grimhand.Presentation.Camp
         bool _completedTutorialThisReturn;
         ExpeditionPhase? _lastCheckpointPhase;
         int _activeMapStartLayer = 1;
+        CampConfirmPromptView _campReturnConfirm;
 
         void Awake() => EnsureReferences();
 
@@ -176,6 +177,7 @@ namespace Grimhand.Presentation.Camp
 
         void ShowMainMenu()
         {
+            _campReturnConfirm?.Hide();
             campScreen?.Hide();
             championCamp?.Hide();
             talentCamp?.Hide();
@@ -410,7 +412,8 @@ namespace Grimhand.Presentation.Camp
         // 仅探测是否有打开的确认框（不执行取消）
         bool TryCancelOpenConfirmPromptsExists() =>
             (gameMenu != null && gameMenu.IsAbandonConfirmOpen)
-            || (escMenu != null && escMenu.IsForfeitConfirmOpen);
+            || (escMenu != null && escMenu.IsForfeitConfirmOpen)
+            || (_campReturnConfirm != null && _campReturnConfirm.IsOpen);
 
         void HandleEscapePressed()
         {
@@ -440,10 +443,10 @@ namespace Grimhand.Presentation.Camp
             if (TryHandleCampOverlayEscape())
                 return;
 
-            // 6) 营地主界面：返回开始菜单（可退出游戏）
+            // 6) 营地主界面：确认是否返回主菜单
             if (IsCampRootVisible())
             {
-                ShowMainMenu();
+                ShowCampReturnToMenuConfirm();
                 return;
             }
 
@@ -471,7 +474,42 @@ namespace Grimhand.Presentation.Camp
                 return true;
             }
 
+            if (_campReturnConfirm != null && _campReturnConfirm.TryCancelViaEscape())
+                return true;
+
             return false;
+        }
+
+        void ShowCampReturnToMenuConfirm()
+        {
+            EnsureCampReturnConfirm();
+            if (_campReturnConfirm == null)
+            {
+                ShowMainMenu();
+                return;
+            }
+
+            if (_campReturnConfirm.IsOpen)
+                return;
+
+            _campReturnConfirm.Show(
+                "返回主菜单",
+                "确定要返回主菜单吗？",
+                "取消",
+                "确认",
+                onCancel: null,
+                onConfirm: ShowMainMenu);
+        }
+
+        void EnsureCampReturnConfirm()
+        {
+            if (_campReturnConfirm != null)
+                return;
+
+            var parent = campScreen != null ? campScreen.transform : transform;
+            var uiIcons = battleController != null ? battleController.UiIconCatalog : null;
+            _campReturnConfirm = CampConfirmPromptView.Create(parent, uiIcons, "CampReturnConfirm");
+            _campReturnConfirm.Hide();
         }
 
         bool TryHandleCampOverlayEscape()

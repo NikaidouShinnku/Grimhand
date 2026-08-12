@@ -27,19 +27,19 @@ namespace Grimhand.Presentation.Camp
             Relics
         }
 
-        const int LayoutVersion = 4;
+        const int LayoutVersion = 7;
         const float ButtonHoverScale = 1.06f;
         const float CardBaseW = 168f;
         const float CardBaseH = 236f;
         const int CardsPerRow = 6;
-        const int PortraitColumns = 5;
-        const int RelicColumns = 5;
-        // character_plate 精灵裁切约 162×288
-        const float CharPlateW = 152f;
-        const float CharPlateH = 270f;
-        // event_plate 近似方框
-        const float RelicPlateW = 168f;
-        const float RelicPlateH = 182f;
+        const int PortraitColumns = 7;
+        const int RelicColumns = 6;
+        // character_plate：一行 7 个（横向间距按面板宽度拉开）
+        const float CharPlateW = 128f;
+        const float CharPlateH = 228f;
+        // event_plate：一行 6 个（同上）
+        const float RelicPlateW = 140f;
+        const float RelicPlateH = 152f;
         // 滑动条两端菱形装饰内缩，避免手柄压住菱形
         const float ScrollbarEndInset = 22f;
         // 滑块相对轨道略右移，视觉居中
@@ -846,14 +846,22 @@ namespace Grimhand.Presentation.Camp
             if (_scroll != null)
                 LayoutRebuilder.ForceRebuildLayoutImmediate(_scroll.GetComponent<RectTransform>());
 
+            // 预留右边距，避免最右一列贴边/被裁切
+            var avail = GetContentInnerWidth() - 20f;
+            const float gap = 10f;
+            const float cellPad = 4f;
+            // n*(baseW*scale + cellPad) + (n-1)*gap = avail
+            var scale = (avail - gap * (CardsPerRow - 1) - cellPad * CardsPerRow)
+                        / (CardsPerRow * CardBaseW);
+            _cardScale = Mathf.Clamp(scale * 0.97f, 0.64f, 1.05f);
+        }
+
+        float GetContentInnerWidth()
+        {
             var avail = _content != null ? _content.rect.width : 0f;
             if (avail < 80f && _overlayRoot != null)
                 avail = _overlayRoot.rect.width * (ZoneContent.z - ZoneContent.x) - 24f;
-
-            avail = Mathf.Max(200f, avail - 16f);
-            const float gap = 12f;
-            var cellW = (avail - gap * (CardsPerRow - 1)) / CardsPerRow;
-            _cardScale = Mathf.Clamp(cellW / CardBaseW, 0.72f, 1.2f);
+            return Mathf.Max(200f, avail);
         }
 
         void CreateCardCell(Transform parent, CardDefinitionSO def, bool unlocked)
@@ -976,12 +984,33 @@ namespace Grimhand.Presentation.Camp
             fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
+            const int padL = 4;
+            const int padR = 10; // 右侧多留一点，避免贴滚动条被裁切
+            // 可用宽略收紧，拉开间距时不会顶出面板
+            var avail = Mathf.Max(columns * cellW, GetContentInnerWidth() - padL - padR - 18f);
+            if (columns > 1)
+            {
+                var minGap = 10f;
+                var maxCellW = (avail - minGap * (columns - 1)) / columns;
+                if (maxCellW < cellW && maxCellW > 40f)
+                {
+                    var s = maxCellW / cellW;
+                    cellW = maxCellW;
+                    cellH *= s;
+                }
+            }
+
+            var spacingX = columns > 1
+                ? Mathf.Max(10f, (avail - columns * cellW) / (columns - 1))
+                : 0f;
+
             var grid = go.AddComponent<GridLayoutGroup>();
             grid.cellSize = new Vector2(cellW, cellH);
-            grid.spacing = new Vector2(18f, 16f);
-            grid.padding = new RectOffset(8, 8, 4, 8);
+            grid.spacing = new Vector2(spacingX, 18f);
+            grid.padding = new RectOffset(padL, padR, 4, 8);
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
             grid.constraintCount = columns;
+            // 与敌方角色一致：左起排布，不满一行也不居中
             grid.childAlignment = TextAnchor.UpperLeft;
             return go.transform;
         }
@@ -997,13 +1026,19 @@ namespace Grimhand.Presentation.Camp
             fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
+            var cellW = cardWidth + 4f;
+            var avail = Mathf.Max(CardsPerRow * cellW, GetContentInnerWidth() - 12f);
+            var spacingX = CardsPerRow > 1
+                ? Mathf.Max(8f, (avail - CardsPerRow * cellW) / (CardsPerRow - 1))
+                : 0f;
+
             var grid = go.AddComponent<GridLayoutGroup>();
-            grid.cellSize = new Vector2(cardWidth + 4f, cardHeight + 4f);
-            grid.spacing = new Vector2(12f, 14f);
-            grid.padding = new RectOffset(4, 4, 4, 8);
+            grid.cellSize = new Vector2(cellW, cardHeight + 4f);
+            grid.spacing = new Vector2(spacingX, 14f);
+            grid.padding = new RectOffset(4, 8, 4, 8);
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
             grid.constraintCount = CardsPerRow;
-            grid.childAlignment = TextAnchor.UpperLeft;
+            grid.childAlignment = TextAnchor.UpperCenter;
             return go.transform;
         }
 

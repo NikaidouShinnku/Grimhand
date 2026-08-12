@@ -5,15 +5,6 @@ TextureImporter:
   - first:
       213: -6967642853037097647
     second: crimson_burning_boots_0
-  - first:
-      213: 6615825786097920244
-    second: crimson_burning_boots_1
-  - first:
-      213: 35838507130130794
-    second: crimson_burning_boots_2
-  - first:
-      213: 5651075843314633871
-    second: crimson_burning_boots_3
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -125,12 +116,12 @@ TextureImporter:
       name: crimson_burning_boots_0
       rect:
         serializedVersion: 2
-        x: 47
-        y: 47
-        width: 914
-        height: 898
+        x: 0
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -139,72 +130,6 @@ TextureImporter:
       bones: []
       spriteID: 15d3fe6cdb5fd4f90800000000000000
       internalID: -6967642853037097647
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: crimson_burning_boots_1
-      rect:
-        serializedVersion: 2
-        x: 591
-        y: 943
-        width: 34
-        height: 34
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 4f86c34108220db50800000000000000
-      internalID: 6615825786097920244
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: crimson_burning_boots_2
-      rect:
-        serializedVersion: 2
-        x: 879
-        y: 943
-        width: 18
-        height: 18
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: a6195ceaee25f7000800000000000000
-      internalID: 35838507130130794
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: crimson_burning_boots_3
-      rect:
-        serializedVersion: 2
-        x: 927
-        y: 943
-        width: 34
-        height: 34
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: f8c4f8fe987ac6e40800000000000000
-      internalID: 5651075843314633871
       vertices: []
       indices: 
       edges: []
@@ -224,9 +149,6 @@ TextureImporter:
       entries: []
     nameFileIdTable:
       crimson_burning_boots_0: -6967642853037097647
-      crimson_burning_boots_1: 6615825786097920244
-      crimson_burning_boots_2: 35838507130130794
-      crimson_burning_boots_3: 5651075843314633871
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -17,13 +17,19 @@ namespace Grimhand.Presentation.Camp
         string _characterId;
         Coroutine _loop;
         IReadOnlyList<Sprite> _frames;
+        bool _animate;
 
-        public void Bind(Image image, CharacterVisualCatalogSO visuals, string characterId)
+        public void Bind(
+            Image image,
+            CharacterVisualCatalogSO visuals,
+            string characterId,
+            bool animate = true)
         {
             StopLoop();
             _image = image;
             _visuals = visuals;
             _characterId = characterId ?? "";
+            _animate = animate;
 
             if (_image != null)
             {
@@ -42,22 +48,21 @@ namespace Grimhand.Presentation.Camp
                 return;
             }
 
-            _frames = _visuals.GetIdleAnimationFrames(_characterId);
+            _frames = _animate ? _visuals.GetIdleAnimationFrames(_characterId) : null;
             if (_frames != null && _frames.Count > 0)
             {
                 _image.sprite = _frames[0];
-                if (_frames.Count > 1 && isActiveAndEnabled)
+                if (_animate && _frames.Count > 1 && isActiveAndEnabled)
                     _loop = StartCoroutine(PlayLoop());
+                return;
             }
-            else
-            {
-                _image.sprite = _visuals.GetPortrait(_characterId);
-            }
+
+            _image.sprite = _visuals.GetPortrait(_characterId);
         }
 
         void OnEnable()
         {
-            if (_image == null || _frames == null || _frames.Count <= 1)
+            if (!_animate || _image == null || _frames == null || _frames.Count <= 1)
                 return;
             if (_loop == null)
                 _loop = StartCoroutine(PlayLoop());

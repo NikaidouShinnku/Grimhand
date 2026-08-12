@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Grimhand.Content;
+using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -185,18 +186,35 @@ namespace Grimhand.Presentation.Battle
         public static List<CardDefinitionSO> LoadAllCardDefinitions()
         {
             var list = new List<CardDefinitionSO>();
+            var seen = new HashSet<string>();
+
+            void Add(CardDefinitionSO card)
+            {
+                if (card == null || string.IsNullOrEmpty(card.CardId))
+                    return;
+                if (!seen.Add(card.CardId))
+                    return;
+                list.Add(card);
+            }
+
+            // 正式包：Resources 目录（由 CardDefinitionCatalogBinder 在编辑器/Build 前同步）
+            var runtimeCatalog = Resources.Load<CardDefinitionCatalogSO>("CardDefinitionCatalog_Demo");
+            if (runtimeCatalog?.Cards != null)
+            {
+                foreach (var card in runtimeCatalog.Cards)
+                    Add(card);
+            }
+
 #if UNITY_EDITOR
+            // 编辑器：再扫一遍 Data/Cards，避免 catalog 过期时图鉴缺卡
             foreach (var guid in AssetDatabase.FindAssets("t:CardDefinitionSO", new[] { "Assets/_Project/Data/Cards" }))
             {
                 var path = AssetDatabase.GUIDToAssetPath(guid);
-                var card = AssetDatabase.LoadAssetAtPath<CardDefinitionSO>(path);
-                if (card != null)
-                    list.Add(card);
+                Add(AssetDatabase.LoadAssetAtPath<CardDefinitionSO>(path));
             }
 #endif
+
             return list
-                .GroupBy(c => c.CardId)
-                .Select(g => g.First())
                 .OrderBy(c => c.CardId)
                 .ToList();
         }

@@ -936,7 +936,8 @@ namespace Grimhand.Presentation.Camp
                 portraitRt.pivot = new Vector2(0.5f, 1f);
 
                 var animator = portraitHost.AddComponent<CampIdlePortraitAnimator>();
-                animator.Bind(portrait, _characterVisuals, member.CharacterDefinitionId);
+                // 仅当前选中槽播放 idle；其余只显示静态立绘
+                animator.Bind(portrait, _characterVisuals, member.CharacterDefinitionId, animate: active);
 
                 if (active)
                 {
@@ -1319,7 +1320,7 @@ namespace Grimhand.Presentation.Camp
             portrait.raycastTarget = false;
             CampUiRuntime.StretchFull(portrait.rectTransform);
             var animator = portraitHost.AddComponent<CampIdlePortraitAnimator>();
-            animator.Bind(portrait, _characterVisuals, character.CharacterId);
+            animator.Bind(portrait, _characterVisuals, character.CharacterId, animate: false);
 
             var isSwap = CampRosterValidation.FindMemberIndexWithCharacter(
                 _roster, character.CharacterId, memberIndex) >= 0;
@@ -1604,45 +1605,12 @@ namespace Grimhand.Presentation.Camp
 
         void UpdateHint()
         {
-            if (_hintText == null || _roster == null)
+            if (_hintText == null)
                 return;
 
-            if (!CampRosterValidation.HasUniqueCharacters(_roster))
-            {
-                _hintText.text = "编队中存在重复角色，请为每个槽位选择不同角色。";
-                return;
-            }
-
-            var member = _roster.Members[_activeMemberIndex];
-            var ready = _roster.IsReadyForExpedition;
-            var assigned = CampRosterLoadoutRules.CollectAssignedCollectionIndices(_roster);
-            var availableForMember = 0;
-            if (_collection != null)
-            {
-                for (var i = 0; i < _collection.Count; i++)
-                {
-                    if (assigned.Contains(i))
-                        continue;
-
-                    var cardId = _collection.Entries[i];
-                    if (!_definitions.TryGetValue(cardId, out var definition))
-                        continue;
-
-                    if (CampRosterBuilder.IsCardOwnedByCharacter(definition, member.CharacterDefinitionId))
-                        availableForMember++;
-                }
-            }
-
-            if (availableForMember == 0 && CountFilledSlots(member) == 0)
-            {
-                _hintText.text =
-                    $"正在编辑：{member.DisplayName} — 左侧祭坛携带为空；请先在局外商店获得该角色卡牌，或从右侧收藏选取填入。";
-                return;
-            }
-
-            _hintText.text = ready
-                ? "编队已就绪（远征仍使用角色初始卡组；左侧为空表示祭坛暂无可提取收藏牌）。保存后可通过传送门开始远征。"
-                : $"正在编辑：{member.DisplayName} — 点击右侧收藏卡牌按顺序加入携带；点击左侧携带卡牌可移回收藏。";
+            // 底部「正在编辑…」说明已移除，避免干扰编队界面
+            _hintText.text = "";
+            _hintText.gameObject.SetActive(false);
         }
 
         void RefreshMetaSummary()

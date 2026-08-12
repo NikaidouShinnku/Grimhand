@@ -115,6 +115,11 @@ namespace Grimhand.Presentation.Battle
                 }
             }
 #endif
+            // 正式包：场景漏绑时从 Resources 兜底（与编辑器行为对齐）
+            if (audioCatalog == null)
+                audioCatalog = Resources.Load<AudioCatalogSO>("AudioCatalog_Demo");
+            if (consumableVisualCatalog == null)
+                consumableVisualCatalog = Resources.Load<ConsumableVisualCatalogSO>("ConsumableVisualCatalog_Demo");
         }
 
         void Start()

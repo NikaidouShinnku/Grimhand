@@ -10,12 +10,12 @@ using UnityEngine.UI;
 namespace Grimhand.Presentation.Camp
 {
     /// <summary>
-    /// 传送门 / 开启远征：模板底图 + 三槽出征角色 + 起始层选择（测试用）+ 返回 / 开始远征。
+    /// 传送门 / 开启远征：模板底图 + 三槽出征角色 + 难度说明 + 返回 / 开始远征。
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class PortalOverlayView : MonoBehaviour
     {
-        const int LayoutVersion = 6;
+        const int LayoutVersion = 7;
         const float ButtonHoverScale = 1.06f;
 
         // 模板归一化（原点左下）1672×941
@@ -36,8 +36,6 @@ namespace Grimhand.Presentation.Camp
         static readonly Color ButtonLabel = new(0.96f, 0.92f, 0.78f, 1f);
         static readonly Color ReadyGreen = new(0.70f, 0.95f, 0.72f, 1f);
         static readonly Color WarnOrange = new(0.95f, 0.75f, 0.55f, 1f);
-        static readonly Color LayerIdle = new(0.22f, 0.24f, 0.30f, 0.96f);
-        static readonly Color LayerSelected = new(0.52f, 0.40f, 0.18f, 1f);
 
         CharacterVisualCatalogSO _characterVisuals;
         BattleUiIconCatalogSO _uiIcons;
@@ -49,16 +47,13 @@ namespace Grimhand.Presentation.Camp
         RectTransform _overlayRoot;
         Image _bgImage;
         Button _startButton;
-        Text _startLayerHint;
-        readonly List<Button> _startLayerButtons = new();
-        readonly List<int> _startLayerValues = new();
         readonly List<GameObject> _slotHosts = new();
         readonly List<GameObject> _dynamicObjects = new();
-        int _selectedStartLayer = 1;
+        const int FixedStartLayer = 1;
         bool _built;
         int _builtVersion = -1;
 
-        public int SelectedStartLayer => _selectedStartLayer;
+        public int SelectedStartLayer => FixedStartLayer;
 
         public bool IsOpen => _overlayRoot != null && _overlayRoot.gameObject.activeSelf;
 
@@ -104,7 +99,6 @@ namespace Grimhand.Presentation.Camp
             _roster = roster;
             _meta = meta;
             EnsureBuilt();
-            SelectStartLayer(_selectedStartLayer > 0 ? _selectedStartLayer : 1);
             _overlayRoot.gameObject.SetActive(true);
             gameObject.SetActive(true);
             transform.SetAsLastSibling();
@@ -130,9 +124,6 @@ namespace Grimhand.Presentation.Camp
             _builtVersion = LayoutVersion;
             _slotHosts.Clear();
             _dynamicObjects.Clear();
-            _startLayerButtons.Clear();
-            _startLayerValues.Clear();
-            _selectedStartLayer = 1;
 
             var hostRt = GetComponent<RectTransform>();
             if (hostRt == null)
@@ -171,7 +162,6 @@ namespace Grimhand.Presentation.Camp
             BuildDifficultySelector();
             BuildBackButton();
             BuildStartButton();
-            SelectStartLayer(1);
         }
 
         void BuildDifficultySelector()
@@ -179,72 +169,15 @@ namespace Grimhand.Presentation.Camp
             var go = CampUiRuntime.CreateRect("Difficulty", _overlayRoot);
             SetZone(go.GetComponent<RectTransform>(), ZoneDifficulty);
 
-            _startLayerHint = CampUiRuntime.CreateText(
+            var label = CampUiRuntime.CreateText(
                 go.transform,
-                "起始层（测试）",
-                16,
+                "难度1：无调整",
+                22,
                 FontStyle.Bold,
-                TextAnchor.UpperCenter);
-            CampUiRuntime.SetAnchored(_startLayerHint.rectTransform, 0.04f, 0.72f, 0.96f, 0.98f);
-            _startLayerHint.color = MuteText;
-            _startLayerHint.raycastTarget = false;
-
-            AddStartLayerButton(go.transform, "洞穴·1", 1, 0, 0);
-            AddStartLayerButton(go.transform, "地牢·21", ExpeditionRegionRules.DungeonStartLayer, 1, 0);
-            AddStartLayerButton(go.transform, "海渊·41", ExpeditionRegionRules.AbyssStartLayer, 2, 0);
-            AddStartLayerButton(go.transform, "Boss·20", ExpeditionRegionRules.CaveBossLayer, 0, 1);
-            AddStartLayerButton(go.transform, "Boss·40", ExpeditionRegionRules.DungeonBossLayer, 1, 1);
-            AddStartLayerButton(go.transform, "Boss·60", ExpeditionRegionRules.AbyssBossLayer, 2, 1);
-        }
-
-        void AddStartLayerButton(Transform parent, string label, int layer, int col, int row)
-        {
-            const float cols = 3f;
-            const float rows = 2f;
-            var x0 = 0.04f + col / cols * 0.92f;
-            var x1 = 0.04f + (col + 1f) / cols * 0.92f - 0.02f;
-            var y0 = 0.06f + (rows - 1 - row) / rows * 0.62f;
-            var y1 = 0.06f + (rows - row) / rows * 0.62f - 0.04f;
-
-            var btnGo = CampUiRuntime.CreateRect($"StartLayer_{layer}", parent);
-            CampUiRuntime.SetAnchored(btnGo.GetComponent<RectTransform>(), x0, y0, x1, y1);
-
-            var img = btnGo.AddComponent<Image>();
-            img.color = LayerIdle;
-            img.raycastTarget = true;
-
-            var text = CampUiRuntime.CreateText(btnGo.transform, label, 15, FontStyle.Bold, TextAnchor.MiddleCenter);
-            CampUiRuntime.StretchFull(text.rectTransform);
-            text.rectTransform.offsetMin = new Vector2(2f, 1f);
-            text.rectTransform.offsetMax = new Vector2(-2f, -1f);
-            text.color = ButtonLabel;
-            text.raycastTarget = false;
-
-            var btn = btnGo.AddComponent<Button>();
-            btn.targetGraphic = img;
-            btn.transition = Selectable.Transition.None;
-            btn.onClick.AddListener(() => SelectStartLayer(layer));
-            UiAudioHooks.WireButton(btn);
-
-            _startLayerButtons.Add(btn);
-            _startLayerValues.Add(layer);
-        }
-
-        void SelectStartLayer(int layer)
-        {
-            _selectedStartLayer = layer;
-            for (var i = 0; i < _startLayerButtons.Count; i++)
-            {
-                var btn = _startLayerButtons[i];
-                if (btn == null)
-                    continue;
-                var img = btn.targetGraphic as Image;
-                if (img != null)
-                    img.color = _startLayerValues[i] == layer ? LayerSelected : LayerIdle;
-            }
-
-            if (_startLayerHint != null)
-                _startLayerHint.text = $"起始层（测试）：第 {layer} 层";
+                TextAnchor.MiddleCenter);
+            CampUiRuntime.StretchFull(label.rectTransform);
+            label.color = GoldText;
+            label.raycastTarget = false;
         }
 
         void BuildBackButton()

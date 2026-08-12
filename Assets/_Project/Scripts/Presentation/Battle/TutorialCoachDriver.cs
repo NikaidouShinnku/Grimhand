@@ -141,16 +141,53 @@ namespace Grimhand.Presentation.Battle
                     if (overlay.IsShowing)
                         overlay.Hide();
                     run.EventFlags.Add(ExpeditionTutorialTipIds.OpenBagForConsumable);
+                    // 背包已开：立刻进入「强制使用消耗品」，勿落到带「知道了」的提示
+                }
+                else
+                {
+                    if (!overlay.IsShowing)
+                    {
+                        overlay.ShowAwaitingTargetClick(
+                            "打开背包",
+                            "请点击左侧背包。",
+                            screen.GetTutorialInventoryButtonRect(),
+                            TutorialPlateAnchor.Center);
+                    }
+                    else
+                    {
+                        overlay.BringToFront();
+                    }
+
+                    return true;
+                }
+            }
+
+            // 精英战：强制点击使用消耗品（无「知道了」；使用后提示消失）
+            if (NeedsForceUseConsumable(run))
+            {
+                if (HasUsedConsumableThisBattle(session))
+                {
+                    if (overlay.IsShowing)
+                        overlay.Hide();
+                    run.EventFlags.Add(ExpeditionTutorialTipIds.Consumable);
                     return false;
                 }
+
+                if (session.PresentationLocked)
+                    return false;
+
+                if (!screen.IsInventoryOpenForTutorial())
+                    screen.OpenInventoryForTutorial();
 
                 if (!overlay.IsShowing)
                 {
                     overlay.ShowAwaitingTargetClick(
-                        "打开背包",
-                        "请点击左侧背包。",
-                        screen.GetTutorialInventoryButtonRect(),
-                        TutorialPlateAnchor.Center);
+                        "使用消耗品",
+                        "右侧是消耗品栏，上限五个。战斗中使用后会消失，请点击使用。",
+                        screen.GetTutorialFirstConsumableSlotRect()
+                        ?? screen.GetTutorialConsumableStripRect()
+                        ?? screen.GetTutorialInventoryButtonRect(),
+                        TutorialPlateAnchor.AboveHighlight);
                 }
                 else
                 {
@@ -254,6 +291,15 @@ namespace Grimhand.Presentation.Battle
             && !Has(run, ExpeditionTutorialTipIds.OpenBagForConsumable)
             && !Has(run, ExpeditionTutorialTipIds.Consumable)
             && (session.Engine?.State?.TurnNumber ?? 0) >= 2;
+
+        static bool NeedsForceUseConsumable(ExpeditionRunState run) =>
+            run.LastBattleWasElite
+            && run.Phase == ExpeditionPhase.InBattle
+            && Has(run, ExpeditionTutorialTipIds.OpenBagForConsumable)
+            && !Has(run, ExpeditionTutorialTipIds.Consumable);
+
+        static bool HasUsedConsumableThisBattle(BattleSession session) =>
+            session?.ConsumablesUsedThisBattle is { Count: > 0 };
 
         static bool NeedsAwaitDefensiveStance(ExpeditionRunState run) =>
             run.LastBattleWasElite
@@ -575,23 +621,7 @@ namespace Grimhand.Presentation.Battle
                 return;
             }
 
-            // EliteDefend / EliteConfirmPlay / OpenBag 由 TryAdvanceAwaitingTips 处理
-
-            if (Has(run, ExpeditionTutorialTipIds.OpenBagForConsumable)
-                && !Has(run, ExpeditionTutorialTipIds.Consumable))
-            {
-                if (!screen.IsInventoryOpenForTutorial())
-                    screen.OpenInventoryForTutorial();
-
-                Show(run, overlay, ExpeditionTutorialTipIds.Consumable,
-                    "使用消耗品",
-                    "右侧是消耗品栏，上限五个。战斗中使用后会消失，请谨慎使用。",
-                    screen.GetTutorialFirstConsumableSlotRect()
-                    ?? screen.GetTutorialConsumableStripRect()
-                    ?? screen.GetTutorialInventoryButtonRect(),
-                    screen,
-                    TutorialPlateAnchor.AboveHighlight);
-            }
+            // EliteDefend / EliteConfirmPlay / OpenBag / Consumable 由 TryAdvanceAwaitingTips 处理
         }
 
         static bool Has(ExpeditionRunState run, string tipId) =>

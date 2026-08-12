@@ -8787,7 +8787,7 @@ MonoBehaviour:
   characterVisualCatalog: {fileID: 11400000, guid: 845ebe2e724e0a74abf54ceb08cf2bb0, type: 2}
   actionEffectCatalog: {fileID: 11400000, guid: 7b7bab3ce5cd71441b588bd72f9da04b, type: 2}
   uiIconCatalog: {fileID: 11400000, guid: 8adb91b1969f53246b7cf2943470bff4, type: 2}
-  audioCatalog: {fileID: 0}
+  audioCatalog: {fileID: 11400000, guid: 5033ec5e6406e264a816be74d70c91b0, type: 2}
   relicVisualCatalog: {fileID: 11400000, guid: ec1313bed7f93f443871e3b7523ac5c2, type: 2}
   consumableVisualCatalog: {fileID: 11400000, guid: 863bb6ca306da244a946c89c10cb787f, type: 2}
   screenView: {fileID: 278970327}

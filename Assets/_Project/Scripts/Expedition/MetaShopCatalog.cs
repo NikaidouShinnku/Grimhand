@@ -32,7 +32,7 @@ namespace Grimhand.Expedition
                 PackId = CardPackIds.Common,
                 DisplayName = "",
                 Price = 500,
-                Hint = "一次开出 3 张卡牌，全部加入收藏；概率与局内一致。"
+                Hint = "一次开出 3 张卡牌，全部加入收藏。"
             },
             new()
             {
@@ -41,7 +41,7 @@ namespace Grimhand.Expedition
                 PackId = CardPackIds.Advanced,
                 DisplayName = "",
                 Price = 2000,
-                Hint = "一次开出 3 张卡牌，全部加入收藏；概率与局内一致。"
+                Hint = "一次开出 3 张卡牌，全部加入收藏。"
             },
             new()
             {
@@ -50,7 +50,7 @@ namespace Grimhand.Expedition
                 PackId = CardPackIds.Master,
                 DisplayName = "",
                 Price = 5000,
-                Hint = "一次开出 3 张卡牌，全部加入收藏；概率与局内一致。"
+                Hint = "一次开出 3 张卡牌，全部加入收藏。"
             },
             new()
             {

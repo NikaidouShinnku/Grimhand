@@ -25,11 +25,13 @@ namespace Grimhand.Presentation.Camp
         const int TalentRowsPerSlot = 5;
         // 符文边长略放大，仍贴近模板圆槽
         const float RuneSizePx = 85f;
-        // 切换角色缩略图：从第 2 个起逐个右移；恶魔(char_ranger)/巫妖再略右
+        // 切换角色缩略图：从第 2 个起逐个右移；恶魔 / 毒蛇 / 巫妖再略右
         const float ThumbProgressiveShift = 0.014f;
-        const float ThumbExtraShiftDemonLich = 0.028f;
-        // 仅恶魔大立绘：相对默认肖像区略右移（框/名/经验不动）
+        const float ThumbExtraShiftDemon = 0.028f;
+        const float ThumbExtraShiftSnakeLich = 0.032f;
+        // 大立绘：毒蛇女王 / 巫妖女王略右移，落入拱形框中心
         const float PortraitExtraShiftDemon = 0.016f;
+        const float PortraitExtraShiftSnakeLich = 0.022f;
 
         // 模板归一化（原点左下）
         // 返回：拉长盖住模板钮，略加高（直接铺满热区，勿用 Cover/Fit 乱缩放）
@@ -411,7 +413,7 @@ namespace Grimhand.Presentation.Camp
             if (_ownedCharacters.Count == 0)
             {
                 ApplyPortraitZone("");
-                _portraitAnimator?.Bind(_portraitImage, _characterVisuals, "");
+                _portraitAnimator?.Bind(_portraitImage, _characterVisuals, "", animate: false);
                 _nameText.text = "无可用角色";
                 _levelText.text = "";
                 _xpText.text = "";
@@ -424,7 +426,8 @@ namespace Grimhand.Presentation.Camp
             var progress = _meta.GetOrCreate(character.CharacterId);
 
             ApplyPortraitZone(character.CharacterId);
-            _portraitAnimator?.Bind(_portraitImage, _characterVisuals, character.CharacterId);
+            // 大立绘播 idle；下方缩略图只用静态 GetPortrait，不绑动画
+            _portraitAnimator?.Bind(_portraitImage, _characterVisuals, character.CharacterId, animate: true);
             _nameText.text = character.DisplayName;
             _levelText.text = $"Lv.{progress.OutOfRunLevel}";
             RefreshXpBar(progress);
@@ -465,10 +468,12 @@ namespace Grimhand.Presentation.Camp
                 var x0 = i / (float)count;
                 var x1 = (i + 1) / (float)count;
                 var shift = i * ThumbProgressiveShift;
-                // 恶魔(char_ranger) / 巫妖女王：再略右
-                if (character.CharacterId == TalentCatalog.RangerId
-                    || character.CharacterId == TalentCatalog.LichQueenId)
-                    shift += ThumbExtraShiftDemonLich;
+                // 恶魔 / 毒蛇女王 / 巫妖女王：缩略图再略右，对准格子中心
+                if (character.CharacterId == TalentCatalog.RangerId)
+                    shift += ThumbExtraShiftDemon;
+                else if (character.CharacterId == TalentCatalog.SnakeQueenId
+                         || character.CharacterId == TalentCatalog.LichQueenId)
+                    shift += ThumbExtraShiftSnakeLich;
                 CampUiRuntime.SetAnchored(rt, x0 + 0.015f + shift, 0.06f, x1 - 0.015f + shift, 0.98f);
 
                 var img = go.AddComponent<Image>();
@@ -754,12 +759,19 @@ namespace Grimhand.Presentation.Camp
                 return;
 
             var zone = ZonePortrait;
+            var shift = 0f;
             if (characterId == TalentCatalog.RangerId)
+                shift = PortraitExtraShiftDemon;
+            else if (characterId == TalentCatalog.SnakeQueenId
+                     || characterId == TalentCatalog.LichQueenId)
+                shift = PortraitExtraShiftSnakeLich;
+
+            if (shift != 0f)
             {
                 zone = new Vector4(
-                    zone.x + PortraitExtraShiftDemon,
+                    zone.x + shift,
                     zone.y,
-                    zone.z + PortraitExtraShiftDemon,
+                    zone.z + shift,
                     zone.w);
             }
 

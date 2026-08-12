@@ -42,7 +42,7 @@ namespace Grimhand.Editor
 
             if (!EditorUtility.DisplayDialog(
                     "删除存档",
-                    $"将删除整个存档目录：\n{path}\n\n下次 Play 将创建新局（等级 0）。",
+                    $"将删除整个存档目录：\n{path}\n\n下次 Play 将创建新局（含新手教程）。",
                     "删除",
                     "取消"))
             {

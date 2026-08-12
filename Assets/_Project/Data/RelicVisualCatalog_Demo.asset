@@ -49,3 +49,13 @@ MonoBehaviour:
     Icon: {fileID: 2016224780012889102, guid: 9eaf4a3a17266b046ba8118cc4c17e8b, type: 3}
   - RelicId: leaf_of_miracle
     Icon: {fileID: 2022231335846479030, guid: 3bf729da48298d5428ce74692d3af82f, type: 3}
+  - RelicId: burning_longsword
+    Icon: {fileID: -1830969459474465023, guid: 7b5034f454ae1614597d5f2cacf133e9, type: 3}
+  - RelicId: crystal_longsword
+    Icon: {fileID: -6019762326541173059, guid: 0a8411393e566fb4d8f8d23494fcbb87, type: 3}
+  - RelicId: bonfire
+    Icon: {fileID: 5801255725635399724, guid: ebb762402ff145342a1ae82cfadc8d31, type: 3}
+  - RelicId: holysun_spellbook
+    Icon: {fileID: 1552880449484307992, guid: 7cb8130b81ae5c34b8480a99bdbcc829, type: 3}
+  - RelicId: felskull
+    Icon: {fileID: 6611001218573771035, guid: dbf2585f7191bdb47984b996ef62bb63, type: 3}

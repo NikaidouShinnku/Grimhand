@@ -16,8 +16,18 @@ namespace Grimhand.Persistence
 
         public ISaveStorage Storage => _storage;
 
-        public static string DefaultSaveDirectory =>
-            System.IO.Path.Combine(Application.persistentDataPath, "saves");
+        public static string DefaultSaveDirectory
+        {
+            get
+            {
+                // 编辑器与正式包分开存，避免开发时完成教程后 Build 也跳过新手引导。
+#if UNITY_EDITOR
+                return System.IO.Path.Combine(Application.persistentDataPath, "saves_editor");
+#else
+                return System.IO.Path.Combine(Application.persistentDataPath, "saves");
+#endif
+            }
+        }
 
         public SaveLoadResult LoadOrCreate(Func<PlayerProfileState> createNew)
         {

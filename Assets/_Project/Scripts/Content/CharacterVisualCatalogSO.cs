@@ -61,10 +61,7 @@ namespace Grimhand.Content
 
         public Sprite GetPortrait(string characterDefinitionId)
         {
-            var frames = GetIdleAnimationFrames(characterDefinitionId);
-            if (frames.Count > 0)
-                return frames[0];
-
+            // 静态立绘禁止解码 GIF：打开图鉴/营地缩略图时会连打多次，易卡死/爆内存
             var entry = GetEntry(characterDefinitionId);
             if (entry?.IdlePortrait != null)
                 return entry.IdlePortrait;
@@ -92,10 +89,7 @@ namespace Grimhand.Content
 
         public Sprite GetPortraitReference(string characterDefinitionId)
         {
-            var frames = GetIdleAnimationFrames(characterDefinitionId);
-            if (frames.Count > 0)
-                return frames[0];
-
+            // 与 GetPortrait 一致：只用静态贴图，不触发 GIF 全帧解码
             return GetPortrait(characterDefinitionId);
         }
 
@@ -182,10 +176,17 @@ namespace Grimhand.Content
 
             if (!string.IsNullOrEmpty(entry.IdleAnimationGifPath))
             {
-                var ppu = entry.IdlePortrait != null ? entry.IdlePortrait.pixelsPerUnit : 100f;
-                var gifFrames = IdleAnimationGifLoader.GetSprites(entry.IdleAnimationGifPath, ppu);
-                if (gifFrames.Count > 1)
-                    return gifFrames;
+                try
+                {
+                    var ppu = entry.IdlePortrait != null ? entry.IdlePortrait.pixelsPerUnit : 100f;
+                    var gifFrames = IdleAnimationGifLoader.GetSprites(entry.IdleAnimationGifPath, ppu);
+                    if (gifFrames.Count > 1)
+                        return gifFrames;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[Grimhand] idle GIF 解码失败（已回退静态立绘）：{entry.IdleAnimationGifPath}\n{ex.Message}");
+                }
             }
 
             if (entry.IdleAnimationFrames == null || entry.IdleAnimationFrames.Count == 0)

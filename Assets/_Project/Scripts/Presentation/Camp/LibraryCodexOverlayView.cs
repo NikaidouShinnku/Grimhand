@@ -667,9 +667,8 @@ namespace Grimhand.Presentation.Camp
         List<CardDefinitionSO> CollectPlayerCards()
         {
             var list = new List<CardDefinitionSO>();
-            foreach (var pair in _definitions)
+            foreach (var def in EnumerateKnownDefinitions())
             {
-                var def = pair.Value;
                 if (def == null || string.IsNullOrEmpty(def.CardId))
                     continue;
                 if (!PlayerCardCatalogRules.IsAllowedPlayerCard(def.CardId, def.OwnerCharacterId))
@@ -686,9 +685,8 @@ namespace Grimhand.Presentation.Camp
         List<CardDefinitionSO> CollectEnemyCards()
         {
             var list = new List<CardDefinitionSO>();
-            foreach (var pair in _definitions)
+            foreach (var def in EnumerateKnownDefinitions())
             {
-                var def = pair.Value;
                 if (def == null || string.IsNullOrEmpty(def.CardId))
                     continue;
                 if (PlayerCardCatalogRules.IsAllowedPlayerCardId(def.CardId))
@@ -702,6 +700,32 @@ namespace Grimhand.Presentation.Camp
 
             list.Sort(CompareCards);
             return list;
+        }
+
+        IEnumerable<CardDefinitionSO> EnumerateKnownDefinitions()
+        {
+            var seen = new HashSet<string>();
+            if (_definitions != null)
+            {
+                foreach (var pair in _definitions)
+                {
+                    var def = pair.Value;
+                    if (def == null || string.IsNullOrEmpty(def.CardId))
+                        continue;
+                    if (!seen.Add(def.CardId))
+                        continue;
+                    yield return def;
+                }
+            }
+
+            foreach (var def in CardCodexCatalog.LoadAllCardDefinitions())
+            {
+                if (def == null || string.IsNullOrEmpty(def.CardId))
+                    continue;
+                if (!seen.Add(def.CardId))
+                    continue;
+                yield return def;
+            }
         }
 
         static int CompareCards(CardDefinitionSO a, CardDefinitionSO b)

@@ -25,17 +25,17 @@ namespace Grimhand.Presentation.Battle
         public static IReadOnlyList<Entry> BuildEntries()
         {
             var list = new List<Entry>();
-#if UNITY_EDITOR
-            foreach (var guid in AssetDatabase.FindAssets("t:CharacterDefinitionSO",
-                         new[] { "Assets/_Project/Data/Characters" }))
+            var seen = new HashSet<string>();
+
+            foreach (var def in LoadEnemyDefinitions())
             {
-                var path = AssetDatabase.GUIDToAssetPath(guid);
-                var def = AssetDatabase.LoadAssetAtPath<CharacterDefinitionSO>(path);
                 if (def == null || string.IsNullOrEmpty(def.CharacterId))
                     continue;
                 if (def.Team != TeamSide.Enemy && def.CharacterId != "char_dummy")
                     continue;
                 if (def.CharacterId == "char_dummy")
+                    continue;
+                if (!seen.Add(def.CharacterId))
                     continue;
 
                 list.Add(new Entry
@@ -46,10 +46,7 @@ namespace Grimhand.Presentation.Battle
                     Template = FromDefinition(def)
                 });
             }
-#else
-            // 运行时：用硬编码 Boss + Resources 无法扫 SO 时的兜底表
-            AddHardcodedBosses(list);
-#endif
+
             // 确保三 Boss / 囚笼即使 SO 未生成也能测
             EnsureBoss(list, WardenBossEncounterBuilder.CharacterId, "典狱长", "Boss",
                 250, 22, 8, 5, FormationSlot.Back, CharacterTraitCatalog.WardenCageMaster);
@@ -59,6 +56,10 @@ namespace Grimhand.Presentation.Battle
                 400, 20, 10, 6, FormationSlot.Front, CharacterTraitCatalog.OceanGoddessTide);
             EnsureBoss(list, CharacterTraitCatalog.PrisonCageCharacterId, "囚笼", "Boss",
                 150, 0, 5, 5, FormationSlot.Middle, CharacterTraitCatalog.PrisonCage);
+            EnsureBoss(list, "char_ghost_queen", "幽灵女王", "Boss·幽灵女王",
+                320, 25, 8, 7, FormationSlot.Middle, CharacterTraitCatalog.GhostQueenEnrage);
+            EnsureBoss(list, "char_skeleton_king", "骷髅王", "Boss·骷髅王",
+                280, 20, 10, 4, FormationSlot.Front, CharacterTraitCatalog.BossFirstHitBlock);
 
             list.Sort((a, b) =>
             {
@@ -66,6 +67,25 @@ namespace Grimhand.Presentation.Battle
                 return cat != 0 ? cat : string.CompareOrdinal(a.DisplayName, b.DisplayName);
             });
             return list;
+        }
+
+        static IEnumerable<CharacterDefinitionSO> LoadEnemyDefinitions()
+        {
+            var runtime = Resources.Load<CharacterDefinitionCatalogSO>("CharacterDefinitionCatalog_Demo");
+            if (runtime?.Characters != null)
+            {
+                foreach (var character in runtime.Characters)
+                    yield return character;
+            }
+
+#if UNITY_EDITOR
+            foreach (var guid in AssetDatabase.FindAssets("t:CharacterDefinitionSO",
+                         new[] { "Assets/_Project/Data/Characters" }))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                yield return AssetDatabase.LoadAssetAtPath<CharacterDefinitionSO>(path);
+            }
+#endif
         }
 
         static void EnsureBoss(
@@ -111,14 +131,6 @@ namespace Grimhand.Presentation.Battle
 
         static string ResolveCategory(string characterId) =>
             CardCodexCatalog.ResolveOwnerCategory(characterId);
-
-        static void AddHardcodedBosses(List<Entry> list)
-        {
-            EnsureBoss(list, "char_ghost_queen", "幽灵女王", "Boss·幽灵女王", 320, 25, 8, 7, FormationSlot.Middle,
-                CharacterTraitCatalog.GhostQueenEnrage);
-            EnsureBoss(list, "char_skeleton_king", "骷髅王", "Boss·骷髅王", 280, 20, 10, 4, FormationSlot.Front,
-                CharacterTraitCatalog.BossFirstHitBlock);
-        }
 
         static CombatantConfig FromDefinition(CharacterDefinitionSO def)
         {

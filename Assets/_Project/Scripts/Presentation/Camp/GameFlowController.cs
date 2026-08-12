@@ -77,6 +77,10 @@ namespace Grimhand.Presentation.Camp
             _roster = _profile.Roster;
             _collection = _profile.Collection;
 
+            Debug.Log(
+                $"[GameFlow] 存档目录: {SaveService.DefaultSaveDirectory} | " +
+                $"来源={loadResult.Source} | 教程已完成={_profile.HasCompletedTutorial}");
+
             if (loadResult.Source != SaveLoadSource.Primary)
                 Debug.Log($"[GameFlow] 读档: {loadResult.Message} ({loadResult.Source})");
 
@@ -436,12 +440,25 @@ namespace Grimhand.Presentation.Camp
             if (TryHandleCampOverlayEscape())
                 return;
 
-            // 6) 远征/训练场：打开 ESC 菜单
+            // 6) 营地主界面：返回开始菜单（可退出游戏）
+            if (IsCampRootVisible())
+            {
+                ShowMainMenu();
+                return;
+            }
+
+            // 7) 远征/训练场：打开 ESC 菜单
             if (!CanOpenEscMenu())
                 return;
 
             OpenEscMenu();
         }
+
+        bool IsCampRootVisible() =>
+            campScreen != null
+            && campScreen.gameObject.activeInHierarchy
+            && !IsBattleUiVisible()
+            && (gameMenu == null || !gameMenu.IsOpen);
 
         bool TryCancelOpenConfirmPrompts()
         {

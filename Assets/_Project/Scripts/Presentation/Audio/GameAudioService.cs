@@ -16,6 +16,8 @@ namespace Grimhand.Presentation.Audio
         // 点选卡 / 获取卡牌音效原本偏轻，按设计再放大。
         const float CardRewardSfxScale = 10f;
         const float BattleCardClickSfxScale = 10f;
+        /// <summary>悬停音全局冷却，避免快速划过密集控件时叠爆。</summary>
+        const float HoverSfxCooldownSeconds = 0.1f;
 
         static GameAudioService _instance;
 
@@ -24,6 +26,7 @@ namespace Grimhand.Presentation.Audio
         AudioSource _sfxSource;
         string _bgmKey = "";
         AudioClip _battleBgmClip;
+        float _nextHoverSfxUnscaledTime;
 
         public static GameAudioService Instance
         {
@@ -62,6 +65,8 @@ namespace Grimhand.Presentation.Audio
             var service = Instance;
             if (catalog != null)
                 service.BindCatalog(catalog);
+            else if (service._catalog == null)
+                service.BindCatalog(Resources.Load<AudioCatalogSO>("AudioCatalog_Demo"));
             service.ApplyVolumes();
         }
 
@@ -234,7 +239,7 @@ namespace Grimhand.Presentation.Audio
 
         public void PlayUiMenuPress() => PlaySfx(_catalog?.UiMenuButtonPress);
 
-        public void PlayUiButtonHover() => PlaySfx(_catalog?.UiButtonHover);
+        public void PlayUiButtonHover() => TryPlayHoverSfx(_catalog?.UiButtonHover);
 
         public void PlayUiButtonPress() => PlaySfx(_catalog?.UiButtonPress);
 
@@ -264,7 +269,21 @@ namespace Grimhand.Presentation.Audio
         public void PlayBattleCardHover()
         {
             EnsureCatalogFallback();
-            PlaySfx(_catalog?.BattleCardHover ?? _catalog?.UiButtonHover);
+            TryPlayHoverSfx(_catalog?.BattleCardHover ?? _catalog?.UiButtonHover);
+        }
+
+        /// <summary>悬停类 SFX 共享冷却；点击音不走此路径。</summary>
+        void TryPlayHoverSfx(AudioClip clip)
+        {
+            if (clip == null)
+                return;
+
+            var now = Time.unscaledTime;
+            if (now < _nextHoverSfxUnscaledTime)
+                return;
+
+            _nextHoverSfxUnscaledTime = now + HoverSfxCooldownSeconds;
+            PlaySfx(clip);
         }
 
         public void PlayUiCardAcquire()

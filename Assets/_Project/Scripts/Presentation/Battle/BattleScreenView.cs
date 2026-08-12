@@ -107,7 +107,7 @@ namespace Grimhand.Presentation.Battle
         bool _battleBgmActive;
 
         /// <summary>局内测试工具：图鉴加手牌 / 假人出牌 / 测试怪物。正式 Demo 关闭，玩家不可见、不可点。</summary>
-        const bool EnableBattleDevTools = false;
+        static readonly bool EnableBattleDevTools = false;
         bool _battleDevToolsSuppressed;
 
         static readonly FormationSlot[] SlotOrder =

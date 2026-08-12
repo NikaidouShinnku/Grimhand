@@ -20,14 +20,6 @@ namespace Grimhand.Expedition.Events
         public const string FelFlameAltar = "evt_fel_flame_altar";
     }
 
-    public static class ExpeditionShrineIds
-    {
-        public const string Blood = "shrine_blood";
-        public const string Knowledge = "shrine_knowledge";
-        public const string Soul = "shrine_soul";
-        public const string Chaos = "shrine_chaos";
-    }
-
     public static class ExpeditionTreasureTiers
     {
         public const string Common = "chest_common";

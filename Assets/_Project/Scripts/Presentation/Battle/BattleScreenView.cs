@@ -106,6 +106,10 @@ namespace Grimhand.Presentation.Battle
         Dictionary<string, CardDefinitionSO> _definitions = new();
         bool _battleBgmActive;
 
+        /// <summary>局内测试工具：图鉴加手牌 / 假人出牌 / 测试怪物。正式 Demo 关闭，玩家不可见、不可点。</summary>
+        const bool EnableBattleDevTools = false;
+        bool _battleDevToolsSuppressed;
+
         static readonly FormationSlot[] SlotOrder =
         {
             FormationSlot.Front,
@@ -169,8 +173,16 @@ namespace Grimhand.Presentation.Battle
             EnsureInventoryHud();
             EnsureTurnLogHud();
             EnsureMapHud();
-            EnsureCodexHud();
-            EnsureDummyPlayHud();
+            if (EnableBattleDevTools)
+            {
+                EnsureCodexHud();
+                EnsureDummyPlayHud();
+            }
+            else
+            {
+                SuppressBattleDevTools();
+            }
+
             EnsurePresentationSpeedHud();
             EnsureSettingsHud();
             EnsureExpeditionPresentation();
@@ -584,8 +596,84 @@ namespace Grimhand.Presentation.Battle
             ApplyTurnLogButtonLayout();
         }
 
+        void SuppressBattleDevTools()
+        {
+            if (_battleDevToolsSuppressed
+                && _codexButton == null
+                && _dummyPlayButton == null
+                && _monsterSpawnButton == null)
+            {
+                if (_codexOverlay != null && _codexOverlay.IsOpen)
+                    _codexOverlay.Hide();
+                if (_monsterSpawnOverlay != null && _monsterSpawnOverlay.IsOpen)
+                    _monsterSpawnOverlay.Hide();
+                return;
+            }
+
+            HideNamedHudControl("CodexButton", ref _codexButton);
+            HideNamedHudControl("DummyPlayButton", ref _dummyPlayButton);
+            HideNamedHudControl("MonsterSpawnButton", ref _monsterSpawnButton);
+            if (_codexOverlay != null && _codexOverlay.IsOpen)
+                _codexOverlay.Hide();
+            if (_monsterSpawnOverlay != null && _monsterSpawnOverlay.IsOpen)
+                _monsterSpawnOverlay.Hide();
+            _battleDevToolsSuppressed = true;
+        }
+
+        void HideNamedHudControl(string objectName, ref Button button)
+        {
+            if (button != null)
+            {
+                button.onClick.RemoveAllListeners();
+                button.interactable = false;
+                button.gameObject.SetActive(false);
+                Object.Destroy(button.gameObject);
+                button = null;
+                return;
+            }
+
+            Transform existing = null;
+            if (HudRoot != null)
+                existing = HudRoot.Find(objectName);
+            if (existing == null)
+                existing = transform.Find("HudChromeRoot/" + objectName);
+            if (existing == null)
+            {
+                foreach (var t in GetComponentsInChildren<Transform>(true))
+                {
+                    if (t != null && t.name == objectName)
+                    {
+                        existing = t;
+                        break;
+                    }
+                }
+            }
+
+            if (existing == null)
+                return;
+
+            var btn = existing.GetComponent<Button>();
+            if (btn != null)
+            {
+                btn.onClick.RemoveAllListeners();
+                btn.interactable = false;
+            }
+
+            var img = existing.GetComponent<Image>();
+            if (img != null)
+                img.raycastTarget = false;
+            existing.gameObject.SetActive(false);
+            Object.Destroy(existing.gameObject);
+        }
+
         void EnsureCodexHud()
         {
+            if (!EnableBattleDevTools)
+            {
+                SuppressBattleDevTools();
+                return;
+            }
+
             if (_codexButton != null)
                 return;
 
@@ -636,6 +724,12 @@ namespace Grimhand.Presentation.Battle
 
         void EnsureDummyPlayHud()
         {
+            if (!EnableBattleDevTools)
+            {
+                SuppressBattleDevTools();
+                return;
+            }
+
             if (_dummyPlayButton != null)
             {
                 EnsureMonsterSpawnHud();
@@ -680,6 +774,12 @@ namespace Grimhand.Presentation.Battle
 
         void EnsureMonsterSpawnHud()
         {
+            if (!EnableBattleDevTools)
+            {
+                SuppressBattleDevTools();
+                return;
+            }
+
             if (_monsterSpawnButton != null)
                 return;
 
@@ -1176,8 +1276,16 @@ namespace Grimhand.Presentation.Battle
                 ApplyInventoryButtonLayout();
                 ApplyTurnLogButtonLayout();
                 ApplyMapButtonLayout();
-                ApplyCodexButtonLayout();
-                ApplyDummyPlayButtonLayout();
+                if (EnableBattleDevTools)
+                {
+                    ApplyCodexButtonLayout();
+                    ApplyDummyPlayButtonLayout();
+                }
+                else
+                {
+                    SuppressBattleDevTools();
+                }
+
                 ApplySettingsButtonVisual();
                 if (_settingsButton != null)
                 {
@@ -1279,25 +1387,32 @@ namespace Grimhand.Presentation.Battle
             _turnLogButton?.gameObject.SetActive(showMetaUtility);
             _settingsButton?.gameObject.SetActive(showMetaUtility);
 
-            _codexButton?.gameObject.SetActive(showBattleOnlyUtility);
+            if (EnableBattleDevTools)
+            {
+                _codexButton?.gameObject.SetActive(showBattleOnlyUtility);
+                var showDummyPlay = showBattleOnlyUtility && _session?.Expedition?.Run?.IsTrainingGround == true;
+                if (showDummyPlay)
+                {
+                    ApplyDummyPlayButtonLayout();
+                    _dummyPlayButton?.gameObject.SetActive(true);
+                    _monsterSpawnButton?.gameObject.SetActive(true);
+                }
+                else
+                {
+                    _dummyPlayButton?.gameObject.SetActive(false);
+                    _monsterSpawnButton?.gameObject.SetActive(false);
+                    _monsterSpawnOverlay?.Hide();
+                }
+            }
+            else
+            {
+                SuppressBattleDevTools();
+            }
+
             if (_presentationSpeedToggle != null)
             {
                 var speedGo = HudRoot.Find("PresentationSpeedButton");
                 speedGo?.gameObject.SetActive(showBattleOnlyUtility);
-            }
-
-            var showDummyPlay = showBattleOnlyUtility && _session?.Expedition?.Run?.IsTrainingGround == true;
-            if (showDummyPlay)
-            {
-                ApplyDummyPlayButtonLayout();
-                _dummyPlayButton?.gameObject.SetActive(true);
-                _monsterSpawnButton?.gameObject.SetActive(true);
-            }
-            else
-            {
-                _dummyPlayButton?.gameObject.SetActive(false);
-                _monsterSpawnButton?.gameObject.SetActive(false);
-                _monsterSpawnOverlay?.Hide();
             }
 
             if (_escUiSuppressed)

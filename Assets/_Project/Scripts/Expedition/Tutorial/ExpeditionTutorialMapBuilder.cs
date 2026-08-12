@@ -89,8 +89,7 @@ namespace Grimhand.Expedition.Tutorial
                 NodeType = ExpeditionNodeType.Shrine,
                 DisplayName = "祭坛",
                 Description = "学习刻印：把卡牌带入收藏。",
-                PathSpriteIndex = 0,
-                ShrineId = ExpeditionShrineIds.Knowledge
+                PathSpriteIndex = 0
             };
     }
 }

@@ -414,15 +414,9 @@ namespace Grimhand.Expedition.Map
                     option.Description = "购买卡牌、删牌或治疗。";
                     break;
                 case ExpeditionNodeType.Shrine:
-                    option.ShrineId = PickShrineId(rng);
-                    option.DisplayName = option.ShrineId switch
-                    {
-                        ExpeditionShrineIds.Knowledge => "知识祭坛",
-                        ExpeditionShrineIds.Soul => "灵魂祭坛",
-                        ExpeditionShrineIds.Chaos => "混沌祭坛",
-                        _ => "血之祭坛"
-                    };
-                    option.Description = "献祭换取奖励，也可安全离开。";
+                    option.ShrineId = "";
+                    option.DisplayName = "祭坛";
+                    option.Description = "刻印卡牌、强化角色，或直接离开。";
                     break;
             }
         }
@@ -438,15 +432,6 @@ namespace Grimhand.Expedition.Map
                 PathSpriteIndex = 0,
                 EncounterIndex = 0
             };
-
-        static string PickShrineId(BattleRng rng)
-        {
-            var roll = rng.NextIndex(100);
-            if (roll < 35) return ExpeditionShrineIds.Blood;
-            if (roll < 60) return ExpeditionShrineIds.Knowledge;
-            if (roll < 80) return ExpeditionShrineIds.Soul;
-            return ExpeditionShrineIds.Chaos;
-        }
 
         static string RollTreasureTier(BattleRng rng)
         {

@@ -15,7 +15,7 @@ namespace Grimhand.Presentation.Camp
         const float PanelHeight = 580f;
         const float ButtonAspect = 512f / 216f;
         const float ButtonHoverScale = 1.06f;
-        const int LayoutVersion = 5;
+        const int LayoutVersion = 6;
 
         static readonly Color TitleColor = new(0.95f, 0.85f, 0.55f, 1f);
         static readonly Color LabelColor = new(0.92f, 0.90f, 0.84f, 1f);
@@ -328,13 +328,16 @@ namespace Grimhand.Presentation.Camp
             sliderRt.offsetMin = Vector2.zero;
             sliderRt.offsetMax = Vector2.zero;
 
-            var bg = CampUiRuntime.CreateImage("Background", sliderGo.transform, new Color(0.18f, 0.2f, 0.24f, 1f));
-            CampUiRuntime.StretchFull(bg.rectTransform);
+            // 根节点也挂 Image，保证整条轨道可点选（避免 fill=0 时点不到）
+            var track = sliderGo.AddComponent<Image>();
+            track.color = new Color(0.18f, 0.2f, 0.24f, 1f);
+            track.raycastTarget = true;
 
             var fillArea = CampUiRuntime.CreateRect("Fill Area", sliderGo.transform).GetComponent<RectTransform>();
             CampUiRuntime.Stretch(fillArea, 8f, 6f, -8f, -6f);
 
             var fill = CampUiRuntime.CreateImage("Fill", fillArea, new Color(0.45f, 0.55f, 0.35f, 1f));
+            fill.raycastTarget = false;
             var fillRt = fill.rectTransform;
             fillRt.anchorMin = Vector2.zero;
             fillRt.anchorMax = Vector2.one;
@@ -346,7 +349,11 @@ namespace Grimhand.Presentation.Camp
             CampUiRuntime.StretchFull(handleArea);
 
             var handle = CampUiRuntime.CreateImage("Handle", handleArea, new Color(0.92f, 0.88f, 0.72f, 1f));
-            handle.rectTransform.sizeDelta = new Vector2(18f, 18f);
+            handle.raycastTarget = true;
+            handle.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            handle.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            handle.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            handle.rectTransform.sizeDelta = new Vector2(18f, 28f);
 
             var slider = sliderGo.AddComponent<Slider>();
             slider.fillRect = fillRt;
@@ -356,8 +363,9 @@ namespace Grimhand.Presentation.Camp
             slider.minValue = 0f;
             slider.maxValue = 1f;
             slider.wholeNumbers = false;
-            slider.value = initial;
+            slider.interactable = true;
             slider.onValueChanged.AddListener(v => onChanged?.Invoke(v));
+            slider.SetValueWithoutNotify(Mathf.Clamp01(initial));
 
             return slider;
         }

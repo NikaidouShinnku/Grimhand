@@ -116,11 +116,38 @@ namespace Grimhand.Presentation.Audio
         public void ApplyVolumes()
         {
             EnsureSources();
+            EnsureAudioListener();
             if (_bgmSource != null)
+            {
+                _bgmSource.spatialBlend = 0f;
                 _bgmSource.volume = Mathf.Clamp01(GameSettings.MasterVolume * GameSettings.MusicVolume);
+            }
+
             if (_sfxSource != null)
+            {
+                _sfxSource.spatialBlend = 0f;
                 _sfxSource.volume = Mathf.Clamp01(GameSettings.MasterVolume * GameSettings.SfxVolume);
+            }
+
             AudioListener.volume = 1f;
+            AudioListener.pause = false;
+        }
+
+        static void EnsureAudioListener()
+        {
+            if (FindAnyObjectByType<AudioListener>(FindObjectsInactive.Include) != null)
+                return;
+
+            var cam = Camera.main;
+            if (cam == null)
+            {
+                var anyCam = FindAnyObjectByType<Camera>(FindObjectsInactive.Include);
+                if (anyCam != null)
+                    cam = anyCam;
+            }
+
+            if (cam != null)
+                cam.gameObject.AddComponent<AudioListener>();
         }
 
         public void PlaySfx(AudioClip clip, float volumeScale = 1f)

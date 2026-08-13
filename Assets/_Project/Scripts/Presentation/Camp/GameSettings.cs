@@ -24,20 +24,38 @@ namespace Grimhand.Presentation.Camp
 
         public static float MasterVolume
         {
-            get => PlayerPrefs.GetFloat(MasterVolumeKey, 0.8f);
+            get => ReadVolume(MasterVolumeKey, 0.8f);
             set => PlayerPrefs.SetFloat(MasterVolumeKey, Mathf.Clamp01(value));
         }
 
         public static float MusicVolume
         {
-            get => PlayerPrefs.GetFloat(MusicVolumeKey, 0.8f);
+            get => ReadVolume(MusicVolumeKey, 0.8f);
             set => PlayerPrefs.SetFloat(MusicVolumeKey, Mathf.Clamp01(value));
         }
 
         public static float SfxVolume
         {
-            get => PlayerPrefs.GetFloat(SfxVolumeKey, 0.8f);
+            get => ReadVolume(SfxVolumeKey, 0.8f);
             set => PlayerPrefs.SetFloat(SfxVolumeKey, Mathf.Clamp01(value));
+        }
+
+        /// <summary>
+        /// 读取 0–1 音量；非法值（曾出现过 -2）回退默认，避免整局静音。
+        /// </summary>
+        static float ReadVolume(string key, float fallback)
+        {
+            if (!PlayerPrefs.HasKey(key))
+                return fallback;
+
+            var v = PlayerPrefs.GetFloat(key, fallback);
+            if (float.IsNaN(v) || float.IsInfinity(v) || v < 0f || v > 1f)
+            {
+                PlayerPrefs.SetFloat(key, fallback);
+                return fallback;
+            }
+
+            return v;
         }
 
         public static int ResolutionWidth

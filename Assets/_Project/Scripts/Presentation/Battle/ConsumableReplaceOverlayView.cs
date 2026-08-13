@@ -1,32 +1,64 @@
+using System.Collections.Generic;
 using Grimhand.Battle.Consumables;
 using Grimhand.Content;
 using Grimhand.Expedition;
+using Grimhand.Presentation.Audio;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Battle
 {
+    /// <summary>消耗品栏已满：Event Plate 底板 + 栏位框选择 + button1 确认 / button3 放弃。</summary>
     public sealed class ConsumableReplaceOverlayView : MonoBehaviour
     {
-        const float PanelWidth = 980f;
-        const float PanelHeight = 420f;
-        const float IconSize = 128f;
+        const float PanelWidth = 960f;
+        const float PanelHeight = 780f;
+        const float IconSize = 120f;
         const float IconGap = 24f;
+        const float ConfirmButtonWidth = 220f;
+        const float AbandonButtonWidth = 220f;
+        const int LayoutVersion = 8;
+
+        static readonly Color TitleGold = new(0.95f, 0.85f, 0.55f, 1f);
+        static readonly Color SlotLabel = new(0.86f, 0.88f, 0.94f, 1f);
+        static readonly Color SelectedOutline = new(0.95f, 0.82f, 0.42f, 1f);
 
         BattleSession _session;
+        Transform _battleRoot;
         ConsumableVisualCatalogSO _consumableCatalog;
+        BattleUiIconCatalogSO _uiIcons;
         RectTransform _root;
-        Text _bodyText;
+        Image _panelImage;
+        Image _offerFrame;
+        Text _titleText;
+        Text _replaceLabel;
+        RectTransform _offerIconHost;
+        Image _offerIcon;
+        Text _offerNameText;
         RectTransform _iconRow;
-        RectTransform _footerRow;
+        Button _confirmButton;
+        Button _abandonButton;
         bool _built;
-        const int LayoutVersion = 2;
         int _layoutVersion;
+        int _selectedSlotIndex = -1;
+        readonly List<Image> _slotFrames = new();
 
-        public void Initialize(BattleSession session, Transform parent, ConsumableVisualCatalogSO consumableCatalog)
+        public bool IsOpen =>
+            _root != null
+            && _root.gameObject.activeSelf
+            && _session?.Expedition?.Run != null
+            && !string.IsNullOrEmpty(_session.Expedition.Run.PendingConsumableOfferId);
+
+        public void Initialize(
+            BattleSession session,
+            Transform parent,
+            ConsumableVisualCatalogSO consumableCatalog,
+            BattleUiIconCatalogSO uiIcons = null)
         {
             _session = session;
+            _battleRoot = parent;
             _consumableCatalog = consumableCatalog;
+            _uiIcons = uiIcons;
             EnsureBuilt(parent);
         }
 
@@ -47,13 +79,18 @@ namespace Grimhand.Presentation.Battle
 
             ConsumableDatabase.TryGet(offerId, out var def);
             SetVisible(true);
-            _root.SetAsLastSibling();
-            ClearChildren(_iconRow);
-            ClearChildren(_footerRow);
+            // 与地图浮层同级（sorting 500），避免嵌套 Canvas 抢射线；并盖过图鉴层(120)
+            if (_battleRoot != null)
+                ExpeditionMapOverlayLayer.MountToFront(_root, _battleRoot);
 
-            _bodyText.text =
-                $"消耗品栏已满（{ConsumableInventory.MaxSlots}/{ConsumableInventory.MaxSlots}）\n" +
-                $"获得：{def?.DisplayName ?? offerId}　　点击下方图标替换对应道具，或放弃新物品。";
+            ClearChildren(_iconRow);
+            _slotFrames.Clear();
+            _selectedSlotIndex = -1;
+
+            if (_titleText != null)
+                _titleText.text = "消耗品栏已满";
+
+            BindOfferPreview(offerId, def?.DisplayName ?? offerId);
 
             ConsumableInventory.EnsureInitialized(_session.Expedition.Run.ConsumableSlots);
             var slots = _session.Expedition.Run.ConsumableSlots;
@@ -65,32 +102,67 @@ namespace Grimhand.Presentation.Battle
                 AddIconChoice(
                     slotId,
                     occupied?.DisplayName ?? (string.IsNullOrEmpty(slotId) ? "空栏" : slotId),
-                    () => _session.ReplaceConsumableSlot(index));
+                    index);
             }
 
             FitIconRow();
-            AddAbandonButton();
+            ApplyFooterButtons();
+            EnsureAbandonInteractable();
+            RefreshSelectionVisuals();
+            RefreshConfirmInteractable();
         }
 
-        void AddIconChoice(string consumableId, string displayName, System.Action onClick)
+        void BindOfferPreview(string consumableId, string displayName)
         {
-            var go = new GameObject("SlotIcon", typeof(RectTransform), typeof(Image), typeof(Button));
+            if (_offerIcon == null || _offerNameText == null)
+                return;
+
+            ApplySlotFrame(_offerFrame);
+            _offerNameText.text = $"获得：{displayName}";
+            if (!string.IsNullOrEmpty(consumableId))
+            {
+                _offerIcon.sprite = _consumableCatalog?.GetIcon(consumableId);
+                _offerIcon.color = _offerIcon.sprite != null
+                    ? Color.white
+                    : new Color(0.45f, 0.48f, 0.55f, 1f);
+            }
+            else
+            {
+                _offerIcon.sprite = null;
+                _offerIcon.color = new Color(0.25f, 0.27f, 0.32f, 0.9f);
+            }
+        }
+
+        void AddIconChoice(string consumableId, string displayName, int slotIndex)
+        {
+            var go = new GameObject("SlotIcon", typeof(RectTransform));
             go.transform.SetParent(_iconRow, false);
             var rt = go.GetComponent<RectTransform>();
             rt.anchorMin = new Vector2(0.5f, 0.5f);
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.sizeDelta = new Vector2(IconSize, IconSize + 28f);
-            go.GetComponent<Image>().color = new Color(0.14f, 0.16f, 0.22f, 0.98f);
+            rt.sizeDelta = new Vector2(IconSize, IconSize + 32f);
+
+            var frameGo = new GameObject("Frame", typeof(RectTransform), typeof(Image), typeof(Button));
+            frameGo.transform.SetParent(go.transform, false);
+            var frameRt = frameGo.GetComponent<RectTransform>();
+            frameRt.anchorMin = new Vector2(0.5f, 1f);
+            frameRt.anchorMax = new Vector2(0.5f, 1f);
+            frameRt.pivot = new Vector2(0.5f, 1f);
+            frameRt.anchoredPosition = new Vector2(0f, -4f);
+            frameRt.sizeDelta = new Vector2(IconSize - 8f, IconSize - 8f);
+            var frame = frameGo.GetComponent<Image>();
+            ApplySlotFrame(frame);
+            frame.raycastTarget = true;
+            _slotFrames.Add(frame);
 
             var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
-            iconGo.transform.SetParent(go.transform, false);
+            iconGo.transform.SetParent(frameGo.transform, false);
             var iconRt = iconGo.GetComponent<RectTransform>();
-            iconRt.anchorMin = new Vector2(0.5f, 1f);
-            iconRt.anchorMax = new Vector2(0.5f, 1f);
-            iconRt.pivot = new Vector2(0.5f, 1f);
-            iconRt.anchoredPosition = new Vector2(0f, -8f);
-            iconRt.sizeDelta = new Vector2(IconSize - 20f, IconSize - 20f);
+            iconRt.anchorMin = new Vector2(0.14f, 0.14f);
+            iconRt.anchorMax = new Vector2(0.86f, 0.86f);
+            iconRt.offsetMin = Vector2.zero;
+            iconRt.offsetMax = Vector2.zero;
             var icon = iconGo.GetComponent<Image>();
             icon.preserveAspect = true;
             icon.raycastTarget = false;
@@ -112,18 +184,97 @@ namespace Grimhand.Presentation.Battle
             labelRt.anchorMax = new Vector2(1f, 0f);
             labelRt.pivot = new Vector2(0.5f, 0f);
             labelRt.anchoredPosition = new Vector2(0f, 4f);
-            labelRt.sizeDelta = new Vector2(0f, 26f);
+            labelRt.sizeDelta = new Vector2(0f, 28f);
             var label = labelGo.GetComponent<Text>();
             label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            label.fontSize = 13;
+            label.fontSize = 14;
+            label.fontStyle = FontStyle.Bold;
             label.alignment = TextAnchor.MiddleCenter;
-            label.color = new Color(0.85f, 0.88f, 0.94f, 1f);
+            label.color = SlotLabel;
             label.text = displayName;
             label.horizontalOverflow = HorizontalWrapMode.Wrap;
             label.verticalOverflow = VerticalWrapMode.Truncate;
             label.raycastTarget = false;
 
-            go.GetComponent<Button>().onClick.AddListener(() => onClick?.Invoke());
+            var btn = frameGo.GetComponent<Button>();
+            btn.targetGraphic = frame;
+            btn.transition = Selectable.Transition.None;
+            btn.onClick.AddListener(() => OnSlotClicked(slotIndex));
+            UiAudioHooks.WireButton(btn);
+        }
+
+        void OnSlotClicked(int slotIndex)
+        {
+            _selectedSlotIndex = _selectedSlotIndex == slotIndex ? -1 : slotIndex;
+            RefreshSelectionVisuals();
+            RefreshConfirmInteractable();
+        }
+
+        void RefreshSelectionVisuals()
+        {
+            for (var i = 0; i < _slotFrames.Count; i++)
+            {
+                var frame = _slotFrames[i];
+                if (frame == null)
+                    continue;
+
+                var selected = i == _selectedSlotIndex;
+                frame.color = selected
+                    ? new Color(1f, 0.96f, 0.82f, 1f)
+                    : Color.white;
+
+                var outline = frame.GetComponent<Outline>();
+                if (selected)
+                {
+                    if (outline == null)
+                        outline = frame.gameObject.AddComponent<Outline>();
+                    outline.effectColor = SelectedOutline;
+                    outline.effectDistance = new Vector2(3f, 3f);
+                    outline.enabled = true;
+                }
+                else if (outline != null)
+                {
+                    outline.enabled = false;
+                }
+            }
+        }
+
+        void RefreshConfirmInteractable()
+        {
+            if (_confirmButton == null)
+                return;
+
+            var canConfirm = _selectedSlotIndex >= 0;
+            _confirmButton.interactable = canConfirm;
+            var cg = _confirmButton.GetComponent<CanvasGroup>();
+            if (cg == null)
+                cg = _confirmButton.gameObject.AddComponent<CanvasGroup>();
+            cg.alpha = canConfirm ? 1f : 0.45f;
+            cg.interactable = canConfirm;
+            cg.blocksRaycasts = true;
+        }
+
+        void EnsureAbandonInteractable()
+        {
+            if (_abandonButton == null)
+                return;
+
+            _abandonButton.interactable = true;
+            var cg = _abandonButton.GetComponent<CanvasGroup>();
+            if (cg == null)
+                return;
+
+            cg.alpha = 1f;
+            cg.interactable = true;
+            cg.blocksRaycasts = true;
+        }
+
+        void OnConfirmReplace()
+        {
+            if (_selectedSlotIndex < 0 || _session == null)
+                return;
+
+            _session.ReplaceConsumableSlot(_selectedSlotIndex);
         }
 
         void FitIconRow()
@@ -143,32 +294,43 @@ namespace Grimhand.Presentation.Battle
             }
         }
 
-        void AddAbandonButton()
+        void ApplyFooterButtons()
         {
-            var go = new GameObject("Abandon", typeof(RectTransform), typeof(Image), typeof(Button));
-            go.transform.SetParent(_footerRow, false);
-            var rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0.5f, 0.5f);
-            rt.anchorMax = new Vector2(0.5f, 0.5f);
-            rt.sizeDelta = new Vector2(280f, 52f);
-            rt.anchoredPosition = Vector2.zero;
-            go.GetComponent<Image>().color = new Color(0.28f, 0.16f, 0.16f, 1f);
+            if (_abandonButton != null)
+            {
+                var plate = _uiIcons != null ? _uiIcons.UiButton3 : null;
+                PlanningActionButtonStyle.Apply(_abandonButton, plate, "放弃新物品", AbandonButtonWidth);
+                _abandonButton.transform.SetAsLastSibling();
+            }
 
-            var textGo = new GameObject("Text", typeof(RectTransform), typeof(Text));
-            textGo.transform.SetParent(go.transform, false);
-            var textRt = textGo.GetComponent<RectTransform>();
-            textRt.anchorMin = Vector2.zero;
-            textRt.anchorMax = Vector2.one;
-            textRt.offsetMin = Vector2.zero;
-            textRt.offsetMax = Vector2.zero;
-            var text = textGo.GetComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontSize = 20;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = Color.white;
-            text.text = "放弃新物品";
+            if (_confirmButton != null)
+            {
+                var plate = _uiIcons != null ? _uiIcons.UiButton1 : null;
+                PlanningActionButtonStyle.Apply(_confirmButton, plate, "确认", ConfirmButtonWidth);
+                _confirmButton.transform.SetAsLastSibling();
+            }
+        }
 
-            go.GetComponent<Button>().onClick.AddListener(() => _session.AbandonConsumableOffer());
+        void ApplySlotFrame(Image image)
+        {
+            if (image == null)
+                return;
+
+            var plate = _uiIcons != null ? _uiIcons.UiEventPlate : null;
+            if (plate != null)
+            {
+                image.enabled = true;
+                image.sprite = plate;
+                image.type = Image.Type.Simple;
+                image.preserveAspect = false;
+                image.color = Color.white;
+            }
+            else
+            {
+                image.enabled = true;
+                image.sprite = null;
+                image.color = new Color(0.07f, 0.08f, 0.12f, 0.995f);
+            }
         }
 
         static void ClearChildren(RectTransform row)
@@ -193,61 +355,175 @@ namespace Grimhand.Presentation.Battle
         void EnsureBuilt(Transform parent)
         {
             if (_built && _layoutVersion == LayoutVersion && _root != null)
+            {
+                ApplyEventPlate();
+                ApplyFooterButtons();
                 return;
+            }
 
             if (_root != null)
                 DestroyImmediate(_root.gameObject);
 
             _built = true;
             _layoutVersion = LayoutVersion;
+
+            // 不挂嵌套 Canvas：由 ExpeditionMapOverlayLayer 统一排序/射线（同卡组替换/地图）
             var go = new GameObject("ConsumableReplaceOverlay", typeof(RectTransform), typeof(Image));
             go.transform.SetParent(parent, false);
             _root = go.GetComponent<RectTransform>();
-            _root.anchorMin = Vector2.zero;
-            _root.anchorMax = Vector2.one;
-            _root.offsetMin = Vector2.zero;
-            _root.offsetMax = Vector2.zero;
-            go.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.62f);
+            StretchFull(_root);
+            var dim = go.GetComponent<Image>();
+            dim.color = new Color(0f, 0f, 0f, 0.72f);
+            dim.raycastTarget = true;
 
             var panelGo = new GameObject("Panel", typeof(RectTransform), typeof(Image));
             panelGo.transform.SetParent(_root, false);
             var panelRt = panelGo.GetComponent<RectTransform>();
             panelRt.anchorMin = new Vector2(0.5f, 0.5f);
             panelRt.anchorMax = new Vector2(0.5f, 0.5f);
+            panelRt.pivot = new Vector2(0.5f, 0.5f);
             panelRt.sizeDelta = new Vector2(PanelWidth, PanelHeight);
-            panelGo.GetComponent<Image>().color = new Color(0.1f, 0.11f, 0.15f, 0.98f);
+            _panelImage = panelGo.GetComponent<Image>();
+            _panelImage.raycastTarget = true;
+            ApplyEventPlate();
 
-            var bodyGo = new GameObject("Body", typeof(RectTransform), typeof(Text));
-            bodyGo.transform.SetParent(panelGo.transform, false);
-            var bodyRt = bodyGo.GetComponent<RectTransform>();
-            bodyRt.anchorMin = new Vector2(0.06f, 0.72f);
-            bodyRt.anchorMax = new Vector2(0.94f, 0.94f);
-            bodyRt.offsetMin = Vector2.zero;
-            bodyRt.offsetMax = Vector2.zero;
-            _bodyText = bodyGo.GetComponent<Text>();
-            _bodyText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            _bodyText.fontSize = 20;
-            _bodyText.alignment = TextAnchor.MiddleCenter;
-            _bodyText.color = Color.white;
-            _bodyText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _titleText = CreateText(panelGo.transform, "消耗品栏已满", 28, FontStyle.Bold, TextAnchor.MiddleCenter);
+            AnchorRect(_titleText.rectTransform, 0.12f, 0.88f, 0.88f, 0.95f);
+            _titleText.color = TitleGold;
+
+            var offerHostGo = new GameObject("OfferPreview", typeof(RectTransform));
+            offerHostGo.transform.SetParent(panelGo.transform, false);
+            _offerIconHost = offerHostGo.GetComponent<RectTransform>();
+            AnchorRect(_offerIconHost, 0.30f, 0.62f, 0.70f, 0.86f);
+
+            _offerFrame = CreateImage("OfferFrame", _offerIconHost, Color.white);
+            var offerFrameRt = _offerFrame.rectTransform;
+            offerFrameRt.anchorMin = new Vector2(0.5f, 1f);
+            offerFrameRt.anchorMax = new Vector2(0.5f, 1f);
+            offerFrameRt.pivot = new Vector2(0.5f, 1f);
+            offerFrameRt.anchoredPosition = new Vector2(0f, -2f);
+            offerFrameRt.sizeDelta = new Vector2(112f, 112f);
+            _offerFrame.raycastTarget = false;
+            ApplySlotFrame(_offerFrame);
+
+            _offerIcon = CreateImage("OfferIcon", _offerFrame.rectTransform, Color.white);
+            var offerIconRt = _offerIcon.rectTransform;
+            offerIconRt.anchorMin = new Vector2(0.14f, 0.14f);
+            offerIconRt.anchorMax = new Vector2(0.86f, 0.86f);
+            offerIconRt.offsetMin = Vector2.zero;
+            offerIconRt.offsetMax = Vector2.zero;
+            _offerIcon.preserveAspect = true;
+            _offerIcon.raycastTarget = false;
+
+            _offerNameText = CreateText(_offerIconHost, "", 18, FontStyle.Bold, TextAnchor.MiddleCenter);
+            var offerNameRt = _offerNameText.rectTransform;
+            offerNameRt.anchorMin = new Vector2(0f, 0f);
+            offerNameRt.anchorMax = new Vector2(1f, 0f);
+            offerNameRt.pivot = new Vector2(0.5f, 0f);
+            offerNameRt.anchoredPosition = new Vector2(0f, 2f);
+            offerNameRt.sizeDelta = new Vector2(0f, 28f);
+            _offerNameText.color = new Color(0.55f, 0.9f, 0.65f, 1f);
+
+            // 标签在栏位行之上，避免被槽位框遮住
+            _replaceLabel = CreateText(panelGo.transform, "选择要替换的栏位", 18, FontStyle.Bold, TextAnchor.MiddleCenter);
+            AnchorRect(_replaceLabel.rectTransform, 0.12f, 0.52f, 0.88f, 0.58f);
+            _replaceLabel.color = new Color(0.78f, 0.72f, 0.95f, 1f);
 
             var rowGo = new GameObject("Icons", typeof(RectTransform));
             rowGo.transform.SetParent(panelGo.transform, false);
             _iconRow = rowGo.GetComponent<RectTransform>();
-            _iconRow.anchorMin = new Vector2(0.05f, 0.28f);
-            _iconRow.anchorMax = new Vector2(0.95f, 0.70f);
-            _iconRow.offsetMin = Vector2.zero;
-            _iconRow.offsetMax = Vector2.zero;
+            AnchorRect(_iconRow, 0.11f, 0.24f, 0.89f, 0.50f);
 
-            var footerGo = new GameObject("Footer", typeof(RectTransform));
-            footerGo.transform.SetParent(panelGo.transform, false);
-            _footerRow = footerGo.GetComponent<RectTransform>();
-            _footerRow.anchorMin = new Vector2(0.05f, 0.06f);
-            _footerRow.anchorMax = new Vector2(0.95f, 0.22f);
-            _footerRow.offsetMin = Vector2.zero;
-            _footerRow.offsetMax = Vector2.zero;
+            _abandonButton = CreateFooterButton(panelGo.transform, "Abandon", new Vector2(-130f, 40f), AbandonButtonWidth);
+            _abandonButton.onClick.AddListener(() => _session?.AbandonConsumableOffer());
+            UiAudioHooks.WireButton(_abandonButton);
 
+            _confirmButton = CreateFooterButton(panelGo.transform, "Confirm", new Vector2(130f, 40f), ConfirmButtonWidth);
+            _confirmButton.onClick.AddListener(OnConfirmReplace);
+            UiAudioHooks.WireButton(_confirmButton);
+
+            ApplyFooterButtons();
+            EnsureAbandonInteractable();
+            RefreshConfirmInteractable();
             go.SetActive(false);
+        }
+
+        static Button CreateFooterButton(Transform parent, string name, Vector2 anchoredPos, float width)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button), typeof(CanvasGroup));
+            go.transform.SetParent(parent, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 0f);
+            rt.anchorMax = new Vector2(0.5f, 0f);
+            rt.pivot = new Vector2(0.5f, 0f);
+            rt.anchoredPosition = anchoredPos;
+            rt.sizeDelta = new Vector2(width, PlanningActionButtonStyle.HeightForWidth(width));
+            var img = go.GetComponent<Image>();
+            img.color = Color.white;
+            img.raycastTarget = true;
+            var btn = go.GetComponent<Button>();
+            btn.transition = Selectable.Transition.None;
+            return btn;
+        }
+
+        void ApplyEventPlate()
+        {
+            if (_panelImage == null)
+                return;
+
+            var plate = _uiIcons != null ? _uiIcons.UiEventPlate : null;
+            if (plate != null)
+            {
+                _panelImage.sprite = plate;
+                _panelImage.type = Image.Type.Simple;
+                _panelImage.preserveAspect = false;
+                _panelImage.color = Color.white;
+            }
+            else
+            {
+                _panelImage.sprite = null;
+                _panelImage.color = new Color(0.1f, 0.11f, 0.15f, 0.98f);
+            }
+        }
+
+        static Text CreateText(Transform parent, string value, int size, FontStyle style, TextAnchor align)
+        {
+            var go = new GameObject("Text", typeof(RectTransform), typeof(Text));
+            go.transform.SetParent(parent, false);
+            var text = go.GetComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = size;
+            text.fontStyle = style;
+            text.alignment = align;
+            text.color = Color.white;
+            text.text = value ?? "";
+            text.raycastTarget = false;
+            return text;
+        }
+
+        static Image CreateImage(string name, Transform parent, Color color)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+            var img = go.GetComponent<Image>();
+            img.color = color;
+            return img;
+        }
+
+        static void StretchFull(RectTransform rt)
+        {
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+        }
+
+        static void AnchorRect(RectTransform rt, float xMin, float yMin, float xMax, float yMax)
+        {
+            rt.anchorMin = new Vector2(xMin, yMin);
+            rt.anchorMax = new Vector2(xMax, yMax);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
         }
     }
 }

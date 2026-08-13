@@ -106,8 +106,10 @@ namespace Grimhand.Presentation.Battle
         Dictionary<string, CardDefinitionSO> _definitions = new();
         bool _battleBgmActive;
 
-        /// <summary>局内测试工具：图鉴加手牌 / 假人出牌 / 测试怪物。正式 Demo 关闭，玩家不可见、不可点。</summary>
+        /// <summary>局内完整测试工具：假人出牌 / 测试怪物。正式 Demo 关闭。</summary>
         static readonly bool EnableBattleDevTools = false;
+        /// <summary>训练场开放图鉴（加手牌/领遗物），便于内容测试。</summary>
+        static readonly bool EnableTrainingGroundCodex = true;
         bool _battleDevToolsSuppressed;
 
         static readonly FormationSlot[] SlotOrder =
@@ -173,15 +175,12 @@ namespace Grimhand.Presentation.Battle
             EnsureInventoryHud();
             EnsureTurnLogHud();
             EnsureMapHud();
-            if (EnableBattleDevTools)
-            {
+            if (EnableTrainingGroundCodex || EnableBattleDevTools)
                 EnsureCodexHud();
+            if (EnableBattleDevTools)
                 EnsureDummyPlayHud();
-            }
             else
-            {
-                SuppressBattleDevTools();
-            }
+                SuppressDummyMonsterTools();
 
             EnsurePresentationSpeedHud();
             EnsureSettingsHud();
@@ -521,7 +520,7 @@ namespace Grimhand.Presentation.Battle
             if (_consumableReplaceOverlay == null)
             {
                 _consumableReplaceOverlay = gameObject.AddComponent<ConsumableReplaceOverlayView>();
-                _consumableReplaceOverlay.Initialize(_session, transform, _consumableCatalog);
+                _consumableReplaceOverlay.Initialize(_session, transform, _consumableCatalog, _uiIcons);
             }
 
             if (_cardDeckReplaceOverlay == null)
@@ -596,28 +595,33 @@ namespace Grimhand.Presentation.Battle
             ApplyTurnLogButtonLayout();
         }
 
-        void SuppressBattleDevTools()
+        void SuppressDummyMonsterTools()
         {
             if (_battleDevToolsSuppressed
-                && _codexButton == null
                 && _dummyPlayButton == null
                 && _monsterSpawnButton == null)
             {
-                if (_codexOverlay != null && _codexOverlay.IsOpen)
-                    _codexOverlay.Hide();
                 if (_monsterSpawnOverlay != null && _monsterSpawnOverlay.IsOpen)
                     _monsterSpawnOverlay.Hide();
                 return;
             }
 
-            HideNamedHudControl("CodexButton", ref _codexButton);
             HideNamedHudControl("DummyPlayButton", ref _dummyPlayButton);
             HideNamedHudControl("MonsterSpawnButton", ref _monsterSpawnButton);
-            if (_codexOverlay != null && _codexOverlay.IsOpen)
-                _codexOverlay.Hide();
             if (_monsterSpawnOverlay != null && _monsterSpawnOverlay.IsOpen)
                 _monsterSpawnOverlay.Hide();
             _battleDevToolsSuppressed = true;
+        }
+
+        void SuppressBattleDevTools()
+        {
+            SuppressDummyMonsterTools();
+            if (!EnableTrainingGroundCodex)
+            {
+                HideNamedHudControl("CodexButton", ref _codexButton);
+                if (_codexOverlay != null && _codexOverlay.IsOpen)
+                    _codexOverlay.Hide();
+            }
         }
 
         void HideNamedHudControl(string objectName, ref Button button)
@@ -668,7 +672,7 @@ namespace Grimhand.Presentation.Battle
 
         void EnsureCodexHud()
         {
-            if (!EnableBattleDevTools)
+            if (!EnableTrainingGroundCodex && !EnableBattleDevTools)
             {
                 SuppressBattleDevTools();
                 return;
@@ -717,7 +721,9 @@ namespace Grimhand.Presentation.Battle
                 titleHint: null,
                 closeOnSelect: true,
                 relicCatalog: _relicCatalog,
-                onGrantRelic: OnCodexGrantRelic);
+                onGrantRelic: OnCodexGrantRelic,
+                consumableCatalog: _consumableCatalog,
+                onGrantConsumable: OnCodexGrantConsumable);
 
             ApplyCodexButtonLayout();
         }
@@ -873,6 +879,18 @@ namespace Grimhand.Presentation.Battle
             Refresh();
         }
 
+        void OnCodexGrantConsumable(ConsumableDefinition consumable)
+        {
+            if (consumable == null || _session == null)
+                return;
+
+            _session.TryGrantConsumable(consumable.Id);
+            // 训练场从图鉴塞满时会弹出替换层；图鉴在 Tooltip 层会挡住确认/放弃
+            if (!string.IsNullOrEmpty(_session.Expedition?.Run?.PendingConsumableOfferId))
+                _codexOverlay?.Hide();
+            Refresh();
+        }
+
         void OnDummyPlayCardSelected(CardDefinitionSO def)
         {
             if (def == null || _session == null)
@@ -943,7 +961,12 @@ namespace Grimhand.Presentation.Battle
             if (willOpen)
             {
                 CloseOtherOverlays(_codexOverlay);
-                _codexOverlay?.ConfigureSelection(OnCodexCardAddToHand, titleHint: null, closeOnSelect: true, showRelics: true);
+                _codexOverlay?.ConfigureSelection(
+                    OnCodexCardAddToHand,
+                    titleHint: null,
+                    closeOnSelect: true,
+                    showRelics: true,
+                    showConsumables: true);
             }
 
             _codexOverlay?.RefreshCardPrefab(handPanel?.CardPrefab);
@@ -965,7 +988,8 @@ namespace Grimhand.Presentation.Battle
                 OnDummyPlayCardSelected,
                 titleHint: "假人出牌 — 点击按序加入意图　",
                 closeOnSelect: false,
-                showRelics: false);
+                showRelics: false,
+                showConsumables: false);
             _codexOverlay.RefreshCardPrefab(handPanel?.CardPrefab);
 
             if (opening)
@@ -1276,15 +1300,16 @@ namespace Grimhand.Presentation.Battle
                 ApplyInventoryButtonLayout();
                 ApplyTurnLogButtonLayout();
                 ApplyMapButtonLayout();
-                if (EnableBattleDevTools)
+                if (EnableTrainingGroundCodex || EnableBattleDevTools)
                 {
+                    EnsureCodexHud();
                     ApplyCodexButtonLayout();
+                }
+
+                if (EnableBattleDevTools)
                     ApplyDummyPlayButtonLayout();
-                }
                 else
-                {
-                    SuppressBattleDevTools();
-                }
+                    SuppressDummyMonsterTools();
 
                 ApplySettingsButtonVisual();
                 if (_settingsButton != null)
@@ -1350,6 +1375,7 @@ namespace Grimhand.Presentation.Battle
         void RefreshPlanningChromeVisibility()
         {
             var showBattleChrome = ShouldShowBattlePlanningChrome() && !_escUiSuppressed;
+            var hidePlanningActions = !showBattleChrome || HasBlockingConsumableReplaceOverlay();
 
             var intent = enemyIntentPanel != null
                 ? enemyIntentPanel.transform
@@ -1363,18 +1389,19 @@ namespace Grimhand.Presentation.Battle
             info?.gameObject.SetActive(false);
             // 旧意图灰框永不显示，避免挡住加速等按钮
             intent?.gameObject.SetActive(false);
-            actions?.gameObject.SetActive(showBattleChrome);
+            actions?.gameObject.SetActive(!hidePlanningActions);
             if (!showBattleChrome)
                 orderBar?.gameObject.SetActive(false);
             energyHud?.gameObject.SetActive(showBattleChrome);
             selectedQueuePanel?.SetActive(false);
 
-            if (!showBattleChrome)
+            if (hidePlanningActions)
             {
                 targetPromptPanel?.SetActive(false);
                 confirmButton?.gameObject.SetActive(false);
                 skipButton?.gameObject.SetActive(false);
-                _activeCardBanner?.Hide();
+                if (!showBattleChrome)
+                    _activeCardBanner?.Hide();
             }
 
             // Esc 会把图鉴/背包等 SetActive(false)；关闭后必须显式恢复，否则会永久消失。
@@ -1387,26 +1414,36 @@ namespace Grimhand.Presentation.Battle
             _turnLogButton?.gameObject.SetActive(showMetaUtility);
             _settingsButton?.gameObject.SetActive(showMetaUtility);
 
-            if (EnableBattleDevTools)
+            var inTrainingGround = _session?.Expedition?.Run?.IsTrainingGround == true;
+            var showCodex = showBattleOnlyUtility
+                            && (EnableBattleDevTools || (EnableTrainingGroundCodex && inTrainingGround));
+            if (EnableTrainingGroundCodex || EnableBattleDevTools)
+                EnsureCodexHud();
+
+            if (showCodex)
             {
-                _codexButton?.gameObject.SetActive(showBattleOnlyUtility);
-                var showDummyPlay = showBattleOnlyUtility && _session?.Expedition?.Run?.IsTrainingGround == true;
-                if (showDummyPlay)
-                {
-                    ApplyDummyPlayButtonLayout();
-                    _dummyPlayButton?.gameObject.SetActive(true);
-                    _monsterSpawnButton?.gameObject.SetActive(true);
-                }
-                else
-                {
-                    _dummyPlayButton?.gameObject.SetActive(false);
-                    _monsterSpawnButton?.gameObject.SetActive(false);
-                    _monsterSpawnOverlay?.Hide();
-                }
+                ApplyCodexButtonLayout();
+                _codexButton?.gameObject.SetActive(true);
             }
             else
             {
-                SuppressBattleDevTools();
+                _codexButton?.gameObject.SetActive(false);
+                if (_codexOverlay != null && _codexOverlay.IsOpen)
+                    _codexOverlay.Hide();
+            }
+
+            var showDummyPlay = EnableBattleDevTools && showBattleOnlyUtility && inTrainingGround;
+            if (showDummyPlay)
+            {
+                ApplyDummyPlayButtonLayout();
+                _dummyPlayButton?.gameObject.SetActive(true);
+                _monsterSpawnButton?.gameObject.SetActive(true);
+            }
+            else
+            {
+                _dummyPlayButton?.gameObject.SetActive(false);
+                _monsterSpawnButton?.gameObject.SetActive(false);
+                _monsterSpawnOverlay?.Hide();
             }
 
             if (_presentationSpeedToggle != null)
@@ -1430,6 +1467,15 @@ namespace Grimhand.Presentation.Battle
                 return false;
 
             return ShouldShowBattleSlots();
+        }
+
+        /// <summary>消耗品替换弹层打开时，隐藏出牌/空过，避免挡住确认/放弃。</summary>
+        bool HasBlockingConsumableReplaceOverlay()
+        {
+            if (_consumableReplaceOverlay != null && _consumableReplaceOverlay.IsOpen)
+                return true;
+
+            return !string.IsNullOrEmpty(_session?.Expedition?.Run?.PendingConsumableOfferId);
         }
 
         /// <summary>战场立绘/背景是否应显示（不受 ESC HUD 抑制影响）。</summary>
@@ -2060,7 +2106,8 @@ namespace Grimhand.Presentation.Battle
             var actionsRoot = transform.Find("HudChromeRoot/PlanningActionsRight")
                 ?? transform.Find("PlanningActionsRight");
 
-            if (!ShouldShowBattlePlanningChrome())
+            if (!ShouldShowBattlePlanningChrome()
+                || HasBlockingConsumableReplaceOverlay())
             {
                 actionsRoot?.gameObject.SetActive(false);
                 confirmButton?.gameObject.SetActive(false);

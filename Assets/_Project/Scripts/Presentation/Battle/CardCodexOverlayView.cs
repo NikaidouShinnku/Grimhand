@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Grimhand.Battle.Consumables;
 using Grimhand.Battle.Model;
 using Grimhand.Content;
 using Grimhand.Expedition;
@@ -9,7 +10,7 @@ using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Battle
 {
-    /// <summary>测试图鉴：左上角入口，分类展示全部玩家/敌人卡牌与遗物。</summary>
+    /// <summary>测试图鉴：左上角入口，分类展示全部玩家/敌人卡牌、遗物与消耗品。</summary>
     [DisallowMultipleComponent]
     public sealed class CardCodexOverlayView : MonoBehaviour
     {
@@ -21,18 +22,24 @@ namespace Grimhand.Presentation.Battle
         const int RelicColumns = 5;
         const float RelicPlateW = 168f;
         const float RelicPlateH = 182f;
+        const int ConsumableColumns = 5;
+        const float ConsumablePlateW = 168f;
+        const float ConsumablePlateH = 182f;
 
         CardView _cardPrefab;
         CardVisualCatalogSO _cardCatalog;
         CharacterVisualCatalogSO _characterVisuals;
         RelicVisualCatalogSO _relicCatalog;
+        ConsumableVisualCatalogSO _consumableCatalog;
         BattleUiIconCatalogSO _uiIcons;
         Dictionary<string, CardDefinitionSO> _definitions = new();
         Action<CardDefinitionSO> _onAddToHand;
         Action<RelicDefinition> _onGrantRelic;
+        Action<ConsumableDefinition> _onGrantConsumable;
         string _titleHint;
         bool _closeOnSelect;
         bool _showRelics = true;
+        bool _showConsumables = true;
 
         RectTransform _panel;
         RectTransform _content;
@@ -55,15 +62,19 @@ namespace Grimhand.Presentation.Battle
             string titleHint = null,
             bool closeOnSelect = true,
             RelicVisualCatalogSO relicCatalog = null,
-            Action<RelicDefinition> onGrantRelic = null)
+            Action<RelicDefinition> onGrantRelic = null,
+            ConsumableVisualCatalogSO consumableCatalog = null,
+            Action<ConsumableDefinition> onGrantConsumable = null)
         {
             _cardPrefab = cardPrefab;
             _cardCatalog = cardCatalog;
             _characterVisuals = characterVisuals;
             _uiIcons = uiIcons;
             _relicCatalog = relicCatalog;
+            _consumableCatalog = consumableCatalog;
             _definitions = definitions ?? new Dictionary<string, CardDefinitionSO>();
             _onGrantRelic = onGrantRelic;
+            _onGrantConsumable = onGrantConsumable;
             ConfigureSelection(onAddToHand, titleHint, closeOnSelect);
             EnsureBuilt(root);
         }
@@ -73,19 +84,27 @@ namespace Grimhand.Presentation.Battle
             Action<CardDefinitionSO> onSelect,
             string titleHint = null,
             bool closeOnSelect = true,
-            bool showRelics = true)
+            bool showRelics = true,
+            bool showConsumables = true)
         {
             _onAddToHand = onSelect;
             _titleHint = titleHint;
             _closeOnSelect = closeOnSelect;
             _showRelics = showRelics;
+            _showConsumables = showConsumables;
         }
 
         public void SetRelicGrantHandler(Action<RelicDefinition> onGrantRelic) =>
             _onGrantRelic = onGrantRelic;
 
+        public void SetConsumableGrantHandler(Action<ConsumableDefinition> onGrantConsumable) =>
+            _onGrantConsumable = onGrantConsumable;
+
         public void SetRelicCatalog(RelicVisualCatalogSO relicCatalog) =>
             _relicCatalog = relicCatalog;
+
+        public void SetConsumableCatalog(ConsumableVisualCatalogSO consumableCatalog) =>
+            _consumableCatalog = consumableCatalog;
 
         public void RefreshCardPrefab(CardView cardPrefab)
         {
@@ -189,15 +208,29 @@ namespace Grimhand.Presentation.Battle
                 }
             }
 
+            var consumableCount = 0;
+            if (_showConsumables)
+            {
+                foreach (var consumable in ConsumableDatabase.All)
+                {
+                    if (consumable != null && !string.IsNullOrEmpty(consumable.Id))
+                        consumableCount++;
+                }
+            }
+
             if (!string.IsNullOrEmpty(_titleHint))
             {
                 _titleText.text = $"{_titleHint}共 {totalCards} 张";
             }
-            else if (_onAddToHand != null || _onGrantRelic != null)
+            else if (_onAddToHand != null || _onGrantRelic != null || _onGrantConsumable != null)
             {
-                _titleText.text = relicCount > 0
-                    ? $"测试图鉴 — 卡牌 {totalCards} / 遗物 {relicCount}　点击卡牌加手牌，点击遗物立即获取"
-                    : $"卡牌图鉴（测试）— 共 {totalCards} 张　点击卡牌直接置入手牌";
+                var parts = new List<string> { $"卡牌 {totalCards}" };
+                if (relicCount > 0)
+                    parts.Add($"遗物 {relicCount}");
+                if (consumableCount > 0)
+                    parts.Add($"消耗品 {consumableCount}");
+                _titleText.text =
+                    $"测试图鉴 — {string.Join(" / ", parts)}　点击卡牌加手牌，点击遗物/消耗品立即获取";
             }
             else
             {
@@ -217,6 +250,8 @@ namespace Grimhand.Presentation.Battle
 
             if (_showRelics)
                 AddRelicsSection(relicCount);
+            if (_showConsumables)
+                AddConsumablesSection(consumableCount);
 
             ForceLayoutRefresh();
         }
@@ -248,6 +283,126 @@ namespace Grimhand.Presentation.Battle
                     continue;
 
                 CreateRelicCell(grid, relic);
+            }
+        }
+
+        void AddConsumablesSection(int consumableCount)
+        {
+            if (consumableCount <= 0)
+            {
+                AddCategoryHeader("消耗品（0）");
+                AddWarningRow("暂无消耗品数据。");
+                return;
+            }
+
+            var consumables = new List<ConsumableDefinition>(ConsumableDatabase.All);
+            consumables.Sort((a, b) =>
+            {
+                var eventCmp = a.EventOnly.CompareTo(b.EventOnly);
+                if (eventCmp != 0)
+                    return eventCmp;
+                return string.CompareOrdinal(a.DisplayName, b.DisplayName);
+            });
+
+            AddCategoryHeader($"消耗品（{consumables.Count}）— 点击立即获取");
+            var grid = CreateConsumableGrid(_content);
+
+            foreach (var consumable in consumables)
+            {
+                if (consumable == null || string.IsNullOrEmpty(consumable.Id))
+                    continue;
+
+                CreateConsumableCell(grid, consumable);
+            }
+        }
+
+        RectTransform CreateConsumableGrid(Transform parent)
+        {
+            var go = new GameObject("ConsumableGrid", typeof(RectTransform), typeof(GridLayoutGroup), typeof(LayoutElement), typeof(ContentSizeFitter));
+            go.transform.SetParent(parent, false);
+            _dynamicObjects.Add(go);
+
+            var grid = go.GetComponent<GridLayoutGroup>();
+            grid.cellSize = new Vector2(ConsumablePlateW, ConsumablePlateH);
+            grid.spacing = new Vector2(12f, 12f);
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            grid.constraintCount = ConsumableColumns;
+            grid.childAlignment = TextAnchor.UpperLeft;
+            grid.startCorner = GridLayoutGroup.Corner.UpperLeft;
+            grid.startAxis = GridLayoutGroup.Axis.Horizontal;
+
+            var fitter = go.GetComponent<ContentSizeFitter>();
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+
+            return go.GetComponent<RectTransform>();
+        }
+
+        void CreateConsumableCell(Transform parent, ConsumableDefinition consumable)
+        {
+            var go = new GameObject($"Consumable_{consumable.Id}", typeof(RectTransform), typeof(Image), typeof(LayoutElement), typeof(Button));
+            go.transform.SetParent(parent, false);
+            _dynamicObjects.Add(go);
+
+            var le = go.GetComponent<LayoutElement>();
+            le.preferredWidth = ConsumablePlateW;
+            le.preferredHeight = ConsumablePlateH;
+
+            var bg = go.GetComponent<Image>();
+            bg.color = Color.white;
+            bg.raycastTarget = true;
+            bg.preserveAspect = false;
+            if (_uiIcons != null && _uiIcons.UiEventPlate != null)
+                bg.sprite = _uiIcons.UiEventPlate;
+            else
+                bg.color = new Color(0.08f, 0.1f, 0.14f, 0.85f);
+
+            var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+            iconGo.transform.SetParent(go.transform, false);
+            var iconRt = iconGo.GetComponent<RectTransform>();
+            iconRt.anchorMin = new Vector2(0.18f, 0.32f);
+            iconRt.anchorMax = new Vector2(0.82f, 0.88f);
+            iconRt.offsetMin = Vector2.zero;
+            iconRt.offsetMax = Vector2.zero;
+            var icon = iconGo.GetComponent<Image>();
+            icon.preserveAspect = true;
+            icon.raycastTarget = false;
+            icon.sprite = _consumableCatalog?.GetIcon(consumable.Id);
+            icon.color = icon.sprite != null
+                ? Color.white
+                : new Color(0.4f, 0.55f, 0.65f, 1f);
+
+            var labelGo = new GameObject("Label", typeof(RectTransform), typeof(Text));
+            labelGo.transform.SetParent(go.transform, false);
+            var labelRt = labelGo.GetComponent<RectTransform>();
+            labelRt.anchorMin = new Vector2(0.08f, 0.06f);
+            labelRt.anchorMax = new Vector2(0.92f, 0.28f);
+            labelRt.offsetMin = Vector2.zero;
+            labelRt.offsetMax = Vector2.zero;
+            var label = labelGo.GetComponent<Text>();
+            StyleText(label, 14, TextAnchor.MiddleCenter);
+            label.fontStyle = FontStyle.Bold;
+            label.color = new Color(0.96f, 0.92f, 0.78f, 1f);
+            label.text = consumable.DisplayName;
+            label.raycastTarget = false;
+
+            var tag = consumable.EventOnly ? "事件专用" : "消耗品";
+            var body = string.IsNullOrWhiteSpace(consumable.Description)
+                ? tag
+                : $"{tag}\n{consumable.Description}";
+            _tooltip?.BindHover(go, consumable.DisplayName, body, showTitle: true);
+
+            var btn = go.GetComponent<Button>();
+            btn.targetGraphic = bg;
+            btn.transition = Selectable.Transition.None;
+            if (_onGrantConsumable != null)
+            {
+                var captured = consumable;
+                btn.onClick.AddListener(() => OnCodexConsumableClicked(captured));
+            }
+            else
+            {
+                btn.interactable = false;
             }
         }
 
@@ -598,6 +753,16 @@ namespace Grimhand.Presentation.Battle
             _onGrantRelic?.Invoke(relic);
             _tooltip?.Hide();
             // 测试用：连续点取多个遗物时保持图鉴打开
+        }
+
+        void OnCodexConsumableClicked(ConsumableDefinition consumable)
+        {
+            if (consumable == null)
+                return;
+
+            _onGrantConsumable?.Invoke(consumable);
+            _tooltip?.Hide();
+            // 测试用：连续点取多个消耗品时保持图鉴打开
         }
 
         void BindCardTooltip(GameObject target, CardInstanceState card)

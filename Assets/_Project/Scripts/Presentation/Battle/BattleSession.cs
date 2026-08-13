@@ -1215,6 +1215,44 @@ namespace Grimhand.Presentation.Battle
             return true;
         }
 
+        /// <summary>测试用：图鉴直接塞入消耗品；栏位满则进入替换流程。</summary>
+        public bool TryGrantConsumable(string consumableId)
+        {
+            if (Expedition?.Run == null)
+            {
+                AddLog("仅远征模式可获取消耗品。");
+                NotifyChanged();
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(consumableId)
+                || !ConsumableDatabase.TryGet(consumableId, out var def))
+            {
+                AddLog("未知消耗品。");
+                NotifyChanged();
+                return false;
+            }
+
+            if (ConsumableInventory.TryAdd(Expedition.Run.ConsumableSlots, consumableId, out var inventoryFull))
+            {
+                AddLog($"图鉴测试获取消耗品：{def.DisplayName}");
+                NotifyChanged();
+                return true;
+            }
+
+            if (inventoryFull)
+            {
+                Expedition.Run.PendingConsumableOfferId = consumableId;
+                AddLog($"消耗品栏已满 — 请选择替换：{def.DisplayName}");
+                NotifyChanged();
+                return true;
+            }
+
+            AddLog($"未能获取「{def.DisplayName}」。");
+            NotifyChanged();
+            return false;
+        }
+
         /// <summary>局内获取遗物后立刻刷新战斗修饰符，便于训练场即时测试。</summary>
         public void SyncBattleRunModifiersFromExpeditionRelics()
         {

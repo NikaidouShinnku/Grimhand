@@ -473,8 +473,10 @@ namespace Grimhand.Presentation.Camp
                     characterId,
                     name,
                     owned,
-                    owned ? name : "？？？",
-                    owned ? "已解锁角色。故事与说明稍后补充。" : "尚未拥有该角色。");
+                    owned ? CharacterLoreCatalog.GetTooltipTitle(characterId, name) : "？？？",
+                    owned
+                        ? CharacterLoreCatalog.GetTooltipBody(characterId)
+                        : "尚未拥有该角色。");
             }
         }
 

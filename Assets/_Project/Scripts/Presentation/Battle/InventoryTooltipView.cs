@@ -108,6 +108,9 @@ namespace Grimhand.Presentation.Battle
             // 离开物品立刻隐藏；1 秒兜底仅用于 PointerExit 丢失（见 LateUpdate）
             exit.callback.AddListener(_ => HideIfTarget(target));
             trigger.triggers.Add(exit);
+
+            // EventTrigger 会截获滚轮；转发到父级 ScrollRect，悬停 tooltip 时仍可滑动列表。
+            ScrollRectNavigation.WireForwarding(target);
         }
 
         void ShowAt(GameObject target, RectTransform anchor, string title, string body, bool showTitle)

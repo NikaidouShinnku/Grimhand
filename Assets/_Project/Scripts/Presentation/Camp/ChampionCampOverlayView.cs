@@ -37,7 +37,7 @@ namespace Grimhand.Presentation.Camp
             }
         }
 
-        // 对照用户红框（原点左下）：配置队伍 / 管理卡牌 / 右上角返回
+        // 对照用户红框（原点左下）：配置队伍 / 管理卡牌 / 右上角关闭
         static readonly HubNormRect HubZoneTeam = new(0.1660f, 0.0754f, 0.4424f, 0.3053f);
         static readonly HubNormRect HubZoneCards = new(0.5332f, 0.0754f, 0.8115f, 0.3053f);
         static readonly HubNormRect HubZoneClose = new(0.8975f, 0.7912f, 0.9736f, 0.8754f);
@@ -609,7 +609,7 @@ namespace Grimhand.Presentation.Camp
                 _uiIcons != null ? _uiIcons.ChampionCampButton2 : null,
                 ShowCollectionPanel);
 
-            // 返回按钮常显置顶
+            // 关闭按钮常显置顶
             var closeBar = CampUiRuntime.CreateRect("HubCloseHotZones", _hubPanel);
             CampUiRuntime.StretchFull(closeBar.GetComponent<RectTransform>());
             var closeCanvas = closeBar.AddComponent<Canvas>();
@@ -683,7 +683,7 @@ namespace Grimhand.Presentation.Camp
             else
                 img.color = new Color(0.45f, 0.12f, 0.12f, 0.95f);
 
-            var label = CampUiRuntime.CreateText(go.transform, "返回", 22, FontStyle.Bold, TextAnchor.MiddleCenter);
+            var label = CampUiRuntime.CreateText(go.transform, "关闭", 22, FontStyle.Bold, TextAnchor.MiddleCenter);
             CampUiRuntime.StretchFull(label.rectTransform);
             label.color = new Color(0.95f, 0.88f, 0.62f, 1f);
             label.raycastTarget = false;

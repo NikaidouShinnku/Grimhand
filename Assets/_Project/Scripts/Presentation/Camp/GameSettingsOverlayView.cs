@@ -6,16 +6,16 @@ using UnityEngine.UI;
 
 namespace Grimhand.Presentation.Camp
 {
-    /// <summary>设置：音乐 / 音效 / 分辨率；底板 event_plate，返回 button2。</summary>
+    /// <summary>设置：音乐 / 音效 / 分辨率；底板 event_plate，返回 button6。</summary>
     [DisallowMultipleComponent]
     public sealed class GameSettingsOverlayView : MonoBehaviour
     {
         // event_plate 约 1203×1308，略竖长
         const float PanelWidth = 520f;
         const float PanelHeight = 580f;
-        const float ButtonAspect = 512f / 292f;
+        const float ButtonAspect = 512f / 216f;
         const float ButtonHoverScale = 1.06f;
-        const int LayoutVersion = 4;
+        const int LayoutVersion = 5;
 
         static readonly Color TitleColor = new(0.95f, 0.85f, 0.55f, 1f);
         static readonly Color LabelColor = new(0.92f, 0.90f, 0.84f, 1f);
@@ -170,8 +170,8 @@ namespace Grimhand.Presentation.Camp
             img.color = Color.white;
             img.raycastTarget = true;
             img.preserveAspect = false;
-            if (uiIcons != null && uiIcons.UiButton2 != null)
-                img.sprite = uiIcons.UiButton2;
+            if (uiIcons != null && uiIcons.UiButton6 != null)
+                img.sprite = uiIcons.UiButton6;
             else
                 img.color = new Color(0.28f, 0.3f, 0.36f, 1f);
 

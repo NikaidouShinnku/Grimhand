@@ -17,10 +17,9 @@ namespace Grimhand.Presentation.Camp
     [DisallowMultipleComponent]
     public sealed class TalentCampOverlayView : MonoBehaviour
     {
-        const int LayoutVersion = 23;
+        const int LayoutVersion = 24;
         const float TemplateW = 1672f;
         const float TemplateH = 941f;
-        const float ButtonAspect = 512f / 292f;
         const float ButtonHoverScale = 1.06f;
         const int TalentRowsPerSlot = 5;
         // 符文边长略放大，仍贴近模板圆槽
@@ -34,8 +33,8 @@ namespace Grimhand.Presentation.Camp
         const float PortraitExtraShiftSnakeLich = 0.022f;
 
         // 模板归一化（原点左下）
-        // 返回：拉长盖住模板钮，略加高（直接铺满热区，勿用 Cover/Fit 乱缩放）
-        static readonly Vector4 ZoneBack = new(0.842f, 0.908f, 0.978f, 0.972f);
+        // 关闭：比例贴近军营一级关闭钮（约 0.076×0.084），右上对齐
+        static readonly Vector4 ZoneBack = new(0.900f, 0.888f, 0.978f, 0.972f);
         static readonly Vector4 ZonePortrait = new(0.090f, 0.470f, 0.255f, 0.825f);
         // 角色名略右，落在平台铭牌视觉中心
         static readonly Vector4 ZoneName = new(0.108f, 0.408f, 0.263f, 0.450f);
@@ -210,7 +209,7 @@ namespace Grimhand.Presentation.Camp
 
         void CreateBackButton()
         {
-            var go = CampUiRuntime.CreateRect("Back", _overlayRoot);
+            var go = CampUiRuntime.CreateRect("Close", _overlayRoot);
             var rt = go.GetComponent<RectTransform>();
             SetZone(rt, ZoneBack);
 
@@ -218,12 +217,12 @@ namespace Grimhand.Presentation.Camp
             img.color = Color.white;
             img.raycastTarget = true;
             img.preserveAspect = false;
-            if (_uiIcons != null && _uiIcons.UiButton2 != null)
-                img.sprite = _uiIcons.UiButton2;
+            if (_uiIcons != null && _uiIcons.UiButton3 != null)
+                img.sprite = _uiIcons.UiButton3;
             else
                 img.color = new Color(0.28f, 0.3f, 0.36f, 1f);
 
-            var label = CampUiRuntime.CreateText(go.transform, "返回", 18, FontStyle.Bold, TextAnchor.MiddleCenter);
+            var label = CampUiRuntime.CreateText(go.transform, "关闭", 18, FontStyle.Bold, TextAnchor.MiddleCenter);
             CampUiRuntime.StretchFull(label.rectTransform);
             label.rectTransform.offsetMin = new Vector2(4f, 2f);
             label.rectTransform.offsetMax = new Vector2(-4f, -6f);

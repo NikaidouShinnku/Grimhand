@@ -274,13 +274,10 @@ namespace Grimhand.Presentation.Battle
             if (TryBuildCurseCardStatsLine(card, out var curseLine))
                 return curseLine;
 
-            // 战斗中有持有者时始终走动态预览，以反映增伤/虚弱等状态对数值的影响。
-            // 静态总览文案只用于图鉴/军营等无战斗上下文的展示。
-            if (state == null || owner == null)
-            {
-                if (TryBuildExcelDescriptionLine(state, draft, card, definitions, out var excelLine))
-                    return excelLine;
-            }
+            // 图鉴文案优先：手牌与图鉴保持一致（含无 Actions 的特殊技卡）。
+            // 已升级/改写实例 MatchesDefinitionBaseline 失败时再走动态预览。
+            if (TryBuildExcelDescriptionLine(state, draft, card, definitions, out var excelLine))
+                return excelLine;
 
             var pickSide = CardRules.GetRequiredTargetPick(card);
             var previewTarget = ResolveDamagePreviewTarget(state, draft, card, owner, damagePreviewTarget);
@@ -375,7 +372,22 @@ namespace Grimhand.Presentation.Battle
                     : $"随机 {PassiveCardMechanicsRules.SandSpearReforgeBaseDamage} 伤 ×0（尚未打出消耗牌）");
             }
 
-            return string.Join("\n", lines);
+            var dynamicLine = string.Join("\n", lines);
+            if (!string.IsNullOrWhiteSpace(dynamicLine))
+                return dynamicLine;
+
+            // 特殊技卡无 Actions 或基线校验失败时，仍回落图鉴文案，避免手牌空白。
+            if (!string.IsNullOrEmpty(card.DefinitionId)
+                && CardDescriptionCatalog.TryGetByCardId(card.DefinitionId, out var catalogById)
+                && !string.IsNullOrWhiteSpace(catalogById))
+                return catalogById.Trim();
+
+            if (!string.IsNullOrEmpty(card.DisplayName)
+                && CardDescriptionCatalog.TryGetByDisplayName(card.DisplayName, out var catalogByName)
+                && !string.IsNullOrWhiteSpace(catalogByName))
+                return catalogByName.Trim();
+
+            return "";
         }
 
         /// <summary>战斗手牌专用：显示加成后数值；单体选目标时悬停敌人可预览最终 HP 伤害。</summary>
@@ -1688,7 +1700,7 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.BattleRoar:
                     return "战斗咆哮：相关战吼增伤效果已激活";
                 case StatusCatalog.DoomProphecy:
-                    return "末日预言：相关预言效果已激活";
+                    return "末日预言：使用卡牌（行动）后受到 5 点伤害（永久）";
                 case StatusCatalog.LifeSpring:
                     return "生命之泉：相关持续回复效果已激活";
                 case StatusCatalog.PainConvert:

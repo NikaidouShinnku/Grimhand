@@ -403,15 +403,12 @@ namespace Grimhand.Expedition
         {
             return choice switch
             {
-                0 => TeamHpThen(
-                    run,
-                    -10,
-                    "全队轮番对人偶展开特训，虽然消耗了不少体力，但每个人的防御技巧都有所提升。",
+                0 => MessageThenReward(
+                    "全队轮番对人偶展开特训，每个人的防御技巧都有所提升。",
                     ExpeditionRewardPickupFactory.TeamStats(
                         "训练人偶",
                         teamBlockGainPercent: 5f,
-                        grantXp: 5),
-                    percentFromMaxHp: true),
+                        grantXp: 5)),
                 1 => PlanTrainingDummyCardUpgrade(run),
                 _ => TeamHealThen(run, 10, "短暂休息后继续前行。")
             };

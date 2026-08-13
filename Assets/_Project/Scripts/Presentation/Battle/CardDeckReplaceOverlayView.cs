@@ -232,11 +232,9 @@ namespace Grimhand.Presentation.Battle
             var ownerId = string.IsNullOrEmpty(ownerCharacterId) ? template.OwnerCharacterId : ownerCharacterId;
             var cardView = Instantiate(_cardPrefab, parent);
             CardView.ApplyHandPresentationScaleCentered(cardView, scale);
-            var preview = CardVisualResolver.CreatePreviewInstance(
-                template.DefinitionId,
-                ownerId,
-                template.DisplayName,
-                definition);
+            var preview = CardVisualResolver.CreatePreviewInstanceFromTemplate(template, definition);
+            if (!string.IsNullOrEmpty(ownerId))
+                preview.OwnerCharacterId = ownerId;
             var visual = CardVisualResolver.Resolve(preview, _cardCatalog, _characterVisuals, _definitions);
             var statsLine = BattleUiFormatters.BuildCardStatsLinePreview(preview, _definitions);
             cardView.BindWithCard(

@@ -116,10 +116,10 @@ TextureImporter:
       name: event_plate_0
       rect:
         serializedVersion: 2
-        x: 17
+        x: 18
         y: 21
-        width: 1166
-        height: 1262
+        width: 1165
+        height: 1261
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}

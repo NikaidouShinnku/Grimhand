@@ -545,7 +545,7 @@ namespace Grimhand.Battle.V091
                     continue;
 
                 StatusRules.ApplyStatus(
-                    state, enemy, StatusCatalog.DoomProphecy, DoomProphecyAfterActDamage, -1, events);
+                    state, enemy, StatusCatalog.DoomProphecy, 1, -1, events);
             }
 
             state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);

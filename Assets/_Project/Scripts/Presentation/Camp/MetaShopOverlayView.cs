@@ -18,7 +18,7 @@ namespace Grimhand.Presentation.Camp
     [DisallowMultipleComponent]
     public sealed class MetaShopOverlayView : MonoBehaviour
     {
-        const int LayoutVersion = 16;
+        const int LayoutVersion = 17;
         const float CardScale = 1.05f;
         const float ButtonHoverScale = 1.08f;
         const float GoldIconSize = 20f;
@@ -176,9 +176,11 @@ namespace Grimhand.Presentation.Camp
             if (_collectionText != null)
                 _collectionText.text = $"{_profile.Collection.Count}/{_profile.CollectionCapacity}";
 
-            var showShop = _pendingPack == null;
-            _shopPanel.gameObject.SetActive(showShop);
-            if (!showShop)
+            // 开包时保留商店底板，只藏货架/离开等控件（避免透出营地蓝底）
+            var packing = _pendingPack != null;
+            _shopPanel.gameObject.SetActive(true);
+            SetShopChromeVisible(!packing);
+            if (packing)
                 return;
 
             var scrollY = ScrollRectNavigation.CaptureVertical(_offerScroll);
@@ -200,13 +202,29 @@ namespace Grimhand.Presentation.Camp
             if (!showPick)
                 return;
 
-            _shopPanel.gameObject.SetActive(false);
+            _shopPanel.gameObject.SetActive(true);
+            SetShopChromeVisible(false);
+            _pickPanel.SetAsLastSibling();
             _pickHeaderText.text = CardPackIds.GetDisplayName(_pendingPack.PackId);
             _pickHintText.text = "本次开包获得以下卡牌，确认后将全部加入军营收藏。";
 
             ClearPickChoices();
             for (var i = 0; i < _pendingPack.Choices.Count; i++)
                 BuildPickChoice(_pendingPack.Choices[i], i);
+        }
+
+        /// <summary>商店底图在 ShopPanel 自身 Image 上；子节点为货架/货币/离开。</summary>
+        void SetShopChromeVisible(bool visible)
+        {
+            if (_shopPanel == null)
+                return;
+
+            for (var i = 0; i < _shopPanel.childCount; i++)
+            {
+                var child = _shopPanel.GetChild(i);
+                if (child != null)
+                    child.gameObject.SetActive(visible);
+            }
         }
 
         void BuildOfferRow(MetaShopCatalog.Offer offer)

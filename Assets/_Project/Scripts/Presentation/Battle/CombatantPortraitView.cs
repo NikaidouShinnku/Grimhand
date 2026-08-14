@@ -22,6 +22,8 @@ namespace Grimhand.Presentation.Battle
         const float DamageFloaterFontSize = 28f;
         const float ActionEffectDuration = 0.55f;
         const float ActionEffectAlpha = 0.6f;
+        /// <summary>高于 HudChrome(45) 与临时抬层控件(65)，保证居中出牌时立绘压过其它角色与 HUD。</summary>
+        const int ActionFocusSortOrder = 80;
 
         [SerializeField] RectTransform portraitRoot;
         [SerializeField] Image portraitImage;
@@ -29,6 +31,7 @@ namespace Grimhand.Presentation.Battle
         CharacterVisualCatalogSO _visuals;
         RectTransform _damageFloaterAnchor;
         Image _actionEffectImage;
+        Canvas _actionFocusCanvas;
         string _characterDefinitionId;
         TeamSide _team;
         Sprite _referenceSprite;
@@ -139,6 +142,7 @@ namespace Grimhand.Presentation.Battle
             _isAnimating = false;
             _awayFromHome = false;
             _poseFlipX = false;
+            ClearActionFocusLayer();
             RestoreHomePosition();
             SetPortraitVisible(true);
             if (_damageFloater != null)
@@ -199,6 +203,7 @@ namespace Grimhand.Presentation.Battle
             _awayFromHome = true;
             StopIdleLoop();
             CaptureHomeIfNeeded();
+            PromoteActionFocusLayer();
 
             // 仅 X 轴移到战场中央，Y 保持与站位时相同水平线。
             var target = new Vector3(centerWorld.x, _homeWorldPosition.y, _homeWorldPosition.z);
@@ -229,6 +234,7 @@ namespace Grimhand.Presentation.Battle
             if (portraitRoot == null)
                 return;
 
+            ClearActionFocusLayer();
             RestoreHomePosition();
             _awayFromHome = false;
             _isAnimating = false;
@@ -285,6 +291,7 @@ namespace Grimhand.Presentation.Battle
                 CaptureHomeIfNeeded();
                 if (!_homeCaptured)
                 {
+                    ClearActionFocusLayer();
                     _awayFromHome = false;
                     _isAnimating = false;
                     yield break;
@@ -297,6 +304,7 @@ namespace Grimhand.Presentation.Battle
                 yield return TweenWorldPosition(portraitRoot, _homeWorldPosition, MoveDuration);
 
             RestoreHomePosition();
+            ClearActionFocusLayer();
             _awayFromHome = false;
             _isAnimating = false;
             if (!_isDead)
@@ -334,6 +342,7 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             RestoreHomePosition();
+            ClearActionFocusLayer();
             _awayFromHome = false;
             _isAnimating = false;
             if (!_isDead)
@@ -489,6 +498,7 @@ namespace Grimhand.Presentation.Battle
             _isDead = true;
             _awayFromHome = false;
             StopIdleLoop();
+            ClearActionFocusLayer();
             RestoreHomePosition();
             EnsurePortraitImageStable();
             SetPoseSprite(PortraitPoseKind.Death);
@@ -500,6 +510,7 @@ namespace Grimhand.Presentation.Battle
         void ShowDeathPoseImmediate()
         {
             StopIdleLoop();
+            ClearActionFocusLayer();
             RestoreHomePosition();
             EnsurePortraitImageStable();
             SetPoseSprite(PortraitPoseKind.Death);
@@ -695,6 +706,36 @@ namespace Grimhand.Presentation.Battle
 
             _homeWorldPosition = portraitRoot.position;
             _homeCaptured = true;
+        }
+
+        /// <summary>
+        /// 居中出牌时临时抬高槽位 Canvas，压过同舞台其它角色与 HudChrome。
+        /// 归位后必须 Clear，以免打乱 ApplyStageDrawOrders。
+        /// </summary>
+        void PromoteActionFocusLayer()
+        {
+            transform.SetAsLastSibling();
+            if (_actionFocusCanvas == null)
+                _actionFocusCanvas = gameObject.GetComponent<Canvas>();
+            if (_actionFocusCanvas == null)
+                _actionFocusCanvas = gameObject.AddComponent<Canvas>();
+
+            _actionFocusCanvas.overrideSorting = true;
+            _actionFocusCanvas.sortingOrder = ActionFocusSortOrder;
+            _actionFocusCanvas.enabled = true;
+        }
+
+        void ClearActionFocusLayer()
+        {
+            if (_actionFocusCanvas == null)
+                _actionFocusCanvas = gameObject.GetComponent<Canvas>();
+
+            if (_actionFocusCanvas == null)
+                return;
+
+            // 销毁而非仅禁用，避免空 Canvas 干扰后续槽位 sibling 绘制顺序
+            Destroy(_actionFocusCanvas);
+            _actionFocusCanvas = null;
         }
 
         void EnsureDamageFloater()

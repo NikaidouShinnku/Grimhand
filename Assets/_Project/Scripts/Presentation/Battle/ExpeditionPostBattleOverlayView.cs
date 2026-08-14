@@ -17,7 +17,7 @@ namespace Grimhand.Presentation.Battle
     [DisallowMultipleComponent]
     public sealed class ExpeditionPostBattleOverlayView : MonoBehaviour
     {
-        const int LayoutVersion = 9;
+        const int LayoutVersion = 10;
         const float DoorWidth = 286f;
         const float DoorHeight = 364f;
         const float DoorLabelHeight = 36f;
@@ -339,7 +339,7 @@ namespace Grimhand.Presentation.Battle
         }
 
         /// <summary>
-        /// 开箱舞台：与战斗胜利奖励行同锚点/尺寸，仅展示宝箱立绘与「点击宝箱开启」。
+        /// 开箱舞台：与战斗胜利奖励行同锚点/尺寸，仅展示可点击宝箱立绘。
         /// 开启后切到共用的 RewardRow + 放弃按钮，布局与战后奖励一致。
         /// </summary>
         RectTransform BuildChestStage(RectTransform parent)
@@ -374,25 +374,13 @@ namespace Grimhand.Presentation.Battle
             chestRt.anchorMin = new Vector2(0.5f, 0.5f);
             chestRt.anchorMax = new Vector2(0.5f, 0.5f);
             chestRt.pivot = new Vector2(0.5f, 0.5f);
-            chestRt.anchoredPosition = new Vector2(0f, 12f);
+            chestRt.anchoredPosition = Vector2.zero;
             chestRt.sizeDelta = new Vector2(ChestArtWidth, ChestArtHeight);
             _closedChestImage = chestGo.GetComponent<Image>();
             _closedChestImage.sprite = _icons?.TreasureChestClosed;
             _closedChestImage.preserveAspect = true;
             _closedChestImage.color = Color.white;
             _closedChestImage.raycastTarget = true;
-
-            var hintGo = new GameObject("Hint", typeof(RectTransform), typeof(Text));
-            hintGo.transform.SetParent(go.transform, false);
-            var hintRt = hintGo.GetComponent<RectTransform>();
-            hintRt.anchorMin = new Vector2(0.5f, 0f);
-            hintRt.anchorMax = new Vector2(0.5f, 0f);
-            hintRt.pivot = new Vector2(0.5f, 0f);
-            hintRt.anchoredPosition = new Vector2(0f, 4f);
-            hintRt.sizeDelta = new Vector2(520f, 36f);
-            var hint = hintGo.GetComponent<Text>();
-            StyleText(hint, 20, TextAnchor.MiddleCenter);
-            hint.text = "点击宝箱开启";
 
             _closedChestButton = chestGo.GetComponent<Button>();
             _closedChestButton.targetGraphic = _closedChestImage;

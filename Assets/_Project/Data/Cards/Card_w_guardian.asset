@@ -24,7 +24,7 @@ MonoBehaviour:
     Target: 1
     Value: 0
     StatusId: guard
-    Stacks: 1
+    Stacks: 50
     Duration: 1
     ScaleWithAttack: 0
     ScaleWithDefense: 0

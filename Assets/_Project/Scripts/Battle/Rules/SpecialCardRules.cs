@@ -66,7 +66,7 @@ namespace Grimhand.Battle.Rules
             List<BattleEvent> events,
             BattleRng rng)
         {
-            var repeats = GetEnergySpent(state, card);
+            var repeats = GetEnergySpent(state, card) + System.Math.Max(0, card.UpgradeLevel);
             if (repeats <= 0)
             {
                 events.Add(new BattleEvent(BattleEventKind.StatusApplied, $"{card.DisplayName} 无能量可消耗")

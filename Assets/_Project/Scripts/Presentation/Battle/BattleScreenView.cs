@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using Grimhand.Battle.Consumables;
 using Grimhand.Battle.Planning;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
 using Grimhand.Content;
+using Grimhand.Core;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 using Grimhand.Presentation;
@@ -631,7 +633,7 @@ namespace Grimhand.Presentation.Battle
                 button.onClick.RemoveAllListeners();
                 button.interactable = false;
                 button.gameObject.SetActive(false);
-                Object.Destroy(button.gameObject);
+                Destroy(button.gameObject);
                 button = null;
                 return;
             }
@@ -667,7 +669,7 @@ namespace Grimhand.Presentation.Battle
             if (img != null)
                 img.raycastTarget = false;
             existing.gameObject.SetActive(false);
-            Object.Destroy(existing.gameObject);
+            Destroy(existing.gameObject);
         }
 
         void EnsureCodexHud()
@@ -857,7 +859,7 @@ namespace Grimhand.Presentation.Battle
             Refresh();
         }
 
-        void OnCodexCardAddToHand(CardDefinitionSO def)
+        void OnCodexCardAddToHand(CardDefinitionSO def, int upgradeLevel)
         {
             if (def == null || _session == null)
                 return;
@@ -866,16 +868,19 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             var template = def.ToTemplate();
+            var level = Math.Max(0, upgradeLevel);
+            template.UpgradeLevel = level;
+            CardUpgradeRules.ApplyToTemplate(template, level);
             if (_session.TryAddCardToHand(template))
                 Refresh();
         }
 
-        void OnCodexGrantRelic(RelicDefinition relic)
+        void OnCodexGrantRelic(RelicDefinition relic, int growthTier)
         {
             if (relic == null || _session == null)
                 return;
 
-            _session.TryGrantRelic(relic.Id);
+            _session.TryGrantRelic(relic.Id, growthTier);
             Refresh();
         }
 
@@ -891,7 +896,7 @@ namespace Grimhand.Presentation.Battle
             Refresh();
         }
 
-        void OnDummyPlayCardSelected(CardDefinitionSO def)
+        void OnDummyPlayCardSelected(CardDefinitionSO def, int upgradeLevel)
         {
             if (def == null || _session == null)
                 return;
@@ -900,6 +905,9 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             var template = def.ToTemplate();
+            var level = Math.Max(0, upgradeLevel);
+            template.UpgradeLevel = level;
+            CardUpgradeRules.ApplyToTemplate(template, level);
             if (_session.TryEnqueueDummyIntent(template))
                 Refresh();
         }
@@ -986,7 +994,7 @@ namespace Grimhand.Presentation.Battle
 
             _codexOverlay.ConfigureSelection(
                 OnDummyPlayCardSelected,
-                titleHint: "假人出牌 — 点击按序加入意图　",
+                titleHint: "假人出牌 — 选择等级后按序加入意图　",
                 closeOnSelect: false,
                 showRelics: false,
                 showConsumables: false);

@@ -742,6 +742,7 @@ namespace Grimhand.Expedition
                 FelskullOutgoingDamagePercentBonus = source.FelskullOutgoingDamagePercentBonus,
                 FirstPlayerAttackPending = source.FirstPlayerAttackPending,
                 HolysunSpellbookBonusUpgradeLevels = source.HolysunSpellbookBonusUpgradeLevels,
+                PhantomBottleDamagePerCard = source.PhantomBottleDamagePerCard,
                 EtherealEntryCount = source.EtherealEntryCount,
                 ExpeditionRespondSuccessCount = source.ExpeditionRespondSuccessCount,
                 SandSpearExhaustCardsPlayed = source.SandSpearExhaustCardsPlayed

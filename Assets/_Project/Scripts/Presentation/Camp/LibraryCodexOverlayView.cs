@@ -837,7 +837,7 @@ namespace Grimhand.Presentation.Camp
             label.raycastTarget = false;
 
             if (owned)
-                _tooltip?.BindHover(go, relic.DisplayName, relic.Description ?? "");
+                _tooltip?.BindHover(go, relic.DisplayName, RelicDescriptionFormatter.Format(relic, 0));
             else
                 _tooltip?.BindHover(go, "未拥有", "尚未拥有该遗物。");
         }

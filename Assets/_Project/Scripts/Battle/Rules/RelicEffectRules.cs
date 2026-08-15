@@ -120,6 +120,9 @@ namespace Grimhand.Battle.Rules
                 }
             }
 
+            // 瓶中之灵：延迟伤由 DelayedDamage 状态在 V09 跳伤；此处清空本回合锁定的目标
+            state.PhantomBottleFocusTargetId = null;
+
             TalentBattleRules.ProcessTurnStart(state, events);
         }
 
@@ -266,6 +269,7 @@ namespace Grimhand.Battle.Rules
                 TryProcAttackBurn(state, actor, card, events, rng);
 
             OnSacrificeCardResolved(state, actor, card, events, rng);
+            QueuePhantomBottleDamage(state, actor, events, rng);
             if (card.DefinitionId == PassiveCardMechanicsRules.SandSpearReforgeCardId)
                 PassiveCardMechanicsRules.OnSandSpearReforgePlayed(state, actor, card, events, rng);
             if (actor.Team == TeamSide.Enemy)
@@ -274,6 +278,62 @@ namespace Grimhand.Battle.Rules
             MinionTraitRules.OnCardResolved(state, actor, card, events);
             if (card.CardType == CardType.Attack)
                 MinionTraitRules.ConsumeBloodRageAfterAttack(actor, card.CardType);
+        }
+
+        static void QueuePhantomBottleDamage(
+            BattleState state,
+            CombatantState actor,
+            List<BattleEvent> events,
+            BattleRng rng)
+        {
+            if (state == null || actor == null || actor.Team != TeamSide.Player || rng == null)
+                return;
+
+            if (actor.CharacterDefinitionId is not ("char_lich_queen" or "char_lich"))
+                return;
+
+            var perCard = state.Config?.RunModifiers?.PhantomBottleDamagePerCard ?? 0;
+            if (perCard <= 0)
+                return;
+
+            CombatantState target = null;
+            if (!string.IsNullOrEmpty(state.PhantomBottleFocusTargetId))
+            {
+                foreach (var enemy in state.GetTeam(TeamSide.Enemy))
+                {
+                    if (enemy != null && enemy.IsAlive && enemy.Id == state.PhantomBottleFocusTargetId)
+                    {
+                        target = enemy;
+                        break;
+                    }
+                }
+            }
+
+            if (target == null)
+            {
+                var enemies = new List<CombatantState>();
+                foreach (var enemy in state.GetTeam(TeamSide.Enemy))
+                {
+                    if (enemy != null && enemy.IsAlive)
+                        enemies.Add(enemy);
+                }
+
+                if (enemies.Count == 0)
+                    return;
+
+                target = enemies[rng.NextIndex(enemies.Count)];
+                state.PhantomBottleFocusTargetId = target.Id;
+            }
+
+            StatusRules.ApplyStatus(
+                state, target, StatusCatalog.DelayedDamage, perCard, 1, events);
+
+            for (var i = target.Statuses.Count - 1; i >= 0; i--)
+            {
+                var status = target.Statuses[i];
+                if (status?.StatusId == StatusCatalog.DelayedDamage && status.Stacks > 0)
+                    status.SourceCombatantId = actor.Id;
+            }
         }
 
         public static void OnEnemyKilled(

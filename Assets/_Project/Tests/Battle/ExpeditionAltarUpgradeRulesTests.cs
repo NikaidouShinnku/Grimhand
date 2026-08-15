@@ -137,6 +137,33 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
+        public void IronParry_UpgradeIncreasesMitigationAndReflect()
+        {
+            var template = new CardTemplate
+            {
+                DefinitionId = "w_iron_parry",
+                DisplayName = "铁壁弹反",
+                Actions =
+                {
+                    new EffectActionSpec
+                    {
+                        Type = EffectActionType.GainBlockFromLastDamagePercent,
+                        Value = 30
+                    },
+                    new EffectActionSpec
+                    {
+                        Type = EffectActionType.ReflectLastDamageToAttacker,
+                        Value = 100
+                    }
+                }
+            };
+
+            CardUpgradeRules.ApplyToTemplate(template, 1);
+            Assert.AreEqual(35, template.Actions[0].Value);
+            Assert.AreEqual(110, template.Actions[1].Value);
+        }
+
+        [Test]
         public void UpgradedCardPreview_DoesNotReuseStaticCatalogTextWhenDefinitionsProvided()
         {
             var def = ScriptableObject.CreateInstance<CardDefinitionSO>();
@@ -170,6 +197,30 @@ namespace Grimhand.Battle.Tests
             StringAssert.Contains("8", upgradedText);
             Assert.AreNotEqual(baseText, upgradedText);
             Object.DestroyImmediate(def);
+        }
+
+        [Test]
+        public void RestHeal_HealsDownedMember()
+        {
+            var run = new ExpeditionRunState
+            {
+                Gold = 50
+            };
+            var member = new PartyMemberSnapshot
+            {
+                CharacterDefinitionId = "char_knight",
+                DisplayName = "骑士",
+                Level = 1,
+                Hp = 0,
+                MaxHp = 100
+            };
+            run.Party.Add(member);
+            ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(run.Party, run.Relics, run.RelicGrowthTiers);
+
+            Assert.IsTrue(ExpeditionAltarUpgradeRules.PartyHasRestHealableMember(run));
+            Assert.IsTrue(ExpeditionAltarUpgradeRules.TryRestHealWithGold(run));
+            Assert.Greater(member.Hp, 0);
+            Assert.LessOrEqual(member.Hp, member.MaxHp);
         }
 
         [Test]

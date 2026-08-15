@@ -1186,7 +1186,7 @@ namespace Grimhand.Presentation.Battle
 
         public bool ClaimChestRelic() => ClaimRewardRelic();
 
-        public bool TryGrantRelic(string relicId)
+        public bool TryGrantRelic(string relicId, int growthTier = 0)
         {
             if (Expedition == null)
             {
@@ -1202,15 +1202,24 @@ namespace Grimhand.Presentation.Battle
                 return false;
             }
 
-            if (!Expedition.TryAddRelic(relicId))
+            var tiers = System.Math.Max(0, growthTier);
+            var alreadyOwned = Expedition.Run != null && Expedition.Run.Relics.Contains(relicId);
+            if (!alreadyOwned && !Expedition.TryAddRelic(relicId))
             {
-                AddLog($"未能获取「{relic.DisplayName}」（可能已拥有）。");
+                AddLog($"未能获取「{relic.DisplayName}」。");
                 NotifyChanged();
                 return false;
             }
 
+            if (Expedition.Run != null)
+                Expedition.Run.RelicGrowthTiers[relicId] = tiers;
+
             SyncBattleRunModifiersFromExpeditionRelics();
-            AddLog($"图鉴测试获取遗物：{relic.DisplayName}");
+            var floorLo = tiers * RelicGrowthRules.FloorsPerGrowthTier + 1;
+            var floorHi = (tiers + 1) * RelicGrowthRules.FloorsPerGrowthTier;
+            AddLog(alreadyOwned
+                ? $"图鉴测试更新遗物成长：{relic.DisplayName} +{tiers}（层 {floorLo}-{floorHi}）"
+                : $"图鉴测试获取遗物：{relic.DisplayName} +{tiers}（层 {floorLo}-{floorHi}）");
             NotifyChanged();
             return true;
         }

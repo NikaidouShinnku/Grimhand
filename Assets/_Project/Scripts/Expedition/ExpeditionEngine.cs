@@ -2308,8 +2308,37 @@ namespace Grimhand.Expedition
             if (relicId == RelicIds.LeafOfMiracle && _run.MiracleLeafUsesRemaining < 0)
                 _run.MiracleLeafUsesRemaining = 2;
 
+            if (relicId == RelicIds.SnakeEgg)
+                ApplySnakeEggCardUpgrades();
+
             ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(_run.Party, _run.Relics, _run.RelicGrowthTiers);
             return true;
+        }
+
+        void ApplySnakeEggCardUpgrades()
+        {
+            if (_run?.Party == null || _config == null)
+                return;
+
+            foreach (var member in _run.Party)
+            {
+                if (member == null)
+                    continue;
+                if (member.CharacterDefinitionId is not ("char_snake_queen" or "char_viper_queen"))
+                    continue;
+
+                foreach (var entry in ExpeditionRunDeckCatalog.CollectMemberDeckEntries(_config, member))
+                {
+                    if (entry?.Template == null)
+                        continue;
+
+                    CardUpgradeRules.TryUpgradeLevel(
+                        member,
+                        entry.Template.DeckInstanceId,
+                        entry.Template.DisplayName,
+                        1);
+                }
+            }
         }
 
         int ResolveRelicAcquisitionFloor()

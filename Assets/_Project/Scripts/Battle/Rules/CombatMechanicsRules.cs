@@ -103,12 +103,20 @@ namespace Grimhand.Battle.Rules
             return guardian;
         }
 
-        public static int ApplyGuardReduction(int hpDamage)
+        public static int ApplyGuardReduction(int hpDamage, CombatantState guardian = null)
         {
             if (hpDamage <= 0)
                 return 0;
 
-            return Math.Max(1, (int)Math.Round(hpDamage * (100 - GuardDamageReductionPercent) / 100f));
+            var percent = GuardDamageReductionPercent;
+            if (guardian != null)
+            {
+                var guard = StatusRules.FindStatus(guardian, StatusCatalog.Guard);
+                if (guard != null && guard.Stacks > 1)
+                    percent = Math.Clamp(guard.Stacks, 0, 95);
+            }
+
+            return Math.Max(1, (int)Math.Round(hpDamage * (100 - percent) / 100f));
         }
 
         public static int GetEffectiveDefense(BattleState state, CombatantState combatant, int ignoreDefPercent)

@@ -1074,7 +1074,10 @@ namespace Grimhand.Presentation.Battle
             btn.onClick.AddListener(() => onClick?.Invoke());
             BattleButtonPressFeedback.Apply(btn);
             UiAudioHooks.WireButton(btn);
-            BindRewardTooltip(go, relic?.DisplayName ?? relicId ?? "遗物", relic?.Description);
+            BindRewardTooltip(
+                go,
+                relic?.DisplayName ?? relicId ?? "遗物",
+                relic != null ? RelicDescriptionFormatter.Format(relic, 0) : null);
             return btn;
         }
 

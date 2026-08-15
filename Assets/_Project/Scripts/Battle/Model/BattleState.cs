@@ -23,6 +23,9 @@ namespace Grimhand.Battle.Model
         /// <summary>下回合开始时额外回复的能量（翡翠短刀等）。</summary>
         public int PendingEnergyNextTurn { get; set; }
 
+        /// <summary>瓶中之灵：本回合已选定的延迟伤害目标（出牌时挂 delayed_damage，下回合跳伤）。</summary>
+        public string PhantomBottleFocusTargetId { get; set; }
+
         public List<CombatantState> Combatants { get; } = new();
         public List<CardInstanceState> PlayerDrawPile { get; } = new();
         public List<CardInstanceState> PlayerHand { get; } = new();

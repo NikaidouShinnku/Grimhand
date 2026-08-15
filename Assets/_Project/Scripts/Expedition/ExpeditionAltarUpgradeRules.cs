@@ -176,10 +176,14 @@ namespace Grimhand.Expedition
             var bonus = ExpeditionPartyStatsRules.GetPartyMaxHpBonus(run.Party, run.Relics, run.RelicGrowthTiers);
             foreach (var member in run.Party)
             {
-                if (member == null || member.Hp <= 0)
+                if (member == null)
                     continue;
 
                 var maxHp = ExpeditionPartyStatsRules.GetEffectiveMaxHp(member, bonus);
+                if (maxHp <= 0)
+                    continue;
+
+                // 倒下（Hp<=0）下场仍以 1 血开战，祭坛应可回复
                 if (member.Hp < maxHp)
                     return true;
             }
@@ -220,13 +224,18 @@ namespace Grimhand.Expedition
             var bonus = ExpeditionPartyStatsRules.GetPartyMaxHpBonus(run.Party, run.Relics, run.RelicGrowthTiers);
             foreach (var member in run.Party)
             {
-                if (member == null || member.Hp <= 0)
+                if (member == null)
                     continue;
 
                 var maxHp = ExpeditionPartyStatsRules.GetEffectiveMaxHp(member, bonus);
+                if (maxHp <= 0)
+                    continue;
+
                 member.MaxHp = maxHp;
-                ExpeditionPartyStatsRules.GetDisplayHp(
-                    member, run.Party, run.Relics, run.RelicGrowthTiers, out var currentHp, out _);
+                var currentHp = System.Math.Max(0, member.Hp);
+                if (currentHp >= maxHp)
+                    continue;
+
                 var heal = System.Math.Max(1, maxHp * RestHealPercent / 100);
                 member.Hp = System.Math.Min(maxHp, currentHp + heal);
             }

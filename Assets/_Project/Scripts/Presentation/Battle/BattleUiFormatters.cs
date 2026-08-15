@@ -8,6 +8,7 @@ using Grimhand.Battle.Reactions;
 using Grimhand.Battle.Rules;
 using Grimhand.Battle.Status;
 using Grimhand.Battle.V09;
+using Grimhand.Battle.V091;
 using Grimhand.Content;
 using Grimhand.Expedition.Model;
 
@@ -278,6 +279,9 @@ namespace Grimhand.Presentation.Battle
             // 已升级/改写实例 MatchesDefinitionBaseline 失败时再走动态预览。
             if (TryBuildExcelDescriptionLine(state, draft, card, definitions, out var excelLine))
                 return excelLine;
+
+            if (TryDescribeUpgradeAwareSpecialCard(card, out var specialLine))
+                return specialLine;
 
             var pickSide = CardRules.GetRequiredTargetPick(card);
             var previewTarget = ResolveDamagePreviewTarget(state, draft, card, owner, damagePreviewTarget);
@@ -675,6 +679,49 @@ namespace Grimhand.Presentation.Battle
                     return prefix + $"下回合玩家能量回复 -{action.Value}";
                 case EffectActionType.ArmRespondDamageRedirect:
                     return prefix + "应对成功时格挡，并将所受伤害×2转嫁给随机一名队友";
+                case EffectActionType.DamagePerRespondCount:
+                    return prefix + reachTag + PrefixTarget(
+                        target, $"造成整场远征中应对次数×{Math.Max(0, action.Value)} 的伤害");
+                case EffectActionType.DealDamageScaledByActorHpLoss:
+                {
+                    var stepPct = Math.Max(1, action.HpLossStepPercent);
+                    var stepVal = Math.Max(0, action.HpLossStepValue);
+                    return prefix + reachTag + PrefixTarget(
+                        target,
+                        $"造成 {action.Value} 点伤害；自身生命每低 {stepPct}% 最大生命，额外提高 {stepVal} 伤害");
+                }
+                case EffectActionType.ConsumeBlockDealDamage:
+                    return prefix + reachTag + PrefixTarget(
+                        target, $"消耗全部护甲，造成（护甲量 + {action.Value}）点伤害");
+                case EffectActionType.DealDamageAlternateIfHealedThisTurn:
+                    return prefix + reachTag + PrefixTarget(
+                        target,
+                        $"造成 {action.Value} 点伤害；本回合若回复过生命，改为 {action.AlternateValue} 点伤害");
+                case EffectActionType.DealDamageBonusPerTargetDebuffStack:
+                    return prefix + reachTag + PrefixTarget(
+                        target,
+                        $"造成 {action.Value} 点伤害；目标每有 1 层负面状态额外 +{Math.Max(0, action.Stacks)}");
+                case EffectActionType.GainBlockBonusIfSelfPoisoned:
+                    return prefix + reachTag + PrefixTarget(
+                        target,
+                        $"获得 {action.Value} 点护甲；自身有中毒时额外 +{Math.Max(0, action.Stacks)}");
+                case EffectActionType.ApplyPoisonBySpeedCompare:
+                    return prefix + reachTag + PrefixTarget(
+                        target,
+                        $"造成 {action.Value} 点伤害；若目标速度慢于自身则附加中毒 {Math.Max(1, action.Stacks)} 层，否则 1 层");
+                case EffectActionType.RemovePoisonHealPerStack:
+                    return prefix + $"清除自身中毒，每层恢复 {action.Value} 点生命";
+                case EffectActionType.ApplyConstrict:
+                    return prefix + reachTag + PrefixTarget(
+                        target, $"施加缠绕：每回合开始受到 {action.Value} 点伤害{FormatDurationSuffix(action, state, owner)}");
+                case EffectActionType.RandomSnakeGodEffect:
+                    return prefix +
+                           $"随机：全体敌人 {action.Value} 点伤害 / 全体中毒 {Math.Max(0, action.Stacks)} 层 / 随机敌人 {action.AlternateValue} 点伤害";
+                case EffectActionType.ApplyStatusNextTurn:
+                    return prefix + reachTag +
+                           $"下回合开始时，{DescribeStatusEffectClause(action, target, usesPick, state, owner)}";
+                case EffectActionType.GainEnergyNextTurn:
+                    return prefix + $"下回合开始时获得 {action.Value} 点能量";
                 case EffectActionType.ApplyDelayedDamage:
                 {
                     var amount = action.Value;
@@ -969,7 +1016,7 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.Taunt:
                     return "所有敌人下一行动强制攻击自身";
                 case StatusCatalog.Guard:
-                    return "本回合队友伤害转移给自身，减伤 50%";
+                    return $"本回合队友伤害转移给自身，减伤 {stacksText}%";
                 case StatusCatalog.VampAura:
                     return $"直到本回合结束，攻击回复造成伤害 {stacksText}% 的生命";
                 case StatusCatalog.ReviveBlessing:
@@ -977,9 +1024,27 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.Unyielding:
                     return "HP 低于 25% 时恢复 20 HP（每场 1 次，使用后移出牌组）";
                 case StatusCatalog.FinalBloodRitual:
-                    return "本场战斗中，每当触发【献祭】，回复 5 点生命并在下回合开始时抽 1 张牌";
+                    return $"本场战斗中，每当触发【献祭】，回复 {stacksText} 点生命并在下回合开始时抽 1 张牌";
                 case StatusCatalog.GodDescends:
                     return "本场战斗中，获得护甲时对全体敌人造成 8 伤害";
+                case StatusCatalog.BattleWill:
+                    return $"本场战斗中，受到生命伤害后获得 {stacksText}% 增伤（永久）";
+                case StatusCatalog.HeavyArmor:
+                    return $"本场战斗中，获得护甲时额外 +{stacksText}%";
+                case StatusCatalog.FinalBulwark:
+                    return $"最终壁垒：回合结束仅保留 {stacksText}% 护甲";
+                case StatusCatalog.PlagueSpread:
+                    return $"本场战斗中，敌人因中毒受伤时 {stacksText}% 概率将一半层数传染给相邻敌人";
+                case StatusCatalog.BloodFrenzy:
+                    return $"本场战斗中，触发【献祭】后获得 {stacksText}% 增伤（永久）";
+                case StatusCatalog.BloodSharing:
+                    return $"本场战斗中，回复生命时，治疗其他我方角色回复量的 {stacksText}%";
+                case StatusCatalog.BloodlineLegacy:
+                    return $"最大生命 +{stacksText}%（当前生命不变）";
+                case StatusCatalog.RespondStance:
+                    return $"本场战斗中，应对成功时获得 {stacksText} 点护甲";
+                case StatusCatalog.ImmortalShed:
+                    return $"本场战斗中，获得中毒时获得 {stacksText}% 增伤（5 回合）";
                 case StatusCatalog.NecroticPoison:
                 case StatusCatalog.Poison:
                     return PrefixTarget(usesPick ? "" : target, $"附加中毒 {stacksText} 层{dur}");
@@ -1581,9 +1646,27 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.AnubisAvatar:
                     return "生命/攻击/防御 +50%；剩余禁出牌由化身状态维护";
                 case StatusCatalog.BloodlineLegacy:
-                    return "最大生命 +50%（当前生命不变）";
+                    return $"最大生命 +{status.Stacks}%（当前生命不变）";
                 case StatusCatalog.PlagueSpread:
-                    return "敌人因中毒受伤时，30% 概率向相邻敌人传染一半层数";
+                    return $"敌人因中毒受伤时，{status.Stacks}% 概率向相邻敌人传染一半层数";
+                case StatusCatalog.FinalBulwark:
+                    return $"回合结束仅保留 {status.Stacks}% 护甲";
+                case StatusCatalog.BattleWill:
+                    return $"受到生命伤害后获得 {status.Stacks}% 增伤（永久）";
+                case StatusCatalog.HeavyArmor:
+                    return $"获得护甲时额外 +{status.Stacks}%";
+                case StatusCatalog.BloodFrenzy:
+                    return $"触发【献祭】后获得 {status.Stacks}% 增伤（永久）";
+                case StatusCatalog.BloodSharing:
+                    return $"回复生命时，治疗其他我方角色回复量的 {status.Stacks}%";
+                case StatusCatalog.RespondStance:
+                    return $"应对成功时获得 {status.Stacks} 点护甲";
+                case StatusCatalog.ImmortalShed:
+                    return $"获得中毒时获得 {status.Stacks}% 增伤（5 回合）";
+                case StatusCatalog.FinalBloodRitual:
+                    return $"触发【献祭】时回复 {status.Stacks} HP，并在下回合开始时抽 1 张牌";
+                case StatusCatalog.Guard:
+                    return $"本回合队友受到的伤害转移给自身，并减伤 {status.Stacks}%";
                 case StatusCatalog.HolyInfusionPending:
                     return "（已废弃）旧版神圣灌注待重复状态";
                 case StatusCatalog.Poison:
@@ -1649,30 +1732,14 @@ namespace Grimhand.Presentation.Battle
                     return AppendStatusDurationLine(
                         "终焉召唤倒计时：到期时召唤终焉造物",
                         status, def);
-                case StatusCatalog.RespondStance:
-                    return "应对姿态：成功应对时获得 8 护甲";
-                case StatusCatalog.BattleWill:
-                    return "战意觉醒：受到生命损失时获得 5% 增伤";
-                case StatusCatalog.HeavyArmor:
-                    return "重甲强化：获得护甲时额外 +20%";
-                case StatusCatalog.FinalBulwark:
-                    return "最终壁垒：回合结束仅清除 50% 护甲";
                 case StatusCatalog.RotAvatar:
                     return "腐朽化身：敌人回合开始时对其施加 2 层中毒";
-                case StatusCatalog.BloodFrenzy:
-                    return "鲜血狂欢：献祭后获得 5% 增伤";
-                case StatusCatalog.BloodSharing:
-                    return "分血仪式：回复生命时，其他我方也回复 30%";
                 case StatusCatalog.Constrict:
                     return AppendStatusDurationLine(
                         $"缠绕：每回合开始受到 {status.Stacks} 点伤害；期间可能无法出牌",
                         status, def);
                 case StatusCatalog.VenomSacBurst:
                     return "毒囊破裂：施加中毒时额外 +1 层";
-                case StatusCatalog.ImmortalShed:
-                    return AppendStatusDurationLine(
-                        "不朽蛇蜕：获得中毒时额外获得 10% 增伤",
-                        status, def);
                 case StatusCatalog.PrayAncientSnakeGod:
                     return "祈求远古蛇神：每回合注入蛇神的回应相关效果";
                 case StatusCatalog.DelayedDamage:
@@ -1717,8 +1784,6 @@ namespace Grimhand.Presentation.Battle
                     return AppendStatusDurationLine(
                         "亡灵毒：回合开始造成伤害的特殊中毒",
                         status, def);
-                case StatusCatalog.FinalBloodRitual:
-                    return "触发【献祭】时回复 5 HP，并在下回合开始时抽 1 张牌";
                 case StatusCatalog.VampAura:
                     return $"攻击吸血 {status.Stacks}%";
                 case StatusCatalog.AttackUp:
@@ -1747,8 +1812,6 @@ namespace Grimhand.Presentation.Battle
                     return AppendStatusDurationLine(
                         $"强固：获得护甲 +{status.Stacks * (def?.DefensePercentBonusPerStack ?? 1)}%（每层 +{def?.DefensePercentBonusPerStack ?? 1}%）",
                         status, def);
-                case StatusCatalog.Guard:
-                    return "本回合队友受到的伤害转移给自身，并减伤 50%";
                 case StatusCatalog.Ethereal:
                     return "受到的攻击伤害最多造成 1 点";
                 case StatusCatalog.Invulnerable:
@@ -2396,6 +2459,65 @@ namespace Grimhand.Presentation.Battle
             }
         }
 
+        static bool TryDescribeUpgradeAwareSpecialCard(CardInstanceState card, out string line)
+        {
+            line = "";
+            if (card == null || string.IsNullOrEmpty(card.DefinitionId))
+                return false;
+
+            var lv = Math.Max(0, card.UpgradeLevel);
+            // 无 Actions 的特殊技才走专用句；有 Actions 的走通用 DescribeEffectClause。
+            if (card.Actions != null && card.Actions.Count > 0)
+                return false;
+
+            switch (card.DefinitionId)
+            {
+                case V091MechanicsRules.ThornArmorCardId:
+                    line = $"获得 {12 + lv} 点护甲；本回合受击时反弹 {V091MechanicsRules.ThornReflectDamage} 伤害";
+                    return true;
+                case V091MechanicsRules.BattleRoarCardId:
+                    line =
+                        $"【消耗】本场战斗中，每当获得护甲，获得 {V091MechanicsRules.BattleRoarAttackPercent + lv}% 增伤（永久）";
+                    return true;
+                case V091MechanicsRules.RegroupCardId:
+                {
+                    var draw = V091MechanicsRules.RegroupDrawCount + Math.Min(2, lv);
+                    line =
+                        $"【快速启动】【消耗】弃掉所有手牌，然后抽 {draw} 张牌。每弃掉一张牌，获得 {V091MechanicsRules.RegroupBlockPerDiscard} 点护甲";
+                    return true;
+                }
+                case V091MechanicsRules.LifeSpringCardId:
+                    line = $"本场战斗中，回合开始时每名我方角色回复 {V091MechanicsRules.LifeSpringHeal + lv} 点生命";
+                    return true;
+                case V091MechanicsRules.PainConvertCardId:
+                    line =
+                        $"获得 {V091MechanicsRules.PainConvertBlock + lv} 点护甲；本场战斗中，受到攻击时回复 {V091MechanicsRules.PainConvertHealOnHit + lv} 点生命";
+                    return true;
+                case V091MechanicsRules.PoisonMistCardId:
+                    line =
+                        $"对全体敌人施加 {V091MechanicsRules.PoisonMistStacks + lv} 层中毒，并施加 {V091MechanicsRules.PoisonMistVulnerableStacks}% 破损";
+                    return true;
+                case V091MechanicsRules.QueenKissCardId:
+                    line =
+                        $"对目标施加 {V091MechanicsRules.QueenKissPoisonStacks + lv * 3} 层中毒（永久）";
+                    return true;
+                case V091MechanicsRules.EtherealShieldCardId:
+                    line = $"获得 {V091MechanicsRules.EtherealShieldBlock + lv} 点护甲";
+                    return true;
+                case V091MechanicsRules.PsionicArrowRainCardId:
+                    line =
+                        $"接下来 {V091MechanicsRules.PsionicArrowRainTurns} 回合，每回合开始对全体敌人造成 {V091MechanicsRules.PsionicArrowRainDamage + lv} 点伤害";
+                    return true;
+                case CardPowerRules.SolarGodWrathCardId:
+                    line = lv > 0
+                        ? $"消耗全部能量：每点能量随机对一名敌人造成效果；额外再结算 {lv} 次"
+                        : "消耗全部能量：每点能量随机对一名敌人造成效果";
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         static bool TryBuildExcelDescriptionLine(
             BattleState state,
             PlanningDraft draft,
@@ -2409,6 +2531,9 @@ namespace Grimhand.Presentation.Battle
 
             // 目录按 CardId 命中则直接采用（蛇神回应等 token 与 SO 默认 Reach 等可能不一致）。
             // 但已升级/改写过的实例必须走动态描述，否则当前/升级后效果会显示成同一句静态文案。
+            if (card.UpgradeLevel > 0)
+                return false;
+
             var hasIdEntry = CardDescriptionCatalog.TryGetByCardId(card.DefinitionId, out var excelText);
             if (!hasIdEntry
                 && !CardDescriptionCatalog.TryGetByDisplayName(card.DisplayName, out excelText))

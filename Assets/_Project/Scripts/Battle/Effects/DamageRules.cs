@@ -129,7 +129,7 @@ namespace Grimhand.Battle.Effects
                 recipient, afterBlock, ignoreDefPercent);
 
             if (redirectedByGuard)
-                hpDamage = CombatMechanicsRules.ApplyGuardReduction(hpDamage);
+                hpDamage = CombatMechanicsRules.ApplyGuardReduction(hpDamage, recipient);
 
             hpDamage = RelicBattleRules.ApplyIncomingDamageRelics(
                 state, actor, recipient, hpDamage, rng, events, out var talentBlocked, blockBeforeHit);

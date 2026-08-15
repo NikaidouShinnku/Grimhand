@@ -88,6 +88,12 @@ namespace Grimhand.Expedition
             var costReduce = spec.CostReductionPerLevel * upgradeLevel;
             var draw = spec.DrawPerLevel * upgradeLevel;
             var damageReduction = spec.DamageReductionPerLevel * upgradeLevel;
+            var respondMitigation = spec.RespondMitigationPerLevel * upgradeLevel;
+            var reflectPercent = spec.ReflectPercentPerLevel * upgradeLevel;
+            var attackUpPct = spec.AttackUpPercentPerLevel * upgradeLevel;
+            var defenseUpPct = spec.DefenseUpPercentPerLevel * upgradeLevel;
+            var weaken = spec.WeakenPerLevel * upgradeLevel;
+            var vulnerable = spec.VulnerablePerLevel * upgradeLevel;
 
             if (costReduce > 0)
                 template.Cost = Math.Max(0, template.Cost - costReduce);
@@ -97,15 +103,27 @@ namespace Grimhand.Expedition
                 switch (action.Type)
                 {
                     case EffectActionType.DealDamage when dmg > 0:
+                    case EffectActionType.ApplyDelayedDamage when dmg > 0:
+                    case EffectActionType.DealDamageAlternateIfHealedThisTurn when dmg > 0:
+                    case EffectActionType.DealDamageBonusPerTargetDebuffStack when dmg > 0:
+                    case EffectActionType.ConsumeBlockDealDamage when dmg > 0:
+                    case EffectActionType.DamagePerRespondCount when dmg > 0:
+                    case EffectActionType.EtherealCountBonusDamage when dmg > 0:
+                    case EffectActionType.RandomSnakeGodEffect when dmg > 0:
                         action.Value += dmg;
+                        break;
+                    case EffectActionType.DealDamageScaledByActorHpLoss when dmg > 0:
+                        action.HpLossStepValue += dmg;
                         break;
                     case EffectActionType.ApplyConstrict when dmg > 0:
                         action.Value += dmg;
                         break;
                     case EffectActionType.GainBlock when block > 0:
+                    case EffectActionType.GainBlockBonusIfSelfPoisoned when block > 0:
                         action.Value += block;
                         break;
                     case EffectActionType.Heal when heal > 0:
+                    case EffectActionType.RemovePoisonHealPerStack when heal > 0:
                         action.Value += heal;
                         break;
                     case EffectActionType.ApplyStatus when action.StatusId == "poison" && poison > 0:
@@ -122,9 +140,86 @@ namespace Grimhand.Expedition
                         when action.StatusId == StatusCatalog.DamageReduction && damageReduction > 0:
                         action.Stacks += damageReduction;
                         break;
+                    case EffectActionType.ApplyStatus
+                        when action.StatusId == StatusCatalog.Guard && respondMitigation > 0:
+                        action.Stacks += respondMitigation;
+                        break;
+                    case EffectActionType.ApplyStatus
+                        when action.StatusId == StatusCatalog.FinalBloodRitual && heal > 0:
+                        action.Stacks += heal;
+                        break;
+                    case EffectActionType.ApplyStatus
+                        when action.StatusId == StatusCatalog.RespondStance && block > 0:
+                        action.Stacks += block;
+                        break;
+                    case EffectActionType.ApplyStatus
+                        when action.StatusId == StatusCatalog.ImmortalShed && attackUpPct > 0:
+                        action.Stacks += attackUpPct;
+                        break;
+                    case EffectActionType.ApplyStatus
+                        when action.StatusId == StatusCatalog.BattleWill && attackUpPct > 0:
+                        action.Stacks += attackUpPct;
+                        break;
+                    case EffectActionType.ApplyStatus
+                        when action.StatusId == StatusCatalog.HeavyArmor && defenseUpPct > 0:
+                        action.Stacks += defenseUpPct;
+                        break;
+                    case EffectActionType.ApplyStatus
+                        when action.StatusId == StatusCatalog.FinalBulwark && damageReduction > 0:
+                        action.Stacks += damageReduction;
+                        break;
+                    case EffectActionType.ApplyStatus
+                        when action.StatusId == StatusCatalog.PlagueSpread && reflectPercent > 0:
+                        action.Stacks += reflectPercent;
+                        break;
+                    case EffectActionType.ApplyStatus
+                        when action.StatusId == StatusCatalog.BloodSharing && heal > 0:
+                        action.Stacks += heal;
+                        break;
+                    case EffectActionType.ApplyStatus
+                        when action.StatusId == StatusCatalog.BloodFrenzy && attackUpPct > 0:
+                        action.Stacks += attackUpPct;
+                        break;
+                    case EffectActionType.ApplyStatus
+                        when action.StatusId == StatusCatalog.BloodlineLegacy && heal > 0:
+                        action.Stacks += heal;
+                        break;
+                    case EffectActionType.ApplyStatus
+                        when action.StatusId == StatusCatalog.AttackUpPercent && attackUpPct > 0:
+                        action.Stacks += attackUpPct;
+                        break;
+                    case EffectActionType.ApplyStatus
+                        when action.StatusId == StatusCatalog.DefenseUpPercent && defenseUpPct > 0:
+                        action.Stacks += defenseUpPct;
+                        break;
+                    case EffectActionType.ApplyStatus
+                        when action.StatusId == StatusCatalog.Weaken && weaken > 0:
+                        action.Stacks += weaken;
+                        break;
+                    case EffectActionType.ApplyStatus
+                        when action.StatusId == StatusCatalog.Vulnerable && vulnerable > 0:
+                        action.Stacks += vulnerable;
+                        break;
+                    case EffectActionType.BuffAllOtherAllies
+                        when action.StatusId == StatusCatalog.AttackUpPercent && attackUpPct > 0:
+                        action.Stacks += attackUpPct;
+                        break;
+                    case EffectActionType.GainBlockFromLastDamagePercent when respondMitigation > 0:
+                        action.Value += respondMitigation;
+                        break;
+                    case EffectActionType.ReflectLastDamageToAttacker when reflectPercent > 0:
+                        action.Value += reflectPercent;
+                        break;
                     case EffectActionType.DrawCards when draw > 0:
                     case EffectActionType.DrawCardsNextTurn when draw > 0:
                         action.Value += draw;
+                        break;
+                    case EffectActionType.ApplyPoisonBySpeedCompare when poison > 0:
+                        action.Stacks += poison;
+                        break;
+                    case EffectActionType.ApplyStatusNextTurn
+                        when action.StatusId == StatusCatalog.AttackUpPercent && attackUpPct > 0:
+                        action.Stacks += attackUpPct;
                         break;
                 }
             }

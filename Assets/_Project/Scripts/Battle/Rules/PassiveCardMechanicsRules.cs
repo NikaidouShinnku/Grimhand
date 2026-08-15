@@ -115,7 +115,11 @@ namespace Grimhand.Battle.Rules
             if (!StatusRules.HasStatus(actor, StatusCatalog.FinalBloodRitual))
                 return;
 
-            DamageRules.ApplyHeal(state, actor, FinalBloodRitualHeal, events, actor);
+            var ritual = StatusRules.FindStatus(actor, StatusCatalog.FinalBloodRitual);
+            var heal = ritual != null && ritual.Stacks > 1
+                ? ritual.Stacks
+                : FinalBloodRitualHeal;
+            DamageRules.ApplyHeal(state, actor, heal, events, actor);
             state.PendingDrawNextTurn += FinalBloodRitualDraw;
             events.Add(new BattleEvent(BattleEventKind.CardDrawn,
                 $"{actor.DisplayName} 最终鲜血仪式：下回合额外抽 {FinalBloodRitualDraw} 张")
@@ -401,7 +405,11 @@ namespace Grimhand.Battle.Rules
                 return;
             if (!StatusRules.HasStatus(actor, StatusCatalog.RespondStance))
                 return;
-            DamageRules.ApplyBlock(actor, RespondStanceBlock, events, state, rng);
+            var stance = StatusRules.FindStatus(actor, StatusCatalog.RespondStance);
+            var block = stance != null && stance.Stacks > 0
+                ? stance.Stacks
+                : RespondStanceBlock;
+            DamageRules.ApplyBlock(actor, block, events, state, rng);
         }
 
         /// <summary>战意觉醒：受到HP伤害后获得5%增伤（永久）。在 DamageRules 受伤后调用。</summary>
@@ -412,9 +420,13 @@ namespace Grimhand.Battle.Rules
                 return;
             if (!StatusRules.HasStatus(target, StatusCatalog.BattleWill))
                 return;
+            var will = StatusRules.FindStatus(target, StatusCatalog.BattleWill);
+            var percent = will != null && will.Stacks > 0
+                ? will.Stacks
+                : BattleWillAttackPercentPerHit;
             StatusRules.ApplyStatus(
                 state, target, StatusCatalog.AttackUpPercent,
-                BattleWillAttackPercentPerHit, -1, events);
+                percent, -1, events);
         }
 
         /// <summary>
@@ -510,7 +522,11 @@ namespace Grimhand.Battle.Rules
                 return amount;
             if (!StatusRules.HasStatus(actor, StatusCatalog.HeavyArmor))
                 return amount;
-            return Math.Max(1, (int)Math.Round(amount * (100f + HeavyArmorBlockBonusPercent) / 100f));
+            var armor = StatusRules.FindStatus(actor, StatusCatalog.HeavyArmor);
+            var bonus = armor != null && armor.Stacks > 0
+                ? armor.Stacks
+                : HeavyArmorBlockBonusPercent;
+            return Math.Max(1, (int)Math.Round(amount * (100f + bonus) / 100f));
         }
 
         /// <summary>最终壁垒：回合末护甲清零时仅清除 (100-FinalBulwarkKeepPercent)%。返回应保留的护甲。</summary>
@@ -520,7 +536,11 @@ namespace Grimhand.Battle.Rules
                 return 0;
             if (!StatusRules.HasStatus(combatant, StatusCatalog.FinalBulwark))
                 return 0;
-            return (int)Math.Round(combatant.Block * FinalBulwarkKeepPercent / 100f);
+            var bulwark = StatusRules.FindStatus(combatant, StatusCatalog.FinalBulwark);
+            var keep = bulwark != null && bulwark.Stacks > 0
+                ? Math.Clamp(bulwark.Stacks, 0, 95)
+                : FinalBulwarkKeepPercent;
+            return (int)Math.Round(combatant.Block * keep / 100f);
         }
 
         /// <summary>背水一战：HP将降至0时，改为保留1HP（消耗1层持续时间）。返回是否触发。</summary>
@@ -571,9 +591,13 @@ namespace Grimhand.Battle.Rules
                 return;
             if (!StatusRules.HasStatus(actor, StatusCatalog.BloodFrenzy))
                 return;
+            var frenzy = StatusRules.FindStatus(actor, StatusCatalog.BloodFrenzy);
+            var percent = frenzy != null && frenzy.Stacks > 0
+                ? frenzy.Stacks
+                : BloodFrenzyAttackPercent;
             StatusRules.ApplyStatus(
                 state, actor, StatusCatalog.AttackUpPercent,
-                BloodFrenzyAttackPercent, -1, events);
+                percent, -1, events);
         }
 
         /// <summary>分血仪式：恶魔回复HP时，治疗其他我方角色30%的回复量。</summary>
@@ -584,7 +608,11 @@ namespace Grimhand.Battle.Rules
                 return;
             if (!StatusRules.HasStatus(healed, StatusCatalog.BloodSharing))
                 return;
-            var share = Math.Max(1, (int)Math.Round(healedAmount * BloodSharingAllyHealPercent / 100f));
+            var sharing = StatusRules.FindStatus(healed, StatusCatalog.BloodSharing);
+            var sharePercent = sharing != null && sharing.Stacks > 0
+                ? sharing.Stacks
+                : BloodSharingAllyHealPercent;
+            var share = Math.Max(1, (int)Math.Round(healedAmount * sharePercent / 100f));
             foreach (var ally in state.GetTeam(healed.Team))
             {
                 if (!ally.IsAlive || ally.Id == healed.Id)
@@ -602,7 +630,10 @@ namespace Grimhand.Battle.Rules
             var caster = FindAliveWithStatus(state, TeamSide.Player, StatusCatalog.PlagueSpread);
             if (caster == null)
                 return;
-            if (rng.NextInt(1, 100) > PlagueSpreadChancePercent)
+            if (rng.NextInt(1, 100) > (
+                    StatusRules.FindStatus(caster, StatusCatalog.PlagueSpread) is { Stacks: > 0 } plague
+                        ? plague.Stacks
+                        : PlagueSpreadChancePercent))
                 return;
             var poison = StatusRules.FindStatus(victim, StatusCatalog.Poison);
             if (poison == null || poison.Stacks <= 0)

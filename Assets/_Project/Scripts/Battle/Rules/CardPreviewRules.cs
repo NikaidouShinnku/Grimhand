@@ -450,7 +450,7 @@ namespace Grimhand.Battle.Rules
                 recipient, afterBlock, action.IgnoreDefPercent);
 
             if (redirectedByGuard)
-                hpDamage = CombatMechanicsRules.ApplyGuardReduction(hpDamage);
+                hpDamage = CombatMechanicsRules.ApplyGuardReduction(hpDamage, recipient);
 
             return System.Math.Max(0, hpDamage);
         }

@@ -519,7 +519,9 @@ namespace Grimhand.Presentation.Battle
             labelGo.transform.SetParent(go.transform, false);
             labelGo.SetActive(false);
 
-            _tooltip?.BindHover(go, relic.DisplayName, relic.Description);
+            _tooltip?.BindHover(go, relic.DisplayName, RelicDescriptionFormatter.Format(
+                relic,
+                RelicGrowthRules.GetGrowthTiers(_session?.Expedition?.Run?.RelicGrowthTiers, relic.Id)));
             _dynamicObjects.Add(go);
             return go;
         }

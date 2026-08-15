@@ -482,7 +482,11 @@ namespace Grimhand.Battle.V09
             if (statusId != StatusCatalog.Poison)
                 return;
             if (StatusRules.HasStatus(target, StatusCatalog.ImmortalShed))
-                StatusRules.ApplyStatus(state, target, StatusCatalog.AttackUpPercent, 10, 5, events);
+            {
+                var shed = StatusRules.FindStatus(target, StatusCatalog.ImmortalShed);
+                var percent = shed != null && shed.Stacks > 0 ? shed.Stacks : 10;
+                StatusRules.ApplyStatus(state, target, StatusCatalog.AttackUpPercent, percent, 5, events);
+            }
         }
 
         // ----- 获得虚化时：绝望之魔回收 + 巫妖天赋 -----

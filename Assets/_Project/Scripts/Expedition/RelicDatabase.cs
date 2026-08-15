@@ -74,11 +74,35 @@ namespace Grimhand.Expedition
 
             foreach (var member in party)
             {
-                if (member?.CharacterDefinitionId == relic.RequiredCharacterId)
+                if (MatchesRequiredCharacter(member?.CharacterDefinitionId, relic.RequiredCharacterId))
                     return true;
             }
 
             return false;
+        }
+
+        static bool MatchesRequiredCharacter(string memberId, string requiredId)
+        {
+            if (string.IsNullOrEmpty(memberId) || string.IsNullOrEmpty(requiredId))
+                return false;
+
+            if (memberId == requiredId)
+                return true;
+
+            return requiredId switch
+            {
+                "char_mage" => memberId is "char_pharaoh",
+                "char_pharaoh" => memberId is "char_mage",
+                "char_knight" => memberId is "char_warrior",
+                "char_warrior" => memberId is "char_knight",
+                "char_ranger" => memberId is "char_demon",
+                "char_demon" => memberId is "char_ranger",
+                "char_snake_queen" => memberId is "char_viper_queen",
+                "char_viper_queen" => memberId is "char_snake_queen",
+                "char_lich_queen" => memberId is "char_lich",
+                "char_lich" => memberId is "char_lich_queen",
+                _ => false
+            };
         }
 
         static void ApplySpecialFlag(RunModifierSnapshot mods, RelicDefinition relic)
@@ -170,6 +194,11 @@ namespace Grimhand.Expedition
                 case "holysun_spellbook":
                     mods.HolysunSpellbookBonusUpgradeLevels = 3;
                     break;
+                case "bottle_of_phantom":
+                    mods.PhantomBottleDamagePerCard = 3;
+                    break;
+                case "snake_egg":
+                    break;
                 case "front_burn_target_15x":
                     mods.FrontRowBurnTargetDamageMultiplier = System.Math.Max(
                         mods.FrontRowBurnTargetDamageMultiplier, 1.5f);
@@ -253,6 +282,12 @@ namespace Grimhand.Expedition
                 Def(RelicIds.HolysunSpellbook, "圣阳之书", RelicRarity.Common, "法老专属",
                     "当使用任何名字中含有“阳”或“日”的卡牌时，使该卡牌视为等级+3（可超出卡牌升级上限）",
                     "holysun_spellbook", requiredCharacterId: "char_mage"),
+                Def(RelicIds.BottleOfPhantom, "瓶中之灵", RelicRarity.Common, "巫妖女王专属",
+                    "当巫妖女王打出任何牌时，对随机一名敌人施加延迟伤害（每张牌3点，下回合开始结算）；可提前在目标脚标看到延迟伤害",
+                    "bottle_of_phantom", requiredCharacterId: "char_lich_queen"),
+                Def(RelicIds.SnakeEgg, "毒蛇蛋", RelicRarity.Common, "毒蛇女王专属",
+                    "获取时，使所有毒蛇女王的卡牌等级+1",
+                    "snake_egg", requiredCharacterId: "char_snake_queen"),
                 Def(RelicIds.Felskull, "魔焰颅骨", RelicRarity.Common, "通用",
                     "每场战斗开始时，你必须选择其一：A.所有我方角色失去5%HP，本场战斗获得1额外能量上限；B.在本场战斗中失去1点能量上限，所有我方角色获得10%增伤（永久）",
                     "felskull_choice")

@@ -25,7 +25,7 @@ MonoBehaviour:
     Target: 1
     Value: 0
     StatusId: plague_spread
-    Stacks: 1
+    Stacks: 30
     Duration: -1
     ScaleWithAttack: 0
     ScaleWithDefense: 0

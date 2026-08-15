@@ -544,7 +544,7 @@ namespace Grimhand.Battle.Status
                 Id = BloodlineLegacy,
                 DisplayName = "血族传承",
                 DurationKind = StatusDurationKind.Permanent,
-                MaxHpPercentBonusPerStack = 50
+                MaxHpPercentBonusPerStack = 1
             };
             map[BloodSharing] = new StatusDefinition
             {

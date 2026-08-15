@@ -159,6 +159,9 @@ namespace Grimhand.Expedition
                 case RelicIds.Bonfire:
                     mods.PostBattleTeamHealPercent += 1f * tiers;
                     break;
+                case RelicIds.BottleOfPhantom:
+                    mods.PhantomBottleDamagePerCard += 1 * tiers;
+                    break;
             }
         }
     }

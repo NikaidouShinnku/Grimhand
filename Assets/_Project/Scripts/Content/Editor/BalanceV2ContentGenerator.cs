@@ -49,7 +49,7 @@ namespace Grimhand.Content.Editor
         struct PharaohCards
         {
             public CardDefinitionSO SandRay, Bless, SolarWrath, LifeSteal, Decree, UndeadCurse,
-                ScarabShield, SandBarrier, ReviveBless, SolarJudgment;
+                ScarabShield, SandProphecy, SandBarrier, ReviveBless, SolarJudgment;
         }
 
         struct DemonCards
@@ -98,7 +98,7 @@ namespace Grimhand.Content.Editor
                 WarCry = SaveCard("w_war_cry", "战吼鼓舞", "char_knight", 1, CardType.Status,
                     null, CardRarity.Common, Merge(TeamAttackUp(3, 1))),
                 Guardian = SaveCard("w_guardian", "誓死守护", "char_knight", 2, CardType.Defense,
-                    null, CardRarity.Rare, ApplyStat(StatusCatalog.Guard, 1, 1, EffectTarget.Self)),
+                    null, CardRarity.Rare, ApplyStat(StatusCatalog.Guard, 50, 1, EffectTarget.Self)),
                 FatalStrike = SaveCard("w_fatal_strike", "致命打击", "char_knight", 3, CardType.Attack,
                     null, CardRarity.Rare, AtkDmg(8, 180, bonusHitThisTurnPercent: 50)),
                 Unyielding = SaveCard("w_unyielding", "不屈意志", "char_knight", 0, CardType.Status,
@@ -140,6 +140,14 @@ namespace Grimhand.Content.Editor
                     ApplyStat(StatusCatalog.Poison, 5, -1, EffectTarget.DefaultEnemy)),
                 ScarabShield = SaveCard("p_scarab_shield", "圣甲虫护盾", "char_mage", 1, CardType.Defense,
                     null, CardRarity.Common, AllyDefBlock(EffectTarget.FrontAlly, 0, 120)),
+                SandProphecy = SaveCard("p_sand_prophecy", "沙之预言", "char_mage", 0, CardType.Status,
+                    Kw("quick_start"), CardRarity.Common,
+                    new EffectActionDefinition
+                    {
+                        Type = EffectActionType.RevealEnemyIntent,
+                        Target = EffectTarget.Self,
+                        Value = 1
+                    }),
                 SandBarrier = SaveCard("p_sand_barrier", "沙尘结界", "char_mage", 2, CardType.Defense,
                     null, CardRarity.Common,
                     AllyDefBlock(EffectTarget.AllyFrontSlot, 0, 100),
@@ -208,7 +216,7 @@ namespace Grimhand.Content.Editor
             BuildDeckWithCounts(
                 (c.SandRay, 3),
                 (c.Bless, 2),
-                (c.ScarabShield, 1),
+                (c.SandProphecy, 1),
                 (c.UndeadCurse, 1));
 
         static CardDefinitionSO[] BuildInitialDemonDeck(DemonCards c) =>

@@ -151,6 +151,10 @@ namespace Grimhand.Presentation.Battle
             if (card == null || definition == null)
                 return true;
 
+            // 已升级实例必须走动态描述，避免静态图鉴文案锁死升级前数字。
+            if (card.UpgradeLevel > 0)
+                return false;
+
             var baseline = CreatePreviewInstance(
                 card.DefinitionId,
                 card.OwnerCharacterId,
@@ -191,7 +195,11 @@ namespace Grimhand.Presentation.Battle
                    && a.ScaleWithAttack == b.ScaleWithAttack
                    && a.AttackScalePercent == b.AttackScalePercent
                    && a.ScaleWithDefense == b.ScaleWithDefense
-                   && a.DefenseScalePercent == b.DefenseScalePercent;
+                   && a.DefenseScalePercent == b.DefenseScalePercent
+                   && a.Duration == b.Duration
+                   && a.AlternateValue == b.AlternateValue
+                   && a.HpLossStepPercent == b.HpLossStepPercent
+                   && a.HpLossStepValue == b.HpLossStepValue;
         }
 
         public static CardInstanceState CreatePreviewInstance(

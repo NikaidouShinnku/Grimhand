@@ -1061,10 +1061,13 @@ namespace Grimhand.Presentation.Battle
         {
             ExpeditionPartyStatsRules.GetDisplayHp(
                 member, run.Party, run.Relics, run.RelicGrowthTiers, out var hp, out var maxHp);
-            var healAmount = hp > 0 ? ExpeditionAltarUpgradeRules.ComputeRestHealAmount(member, run) : 0;
-            var afterHp = hp > 0 ? System.Math.Min(maxHp, hp + healAmount) : 0;
+            var currentHp = System.Math.Max(0, hp);
+            var healAmount = currentHp < maxHp
+                ? ExpeditionAltarUpgradeRules.ComputeRestHealAmount(member, run)
+                : 0;
+            var afterHp = currentHp < maxHp ? System.Math.Min(maxHp, currentHp + healAmount) : currentHp;
             var memberId = member.CharacterDefinitionId;
-            var canHeal = hp > 0 && hp < maxHp;
+            var canHeal = currentHp < maxHp;
 
             var go = CreateRect("RestRow", parent);
             var le = go.gameObject.AddComponent<LayoutElement>();
@@ -1138,11 +1141,11 @@ namespace Grimhand.Presentation.Battle
 
             var preview = CreateStaticText(
                 go,
-                hp <= 0
-                    ? "角色已倒下，无法回复"
-                    : canHeal
-                        ? $"回复 +{healAmount} → {afterHp} / {maxHp}"
-                        : "已满血",
+                canHeal
+                    ? (currentHp <= 0
+                        ? $"倒下中，回复 +{healAmount} → {afterHp} / {maxHp}"
+                        : $"回复 +{healAmount} → {afterHp} / {maxHp}")
+                    : "已满血",
                 18,
                 FontStyle.Normal,
                 TextAnchor.MiddleRight);

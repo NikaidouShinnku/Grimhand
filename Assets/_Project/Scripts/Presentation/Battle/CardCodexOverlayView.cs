@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Grimhand.Battle.Consumables;
 using Grimhand.Battle.Model;
 using Grimhand.Content;
+using Grimhand.Core;
 using Grimhand.Expedition;
 using Grimhand.Presentation;
 using UnityEngine;
@@ -25,6 +26,8 @@ namespace Grimhand.Presentation.Battle
         const int ConsumableColumns = 5;
         const float ConsumablePlateW = 168f;
         const float ConsumablePlateH = 182f;
+        /// <summary>遗物成长可选上限（+0=1-20层，+1=21-40…）。</summary>
+        const int MaxRelicGrowthTierPicker = 10;
 
         CardView _cardPrefab;
         CardVisualCatalogSO _cardCatalog;
@@ -33,8 +36,8 @@ namespace Grimhand.Presentation.Battle
         ConsumableVisualCatalogSO _consumableCatalog;
         BattleUiIconCatalogSO _uiIcons;
         Dictionary<string, CardDefinitionSO> _definitions = new();
-        Action<CardDefinitionSO> _onAddToHand;
-        Action<RelicDefinition> _onGrantRelic;
+        Action<CardDefinitionSO, int> _onAddToHand;
+        Action<RelicDefinition, int> _onGrantRelic;
         Action<ConsumableDefinition> _onGrantConsumable;
         string _titleHint;
         bool _closeOnSelect;
@@ -49,6 +52,17 @@ namespace Grimhand.Presentation.Battle
         readonly List<GameObject> _dynamicObjects = new();
         bool _built;
 
+        RectTransform _levelPickerRoot;
+        Text _levelPickerTitle;
+        Text _levelPickerValue;
+        Text _levelPickerHint;
+        int _pickerLevel;
+        int _pickerMin;
+        int _pickerMax;
+        CardDefinitionSO _pendingCard;
+        RelicDefinition _pendingRelic;
+        bool _pickerIsRelic;
+
         public bool IsOpen => _panel != null && _panel.gameObject.activeSelf;
 
         public void Initialize(
@@ -58,11 +72,11 @@ namespace Grimhand.Presentation.Battle
             CharacterVisualCatalogSO characterVisuals,
             BattleUiIconCatalogSO uiIcons,
             Dictionary<string, CardDefinitionSO> definitions,
-            Action<CardDefinitionSO> onAddToHand = null,
+            Action<CardDefinitionSO, int> onAddToHand = null,
             string titleHint = null,
             bool closeOnSelect = true,
             RelicVisualCatalogSO relicCatalog = null,
-            Action<RelicDefinition> onGrantRelic = null,
+            Action<RelicDefinition, int> onGrantRelic = null,
             ConsumableVisualCatalogSO consumableCatalog = null,
             Action<ConsumableDefinition> onGrantConsumable = null)
         {
@@ -81,7 +95,7 @@ namespace Grimhand.Presentation.Battle
 
         /// <summary>切换点选行为（图鉴加手牌 / 假人出牌排队），不重建面板。</summary>
         public void ConfigureSelection(
-            Action<CardDefinitionSO> onSelect,
+            Action<CardDefinitionSO, int> onSelect,
             string titleHint = null,
             bool closeOnSelect = true,
             bool showRelics = true,
@@ -92,9 +106,10 @@ namespace Grimhand.Presentation.Battle
             _closeOnSelect = closeOnSelect;
             _showRelics = showRelics;
             _showConsumables = showConsumables;
+            HideLevelPicker();
         }
 
-        public void SetRelicGrantHandler(Action<RelicDefinition> onGrantRelic) =>
+        public void SetRelicGrantHandler(Action<RelicDefinition, int> onGrantRelic) =>
             _onGrantRelic = onGrantRelic;
 
         public void SetConsumableGrantHandler(Action<ConsumableDefinition> onGrantConsumable) =>
@@ -135,6 +150,7 @@ namespace Grimhand.Presentation.Battle
 
         public void Hide()
         {
+            HideLevelPicker();
             _tooltip?.Hide();
             if (_panel != null)
                 _panel.gameObject.SetActive(false);
@@ -185,7 +201,153 @@ namespace Grimhand.Presentation.Battle
 
             _tooltip = panelGo.AddComponent<InventoryTooltipView>();
             _tooltip.Initialize(_panel, _uiIcons);
+            EnsureLevelPicker(panelGo.transform);
             _panel.gameObject.SetActive(false);
+        }
+
+        void EnsureLevelPicker(Transform parent)
+        {
+            if (_levelPickerRoot != null)
+                return;
+
+            var rootGo = new GameObject("LevelPicker", typeof(RectTransform), typeof(Image), typeof(Button));
+            rootGo.transform.SetParent(parent, false);
+            _levelPickerRoot = rootGo.GetComponent<RectTransform>();
+            _levelPickerRoot.anchorMin = Vector2.zero;
+            _levelPickerRoot.anchorMax = Vector2.one;
+            _levelPickerRoot.offsetMin = Vector2.zero;
+            _levelPickerRoot.offsetMax = Vector2.zero;
+            var dim = rootGo.GetComponent<Image>();
+            dim.color = new Color(0f, 0f, 0f, 0.55f);
+            dim.raycastTarget = true;
+            var dimBtn = rootGo.GetComponent<Button>();
+            dimBtn.targetGraphic = dim;
+            dimBtn.transition = Selectable.Transition.None;
+            dimBtn.onClick.AddListener(HideLevelPicker);
+
+            var boxGo = new GameObject("Box", typeof(RectTransform), typeof(Image));
+            boxGo.transform.SetParent(rootGo.transform, false);
+            var boxRt = boxGo.GetComponent<RectTransform>();
+            boxRt.anchorMin = new Vector2(0.5f, 0.5f);
+            boxRt.anchorMax = new Vector2(0.5f, 0.5f);
+            boxRt.pivot = new Vector2(0.5f, 0.5f);
+            boxRt.sizeDelta = new Vector2(420f, 260f);
+            boxGo.GetComponent<Image>().color = new Color(0.12f, 0.13f, 0.18f, 0.98f);
+            // 阻止点击穿透到暗色遮罩关闭
+            var boxBlock = boxGo.AddComponent<Button>();
+            boxBlock.transition = Selectable.Transition.None;
+            boxBlock.targetGraphic = boxGo.GetComponent<Image>();
+            boxBlock.onClick.AddListener(() => { });
+
+            var titleGo = new GameObject("Title", typeof(RectTransform), typeof(Text));
+            titleGo.transform.SetParent(boxGo.transform, false);
+            var titleRt = titleGo.GetComponent<RectTransform>();
+            titleRt.anchorMin = new Vector2(0.06f, 0.72f);
+            titleRt.anchorMax = new Vector2(0.94f, 0.94f);
+            titleRt.offsetMin = Vector2.zero;
+            titleRt.offsetMax = Vector2.zero;
+            _levelPickerTitle = titleGo.GetComponent<Text>();
+            StyleText(_levelPickerTitle, 20, TextAnchor.MiddleCenter);
+            _levelPickerTitle.fontStyle = FontStyle.Bold;
+            _levelPickerTitle.color = new Color(0.96f, 0.92f, 0.78f, 1f);
+
+            CreatePickerStepButton(boxGo.transform, "−", new Vector2(0.12f, 0.42f), new Vector2(0.28f, 0.66f),
+                () => AdjustPickerLevel(-1));
+            CreatePickerStepButton(boxGo.transform, "+", new Vector2(0.72f, 0.42f), new Vector2(0.88f, 0.66f),
+                () => AdjustPickerLevel(1));
+
+            var valueGo = new GameObject("Value", typeof(RectTransform), typeof(Text));
+            valueGo.transform.SetParent(boxGo.transform, false);
+            var valueRt = valueGo.GetComponent<RectTransform>();
+            valueRt.anchorMin = new Vector2(0.3f, 0.42f);
+            valueRt.anchorMax = new Vector2(0.7f, 0.66f);
+            valueRt.offsetMin = Vector2.zero;
+            valueRt.offsetMax = Vector2.zero;
+            _levelPickerValue = valueGo.GetComponent<Text>();
+            StyleText(_levelPickerValue, 28, TextAnchor.MiddleCenter);
+            _levelPickerValue.fontStyle = FontStyle.Bold;
+            _levelPickerValue.color = Color.white;
+
+            var hintGo = new GameObject("Hint", typeof(RectTransform), typeof(Text));
+            hintGo.transform.SetParent(boxGo.transform, false);
+            var hintRt = hintGo.GetComponent<RectTransform>();
+            hintRt.anchorMin = new Vector2(0.08f, 0.26f);
+            hintRt.anchorMax = new Vector2(0.92f, 0.4f);
+            hintRt.offsetMin = Vector2.zero;
+            hintRt.offsetMax = Vector2.zero;
+            _levelPickerHint = hintGo.GetComponent<Text>();
+            StyleText(_levelPickerHint, 14, TextAnchor.MiddleCenter);
+            _levelPickerHint.color = new Color(0.75f, 0.78f, 0.85f, 1f);
+
+            CreatePickerActionButton(boxGo.transform, "获取", new Vector2(0.1f, 0.06f), new Vector2(0.48f, 0.22f),
+                new Color(0.22f, 0.48f, 0.28f, 0.95f), ConfirmLevelPicker);
+            CreatePickerActionButton(boxGo.transform, "取消", new Vector2(0.52f, 0.06f), new Vector2(0.9f, 0.22f),
+                new Color(0.45f, 0.2f, 0.2f, 0.95f), HideLevelPicker);
+
+            _levelPickerRoot.gameObject.SetActive(false);
+        }
+
+        static void CreatePickerStepButton(
+            Transform parent, string label, Vector2 anchorMin, Vector2 anchorMax, UnityEngine.Events.UnityAction onClick)
+        {
+            var go = new GameObject($"Step_{label}", typeof(RectTransform), typeof(Image), typeof(Button));
+            go.transform.SetParent(parent, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = anchorMin;
+            rt.anchorMax = anchorMax;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            var img = go.GetComponent<Image>();
+            img.color = new Color(0.22f, 0.24f, 0.3f, 1f);
+            var btn = go.GetComponent<Button>();
+            btn.targetGraphic = img;
+            btn.onClick.AddListener(onClick);
+
+            var textGo = new GameObject("Label", typeof(RectTransform), typeof(Text));
+            textGo.transform.SetParent(go.transform, false);
+            var textRt = textGo.GetComponent<RectTransform>();
+            textRt.anchorMin = Vector2.zero;
+            textRt.anchorMax = Vector2.one;
+            textRt.offsetMin = Vector2.zero;
+            textRt.offsetMax = Vector2.zero;
+            var text = textGo.GetComponent<Text>();
+            StyleText(text, 30, TextAnchor.MiddleCenter);
+            text.text = label;
+            text.fontStyle = FontStyle.Bold;
+        }
+
+        static void CreatePickerActionButton(
+            Transform parent,
+            string label,
+            Vector2 anchorMin,
+            Vector2 anchorMax,
+            Color color,
+            UnityEngine.Events.UnityAction onClick)
+        {
+            var go = new GameObject($"Action_{label}", typeof(RectTransform), typeof(Image), typeof(Button));
+            go.transform.SetParent(parent, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = anchorMin;
+            rt.anchorMax = anchorMax;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            var img = go.GetComponent<Image>();
+            img.color = color;
+            var btn = go.GetComponent<Button>();
+            btn.targetGraphic = img;
+            btn.onClick.AddListener(onClick);
+
+            var textGo = new GameObject("Label", typeof(RectTransform), typeof(Text));
+            textGo.transform.SetParent(go.transform, false);
+            var textRt = textGo.GetComponent<RectTransform>();
+            textRt.anchorMin = Vector2.zero;
+            textRt.anchorMax = Vector2.one;
+            textRt.offsetMin = Vector2.zero;
+            textRt.offsetMax = Vector2.zero;
+            var text = textGo.GetComponent<Text>();
+            StyleText(text, 18, TextAnchor.MiddleCenter);
+            text.text = label;
+            text.fontStyle = FontStyle.Bold;
         }
 
         void Rebuild()
@@ -230,7 +392,7 @@ namespace Grimhand.Presentation.Battle
                 if (consumableCount > 0)
                     parts.Add($"消耗品 {consumableCount}");
                 _titleText.text =
-                    $"测试图鉴 — {string.Join(" / ", parts)}　点击卡牌加手牌，点击遗物/消耗品立即获取";
+                    $"测试图鉴 — {string.Join(" / ", parts)}　点击后选择等级再获取";
             }
             else
             {
@@ -274,7 +436,7 @@ namespace Grimhand.Presentation.Battle
                 return string.CompareOrdinal(a.DisplayName, b.DisplayName);
             });
 
-            AddCategoryHeader($"遗物（{relics.Count}）— 点击立即获取");
+            AddCategoryHeader($"遗物（{relics.Count}）— 点击选择成长等级后获取（+0=1-20层）");
             var grid = CreateRelicGrid(_content);
 
             foreach (var relic in relics)
@@ -490,9 +652,8 @@ namespace Grimhand.Presentation.Battle
                 RelicRarity.Rare => "稀有",
                 _ => "普通"
             };
-            var body = string.IsNullOrWhiteSpace(relic.Description)
-                ? rarity
-                : $"{rarity}\n{relic.Description}";
+            var desc = RelicDescriptionFormatter.Format(relic, 0);
+            var body = string.IsNullOrWhiteSpace(desc) ? rarity : $"{rarity}\n{desc}";
             _tooltip?.BindHover(go, relic.DisplayName, body, showTitle: true);
 
             var btn = go.GetComponent<Button>();
@@ -737,22 +898,110 @@ namespace Grimhand.Presentation.Battle
 
         void OnCodexCardClicked(CardDefinitionSO def)
         {
-            if (def == null)
+            if (def == null || _onAddToHand == null)
                 return;
-            _onAddToHand?.Invoke(def);
+
             _tooltip?.Hide();
-            if (_closeOnSelect)
-                Hide();
+            OpenCardLevelPicker(def);
         }
 
         void OnCodexRelicClicked(RelicDefinition relic)
         {
-            if (relic == null)
+            if (relic == null || _onGrantRelic == null)
                 return;
 
-            _onGrantRelic?.Invoke(relic);
             _tooltip?.Hide();
-            // 测试用：连续点取多个遗物时保持图鉴打开
+            OpenRelicLevelPicker(relic);
+        }
+
+        void OpenCardLevelPicker(CardDefinitionSO def)
+        {
+            EnsureLevelPicker(_panel);
+            _pendingCard = def;
+            _pendingRelic = null;
+            _pickerIsRelic = false;
+            _pickerMin = 0;
+            _pickerMax = Math.Max(0, CardUpgradeRules.GetMaxLevel(def.DisplayName));
+            _pickerLevel = 0;
+            _levelPickerTitle.text = $"获取卡牌：{def.DisplayName}";
+            RefreshLevelPickerLabels();
+            _levelPickerRoot.gameObject.SetActive(true);
+            _levelPickerRoot.SetAsLastSibling();
+        }
+
+        void OpenRelicLevelPicker(RelicDefinition relic)
+        {
+            EnsureLevelPicker(_panel);
+            _pendingRelic = relic;
+            _pendingCard = null;
+            _pickerIsRelic = true;
+            _pickerMin = 0;
+            _pickerMax = MaxRelicGrowthTierPicker;
+            _pickerLevel = 0;
+            _levelPickerTitle.text = $"获取遗物：{relic.DisplayName}";
+            RefreshLevelPickerLabels();
+            _levelPickerRoot.gameObject.SetActive(true);
+            _levelPickerRoot.SetAsLastSibling();
+        }
+
+        void AdjustPickerLevel(int delta)
+        {
+            _pickerLevel = Math.Clamp(_pickerLevel + delta, _pickerMin, _pickerMax);
+            RefreshLevelPickerLabels();
+        }
+
+        void RefreshLevelPickerLabels()
+        {
+            if (_levelPickerValue != null)
+                _levelPickerValue.text = $"+{_pickerLevel}";
+
+            if (_levelPickerHint == null)
+                return;
+
+            if (_pickerIsRelic)
+            {
+                var floorLo = _pickerLevel * RelicGrowthRules.FloorsPerGrowthTier + 1;
+                var floorHi = (_pickerLevel + 1) * RelicGrowthRules.FloorsPerGrowthTier;
+            _levelPickerHint.text =
+                    $"对应远征层 {floorLo}-{floorHi}　（每{RelicGrowthRules.FloorsPerGrowthTier}层成长一次）\n{RelicDescriptionFormatter.Format(_pendingRelic, _pickerLevel)}";
+            }
+            else
+            {
+                _levelPickerHint.text = _pickerMax <= 0
+                    ? "该卡不可升级（仅 +0）"
+                    : $"卡牌升级等级　0 ~ {_pickerMax}";
+            }
+        }
+
+        void ConfirmLevelPicker()
+        {
+            if (_pickerIsRelic)
+            {
+                var relic = _pendingRelic;
+                var tier = _pickerLevel;
+                HideLevelPicker();
+                if (relic != null)
+                    _onGrantRelic?.Invoke(relic, tier);
+                return;
+            }
+
+            var card = _pendingCard;
+            var level = _pickerLevel;
+            HideLevelPicker();
+            if (card == null)
+                return;
+
+            _onAddToHand?.Invoke(card, level);
+            if (_closeOnSelect)
+                Hide();
+        }
+
+        void HideLevelPicker()
+        {
+            _pendingCard = null;
+            _pendingRelic = null;
+            if (_levelPickerRoot != null)
+                _levelPickerRoot.gameObject.SetActive(false);
         }
 
         void OnCodexConsumableClicked(ConsumableDefinition consumable)
@@ -773,7 +1022,11 @@ namespace Grimhand.Presentation.Battle
             var descCard = CardVisualResolver.ResolveForDescription(card, _definitions);
             var stats = BattleUiFormatters.BuildCardStatsLinePreview(descCard, _definitions);
             var keywords = BattleUiFormatters.BuildCardKeywordTooltip(null, descCard, _definitions);
-            var body = string.IsNullOrWhiteSpace(keywords) ? stats : $"{stats}\n\n{keywords}";
+            var maxLevel = CardUpgradeRules.GetMaxLevel(card.DisplayName);
+            var upgradeHint = maxLevel > 0 ? $"\n可升级 0~{maxLevel}（点选后选择等级）" : "\n不可升级（仅 +0）";
+            var body = string.IsNullOrWhiteSpace(keywords)
+                ? stats + upgradeHint
+                : $"{stats}\n\n{keywords}{upgradeHint}";
             var costLabel = (card.Keywords != null && card.Keywords.Contains("x_cost")) ? "X" : card.Cost.ToString();
             var header = $"{card.DisplayName}  [{card.DefinitionId}]  费用 {costLabel}";
             _tooltip.BindHover(target, header, body.Replace("<b>", "").Replace("</b>", ""), showTitle: true);

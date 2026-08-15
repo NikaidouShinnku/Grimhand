@@ -296,7 +296,7 @@ namespace Grimhand.Presentation.Battle
                     if (RelicDatabase.TryGet(offer.RelicId, out var relic))
                     {
                         title = relic.DisplayName;
-                        body = relic.Description ?? "";
+                        body = RelicDescriptionFormatter.Format(relic, 0);
                         return;
                     }
 

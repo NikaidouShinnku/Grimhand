@@ -25,7 +25,7 @@ MonoBehaviour:
     Target: 1
     Value: 0
     StatusId: final_bulwark
-    Stacks: 1
+    Stacks: 50
     Duration: -1
     ScaleWithAttack: 0
     ScaleWithDefense: 0

@@ -27,7 +27,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 40b6cb6a321a4d12ac8e17f725057c08, type: 2}
   - {fileID: 11400000, guid: cb1e2a8cacd84850ac1721066a4d6195, type: 2}
   - {fileID: 11400000, guid: cb1e2a8cacd84850ac1721066a4d6195, type: 2}
-  - {fileID: 11400000, guid: 57d519ea1b75420382a734faa363429a, type: 2}
+  - {fileID: 11400000, guid: 046d4ae70fe14662882e27f9d24e8496, type: 2}
   - {fileID: 11400000, guid: 5cf7b7b2ee9a4ff29b48c9fce165ce11, type: 2}
   SkillPool: []
   Traits: []

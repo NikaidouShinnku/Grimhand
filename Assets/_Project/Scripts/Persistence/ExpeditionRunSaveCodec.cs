@@ -259,6 +259,9 @@ namespace Grimhand.Persistence
                 maxHp = member.MaxHp,
                 maxHpPenalty = member.MaxHpPenalty,
                 altarMaxHpBonus = member.AltarMaxHpBonus,
+                altarHpPlus5Purchases = member.AltarHpPlus5Purchases > 0
+                    ? member.AltarHpPlus5Purchases
+                    : ExpeditionAltarUpgradeRules.GetHpPlus5PurchaseCount(member),
                 personalAttackBonus = member.PersonalAttackBonus,
                 altarSpeedUpgrades = member.AltarSpeedUpgrades,
                 personalSpeedBonus = member.PersonalSpeedBonus,
@@ -297,6 +300,11 @@ namespace Grimhand.Persistence
                     MaxHp = dto.maxHp,
                     MaxHpPenalty = dto.maxHpPenalty,
                     AltarMaxHpBonus = dto.altarMaxHpBonus,
+                    AltarHpPlus5Purchases = dto.altarHpPlus5Purchases > 0
+                        ? dto.altarHpPlus5Purchases
+                        : (dto.altarMaxHpBonus > 0
+                            ? dto.altarMaxHpBonus / ExpeditionAltarUpgradeRules.HpPlus5Amount
+                            : 0),
                     PersonalAttackBonus = dto.personalAttackBonus,
                     AltarSpeedUpgrades = dto.altarSpeedUpgrades,
                     PersonalSpeedBonus = dto.personalSpeedBonus,

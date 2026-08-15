@@ -108,6 +108,7 @@ namespace Grimhand.Persistence
         public int maxHp;
         public int maxHpPenalty;
         public int altarMaxHpBonus;
+        public int altarHpPlus5Purchases;
         public int personalAttackBonus;
         public int altarSpeedUpgrades;
         public int personalSpeedBonus;

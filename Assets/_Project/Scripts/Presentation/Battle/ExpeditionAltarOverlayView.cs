@@ -582,11 +582,12 @@ namespace Grimhand.Presentation.Battle
             if (IsEngraveSacrificePicking()
                 && _engraveSacrificeKeys.Count == CardEngravingRules.SacrificeCountRequired)
             {
-                CreateButton1(
+                const float confirmW = 300f;
+                CreateButton6(
                     parent,
                     "确认献祭刻印",
                     new Vector2(0.5f, 0.04f),
-                    new Vector2(300f, 56f),
+                    new Vector2(confirmW, confirmW / (512f / 216f)),
                     true,
                     OnConfirmEngraving);
             }
@@ -1199,12 +1200,12 @@ namespace Grimhand.Presentation.Battle
         {
             AddTitle(parent, "升级血量", "选择角色，消耗经验提升其最大 HP");
             var list = CreateVerticalList(parent, "HpList", 0.06f, 0.78f, 14f);
-            var cost = ExpeditionAltarUpgradeRules.GetHpPlus5Cost(run.Modifiers);
             foreach (var member in run.Party)
             {
                 if (member == null)
                     continue;
 
+                var cost = ExpeditionAltarUpgradeRules.GetHpPlus5Cost(member);
                 CreateUpgradeHpMemberRow(list, member, cost, run);
             }
         }
@@ -2993,6 +2994,20 @@ namespace Grimhand.Presentation.Battle
             return CreateCatalogActionButton(
                 parent, label, anchor, size, interactable, onClick, anchoredPosition,
                 _uiIcons != null ? _uiIcons.UiButton1 : null, BtnGreen);
+        }
+
+        Button CreateButton6(
+            Transform parent,
+            string label,
+            Vector2 anchor,
+            Vector2 size,
+            bool interactable,
+            System.Action onClick,
+            Vector2? anchoredPosition = null)
+        {
+            return CreateCatalogActionButton(
+                parent, label, anchor, size, interactable, onClick, anchoredPosition,
+                _uiIcons != null ? _uiIcons.UiButton6 : null, BtnGreen);
         }
 
         Button CreateButton2(

@@ -41,11 +41,26 @@ namespace Grimhand.Expedition
             return true;
         }
 
-        public static int GetHpPlus5Cost(ExpeditionRunModifiers modifiers) =>
-            HpPlus5Cost + (modifiers?.AltarHpPlus5Purchases ?? 0) * HpPlus5CostIncrement;
+        public static int GetHpPlus5Cost(PartyMemberSnapshot member) =>
+            HpPlus5Cost + GetHpPlus5PurchaseCount(member) * HpPlus5CostIncrement;
 
         public static int GetHpPlus10Cost(ExpeditionRunModifiers modifiers) =>
             HpPlus10Cost + (modifiers?.AltarHpPlus10Purchases ?? 0) * HpPlus10CostIncrement;
+
+        /// <summary>优先用购买计数；旧档可从 AltarMaxHpBonus 回推。</summary>
+        public static int GetHpPlus5PurchaseCount(PartyMemberSnapshot member)
+        {
+            if (member == null)
+                return 0;
+
+            if (member.AltarHpPlus5Purchases > 0)
+                return member.AltarHpPlus5Purchases;
+
+            if (member.AltarMaxHpBonus > 0)
+                return member.AltarMaxHpBonus / HpPlus5Amount;
+
+            return 0;
+        }
 
         public static int GetEnergyCapUpgradeCost(ExpeditionRunModifiers modifiers)
         {
@@ -86,13 +101,13 @@ namespace Grimhand.Expedition
             if (run == null || member == null)
                 return false;
 
-            var cost = GetHpPlus5Cost(run.Modifiers);
+            var cost = GetHpPlus5Cost(member);
             if (!TrySpendPool(run, cost))
                 return false;
 
             member.AltarMaxHpBonus += HpPlus5Amount;
+            member.AltarHpPlus5Purchases = GetHpPlus5PurchaseCount(member) + 1;
             ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(run.Party, run.Relics, run.RelicGrowthTiers);
-            run.Modifiers.AltarHpPlus5Purchases++;
             return true;
         }
 

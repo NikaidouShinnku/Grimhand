@@ -560,6 +560,7 @@ namespace Grimhand.Expedition
                 snap.ExtractedCampCardIndices.Add(index);
 
             snap.AltarMaxHpBonus = existing.AltarMaxHpBonus;
+            snap.AltarHpPlus5Purchases = existing.AltarHpPlus5Purchases;
             snap.MaxHpPenalty = existing.MaxHpPenalty;
             snap.AltarSpeedUpgrades = existing.AltarSpeedUpgrades;
             snap.PersonalSpeedBonus = existing.PersonalSpeedBonus;
@@ -577,6 +578,7 @@ namespace Grimhand.Expedition
                 MaxHp = existing.MaxHp,
                 MaxHpPenalty = existing.MaxHpPenalty,
                 AltarMaxHpBonus = existing.AltarMaxHpBonus,
+                AltarHpPlus5Purchases = existing.AltarHpPlus5Purchases,
                 AltarSpeedUpgrades = existing.AltarSpeedUpgrades,
                 PersonalSpeedBonus = existing.PersonalSpeedBonus,
                 PersonalAttackBonus = existing.PersonalAttackBonus,

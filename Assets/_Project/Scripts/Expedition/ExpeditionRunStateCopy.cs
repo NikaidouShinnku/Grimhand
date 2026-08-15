@@ -109,6 +109,7 @@ namespace Grimhand.Expedition
                     MaxHp = member.MaxHp,
                     MaxHpPenalty = member.MaxHpPenalty,
                     AltarMaxHpBonus = member.AltarMaxHpBonus,
+                    AltarHpPlus5Purchases = member.AltarHpPlus5Purchases,
                     PersonalAttackBonus = member.PersonalAttackBonus,
                     AltarSpeedUpgrades = member.AltarSpeedUpgrades,
                     PersonalSpeedBonus = member.PersonalSpeedBonus,

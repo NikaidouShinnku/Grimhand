@@ -31,6 +31,7 @@ namespace Grimhand.Battle.Tests
 
             Assert.IsTrue(ExpeditionAltarUpgradeRules.TryUpgradeMemberHp(run, member));
             Assert.AreEqual(5, member.AltarMaxHpBonus);
+            Assert.AreEqual(1, member.AltarHpPlus5Purchases);
             Assert.AreEqual(85, member.MaxHp);
             Assert.AreEqual(85, member.Hp);
 
@@ -38,6 +39,36 @@ namespace Grimhand.Battle.Tests
             Assert.AreEqual(5, member.AltarMaxHpBonus);
             Assert.AreEqual(85, member.MaxHp);
             Assert.AreEqual(85, member.Hp);
+        }
+
+        [Test]
+        public void AltarHpUpgrade_CostIncreasesPerMemberIndependently()
+        {
+            var run = new ExpeditionRunState { SharedXpPool = 200 };
+            var a = new PartyMemberSnapshot
+            {
+                CharacterDefinitionId = "char_knight",
+                DisplayName = "战士",
+                Level = 1,
+                Hp = 80,
+                MaxHp = 80
+            };
+            var b = new PartyMemberSnapshot
+            {
+                CharacterDefinitionId = "char_mage",
+                DisplayName = "法老",
+                Level = 1,
+                Hp = 60,
+                MaxHp = 60
+            };
+            run.Party.Add(a);
+            run.Party.Add(b);
+
+            Assert.AreEqual(8, ExpeditionAltarUpgradeRules.GetHpPlus5Cost(a));
+            Assert.AreEqual(8, ExpeditionAltarUpgradeRules.GetHpPlus5Cost(b));
+            Assert.IsTrue(ExpeditionAltarUpgradeRules.TryUpgradeMemberHp(run, a));
+            Assert.AreEqual(10, ExpeditionAltarUpgradeRules.GetHpPlus5Cost(a));
+            Assert.AreEqual(8, ExpeditionAltarUpgradeRules.GetHpPlus5Cost(b));
         }
 
         [Test]

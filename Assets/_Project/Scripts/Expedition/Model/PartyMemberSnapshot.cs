@@ -15,6 +15,8 @@ namespace Grimhand.Expedition.Model
         public int MaxHpPenalty { get; set; }
         /// <summary>祭坛 HP+5 等永久加血（Sync 时计入有效 MaxHp，避免被基础值覆盖）。</summary>
         public int AltarMaxHpBonus { get; set; }
+        /// <summary>该角色已购买祭坛 HP+5 的次数（费用按角色独立递增）。</summary>
+        public int AltarHpPlus5Purchases { get; set; }
         public int PersonalAttackBonus { get; set; }
         /// <summary>从基础牌组移除的卡牌计数（definitionId → 张数）。</summary>
         public Dictionary<string, int> RemovedCardCounts { get; } = new();

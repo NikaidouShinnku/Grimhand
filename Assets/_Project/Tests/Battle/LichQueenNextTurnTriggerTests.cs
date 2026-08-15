@@ -44,6 +44,8 @@ namespace Grimhand.Battle.Tests
             Assert.AreEqual(40, b.Hp);
             Assert.AreEqual(10, StatusRules.FindStatus(a, StatusCatalog.DelayedDamage).Stacks);
             Assert.AreEqual(10, StatusRules.FindStatus(b, StatusCatalog.DelayedDamage).Stacks);
+            Assert.AreEqual(lich.Id, StatusRules.FindStatus(a, StatusCatalog.DelayedDamage).SourceCombatantId);
+            Assert.AreEqual(lich.Id, StatusRules.FindStatus(b, StatusCatalog.DelayedDamage).SourceCombatantId);
 
             V09NewMechanicsRules.ProcessTurnStart(state, new List<BattleEvent>(), new BattleRng(1));
             Assert.AreEqual(30, a.Hp);
@@ -79,9 +81,16 @@ namespace Grimhand.Battle.Tests
 
             Assert.AreEqual(40, enemy.Hp);
             Assert.AreEqual(13, StatusRules.FindStatus(enemy, StatusCatalog.DelayedDamage).Stacks);
+            Assert.AreEqual(lich.Id, StatusRules.FindStatus(enemy, StatusCatalog.DelayedDamage).SourceCombatantId);
 
-            V09NewMechanicsRules.ProcessTurnStart(state, new List<BattleEvent>(), new BattleRng(1));
+            var tickEvents = new List<BattleEvent>();
+            V09NewMechanicsRules.ProcessTurnStart(state, tickEvents, new BattleRng(1));
             Assert.AreEqual(27, enemy.Hp);
+            Assert.IsTrue(tickEvents.Exists(e =>
+                e.Kind == BattleEventKind.StatusTickDamage
+                && e.TargetId == StatusCatalog.DelayedDamage
+                && e.SourceCombatantId == lich.Id
+                && e.Amount == 13));
         }
 
         [Test]

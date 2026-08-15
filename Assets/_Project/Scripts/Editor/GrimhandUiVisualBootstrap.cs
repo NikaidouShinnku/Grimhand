@@ -266,6 +266,10 @@ namespace Grimhand.Editor
                     "Assets/The Grimhands Asset/relics/burning_longsword.png",
                     "burning_longsword_0")
                 ?? LoadFirstSprite("Assets/The Grimhands Asset/relics/burning_longsword.png");
+            catalog.StatusDelayedDamage = LoadNamedSprite(
+                    IconRoot + "lichqueen_delayed_damage.png",
+                    "lichqueen_delayed_damage_0")
+                ?? LoadFirstSprite(IconRoot + "lichqueen_delayed_damage.png");
 
             EditorUtility.SetDirty(catalog);
         }

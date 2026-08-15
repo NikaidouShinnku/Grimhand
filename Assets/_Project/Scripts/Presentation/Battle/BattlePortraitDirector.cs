@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Grimhand.Battle.Events;
 using Grimhand.Battle.Model;
 using Grimhand.Battle.Rules;
+using Grimhand.Battle.Status;
 using Grimhand.Content;
 using Grimhand.Presentation.Audio;
 using UnityEngine;
@@ -500,11 +501,36 @@ namespace Grimhand.Presentation.Battle
             if (!_portraits.TryGetValue(e.CombatantId, out var target))
                 yield break;
 
-            var statusFx = BattleActionEffectResolver.ResolveStatus(_effects, e.TargetId);
-            if (statusFx != null)
-                yield return target.PlayOverlayEffect(statusFx);
+            // 延迟伤害：按施法者角色播攻击特效（巫妖女王等）
+            if (e.TargetId == StatusCatalog.DelayedDamage || e.Message == "延迟伤害")
+            {
+                var sourceDefId = GetCharacterDefinitionId(e.SourceCombatantId);
+                var damageFx = BattleActionEffectResolver.ResolveDamageEffect(_effects, sourceDefId);
+                if (damageFx == null)
+                    damageFx = _effects?.LichQueenDamage;
+                if (damageFx != null)
+                    yield return target.PlayOverlayEffect(damageFx);
 
-            GameAudioService.Instance.PlayBattleStatusEffect(e.TargetId);
+                if (!string.IsNullOrEmpty(sourceDefId))
+                {
+                    var source = _session?.Engine?.State?.GetCombatant(e.SourceCombatantId);
+                    var isEnemy = source != null && source.Team == TeamSide.Enemy;
+                    GameAudioService.Instance.PlayBattleAttack(sourceDefId, isEnemy);
+                }
+                else
+                {
+                    GameAudioService.Instance.PlayBattleStatusEffect(StatusCatalog.DelayedDamage);
+                }
+            }
+            else
+            {
+                var statusFx = BattleActionEffectResolver.ResolveStatus(_effects, e.TargetId);
+                if (statusFx != null)
+                    yield return target.PlayOverlayEffect(statusFx);
+
+                GameAudioService.Instance.PlayBattleStatusEffect(e.TargetId);
+            }
+
             yield return target.PlayHitReaction(e.Amount, useHitPose: false);
             ApplySnapshotAfterDamage(e.CombatantId, e.Amount);
             ApplyEventDisplayCheckpoint(e);

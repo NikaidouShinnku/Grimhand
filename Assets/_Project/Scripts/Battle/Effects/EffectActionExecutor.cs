@@ -711,8 +711,11 @@ namespace Grimhand.Battle.Effects
                         {
                             var t = state.GetCombatant(targetId);
                             if (t != null && t.IsAlive)
+                            {
                                 StatusRules.ApplyStatus(
                                     state, t, StatusCatalog.DelayedDamage, Math.Max(1, action.Value), 1, events);
+                                TagDelayedDamageSource(t, actor?.Id);
+                            }
                         }
 
                         state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, actor.Id, false, 0);
@@ -722,6 +725,7 @@ namespace Grimhand.Battle.Effects
                     {
                         StatusRules.ApplyStatus(
                             state, target, StatusCatalog.DelayedDamage, Math.Max(1, action.Value), 1, events);
+                        TagDelayedDamageSource(target, actor?.Id);
                         state.LastAction = new LastActionSnapshot(actor.Id, ActionKind.Status, target.Id, false, 0);
                     }
                     else
@@ -1919,6 +1923,19 @@ namespace Grimhand.Battle.Effects
             {
                 Amount = moved
             });
+        }
+
+        static void TagDelayedDamageSource(CombatantState target, string sourceId)
+        {
+            if (target == null || string.IsNullOrEmpty(sourceId))
+                return;
+
+            for (var i = target.Statuses.Count - 1; i >= 0; i--)
+            {
+                var status = target.Statuses[i];
+                if (status?.StatusId == StatusCatalog.DelayedDamage && status.Stacks > 0)
+                    status.SourceCombatantId = sourceId;
+            }
         }
     }
 }

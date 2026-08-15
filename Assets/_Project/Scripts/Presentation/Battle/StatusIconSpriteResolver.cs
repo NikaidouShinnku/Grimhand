@@ -40,10 +40,14 @@ namespace Grimhand.Presentation.Battle
                 case StatusCatalog.Weaken:
                 case StatusCatalog.AttackDown:
                 case StatusCatalog.Constrict:
-                case StatusCatalog.DelayedDamage:
                 case StatusCatalog.Deterrence:
                 case StatusCatalog.SoulDrain:
                     return icons.StatusDamageDown;
+
+                case StatusCatalog.DelayedDamage:
+                    return icons.StatusDelayedDamage != null
+                        ? icons.StatusDelayedDamage
+                        : icons.StatusDamageDown;
 
                 case StatusCatalog.Vulnerable:
                 case StatusCatalog.SpiderPoisonVulnerable:

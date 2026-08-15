@@ -61,7 +61,16 @@ namespace Grimhand.Battle.V09
                 // 延迟伤害：下回合开始受到 Stacks 伤害（持续在跳伤后由 ProcessTurnStartDurations 扣减）
                 var delayed = StatusRules.FindStatus(combatant, StatusCatalog.DelayedDamage);
                 if (delayed != null && delayed.Stacks > 0)
-                    ApplyTickDamage(state, combatant, delayed.Stacks, "延迟伤害", events);
+                {
+                    ApplyTickDamage(
+                        state,
+                        combatant,
+                        delayed.Stacks,
+                        "延迟伤害",
+                        events,
+                        StatusCatalog.DelayedDamage,
+                        delayed.SourceCombatantId);
+                }
 
                 // 永恒虚无：每回合受 25% 最大 HP 真伤
                 if (StatusRules.HasStatus(combatant, StatusCatalog.EternalVoid))
@@ -124,7 +133,14 @@ namespace Grimhand.Battle.V09
             }
         }
 
-        static void ApplyTickDamage(BattleState state, CombatantState combatant, int damage, string label, List<BattleEvent> events)
+        static void ApplyTickDamage(
+            BattleState state,
+            CombatantState combatant,
+            int damage,
+            string label,
+            List<BattleEvent> events,
+            string statusId = "",
+            string sourceCombatantId = "")
         {
             if (combatant == null || damage <= 0)
                 return;
@@ -138,7 +154,9 @@ namespace Grimhand.Battle.V09
             events.Add(new BattleEvent(BattleEventKind.StatusTickDamage, label)
             {
                 CombatantId = combatant.Id,
-                Amount = damage
+                Amount = damage,
+                TargetId = statusId ?? "",
+                SourceCombatantId = sourceCombatantId ?? ""
             });
 
             if (!combatant.IsAlive

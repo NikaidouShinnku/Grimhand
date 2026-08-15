@@ -22,16 +22,12 @@ namespace Grimhand.Presentation.Battle
         const float DamageFloaterFontSize = 28f;
         const float ActionEffectDuration = 0.55f;
         const float ActionEffectAlpha = 0.6f;
-        /// <summary>高于 HudChrome(45) 与临时抬层控件(65)，保证居中出牌时立绘压过其它角色与 HUD。</summary>
-        const int ActionFocusSortOrder = 80;
-
         [SerializeField] RectTransform portraitRoot;
         [SerializeField] Image portraitImage;
 
         CharacterVisualCatalogSO _visuals;
         RectTransform _damageFloaterAnchor;
         Image _actionEffectImage;
-        Canvas _actionFocusCanvas;
         string _characterDefinitionId;
         TeamSide _team;
         Sprite _referenceSprite;
@@ -41,7 +37,12 @@ namespace Grimhand.Presentation.Battle
         bool _isAnimating;
         bool _awayFromHome;
         bool _idleLoopActive;
+        /// <summary>停 idle 后保持当前帧，避免 Refresh 刷回 IdlePortrait 导致体型跳动。</summary>
+        bool _holdDisplaySprite;
         bool _poseFlipX;
+        Transform _actionFocusOriginalParent;
+        int _actionFocusOriginalSiblingIndex;
+        bool _actionFocusMounted;
         Coroutine _idleRoutine;
         Coroutine _flashRoutine;
         Coroutine _damageHideRoutine;
@@ -51,6 +52,7 @@ namespace Grimhand.Presentation.Battle
         public bool IsAwayFromHome => _awayFromHome;
         public bool IsIdleLoopActive => _idleLoopActive;
         public bool IsDeadDisplay => _isDead;
+        public bool ShouldHoldDisplaySprite => _holdDisplaySprite;
         public string CombatantId { get; private set; }
 
         public Vector3 HomeWorldPosition
@@ -141,6 +143,7 @@ namespace Grimhand.Presentation.Battle
             _idleLoopActive = false;
             _isAnimating = false;
             _awayFromHome = false;
+            _holdDisplaySprite = false;
             _poseFlipX = false;
             ClearActionFocusLayer();
             RestoreHomePosition();
@@ -164,12 +167,14 @@ namespace Grimhand.Presentation.Battle
             if (!gameObject.activeInHierarchy)
                 return;
 
+            _holdDisplaySprite = false;
             RestoreHomePosition();
 
             var frames = _visuals.GetIdleAnimationFrames(_characterDefinitionId);
             if (frames.Count <= 1)
             {
                 StopIdleLoop();
+                _holdDisplaySprite = false;
                 ApplyIdleStill();
                 return;
             }
@@ -178,6 +183,7 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             StopIdleLoop();
+            _holdDisplaySprite = false;
             _idleRoutine = StartCoroutine(IdleLoop(frames));
         }
 
@@ -190,8 +196,9 @@ namespace Grimhand.Presentation.Battle
                 _idleRoutine = null;
             }
 
-            if (!_isAnimating && !_isDead)
-                ApplyIdleStill();
+            // 停在当前帧并挂起，禁止 Refresh 刷回 IdlePortrait（Tight/留白不同会突然「大一圈」）。
+            if (!_isDead && portraitImage != null && portraitImage.sprite != null)
+                _holdDisplaySprite = true;
         }
 
         public IEnumerator MoveToCenter(Vector3 centerWorld)
@@ -336,7 +343,10 @@ namespace Grimhand.Presentation.Battle
         public void ForceSettleHome()
         {
             if (!_awayFromHome || portraitRoot == null)
+            {
+                ClearActionFocusLayer();
                 return;
+            }
 
             if (Vector3.Distance(portraitRoot.position, _homeWorldPosition) > 0.01f)
                 return;
@@ -523,8 +533,14 @@ namespace Grimhand.Presentation.Battle
             if (portraitImage == null || _visuals == null || _isDead)
                 return;
 
+            _holdDisplaySprite = false;
             _poseFlipX = false;
-            ApplyPortraitSprite(_visuals.GetPortrait(_characterDefinitionId));
+            // 有 idle 动画时用同一套帧做静止，避免与 IdlePortrait 画布/裁切不一致导致体型跳动
+            var frames = _visuals.GetIdleAnimationFrames(_characterDefinitionId);
+            var sprite = frames.Count > 0
+                ? frames[0]
+                : _visuals.GetPortrait(_characterDefinitionId);
+            ApplyPortraitSprite(sprite);
             portraitImage.color = Color.white;
         }
 
@@ -709,33 +725,50 @@ namespace Grimhand.Presentation.Battle
         }
 
         /// <summary>
-        /// 居中出牌时临时抬高槽位 Canvas，压过同舞台其它角色与 HudChrome。
-        /// 归位后必须 Clear，以免打乱 ApplyStageDrawOrders。
+        /// 居中出牌时把 PortraitRoot 挂到战斗级抬层 Canvas，压过 HudChrome。
+        /// 禁止在槽位上挂嵌套 Canvas：portraitRoot 有 2x+ 缩放时会体型暴涨。
         /// </summary>
         void PromoteActionFocusLayer()
         {
-            transform.SetAsLastSibling();
-            if (_actionFocusCanvas == null)
-                _actionFocusCanvas = gameObject.GetComponent<Canvas>();
-            if (_actionFocusCanvas == null)
-                _actionFocusCanvas = gameObject.AddComponent<Canvas>();
+            if (portraitRoot == null || _actionFocusMounted)
+                return;
 
-            _actionFocusCanvas.overrideSorting = true;
-            _actionFocusCanvas.sortingOrder = ActionFocusSortOrder;
-            _actionFocusCanvas.enabled = true;
+            var battleRoot = BattleActionFocusOverlayLayer.FindBattleScreenRoot(transform);
+            var layer = BattleActionFocusOverlayLayer.GetOrCreate(battleRoot);
+            if (layer == null)
+            {
+                transform.SetAsLastSibling();
+                return;
+            }
+
+            _actionFocusOriginalParent = portraitRoot.parent;
+            _actionFocusOriginalSiblingIndex = portraitRoot.GetSiblingIndex();
+            portraitRoot.SetParent(layer, worldPositionStays: true);
+            portraitRoot.SetAsLastSibling();
+            layer.SetAsLastSibling();
+            _actionFocusMounted = true;
         }
 
         void ClearActionFocusLayer()
         {
-            if (_actionFocusCanvas == null)
-                _actionFocusCanvas = gameObject.GetComponent<Canvas>();
-
-            if (_actionFocusCanvas == null)
+            if (!_actionFocusMounted || portraitRoot == null)
+            {
+                _actionFocusMounted = false;
+                _actionFocusOriginalParent = null;
                 return;
+            }
 
-            // 销毁而非仅禁用，避免空 Canvas 干扰后续槽位 sibling 绘制顺序
-            Destroy(_actionFocusCanvas);
-            _actionFocusCanvas = null;
+            if (_actionFocusOriginalParent != null)
+            {
+                portraitRoot.SetParent(_actionFocusOriginalParent, worldPositionStays: true);
+                var max = _actionFocusOriginalParent.childCount - 1;
+                var index = Mathf.Clamp(_actionFocusOriginalSiblingIndex, 0, Mathf.Max(0, max));
+                portraitRoot.SetSiblingIndex(index);
+            }
+
+            _actionFocusOriginalParent = null;
+            _actionFocusOriginalSiblingIndex = 0;
+            _actionFocusMounted = false;
         }
 
         void EnsureDamageFloater()

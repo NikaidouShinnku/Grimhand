@@ -871,9 +871,12 @@ namespace Grimhand.Presentation.Battle
             if (!allowHoverDetail)
                 DismissHoverDetail();
 
-            // 中央演出中绝不重置锚点/home，即使 Invalidate 导致 characterChanged 误判
+            // 中央演出中绝不重置锚点/home；停 idle 后到 MoveToCenter 前也要保住布局，避免 Refresh 把缩放打乱。
             var preservePortraitLayout = _portraitView != null
-                && (_portraitView.IsAwayFromHome || _portraitView.IsAnimating);
+                && (_portraitView.IsAwayFromHome
+                    || _portraitView.IsAnimating
+                    || _portraitView.ShouldHoldDisplaySprite
+                    || (_session != null && _session.PresentationLocked));
             if (!preservePortraitLayout)
             {
                 if (!_enemyLayoutLocked)
@@ -936,13 +939,15 @@ namespace Grimhand.Presentation.Battle
                     if (_portraitView == null || (!_portraitView.IsIdleLoopActive && !_portraitView.IsAwayFromHome))
                         _portraitView?.RecaptureHomeIfIdle();
 
-                    // 角色已更换时强制刷立绘；仅在同角色演出中才保留当前帧以免闪烁。
+                    // 角色已更换时强制刷立绘；演出中 / 冻结 idle 帧时保留当前贴图，避免体型跳动。
                     var preservePortraitSprite = !characterChanged
                         && _portraitView != null
                         && (_portraitView.IsAnimating
                             || _portraitView.IsAwayFromHome
                             || _portraitView.IsIdleLoopActive
-                            || _portraitView.IsDeadDisplay);
+                            || _portraitView.IsDeadDisplay
+                            || _portraitView.ShouldHoldDisplaySprite
+                            || (_session != null && _session.PresentationLocked));
 
                     if (!preservePortraitSprite)
                     {

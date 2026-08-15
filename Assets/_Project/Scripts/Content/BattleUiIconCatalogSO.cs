@@ -166,5 +166,7 @@ namespace Grimhand.Content
         public Sprite StatusEvade;
         /// <summary>烈火长剑脚标（Assets/The Grimhands Asset/relics/burning_longsword.png）</summary>
         public Sprite StatusBurningLongsword;
+        /// <summary>延迟伤害（巫妖女王：Assets/The Grimhands Asset/icon/lichqueen_delayed_damage.png）</summary>
+        public Sprite StatusDelayedDamage;
     }
 }

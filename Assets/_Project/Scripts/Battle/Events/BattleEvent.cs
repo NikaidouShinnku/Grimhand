@@ -56,6 +56,8 @@ namespace Grimhand.Battle.Events
         public int CardInstanceId { get; set; }
         public string CombatantId { get; set; } = "";
         public string TargetId { get; set; } = "";
+        /// <summary>状态跳伤等：造成该效果的来源单位（如延迟伤害的施法者）。</summary>
+        public string SourceCombatantId { get; set; } = "";
         public int Amount { get; set; }
         public int BlockedAmount { get; set; }
         public int RespondMitigatedAmount { get; set; }

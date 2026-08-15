@@ -15,8 +15,13 @@ MonoBehaviour:
   WarriorDamage: {fileID: -2197445467391291454, guid: 257fa434c23478d499db50b4dc1dbb69, type: 3}
   PharaohDamage: {fileID: -3335633833346279624, guid: 767ca96a80bddfb4c924cdec28655cd2, type: 3}
   DevilDamage: {fileID: -4548166007503567599, guid: 816cd91626943be4e8f1921aab602abc, type: 3}
+  SnakeQueenDamage: {fileID: -1214862744253689214, guid: f39d160c05d738b4bad7a0e5c386c90f, type: 3}
+  LichQueenDamage: {fileID: -569218425197906490, guid: 25efde2745c075e44b808752b4d2b1cb, type: 3}
   SkeletonKingDamage: {fileID: -2943888361462522882, guid: 6c57355f1da00ce499ee7d3489122227, type: 3}
   GhostQueenDamage: {fileID: -636697795798760506, guid: d612b648774af714d87e508e14764e55, type: 3}
+  WardenDamage: {fileID: -2017861000858344836, guid: d86c0ba1065332c4b905941c9f0e3fc6, type: 3}
+  DarkKnightDamage: {fileID: 6285084309811039687, guid: 7e735c7333fb4eb4eb73a4b8ead94e8e, type: 3}
+  CorruptedOceanGoddessDamage: {fileID: 1214708250248906683, guid: ef3be4cdd03df634faefb7f40da78f44, type: 3}
   Blocking: {fileID: 1434721886603217514, guid: f78728bd61b9df64f9805d30daed7ed0, type: 3}
   Healing: {fileID: -8793936362103082609, guid: 73fb002ad33f4ec4486106c10d896ce3, type: 3}
   Poisoning: {fileID: 2342332266118351040, guid: 8d473d75aa365124c9f9909406a0f2ee, type: 3}

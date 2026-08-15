@@ -16,8 +16,13 @@ namespace Grimhand.Presentation.Battle
                 "char_knight" or "char_warrior" => catalog.WarriorDamage,
                 "char_mage" or "char_pharaoh" => catalog.PharaohDamage,
                 "char_ranger" or "char_demon" => catalog.DevilDamage,
+                "char_snake_queen" or "char_viper_queen" => catalog.SnakeQueenDamage,
+                "char_lich_queen" or "char_lich" => catalog.LichQueenDamage,
                 BossCharacterRules.SkeletonKing => catalog.SkeletonKingDamage,
                 BossCharacterRules.GhostQueen => catalog.GhostQueenDamage,
+                BossCharacterRules.Warden => catalog.WardenDamage,
+                BossCharacterRules.DarkKnight => catalog.DarkKnightDamage,
+                BossCharacterRules.CorruptedOceanGoddess => catalog.CorruptedOceanGoddessDamage,
                 _ => null
             };
         }

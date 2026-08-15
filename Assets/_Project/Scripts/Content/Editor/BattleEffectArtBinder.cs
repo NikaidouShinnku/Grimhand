@@ -31,12 +31,27 @@ namespace Grimhand.Content.Editor
             catalog.WarriorDamage = LoadNamedSprite(EffectRoot + "warrior_damage_effect.png", "warrior_damage_effect_0");
             catalog.PharaohDamage = LoadFirstSprite(EffectRoot + "pharoah_damage_effect.png");
             catalog.DevilDamage = LoadFirstSprite(EffectRoot + "devil_damage_effect.png");
+            catalog.SnakeQueenDamage = LoadNamedSprite(
+                EffectRoot + "snakequeen_damage_effect.png",
+                "snakequeen_damage_effect_0");
+            catalog.LichQueenDamage = LoadNamedSprite(
+                EffectRoot + "lichqueen_damage_effect.png",
+                "lichqueen_damage_effect_0");
             catalog.SkeletonKingDamage = LoadNamedSprite(
                 EffectRoot + "skeletonking_damage_effect.png",
                 "skeletonking_damage_effect_0");
             catalog.GhostQueenDamage = LoadNamedSprite(
                 EffectRoot + "ghostqueen_damage_effect.png",
                 "ghostqueen_damage_effect_0");
+            catalog.WardenDamage = LoadNamedSprite(
+                EffectRoot + "warden_damage_effect.png",
+                "warden_damage_effect_0");
+            catalog.DarkKnightDamage = LoadNamedSprite(
+                EffectRoot + "darkknight_damage_effect.png",
+                "darkknight_damage_effect_0");
+            catalog.CorruptedOceanGoddessDamage = LoadNamedSprite(
+                EffectRoot + "corrupted_oceangoddess_damage_effect.png",
+                "corrupted_oceangoddess_damage_effect_0");
             catalog.Blocking = LoadFirstSprite(EffectRoot + "blocking_effect.png");
             catalog.Healing = LoadFirstSprite(EffectRoot + "healing_effect.png");
             catalog.Poisoning = LoadNamedSprite(EffectRoot + "poisoning_effect.png", "poisoning_effect_0");

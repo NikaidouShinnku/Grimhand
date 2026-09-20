@@ -5,6 +5,7 @@ using Grimhand.Expedition.Model;
 using Grimhand.Persistence;
 using Grimhand.Presentation.Audio;
 using Grimhand.Presentation.Battle;
+using Grimhand.Steam;
 using UnityEngine;
 using UnityEngine.InputSystem;
 #if UNITY_EDITOR
@@ -67,9 +68,17 @@ namespace Grimhand.Presentation.Camp
 
             _definitions = CardVisualResolver.BuildDefinitionLookup(battleSetup, expeditionSetup);
             var validationContext = SaveValidationContextBuilder.Build(expeditionSetup);
-            _saveService = new SaveService(
-                new LocalFileSaveStorage(SaveService.DefaultSaveDirectory),
-                validationContext);
+
+            SteamCloudProfileSync.EnsureInitialized();
+            LocalFileSaveStorage.MigrateFromLegacyPersistentPathIfNeeded(SaveService.DefaultSaveDirectory);
+            var localStorage = new LocalFileSaveStorage(SaveService.DefaultSaveDirectory);
+            var pull = SteamCloudProfileSync.PullIfCloudNewer(localStorage);
+            if (pull.Result == SteamCloudSyncResult.Kind.Failed)
+                Debug.LogWarning($"[GameFlow] Steam Cloud pull: {pull.Message}");
+            else if (pull.Result != SteamCloudSyncResult.Kind.Skipped)
+                Debug.Log($"[GameFlow] Steam Cloud pull: {pull.Result} ({pull.Message})");
+
+            _saveService = new SaveService(localStorage, validationContext);
 
             var loadResult = _saveService.LoadOrCreate(() =>
                 PlayerProfileFactory.CreateNew(battleSetup, expeditionSetup));
@@ -565,7 +574,9 @@ namespace Grimhand.Presentation.Camp
             }
 
             FindAnyObjectByType<BattleScreenView>(FindObjectsInactive.Include)?.SetEscUiSuppressed(true);
-            escMenu.Show(bg ?? uiIcons?.CaveBackground);
+            var run = battleController?.Session?.Expedition?.Run;
+            var allowForfeit = run == null || !run.IsTutorialRun;
+            escMenu.Show(bg ?? uiIcons?.CaveBackground, allowForfeit);
         }
 
         void ContinueExpedition()
@@ -941,7 +952,14 @@ namespace Grimhand.Presentation.Camp
                 return;
 
             if (!_saveService.TrySave(_profile, out var error))
+            {
                 Debug.LogWarning($"[GameFlow] 存档失败: {error}");
+                return;
+            }
+
+            var push = SteamCloudProfileSync.PushFromLocal(_saveService.Storage);
+            if (push.Result == SteamCloudSyncResult.Kind.Failed)
+                Debug.LogWarning($"[GameFlow] Steam Cloud push: {push.Message}");
         }
 
         void OnApplicationPause(bool paused)

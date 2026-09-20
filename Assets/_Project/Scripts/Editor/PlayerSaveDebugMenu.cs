@@ -57,10 +57,12 @@ namespace Grimhand.Editor
         public static void MaxAllCharacterLevels()
         {
             var dir = SaveService.DefaultSaveDirectory;
-            var path = Path.Combine(dir, "profile.json");
+            var path = Path.Combine(dir, LocalFileSaveStorage.ProfileFileName);
+            if (!File.Exists(path))
+                path = Path.Combine(dir, LocalFileSaveStorage.LegacyProfileFileName);
             if (!File.Exists(path))
             {
-                Debug.LogWarning($"[Save] 未找到存档: {path}");
+                Debug.LogWarning($"[Save] 未找到存档: {dir}");
                 return;
             }
 

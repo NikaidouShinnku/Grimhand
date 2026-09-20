@@ -111,7 +111,7 @@ namespace Grimhand.Presentation.Battle
         /// <summary>局内完整测试工具：假人出牌 / 测试怪物。正式 Demo 关闭。</summary>
         static readonly bool EnableBattleDevTools = false;
         /// <summary>训练场开放图鉴（加手牌/领遗物），便于内容测试。</summary>
-        static readonly bool EnableTrainingGroundCodex = true;
+        static readonly bool EnableTrainingGroundCodex = false;
         bool _battleDevToolsSuppressed;
 
         static readonly FormationSlot[] SlotOrder =

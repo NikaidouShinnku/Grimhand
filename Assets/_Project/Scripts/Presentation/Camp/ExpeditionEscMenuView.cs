@@ -19,6 +19,7 @@ namespace Grimhand.Presentation.Camp
         RectTransform _root;
         Image _backgroundImage;
         CampConfirmPromptView _forfeitConfirm;
+        Button _forfeitButton;
         Action _onReturnToGame;
         Action _onSettings;
         Action _onForfeitConfirmed;
@@ -60,10 +61,11 @@ namespace Grimhand.Presentation.Camp
             EnsureBuilt();
         }
 
-        public void Show(Sprite layerBackground)
+        public void Show(Sprite layerBackground, bool allowForfeit = true)
         {
             EnsureBuilt();
             HideForfeitConfirm();
+            SetForfeitEnabled(allowForfeit);
             if (_backgroundImage != null)
             {
                 if (layerBackground != null)
@@ -151,7 +153,7 @@ namespace Grimhand.Presentation.Camp
                 _onReturnToGame?.Invoke();
             });
             CreateSpriteButton(buttonColumn, sprites[1], primaryWidth, () => _onSettings?.Invoke());
-            CreateSpriteButton(buttonColumn, sprites[2], primaryWidth, ShowForfeitConfirm);
+            _forfeitButton = CreateSpriteButton(buttonColumn, sprites[2], primaryWidth, ShowForfeitConfirm);
             CreateSpriteButton(buttonColumn, sprites[3], primaryWidth, () => _onQuit?.Invoke());
 
             LayoutRebuilder.ForceRebuildLayoutImmediate(buttonColumn);
@@ -168,6 +170,9 @@ namespace Grimhand.Presentation.Camp
 
         void ShowForfeitConfirm()
         {
+            if (_forfeitButton != null && !_forfeitButton.interactable)
+                return;
+
             if (_forfeitConfirm == null)
                 return;
 
@@ -182,6 +187,16 @@ namespace Grimhand.Presentation.Camp
                     Hide();
                     _onForfeitConfirmed?.Invoke();
                 });
+        }
+
+        void SetForfeitEnabled(bool enabled)
+        {
+            if (_forfeitButton == null)
+                return;
+
+            _forfeitButton.interactable = enabled;
+            if (!enabled)
+                HideForfeitConfirm();
         }
 
         void BringToFrontUnderCanvas()

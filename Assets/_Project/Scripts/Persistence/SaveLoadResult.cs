@@ -25,7 +25,7 @@ namespace Grimhand.Persistence
             new(profile, SaveLoadSource.NewProfile, "无存档，已创建新局。");
 
         public static SaveLoadResult FromPrimary(PlayerProfileState profile) =>
-            new(profile, SaveLoadSource.Primary, "已从 profile.json 读档。");
+            new(profile, SaveLoadSource.Primary, "已从 profile.sav 读档。");
 
         public static SaveLoadResult FromBackup(PlayerProfileState profile) =>
             new(profile, SaveLoadSource.Backup, "主档损坏，已从 profile.bak 恢复。");

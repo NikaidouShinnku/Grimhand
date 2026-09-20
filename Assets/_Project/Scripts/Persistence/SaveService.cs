@@ -24,7 +24,11 @@ namespace Grimhand.Persistence
 #if UNITY_EDITOR
                 return System.IO.Path.Combine(Application.persistentDataPath, "saves_editor");
 #else
-                return System.IO.Path.Combine(Application.persistentDataPath, "saves");
+                // Align with Steamworks Auto-Cloud:
+                // Root = App Install Directory, Subdir = SavesDir, Pattern = *.sav
+                var installRoot = System.IO.Directory.GetParent(Application.dataPath)?.FullName
+                                  ?? Application.dataPath;
+                return System.IO.Path.Combine(installRoot, LocalFileSaveStorage.AutoCloudSubdirectory);
 #endif
             }
         }

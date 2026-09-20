@@ -57,5 +57,9 @@ MonoBehaviour:
     Icon: {fileID: 5801255725635399724, guid: ebb762402ff145342a1ae82cfadc8d31, type: 3}
   - RelicId: holysun_spellbook
     Icon: {fileID: 1552880449484307992, guid: 7cb8130b81ae5c34b8480a99bdbcc829, type: 3}
+  - RelicId: bottle_of_phantom
+    Icon: {fileID: 3728195705737310004, guid: 8f56f0ef3efdebf4fb30346dcb5770eb, type: 3}
+  - RelicId: snake_egg
+    Icon: {fileID: 6044529549590937990, guid: 94ed9cd807617484b8e76bdc48c7b979, type: 3}
   - RelicId: felskull
     Icon: {fileID: 6611001218573771035, guid: dbf2585f7191bdb47984b996ef62bb63, type: 3}

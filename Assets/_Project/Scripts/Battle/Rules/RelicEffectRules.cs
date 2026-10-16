@@ -77,33 +77,13 @@ namespace Grimhand.Battle.Rules
 
             if (mods.TurnStartEnemyDamage > 0)
             {
-                foreach (var enemy in state.GetTeam(TeamSide.Enemy))
+                foreach (var enemy in new List<CombatantState>(state.GetTeam(TeamSide.Enemy)))
                 {
                     if (!enemy.IsAlive)
                         continue;
-
-                    var before = enemy.Hp;
-                    enemy.Hp = Math.Max(0, enemy.Hp - mods.TurnStartEnemyDamage);
-                    var dealt = before - enemy.Hp;
-                    if (dealt <= 0)
-                        continue;
-
-                    events.Add(new BattleEvent(BattleEventKind.DamageApplied,
-                        $"赤红烈焰靴 -> {enemy.DisplayName}")
-                    {
-                        TargetId = enemy.Id,
-                        Amount = dealt,
-                        IsAoEWave = true
-                    });
-
-                    if (!enemy.IsAlive)
-                    {
-                        events.Add(new BattleEvent(BattleEventKind.CharacterDied, enemy.DisplayName)
-                        {
-                            CombatantId = enemy.Id
-                        });
-                        CombatantDeathRules.OnCharacterDied(state, enemy, events);
-                    }
+                    DamageRules.ApplyPeriodicDamage(state, enemy, mods.TurnStartEnemyDamage,
+                        events, $"赤红烈焰靴 -> {enemy.DisplayName}", rng: rng,
+                        eventKind: BattleEventKind.DamageApplied, isAoE: true);
                 }
             }
 
@@ -141,33 +121,13 @@ namespace Grimhand.Battle.Rules
 
             if (mods != null && mods.EndTurnEnemyFireDamage > 0)
             {
-                foreach (var enemy in state.GetTeam(TeamSide.Enemy))
+                foreach (var enemy in new List<CombatantState>(state.GetTeam(TeamSide.Enemy)))
                 {
                     if (!enemy.IsAlive)
                         continue;
-
-                    var before = enemy.Hp;
-                    enemy.Hp = Math.Max(0, enemy.Hp - mods.EndTurnEnemyFireDamage);
-                    var dealt = before - enemy.Hp;
-                    if (dealt <= 0)
-                        continue;
-
-                    events.Add(new BattleEvent(BattleEventKind.DamageApplied,
-                        $"赤红烈焰靴 -> {enemy.DisplayName}")
-                    {
-                        TargetId = enemy.Id,
-                        Amount = dealt,
-                        IsAoEWave = true
-                    });
-
-                    if (!enemy.IsAlive)
-                    {
-                        events.Add(new BattleEvent(BattleEventKind.CharacterDied, enemy.DisplayName)
-                        {
-                            CombatantId = enemy.Id
-                        });
-                        CombatantDeathRules.OnCharacterDied(state, enemy, events);
-                    }
+                    DamageRules.ApplyPeriodicDamage(state, enemy, mods.EndTurnEnemyFireDamage,
+                        events, $"赤红烈焰靴 -> {enemy.DisplayName}",
+                        eventKind: BattleEventKind.DamageApplied, isAoE: true);
                 }
             }
 
@@ -258,6 +218,7 @@ namespace Grimhand.Battle.Rules
             {
                 actor.UsedAttackThisTurn = true;
                 actor.FirstAttackBonusPending = false;
+                state.FirstAttackFlatBonusByCard.Remove(card.InstanceId);
             }
             else if (card.CardType == CardType.Defense)
             {

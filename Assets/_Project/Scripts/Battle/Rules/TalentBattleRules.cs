@@ -457,7 +457,7 @@ namespace Grimhand.Battle.Rules
         }
 
         /// <summary>
-        /// 选牌提交后、结算开始前：若本回合计划中含 ≥3 张战士攻击牌（不含快速启动），
+        /// 选牌提交后、结算开始前：若战士自身计划中有连续三张攻击牌（不含快速启动），
         /// 立刻挂 33% 连击增伤，使本回合所有攻击（含第 1、2 张）都能吃到加成。
         /// </summary>
         public static void TryApplyComboFromCommittedPlan(BattleState state, List<BattleEvent> events)
@@ -487,7 +487,7 @@ namespace Grimhand.Battle.Rules
             foreach (var cardId in state.PlayerPlan.PlayQueue)
             {
                 var card = state.GetCard(cardId);
-                if (card == null || card.CardType != CardType.Attack)
+                if (card == null)
                     continue;
                 if (card.Keywords != null && card.Keywords.Contains("quick_start"))
                     continue;
@@ -496,7 +496,9 @@ namespace Grimhand.Battle.Rules
                 if (ownerId != knight.Id)
                     continue;
 
-                attackCount++;
+                attackCount = card.CardType == CardType.Attack ? attackCount + 1 : 0;
+                if (attackCount >= 3)
+                    break;
             }
 
             if (attackCount < 3)
@@ -528,6 +530,8 @@ namespace Grimhand.Battle.Rules
 
             if (IsWarriorAttackCard(actor, card))
                 actor.TalentAttackCardsThisTurn++;
+            else
+                actor.TalentAttackCardsThisTurn = 0;
         }
 
         public static void OnCardResolved(

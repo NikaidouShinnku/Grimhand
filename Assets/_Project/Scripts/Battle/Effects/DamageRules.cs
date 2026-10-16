@@ -30,11 +30,16 @@ namespace Grimhand.Battle.Effects
             int sourceCardInstanceId = 0,
             bool isAoEWave = false)
         {
-            if (target == null)
+            if (target == null || !target.IsAlive)
                 return;
 
             if (state != null)
+            {
                 state.LastDamageHadRespondDefense = false;
+                // A fully negated hit must not inherit damage/kill flags from a
+                // previous hit (otherwise lifesteal and on-kill healing misfire).
+                state.LastAction = new LastActionSnapshot(actor?.Id ?? "", ActionKind.Attack, target.Id, false, 0);
+            }
 
             var recipient = CombatMechanicsRules.ResolveDamageRecipient(state, actor, target);
             var isGuardRedirect = recipient.Id != target.Id;
@@ -145,12 +150,9 @@ namespace Grimhand.Battle.Effects
                 || RespondEffectExecutor.HasRespondDefenseForHit(
                     state, sourceCardInstanceId, recipient.Id);
 
-            if (StatusRules.HasStatus(recipient, StatusCatalog.Ethereal) && hpDamage > 0)
-            {
-                // v0.9 巫妖 s1_lv4：虚化中受伤改为0并回2HP（接管 ethereal 封顶1）
-                if (!TalentBattleRules.TryHandleEtherealDamage(state, recipient, ref hpDamage, events))
-                    hpDamage = 1;
-            }
+            hpDamage = ProtectHealthLoss(state, recipient, hpDamage, events);
+            hpDamage = ApplySurvivalEffects(state, recipient, hpDamage, events, out var survivalBlocked);
+            blocked += survivalBlocked;
 
             if (!isSacrificeDamage && cardType == CardType.Attack && actor != null && actor.Id != recipient.Id)
                 recipient.HitThisTurn = true;
@@ -165,7 +167,6 @@ namespace Grimhand.Battle.Effects
             if (hpDamage > 0)
             {
                 // v0.9 背水一战：HP将降至0以下时保留1HP
-                PassiveCardMechanicsRules.TryTriggerLastStand(state, recipient, ref hpDamage, events);
                 recipient.Hp = Math.Max(0, recipient.Hp - hpDamage);
             }
 
@@ -202,7 +203,7 @@ namespace Grimhand.Battle.Effects
 
             // 腐蚀蟹：受击（含打甲）后上毒，同样须在 DamageApplied 之后
             if (raw > 0)
-                MinionTraitRules.OnIncomingDamageHit(state, actor, recipient, events);
+                MinionTraitRules.OnIncomingDamageHit(state, actor, recipient, events, rng);
 
             if (state != null)
                 state.LastDamageHadRespondDefense = hadRespondDefense;
@@ -260,16 +261,17 @@ namespace Grimhand.Battle.Effects
                 return;
 
             var wasAlive = recipient.IsAlive;
-            PassiveCardMechanicsRules.TryTriggerLastStand(state, recipient, ref amount, events);
+            var hpBefore = recipient.Hp;
+            amount = ProtectHealthLoss(state, recipient, amount, events);
             if (amount <= 0)
                 return;
 
-            // 奇迹之叶：真实伤害致死时同样可救
-            RelicEffectRules.TryMiracleLeafSave(state, recipient, events, ref amount);
+            amount = ApplySurvivalEffects(state, recipient, amount, events, out _);
             if (amount <= 0)
                 return;
 
             recipient.Hp = Math.Max(0, recipient.Hp - amount);
+            BossTraitRules.TryTriggerGhostQueenEnrage(state, recipient, hpBefore, events);
             recipient.HitThisTurn = true;
 
             if (!recipient.IsAlive && wasAlive
@@ -306,6 +308,79 @@ namespace Grimhand.Battle.Effects
                 if (recipient.Team == TeamSide.Enemy && actor != null)
                     RelicEffectRules.OnEnemyKilled(state, actor, events, null);
             }
+        }
+
+        /// <summary>All damage sources share ethereal and immortality protections.</summary>
+        public static int ProtectHealthLoss(
+            BattleState state, CombatantState target, int amount, List<BattleEvent> events)
+        {
+            if (target == null || !target.IsAlive || amount <= 0)
+                return 0;
+            if (StatusRules.HasStatus(target, StatusCatalog.Ethereal)
+                && !TalentBattleRules.TryHandleEtherealDamage(state, target, ref amount, events))
+                amount = 1;
+            PassiveCardMechanicsRules.TryTriggerLastStand(state, target, ref amount, events);
+            return Math.Max(0, amount);
+        }
+
+        static int ApplySurvivalEffects(
+            BattleState state, CombatantState target, int amount, List<BattleEvent> events, out int blocked)
+        {
+            blocked = 0;
+            if (amount <= 0)
+                return 0;
+            RelicEffectRules.TryMiracleLeafSave(state, target, events, ref amount);
+            TalentBattleRules.TryMageRevive(state, target, events, ref amount);
+            return TalentBattleRules.ApplyIncomingDamageTalents(state, target, amount, events, ref blocked);
+        }
+
+        /// <summary>
+        /// Non-card damage (DoT, delayed effects and relic pulses). It is not an attack:
+        /// no parry, thorns, outgoing attack modifiers or damage-dealt poison proc.
+        /// </summary>
+        public static int ApplyPeriodicDamage(
+            BattleState state, CombatantState target, int damage, List<BattleEvent> events,
+            string label, string statusId = "", string sourceId = "", bool ignoresBlock = true,
+            BattleRng rng = null, Action<int> afterDamage = null,
+            BattleEventKind eventKind = BattleEventKind.StatusTickDamage, bool isAoE = false)
+        {
+            if (state == null || target == null || !target.IsAlive || damage <= 0)
+                return 0;
+            var blocked = ignoresBlock ? 0 : Math.Min(target.Block, damage);
+            target.Block -= blocked;
+            var amount = ProtectHealthLoss(state, target, damage - blocked, events);
+            amount = ApplySurvivalEffects(state, target, amount, events, out var extraBlocked);
+            var before = target.Hp;
+            target.Hp = Math.Max(0, target.Hp - amount);
+            BossTraitRules.TryTriggerGhostQueenEnrage(state, target, before, events);
+            events.Add(new BattleEvent(eventKind, label)
+            {
+                CombatantId = eventKind == BattleEventKind.StatusTickDamage ? target.Id : sourceId,
+                TargetId = eventKind == BattleEventKind.StatusTickDamage ? statusId : target.Id,
+                SourceCombatantId = sourceId,
+                Amount = amount,
+                BlockedAmount = blocked + extraBlocked,
+                IsAoEWave = isAoE
+            });
+            afterDamage?.Invoke(amount);
+            if (!target.IsAlive && CombatMechanicsRules.TryPreventDeathWithReviveBlessing(state, target, events))
+                return amount;
+            if (amount > 0)
+            {
+                target.HitThisTurn = true;
+                MinionTraitRules.OnDamageTaken(state, target, amount, events);
+                CombatMechanicsRules.TryTriggerUnyielding(state, target, events);
+                PassiveCardMechanicsRules.OnDamageTakenBattleWill(state, target, amount, events);
+                V09NewMechanicsRules.AfterDamageResolveEtherealOnNextHit(state, target, amount, events);
+                V091MechanicsRules.OnHpDamageTaken(state, target, amount, events);
+                TalentBattleRules.OnDamageTakenV09(state, target, amount, events);
+            }
+            if (!target.IsAlive)
+            {
+                events.Add(new BattleEvent(BattleEventKind.CharacterDied, target.DisplayName) { CombatantId = target.Id });
+                CombatantDeathRules.OnCharacterDied(state, target, events, rng);
+            }
+            return amount;
         }
 
         /// <summary>
@@ -420,8 +495,25 @@ namespace Grimhand.Battle.Effects
             CombatantState healer = null,
             bool isLifesteal = false)
         {
-            if (actor == null || !actor.IsAlive)
+            if (actor == null || !actor.IsAlive || amount <= 0)
                 return;
+
+            if (state != null && !state.ActiveHealingRecipients.Add(actor.Id))
+                return;
+            try
+            {
+                ApplyHealCore(state, actor, amount, events, healer, isLifesteal);
+            }
+            finally
+            {
+                state?.ActiveHealingRecipients.Remove(actor.Id);
+            }
+        }
+
+        static void ApplyHealCore(
+            BattleState state, CombatantState actor, int amount, List<BattleEvent> events,
+            CombatantState healer, bool isLifesteal)
+        {
 
             var mods = state?.Config?.RunModifiers;
             var boosted = RelicBattleRules.ApplyHealBonus(mods, healer ?? actor, amount);

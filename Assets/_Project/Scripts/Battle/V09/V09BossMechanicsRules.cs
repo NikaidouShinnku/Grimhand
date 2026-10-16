@@ -40,7 +40,7 @@ namespace Grimhand.Battle.V09
             if (state == null)
                 return;
 
-            foreach (var combatant in state.Combatants)
+            foreach (var combatant in new List<CombatantState>(state.Combatants))
             {
                 if (!combatant.IsAlive)
                     continue;
@@ -602,21 +602,7 @@ namespace Grimhand.Battle.V09
             if (combatant == null || damage <= 0)
                 return;
 
-            combatant.Hp = System.Math.Max(0, combatant.Hp - damage);
-            events.Add(new BattleEvent(BattleEventKind.StatusTickDamage, label)
-            {
-                CombatantId = combatant.Id,
-                Amount = damage
-            });
-
-            if (!combatant.IsAlive)
-            {
-                events.Add(new BattleEvent(BattleEventKind.CharacterDied, combatant.DisplayName)
-                {
-                    CombatantId = combatant.Id
-                });
-                CombatantDeathRules.OnCharacterDied(state, combatant, events, rng);
-            }
+            DamageRules.ApplyPeriodicDamage(state, combatant, damage, events, label, rng: rng);
         }
     }
 }

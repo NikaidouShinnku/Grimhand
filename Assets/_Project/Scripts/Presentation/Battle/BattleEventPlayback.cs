@@ -19,6 +19,8 @@ namespace Grimhand.Presentation.Battle
                 BattleEventKind.CharacterRevived => true,
                 BattleEventKind.StatusApplied => true,
                 BattleEventKind.StatusRemoved => true,
+                BattleEventKind.StatusExpired => true,
+                BattleEventKind.IronWallConverted => true,
                 BattleEventKind.BlockGained => true,
                 BattleEventKind.PositionSwapped => true,
                 _ => false
@@ -81,7 +83,7 @@ namespace Grimhand.Presentation.Battle
                 }
 
                 // 尚无出牌段：状态挂起，等下一张牌 Pose 再播（时机对齐卡牌动画）。
-                if (e.Kind is BattleEventKind.StatusApplied or BattleEventKind.StatusRemoved)
+                if (e.Kind is BattleEventKind.StatusApplied or BattleEventKind.StatusRemoved or BattleEventKind.StatusExpired)
                 {
                     pendingStatus ??= new List<BattleEvent>();
                     pendingStatus.Add(e);
@@ -109,6 +111,40 @@ namespace Grimhand.Presentation.Battle
                 segments.Add(current);
 
             return segments;
+        }
+
+        /// <summary>Batch contiguous hits only; never move healing, death or status changes after later hits.</summary>
+        public static (List<BattleEvent> damages, List<BattleEvent> gaps, int lastConsumed) CollectDamageWave(
+            IReadOnlyList<BattleEvent> events, int startIndex)
+        {
+            var first = events[startIndex];
+            var batch = new List<BattleEvent> { first };
+            var gaps = new List<BattleEvent>();
+            var last = startIndex;
+            for (var i = startIndex + 1; i < events.Count; i++)
+            {
+                var next = events[i];
+                if (next.Kind == BattleEventKind.DamageApplied
+                    && next.CombatantId == first.CombatantId
+                    && next.CardInstanceId == first.CardInstanceId
+                    && next.IsAoEWave == first.IsAoEWave)
+                {
+                    batch.Add(next);
+                    last = i;
+                    continue;
+                }
+                // Pure bookkeeping can be consumed, but all presentation events retain their order.
+                if (next.Kind is BattleEventKind.DeckPolluted or BattleEventKind.CardDrawn
+                    or BattleEventKind.EnergyChanged or BattleEventKind.ReactionTriggered
+                    || first.IsAoEWave && next.Kind == BattleEventKind.CardDiscarded)
+                {
+                    gaps.Add(next);
+                    last = i;
+                    continue;
+                }
+                break;
+            }
+            return (batch, gaps, last);
         }
     }
 }

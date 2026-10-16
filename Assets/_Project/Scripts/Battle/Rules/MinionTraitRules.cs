@@ -560,7 +560,8 @@ namespace Grimhand.Battle.Rules
             BattleState state,
             CombatantState actor,
             CombatantState recipient,
-            List<BattleEvent> events)
+            List<BattleEvent> events,
+            BattleRng rng = null)
         {
             if (state == null || recipient == null || !recipient.IsAlive)
                 return;
@@ -568,7 +569,7 @@ namespace Grimhand.Battle.Rules
             if (!HasTrait(recipient, MinionTraitCatalog.CorruptedCrabPoisonOnHit))
                 return;
 
-            var target = PickRandomAlivePlayer(state);
+            var target = PickRandomAlivePlayer(state, rng);
             if (target == null)
                 return;
 
@@ -617,7 +618,7 @@ namespace Grimhand.Battle.Rules
             }
         }
 
-        static CombatantState PickRandomAlivePlayer(BattleState state)
+        static CombatantState PickRandomAlivePlayer(BattleState state, BattleRng rng)
         {
             CombatantState first = null;
             var count = 0;
@@ -627,7 +628,7 @@ namespace Grimhand.Battle.Rules
                     continue;
 
                 count++;
-                if (count == 1)
+                if (count == 1 || (rng != null && rng.NextInt(0, count) == 0))
                     first = unit;
             }
 

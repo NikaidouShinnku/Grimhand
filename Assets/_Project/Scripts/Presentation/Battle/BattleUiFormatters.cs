@@ -372,8 +372,8 @@ namespace Grimhand.Presentation.Battle
             {
                 var hits = PassiveCardMechanicsRules.GetSandSpearExhaustCount(state);
                 lines.Add(hits > 0
-                    ? $"随机 {PassiveCardMechanicsRules.SandSpearReforgeBaseDamage} 伤 ×{hits}（远征消耗牌计数）"
-                    : $"随机 {PassiveCardMechanicsRules.SandSpearReforgeBaseDamage} 伤 ×0（尚未打出消耗牌）");
+                    ? $"随机 {PassiveCardMechanicsRules.GetSandSpearDamage(card)} 伤 ×{hits}（远征消耗牌计数）"
+                    : $"随机 {PassiveCardMechanicsRules.GetSandSpearDamage(card)} 伤 ×0（尚未打出消耗牌）");
             }
 
             var dynamicLine = string.Join("\n", lines);
@@ -400,8 +400,47 @@ namespace Grimhand.Presentation.Battle
             PlanningDraft draft,
             CardInstanceState card,
             CombatantState damagePreviewTarget = null,
-            IReadOnlyDictionary<string, CardDefinitionSO> definitions = null) =>
-            BuildCardStatsLine(state, draft, card, preferFormulas: false, damagePreviewTarget, definitions);
+            IReadOnlyDictionary<string, CardDefinitionSO> definitions = null)
+        {
+            var line = BuildCardStatsLine(state, draft, card, preferFormulas: false, damagePreviewTarget, definitions);
+            if (state == null || card == null || SpecialCardRules.IsSpecialCard(card)) return line;
+            var displayCard = HolysunSpellbookRules.ApplyForDisplay(state, card);
+            var owner = state.GetCombatant(PositionRules.GetOwnerCombatantId(state, displayCard));
+            if (owner == null) return line;
+            var target = ResolveDamagePreviewTarget(state, draft, displayCard, owner, damagePreviewTarget);
+            var previews = new List<string>();
+            foreach (var action in displayCard.Actions)
+            {
+                if (action.Condition != ReactionConditionType.None) continue;
+                if (action.Type == EffectActionType.DealDamage && action.Target != EffectTarget.Self)
+                {
+                    if (action.Target == EffectTarget.AllEnemies)
+                    {
+                        var aoe = FormatBattleAoeDamageLine(state, owner, displayCard, action);
+                        if (!string.IsNullOrEmpty(aoe)) previews.Add(aoe);
+                    }
+                    else if (target != null)
+                        previews.Add($"对{target.DisplayName}预计掉血 {CardPreviewRules.PreviewHpDamageAgainstTarget(state, owner, displayCard, action, target)} / 次命中");
+                    else
+                    {
+                        var damage = CardPreviewRules.ComputeExpectedDamage(state, owner, displayCard, action);
+                        if (damage != CardPreviewRules.ComputeBaselineDamage(owner, action))
+                            previews.Add($"未计目标减伤的伤害 {damage} / 次命中");
+                    }
+                }
+                else if (action.Type == EffectActionType.GainBlock)
+                {
+                    var block = CardPreviewRules.ComputeExpectedBlock(state, owner, action);
+                    if (block != CardPreviewRules.ComputeBaselineBlock(owner, action)) previews.Add($"护甲 {block}");
+                }
+                else if (action.Type == EffectActionType.Heal)
+                {
+                    var heal = CardPreviewRules.ComputeExpectedHeal(state, owner, action);
+                    if (heal != CardPreviewRules.ComputeBaselineHeal(owner, action)) previews.Add($"治疗 {heal}");
+                }
+            }
+            return previews.Count == 0 ? line : line + "\n当前预估：" + string.Join("；", CollapseDuplicateClauses(previews));
+        }
 
         public static string BuildCardStatsLinePreview(CardInstanceState card) =>
             BuildCardStatsLine(state: null, draft: null, card, preferFormulas: false);
@@ -514,7 +553,8 @@ namespace Grimhand.Presentation.Battle
             bool preferFormulas = false,
             CombatantState previewTarget = null)
         {
-            var prefix = "";
+            var prefix = action.Type == EffectActionType.ApplyStatus && action.ChancePercent > 0 && action.ChancePercent < 100
+                ? $"{action.ChancePercent}%概率：" : "";
             var target = usesPick ? "" : DescribeAutoTarget(action.Target, action.Type);
             var reachTag = CardReachFormatter.GetFaceTag(action, pickSide);
 
@@ -662,7 +702,47 @@ namespace Grimhand.Presentation.Battle
 
                     return prefix + reachTag + DescribeStatusEffectClause(action, target, usesPick, state, owner);
                 case EffectActionType.RemoveStatus:
-                    return prefix + PrefixTarget(target, "清除状态");
+                    return prefix + PrefixTarget(target, $"清除{StatusCatalog.Get(action.StatusId)?.DisplayName ?? action.StatusId}");
+                case EffectActionType.ParryImmuneAndSlowAttacker:
+                    return $"【应对攻击】完全免疫此次伤害，并使攻击者获得 {action.Stacks} 层减速{FormatDurationSuffix(action, state, owner)}";
+                case EffectActionType.DoubleStatusStacks:
+                    return PrefixTarget(target, "使中毒和灼烧层数翻倍（持续时间不变）");
+                case EffectActionType.RecycleExhaustCardsFromDiscard:
+                    return "将所有使用过的消耗牌洗回抽牌堆，并移除其消耗关键词";
+                case EffectActionType.TransferHalfPoisonToRandomEnemy:
+                    return "将自身一半中毒层数转移到随机敌人身上";
+                case EffectActionType.SettlePoisonAndClear:
+                    return PrefixTarget(target, "立刻结算并清除所有中毒（层数×剩余回合，永久视为3回合）");
+                case EffectActionType.SummonOrGainBlock:
+                    return $"有空位时召唤{ShortOwner(action.SummonCharacterId)}，否则获得 {action.FallbackBlockValue} 护甲";
+                case EffectActionType.GrantDodgeChance:
+                    return $"获得 {action.Value}% 闪避率{FormatDurationSuffix(action, state, owner)}";
+                case EffectActionType.LockAttackCards:
+                    return PrefixTarget(target, "下回合无法使用攻击牌");
+                case EffectActionType.DealDamageRandomCharacterAlly:
+                    return $"对随机一名{ShortOwner(action.SummonCharacterId)}友方造成 {action.Value} 伤害";
+                case EffectActionType.StripBlockThenDealDamage:
+                    return $"清除目标全部护甲，然后造成 {action.Value} 伤害，每清除10护甲额外造成 {action.Stacks} 伤害（优先有护甲的敌人）";
+                case EffectActionType.AdjustSelfStatusRandom:
+                    return $"随机增加或减少1层{StatusCatalog.Get(action.StatusId)?.DisplayName ?? action.StatusId}";
+                case EffectActionType.ApplyAttackUpPerSelfStatusStack:
+                    return $"每有1层{StatusCatalog.Get(action.RepeatPerStatusId)?.DisplayName ?? action.RepeatPerStatusId}，获得 {action.Stacks}% 增伤{FormatDurationSuffix(action, state, owner)}";
+                case EffectActionType.LockRisingTideStacks:
+                    return $"将涨潮锁定在4层{FormatDurationSuffix(action, state, owner)}";
+                case EffectActionType.IncreaseRandomPlayerHandCosts:
+                    return $"随机 {action.Value} 张敌方手牌费用永久 +{Math.Max(1, action.Stacks)}";
+                case EffectActionType.StealAllBlockFromRandomEnemyPreferArmored:
+                    return "偷取随机敌人的全部护甲（优先有护甲的敌人）";
+                case EffectActionType.StealAllBuffs:
+                    return PrefixTarget(target, "偷取全部增益状态");
+                case EffectActionType.ClearAllDebuffs:
+                    return "清除自身全部减益状态";
+                case EffectActionType.DoubleAllDebuffStacksAndDuration:
+                    return PrefixTarget(target, "使全部减益状态层数和剩余回合翻倍（永久保持不变）");
+                case EffectActionType.SwapTargetWithBehind:
+                    return "使目标与其身后角色交换位置";
+                case EffectActionType.DealTrueDamagePerStatusStack:
+                    return $"目标每有1层{StatusCatalog.Get(action.StatusId)?.DisplayName ?? action.StatusId}，额外受到 {Math.Max(1, action.Stacks)} 真实伤害";
                 case EffectActionType.SwapPositionWithFrontAlly:
                     return prefix + "与前排队友交换位置";
                 case EffectActionType.SwapPositionWithSelectedAlly:
@@ -672,7 +752,7 @@ namespace Grimhand.Presentation.Battle
                 case EffectActionType.SwapRandomEnemies:
                     return prefix + "使随机两名敌人交换位置";
                 case EffectActionType.ApplyAnubisAvatar:
-                    return prefix + "本场战斗生命上限、攻击、防御 +50%\n接下来 2 回合无法出牌";
+                    return prefix + "本场战斗生命上限、增伤、强固 +50%\n接下来 2 回合无法出牌";
                 case EffectActionType.LockRandomPlayerPlaysThisTurn:
                     return prefix + "使随机一名敌人下回合无法使用卡牌";
                 case EffectActionType.ReducePlayerEnergyRegenNextTurn:
@@ -696,7 +776,7 @@ namespace Grimhand.Presentation.Battle
                 case EffectActionType.DealDamageAlternateIfHealedThisTurn:
                     return prefix + reachTag + PrefixTarget(
                         target,
-                        $"造成 {action.Value} 点伤害；本回合若回复过生命，改为 {action.AlternateValue} 点伤害");
+                        $"造成 {action.Value} 点伤害；本回合若回复过生命，改为 {action.AlternateValueIfHealed} 点伤害");
                 case EffectActionType.DealDamageBonusPerTargetDebuffStack:
                     return prefix + reachTag + PrefixTarget(
                         target,
@@ -829,8 +909,10 @@ namespace Grimhand.Presentation.Battle
 
             var clause = DescribeEffectClause(
                 first, owner, usesPick: false, TargetPickSide.None, state, card, reaction: false, preferFormulas);
-            // 多段只展示单段结算伤害（剑刃风暴等），不写「重复 N 次」。
-            line = clause ?? "";
+            var hits = 0;
+            foreach (var action in actions)
+                hits += Math.Max(1, action.HitCount);
+            line = actions.Count > 1 && hits > 1 ? $"{clause}，共 {hits} 次" : clause ?? "";
             remaining = new List<EffectActionSpec>();
             return !string.IsNullOrEmpty(line);
         }
@@ -1041,6 +1123,16 @@ namespace Grimhand.Presentation.Battle
                     return $"本场战斗中，回复生命时，治疗其他我方角色回复量的 {stacksText}%";
                 case StatusCatalog.BloodlineLegacy:
                     return $"最大生命 +{stacksText}%（当前生命不变）";
+                case StatusCatalog.PsionicBody:
+                    return $"本场战斗中，我方在非战斗时段造成的伤害 +{20 + Math.Max(0, action.Stacks - 1)}%";
+                case StatusCatalog.RotAvatar:
+                    return $"本场战斗中，每回合开始对所有敌人施加 {PassiveCardMechanicsRules.RotAvatarPoisonStacks + Math.Max(0, action.Stacks - 1)} 层中毒（永久）";
+                case StatusCatalog.VenomSacBurst:
+                    return $"本场战斗中，每当自身施加中毒，额外施加 {stacksText} 层";
+                case StatusCatalog.DespairSoulRecall:
+                    return "获得虚化时，从弃牌堆回收本牌；结算期间获得虚化则在下回合开始回收";
+                case StatusCatalog.OpportunisticStance:
+                    return $"本场战斗中，每当敌人交换位置，对其造成 {stacksText} 伤害";
                 case StatusCatalog.RespondStance:
                     return $"本场战斗中，应对成功时获得 {stacksText} 点护甲";
                 case StatusCatalog.ImmortalShed:
@@ -1326,28 +1418,8 @@ namespace Grimhand.Presentation.Battle
             return true;
         }
 
-        static string DescribeDamageExtras(EffectActionSpec action)
-        {
-            var parts = new List<string>();
-            if (action.SplashBehindTarget)
-                parts.Add($"，贯通后方 {action.SplashPowerPercent}% 伤害");
-            if (action.BackRowPowerPercent > 0 && action.BackRowPowerPercent < 100)
-                parts.Add($"，打后排仅 {action.BackRowPowerPercent}% 威力");
-            if (action.IgnoreDefPercent > 0)
-                parts.Add(action.IgnoreDefPercent >= 100 ? "，无视目标防御" : $"，无视目标 {action.IgnoreDefPercent}% 防御");
-            if (action.BonusIfTargetHpBelowPercent > 0 && action.BonusIfTargetHpBelowFlat > 0)
-                parts.Add($"，目标 HP 低于 {action.BonusIfTargetHpBelowPercent}% 时额外 +{action.BonusIfTargetHpBelowFlat}");
-            if (action.BonusIfTargetHitThisTurnPercent > 0)
-                parts.Add($"，目标本回合已被攻击则伤害 +{action.BonusIfTargetHitThisTurnPercent}%");
-            if (action.LifestealPercent >= 100)
-                parts.Add("，回复等量 HP");
-            else if (action.LifestealPercent > 0)
-                parts.Add($"，回复造成伤害 {action.LifestealPercent}% 的 HP");
-            if (action.OnKillHealAmount > 0)
-                parts.Add($"，击杀回复 {action.OnKillHealAmount} HP");
-
-            return string.Concat(parts);
-        }
+        static string DescribeDamageExtras(EffectActionSpec action) =>
+            CardActionValueText.FormatDamageExtras(action);
 
         static List<string> CollapseDuplicateClauses(IReadOnlyList<string> clauses)
         {
@@ -2466,6 +2538,21 @@ namespace Grimhand.Presentation.Battle
                 return false;
 
             var lv = Math.Max(0, card.UpgradeLevel);
+            switch (card.DefinitionId)
+            {
+                case V091MechanicsRules.FearlessChargeCardId:
+                    line = $"【前/中】造成 {V091MechanicsRules.FearlessChargeBaseDamage + lv * 3} 伤害，并获得等量护甲；若上回合受到伤害，费用-2且伤害翻倍";
+                    return true;
+                case V091MechanicsRules.RetaliatoryStrikeCardId:
+                    line = $"【前/中】造成 {V091MechanicsRules.RetaliatoryBaseDamage + lv * 2} 伤害，本回合每受到一次攻击额外 +{V091MechanicsRules.RetaliatoryBonusPerHit}";
+                    return true;
+                case V091MechanicsRules.DemonEchoCardId:
+                    line = $"【继承】【前/中/后】造成 {V091MechanicsRules.DemonEchoBaseDamage + lv * 5} 伤害；每使用一张献祭牌费用-2，洗入牌库时恢复";
+                    return true;
+                case "l_realm_burst" when card.Actions.Count > 0:
+                    line = $"【前/中】造成 {card.Actions[0].Value} 伤害；虚化时脱离虚化，改为 {card.Actions[0].Value * 2} 伤害";
+                    return true;
+            }
             // 无 Actions 的特殊技才走专用句；有 Actions 的走通用 DescribeEffectClause。
             if (card.Actions != null && card.Actions.Count > 0)
                 return false;
@@ -2487,33 +2574,44 @@ namespace Grimhand.Presentation.Battle
                     return true;
                 }
                 case V091MechanicsRules.LifeSpringCardId:
-                    line = $"本场战斗中，回合开始时每名我方角色回复 {V091MechanicsRules.LifeSpringHeal + lv} 点生命";
+                    line = $"【消耗】本场战斗中，回合开始时每名我方角色回复 {V091MechanicsRules.LifeSpringHeal + lv} 点生命";
                     return true;
                 case V091MechanicsRules.PainConvertCardId:
                     line =
-                        $"获得 {V091MechanicsRules.PainConvertBlock + lv} 点护甲；本场战斗中，受到攻击时回复 {V091MechanicsRules.PainConvertHealOnHit + lv} 点生命";
+                        $"获得 {V091MechanicsRules.PainConvertBlock + lv} 点护甲；本回合内，每当受到伤害，回复 {V091MechanicsRules.PainConvertHealOnHit + lv} 点生命";
                     return true;
                 case V091MechanicsRules.PoisonMistCardId:
                     line =
-                        $"对全体敌人施加 {V091MechanicsRules.PoisonMistStacks + lv} 层中毒，并施加 {V091MechanicsRules.PoisonMistVulnerableStacks}% 破损";
+                        $"【AOE】若敌人已处于中毒状态，施加 {V091MechanicsRules.PoisonMistVulnerableStacks}% 易伤（2回合）；然后施加 {V091MechanicsRules.PoisonMistStacks + lv} 层中毒（永久）";
                     return true;
                 case V091MechanicsRules.QueenKissCardId:
                     line =
-                        $"对目标施加 {V091MechanicsRules.QueenKissPoisonStacks + lv * 3} 层中毒（永久）";
+                        $"【消耗】对随机敌人施加 {V091MechanicsRules.QueenKissPoisonStacks + lv * 3} 层中毒（永久）；下回合开始时，将所有敌人的中毒转换为等层数、等持续时间的易伤";
                     return true;
                 case V091MechanicsRules.EtherealShieldCardId:
-                    line = $"获得 {V091MechanicsRules.EtherealShieldBlock + lv} 点护甲";
+                    line = $"获得 {V091MechanicsRules.EtherealShieldBlock + lv} 点护甲；若处于虚化状态，改为下回合开始时获得";
                     return true;
                 case V091MechanicsRules.PsionicArrowRainCardId:
                     line =
-                        $"接下来 {V091MechanicsRules.PsionicArrowRainTurns} 回合，每回合开始对全体敌人造成 {V091MechanicsRules.PsionicArrowRainDamage + lv} 点伤害";
+                        $"接下来 {V091MechanicsRules.PsionicArrowRainTurns} 回合，每回合开始对随机敌人造成 {V091MechanicsRules.PsionicArrowRainDamage + lv} 点伤害";
                     return true;
                 case CardPowerRules.SolarGodWrathCardId:
-                    line = lv > 0
-                        ? $"消耗全部能量：每点能量随机对一名敌人造成效果；额外再结算 {lv} 次"
-                        : "消耗全部能量：每点能量随机对一名敌人造成效果";
+                    line = $"【消耗】花费剩余所有能量，每点能量对随机敌人随机触发：{SpecialCardRules.SolarGodWrathDamage}伤害、{SpecialCardRules.SolarGodWrathArmorDownStacks}%破损（2回合）、{SpecialCardRules.SolarGodWrathVulnerableStacks}%易伤（2回合）、{SpecialCardRules.SolarGodWrathSlowStacks}层减速（2回合）、{SpecialCardRules.SolarGodWrathBurnStacks}层灼烧（2回合）之一；额外结算 {lv} 次";
+                    return true;
+                case "p_holy_infusion":
+                    line = $"【消耗】使友方角色使用的上一张牌重复使用一次，本卡费用=max(0，上一张牌费用+1-{lv})";
+                    return true;
+                case CardPowerRules.SolarBlessingCardId:
+                    line = $"花费剩余所有能量，每花费一点能量，使所有队友获得 {SpecialCardRules.SolarBlessingBlockPerRepeat + lv} 护甲";
                     return true;
                 default:
+                    // A no-action card must never collapse to a keyword-only label.
+                    // Unknown special effects retain their authoritative description.
+                    if (CardDescriptionCatalog.TryGetByCardId(card.DefinitionId, out var description))
+                    {
+                        line = description;
+                        return true;
+                    }
                     return false;
             }
         }

@@ -31,6 +31,7 @@ namespace Grimhand.Battle.Rules
                     continue;
 
                 card.IsUsable = false;
+                card.DisabledByDeath = true;
                 polluted++;
             }
 
@@ -52,10 +53,13 @@ namespace Grimhand.Battle.Rules
 
             foreach (var card in state.CardsById.Values)
             {
-                if (!IsCardOwnedByCombatant(card, combatant))
+                if (!IsCardOwnedByCombatant(card, combatant) || !card.DisabledByDeath)
                     continue;
 
-                card.IsUsable = true;
+                card.DisabledByDeath = false;
+                card.IsUsable = !CardRules.IsCurseCard(card)
+                    && !CardRules.HasEngravingLock(card)
+                    && !state.GetExhaustPile(combatant.Team).Contains(card);
             }
         }
 

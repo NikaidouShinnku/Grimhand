@@ -178,6 +178,7 @@ namespace Grimhand.Presentation.Battle
                             yield return HandleStatusApplied(e);
                             break;
                         case BattleEventKind.StatusRemoved:
+                        case BattleEventKind.StatusExpired:
                             HandleStatusRemoved(e);
                             break;
                         case BattleEventKind.PositionSwapped:
@@ -186,7 +187,7 @@ namespace Grimhand.Presentation.Battle
                         case BattleEventKind.DamageApplied:
                             card?.MarkDamage();
                             var (damageWave, waveGaps, waveEnd) = CollectActorDamageWave(events, i);
-                            if (damageWave.Count > 1 && IsSameTargetMultiHit(damageWave))
+                            if (damageWave.Count > 1 && !damageWave[0].IsAoEWave)
                             {
                                 for (var hit = 0; hit < damageWave.Count; hit++)
                                 {
@@ -531,7 +532,13 @@ namespace Grimhand.Presentation.Battle
                 GameAudioService.Instance.PlayBattleStatusEffect(e.TargetId);
             }
 
-            yield return target.PlayHitReaction(e.Amount, useHitPose: false);
+            if (e.BlockedAmount > 0)
+            {
+                ApplySnapshotAfterBlockConsumed(e.CombatantId, e.BlockedAmount);
+                target.ShowBlockAbsorbedNumber(e.BlockedAmount);
+            }
+            if (e.Amount > 0)
+                yield return target.PlayHitReaction(e.Amount, useHitPose: false);
             ApplySnapshotAfterDamage(e.CombatantId, e.Amount);
             ApplyEventDisplayCheckpoint(e);
         }
@@ -882,76 +889,8 @@ namespace Grimhand.Presentation.Battle
         }
 
         static (List<BattleEvent> damages, List<BattleEvent> gaps, int lastConsumed) CollectActorDamageWave(
-            IReadOnlyList<BattleEvent> events,
-            int startIndex)
-        {
-            var gaps = new List<BattleEvent>();
-            var batch = new List<BattleEvent> { events[startIndex] };
-            var actorId = events[startIndex].CombatantId;
-            var aoeWave = events[startIndex].IsAoEWave;
-            var lastConsumed = startIndex;
-
-            for (var j = startIndex + 1; j < events.Count; j++)
-            {
-                var next = events[j];
-                if (next.Kind == BattleEventKind.DamageApplied
-                    && next.CombatantId == actorId
-                    && (!aoeWave || next.IsAoEWave))
-                {
-                    batch.Add(next);
-                    lastConsumed = j;
-                    continue;
-                }
-
-                if (IsDamageWaveGapEvent(next.Kind, aoeWave))
-                {
-                    gaps.Add(next);
-                    lastConsumed = j;
-                    continue;
-                }
-
-                break;
-            }
-
-            return (batch, gaps, lastConsumed);
-        }
-
-        static bool IsSameTargetMultiHit(IReadOnlyList<BattleEvent> batch)
-        {
-            if (batch == null || batch.Count < 2)
-                return false;
-
-            var targetId = batch[0].TargetId;
-            if (string.IsNullOrEmpty(targetId))
-                return false;
-
-            for (var i = 1; i < batch.Count; i++)
-            {
-                if (batch[i].TargetId != targetId)
-                    return false;
-            }
-
-            return true;
-        }
-
-        static bool IsDamageWaveGapEvent(BattleEventKind kind, bool aoeWave)
-        {
-            if (kind is BattleEventKind.CharacterDied
-                or BattleEventKind.BlockGained
-                or BattleEventKind.IronWallConverted
-                or BattleEventKind.HealApplied
-                or BattleEventKind.StatusRemoved
-                or BattleEventKind.DeckPolluted
-                or BattleEventKind.CardDrawn
-                or BattleEventKind.EnergyChanged
-                or BattleEventKind.ReactionTriggered)
-            {
-                return true;
-            }
-
-            // StatusApplied 不并入 damage wave，保证「伤害 → 上毒 → 下一击」按事件序播放
-            return aoeWave && kind == BattleEventKind.CardDiscarded;
-        }
+            IReadOnlyList<BattleEvent> events, int startIndex) =>
+            BattleEventPlayback.CollectDamageWave(events, startIndex);
 
         IEnumerator RunParallel(IReadOnlyList<IEnumerator> routines)
         {

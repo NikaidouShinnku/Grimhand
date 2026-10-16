@@ -7,28 +7,6 @@ namespace Grimhand.Battle.Rules
 {
     public static class PositionRules
     {
-        public static float GetDamageMultiplier(FormationSlot slot)
-        {
-            switch (slot)
-            {
-                case FormationSlot.Front: return 0.7f;
-                case FormationSlot.Middle: return 1.15f;
-                case FormationSlot.Back: return 1.3f;
-                default: return 1f;
-            }
-        }
-
-        public static float GetIncomingDamageMultiplier(FormationSlot slot)
-        {
-            switch (slot)
-            {
-                case FormationSlot.Front: return 0.7f;
-                case FormationSlot.Middle: return 0.85f;
-                case FormationSlot.Back: return 1f;
-                default: return 1f;
-            }
-        }
-
         /// <summary>
         /// 按物理站位排序后，存活者从前到后依次占据前/中/后排（死亡则后续顺位前移）。
         /// </summary>

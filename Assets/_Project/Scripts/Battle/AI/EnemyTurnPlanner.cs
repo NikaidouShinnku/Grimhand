@@ -49,17 +49,28 @@ namespace Grimhand.Battle.AI
                 return nameCmp != 0 ? nameCmp : a.InstanceId.CompareTo(b.InstanceId);
             });
 
+            // Budget search: greedy 1+2 would waste a point when 2+2 is available.
+            // Keep the existing sorted order to make equal-budget choices deterministic.
+            var combinations = new Dictionary<int, List<int>> { [0] = new List<int>() };
             foreach (var card in candidates)
             {
                 var ownerId = PositionRules.GetOwnerCombatantId(state, card);
                 var owner = ownerId != null ? state.GetCombatant(ownerId) : null;
-                var cost = MinionTraitRules.GetAdjustedCardCost(state, owner, card);
-                if (spent + cost > budget)
-                    continue;
-
-                result.Plan.PlayQueue.Add(card.InstanceId);
-                spent += cost;
+                var cost = System.Math.Max(0, MinionTraitRules.GetAdjustedCardCost(state, owner, card));
+                var previous = new List<KeyValuePair<int, List<int>>>(combinations);
+                foreach (var entry in previous)
+                {
+                    var total = entry.Key + cost;
+                    if (total > budget || (cost > 0 && combinations.ContainsKey(total)))
+                        continue;
+                    var queue = new List<int>(entry.Value) { card.InstanceId };
+                    combinations[total] = queue;
+                }
             }
+
+            foreach (var total in combinations.Keys)
+                spent = System.Math.Max(spent, total);
+            result.Plan.PlayQueue.AddRange(combinations[spent]);
 
             result.Plan.EnergySpent = spent;
 

@@ -132,7 +132,7 @@ namespace Grimhand.Battle.Rules
                     if (!ally.IsAlive)
                         continue;
 
-                    DamageRules.ApplyBlock(ally, SolarBlessingBlockPerRepeat, events, state, rng);
+                    DamageRules.ApplyBlock(ally, SolarBlessingBlockPerRepeat + System.Math.Max(0, card.UpgradeLevel), events, state, rng);
                 }
             }
 

@@ -105,6 +105,8 @@ namespace Grimhand.Battle.Model
         /// <summary>v0.9：沙矛重塑 — 整场远征累计打出的消耗牌张数。</summary>
         public int SandSpearExhaustCardsPlayed { get; set; }
 
-        public static RunModifierSnapshot Empty { get; } = new();
+        // Snapshots contain mutable battle flags and counters. Never share a writable
+        // "empty" instance between battles (or between tests).
+        public static RunModifierSnapshot Empty => new();
     }
 }

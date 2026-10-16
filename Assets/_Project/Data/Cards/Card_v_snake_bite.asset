@@ -63,7 +63,7 @@ MonoBehaviour:
     Value: 0
     StatusId: poison
     Stacks: 2
-    Duration: 2
+    Duration: 3
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100

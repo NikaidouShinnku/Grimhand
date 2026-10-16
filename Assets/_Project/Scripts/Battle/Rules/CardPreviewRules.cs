@@ -6,8 +6,8 @@ using Grimhand.Battle.Status;
 namespace Grimhand.Battle.Rules
 {
     /// <summary>
-    /// 卡牌面板预期数值：含攻击力缩放、遗物加成与攻击方站位 outgoing 倍率；
-    /// 不含目标站位 incoming、护甲与选敌相关的 Reach/后排衰减。
+    /// Target-independent card values and deterministic single-hit HP previews.
+    /// Formation has no universal damage multiplier. Random dodges are not predicted.
     /// </summary>
     public static class CardPreviewRules
     {
@@ -88,7 +88,6 @@ namespace Grimhand.Battle.Rules
             if (state == null || owner == null)
                 return block;
 
-            RelicBattleRules.RefreshDerivedStats(state, owner, state.Config?.RunModifiers);
             block += RelicBattleRules.GetOutgoingDefenseFlatBonus(state.Config?.RunModifiers, owner);
             block = RelicBattleRules.ApplyPharaohBlockBonus(state.Config?.RunModifiers, owner, block);
             block = CombatModifierRules.ApplyBlockGainModifiers(owner, block);
@@ -109,7 +108,8 @@ namespace Grimhand.Battle.Rules
             if (action == null || action.Type != EffectActionType.Heal)
                 return 0;
 
-            return CardPowerRules.ComputeActionValue(action, owner);
+            return RelicBattleRules.ApplyHealBonus(
+                state?.Config?.RunModifiers, owner, CardPowerRules.ComputeActionValue(action, owner));
         }
 
         public static int ComputeBaselineHeal(CombatantState owner, EffectActionSpec action) =>
@@ -124,11 +124,8 @@ namespace Grimhand.Battle.Rules
             if (action == null)
                 return 1;
 
-            int baseline;
-            if (action.Duration >= 0)
-                baseline = action.Duration;
-            else
-                baseline = StatusCatalog.Get(action.StatusId)?.DefaultDuration ?? 1;
+            // Duration < 0 is explicitly permanent, exactly as StatusRules applies it.
+            var baseline = action.Duration;
 
             if (baseline < 0)
                 return -1;
@@ -156,7 +153,7 @@ namespace Grimhand.Battle.Rules
             if (action.Duration >= 0)
                 return action.Duration;
 
-            return StatusCatalog.Get(action.StatusId)?.DefaultDuration ?? 1;
+            return -1;
         }
 
         /// <summary>对指定目标预览最终 HP 伤害（含站位 incoming、护甲、DEF；不修改战斗状态）。</summary>
@@ -176,7 +173,7 @@ namespace Grimhand.Battle.Rules
             if (!CanPreviewDamageAgainstTarget(state, owner, card, action, intendedTarget))
                 return 0;
 
-            var value = CardPowerRules.ComputeActionValue(action, owner);
+            var value = CombatMechanicsRules.ComputeActionValueForTarget(state, action, owner, intendedTarget);
             var primaryPower = TargetReachRules.AdjustPowerForTarget(state, action, intendedTarget, value);
             primaryPower = CombatMechanicsRules.ComputeConditionalDamageBonus(
                 state, action, intendedTarget, primaryPower, owner);
@@ -402,13 +399,10 @@ namespace Grimhand.Battle.Rules
                         return $"伤害 {ComputeExpectedDamage(state, owner, card, action)}";
                     case EffectActionType.GainBlock:
                     {
-                        var block = CardPowerRules.ComputeActionValue(action, owner);
-                        block += RelicBattleRules.GetOutgoingDefenseFlatBonus(state.Config?.RunModifiers, owner);
-                        block = RelicBattleRules.ApplyPharaohBlockBonus(state.Config?.RunModifiers, owner, block);
-                        return $"护甲 {block}";
+                        return $"护甲 {ComputeExpectedBlock(state, owner, action)}";
                     }
                     case EffectActionType.Heal:
-                        return $"治疗 {CardPowerRules.ComputeActionValue(action, owner)}";
+                        return $"治疗 {ComputeExpectedHeal(state, owner, action)}";
                     case EffectActionType.ApplyStatus:
                         return $"状态 {action.Stacks}";
                     case EffectActionType.DrawCards:
@@ -431,6 +425,9 @@ namespace Grimhand.Battle.Rules
         {
             var recipient = CombatMechanicsRules.ResolveDamageRecipient(state, owner, intendedTarget);
             var redirectedByGuard = recipient.Id != intendedTarget.Id;
+            if (!isSacrificeSelfDamage
+                && (recipient.InvulnerableTurnsRemaining > 0 || recipient.InvulnerableRestOfTurn))
+                return 0;
 
             var outgoing = PeekOutgoingPower(
                 state,
@@ -441,16 +438,50 @@ namespace Grimhand.Battle.Rules
                 card.Cost,
                 card);
 
-            var effectiveBlock = CombatModifierRules.ComputeEffectiveBlock(recipient, action.IgnoreDefPercent);
+            var ignore = System.Math.Max(action.IgnoreDefPercent,
+                Grimhand.Battle.V091.V091MechanicsRules.GetIgnoreDefPercentForAttacker(owner));
+            RelicEffectRules.AdjustRelicOutgoingDamage(state, owner, recipient, card.CardType, ref outgoing, ref ignore);
+            var mods = state.Config?.RunModifiers;
+            var previewBlock = recipient.Block;
+            if (outgoing > 0 && recipient.BossFirstHitBlockPending
+                && BossTraitRules.HasTrait(recipient, CharacterTraitCatalog.BossFirstHitBlock))
+                previewBlock += PassiveCardMechanicsRules.ApplyHeavyArmorBlockBonus(recipient,
+                    CombatModifierRules.ApplyBlockGainModifiers(recipient, CharacterTraitCatalog.BossFirstHitBlockAmount));
+            if (outgoing > 0 && !isSacrificeSelfDamage && card.CardType == CardType.Attack
+                && owner.Team != recipient.Team && recipient.WarriorFirstHitBlockPending
+                && recipient.CharacterDefinitionId is RelicEffectRules.WarriorCharacterId or "char_warrior"
+                && mods != null && mods.WarriorFirstHitBlockAmount > 0)
+                previewBlock += PassiveCardMechanicsRules.ApplyHeavyArmorBlockBonus(recipient,
+                    CombatModifierRules.ApplyBlockGainModifiers(recipient, mods.WarriorFirstHitBlockAmount));
+            if (!isSacrificeSelfDamage && card.CardType == CardType.Attack
+                && recipient.Team == TeamSide.Player && owner.Team != recipient.Team
+                && state.TeamFirstHitReductionPending && recipient.FirstHitReductionPending
+                && mods != null && mods.FirstHitDamageReductionPercent > 0)
+                outgoing = System.Math.Max(0, (int)System.Math.Round(
+                    outgoing * (100f - mods.FirstHitDamageReductionPercent) / 100f));
+            var effectiveBlock = ignore <= 0 ? previewBlock : System.Math.Max(0,
+                (int)System.Math.Round(previewBlock * (100 - System.Math.Min(100, ignore)) / 100f));
             var blocked = System.Math.Min(effectiveBlock, outgoing);
             var afterBlock = outgoing - blocked;
 
-            RelicBattleRules.RefreshDerivedStats(state, recipient, state?.Config?.RunModifiers);
             var hpDamage = CombatModifierRules.ApplyIncomingDamageModifiers(
-                recipient, afterBlock, action.IgnoreDefPercent);
+                recipient, afterBlock, ignore);
 
             if (redirectedByGuard)
                 hpDamage = CombatMechanicsRules.ApplyGuardReduction(hpDamage, recipient);
+
+            if (mods != null && previewBlock > 0
+                && recipient.CharacterDefinitionId is RelicEffectRules.WarriorCharacterId or "char_warrior")
+                hpDamage = (int)System.Math.Round(hpDamage * (100f - mods.WarriorBlockDamageReductionPercent) / 100f);
+            if (mods != null && recipient.CharacterDefinitionId == RelicEffectRules.WarriorCharacterId
+                && StatusRules.HasStatus(recipient, StatusCatalog.Taunt))
+                hpDamage = (int)System.Math.Round(hpDamage * (100f - mods.WarriorTauntDamageReductionPercent) / 100f);
+            hpDamage = Grimhand.Battle.Reactions.RespondEffectExecutor.ApplyMitigation(state, card.InstanceId, recipient.Id, hpDamage);
+            if (hpDamage > 0 && StatusRules.HasStatus(recipient, StatusCatalog.Ethereal))
+                hpDamage = recipient.CharacterDefinitionId == TalentBattleRules.LichQueenId
+                    && TalentBattleRules.HasTalent(state, "talent_lich_s1_lv4") ? 0 : 1;
+            if (StatusRules.HasStatus(recipient, StatusCatalog.LastStand))
+                hpDamage = System.Math.Min(hpDamage, System.Math.Max(0, recipient.Hp - 1));
 
             return System.Math.Max(0, hpDamage);
         }

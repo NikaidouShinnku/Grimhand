@@ -1,4 +1,7 @@
 using Grimhand.Battle.Model;
+using System;
+using System.Collections.Generic;
+using Grimhand.Battle.Status;
 
 namespace Grimhand.Battle.Rules
 {
@@ -38,14 +41,14 @@ namespace Grimhand.Battle.Rules
 
         public static string FormatDamageExtras(EffectActionSpec action)
         {
-            if (action == null)
-                return "";
-
-            var parts = new System.Collections.Generic.List<string>();
+            if (action == null) return "";
+            var parts = new List<string>();
             if (action.SplashBehindTarget)
                 parts.Add($"，贯通后方 {action.SplashPowerPercent}% 伤害");
             if (action.BackRowPowerPercent > 0 && action.BackRowPowerPercent < 100)
                 parts.Add($"，打后排仅 {action.BackRowPowerPercent}% 威力");
+            else if (action.BackRowPowerPercent > 100)
+                parts.Add($"，对后排威力增加 {action.BackRowPowerPercent - 100}%");
             if (action.IgnoreDefPercent > 0)
                 parts.Add(action.IgnoreDefPercent >= 100 ? "，无视目标护甲" : $"，无视目标 {action.IgnoreDefPercent}% 护甲");
             if (action.BonusIfTargetHpBelowPercent > 0 && action.BonusIfTargetHpBelowFlat > 0)
@@ -58,6 +61,26 @@ namespace Grimhand.Battle.Rules
                 parts.Add($"，回复造成伤害 {action.LifestealPercent}% 的 HP");
             if (action.OnKillHealAmount > 0)
                 parts.Add($"，击杀回复 {action.OnKillHealAmount} HP");
+            if (action.HitCount > 1)
+                parts.Add($"，重复 {action.HitCount} 次");
+            if (action.RepeatPerEnemyAttackCardThisTurn > 0)
+                parts.Add($"，本回合敌方每使用一张攻击牌额外重复 {action.RepeatPerEnemyAttackCardThisTurn} 次（包括未生效的）");
+            if (action.UseAlternateIfTargetHasAnyStatus)
+                parts.Add($"，目标有任意状态时改为 {action.AlternateValue} 伤害");
+            else if (action.UseAlternateIfTargetHasDebuff)
+                parts.Add($"，目标有减益状态时改为 {action.AlternateValue} 伤害");
+            if (action.AlternateValueIfActorUsedAttack > 0)
+                parts.Add($"，本回合已使用攻击牌时改为 {action.AlternateValueIfActorUsedAttack} 伤害");
+            if (action.UseAlternateIfActorNotHitThisTurn)
+                parts.Add($"，本回合未受攻击时改为 {action.AlternateValue} 伤害");
+            if (action.SelfBlockAboveThreshold > 0)
+                parts.Add($"，自身护甲>{action.SelfBlockAboveThreshold}时改为 {action.AlternateValueIfSelfBlockAbove} 伤害");
+            if (!string.IsNullOrEmpty(action.BonusIfTargetHasStatusId) && action.BonusIfTargetHasStatusFlat != 0)
+                parts.Add($"，目标有{StatusCatalog.Get(action.BonusIfTargetHasStatusId)?.DisplayName ?? action.BonusIfTargetHasStatusId}时额外 +{action.BonusIfTargetHasStatusFlat}");
+            if (action.BonusIfActorFasterThanAllEnemiesFlat > 0)
+                parts.Add($"，速度快于所有敌人时额外 +{action.BonusIfActorFasterThanAllEnemiesFlat}");
+            if (action.SelfDamageFlat > 0)
+                parts.Add($"，对自身造成 {action.SelfDamageFlat} 伤害");
 
             return string.Concat(parts);
         }

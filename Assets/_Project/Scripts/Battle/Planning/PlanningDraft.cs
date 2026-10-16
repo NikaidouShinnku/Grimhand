@@ -478,7 +478,7 @@ namespace Grimhand.Battle.Planning
             var cost = TalentBattleRules.GetEffectivePlayCost(_state, owner, card);
             cost = V09NewMechanicsRules.AdjustPlayCostForHandCostZero(_state, owner, cost);
             if (card.DefinitionId == PassiveCardMechanicsRules.HolyInfusionCardId)
-                return PassiveCardMechanicsRules.GetHolyInfusionPlayCost(_state, this);
+                return PassiveCardMechanicsRules.GetHolyInfusionPlayCost(_state, this, card);
             return cost;
         }
 

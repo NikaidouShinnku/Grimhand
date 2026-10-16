@@ -4,6 +4,12 @@ using Grimhand.Battle.Rules;
 
 namespace Grimhand.Battle.Model
 {
+    public sealed class PendingDrawBatch
+    {
+        public int Count { get; set; }
+        public int CostReduction { get; set; }
+    }
+
     public sealed class BattleState
     {
         public BattleConfig Config { get; set; } = new();
@@ -19,6 +25,7 @@ namespace Grimhand.Battle.Model
 
         /// <summary>下回合额外抽到的牌费用减免（召唤卡牌之灵等，仅作用于 PendingDrawNextTurn 那几张）。</summary>
         public int PendingDrawNextTurnCostReduction { get; set; }
+        public List<PendingDrawBatch> PendingDrawBatches { get; } = new();
 
         /// <summary>下回合开始时额外回复的能量（翡翠短刀等）。</summary>
         public int PendingEnergyNextTurn { get; set; }
@@ -27,6 +34,8 @@ namespace Grimhand.Battle.Model
         public string PhantomBottleFocusTargetId { get; set; }
 
         public List<CombatantState> Combatants { get; } = new();
+        /// <summary>Prevents derived healing from recursively healing an ancestor in the same chain.</summary>
+        public HashSet<string> ActiveHealingRecipients { get; } = new();
         public List<CardInstanceState> PlayerDrawPile { get; } = new();
         public List<CardInstanceState> PlayerHand { get; } = new();
         public List<CardInstanceState> PlayerDiscardPile { get; } = new();
@@ -51,6 +60,8 @@ namespace Grimhand.Battle.Model
             team == TeamSide.Player ? PlayerExhaustPile : EnemyExhaustPile;
 
         public Dictionary<int, CardInstanceState> CardsById { get; } = new();
+        /// <summary>Snapshot per play, refreshed even when the same instance is repeated.</summary>
+        public Dictionary<int, int> FirstAttackFlatBonusByCard { get; } = new();
         public Dictionary<string, string> CharacterOwnerByCombatantId { get; } = new();
 
         public LastActionSnapshot LastAction { get; set; } = LastActionSnapshot.None;

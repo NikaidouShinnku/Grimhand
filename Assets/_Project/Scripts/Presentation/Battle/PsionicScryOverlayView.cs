@@ -26,6 +26,7 @@ namespace Grimhand.Presentation.Battle
         Button _confirmButton;
         readonly List<GameObject> _dynamicObjects = new();
         readonly HashSet<int> _selectedIds = new();
+        readonly List<int> _orderedIds = new();
         bool _built;
 
         public void Initialize(
@@ -58,6 +59,7 @@ namespace Grimhand.Presentation.Battle
             if (!state.AwaitingPsionicScry || state.PendingPsionicScryCards.Count == 0)
             {
                 _selectedIds.Clear();
+                _orderedIds.Clear();
                 SetVisible(false);
                 return;
             }
@@ -74,9 +76,14 @@ namespace Grimhand.Presentation.Battle
             if (_cardPrefab == null)
                 return;
 
-            for (var i = 0; i < state.PendingPsionicScryCards.Count; i++)
+            _orderedIds.RemoveAll(id => !state.PendingPsionicScryCards.Exists(c => c.InstanceId == id));
+            foreach (var pending in state.PendingPsionicScryCards)
+                if (pending != null && !_orderedIds.Contains(pending.InstanceId))
+                    _orderedIds.Add(pending.InstanceId);
+            var keptIndex = 0;
+            for (var i = 0; i < _orderedIds.Count; i++)
             {
-                var card = state.PendingPsionicScryCards[i];
+                var card = state.PendingPsionicScryCards.Find(c => c.InstanceId == _orderedIds[i]);
                 if (card == null)
                     continue;
 
@@ -94,7 +101,7 @@ namespace Grimhand.Presentation.Battle
                 cardRt.anchorMin = new Vector2(0.5f, 0.5f);
                 cardRt.anchorMax = new Vector2(0.5f, 0.5f);
                 cardRt.pivot = new Vector2(0.5f, 0.5f);
-                cardRt.anchoredPosition = Vector2.zero;
+                cardRt.anchoredPosition = new Vector2(0f, 24f);
                 cardRt.localScale = Vector3.one * CardScale;
 
                 var visual = CardVisualResolver.Resolve(card, _cardCatalog, _characterVisuals, _definitions);
@@ -108,7 +115,7 @@ namespace Grimhand.Presentation.Battle
                     selected: selected,
                     polluted: false,
                     interactable: true,
-                    orderBadge: selected ? "弃" : "",
+                    orderBadge: selected ? "弃" : $"顶{++keptIndex}",
                     statsLine: statsLine,
                     uiIcons: _uiIcons,
                     characterVisuals: _characterVisuals,
@@ -116,6 +123,10 @@ namespace Grimhand.Presentation.Battle
                     onHoverEnter: null,
                     onHoverExit: null);
 
+                var left = CreateButton(holder.transform, "←", new Vector2(0.25f, 0.04f), new Vector2(80f, 34f), () => MoveCard(instanceId, -1));
+                var right = CreateButton(holder.transform, "→", new Vector2(0.75f, 0.04f), new Vector2(80f, 34f), () => MoveCard(instanceId, 1));
+                left.interactable = i > 0;
+                right.interactable = i < _orderedIds.Count - 1;
                 _dynamicObjects.Add(holder);
             }
         }
@@ -135,9 +146,16 @@ namespace Grimhand.Presentation.Battle
             if (_hintText == null)
                 return;
 
-            _hintText.text = _selectedIds.Count == 0
-                ? "点选要弃置的牌（可不选），然后确认。未选中的牌按原顺序回到牌库顶。"
-                : $"已选 {_selectedIds.Count} 张弃置，确认后其余回库顶。";
+            _hintText.text = $"点选弃置（已选{_selectedIds.Count}张，可不选）；用←→调整顺序。未弃置牌从左到右回库顶，最左先抽。";
+        }
+
+        void MoveCard(int instanceId, int direction)
+        {
+            var index = _orderedIds.IndexOf(instanceId);
+            var next = index + direction;
+            if (index < 0 || next < 0 || next >= _orderedIds.Count) return;
+            (_orderedIds[index], _orderedIds[next]) = (_orderedIds[next], _orderedIds[index]);
+            if (_session?.Engine?.State != null) RebuildCards(_session.Engine.State);
         }
 
         void OnConfirm()
@@ -146,8 +164,10 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             var ids = new List<int>(_selectedIds);
+            var order = new List<int>(_orderedIds);
             _selectedIds.Clear();
-            _session.ConfirmPsionicScry(ids);
+            _orderedIds.Clear();
+            _session.ConfirmPsionicScry(ids, order);
         }
 
         void ClearDynamic()

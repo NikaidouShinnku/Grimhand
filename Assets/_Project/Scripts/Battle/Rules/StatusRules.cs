@@ -353,13 +353,17 @@ namespace Grimhand.Battle.Rules
 
         public static void ProcessTurnStartStatuses(BattleState state, List<BattleEvent> events, BattleRng rng = null)
         {
-            foreach (var combatant in state.Combatants)
+            foreach (var combatant in new List<CombatantState>(state.Combatants))
             {
                 if (!combatant.IsAlive)
                     continue;
 
-                foreach (var status in combatant.Statuses)
+                foreach (var status in new List<StatusInstance>(combatant.Statuses))
                 {
+                    if (!combatant.IsAlive)
+                        break;
+                    if (!combatant.Statuses.Contains(status))
+                        continue;
                     var def = StatusCatalog.Get(status.StatusId);
                     if (def == null || def.TurnStartDamagePerStack <= 0)
                         continue;
@@ -372,13 +376,17 @@ namespace Grimhand.Battle.Rules
 
         public static void ProcessTurnEndStatuses(BattleState state, List<BattleEvent> events, BattleRng rng = null)
         {
-            foreach (var combatant in state.Combatants)
+            foreach (var combatant in new List<CombatantState>(state.Combatants))
             {
                 if (!combatant.IsAlive)
                     continue;
 
-                foreach (var status in combatant.Statuses)
+                foreach (var status in new List<StatusInstance>(combatant.Statuses))
                 {
+                    if (!combatant.IsAlive)
+                        break;
+                    if (!combatant.Statuses.Contains(status))
+                        continue;
                     var def = StatusCatalog.Get(status.StatusId);
                     if (def == null || def.TurnEndDamagePerStack <= 0)
                         continue;
@@ -412,40 +420,22 @@ namespace Grimhand.Battle.Rules
             if (damage <= 0)
                 return;
 
-            // 中毒/灼烧跳伤：直扣 HP，不经过护甲与 DEF（设计表：中毒忽视护甲、灼烧忽视 DEF）。
-            combatant.Hp = System.Math.Max(0, combatant.Hp - damage);
-            events.Add(new BattleEvent(BattleEventKind.StatusTickDamage, def.DisplayName)
-            {
-                CombatantId = combatant.Id,
-                Amount = damage,
-                TargetId = statusId
-            });
-
-            // 毒息汲取：必须在 StatusTickDamage 之后入队，演出才是「先掉血再回血」
-            if (statusId == StatusCatalog.Poison && combatant.Team == TeamSide.Enemy && damage > 0)
-                TalentBattleRules.AfterEnemyPoisonTickDamage(state, combatant, events);
-
-            if (statusId == StatusCatalog.Burn && damage > 0)
-                TalentBattleRules.OnBurnTickHpDamage(state, combatant, damage, events, rng);
-
-            // v0.9 瘟疫蔓延：敌人因中毒受伤时触发传染判定
-            if (statusId == StatusCatalog.Poison && combatant.Team == TeamSide.Enemy && damage > 0 && rng != null)
-                PassiveCardMechanicsRules.TryTriggerPlagueSpreadOnPoisonTick(state, combatant, events, rng);
-
-            if (!combatant.IsAlive
-                && CombatMechanicsRules.TryPreventDeathWithReviveBlessing(state, combatant, events))
-            {
-                return;
-            }
-
-            if (!combatant.IsAlive)
-            {
-                events.Add(new BattleEvent(BattleEventKind.CharacterDied, combatant.DisplayName)
+            DamageRules.ApplyPeriodicDamage(
+                state, combatant, damage, events, def.DisplayName, statusId,
+                ignoresBlock: def.TickIgnoresBlock, rng: rng,
+                afterDamage: dealt =>
                 {
-                    CombatantId = combatant.Id
+                    if (dealt <= 0)
+                        return;
+                    if (statusId == StatusCatalog.Poison && combatant.Team == TeamSide.Enemy)
+                    {
+                        TalentBattleRules.AfterEnemyPoisonTickDamage(state, combatant, events);
+                        if (rng != null)
+                            PassiveCardMechanicsRules.TryTriggerPlagueSpreadOnPoisonTick(state, combatant, events, rng);
+                    }
+                    if (statusId == StatusCatalog.Burn)
+                        TalentBattleRules.OnBurnTickHpDamage(state, combatant, dealt, events, rng);
                 });
-                CombatantDeathRules.OnCharacterDied(state, combatant, events);
-            }
         }
 
         /// <summary>
@@ -586,6 +576,7 @@ namespace Grimhand.Battle.Rules
                 events.Add(new BattleEvent(BattleEventKind.StatusExpired, def.DisplayName)
                 {
                     CombatantId = combatant.Id,
+                    Amount = status.Stacks,
                     TargetId = expiredStatusId
                 });
                 MinionTraitRules.ClearSharedChainWraithDebuff(state, combatant, expiredStatusId, events);

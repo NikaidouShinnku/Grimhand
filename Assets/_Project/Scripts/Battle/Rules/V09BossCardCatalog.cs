@@ -360,13 +360,7 @@ namespace Grimhand.Battle.Rules
             {
                 Type = EffectActionType.SwapRandomEnemies,
                 Target = EffectTarget.AllEnemies,
-                Value = 1
-            });
-            card.Actions.Add(new EffectActionSpec
-            {
-                Type = EffectActionType.ApplyStatus,
-                Target = EffectTarget.RandomEnemies,
-                Value = 2,
+                Value = 1,
                 StatusId = StatusCatalog.Poison,
                 Stacks = 5,
                 Duration = -1

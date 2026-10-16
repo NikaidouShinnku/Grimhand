@@ -197,7 +197,10 @@ namespace Grimhand.Battle.Rules
                     continue;
 
                 hasTargetedAction = true;
-                if (HasReachTarget(state, owner, action))
+                if (HasReachTarget(state, owner, action,
+                    card.DefinitionId == "m_musket_shot"
+                        ? TargetReachRules.GetPickReach(state, card, owner)
+                        : action.Reach))
                     return true;
             }
 
@@ -236,7 +239,7 @@ namespace Grimhand.Battle.Rules
                 or EffectTarget.EnemyBackSlot;
         }
 
-        static bool HasReachTarget(BattleState state, CombatantState owner, EffectActionSpec action)
+        static bool HasReachTarget(BattleState state, CombatantState owner, EffectActionSpec action, TargetReach reach)
         {
             if (action.Target == EffectTarget.AllEnemies)
             {
@@ -244,7 +247,7 @@ namespace Grimhand.Battle.Rules
                 foreach (var unit in state.GetTeam(enemyTeam))
                 {
                     if (unit.IsAlive && TargetReachRules.IsSlotAllowed(
-                            action.Reach, PositionRules.GetEffectiveSlot(state, unit)))
+                            reach, PositionRules.GetEffectiveSlot(state, unit)))
                         return true;
                 }
 
@@ -257,7 +260,7 @@ namespace Grimhand.Battle.Rules
                 foreach (var unit in PositionRules.GetAliveSortedByPhysicalSlot(state, enemyTeam))
                 {
                     if (TargetReachRules.IsSlotAllowed(
-                            action.Reach, PositionRules.GetEffectiveSlot(state, unit)))
+                            reach, PositionRules.GetEffectiveSlot(state, unit)))
                         return true;
                 }
 
@@ -270,10 +273,10 @@ namespace Grimhand.Battle.Rules
                 if (!unit.IsAlive)
                     continue;
 
-                if (!TargetReachRules.IsSlotAllowed(action.Reach, PositionRules.GetEffectiveSlot(state, unit)))
+                if (!TargetReachRules.IsSlotAllowed(reach, PositionRules.GetEffectiveSlot(state, unit)))
                     continue;
 
-                if (TargetRules.IsTargetValidForAction(state, unit, action.Reach, action))
+                if (TargetRules.IsTargetValidForAction(state, unit, reach, action))
                     return true;
             }
 

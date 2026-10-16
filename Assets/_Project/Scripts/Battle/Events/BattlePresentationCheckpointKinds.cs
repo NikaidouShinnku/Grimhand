@@ -7,6 +7,7 @@ namespace Grimhand.Battle.Events
             {
                 BattleEventKind.StatusApplied => true,
                 BattleEventKind.StatusRemoved => true,
+                BattleEventKind.StatusExpired => true,
                 BattleEventKind.DamageApplied => true,
                 BattleEventKind.BlockGained => true,
                 BattleEventKind.HealApplied => true,

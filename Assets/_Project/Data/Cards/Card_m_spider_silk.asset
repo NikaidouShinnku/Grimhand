@@ -21,11 +21,11 @@ MonoBehaviour:
   Keywords: []
   Actions:
   - Type: 3
-    Target: 0
+    Target: 13
     Value: 0
     StatusId: slow
     Stacks: 2
-    Duration: 2
+    Duration: 3
     ScaleWithAttack: 0
     ScaleWithDefense: 0
     AttackScalePercent: 100

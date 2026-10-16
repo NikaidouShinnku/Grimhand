@@ -140,6 +140,8 @@ namespace Grimhand.Presentation.Battle
             card.BaseCost = template.Cost;
             card.CardType = template.CardType;
             card.UpgradeLevel = template.UpgradeLevel;
+            card.Keywords.Clear();
+            card.Keywords.AddRange(template.Keywords);
             card.Actions.Clear();
             foreach (var action in template.Actions)
                 card.Actions.Add(EffectActionSpec.Clone(action));
@@ -168,8 +170,14 @@ namespace Grimhand.Presentation.Battle
             if (a == null || b == null)
                 return a == b;
 
-            if (a.Cost != b.Cost || a.CardType != b.CardType || a.Actions.Count != b.Actions.Count)
+            // A hand-only cost change does not change the printed effect description.
+            if (a.CardType != b.CardType || a.Actions.Count != b.Actions.Count
+                || a.Keywords.Count != b.Keywords.Count)
                 return false;
+
+            for (var i = 0; i < a.Keywords.Count; i++)
+                if (a.Keywords[i] != b.Keywords[i])
+                    return false;
 
             for (var i = 0; i < a.Actions.Count; i++)
             {
@@ -199,7 +207,44 @@ namespace Grimhand.Presentation.Battle
                    && a.Duration == b.Duration
                    && a.AlternateValue == b.AlternateValue
                    && a.HpLossStepPercent == b.HpLossStepPercent
-                   && a.HpLossStepValue == b.HpLossStepValue;
+                   && a.HpLossStepValue == b.HpLossStepValue
+                   && a.SplashBehindTarget == b.SplashBehindTarget
+                   && a.SplashPowerPercent == b.SplashPowerPercent
+                   && a.BackRowPowerPercent == b.BackRowPowerPercent
+                   && a.IgnoreDefPercent == b.IgnoreDefPercent
+                   && a.BonusIfTargetHpBelowPercent == b.BonusIfTargetHpBelowPercent
+                   && a.BonusIfTargetHpBelowFlat == b.BonusIfTargetHpBelowFlat
+                   && a.BonusIfTargetHitThisTurnPercent == b.BonusIfTargetHitThisTurnPercent
+                   && a.BonusIfTargetHasStatusId == b.BonusIfTargetHasStatusId
+                   && a.BonusIfTargetHasStatusFlat == b.BonusIfTargetHasStatusFlat
+                   && a.BonusIfActorFasterThanAllEnemiesFlat == b.BonusIfActorFasterThanAllEnemiesFlat
+                   && a.LifestealPercent == b.LifestealPercent
+                   && a.HealMaxHpPercent == b.HealMaxHpPercent
+                   && a.OnKillHealAmount == b.OnKillHealAmount
+                   && a.HitCount == b.HitCount
+                   && a.AlternateAttackScalePercent == b.AlternateAttackScalePercent
+                   && a.UseAlternateIfTargetHasDebuff == b.UseAlternateIfTargetHasDebuff
+                   && a.UseAlternateIfTargetHasAnyStatus == b.UseAlternateIfTargetHasAnyStatus
+                   && a.AlternateAttackScaleIfActorUsedAttack == b.AlternateAttackScaleIfActorUsedAttack
+                   && a.AlternateValueIfActorUsedAttack == b.AlternateValueIfActorUsedAttack
+                   && a.DamageMultiplierPercentIfRespondArmed == b.DamageMultiplierPercentIfRespondArmed
+                   && a.SelfDamageFlat == b.SelfDamageFlat
+                   && a.RepeatPerEnemyAttackCardThisTurn == b.RepeatPerEnemyAttackCardThisTurn
+                   && a.FallbackBlockDefenseScalePercent == b.FallbackBlockDefenseScalePercent
+                   && a.FallbackBlockValue == b.FallbackBlockValue
+                   && a.SummonCharacterId == b.SummonCharacterId
+                   && a.GrantInvulnerableOnRespondArm == b.GrantInvulnerableOnRespondArm
+                   && a.LifestealUnblockedOnly == b.LifestealUnblockedOnly
+                   && a.AlternateValueIfHealed == b.AlternateValueIfHealed
+                   && a.TokenCardId == b.TokenCardId
+                   && a.CostReduction == b.CostReduction
+                   && a.RepeatPerStatusId == b.RepeatPerStatusId
+                   && a.RespondSideEffectAllyDamage == b.RespondSideEffectAllyDamage
+                   && a.RespondSideEffectAllyCharacterId == b.RespondSideEffectAllyCharacterId
+                   && a.ChancePercent == b.ChancePercent
+                   && a.UseAlternateIfActorNotHitThisTurn == b.UseAlternateIfActorNotHitThisTurn
+                   && a.SelfBlockAboveThreshold == b.SelfBlockAboveThreshold
+                   && a.AlternateValueIfSelfBlockAbove == b.AlternateValueIfSelfBlockAbove;
         }
 
         public static CardInstanceState CreatePreviewInstance(
@@ -227,11 +272,16 @@ namespace Grimhand.Presentation.Battle
             if (definition == null)
                 return card;
 
-            foreach (var keyword in definition.Keywords)
+            // Exactly the same canonical overrides as runtime battle cards.
+            var template = definition.ToTemplate();
+            card.Cost = template.Cost;
+            card.BaseCost = template.Cost;
+            card.CardType = template.CardType;
+            foreach (var keyword in template.Keywords)
                 card.Keywords.Add(keyword);
 
-            foreach (var action in definition.Actions)
-                card.Actions.Add(action.ToSpec());
+            foreach (var action in template.Actions)
+                card.Actions.Add(EffectActionSpec.Clone(action));
 
             return card;
         }

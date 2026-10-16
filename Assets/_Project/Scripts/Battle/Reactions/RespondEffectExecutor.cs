@@ -190,7 +190,7 @@ namespace Grimhand.Battle.Reactions
                     {
                         if (action.ChancePercent > 0 && action.ChancePercent < 100)
                         {
-                            if (rng != null && rng.NextInt(1, 100) > action.ChancePercent)
+                            if (rng != null && rng.NextInt(1, 101) > action.ChancePercent)
                                 break;
                         }
 

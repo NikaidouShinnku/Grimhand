@@ -1372,13 +1372,13 @@ namespace Grimhand.Presentation.Battle
             NotifyChanged();
         }
 
-        public void ConfirmPsionicScry(IReadOnlyList<int> selectedInstanceIds)
+        public void ConfirmPsionicScry(IReadOnlyList<int> selectedInstanceIds, IReadOnlyList<int> remainingTopFirst = null)
         {
             if (Engine == null || !Engine.State.AwaitingPsionicScry)
                 return;
 
             var events = new List<BattleEvent>();
-            V091MechanicsRules.ApplyPsionicScryChoice(Engine.State, selectedInstanceIds, events);
+            V091MechanicsRules.ApplyPsionicScryChoice(Engine.State, selectedInstanceIds, events, remainingTopFirst);
             foreach (var evt in events)
                 _log.Add(evt.Message);
 

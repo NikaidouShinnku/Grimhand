@@ -22,7 +22,7 @@ MonoBehaviour:
   - exhaust
   - quick_start
   Actions:
-  - Type: 32
+  - Type: 25
     Target: 1
     Value: 0
     StatusId: 

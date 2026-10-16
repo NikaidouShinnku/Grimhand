@@ -123,7 +123,8 @@ namespace Grimhand.Battle.Rules
         public static int GetOutgoingDamageFlatBonus(
             BattleState state,
             CombatantState actor,
-            CardType cardType)
+            CardType cardType,
+            CardInstanceState card = null)
         {
             var mods = state?.Config?.RunModifiers;
             if (mods == null || actor == null || actor.Team != TeamSide.Player)
@@ -131,11 +132,10 @@ namespace Grimhand.Battle.Rules
 
             var bonus = 0;
 
-            if (cardType == CardType.Attack
-                && mods.FirstAttackFlatBonus > 0
-                && actor.FirstAttackBonusPending)
+            if (cardType == CardType.Attack)
             {
-                bonus += mods.FirstAttackFlatBonus;
+                bonus += card != null && state.FirstAttackFlatBonusByCard.TryGetValue(card.InstanceId, out var playBonus)
+                    ? playBonus : actor.FirstAttackBonusPending ? mods.FirstAttackFlatBonus : 0;
             }
 
             if (cardType == CardType.Attack && actor.PendingRevengeAttackBonus > 0)
@@ -160,7 +160,7 @@ namespace Grimhand.Battle.Rules
             return 0;
         }
 
-        /// <summary>遗物倍率/固定加值 + 攻击方站位 outgoing；不含目标 incoming。</summary>
+        /// <summary>Relic, talent and status outgoing modifiers. The legacy position flag is ignored.</summary>
         public static int ComputeOutgoingPower(
             BattleState state,
             CombatantState actor,
@@ -180,7 +180,7 @@ namespace Grimhand.Battle.Rules
             if (actor != null && actor.Team == TeamSide.Player)
                 mul *= V09NewMechanicsRules.GetLichSpiritFocusDamageMultiplier(state, TeamSide.Player);
             var power = (int)System.Math.Round(basePower * mul);
-            power += GetOutgoingDamageFlatBonus(state, actor, cardType);
+            power += GetOutgoingDamageFlatBonus(state, actor, cardType, card);
             power += TalentBattleRules.GetOutgoingDamageFlatBonus(state, actor, cardType);
 
             if (power < 1)
@@ -189,6 +189,13 @@ namespace Grimhand.Battle.Rules
             power = CombatModifierRules.ApplyOutgoingDamageModifiers(actor, cardType, power);
 
             return power;
+        }
+
+        public static void BeginCardResolution(BattleState state, CombatantState actor, CardInstanceState card)
+        {
+            if (state != null && actor?.Team == TeamSide.Player && card?.CardType == CardType.Attack)
+                state.FirstAttackFlatBonusByCard[card.InstanceId] = actor.FirstAttackBonusPending
+                    ? state.Config?.RunModifiers?.FirstAttackFlatBonus ?? 0 : 0;
         }
 
         public static void MarkFirstAttackConsumed(BattleState state, CombatantState actor, CardType cardType)
@@ -339,10 +346,7 @@ namespace Grimhand.Battle.Rules
                 target.PendingRevengeAttackBonus = mods.RevengeAttackFlatBonus;
             }
 
-            RelicEffectRules.TryMiracleLeafSave(state, target, events, ref hpDamage);
-            TalentBattleRules.TryMageRevive(state, target, events, ref hpDamage);
-            hpDamage = TalentBattleRules.ApplyIncomingDamageTalents(
-                state, target, hpDamage, events, ref extraBlocked);
+            // Survival is applied centrally after ethereal, response mitigation and Last Stand.
 
             return hpDamage;
         }

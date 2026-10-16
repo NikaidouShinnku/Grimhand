@@ -13,6 +13,10 @@ namespace Grimhand.Battle.Model
         public int BaseCost { get; set; }
         public CardType CardType { get; set; }
         public bool IsUsable { get; set; } = true;
+        /// <summary>Only death pollution is removed by revival; other locks remain intact.</summary>
+        public bool DisabledByDeath { get; set; }
+        /// <summary>Original cost before a discount that lasts until this card leaves the hand.</summary>
+        public int? CostBeforeHandDiscount { get; set; }
         /// <summary>绑定到具体战斗单位（同 charId 多名召唤物时区分归属）。</summary>
         public string OwnerCombatantId { get; set; } = "";
         /// <summary>回合开始注入的手牌，不占抽牌上限；回合末移除。</summary>

@@ -185,6 +185,9 @@ namespace Grimhand.Battle.Rules
         public static int GetSandSpearExhaustCount(BattleState state) =>
             state?.Config?.RunModifiers?.SandSpearExhaustCardsPlayed ?? 0;
 
+        public static int GetSandSpearDamage(CardInstanceState card) =>
+            SandSpearReforgeBaseDamage + System.Math.Max(0, card?.UpgradeLevel ?? 0);
+
         /// <summary>打出沙矛重塑：按远征累计消耗牌次数，每次随机敌人 4 伤。</summary>
         public static void OnSandSpearReforgePlayed(
             BattleState state,
@@ -214,12 +217,12 @@ namespace Grimhand.Battle.Rules
                     break;
 
                 DamageRules.ApplyDamage(
-                    state, actor, target, SandSpearReforgeBaseDamage, CardType.Attack, events,
+                    state, actor, target, GetSandSpearDamage(card), CardType.Attack, events,
                     rng: rng, logSuffix: "（沙矛重塑）", sourceCardInstanceId: card.InstanceId);
             }
 
             events.Add(new BattleEvent(BattleEventKind.StatusApplied,
-                $"{card.DisplayName}：4 伤 ×{hits}（消耗牌计数）")
+                $"{card.DisplayName}：{GetSandSpearDamage(card)} 伤 ×{hits}（消耗牌计数）")
             {
                 CombatantId = actor.Id,
                 CardInstanceId = card.InstanceId,
@@ -543,7 +546,7 @@ namespace Grimhand.Battle.Rules
             return (int)Math.Round(combatant.Block * keep / 100f);
         }
 
-        /// <summary>背水一战：HP将降至0时，改为保留1HP（消耗1层持续时间）。返回是否触发。</summary>
+        /// <summary>背水一战：持续期间反复防止致死伤害，不消耗层数或额外持续时间。</summary>
         public static bool TryTriggerLastStand(
             BattleState state, CombatantState target, ref int hpDamage, List<BattleEvent> events)
         {
@@ -579,7 +582,9 @@ namespace Grimhand.Battle.Rules
                 if (!enemy.IsAlive)
                     continue;
                 StatusRules.ApplyStatus(
-                    state, enemy, StatusCatalog.Poison, RotAvatarPoisonStacks, -1, events);
+                    state, enemy, StatusCatalog.Poison,
+                    RotAvatarPoisonStacks + System.Math.Max(0, StatusRules.GetStatusStacks(caster, StatusCatalog.RotAvatar) - 1),
+                    -1, events);
             }
         }
 
@@ -630,7 +635,7 @@ namespace Grimhand.Battle.Rules
             var caster = FindAliveWithStatus(state, TeamSide.Player, StatusCatalog.PlagueSpread);
             if (caster == null)
                 return;
-            if (rng.NextInt(1, 100) > (
+            if (rng.NextInt(1, 101) > (
                     StatusRules.FindStatus(caster, StatusCatalog.PlagueSpread) is { Stacks: > 0 } plague
                         ? plague.Stacks
                         : PlagueSpreadChancePercent))
@@ -744,7 +749,7 @@ namespace Grimhand.Battle.Rules
         public static bool CanSelectHolyInfusion(Planning.PlanningDraft draft) =>
             draft != null && draft.SelectedQueue.Count > 0;
 
-        public static int GetHolyInfusionPlayCost(BattleState state, Planning.PlanningDraft draft)
+        public static int GetHolyInfusionPlayCost(BattleState state, Planning.PlanningDraft draft, CardInstanceState infusion = null)
         {
             // 不可选时返回极大费用（供 CanAfford）；禁止用于退费回算
             if (state == null || draft == null || draft.SelectedQueue.Count == 0)
@@ -757,7 +762,7 @@ namespace Grimhand.Battle.Rules
             var prevOwnerId = PositionRules.GetOwnerCombatantId(state, prev);
             var prevOwner = prevOwnerId != null ? state.GetCombatant(prevOwnerId) : null;
             var baseCost = TalentBattleRules.GetEffectivePlayCost(state, prevOwner, prev);
-            return Math.Max(0, baseCost + 1);
+            return Math.Max(0, baseCost + 1 - Math.Max(0, infusion?.UpgradeLevel ?? 0));
         }
 
         static CombatantState FindAliveWithStatus(BattleState state, TeamSide team, string statusId)

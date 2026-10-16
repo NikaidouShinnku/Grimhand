@@ -35,14 +35,23 @@ namespace Grimhand.Battle.Tests
             };
 
             EffectActionExecutor.ExecuteOne(
-                state, spider, card, poison, new List<BattleEvent>(), new BattleRng(1), 1,
+                state, spider, card, poison, new List<BattleEvent>(), RngForRoll(31), 1,
                 targetOverride: warrior);
             Assert.AreEqual(0, StatusRules.GetStatusStacks(warrior, StatusCatalog.Poison));
 
             EffectActionExecutor.ExecuteOne(
-                state, spider, card, poison, new List<BattleEvent>(), new BattleRng(2), 1,
+                state, spider, card, poison, new List<BattleEvent>(), RngForRoll(30), 1,
                 targetOverride: warrior);
             Assert.AreEqual(5, StatusRules.GetStatusStacks(warrior, StatusCatalog.Poison));
+        }
+
+        static BattleRng RngForRoll(int desired)
+        {
+            // Assert the percentage boundary, not incidental outcomes of two magic seeds.
+            for (var seed = 1; seed < 10000; seed++)
+                if (new BattleRng(seed).NextInt(1, 101) == desired)
+                    return new BattleRng(seed);
+            throw new System.InvalidOperationException("Could not find requested deterministic roll");
         }
 
         [Test]

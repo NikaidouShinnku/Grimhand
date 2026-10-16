@@ -497,6 +497,7 @@ namespace Grimhand.Battle.V091
                     continue;
 
                 state.PlayerHand.RemoveAt(i);
+                DeckRules.RestoreCostAfterLeavingHand(handCard);
                 state.PlayerDiscardPile.Add(handCard);
                 discarded++;
             }
@@ -834,12 +835,13 @@ namespace Grimhand.Battle.V091
         }
 
         /// <summary>
-        /// 确认灵能预知：selectedInstanceIds 进入弃牌堆，其余按原相对顺序压回牌库顶。
+        /// 确认灵能预知：选中牌弃置，其余按指定顺序回库顶（首项下次先抽）。
         /// </summary>
         public static void ApplyPsionicScryChoice(
             BattleState state,
             IReadOnlyList<int> selectedInstanceIds,
-            List<BattleEvent> events)
+            List<BattleEvent> events,
+            IReadOnlyList<int> remainingTopFirst = null)
         {
             if (state == null || !state.AwaitingPsionicScry)
                 return;
@@ -867,6 +869,20 @@ namespace Grimhand.Battle.V091
                 }
                 else
                     remaining.Add(scryCard);
+            }
+
+            if (remainingTopFirst != null)
+            {
+                var ordered = new List<CardInstanceState>();
+                foreach (var id in remainingTopFirst)
+                {
+                    var index = remaining.FindIndex(c => c.InstanceId == id);
+                    if (index < 0) continue; // Ignore discarded, duplicate or unknown IDs.
+                    ordered.Add(remaining[index]);
+                    remaining.RemoveAt(index);
+                }
+                ordered.AddRange(remaining); // Never lose a card if a caller omits an ID.
+                remaining = ordered;
             }
 
             var pile = state.PlayerDrawPile;

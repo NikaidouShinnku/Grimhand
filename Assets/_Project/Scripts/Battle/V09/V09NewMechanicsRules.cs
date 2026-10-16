@@ -24,15 +24,18 @@ namespace Grimhand.Battle.V09
             if (state == null)
                 return;
 
-            foreach (var combatant in state.Combatants)
+            foreach (var combatant in new List<CombatantState>(state.Combatants))
             {
                 if (combatant == null || !combatant.IsAlive)
                     continue;
 
                 // 缠绕：每回合开始受到 Stacks 伤害（施法者自身 Stacks=0 仅锁牌展示；施法者死亡则失效）
-                for (var i = combatant.Statuses.Count - 1; i >= 0; i--)
+                foreach (var constrict in new List<StatusInstance>(combatant.Statuses))
                 {
-                    var constrict = combatant.Statuses[i];
+                    if (!combatant.IsAlive)
+                        break;
+                    if (!combatant.Statuses.Contains(constrict))
+                        continue;
                     if (constrict?.StatusId != StatusCatalog.Constrict)
                         continue;
 
@@ -41,7 +44,7 @@ namespace Grimhand.Battle.V09
                         var source = state.GetCombatant(constrict.SourceCombatantId);
                         if (source == null || !source.IsAlive)
                         {
-                            combatant.Statuses.RemoveAt(i);
+                            combatant.Statuses.Remove(constrict);
                             events.Add(new BattleEvent(BattleEventKind.StatusRemoved, StatusCatalog.Constrict)
                             {
                                 CombatantId = combatant.Id,
@@ -150,27 +153,8 @@ namespace Grimhand.Battle.V09
             if (damage <= 0)
                 return;
 
-            combatant.Hp = System.Math.Max(0, combatant.Hp - damage);
-            events.Add(new BattleEvent(BattleEventKind.StatusTickDamage, label)
-            {
-                CombatantId = combatant.Id,
-                Amount = damage,
-                TargetId = statusId ?? "",
-                SourceCombatantId = sourceCombatantId ?? ""
-            });
-
-            if (!combatant.IsAlive
-                && CombatMechanicsRules.TryPreventDeathWithReviveBlessing(state, combatant, events))
-                return;
-
-            if (!combatant.IsAlive)
-            {
-                events.Add(new BattleEvent(BattleEventKind.CharacterDied, combatant.DisplayName)
-                {
-                    CombatantId = combatant.Id
-                });
-                CombatantDeathRules.OnCharacterDied(state, combatant, events);
-            }
+            DamageRules.ApplyPeriodicDamage(state, combatant, damage, events, label,
+                statusId ?? "", sourceCombatantId ?? "");
         }
 
         // ----- 缠绕 -----
@@ -465,8 +449,7 @@ namespace Grimhand.Battle.V09
         {
             if (applier == null || statusId != StatusCatalog.Poison)
                 return stacks;
-            if (StatusRules.HasStatus(applier, StatusCatalog.VenomSacBurst))
-                stacks += 1;
+            stacks += StatusRules.GetStatusStacks(applier, StatusCatalog.VenomSacBurst);
             return stacks;
         }
 
@@ -604,7 +587,7 @@ namespace Grimhand.Battle.V09
             if (hand.Count <= 1)
                 return;
 
-            // 收集原始费用，随机重排后写回（用 CostReduction 字段不可行，直接改 Cost）
+            // 交换当前费用（包含减费），但保留每张牌自己的离手恢复费用。
             var costs = new List<int>();
             foreach (var card in hand)
                 costs.Add(card.Cost);
@@ -616,7 +599,10 @@ namespace Grimhand.Battle.V09
             }
 
             for (var i = 0; i < hand.Count; i++)
+            {
+                hand[i].CostBeforeHandDiscount ??= hand[i].Cost;
                 hand[i].Cost = costs[i];
+            }
         }
 
         // ----- 蛇神的回应 token -----
@@ -780,8 +766,14 @@ namespace Grimhand.Battle.V09
                 return 1f;
 
             var mul = 1f;
-            if (TeamHasPsionicBody(state))
-                mul *= 1.2f;
+            var psionicBonus = 0;
+            foreach (var ally in state.GetTeam(TeamSide.Player))
+            {
+                if (ally == null || !ally.IsAlive) continue;
+                var strength = StatusRules.GetStatusStacks(ally, StatusCatalog.PsionicBody);
+                if (strength > 0) psionicBonus = System.Math.Max(psionicBonus, 20 + strength - 1);
+            }
+            mul *= 1f + psionicBonus / 100f;
             mul *= GetLichSpiritFocusDamageMultiplier(state, sourceTeam);
             return mul;
         }

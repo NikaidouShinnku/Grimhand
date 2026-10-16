@@ -248,7 +248,7 @@ namespace Grimhand.Battle
 
             PassiveCardMechanicsRules.ApplyEndlessBladeSacrifice(_state, actor, card, _events, _rng);
 
-            TalentBattleRules.OnCardAboutToResolve(_state, actor, card, _events);
+            PrepareCardResolution(actor, card);
 
             if (SpecialCardRules.IsSpecialCard(card))
                 SpecialCardRules.TryResolve(_state, actor, card, _events, _rng);
@@ -341,7 +341,7 @@ namespace Grimhand.Battle
 
             PassiveCardMechanicsRules.ApplyEndlessBladeSacrifice(_state, actor, card, _events, _rng);
 
-            TalentBattleRules.OnCardAboutToResolve(_state, actor, card, _events);
+            PrepareCardResolution(actor, card);
 
             if (SpecialCardRules.IsSpecialCard(card))
                 SpecialCardRules.TryResolve(_state, actor, card, _events, _rng);
@@ -511,7 +511,7 @@ namespace Grimhand.Battle
                 CardType = card.CardType
             });
 
-            TalentBattleRules.OnCardAboutToResolve(_state, actor, card, _events);
+            PrepareCardResolution(actor, card);
 
             // 敌方应对牌：减伤已在攻击前预武装；此处只播应对成功，勿重复武装
             if (actor.Team == TeamSide.Enemy && RespondRules.IsRespondCard(card))
@@ -727,7 +727,7 @@ namespace Grimhand.Battle
 
             PassiveCardMechanicsRules.ApplyEndlessBladeSacrifice(_state, actor, card, _events, _rng);
 
-            TalentBattleRules.OnCardAboutToResolve(_state, actor, card, _events);
+            PrepareCardResolution(actor, card);
 
             if (SpecialCardRules.IsSpecialCard(card))
                 SpecialCardRules.TryResolve(_state, actor, card, _events, _rng);
@@ -789,6 +789,12 @@ namespace Grimhand.Battle
             }
         }
 
+        void PrepareCardResolution(CombatantState actor, CardInstanceState card)
+        {
+            RelicBattleRules.BeginCardResolution(_state, actor, card);
+            TalentBattleRules.OnCardAboutToResolve(_state, actor, card, _events);
+        }
+
         void TrySelfDestructAfterCard(CombatantState actor, CardInstanceState card)
         {
             if (actor == null || card == null || !card.Keywords.Contains("self_destruct"))
@@ -826,6 +832,12 @@ namespace Grimhand.Battle
             RelicEffectRules.ProcessEndOfTurn(_state, _events);
             DefenderRespondArmRules.ExpireArmsAtEndOfTurn(_state);
             _state.ConsumableDodgeBonusThisTurn = 0f;
+            EvaluateOutcome();
+            if (_state.Outcome != BattleOutcome.Ongoing)
+            {
+                SetPhase(TurnPhase.BattleEnd);
+                return;
+            }
 
             _state.TurnNumber++;
             SetPhase(TurnPhase.Draw);
@@ -861,6 +873,11 @@ namespace Grimhand.Battle
             // 启动状态到期后再发【蛇神的回应】，与禁出牌解除同一拍
             V09NewMechanicsRules.ProcessSnakeGodResponseHand(_state, _events);
             EvaluateOutcome();
+            if (_state.Outcome != BattleOutcome.Ongoing)
+            {
+                SetPhase(TurnPhase.BattleEnd);
+                return;
+            }
             _events.Add(new BattleEvent(BattleEventKind.EnergyChanged, "Turn start")
             {
                 Energy = _state.EnergyCurrent,
@@ -897,6 +914,7 @@ namespace Grimhand.Battle
                 var idx = _rng.NextIndex(_state.PlayerHand.Count);
                 var discarded = _state.PlayerHand[idx];
                 _state.PlayerHand.RemoveAt(idx);
+                DeckRules.RestoreCostAfterLeavingHand(discarded);
                 _state.PlayerDiscardPile.Add(discarded);
                 _events.Add(new BattleEvent(BattleEventKind.CardDiscarded, $"混沌之心弃牌：{discarded.DisplayName}"));
             }
@@ -921,19 +939,17 @@ namespace Grimhand.Battle
                 (_state.TurnNumber == 1 ? mods?.ExtraDrawOnBattleStart ?? 0 : 0), _events);
             if (bonusDraw > 0)
             {
-                var handBeforeBonus = _state.PlayerHand.Count;
-                DeckRules.DrawCards(_state, TeamSide.Player, _rng, bonusDraw, _events);
-                if (bonusCostReduce > 0)
+                var remaining = bonusDraw;
+                foreach (var batch in _state.PendingDrawBatches)
                 {
-                    for (var i = handBeforeBonus; i < _state.PlayerHand.Count; i++)
-                    {
-                        var drawn = _state.PlayerHand[i];
-                        if (drawn == null)
-                            continue;
-                        drawn.Cost = System.Math.Max(0, drawn.Cost - bonusCostReduce);
-                    }
+                    var count = System.Math.Min(remaining, batch.Count);
+                    DrawBonusBatch(count, batch.CostReduction);
+                    remaining -= count;
                 }
+                // Compatibility for effects/tests that directly queue the legacy counters.
+                DrawBonusBatch(remaining, _state.PendingDrawBatches.Count == 0 ? bonusCostReduce : 0);
             }
+            _state.PendingDrawBatches.Clear();
 
             TalentBattleRules.ProcessAfterHandDrawn(_state, _rng, _events);
 
@@ -948,11 +964,24 @@ namespace Grimhand.Battle
             return enemyDraw > 0 ? enemyDraw : _state.Config.CardsDrawnPerTurn;
         }
 
+        void DrawBonusBatch(int count, int costReduction)
+        {
+            var before = _state.PlayerHand.Count;
+            DeckRules.DrawCards(_state, TeamSide.Player, _rng, count, _events);
+            for (var i = before; i < _state.PlayerHand.Count; i++)
+                DeckRules.ApplyHandCostReduction(_state.PlayerHand[i], costReduction);
+        }
+
         void ArchiveLastTurnAttackForConsumables() =>
             ConsumableRules.ArchiveTurnAttackHistory(_state);
 
         void BeginPlanning()
         {
+            if (_state.Outcome != BattleOutcome.Ongoing)
+            {
+                SetPhase(TurnPhase.BattleEnd);
+                return;
+            }
             SetPhase(TurnPhase.Planning);
 
             if (_state.Config != null && _state.Config.ManualEnemyIntentsOnly)
@@ -1000,6 +1029,8 @@ namespace Grimhand.Battle
 
         void EvaluateOutcome()
         {
+            if (_state.Outcome != BattleOutcome.Ongoing)
+                return;
             var playerAlive = false;
             var enemyAlive = false;
 
@@ -1106,7 +1137,7 @@ namespace Grimhand.Battle
             foreach (var cc in config.Combatants)
             {
                 var combatant = _state.GetCombatant(cc.Id);
-                if (combatant == null || !combatant.IsAlive)
+                if (combatant == null)
                     continue;
 
                 if (BossTraitRules.HasTrait(combatant, CharacterTraitCatalog.SkullSelfDestructHand))

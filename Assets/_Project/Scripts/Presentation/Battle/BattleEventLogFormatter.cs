@@ -39,7 +39,8 @@ namespace Grimhand.Presentation.Battle
                 case BattleEventKind.StatusExpired:
                     return $"状态结束 · {e.Message} → {CombatantName(state, e.CombatantId)}";
                 case BattleEventKind.StatusTickDamage:
-                    return $"状态伤害 {e.Amount} · {e.Message} → {CombatantName(state, e.CombatantId)}";
+                    return $"状态伤害 {e.Amount}" + (e.BlockedAmount > 0 ? $"（格挡 {e.BlockedAmount}）" : "")
+                        + $" · {e.Message} → {CombatantName(state, e.CombatantId)}";
                 case BattleEventKind.ReactionTriggered:
                 case BattleEventKind.ParryTriggered:
                     return $"应对 · {CombatantName(state, e.CombatantId)}：{e.Message}";

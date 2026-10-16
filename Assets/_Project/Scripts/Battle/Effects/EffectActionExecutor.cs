@@ -312,8 +312,8 @@ namespace Grimhand.Battle.Effects
                 case EffectActionType.ReducePlayerEnergyRegenNextTurn:
                     if (action.Value > 0)
                     {
-                        // 扣施法者己方队伍能量：敌方怪物扣敌方预算，玩家扣玩家回复
-                        if (actor.Team == TeamSide.Enemy)
+                        // Self targets the caster's energy (gargoyle); soul drain targets the player.
+                        if (action.Target == EffectTarget.Self && actor.Team == TeamSide.Enemy)
                         {
                             state.PendingEnemyEnergyRegenPenaltyNextTurn += action.Value;
                             events.Add(new BattleEvent(BattleEventKind.StatusApplied,
@@ -997,7 +997,10 @@ namespace Grimhand.Battle.Effects
                     if (card?.DefinitionId == AbyssMonsterCardCatalog.PiercingTentacleCardId
                         && statusId == StatusCatalog.Poison
                         && MinionTraitRules.HasTrait(actor, MinionTraitCatalog.AbyssCreaturePoisonOnDamage)
-                        && stacks >= MinionTraitCatalog.AbyssCreaturePoisonStacks)
+                        && stacks >= MinionTraitCatalog.AbyssCreaturePoisonStacks
+                        && events.Exists(e => e.Kind == BattleEventKind.DamageApplied
+                            && e.CardInstanceId == sourceCardInstanceId
+                            && e.TargetId == target.Id && e.Amount > 0))
                     {
                         stacks -= MinionTraitCatalog.AbyssCreaturePoisonStacks;
                     }
@@ -1215,7 +1218,7 @@ namespace Grimhand.Battle.Effects
         {
             if (action.ChancePercent > 0 && action.ChancePercent < 100)
             {
-                if (rng != null && rng.NextInt(1, 100) > action.ChancePercent)
+                if (rng != null && rng.NextInt(1, 101) > action.ChancePercent)
                     return;
             }
 
@@ -1606,6 +1609,7 @@ namespace Grimhand.Battle.Effects
                 return;
 
             state.PendingDrawNextTurn += count;
+            state.PendingDrawBatches.Add(new PendingDrawBatch { Count = count, CostReduction = costReduction });
             if (costReduction > 0)
                 state.PendingDrawNextTurnCostReduction = Math.Max(
                     state.PendingDrawNextTurnCostReduction, costReduction);

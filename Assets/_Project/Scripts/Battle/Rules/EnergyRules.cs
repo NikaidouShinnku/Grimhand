@@ -72,7 +72,7 @@ namespace Grimhand.Battle.Rules
         /// <summary>回复能量：最多到 EnergyMax，不可超过。</summary>
         public static int Restore(BattleState state, int amount)
         {
-            if (state == null || amount <= 0)
+            if (state == null || amount <= 0 || state.EnergyCurrent >= state.EnergyMax)
                 return 0;
 
             var before = state.EnergyCurrent;

@@ -1,0 +1,8 @@
+baseline/
+baseline.zip
+compile/
+*.log
+*Results.xml
+*-tests.txt
+presentation-audit.json
+asset-link-audit.txt

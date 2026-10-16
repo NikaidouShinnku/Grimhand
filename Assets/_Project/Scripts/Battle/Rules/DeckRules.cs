@@ -8,6 +8,22 @@ namespace Grimhand.Battle.Rules
 {
     public static class DeckRules
     {
+        public static void ApplyHandCostReduction(CardInstanceState card, int reduction)
+        {
+            if (card == null || reduction <= 0)
+                return;
+            card.CostBeforeHandDiscount ??= card.Cost;
+            card.Cost = System.Math.Max(0, card.Cost - reduction);
+        }
+
+        public static void RestoreCostAfterLeavingHand(CardInstanceState card)
+        {
+            if (card?.CostBeforeHandDiscount == null)
+                return;
+            card.Cost = card.CostBeforeHandDiscount.Value;
+            card.CostBeforeHandDiscount = null;
+        }
+
         public static void ShuffleDrawPile(BattleState state, TeamSide team, BattleRng rng, List<BattleEvent> events)
         {
             var pile = state.GetDrawPile(team);
@@ -230,6 +246,7 @@ namespace Grimhand.Battle.Rules
                     continue;
 
                 hand.RemoveAt(i);
+                RestoreCostAfterLeavingHand(card);
                 state.GetDiscardPile(team).Add(card);
                 events.Add(new BattleEvent(BattleEventKind.CardDiscarded, "End of turn hand discard")
                 {
@@ -244,8 +261,13 @@ namespace Grimhand.Battle.Rules
             CardInstanceState card,
             List<BattleEvent> events)
         {
-            state.GetHand(team).Remove(card);
-            state.GetDiscardPile(team).Add(card);
+            // Resolution-only upgrades may use a clone with the same instance ID.
+            // Pile ownership always belongs to the registered card, not that clone.
+            card = state.GetCard(card.InstanceId) ?? card;
+            state.GetHand(team).RemoveAll(c => c.InstanceId == card.InstanceId);
+            RestoreCostAfterLeavingHand(card);
+            if (!state.GetDiscardPile(team).Contains(card))
+                state.GetDiscardPile(team).Add(card);
             events.Add(new BattleEvent(BattleEventKind.CardDiscarded, "Played card")
             {
                 CardInstanceId = card.InstanceId
@@ -261,9 +283,11 @@ namespace Grimhand.Battle.Rules
             if (state == null || card == null)
                 return;
 
-            state.GetHand(team).Remove(card);
-            state.GetDrawPile(team).Remove(card);
-            state.GetDiscardPile(team).Remove(card);
+            card = state.GetCard(card.InstanceId) ?? card;
+            state.GetHand(team).RemoveAll(c => c.InstanceId == card.InstanceId);
+            RestoreCostAfterLeavingHand(card);
+            state.GetDrawPile(team).RemoveAll(c => c.InstanceId == card.InstanceId);
+            state.GetDiscardPile(team).RemoveAll(c => c.InstanceId == card.InstanceId);
             var exhaust = state.GetExhaustPile(team);
             if (!exhaust.Contains(card))
                 exhaust.Add(card);

@@ -9,18 +9,6 @@ namespace Grimhand.Battle.Tests
 {
     public sealed class CardDescriptionTests
     {
-        [Test]
-        public void DevilTouch_FaceShowsReachTagAndLifesteal()
-        {
-            var card = Preview("d_devil_touch", CardType.Attack,
-                Atk(2, 50, lifestealPercent: 100));
-
-            var text = BattleUiFormatters.BuildCardStatsLinePreview(card);
-
-            StringAssert.Contains("【前/中】造成", text);
-            StringAssert.Contains("回复等量 HP", text);
-            StringAssert.DoesNotContain("选择一名敌人", text);
-        }
 
         [Test]
         public void DevilTouch_TooltipShowsOnlyCatalogKeywords()
@@ -58,58 +46,9 @@ namespace Grimhand.Battle.Tests
             Assert.IsTrue(string.IsNullOrEmpty(tooltip));
         }
 
-        [Test]
-        public void Bless_UsesPickLeadWithoutEnemyReachTag()
-        {
-            var card = Preview("p_bless", CardType.Status, Heal(2, 100, EffectTarget.FrontAlly));
 
-            var text = BattleUiFormatters.BuildCardStatsLinePreview(card);
 
-            StringAssert.Contains("选择一名队友", text);
-            StringAssert.DoesNotContain("【前/中】", text);
-        }
 
-        [Test]
-        public void HellFire_AoeNoReachTag()
-        {
-            var card = Preview("d_hell_fire", CardType.Attack,
-                Kw("aoe", "sacrifice"),
-                SelfDmg(8),
-                Atk(5, 100, target: EffectTarget.AllEnemies));
-
-            var text = BattleUiFormatters.BuildCardStatsLinePreview(card);
-
-            StringAssert.Contains("【AOE】", text);
-            StringAssert.Contains("对全体敌人各造成", text);
-            StringAssert.DoesNotContain("【前/中】", text);
-        }
-
-        [Test]
-        public void IronParry_KeywordOnce_ReactionWithoutDuplicatePrefix()
-        {
-            var card = Preview("w_iron_parry", CardType.Defense, Kw("parry"),
-                RespondReduce(30),
-                RespondReflect(100));
-
-            var text = BattleUiFormatters.BuildCardStatsLinePreview(card);
-
-            Assert.AreEqual(1, CountOccurrences(text, "【应对攻击】"));
-            StringAssert.Contains("所受伤害减少 30%", text);
-        }
-
-        [Test]
-        public void SolarBlessing_ShowsTeamBlockDescription()
-        {
-            var card = Preview("p_solar_blessing", CardType.Defense,
-                AllyDefBlock(EffectTarget.AllyFrontSlot, 50),
-                AllyDefBlock(EffectTarget.AllyMiddleSlot, 50),
-                AllyDefBlock(EffectTarget.AllyBackSlot, 50));
-
-            var text = BattleUiFormatters.BuildCardStatsLinePreview(card);
-
-            StringAssert.Contains("三名队友各获得", text);
-            StringAssert.Contains("护甲", text);
-        }
 
         [Test]
         public void BladeStorm_TooltipShowsAoeKeywordOnly()

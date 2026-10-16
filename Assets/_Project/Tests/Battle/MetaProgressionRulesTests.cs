@@ -44,7 +44,7 @@ namespace Grimhand.Battle.Tests
             {
                 CharacterDefinitionId = TalentCatalog.KnightId,
                 OutOfRunLevel = 9,
-                OutOfRunXp = 1990
+                OutOfRunXp = 2490
             };
 
             MetaProgressionRules.GrantOutOfRunXp(progress, 100);

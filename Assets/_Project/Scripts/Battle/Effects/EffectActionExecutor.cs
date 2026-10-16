@@ -28,11 +28,16 @@ namespace Grimhand.Battle.Effects
             CombatantState actor,
             CardInstanceState card,
             List<BattleEvent> events,
-            BattleRng rng = null)
+            BattleRng rng = null,
+            bool skipPreArmedRedirect = false)
         {
             foreach (var action in card.Actions)
             {
                 if (action.Condition != ReactionConditionType.None)
+                    continue;
+
+                // A paired enemy response already armed and consumed this effect before the hit.
+                if (skipPreArmedRedirect && action.Type == EffectActionType.ArmRespondDamageRedirect)
                     continue;
 
                 // 终焉守护护甲由 ApplyFinalGuardBlock 统一发放，避免重复

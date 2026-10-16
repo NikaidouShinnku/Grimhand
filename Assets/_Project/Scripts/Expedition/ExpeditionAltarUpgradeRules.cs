@@ -105,8 +105,10 @@ namespace Grimhand.Expedition
             if (!TrySpendPool(run, cost))
                 return false;
 
+            // Read before increasing the bonus: legacy saves infer purchases from it.
+            var previousPurchases = GetHpPlus5PurchaseCount(member);
             member.AltarMaxHpBonus += HpPlus5Amount;
-            member.AltarHpPlus5Purchases = GetHpPlus5PurchaseCount(member) + 1;
+            member.AltarHpPlus5Purchases = previousPurchases + 1;
             ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(run.Party, run.Relics, run.RelicGrowthTiers);
             return true;
         }

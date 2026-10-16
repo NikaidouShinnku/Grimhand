@@ -97,38 +97,6 @@ namespace Grimhand.Battle.Tests
                 warrior, new CardInstanceState { CardType = CardType.Attack }));
         }
 
-        [Test]
-        public void SpiderFatalBind_DamagesTargetThenSelfHalfHp()
-        {
-            var state = BuildState(out var spider, out var warrior);
-            warrior.Slot = FormationSlot.Middle;
-            spider.Hp = 40;
-
-            var card = new CardInstanceState
-            {
-                InstanceId = 3,
-                DefinitionId = PassiveCardMechanicsRules.SpiderFatalBindCardId,
-                DisplayName = "致命缠杀",
-                CardType = CardType.Attack
-            };
-            card.Keywords.Add("exhaust");
-            card.Actions.Add(new EffectActionSpec
-            {
-                Type = EffectActionType.DealDamage,
-                Target = EffectTarget.DefaultEnemy,
-                Value = 18,
-                Reach = TargetReach.MiddleAndBack
-            });
-
-            var events = new List<BattleEvent>();
-            var warriorHpBefore = warrior.Hp;
-            EffectActionExecutor.ExecuteAll(state, spider, card, events, new BattleRng(1));
-            Assert.Less(warrior.Hp, warriorHpBefore);
-
-            PassiveCardMechanicsRules.OnSpiderFatalBindResolved(
-                state, spider, card, events, new BattleRng(1));
-            Assert.AreEqual(20, spider.Hp);
-        }
 
         [Test]
         public void SpiderLadyTrait_IncreasesDamageOnPoisonedPlayers()

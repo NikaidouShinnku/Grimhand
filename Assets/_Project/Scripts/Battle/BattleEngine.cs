@@ -544,7 +544,8 @@ namespace Grimhand.Battle
 
             if (entry.ApplyConditionalEffects
                 || (!card.Keywords.Contains("respond_status") && !card.Keywords.Contains("respond_defense")))
-                EffectActionExecutor.ExecuteUnconditionalActions(_state, actor, card, _events, _rng);
+                EffectActionExecutor.ExecuteUnconditionalActions(_state, actor, card, _events, _rng,
+                    skipPreArmedRedirect: successfulRespond && actor.Team == TeamSide.Enemy);
 
             // 终焉守护：权威发放 8 护甲（卡面无条件护甲由此统一落地，避免漏执行）
             if (card.DefinitionId == PassiveCardMechanicsRules.FinalGuardCardId)

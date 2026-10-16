@@ -47,7 +47,6 @@ namespace Grimhand.Battle.Tests
             engine.StartRun();
             EnterShop(engine);
             engine.Run.Gold = 200;
-            var before = engine.Run.Shop.Offers[4].ConsumableId;
 
             Assert.IsTrue(engine.TryRefreshShop());
             Assert.AreEqual(20, engine.Run.Shop.NextRefreshCost);
@@ -55,12 +54,15 @@ namespace Grimhand.Battle.Tests
             Assert.AreEqual(1, engine.Run.Shop.RefreshCount);
 
             engine.Run.Shop.Offers[4].Sold = true;
+            var soldId = engine.Run.Shop.Offers[4].ConsumableId;
+            var soldPrice = engine.Run.Shop.Offers[4].Price;
             var beforeAdvanced = engine.Run.Shop.Offers[1].CardPackId;
             Assert.IsTrue(engine.TryRefreshShop());
             Assert.AreEqual(40, engine.Run.Shop.NextRefreshCost);
             Assert.AreEqual(180, engine.Run.Gold);
-            Assert.IsFalse(engine.Run.Shop.Offers[4].Sold);
-            Assert.AreNotEqual(before, engine.Run.Shop.Offers[4].ConsumableId);
+            Assert.IsTrue(engine.Run.Shop.Offers[4].Sold);
+            Assert.AreEqual(soldId, engine.Run.Shop.Offers[4].ConsumableId);
+            Assert.AreEqual(soldPrice, engine.Run.Shop.Offers[4].Price);
             Assert.AreEqual(beforeAdvanced, engine.Run.Shop.Offers[1].CardPackId);
         }
 

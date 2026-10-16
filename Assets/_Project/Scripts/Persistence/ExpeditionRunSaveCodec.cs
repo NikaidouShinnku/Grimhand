@@ -678,7 +678,9 @@ namespace Grimhand.Persistence
                 }
             }
 
-            return pickup;
+            // JsonUtility may materialize a null inline DTO as an empty object.
+            // Such a phantom reward must not override a later event reward.
+            return pickup.HasAnyReward ? pickup : null;
         }
 
         static ExpeditionPendingEventSaveData ToPendingEventDto(ExpeditionPendingEvent pending)
@@ -695,7 +697,7 @@ namespace Grimhand.Persistence
 
         static ExpeditionPendingEvent FromPendingEventDto(ExpeditionPendingEventSaveData dto)
         {
-            if (dto == null)
+            if (dto == null || string.IsNullOrEmpty(dto.eventId))
                 return null;
 
             return new ExpeditionPendingEvent
@@ -723,7 +725,7 @@ namespace Grimhand.Persistence
 
         static ExpeditionPendingEventAftermath FromPendingEventAftermathDto(ExpeditionPendingEventAftermathSaveData dto)
         {
-            if (dto == null)
+            if (dto == null || string.IsNullOrEmpty(dto.eventId))
                 return null;
 
             return new ExpeditionPendingEventAftermath
@@ -750,7 +752,7 @@ namespace Grimhand.Persistence
 
         static ExpeditionPendingShrine FromPendingShrineDto(ExpeditionPendingShrineSaveData dto)
         {
-            if (dto == null)
+            if (dto == null || string.IsNullOrEmpty(dto.shrineId))
                 return null;
 
             return new ExpeditionPendingShrine
@@ -881,7 +883,7 @@ namespace Grimhand.Persistence
 
         static ExpeditionCardAltarState FromCardAltarDto(ExpeditionCardAltarSaveData dto)
         {
-            if (dto == null)
+            if (dto == null || (dto.sourceLayer <= 0 && (dto.drafts == null || dto.drafts.Length == 0)))
                 return null;
 
             var altar = new ExpeditionCardAltarState
@@ -967,7 +969,7 @@ namespace Grimhand.Persistence
             ExpeditionPendingCardOfferSaveData dto,
             ExpeditionConfig config)
         {
-            if (dto == null)
+            if (dto == null || dto.template == null || string.IsNullOrEmpty(dto.template.definitionId))
                 return null;
 
             return new ExpeditionPendingCardOffer
@@ -1016,7 +1018,7 @@ namespace Grimhand.Persistence
             ExpeditionPendingCardPackOfferSaveData dto,
             ExpeditionConfig config)
         {
-            if (dto == null)
+            if (dto == null || string.IsNullOrEmpty(dto.packId))
                 return null;
 
             var offer = new ExpeditionPendingCardPackOffer
@@ -1120,7 +1122,7 @@ namespace Grimhand.Persistence
             ExpeditionEventInteractionSaveData dto,
             ExpeditionConfig config)
         {
-            if (dto == null)
+            if (dto == null || string.IsNullOrEmpty(dto.eventId))
                 return null;
 
             var interaction = new ExpeditionEventInteractionState

@@ -369,7 +369,7 @@ namespace Grimhand.Battle.Rules
                         continue;
 
                     var damage = def.TurnStartDamagePerStack * status.Stacks;
-                    ApplyStatusTickDamage(state, combatant, def, status.StatusId, damage, events, rng);
+                    ApplyStatusTickDamage(state, combatant, def, status, damage, events, rng);
                 }
             }
         }
@@ -392,7 +392,7 @@ namespace Grimhand.Battle.Rules
                         continue;
 
                     var damage = def.TurnEndDamagePerStack * status.Stacks;
-                    ApplyStatusTickDamage(state, combatant, def, status.StatusId, damage, events, rng);
+                    ApplyStatusTickDamage(state, combatant, def, status, damage, events, rng);
                 }
             }
         }
@@ -401,13 +401,18 @@ namespace Grimhand.Battle.Rules
             BattleState state,
             CombatantState combatant,
             StatusDefinition def,
-            string statusId,
+            StatusInstance tickStatus,
             int damage,
             List<BattleEvent> events,
             BattleRng rng = null)
         {
             if (combatant == null || damage <= 0)
                 return;
+
+            // Preserve the bucket that caused this hit, even if damage callbacks mutate statuses.
+            var statusId = tickStatus.StatusId;
+            var tickStacks = tickStatus.Stacks;
+            var tickDuration = tickStatus.RemainingTurns;
 
             // v0.9 天赋：中毒跳伤前判定（免疫 / 转治疗 / 敌人中毒回血）
             if (statusId == StatusCatalog.Poison)
@@ -431,7 +436,8 @@ namespace Grimhand.Battle.Rules
                     {
                         TalentBattleRules.AfterEnemyPoisonTickDamage(state, combatant, events);
                         if (rng != null)
-                            PassiveCardMechanicsRules.TryTriggerPlagueSpreadOnPoisonTick(state, combatant, events, rng);
+                            PassiveCardMechanicsRules.TryTriggerPlagueSpreadOnPoisonTick(
+                                state, combatant, events, rng, tickStacks, tickDuration);
                     }
                     if (statusId == StatusCatalog.Burn)
                         TalentBattleRules.OnBurnTickHpDamage(state, combatant, dealt, events, rng);

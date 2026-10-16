@@ -72,6 +72,29 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
+        public void AltarHpUpgrade_LegacyBonusCountsEachPurchaseOnce()
+        {
+            var run = new ExpeditionRunState { SharedXpPool = 100 };
+            var member = new PartyMemberSnapshot
+            {
+                CharacterDefinitionId = "char_knight", Level = 1,
+                Hp = 90, MaxHp = 90, AltarMaxHpBonus = 10,
+                AltarHpPlus5Purchases = 0
+            };
+            run.Party.Add(member);
+            Assert.AreEqual(12, ExpeditionAltarUpgradeRules.GetHpPlus5Cost(member));
+            Assert.IsTrue(ExpeditionAltarUpgradeRules.TryUpgradeMemberHp(run, member));
+            Assert.AreEqual(3, member.AltarHpPlus5Purchases);
+            Assert.AreEqual(15, member.AltarMaxHpBonus);
+            Assert.AreEqual(14, ExpeditionAltarUpgradeRules.GetHpPlus5Cost(member));
+            Assert.AreEqual(88, run.SharedXpPool);
+            Assert.IsTrue(ExpeditionAltarUpgradeRules.TryUpgradeMemberHp(run, member));
+            Assert.AreEqual(4, member.AltarHpPlus5Purchases);
+            Assert.AreEqual(16, ExpeditionAltarUpgradeRules.GetHpPlus5Cost(member));
+            Assert.AreEqual(74, run.SharedXpPool);
+        }
+
+        [Test]
         public void ApplyPartyProgress_UsesMemberMaxHpIncludingAltarBonus()
         {
             var member = new PartyMemberSnapshot

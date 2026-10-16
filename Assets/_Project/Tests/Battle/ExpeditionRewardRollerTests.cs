@@ -9,20 +9,30 @@ namespace Grimhand.Battle.Tests
     public class ExpeditionRewardRollerTests
     {
         [Test]
-        public void RollChestReward_AlwaysHasGoldAndCommonPack()
+        public void RollChestReward_GoldGuaranteed_CommonPackOptional_LootGuaranteed()
         {
             var config = BuildConfig();
             var run = new ExpeditionRunState();
             run.Party.Add(new PartyMemberSnapshot { CharacterDefinitionId = "char_knight" });
 
-            for (var seed = 1; seed <= 20; seed++)
+            var packs = 0;
+            var withoutPacks = 0;
+            for (var seed = 1; seed <= 200; seed++)
             {
                 var reward = ExpeditionRewardRoller.RollChestReward(config, run, new BattleRng(seed));
 
                 Assert.Greater(reward.Gold, 0, $"seed {seed}");
-                Assert.IsTrue(reward.HasCardPacks, $"seed {seed}");
-                Assert.AreEqual(CardPackIds.Common, reward.CardPacks[0].PackId, $"seed {seed}");
+                Assert.IsTrue(reward.HasRelic || reward.HasConsumable, $"seed {seed}");
+                if (reward.HasCardPacks)
+                {
+                    packs++;
+                    Assert.AreEqual(CardPackIds.Common, reward.CardPacks[0].PackId, $"seed {seed}");
+                }
+                else
+                    withoutPacks++;
             }
+            Assert.Greater(packs, 0);
+            Assert.Greater(withoutPacks, 0);
         }
 
         [Test]

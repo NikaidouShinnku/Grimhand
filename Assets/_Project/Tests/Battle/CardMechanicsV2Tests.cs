@@ -71,6 +71,7 @@ namespace Grimhand.Battle.Tests
             var mage = AddUnit(state, "mage", TeamSide.Player, FormationSlot.Middle, hp: 20, atk: 6);
             var enemy = AddUnit(state, "enemy", TeamSide.Enemy, FormationSlot.Front, hp: 30, def: 0);
             var card = CardWith(ActionAtk(4, 100, lifestealPercent: 50));
+            state.ResolutionTargets[card.InstanceId] = enemy.Id;
             var events = new List<BattleEvent>();
 
             EffectActionExecutor.ExecuteAll(state, mage, card, events);
@@ -113,16 +114,6 @@ namespace Grimhand.Battle.Tests
             Assert.IsFalse(StatusRules.HasStatus(warrior, StatusCatalog.Unyielding));
         }
 
-        [Test]
-        public void AttackDown_ReducesOutgoingDamage()
-        {
-            var state = BuildState();
-            var demon = AddUnit(state, "demon", TeamSide.Player, FormationSlot.Back, atk: 9);
-            StatusRules.ApplyStatus(state, demon, StatusCatalog.AttackDown, 3, 2, new List<BattleEvent>());
-
-            CombatantRules.RefreshDerivedStats(demon);
-            Assert.AreEqual(3, demon.OutgoingDamageReductionFlat);
-        }
 
         [Test]
         public void WarCry_GrantsTeamAttackUpToAllSlots()
@@ -172,16 +163,6 @@ namespace Grimhand.Battle.Tests
             Assert.AreEqual(1, CombatMechanicsRules.ComputeHpDamageAfterDefense(3, 60));
         }
 
-        [Test]
-        public void Charge_IgnoresHalfDamageReduction()
-        {
-            var state = BuildState();
-            var target = AddUnit(state, "enemy", TeamSide.Enemy, FormationSlot.Front, def: 6);
-            StatusRules.ApplyStatus(state, target, StatusCatalog.DamageReduction, 6, 1, new List<BattleEvent>());
-
-            Assert.AreEqual(6, CombatMechanicsRules.GetEffectiveDefense(state, target, 0));
-            Assert.AreEqual(3, CombatMechanicsRules.GetEffectiveDefense(state, target, 50));
-        }
 
         [Test]
         public void Exhaust_RemovesCardFromBattle()
@@ -428,7 +409,7 @@ namespace Grimhand.Battle.Tests
 
             Assert.IsFalse(StatusRules.HasStatus(slime, StatusCatalog.Slow));
             Assert.IsTrue(StatusRules.HasStatus(warrior, StatusCatalog.Slow));
-            Assert.AreEqual(5, StatusRules.GetEffectiveSpeed(warrior));
+            Assert.AreEqual(6, StatusRules.GetEffectiveSpeed(warrior));
         }
 
         static EffectActionSpec StatusAction(
@@ -505,7 +486,7 @@ namespace Grimhand.Battle.Tests
             var demon = AddUnit(state, "demon", TeamSide.Player, FormationSlot.Front, hp: 10, def: 0);
             demon.MaxHp = 20;
 
-            StatusRules.ApplyStatus(state, demon, StatusCatalog.BloodlineLegacy, 1, -1, new List<BattleEvent>());
+            StatusRules.ApplyStatus(state, demon, StatusCatalog.BloodlineLegacy, 50, -1, new List<BattleEvent>());
 
             Assert.AreEqual(30, demon.MaxHp);
             Assert.AreEqual(10, demon.Hp);

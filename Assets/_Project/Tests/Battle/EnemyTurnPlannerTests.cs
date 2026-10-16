@@ -104,6 +104,14 @@ namespace Grimhand.Battle.Tests
 
         static void AddEnemyCard(BattleState state, CombatantState owner, int id, string name, int cost)
         {
+            // Attack planning requires a living opposing target.
+            if (state.GetCombatant("player_target") == null)
+                state.Combatants.Add(new CombatantState
+                {
+                    Id = "player_target", Team = TeamSide.Player,
+                    Slot = FormationSlot.Front, Hp = 80, MaxHp = 80,
+                    CharacterDefinitionId = "char_knight"
+                });
             var card = new CardInstanceState
             {
                 InstanceId = id,

@@ -65,7 +65,7 @@ namespace Grimhand.Battle.Reactions
             });
         }
 
-        public static void ArmRedirectDouble(BattleState state, string defenderId)
+        public static void ArmRedirectDouble(BattleState state, string defenderId, int pairedAttackCardInstanceId = 0)
         {
             if (state == null || string.IsNullOrEmpty(defenderId))
                 return;
@@ -74,6 +74,7 @@ namespace Grimhand.Battle.Reactions
             {
                 DefenderId = defenderId,
                 RedirectDoubleToRandomAlly = true,
+                PairedAttackCardInstanceId = pairedAttackCardInstanceId,
                 ArmedOnTurn = state.TurnNumber
             });
         }
@@ -130,11 +131,11 @@ namespace Grimhand.Battle.Reactions
 
                 if (action.Type == EffectActionType.ArmRespondDamageRedirect)
                 {
-                    // Condition=None：由出牌无条件结算武装；有应对条件时仅在此武装
-                    if (action.Condition == ReactionConditionType.None)
+                    // Paired responses arm before the hit; unmatched unconditional cards arm on normal resolve.
+                    if (action.Condition == ReactionConditionType.None && pairedAttackCardInstanceId <= 0)
                         continue;
 
-                    ArmRedirectDouble(state, actor.Id);
+                    ArmRedirectDouble(state, actor.Id, pairedAttackCardInstanceId);
                     actor.RespondArmedThisTurn = true;
                     return;
                 }

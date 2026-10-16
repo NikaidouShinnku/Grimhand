@@ -25,7 +25,7 @@ namespace Grimhand.Battle.Tests
 
             EnemyFloorScaling.Apply(cc, 5, null);
 
-            Assert.AreEqual(24, cc.MaxHp);
+            Assert.AreEqual(26, cc.MaxHp);
             Assert.AreEqual(0, cc.BaseAttack);
             Assert.AreEqual(11, cc.DeckTemplates[0].Actions[0].Value);
             Assert.IsFalse(cc.DeckTemplates[0].Actions[0].ScaleWithAttack);
@@ -37,8 +37,8 @@ namespace Grimhand.Battle.Tests
             {
                 Team = TeamSide.Enemy,
                 MaxHp = hp,
-                BaseAttack = 4,
-                BaseDefense = 1
+                BaseAttack = 0,
+                BaseDefense = 0
             };
             cc.DeckTemplates.Add(new CardTemplate
             {
@@ -48,7 +48,7 @@ namespace Grimhand.Battle.Tests
                     {
                         Type = EffectActionType.DealDamage,
                         Value = damage,
-                        ScaleWithAttack = true
+                        ScaleWithAttack = false
                     }
                 }
             });

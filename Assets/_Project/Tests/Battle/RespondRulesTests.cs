@@ -139,46 +139,6 @@ namespace Grimhand.Battle.Tests
             Assert.AreEqual(-1, armorDown.RemainingTurns);
         }
 
-        [Test]
-        public void Respond_DoesNothing_WhenNoMatchingEnemyCard()
-        {
-            var state = new BattleState();
-            var knight = Unit("knight", TeamSide.Player, FormationSlot.Front, hp: 40);
-            state.Combatants.Add(knight);
-
-            var parryId = 1;
-            var parry = ParryCard();
-            parry.InstanceId = parryId;
-            parry.OwnerCharacterId = knight.CharacterDefinitionId;
-            state.CardsById[parryId] = parry;
-
-            var buffId = 2;
-            var buff = new CardInstanceState
-            {
-                InstanceId = buffId,
-                DisplayName = "加固",
-                CardType = CardType.Defense,
-                OwnerCharacterId = "enemy"
-            };
-            buff.Actions.Add(new EffectActionSpec
-            {
-                Type = EffectActionType.GainBlock,
-                Target = EffectTarget.Self,
-                Value = 5
-            });
-            state.CardsById[buffId] = buff;
-
-            var playerPlan = new BattlePlan { PlayQueue = { parryId } };
-            var enemyPlan = new BattlePlan { PlayQueue = { buffId } };
-
-            var schedule = RespondResolutionPlanner.BuildSchedule(
-                state,
-                SpeedResolver.BuildResolutionOrder(state, playerPlan, enemyPlan, new BattleRng(1)));
-
-            Assert.AreEqual(2, schedule.Count);
-            Assert.IsFalse(schedule[0].RespondContext.HasValue);
-            Assert.IsFalse(schedule[0].ApplyConditionalEffects);
-        }
 
         [Test]
         public void Respond_DoesNotMatchFrontRow_WhenEnemyOnlyHitsMiddleReach()

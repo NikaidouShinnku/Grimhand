@@ -56,7 +56,7 @@ namespace Grimhand.Battle.Tests
             var loaded = service.LoadOrCreate(() => throw new InvalidOperationException("不应创建新档"));
             Assert.AreEqual(SaveLoadSource.Primary, loaded.Source);
             Assert.AreEqual(42, loaded.Profile.AccountGold);
-            Assert.AreEqual(30, loaded.Profile.CollectionCapacity);
+            Assert.AreEqual(profile.CollectionCapacity, loaded.Profile.CollectionCapacity);
             Assert.AreEqual(2, loaded.Profile.Collection.Count);
             Assert.AreEqual(1, loaded.Profile.Meta.GetOrCreate(TalentCatalog.KnightId).OutOfRunLevel);
             Assert.AreEqual("card_a", loaded.Profile.Roster.Members[0].DeckCardIds[0]);
@@ -70,7 +70,13 @@ namespace Grimhand.Battle.Tests
             var profile = CreateSampleProfile();
             Assert.IsTrue(service.TrySave(profile, out _));
 
-            var tampered = File.ReadAllText(storage.PrimaryPath).Replace("\"accountGold\": 42", "\"accountGold\": 999999");
+            // A backup holds the previous successful save, not the first save itself.
+            profile.AccountGold = 43;
+            Assert.IsTrue(service.TrySave(profile, out _));
+
+            var original = File.ReadAllText(storage.PrimaryPath);
+            var tampered = original.Replace("\"accountGold\": 43", "\"accountGold\": 999999");
+            Assert.AreNotEqual(original, tampered, "Test must actually tamper with the primary save.");
             File.WriteAllText(storage.PrimaryPath, tampered);
 
             var loaded = service.LoadOrCreate(CreateSampleProfile);

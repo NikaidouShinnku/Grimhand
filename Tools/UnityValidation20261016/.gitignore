@@ -1,0 +1,9 @@
+*.xml
+*.json
+*.sav
+*.png
+*.log
+editor_profile_before_runtime/
+runtime_profile/
+read_design.ps1
+unity_mcp.ps1

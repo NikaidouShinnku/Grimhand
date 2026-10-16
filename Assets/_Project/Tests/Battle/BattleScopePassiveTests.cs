@@ -17,13 +17,14 @@ namespace Grimhand.Battle.Tests
         {
             var state = BuildState();
             var warrior = AddUnit(state, "warrior", TeamSide.Player, FormationSlot.Front);
-            StatusRules.ApplyStatus(state, warrior, StatusCatalog.RespondStance, 1, -1, new List<BattleEvent>());
+            // The real card stores the block amount in Stacks (8), not a boolean flag.
+            StatusRules.ApplyStatus(state, warrior, StatusCatalog.RespondStance, 8, -1, new List<BattleEvent>());
 
             var events = new List<BattleEvent>();
             PassiveCardMechanicsRules.TryTriggerRespondStanceOnRespondSuccess(
                 state, warrior, events, new BattleRng(1));
 
-            Assert.GreaterOrEqual(warrior.Block, PassiveCardMechanicsRules.RespondStanceBlock);
+            Assert.AreEqual(8, warrior.Block);
         }
 
         [Test]
@@ -89,6 +90,49 @@ namespace Grimhand.Battle.Tests
         }
 
         static BattleState BuildState() => new BattleState { Config = new BattleConfig() };
+
+        [TestCase(false, true)]
+        [TestCase(true, true)]
+        [TestCase(false, false)]
+        [TestCase(true, false)]
+        public void PlagueSpread_PoisonTicksUseTheirOwnStacksAndDuration(bool timedFirst, bool enabled)
+        {
+            var state = BuildState();
+            var caster = AddUnit(state, "caster", TeamSide.Player, FormationSlot.Front);
+            // Process the recipient first so newly spread poison cannot tick in this test.
+            var adjacent = AddUnit(state, "adjacent", TeamSide.Enemy, FormationSlot.Front);
+            var victim = AddUnit(state, "victim", TeamSide.Enemy, FormationSlot.Middle);
+            adjacent.Hp = adjacent.MaxHp = victim.Hp = victim.MaxHp = 500;
+            var events = new List<BattleEvent>();
+            if (enabled)
+                StatusRules.ApplyStatus(state, caster, StatusCatalog.PlagueSpread, 100, -1, events);
+            StatusRules.ApplyStatus(state, victim, StatusCatalog.Poison,
+                timedFirst ? 2 : 5, timedFirst ? 3 : -1, events);
+            StatusRules.ApplyStatus(state, victim, StatusCatalog.Poison,
+                timedFirst ? 5 : 2, timedFirst ? -1 : 3, events);
+
+            StatusRules.ProcessTurnStartStatuses(state, events, new BattleRng(42));
+
+            Assert.AreEqual(493, victim.Hp);
+            Assert.AreEqual(500, adjacent.Hp);
+            Assert.AreEqual(enabled ? 3 : 0, StatusRules.GetStatusStacks(adjacent, StatusCatalog.Poison));
+            var permanent = 0;
+            var timed = 0;
+            foreach (var status in adjacent.Statuses)
+            {
+                if (status.StatusId != StatusCatalog.Poison)
+                    continue;
+                if (status.RemainingTurns == -1)
+                    permanent += status.Stacks;
+                else
+                {
+                    Assert.AreEqual(3, status.RemainingTurns);
+                    timed += status.Stacks;
+                }
+            }
+            Assert.AreEqual(enabled ? 2 : 0, permanent);
+            Assert.AreEqual(enabled ? 1 : 0, timed);
+        }
 
         static CombatantState AddUnit(
             BattleState state,

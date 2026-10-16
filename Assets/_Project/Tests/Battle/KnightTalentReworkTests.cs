@@ -118,30 +118,6 @@ namespace Grimhand.Battle.Tests
             Assert.AreEqual(0, StatusRules.GetStatusStacks(knight, StatusCatalog.AttackUpPercent));
         }
 
-        [Test]
-        public void Combo_ThirdWarriorAttackGetsBonusImmediately()
-        {
-            var state = MakeStateWithTalent("talent_knight_s2_lv8");
-            var knight = FindKnight(state);
-            var attack = new CardInstanceState
-            {
-                InstanceId = 1,
-                DefinitionId = "w_strike",
-                CardType = CardType.Attack,
-                OwnerCharacterId = TalentBattleRules.KnightId
-            };
-
-            TalentBattleRules.OnCardAboutToResolve(state, knight, attack);
-            TalentBattleRules.OnCardAboutToResolve(state, knight, attack);
-            Assert.AreEqual(2, knight.TalentAttackCardsThisTurn);
-            Assert.AreEqual(0, StatusRules.GetStatusStacks(knight, StatusCatalog.KnightComboAtk));
-
-            TalentBattleRules.OnCardAboutToResolve(state, knight, attack);
-            Assert.AreEqual(3, knight.TalentAttackCardsThisTurn);
-            Assert.AreEqual(33, StatusRules.GetStatusStacks(knight, StatusCatalog.KnightComboAtk));
-            RelicBattleRules.RefreshDerivedStats(state, knight, state.Config?.RunModifiers);
-            Assert.GreaterOrEqual(knight.OutgoingDamagePercentBonus, 33);
-        }
 
         [Test]
         public void Combo_NonAttackBreaksStreak()

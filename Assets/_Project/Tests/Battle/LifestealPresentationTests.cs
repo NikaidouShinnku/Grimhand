@@ -17,6 +17,7 @@ namespace Grimhand.Battle.Tests
             var demon = AddUnit(state, "demon", TeamSide.Player, FormationSlot.Front, hp: 20, maxHp: 30, atk: 10);
             var enemy = AddUnit(state, "enemy", TeamSide.Enemy, FormationSlot.Front, hp: 30, def: 0);
             var card = CardWith(ActionAtk(4, 50, lifestealPercent: 100));
+            state.ResolutionTargets[card.InstanceId] = enemy.Id;
             var events = new List<BattleEvent>();
 
             EffectActionExecutor.ExecuteAll(state, demon, card, events, new BattleRng(1));

@@ -628,9 +628,11 @@ namespace Grimhand.Battle.Rules
 
         /// <summary>瘟疫蔓延：敌人因中毒受伤时，30%概率将一半层数传染给相邻敌人。</summary>
         public static void TryTriggerPlagueSpreadOnPoisonTick(
-            BattleState state, CombatantState victim, List<BattleEvent> events, BattleRng rng)
+            BattleState state, CombatantState victim, List<BattleEvent> events, BattleRng rng,
+            int poisonStacks, int poisonDuration)
         {
-            if (state == null || victim == null || victim.Team != TeamSide.Enemy || rng == null)
+            if (state == null || victim == null || victim.Team != TeamSide.Enemy || rng == null
+                || poisonStacks <= 0)
                 return;
             var caster = FindAliveWithStatus(state, TeamSide.Player, StatusCatalog.PlagueSpread);
             if (caster == null)
@@ -640,16 +642,12 @@ namespace Grimhand.Battle.Rules
                         ? plague.Stacks
                         : PlagueSpreadChancePercent))
                 return;
-            var poison = StatusRules.FindStatus(victim, StatusCatalog.Poison);
-            if (poison == null || poison.Stacks <= 0)
-                return;
-            var spreadStacks = Math.Max(1, poison.Stacks / 2);
-            var duration = poison.RemainingTurns;
+            var spreadStacks = Math.Max(1, poisonStacks / 2);
             var adjacent = CollectAdjacentAliveEnemies(state, victim);
             if (adjacent.Count == 0)
                 return;
             var spreadTarget = adjacent[rng.NextIndex(adjacent.Count)];
-            StatusRules.ApplyStatus(state, spreadTarget, StatusCatalog.Poison, spreadStacks, duration, events);
+            StatusRules.ApplyStatus(state, spreadTarget, StatusCatalog.Poison, spreadStacks, poisonDuration, events);
             events.Add(new BattleEvent(BattleEventKind.StatusApplied, $"瘟疫蔓延：传染 {spreadStacks} 层中毒")
             {
                 CombatantId = spreadTarget.Id,

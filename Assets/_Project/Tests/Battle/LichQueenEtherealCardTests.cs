@@ -121,6 +121,7 @@ namespace Grimhand.Battle.Tests
                 Value = 10
             });
             state.CardsById[20] = enemyAtk;
+            state.ResolutionTargets[20] = lich.Id;
             state.LastAction = new LastActionSnapshot(enemy.Id, ActionKind.Attack, lich.Id, false, 10);
 
             RespondEffectExecutor.Execute(

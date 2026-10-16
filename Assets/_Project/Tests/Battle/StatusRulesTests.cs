@@ -124,7 +124,7 @@ namespace Grimhand.Battle.Tests
         }
 
         [Test]
-        public void PermanentThenTimed_KeepsPermanent()
+        public void PermanentThenTimed_ExpireIndependently()
         {
             var state = new BattleState();
             var target = new CombatantState { Id = "e1", Hp = 20, MaxHp = 20 };
@@ -134,7 +134,12 @@ namespace Grimhand.Battle.Tests
             StatusRules.ApplyStatus(state, target, StatusCatalog.Poison, 5, -1, events);
             StatusRules.ApplyStatus(state, target, StatusCatalog.Poison, 2, 3, events);
 
-            Assert.AreEqual(7, target.Statuses[0].Stacks);
+            Assert.AreEqual(7, StatusRules.GetStatusStacks(target, StatusCatalog.Poison));
+            Assert.AreEqual(2, target.Statuses.Count);
+            for (var turn = 0; turn < 3; turn++)
+                StatusRules.ProcessTurnStartDurations(state, events);
+            Assert.AreEqual(5, StatusRules.GetStatusStacks(target, StatusCatalog.Poison));
+            Assert.AreEqual(1, target.Statuses.Count);
             Assert.AreEqual(-1, target.Statuses[0].RemainingTurns);
         }
 
@@ -149,7 +154,7 @@ namespace Grimhand.Battle.Tests
                 RemainingTurns = 2
             });
 
-            Assert.AreEqual(6, StatusRules.GetEffectiveSpeed(combatant));
+            Assert.AreEqual(7, StatusRules.GetEffectiveSpeed(combatant));
         }
     }
 }

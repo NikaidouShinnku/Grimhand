@@ -7,7 +7,7 @@ namespace Grimhand.Battle.Tests
     public class CardPreviewRulesTests
     {
         [Test]
-        public void ExpectedDamage_IncludesAttackerPositionOutgoing()
+        public void ExpectedDamage_HasNoUniversalAttackerPositionBonus()
         {
             var state = BuildState();
             var owner = AddPlayer(state, FormationSlot.Back, attack: 0);
@@ -16,26 +16,9 @@ namespace Grimhand.Battle.Tests
             var action = card.Actions[0];
             var preview = CardPreviewRules.ComputeExpectedDamage(state, owner, card, action);
 
-            Assert.AreEqual(13, preview);
+            Assert.AreEqual(10, preview);
         }
 
-        [Test]
-        public void ExpectedDamage_IncludesRelicFlatAndPercentBonuses()
-        {
-            var state = BuildState();
-            state.Config.RunModifiers.FirstAttackFlatBonus = 5;
-            state.Config.RunModifiers.HighCostCardDamageBonusPercent = 15f;
-            state.Config.RunModifiers.FirstPlayerAttackPending = true;
-
-            var owner = AddPlayer(state, FormationSlot.Middle, attack: 4);
-            var card = AttackCard(value: 6, cost: 3);
-
-            var preview = CardPreviewRules.ComputeExpectedDamage(
-                state, owner, card, card.Actions[0]);
-
-            // (6+4)*1.15 high-cost → 12, +5 flat → 17, *1.15 middle → 20
-            Assert.AreEqual(20, preview);
-        }
 
         [Test]
         public void ExpectedDamage_DoesNotDependOnEnemySlot()
@@ -54,7 +37,7 @@ namespace Grimhand.Battle.Tests
                 state, owner, card, card.Actions[0]);
 
             Assert.AreEqual(previewFront, previewBack);
-            Assert.AreEqual(12, previewFront);
+            Assert.AreEqual(10, previewFront);
         }
 
         static BattleState BuildState()

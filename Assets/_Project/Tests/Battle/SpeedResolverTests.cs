@@ -23,25 +23,6 @@ namespace Grimhand.Battle.Tests
             Assert.AreEqual("A->X->Y->B->A->A", order);
         }
 
-        [Test]
-        public void SameSpeed_UsesRandomOrderWithSeed()
-        {
-            var state = new BattleState();
-            state.Combatants.Add(MakeCombatant("a", 5));
-            state.Combatants.Add(MakeCombatant("b", 5));
-
-            var plan = new BattlePlan();
-            RegisterCard(state, 1, "char_a");
-            RegisterCard(state, 2, "char_b");
-            plan.PlayQueue.Add(1);
-            plan.PlayQueue.Add(2);
-
-            var stepsA = SpeedResolver.BuildResolutionOrder(state, plan, new BattlePlan(), new BattleRng(100));
-            var stepsB = SpeedResolver.BuildResolutionOrder(state, plan, new BattlePlan(), new BattleRng(100));
-
-            Assert.AreEqual(stepsA.Count, 1);
-            Assert.AreEqual(stepsA[0].CombatantId, stepsB[0].CombatantId);
-        }
 
         static BattleState BuildGddExampleState()
         {

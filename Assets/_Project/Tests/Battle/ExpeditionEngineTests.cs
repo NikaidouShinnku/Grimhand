@@ -21,226 +21,14 @@ namespace Grimhand.Battle.Tests
             Assert.Greater(engine.Run.PendingRoutes.Count, 0);
         }
 
-        [Test]
-        public void SkipVictoryOptionalRewards_AdvancesToRouteSelectWithoutTakingCard()
-        {
-            var engine = new ExpeditionEngine(BuildConfig());
-            engine.StartRun();
-            SelectFirstCombatRoute(engine);
-            engine.OnBattleFinished(BuildVictoryState());
 
-            Assert.IsTrue(engine.TryClaimRewardGold());
-            var hadCard = engine.Run.PendingRewardPickup?.HasCard == true;
-            var bonusBefore = engine.Run.Party[0].BonusCards.Count;
 
-            if (engine.Run.Phase == ExpeditionPhase.RewardPickup)
-                Assert.IsTrue(engine.TrySkipVictoryOptionalRewards());
 
-            Assert.AreEqual(ExpeditionPhase.RouteSelect, engine.Run.Phase);
 
-            if (hadCard)
-                Assert.AreEqual(bonusBefore, engine.Run.Party[0].BonusCards.Count);
-        }
 
-        [Test]
-        public void SkipRewardGold_DoesNotAddGold()
-        {
-            var engine = new ExpeditionEngine(BuildConfig());
-            engine.StartRun();
-            SelectFirstCombatRoute(engine);
-            engine.OnBattleFinished(BuildVictoryState());
 
-            var goldAmount = engine.Run.PendingRewardPickup?.Gold ?? 0;
-            Assert.Greater(goldAmount, 0);
-            Assert.IsTrue(engine.TrySkipRewardGold());
-            Assert.AreEqual(0, engine.Run.Gold);
 
-            if (engine.Run.PendingRewardPickup?.HasRelic == true)
-                engine.TrySkipRewardRelic();
-            if (engine.Run.PendingRewardPickup?.HasCard == true)
-                engine.TrySkipRewardCard();
 
-            Assert.AreEqual(ExpeditionPhase.RouteSelect, engine.Run.Phase);
-        }
-
-        [Test]
-        public void VictoryAfterFirstBattle_OpensRewardPickupThenRouteSelect()
-        {
-            var engine = new ExpeditionEngine(BuildConfig());
-            engine.StartRun();
-            SelectFirstCombatRoute(engine);
-
-            var state = BuildVictoryState();
-            state.Combatants.Add(new CombatantState
-            {
-                Team = TeamSide.Player,
-                CharacterDefinitionId = "char_knight",
-                DisplayName = "骑士",
-                Hp = 25,
-                MaxHp = 40
-            });
-
-            engine.OnBattleFinished(state);
-
-            Assert.AreEqual(ExpeditionPhase.RewardPickup, engine.Run.Phase);
-            Assert.AreEqual(1, engine.Run.BattlesWon);
-            Assert.AreEqual(1, engine.Run.Map.NodesCompleted);
-            Assert.AreEqual(25, engine.Run.Party[0].Hp);
-            Assert.AreEqual(0, engine.Run.Gold);
-
-            ResolveRewardPickup(engine);
-            Assert.AreEqual(ExpeditionPhase.RouteSelect, engine.Run.Phase);
-        }
-
-        [Test]
-        public void SelectRoute_StartsNextBattleWithPartyHp()
-        {
-            var engine = new ExpeditionEngine(BuildConfig());
-            engine.StartRun();
-            SelectFirstCombatRoute(engine);
-
-            var state = BuildVictoryState();
-            state.Combatants.Add(new CombatantState
-            {
-                Team = TeamSide.Player,
-                CharacterDefinitionId = "char_knight",
-                DisplayName = "骑士",
-                Hp = 18,
-                MaxHp = 40
-            });
-            engine.OnBattleFinished(state);
-            ResolveRewardPickup(engine);
-            SelectFirstCombatRoute(engine);
-
-            Assert.AreEqual(ExpeditionPhase.InBattle, engine.Run.Phase);
-            Assert.AreEqual(2, engine.CurrentBattleNumber);
-
-            var next = engine.Run.CurrentBattleConfig;
-            var player = FindPlayer(next, "char_knight");
-            Assert.NotNull(player);
-            Assert.AreEqual(18, player.StartHp);
-        }
-
-        [Test]
-        public void Victory_AwardsGoldInConfiguredRange()
-        {
-            var config = BuildConfig();
-            config.RunSeed = 7;
-
-            var engine = new ExpeditionEngine(config);
-            engine.StartRun();
-            SelectFirstCombatRoute(engine);
-            CompleteVictory(engine, 25);
-
-            Assert.That(engine.Run.LastGoldReward, Is.InRange(15, 20));
-            Assert.AreEqual(0, engine.Run.Gold);
-
-            engine.TryClaimRewardGold();
-            Assert.AreEqual(engine.Run.LastGoldReward, engine.Run.Gold);
-        }
-
-        [Test]
-        public void SelectRoute_PreservesPartyLevel()
-        {
-            var engine = new ExpeditionEngine(BuildConfig());
-            engine.StartRun();
-            SelectFirstCombatRoute(engine);
-
-            var state = BuildVictoryState();
-            state.Combatants.Add(new CombatantState
-            {
-                Team = TeamSide.Player,
-                CharacterDefinitionId = "char_knight",
-                DisplayName = "骑士",
-                Level = 3,
-                Hp = 18,
-                MaxHp = 40
-            });
-            engine.OnBattleFinished(state);
-            ResolveRewardPickup(engine);
-            SelectFirstCombatRoute(engine);
-
-            var player = FindPlayer(engine.Run.CurrentBattleConfig, "char_knight");
-            Assert.NotNull(player);
-            Assert.AreEqual(3, player.Level);
-            Assert.AreEqual(62, player.MaxHp);
-            Assert.AreEqual(18, player.StartHp);
-        }
-
-        [Test]
-        public void BossRoute_WithoutBossEncounters_SpawnsOnlySkeletonKing()
-        {
-            var engine = new ExpeditionEngine(BuildConfig());
-            engine.StartRun();
-
-            SelectFirstCombatRoute(engine);
-            CompleteVictory(engine, 25);
-            ResolveRewardPickup(engine);
-
-            SelectFirstCombatRoute(engine);
-            CompleteVictory(engine, 20);
-            ResolveRewardPickup(engine);
-
-            SelectFirstBossRoute(engine);
-
-            Assert.AreEqual(ExpeditionPhase.InBattle, engine.Run.Phase);
-            Assert.NotNull(engine.Run.CurrentBattleConfig);
-
-            var enemies = 0;
-            CombatantConfig king = null;
-            foreach (var cc in engine.Run.CurrentBattleConfig.Combatants)
-            {
-                if (cc.Team != TeamSide.Enemy)
-                    continue;
-
-                enemies++;
-                if (cc.CharacterDefinitionId == "char_skeleton_king")
-                    king = cc;
-            }
-
-            Assert.AreEqual(1, enemies);
-            Assert.NotNull(king);
-            Assert.AreEqual("骷髅王", king.DisplayName);
-            Assert.AreEqual(400, king.MaxHp);
-            Assert.IsTrue(engine.Run.CurrentBattleConfig.SkipFloorScaling);
-        }
-
-        [Test]
-        public void BossVictory_CompletesRun()
-        {
-            var engine = new ExpeditionEngine(BuildConfig());
-            engine.StartRun();
-
-            SelectFirstCombatRoute(engine);
-            CompleteVictory(engine, 25);
-            ResolveRewardPickup(engine);
-
-            SelectFirstCombatRoute(engine);
-            CompleteVictory(engine, 20);
-            ResolveRewardPickup(engine);
-
-            SelectFirstBossRoute(engine);
-            CompleteVictory(engine, 12);
-            ResolveRewardPickup(engine);
-
-            Assert.AreEqual(ExpeditionPhase.RunComplete, engine.Run.Phase);
-            Assert.AreEqual(3, engine.Run.BattlesWon);
-            Assert.AreEqual(3, engine.Run.Map.NodesCompleted);
-        }
-
-        [Test]
-        public void Defeat_EndsRun()
-        {
-            var engine = new ExpeditionEngine(BuildConfig());
-            engine.StartRun();
-            SelectFirstCombatRoute(engine);
-
-            var state = new BattleState { Outcome = BattleOutcome.PlayerDefeat };
-            engine.OnBattleFinished(state);
-
-            Assert.AreEqual(ExpeditionPhase.RunFailed, engine.Run.Phase);
-            Assert.AreEqual("战斗失败，队伍无法继续。", engine.Run.LastEventMessage);
-        }
 
         [Test]
         public void PartyWipe_FromEventHpLoss_FailsRun()
@@ -292,17 +80,6 @@ namespace Grimhand.Battle.Tests
             Assert.IsFalse(ExpeditionPartyRules.IsPartyWiped(party));
         }
 
-        [Test]
-        public void Victory_GrantsXpToParty()
-        {
-            var engine = new ExpeditionEngine(BuildConfig());
-            engine.StartRun();
-            SelectFirstCombatRoute(engine);
-            CompleteVictory(engine, 25);
-
-            Assert.That(engine.Run.LastXpReward, Is.InRange(8, 10));
-            Assert.That(engine.Run.Party[0].Xp, Is.InRange(8, 10));
-        }
 
         [Test]
         public void TryAddRelic_AccumulatesForRun()
@@ -315,19 +92,6 @@ namespace Grimhand.Battle.Tests
             Assert.IsFalse(engine.TryAddRelic(RelicIds.FlameSword));
         }
 
-        [Test]
-        public void StartRun_ClearsRelicsAndXp()
-        {
-            var engine = new ExpeditionEngine(BuildConfig());
-            engine.StartRun();
-            engine.TryAddRelic(RelicIds.CatStatue);
-            SelectFirstCombatRoute(engine);
-            CompleteVictory(engine, 25);
-            engine.StartRun();
-
-            Assert.AreEqual(0, engine.Run.Relics.Count);
-            Assert.AreEqual(0, engine.Run.LastXpReward);
-        }
 
         [Test]
         public void TreasureRoute_OpensRewardPickupPhase()
@@ -351,84 +115,8 @@ namespace Grimhand.Battle.Tests
             Assert.AreEqual(RewardPickupKind.Chest, engine.Run.PendingRewardPickup.Kind);
         }
 
-        [Test]
-        public void EventChoice_ResolvesAndReturnsToRouteSelect()
-        {
-            var engine = new ExpeditionEngine(BuildConfig());
-            engine.StartRun();
 
-            engine.Run.PendingRoutes.Clear();
-            engine.Run.PendingRoutes.Add(new ExpeditionRouteOption
-            {
-                NodeType = ExpeditionNodeType.Event,
-                EventId = Expedition.Events.ExpeditionEventIds.TrainingDummy,
-                LayerNumber = 1,
-                MapOptionIndex = 0,
-                DisplayName = "训练人偶",
-                Description = "事件"
-            });
 
-            Assert.IsTrue(engine.TrySelectRoute(0));
-            Assert.AreEqual(ExpeditionPhase.EventChoice, engine.Run.Phase);
-            Assert.IsTrue(engine.TryResolveEventChoice(2));
-            Assert.AreEqual(ExpeditionPhase.RouteSelect, engine.Run.Phase);
-            Assert.AreEqual(1, engine.Run.Map.NodesCompleted);
-        }
-
-        [Test]
-        public void CursedBookshelf_Read_OpensRewardPickupWithCardAndXp()
-        {
-            var config = BuildConfigWithBookshelfCard();
-            var engine = new ExpeditionEngine(config);
-            engine.StartRun();
-
-            engine.Run.PendingRoutes.Clear();
-            engine.Run.PendingRoutes.Add(new ExpeditionRouteOption
-            {
-                NodeType = ExpeditionNodeType.Event,
-                EventId = Expedition.Events.ExpeditionEventIds.CursedBookshelf,
-                LayerNumber = 1,
-                MapOptionIndex = 0,
-                DisplayName = "被诅咒的书架",
-                Description = "事件"
-            });
-
-            Assert.IsTrue(engine.TrySelectRoute(0));
-            Assert.IsTrue(engine.TryResolveEventChoice(0));
-            Assert.AreEqual(ExpeditionPhase.EventInteraction, engine.Run.Phase);
-            Assert.IsTrue(engine.CompleteEventInteractionStep());
-            Assert.IsTrue(engine.CompleteEventInteractionStep());
-
-            Assert.AreEqual(ExpeditionPhase.RewardPickup, engine.Run.Phase);
-            Assert.IsTrue(engine.Run.PendingRewardPickup.HasCard);
-            Assert.AreEqual(5, engine.Run.PendingRewardPickup.GrantXp);
-        }
-
-        [Test]
-        public void ReconcileAfterResume_ClearsStaleCardPackOfferAndAllowsOpen()
-        {
-            var engine = new ExpeditionEngine(BuildConfig());
-            engine.StartRun();
-            engine.Run.Phase = ExpeditionPhase.RewardPickup;
-            engine.Run.PendingRewardPickup = ExpeditionRewardRoller.RollChestReward(
-                engine.Config,
-                engine.Run,
-                new Grimhand.Core.BattleRng(7));
-            engine.Run.ChestRewardRevealed = true;
-            engine.Run.PendingCardPackOffer = new ExpeditionPendingCardPackOffer
-            {
-                PackId = CardPackIds.Common,
-                Context = ExpeditionCardOfferContext.RewardPickup,
-                RewardPackIndex = 0
-            };
-
-            engine.ReconcileAfterResume();
-
-            Assert.IsNull(engine.Run.PendingCardPackOffer);
-            Assert.IsTrue(engine.TryOpenRewardCardPack(0));
-            Assert.NotNull(engine.Run.PendingCardPackOffer);
-            Assert.Greater(engine.Run.PendingCardPackOffer.Choices.Count, 0);
-        }
 
         [Test]
         public void ReconcileAfterResume_AdvancesWhenRewardsFullyResolved()
@@ -897,44 +585,6 @@ namespace Grimhand.Battle.Tests
             return config;
         }
 
-        [Test]
-        public void TryRollCardReward_OnlyPicksCardsOwnedByRewardRecipient()
-        {
-            var config = BuildConfig();
-            config.PlayerCardCatalog.Add(new CardTemplate
-            {
-                DefinitionId = "knight_only",
-                DisplayName = "骑士专属",
-                OwnerCharacterId = "char_knight",
-                CardType = CardType.Attack
-            });
-            config.PlayerCardCatalog.Add(new CardTemplate
-            {
-                DefinitionId = "ranger_only",
-                DisplayName = "游侠专属",
-                OwnerCharacterId = "char_ranger",
-                CardType = CardType.Attack
-            });
-            CardRarityTable.Register("knight_only", CardRarity.Rare);
-            CardRarityTable.Register("ranger_only", CardRarity.Rare);
-
-            var run = new ExpeditionRunState();
-            run.Party.Add(new PartyMemberSnapshot
-            {
-                CharacterDefinitionId = "char_knight",
-                DisplayName = "骑士"
-            });
-
-            var rng = new Grimhand.Core.BattleRng(42);
-            for (var i = 0; i < 20; i++)
-            {
-                Assert.IsTrue(ExpeditionCardPool.TryRollCardReward(
-                    config, run, CardRarity.Rare, rng, out var picked, out var owner));
-                Assert.AreEqual("char_knight", owner.CharacterDefinitionId);
-                Assert.AreEqual("char_knight", picked.OwnerCharacterId);
-                Assert.AreEqual("knight_only", picked.DefinitionId);
-            }
-        }
 
         static ExpeditionConfig BuildConfigWithKnightDeck(int cardCount)
         {

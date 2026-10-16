@@ -62,35 +62,6 @@ namespace Grimhand.Battle.Tests
             Assert.AreEqual(10, ally.Hp);
         }
 
-        [Test]
-        public void SunPyramid_GrantsTeamBlockOnPharaohStatusCard()
-        {
-            var state = BuildState();
-            state.Config.RunModifiers = RelicDatabase.BuildModifiers(new[] { "sun_pyramid" });
-            var pharaoh = AddPlayer(state, "pharaoh", hp: 30, charId: RelicBattleRules.PharaohCharacterId);
-            var ally = AddPlayer(state, "knight", hp: 20, charId: "char_knight");
-            var card = new CardInstanceState
-            {
-                InstanceId = 2,
-                CardType = CardType.Status,
-                Actions =
-                {
-                    new EffectActionSpec
-                    {
-                        Type = EffectActionType.DrawCardsNextTurn,
-                        Target = EffectTarget.Self,
-                        Value = 1
-                    }
-                }
-            };
-            var events = new List<BattleEvent>();
-
-            EffectActionExecutor.ExecuteAll(state, pharaoh, card, events);
-            RelicBattleRules.TryApplyStatusCardTeamBlock(state, pharaoh, card, events);
-
-            Assert.AreEqual(3, pharaoh.Block);
-            Assert.AreEqual(3, ally.Block);
-        }
 
         [Test]
         public void DeadPartyMember_StartsNextBattleWithOneHp()

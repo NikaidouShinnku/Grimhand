@@ -1,0 +1,116 @@
+{
+  "poses": [
+    {
+      "pose": "idle",
+      "file": "art/idle.png",
+      "canvas": [
+        1024,
+        1024
+      ],
+      "logicalGrid": [
+        128,
+        128
+      ],
+      "bboxLogical": [
+        30,
+        15,
+        114,
+        119
+      ],
+      "alpha": "binary0/255",
+      "status": "候选；未Unity验收"
+    },
+    {
+      "pose": "attack",
+      "file": "art/attack.png",
+      "canvas": [
+        1024,
+        1024
+      ],
+      "logicalGrid": [
+        128,
+        128
+      ],
+      "bboxLogical": [
+        11,
+        33,
+        118,
+        113
+      ],
+      "alpha": "binary0/255",
+      "status": "候选；未Unity验收"
+    },
+    {
+      "pose": "defend",
+      "file": "art/defend.png",
+      "canvas": [
+        1024,
+        1024
+      ],
+      "logicalGrid": [
+        128,
+        128
+      ],
+      "bboxLogical": [
+        21,
+        12,
+        118,
+        117
+      ],
+      "alpha": "binary0/255",
+      "status": "候选；未Unity验收"
+    },
+    {
+      "pose": "defeat",
+      "file": "art/defeat.png",
+      "canvas": [
+        1024,
+        1024
+      ],
+      "logicalGrid": [
+        128,
+        128
+      ],
+      "bboxLogical": [
+        11,
+        23,
+        118,
+        115
+      ],
+      "alpha": "binary0/255",
+      "status": "候选；未Unity验收"
+    },
+    {
+      "pose": "hit",
+      "file": "art/hit.png",
+      "canvas": [
+        1024,
+        1024
+      ],
+      "logicalGrid": [
+        128,
+        128
+      ],
+      "bboxLogical": [
+        9,
+        17,
+        120,
+        117
+      ],
+      "alpha": "binary0/255",
+      "status": "候选；未Unity验收"
+    }
+  ],
+  "styleReview": "已检查小块眼睛、无白牙/痛苦漫画表情，五姿态与原角色对照；尚不等于Unity整体验收。",
+  "openIssues": [
+    "五图采用相同画布变换，动态脚底对齐尚未完成",
+    "细节轮廓和色阶仍需在游戏实际尺寸核对",
+    "三张新橙卡的专属状态图标目前只有语义方案，尚未绘制"
+  ],
+  "icons": {
+    "rage": "已提供32和128像素候选",
+    "duel": "方案",
+    "berserker_soul": "方案",
+    "burning_standard": "方案"
+  }
+}

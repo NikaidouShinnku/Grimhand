@@ -98,6 +98,16 @@ namespace Grimhand.Battle.Rules
                     if (!c.IsAlive)
                         continue;
 
+                    if (card.DefinitionId == "b_guard_partner" && c.Id == owner.Id)
+                        continue;
+
+                    var duel = BerserkerRules.DuelTarget(state, owner, card);
+                    if (side == TargetPickSide.Enemy && duel != null)
+                    {
+                        if (c.Id == duel.Id) result.Add(c);
+                        continue;
+                    }
+
                     if (!TargetReachRules.CanPickUnit(state, card, c, owner))
                         continue;
 

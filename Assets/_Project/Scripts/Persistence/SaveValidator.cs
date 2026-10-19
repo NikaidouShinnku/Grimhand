@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Globalization;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
 
@@ -27,6 +28,9 @@ namespace Grimhand.Persistence
                 error = $"accountGold 非法: {dto.accountGold}";
                 return false;
             }
+
+            if (dto.saveVersion >= 8 && !TryValidateAchievements(dto, out error))
+                return false;
 
             if (dto.collectionCapacity < context.MinCollectionCapacity
                 || dto.collectionCapacity > context.MaxCollectionCapacity)
@@ -80,6 +84,48 @@ namespace Grimhand.Persistence
                 }
             }
 
+            return true;
+        }
+
+        static bool TryValidateAchievements(PlayerProfileSaveData dto, out string error)
+        {
+            error = "";
+            if (dto.completedEngravings < 0)
+            {
+                error = "completedEngravings must be nonnegative.";
+                return false;
+            }
+
+            var account = dto.achievementSteamAccountId;
+            if (!string.IsNullOrEmpty(account) && (account.Length > 20
+                || !ulong.TryParse(account, NumberStyles.None, CultureInfo.InvariantCulture, out var steamId)
+                || steamId == 0))
+            {
+                error = "achievementSteamAccountId must be empty or a positive unsigned 64-bit ID.";
+                return false;
+            }
+
+            if (dto.achievementIds == null) return true;
+            if (dto.achievementIds.Length > 4096)
+            {
+                error = "Too many achievement IDs.";
+                return false;
+            }
+            foreach (var id in dto.achievementIds)
+            {
+                // No catalog whitelist: unknown IDs must survive version changes.
+                if (string.IsNullOrWhiteSpace(id) || id.Length > 256)
+                {
+                    error = "Achievement IDs must contain 1–256 characters.";
+                    return false;
+                }
+                foreach (var ch in id)
+                    if (char.IsControl(ch))
+                    {
+                        error = "Achievement IDs cannot contain control characters.";
+                        return false;
+                    }
+            }
             return true;
         }
 

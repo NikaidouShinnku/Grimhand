@@ -11,7 +11,7 @@ namespace Grimhand.Presentation.Camp
         public static readonly IReadOnlyList<string> PlayableCharacterIds = new[]
         {
             "char_knight", "char_mage", "char_ranger",
-            "char_snake_queen", "char_lich_queen"
+            "char_snake_queen", "char_lich_queen", "char_berserker"
         };
 
         public static CampRosterState CreateDefault(

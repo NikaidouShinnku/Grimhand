@@ -160,7 +160,7 @@ namespace Grimhand.Presentation.Battle
             var merged = new Dictionary<string, int>();
             foreach (var entry in entries)
             {
-                if (entry.Stacks <= 0 || string.IsNullOrEmpty(entry.StatusId))
+                if ((entry.Stacks <= 0 && entry.StatusId != "berserker_rage") || string.IsNullOrEmpty(entry.StatusId))
                     continue;
 
                 if (!merged.ContainsKey(entry.StatusId))
@@ -317,6 +317,8 @@ namespace Grimhand.Presentation.Battle
 
         static string FormatStackLabel(string statusId, int stacks)
         {
+            if (statusId == "berserker_rage") return $"{stacks}/4";
+            if(statusId.StartsWith("berserker_"))return "";
             if (stacks <= 0)
                 return "";
 

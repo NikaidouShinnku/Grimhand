@@ -13,7 +13,7 @@ namespace Grimhand.Persistence
             if (profile?.Meta?.Characters == null || string.IsNullOrEmpty(characterId))
                 return false;
 
-            return profile.Meta.Characters.ContainsKey(characterId);
+            return CharacterUnlockRules.IsUnlocked(profile.Meta, characterId) && profile.Meta.Characters.ContainsKey(characterId);
         }
 
         public static bool HasOwnedCard(PlayerProfileState profile, string cardId)

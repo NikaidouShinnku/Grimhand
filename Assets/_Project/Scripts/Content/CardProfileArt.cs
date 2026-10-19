@@ -21,6 +21,7 @@ namespace Grimhand.Content
             ["char_ranger"] = "card_profile_devil",
             ["char_snake_queen"] = "card_profile_snakequeen",
             ["char_lich_queen"] = "card_profile_lichqueen",
+            ["char_berserker"] = "card_profile_berserker",
             ["char_goblin"] = "card_profile_goblin",
             ["char_slime"] = "card_profile_slime",
             ["char_skeleton"] = "card_profile_skeleton",
@@ -52,6 +53,8 @@ namespace Grimhand.Content
 
         public static string GetAssetPath(string characterDefinitionId)
         {
+            if (characterDefinitionId == "char_berserker")
+                return "Assets/The Grimhands Asset/characters/berserker/card_profile.png";
             if (string.IsNullOrEmpty(characterDefinitionId))
                 return null;
             if (!CharacterIdToFileStem.TryGetValue(characterDefinitionId, out var stem))

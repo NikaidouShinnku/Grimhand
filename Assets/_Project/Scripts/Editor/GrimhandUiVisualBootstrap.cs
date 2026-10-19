@@ -270,6 +270,7 @@ namespace Grimhand.Editor
                     IconRoot + "lichqueen_delayed_damage.png",
                     "lichqueen_delayed_damage_0")
                 ?? LoadFirstSprite(IconRoot + "lichqueen_delayed_damage.png");
+            catalog.StatusBerserkerRage = LoadFirstSprite("Assets/The Grimhands Asset/characters/berserker/rage.png");
 
             EditorUtility.SetDirty(catalog);
         }

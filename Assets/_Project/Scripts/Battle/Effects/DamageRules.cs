@@ -182,6 +182,12 @@ namespace Grimhand.Battle.Effects
 
             var killed = wasAlive && !recipient.IsAlive;
 
+            if (killed)
+            {
+                state.AchievementTelemetry.DirectKill(actor, recipient, sourceCardInstanceId);
+                state.AchievementTelemetry.Died(state, recipient);
+            }
+
             events.Add(new BattleEvent(BattleEventKind.DamageApplied, $"{actor.DisplayName} -> {recipient.DisplayName}{logSuffix}")
             {
                 CombatantId = actor.Id,
@@ -198,6 +204,9 @@ namespace Grimhand.Battle.Effects
             });
 
             // 深渊被动上毒等：必须在 DamageApplied 之后，保证演出「伤害 → 中毒」
+            if (hpDamage > 0)
+                BerserkerRules.IncomingAttack(state, actor, recipient, hpDamage, sourceCardInstanceId, isSacrificeDamage, events);
+
             if (hpDamage > 0)
                 MinionTraitRules.OnDamageDealt(state, actor, recipient, hpDamage, events);
 
@@ -230,6 +239,7 @@ namespace Grimhand.Battle.Effects
 
             if (killed)
             {
+                BerserkerRules.Killed(state, actor, recipient, sourceCardInstanceId, events);
                 events.Add(new BattleEvent(BattleEventKind.CharacterDied, recipient.DisplayName)
                 {
                     CombatantId = recipient.Id
@@ -281,6 +291,11 @@ namespace Grimhand.Battle.Effects
             }
 
             var killed = wasAlive && !recipient.IsAlive;
+            if (killed)
+            {
+                state.AchievementTelemetry.DirectKill(actor, recipient, sourceCardInstanceId);
+                state.AchievementTelemetry.Died(state, recipient);
+            }
             var actorName = actor?.DisplayName ?? "真实伤害";
             events.Add(new BattleEvent(BattleEventKind.DamageApplied, $"{actorName} -> {recipient.DisplayName}（真实）")
             {
@@ -365,6 +380,13 @@ namespace Grimhand.Battle.Effects
             afterDamage?.Invoke(amount);
             if (!target.IsAlive && CombatMechanicsRules.TryPreventDeathWithReviveBlessing(state, target, events))
                 return amount;
+            if (!target.IsAlive)
+            {
+                if (target.Team == TeamSide.Enemy && statusId == StatusCatalog.Poison
+                    && !state.AchievementTelemetry.DeadEnemyIds.Contains(target.Id))
+                    state.AchievementTelemetry.PoisonKilled();
+                state.AchievementTelemetry.Died(state, target);
+            }
             if (amount > 0)
             {
                 target.HitThisTurn = true;
@@ -536,6 +558,7 @@ namespace Grimhand.Battle.Effects
                 // v0.9 分血仪式：恶魔回复HP时治疗其他我方30%
                 PassiveCardMechanicsRules.TryTriggerBloodSharingOnHeal(state, actor, healed, events);
                 V091MechanicsRules.OnHealApplied(state, actor, healed, events, healer);
+                BerserkerRules.Healed(state, actor, healer, healed, events);
             }
 
             if (overflow > 0)

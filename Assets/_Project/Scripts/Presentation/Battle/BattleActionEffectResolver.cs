@@ -14,6 +14,7 @@ namespace Grimhand.Presentation.Battle
             return characterDefinitionId switch
             {
                 "char_knight" or "char_warrior" => catalog.WarriorDamage,
+                "char_berserker" => catalog.BerserkerDamage,
                 "char_mage" or "char_pharaoh" => catalog.PharaohDamage,
                 "char_ranger" or "char_demon" => catalog.DevilDamage,
                 "char_snake_queen" or "char_viper_queen" => catalog.SnakeQueenDamage,

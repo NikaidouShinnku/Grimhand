@@ -13,6 +13,121 @@ namespace Grimhand.Battle.Planning
         readonly List<BattleEvent> _events;
         readonly List<int> _selectedQueue = new();
         readonly Dictionary<int, string> _targetByCard = new();
+        readonly Dictionary<string, CardInstanceState> _spectralByOwner = new();
+        readonly Dictionary<int, BerserkerRagePayment> _reservedRage = new();
+        public bool UseRageForCosts => true;
+        public bool TrySetUseRageForCosts(bool enabled)
+        {
+            // Kept for existing callers; a live standard cannot be switched off.
+            return enabled && _state.Phase == TurnPhase.Planning && _selectedQueue.Count == 0;
+        }
+        public int ReservedRage
+        {
+            get { var n = 0; foreach (var p in _reservedRage.Values) n += p.Amount; return n; }
+        }
+        public int GetRageCost(CardInstanceState card)
+        {
+            if (card == null) return 0;
+            if (_reservedRage.TryGetValue(card.InstanceId,out var reserved)) return reserved.Amount;
+            return PreviewRagePayment(card,GetBasePlayCost(card))?.Amount ?? 0;
+        }
+        BerserkerRagePayment PreviewRagePayment(CardInstanceState card, int cost)
+        {
+            if (!UseRageForCosts || cost <= 0 || CardPowerRules.UsesRemainingEnergyCost(card)) return null;
+            foreach (var owner in _state.Combatants)
+            {
+                var b = BerserkerRules.Get(_state, owner);
+                if (!owner.IsAlive || !BerserkerRules.BannerActive(_state, b)) continue;
+                var reserved = 0;
+                foreach (var p in _reservedRage.Values) if (p.OwnerId == owner.Id) reserved += p.Amount;
+                var amount = Math.Min(Math.Min(2, cost), b.Rage - reserved);
+                if (amount > 0) return new BerserkerRagePayment { OwnerId = owner.Id, Amount = amount };
+            }
+            return null;
+        }
+        public void PayRageReservations()
+        {
+            foreach (var cardId in _selectedQueue)
+            {
+                if (!_reservedRage.TryGetValue(cardId, out var payment)) continue;
+                var owner = _state.GetCombatant(payment.OwnerId);
+                var b = BerserkerRules.Get(_state, owner);
+                BerserkerRules.ChangeRage(_state, owner, -payment.Amount, _events, "战旗抵扣");
+                payment.Emptied = b.Rage == 0;
+                _state.BerserkerRagePayments[cardId] = payment;
+            }
+            _reservedRage.Clear();
+        }
+        public bool ValidateRageReservations()
+        {
+            var totals = new Dictionary<string,int>();
+            foreach (var p in _reservedRage.Values)
+            { if (!totals.ContainsKey(p.OwnerId)) totals[p.OwnerId] = 0; totals[p.OwnerId] += p.Amount; }
+            foreach (var pair in totals)
+            {
+                var owner = _state.GetCombatant(pair.Key);
+                var b = BerserkerRules.Get(_state, owner);
+                if (owner?.IsAlive != true || !BerserkerRules.BannerActive(_state,b) || b.Rage < pair.Value) return false;
+            }
+            return true;
+        }
+        public bool TryPayQuickStartRage(CardInstanceState card, out int energyCost)
+        {
+            energyCost = GetPlayCost(card);
+            if (!EnergyRules.CanAfford(_state.EnergyCurrent,energyCost)) return false;
+            var p = PreviewRagePayment(card,GetBasePlayCost(card));
+            if (p != null)
+            {
+                var owner = _state.GetCombatant(p.OwnerId);
+                BerserkerRules.ChangeRage(_state,owner,-p.Amount,_events,"战旗抵扣");
+                p.Emptied = BerserkerRules.Get(_state,owner).Rage == 0;
+                _state.BerserkerRagePayments[card.InstanceId] = p;
+            }
+            return true;
+        }
+        public void RevalidateAfterQuickStart()
+        {
+            if (!ValidateRageReservations()) RefundAllSelections();
+            SyncSpectralPlays(); CascadeDeselectInvalidHolyInfusions();
+        }
+
+        public IReadOnlyList<CardInstanceState> GetDisplayedHand()
+        {
+            var result = new List<CardInstanceState>();
+            foreach (var card in _state.PlayerHand)
+            {
+                result.Add(card);
+                foreach (var spectral in _spectralByOwner.Values)
+                    if (spectral.SpectralRepeatSourceId == card.InstanceId) result.Add(spectral);
+            }
+            return result;
+        }
+
+        void SyncSpectralPlays()
+        {
+            var first = new Dictionary<string, CardInstanceState>();
+            foreach (var id in _selectedQueue)
+            {
+                var card = _state.GetCard(id);
+                if (!BerserkerSoulRules.IsEligible(card)) continue;
+                var owner = _state.GetCombatant(PositionRules.GetOwnerCombatantId(_state, card));
+                if (BerserkerSoulRules.IsActive(_state, owner) && !first.ContainsKey(owner.Id)) first.Add(owner.Id, card);
+            }
+            foreach (var ownerId in new List<string>(_spectralByOwner.Keys))
+            {
+                var old = _spectralByOwner[ownerId];
+                if (first.TryGetValue(ownerId, out var source) && source.InstanceId == old.SpectralRepeatSourceId)
+                { BerserkerSoulRules.RefreshSpectral(_state,old); continue; }
+                if (_awaitingTargetCardId == old.InstanceId) CancelAwaitingTarget();
+                DeselectSingleCard(old.InstanceId);
+                _targetByCard.Remove(old.InstanceId);
+                _state.CardsById.Remove(old.InstanceId);
+                _spectralByOwner.Remove(ownerId);
+            }
+            foreach (var pair in first)
+                if (!_spectralByOwner.ContainsKey(pair.Key))
+                    _spectralByOwner.Add(pair.Key, BerserkerSoulRules.CreateSpectral(_state, pair.Value));
+        }
         int? _awaitingTargetCardId;
         bool _awaitingQuickStartResolve;
         int? _pendingQuickStartInstanceId;
@@ -282,6 +397,7 @@ namespace Grimhand.Battle.Planning
             if (!DeselectSingleCard(instanceId))
                 return false;
 
+            SyncSpectralPlays();
             CascadeDeselectInvalidHolyInfusions();
             return true;
         }
@@ -294,10 +410,17 @@ namespace Grimhand.Battle.Planning
 
             var card = _state.GetCard(instanceId);
             if (card == null)
-                return false;
+            {
+                _selectedQueue.RemoveAt(index); _targetByCard.Remove(instanceId); _reservedRage.Remove(instanceId);
+                if (_state.EnergySpentByCardInstanceId.TryGetValue(instanceId,out var paid))
+                { _state.EnergyCurrent += paid; _state.EnergySpentByCardInstanceId.Remove(instanceId); }
+                EmitEnergyEvent(BattleEventKind.CardDeselectedFromPlay,"取消已失效的再次使用",instanceId);
+                return true;
+            }
 
             _selectedQueue.RemoveAt(index);
             _targetByCard.Remove(instanceId);
+            _reservedRage.Remove(instanceId);
 
             var refund = 0;
             if (_state.EnergySpentByCardInstanceId.TryGetValue(instanceId, out var spentCost))
@@ -358,8 +481,10 @@ namespace Grimhand.Battle.Planning
                 if (card == null)
                     continue;
 
-                var cost = GetPlayCost(card);
+                var cost = _state.EnergySpentByCardInstanceId.TryGetValue(cardId, out var actualPaid)
+                    ? actualPaid : GetPlayCost(card);
                 plan.EnergySpent += cost;
+                plan.EnergySpentPerCard[cardId] = cost;
                 if (CardPowerRules.UsesRemainingEnergyCost(card)
                     && _state.EnergySpentByCardInstanceId.TryGetValue(cardId, out var spent))
                     plan.EnergySpentPerCard[cardId] = spent;
@@ -373,8 +498,13 @@ namespace Grimhand.Battle.Planning
             return plan;
         }
 
-        public void Reset()
+        public void Reset(bool preserveCommittedSpectralCards = false)
         {
+            foreach (var spectral in _spectralByOwner.Values)
+                if (!preserveCommittedSpectralCards || !_selectedQueue.Contains(spectral.InstanceId))
+                    _state.CardsById.Remove(spectral.InstanceId);
+            _spectralByOwner.Clear();
+            _reservedRage.Clear();
             _selectedQueue.Clear();
             _targetByCard.Clear();
             _awaitingTargetCardId = null;
@@ -395,6 +525,9 @@ namespace Grimhand.Battle.Planning
             var ownerId = PositionRules.GetOwnerCombatantId(_state, card);
             var owner = ownerId != null ? _state.GetCombatant(ownerId) : null;
             var cost = GetPlayCost(card);
+            var rawCost = GetBasePlayCost(card);
+            var ragePayment = PreviewRagePayment(card, rawCost);
+            if (ragePayment != null) _reservedRage[instanceId] = ragePayment;
 
             _selectedQueue.Add(instanceId);
             _state.EnergyCurrent -= cost;
@@ -402,6 +535,7 @@ namespace Grimhand.Battle.Planning
             _state.EnergySpentByCardInstanceId[instanceId] = cost;
             ConsumeTalentDiscountIfApplied(owner, card, cost);
             EmitEnergyEvent(BattleEventKind.CardSelectedForPlay, card.DisplayName, instanceId);
+            SyncSpectralPlays();
         }
 
         void EmitEnergyEvent(BattleEventKind kind, string message, int cardInstanceId)
@@ -445,7 +579,9 @@ namespace Grimhand.Battle.Planning
             if (!c.IsUsable)
                 return false;
 
-            if (!_state.PlayerHand.Contains(c))
+            if (!_state.PlayerHand.Contains(c) && (c.SpectralRepeatSourceId == 0
+                || !_selectedQueue.Contains(c.SpectralRepeatSourceId)
+                || !new List<CardInstanceState>(_spectralByOwner.Values).Contains(c)))
                 return false;
 
             var ownerId = PositionRules.GetOwnerCombatantId(_state, c);
@@ -458,6 +594,8 @@ namespace Grimhand.Battle.Planning
 
             if (CardLockRules.ShouldBlockPlayerCardPlanning(owner, c))
                 return false;
+            if (!BerserkerRules.CanPlay(_state, owner, c) || BerserkerRules.PendingRecall(_state) != null)
+                return false;
 
             if (CardLockRules.QueueBlocksOwnerCard(_state, _selectedQueue, owner, c))
                 return false;
@@ -469,6 +607,15 @@ namespace Grimhand.Battle.Planning
         }
 
         public int GetPlayCost(CardInstanceState card)
+        {
+            if (card != null && _selectedQueue.Contains(card.InstanceId)
+                && _state.EnergySpentByCardInstanceId.TryGetValue(card.InstanceId, out var paid)) return paid;
+            var raw = GetBasePlayCost(card);
+            var payment = PreviewRagePayment(card, raw);
+            return raw - (payment?.Amount ?? 0);
+        }
+
+        int GetBasePlayCost(CardInstanceState card)
         {
             if (card == null)
                 return 0;

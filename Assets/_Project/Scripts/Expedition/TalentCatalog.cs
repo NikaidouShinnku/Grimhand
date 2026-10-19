@@ -11,6 +11,8 @@ namespace Grimhand.Expedition
         public const string RangerId = "char_ranger";
         public const string SnakeQueenId = "char_snake_queen";
         public const string LichQueenId = "char_lich_queen";
+        public const string BerserkerId = "char_berserker";
+        public const string BerserkerRageDescription = "越战越勇：受到敌方攻击并实际损失HP后获得1点狂怒，同一张敌牌仅触发一次，此来源每回合最多2点。狂怒上限4，从第2回合起回合开始流失1点；毒、灼烧、反伤、自伤、献祭及友伤不触发。";
 
         public static readonly IReadOnlyList<string> PlayableCharacterIds = new[]
         {
@@ -18,7 +20,8 @@ namespace Grimhand.Expedition
             MageId,
             RangerId,
             SnakeQueenId,
-            LichQueenId
+            LichQueenId,
+            BerserkerId
         };
 
         static readonly List<TalentDefinition> All = BuildAll();
@@ -66,6 +69,17 @@ namespace Grimhand.Expedition
             list.AddRange(BuildRanger());
             list.AddRange(BuildSnakeQueen());
             list.AddRange(BuildLichQueen());
+            list.Add(Def(BerserkerId, 1, 1, "talent_berserker_s1_lv1", "余烬", "每场战斗开始时获得1点狂怒。"));
+            list.Add(Def(BerserkerId, 1, 3, "talent_berserker_s1_lv3", "钢铁怒意", "成功应对敌方攻击时额外获得1点狂怒，每张应对牌每次使用触发一次，不占受击获取额度。"));
+            list.Add(Def(BerserkerId, 1, 7, "talent_berserker_s1_lv7", "踏阵", "每次与其他角色成功交换位置时获得1点狂怒。"));
+            list.Add(Def(BerserkerId, 1, 9, "talent_berserker_s1_lv9", "压住杀意", "本回合未使用裂斧的攻击牌时，下回合开始不自然流失狂怒。"));
+            list.Add(Def(BerserkerId, 2, 4, "talent_berserker_s2_lv4", "乘胜", "裂斧用实际消耗过狂怒的攻击牌击败敌人后，返还1点狂怒；每回合最多一次，整张AOE也最多一次。"));
+            list.Add(Def(BerserkerId, 2, 6, "talent_berserker_s2_lv6", "凿甲", "每回合首次通过攻击牌消耗至少2点狂怒时，在伤害前移除该牌所有攻击目标各6护甲；同一目标不因多段攻击重复触发。"));
+            list.Add(Def(BerserkerId, 2, 8, "talent_berserker_s2_lv8", "并肩", "每回合首次被其他友方实际治疗HP时，获得1点狂怒；不计自疗、溢出治疗，不重复计联动回调。"));
+            list.Add(Def(BerserkerId, 2, 10, "talent_berserker_s2_lv10", "留有后招", "每回合首次通过卡牌把狂怒从正数耗至0后，下回合开始额外抽1张牌。费用抵扣也只计一次。"));
+            foreach (var talent in list)
+                if (talent.CharacterId == BerserkerId && talent.Slot == 1)
+                    talent.Description = BerserkerRageDescription + "\n额外效果：" + talent.Description;
             return list;
         }
 

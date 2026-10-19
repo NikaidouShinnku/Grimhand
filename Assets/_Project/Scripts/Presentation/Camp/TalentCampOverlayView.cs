@@ -17,7 +17,7 @@ namespace Grimhand.Presentation.Camp
     [DisallowMultipleComponent]
     public sealed class TalentCampOverlayView : MonoBehaviour
     {
-        const int LayoutVersion = 24;
+        const int LayoutVersion = 25;
         const float TemplateW = 1672f;
         const float TemplateH = 941f;
         const float ButtonHoverScale = 1.06f;
@@ -25,9 +25,7 @@ namespace Grimhand.Presentation.Camp
         // 符文边长略放大，仍贴近模板圆槽
         const float RuneSizePx = 85f;
         // 切换角色缩略图：从第 2 个起逐个右移；恶魔 / 毒蛇 / 巫妖再略右
-        const float ThumbProgressiveShift = 0.014f;
-        const float ThumbExtraShiftDemon = 0.028f;
-        const float ThumbExtraShiftSnakeLich = 0.032f;
+        const int CharactersPerPage = 5;
         // 大立绘：毒蛇女王 / 巫妖女王略右移，落入拱形框中心
         const float PortraitExtraShiftDemon = 0.016f;
         const float PortraitExtraShiftSnakeLich = 0.022f;
@@ -45,7 +43,7 @@ namespace Grimhand.Presentation.Camp
         static readonly Vector4 ZoneCharPrev = new(0.038f, 0.095f, 0.070f, 0.200f);
         static readonly Vector4 ZoneCharNext = new(0.316f, 0.095f, 0.348f, 0.200f);
         // 缩略图落入模板五框（略上移）
-        static readonly Vector4 ZoneCharThumbs = new(0.078f, 0.078f, 0.288f, 0.235f);
+        static readonly Vector4 ZoneCharThumbs = new(0.078f, 0.110f, 0.308f, 0.220f);
         // 槽位标题：右下微调，落入石柱顶帽中心
         static readonly Vector4 ZoneSlot1Header = new(0.418f, 0.778f, 0.578f, 0.826f);
         static readonly Vector4 ZoneSlot2Header = new(0.706f, 0.778f, 0.866f, 0.826f);
@@ -347,6 +345,10 @@ namespace Grimhand.Presentation.Camp
             rt.sizeDelta = new Vector2(520f, 110f);
 
             var tipImg = _tooltipPanel.GetComponent<Image>();
+            tipImg.raycastTarget = false;
+            var tooltipGroup = _tooltipPanel.AddComponent<CanvasGroup>();
+            tooltipGroup.blocksRaycasts = false;
+            tooltipGroup.interactable = false;
             if (_uiIcons != null && _uiIcons.UiInformationPlate != null)
             {
                 tipImg.sprite = _uiIcons.UiInformationPlate;
@@ -391,7 +393,11 @@ namespace Grimhand.Presentation.Camp
             if (_ownedCharacters.Count == 0)
                 return;
 
-            _selectedIndex = (_selectedIndex + delta + _ownedCharacters.Count) % _ownedCharacters.Count;
+            var berserkerIndex=_ownedCharacters.FindIndex(c=>c.CharacterId==TalentCatalog.BerserkerId);
+            var pageCount=berserkerIndex>=0?2:1;
+            var currentPage=_ownedCharacters[_selectedIndex].CharacterId==TalentCatalog.BerserkerId?1:0;
+            var page=(currentPage+delta+pageCount)%pageCount;
+            _selectedIndex=page==1?berserkerIndex:0;
             HideTooltip();
             RefreshAll();
         }
@@ -428,6 +434,7 @@ namespace Grimhand.Presentation.Camp
             // 大立绘播 idle；下方缩略图只用静态 GetPortrait，不绑动画
             _portraitAnimator?.Bind(_portraitImage, _characterVisuals, character.CharacterId, animate: true);
             _nameText.text = character.DisplayName;
+            _nameText.raycastTarget = false;
             _levelText.text = $"Lv.{progress.OutOfRunLevel}";
             RefreshXpBar(progress);
             RebuildThumbs();
@@ -458,22 +465,17 @@ namespace Grimhand.Presentation.Camp
             if (_thumbHost == null)
                 return;
 
-            var count = _ownedCharacters.Count;
-            for (var i = 0; i < count; i++)
+            var berserkerPage=_ownedCharacters[_selectedIndex].CharacterId==TalentCatalog.BerserkerId;
+            for (var i = 0; i < _ownedCharacters.Count; i++)
             {
                 var character = _ownedCharacters[i];
+                if((character.CharacterId==TalentCatalog.BerserkerId)!=berserkerPage)continue;
                 var go = CampUiRuntime.CreateRect($"Thumb_{i}", _thumbHost);
                 var rt = go.GetComponent<RectTransform>();
-                var x0 = i / (float)count;
-                var x1 = (i + 1) / (float)count;
-                var shift = i * ThumbProgressiveShift;
-                // 恶魔 / 毒蛇女王 / 巫妖女王：缩略图再略右，对准格子中心
-                if (character.CharacterId == TalentCatalog.RangerId)
-                    shift += ThumbExtraShiftDemon;
-                else if (character.CharacterId == TalentCatalog.SnakeQueenId
-                         || character.CharacterId == TalentCatalog.LichQueenId)
-                    shift += ThumbExtraShiftSnakeLich;
-                CampUiRuntime.SetAnchored(rt, x0 + 0.015f + shift, 0.06f, x1 - 0.015f + shift, 0.98f);
+                var slot = berserkerPage?0:IndexOfPlayable(character.CharacterId);
+                var x0 = slot / (float)CharactersPerPage;
+                var x1 = (slot + 1) / (float)CharactersPerPage;
+                CampUiRuntime.SetAnchored(rt, x0 + 0.015f, 0.06f, x1 - 0.015f, 0.98f);
 
                 var img = go.AddComponent<Image>();
                 img.color = Color.white;
@@ -515,14 +517,15 @@ namespace Grimhand.Presentation.Camp
 
             var talents = TalentCatalog.GetSlotTalents(characterId, slot);
             var runeSprite = _uiIcons != null ? _uiIcons.TalentRunePlate : null;
-            var rows = Mathf.Min(TalentRowsPerSlot, talents.Count);
+            var rows = talents.Count;
+            var rowCount = characterId == TalentCatalog.BerserkerId ? rows : Mathf.Max(TalentRowsPerSlot, rows);
 
             for (var i = 0; i < rows; i++)
             {
                 var talent = talents[i];
                 var state = TalentRules.GetCardState(talent, progress);
-                var t0 = 1f - (i + 1) / (float)TalentRowsPerSlot;
-                var t1 = 1f - i / (float)TalentRowsPerSlot;
+                var t0 = 1f - (i + 1) / (float)rowCount;
+                var t1 = 1f - i / (float)rowCount;
 
                 var row = CampUiRuntime.CreateRect($"Talent_{talent.Id}", host);
                 CampUiRuntime.StretchFull(row.GetComponent<RectTransform>());
@@ -701,6 +704,7 @@ namespace Grimhand.Presentation.Camp
                     list.Add(fromSetup);
             }
 
+            list.RemoveAll(c => !CharacterUnlockRules.IsUnlocked(_meta, c.CharacterId));
             list.Sort((a, b) => IndexOfPlayable(a.CharacterId).CompareTo(IndexOfPlayable(b.CharacterId)));
             return list;
         }
@@ -759,6 +763,7 @@ namespace Grimhand.Presentation.Camp
 
             var zone = ZonePortrait;
             var shift = 0f;
+            if (characterId == TalentCatalog.BerserkerId) shift = 0.010f;
             if (characterId == TalentCatalog.RangerId)
                 shift = PortraitExtraShiftDemon;
             else if (characterId == TalentCatalog.SnakeQueenId
@@ -833,8 +838,9 @@ namespace Grimhand.Presentation.Camp
             var y1 = Lerp(colZone.y, colZone.w, t1);
             var cy = (y0 + y1) * 0.5f;
             var cx = (colZone.x + colZone.z) * 0.5f;
-            var nw = RuneSizePx / TemplateW;
-            var nh = RuneSizePx / TemplateH;
+            var size = Mathf.Min(RuneSizePx, (y1 - y0) * TemplateH * 0.94f);
+            var nw = size / TemplateW;
+            var nh = size / TemplateH;
             CampUiRuntime.SetAnchored(rt, cx - nw * 0.5f, cy - nh * 0.5f, cx + nw * 0.5f, cy + nh * 0.5f);
         }
 

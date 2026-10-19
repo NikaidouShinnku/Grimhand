@@ -86,6 +86,11 @@ namespace Grimhand.Persistence
                 v09SandSpearExhaustCardsPlayed = run.V09SandSpearExhaustCardsPlayed,
                 chestRewardRevealed = run.ChestRewardRevealed,
                 isTutorialRun = run.IsTutorialRun,
+                wasAbandoned = run.WasAbandoned,
+                achievementsDisabled = run.AchievementsDisabled,
+                achievementRelicEvolved = run.AchievementRelicEvolved,
+                isTrainingGround = run.IsTrainingGround,
+                achievementBattleStartConsumableCount = run.AchievementBattleStartConsumableCount,
                 modifiers = ToModifiersDto(run.Modifiers),
                 map = ToMapDto(run.Map),
                 pendingRewardPickup = ToRewardPickupDto(run.PendingRewardPickup),
@@ -152,7 +157,12 @@ namespace Grimhand.Persistence
                 V09ExpeditionRespondSuccessCount = dto.v09ExpeditionRespondSuccessCount,
                 V09SandSpearExhaustCardsPlayed = dto.v09SandSpearExhaustCardsPlayed,
                 ChestRewardRevealed = dto.chestRewardRevealed,
-                IsTutorialRun = dto.isTutorialRun
+                IsTutorialRun = dto.isTutorialRun,
+                WasAbandoned = dto.wasAbandoned,
+                AchievementsDisabled = dto.achievementsDisabled || dto.isTutorialRun || dto.isTrainingGround || config?.MapStartLayer > 1,
+                AchievementRelicEvolved = dto.achievementRelicEvolved,
+                IsTrainingGround = dto.isTrainingGround,
+                AchievementBattleStartConsumableCount = dto.achievementBattleStartConsumableCount
             };
 
             FromModifiersDto(dto.modifiers, run.Modifiers);

@@ -1,0 +1,7 @@
+# Five biome creatures
+
+Mode: built-in imagegen, generate. Original atlas copied to `assets/creatures-v4.png`.
+
+Exact prompt:
+
+Create a game creature portrait atlas: exactly FIVE equal square panels in one horizontal row, no gaps, no text, no borders, each creature centered with generous margins. Original dark fairytale collectible card illustration, highly detailed hand painted gouache, readable strong silhouettes, luminous eyes, intricate textured anatomy, background nearly black teal. Panel 1 grassland reed-crowned ambush creature: squat seedpod body, six wooden legs, elaborate grass crest, spiral seed cannon mouth, pale green gold. Panel 2 snow creature: manta-like ice glider with four feathered icy fins, translucent blue crystalline ribs, navy face and white antlers. Panel 3 volcano furnace beetle: broad armored obsidian beetle with layered copper shell plates, luminous furnace abdomen, six stout legs, smoke vents. Panel 4 demon realm prismatic wandering entity: floating asymmetrical purple glass polyhedron with several silver mask fragments orbiting, turquoise inner eye and ribbon-like limbs. Panel 5 blood realm crimson parasitic beast: sinewy low quadruped with branching coral antlers, rose-red translucent vascular sac, pale segmented face, long hooked tail. Charming yet menacing, original designs, no existing franchise creatures, no logos. All five distinct and equally detailed. Wide atlas 5:1 aspect ratio.

@@ -233,6 +233,8 @@ namespace Grimhand.Presentation.Battle
                     nameText.text = "[刻] " + name;
                 else
                     nameText.text = name;
+                if (card.SpectralRepeatSourceId > 0)
+                    nameText.text = "[再战] " + name;
                 nameText.color = Color.white;
                 nameText.fontStyle = FontStyle.Bold;
                 nameText.fontSize = NameFontSize;
@@ -682,6 +684,8 @@ namespace Grimhand.Presentation.Battle
 
         void ApplyVisualState(bool immediate = false)
         {
+            if (canvasGroup != null && CurrentCard?.SpectralRepeatSourceId > 0)
+                canvasGroup.alpha = _interactable ? 0.68f : 0.45f;
             // 不用半透明白框盖住卡面；选中改用描边高亮
             if (selectedHighlight != null)
                 selectedHighlight.gameObject.SetActive(false);

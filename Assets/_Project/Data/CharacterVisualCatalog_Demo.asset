@@ -399,3 +399,15 @@ MonoBehaviour:
     IdleAnimationGifPath: The Grimhands Asset/monsters/corrupted oceangoddess/corrupted_oceangoddess_idle_anime.gif
     PreserveOriginalFacing: 1
     PortraitScaleMultiplier: 1
+  - CharacterId: char_berserker
+    IdlePortrait: {fileID: 3487072548980614720, guid: fe62eda31e15b084084e57ff469fdb99, type: 3}
+    AttackPortrait: {fileID: 21300000, guid: e388aa7d3980985439269c893a57100e, type: 3}
+    DefensePortrait: {fileID: 21300000, guid: c706abba3810b6742af28e3cb3724579, type: 3}
+    HitPortrait: {fileID: 21300000, guid: 9a10066b0d325d34388bbfb52e42a8a4, type: 3}
+    HitPortraitFacesRight: 1
+    DeathPortrait: {fileID: 21300000, guid: aa4dc5ae95ad72348b5f1ed4c1641aee, type: 3}
+    CardProfilePortrait: {fileID: 2538593606731888658, guid: 5efec38b0d5de984b9e4049686e15348, type: 3}
+    IdleAnimationFrames: []
+    IdleAnimationGifPath: The Grimhands Asset/characters/berserker/berserker_anim.gif
+    PreserveOriginalFacing: 1
+    PortraitScaleMultiplier: 1

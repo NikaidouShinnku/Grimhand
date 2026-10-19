@@ -427,7 +427,7 @@ namespace Grimhand.Presentation.Camp
                     _profile.Collection,
                     _profile.CollectionCapacity,
                     _config,
-                    _characterIds,
+                    CharacterUnlockRules.CollectUnlocked(_profile.Meta, _characterIds),
                     offer.PackId,
                     _rng,
                     out _pendingPack,

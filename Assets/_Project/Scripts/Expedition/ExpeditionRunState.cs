@@ -76,6 +76,10 @@ namespace Grimhand.Expedition
 
         /// <summary>新手教程短途远征：固定节点与教学提示。</summary>
         public bool IsTutorialRun { get; set; }
+        public bool WasAbandoned { get; set; }
+        public bool AchievementsDisabled { get; set; }
+        public bool AchievementRelicEvolved { get; set; }
+        public int AchievementBattleStartConsumableCount { get; set; }
 
         /// <summary>本局已成功刻印过的牌实例 Id（不可再刻）。</summary>
         public HashSet<string> EngravedDeckInstanceIds { get; } = new();

@@ -1,0 +1,178 @@
+[
+  {
+    "file": "art/unity-png/berserker_attack_contact.png",
+    "width": 1792,
+    "height": 1536,
+    "alphaExtrema": [
+      0,
+      255
+    ],
+    "bbox": [
+      24,
+      432,
+      1584,
+      1408
+    ],
+    "sha256": "13d6ee3ad014babf5d7d15529730ae6e7a36663b1d61c5bca98e2c1a1d5f5d2f"
+  },
+  {
+    "file": "art/unity-png/berserker_attack_followthrough.png",
+    "width": 1792,
+    "height": 1536,
+    "alphaExtrema": [
+      0,
+      255
+    ],
+    "bbox": [
+      56,
+      424,
+      1560,
+      1416
+    ],
+    "sha256": "ee8f61657f11e64ce9f3fbf7bcb54280e0a32a178ec76cdf80d0df3d41f33fab"
+  },
+  {
+    "file": "art/unity-png/berserker_attack_windup.png",
+    "width": 1792,
+    "height": 1536,
+    "alphaExtrema": [
+      0,
+      255
+    ],
+    "bbox": [
+      112,
+      288,
+      1280,
+      1344
+    ],
+    "sha256": "b07c259c1bc0d243cc8665197d35c0437f8a121d59f39ef19eb760ffd991857c"
+  },
+  {
+    "file": "art/unity-png/berserker_card_profile.png",
+    "width": 568,
+    "height": 728,
+    "alphaExtrema": [
+      0,
+      255
+    ],
+    "bbox": [
+      0,
+      32,
+      544,
+      728
+    ],
+    "sha256": "a3d2c4f658e2197b537d1a1c84ea05d2cf00f8716fc322639b4bd2d62cfde964"
+  },
+  {
+    "file": "art/unity-png/berserker_death.png",
+    "width": 1792,
+    "height": 1536,
+    "alphaExtrema": [
+      0,
+      255
+    ],
+    "bbox": [
+      160,
+      528,
+      1568,
+      1392
+    ],
+    "sha256": "270b0039073d69d59d48cbff1d608fb33cfca739ef2f11111ca90715a277a1f1"
+  },
+  {
+    "file": "art/unity-png/berserker_defense.png",
+    "width": 1792,
+    "height": 1536,
+    "alphaExtrema": [
+      0,
+      255
+    ],
+    "bbox": [
+      328,
+      256,
+      1208,
+      1352
+    ],
+    "sha256": "cf6ec2122c8f6f055be2fc273739bfb0ab19ceb1961cae483b1eca2da03077ff"
+  },
+  {
+    "file": "art/unity-png/berserker_hit.png",
+    "width": 1792,
+    "height": 1536,
+    "alphaExtrema": [
+      0,
+      255
+    ],
+    "bbox": [
+      416,
+      352,
+      1520,
+      1360
+    ],
+    "sha256": "870c7a76632282b10f7e31684bd11f7cd582901275244f95b2b9693673772de9"
+  },
+  {
+    "file": "art/unity-png/berserker_idle.png",
+    "width": 1792,
+    "height": 1536,
+    "alphaExtrema": [
+      0,
+      255
+    ],
+    "bbox": [
+      536,
+      320,
+      1424,
+      1352
+    ],
+    "sha256": "ca48106059cb85bf000f52f75907a5b406713fcbdaacf0aecac9867126140d07"
+  },
+  {
+    "file": "art/unity-png/berserker_idle_00.png",
+    "width": 1792,
+    "height": 1536,
+    "alphaExtrema": [
+      0,
+      255
+    ],
+    "bbox": [
+      536,
+      320,
+      1424,
+      1352
+    ],
+    "sha256": "ca48106059cb85bf000f52f75907a5b406713fcbdaacf0aecac9867126140d07"
+  },
+  {
+    "file": "art/unity-png/berserker_idle_01.png",
+    "width": 1792,
+    "height": 1536,
+    "alphaExtrema": [
+      0,
+      255
+    ],
+    "bbox": [
+      536,
+      320,
+      1424,
+      1352
+    ],
+    "sha256": "aafa880d43a1add32e1ce66adca9aad85f4fd772d97d9259b011555f141174ea"
+  },
+  {
+    "file": "art/unity-png/berserker_rage_icon.png",
+    "width": 128,
+    "height": 128,
+    "alphaExtrema": [
+      0,
+      255
+    ],
+    "bbox": [
+      0,
+      0,
+      128,
+      128
+    ],
+    "sha256": "6207376d7c0a5552a7c54864f653cabfe0dd740a648beb6987689bf5a384355f"
+  }
+]

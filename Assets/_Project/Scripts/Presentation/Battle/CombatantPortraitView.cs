@@ -595,6 +595,8 @@ namespace Grimhand.Presentation.Battle
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
             rt.anchoredPosition = Vector2.zero;
+            if(_team==TeamSide.Player)
+                PlayerPortraitLayout.Apply(portraitRoot,portraitImage,_visuals,_characterDefinitionId,portraitImage.sprite);
         }
 
         IEnumerator IdleLoop(IReadOnlyList<Sprite> frames)

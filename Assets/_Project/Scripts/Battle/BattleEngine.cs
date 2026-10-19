@@ -158,6 +158,8 @@ namespace Grimhand.Battle
 
         public bool CommitPlayerPlan()
         {
+            if (BerserkerRules.PendingRecall(_state) != null) return false;
+            if (!Draft.ValidateRageReservations()) { Draft.RefundAllSelections(); return false; }
             if (_state.Phase != TurnPhase.Planning)
                 return false;
 
@@ -169,6 +171,7 @@ namespace Grimhand.Battle
 
         public bool SkipPlayerTurn()
         {
+            if (BerserkerRules.PendingRecall(_state) != null) return false;
             if (_state.Phase != TurnPhase.Planning)
                 return false;
 
@@ -200,9 +203,9 @@ namespace Grimhand.Battle
                 && !_state.ResolutionTargets.ContainsKey(instanceId))
                 return false;
 
-            var cost = TalentBattleRules.GetEffectivePlayCost(_state, owner, card);
-            cost = V09NewMechanicsRules.AdjustPlayCostForHandCostZero(_state, owner, cost);
-            if (!EnergyRules.CanAfford(_state.EnergyCurrent, cost))
+            if (!BerserkerRules.CanPlay(_state,owner,card) || BerserkerRules.PendingRecall(_state) != null)
+                return false;
+            if (!Draft.TryPayQuickStartRage(card, out var cost))
                 return false;
 
             _state.EnergyCurrent -= cost;
@@ -212,6 +215,7 @@ namespace Grimhand.Battle
             _state.PlayerHand.Remove(card);
 
             ResolveCardImmediately(owner, card);
+            Draft.RevalidateAfterQuickStart();
 
             foreach (var c in _state.Combatants)
             {
@@ -248,7 +252,7 @@ namespace Grimhand.Battle
 
             PassiveCardMechanicsRules.ApplyEndlessBladeSacrifice(_state, actor, card, _events, _rng);
 
-            PrepareCardResolution(actor, card);
+            card = PrepareCardResolution(actor, card);
 
             if (SpecialCardRules.IsSpecialCard(card))
                 SpecialCardRules.TryResolve(_state, actor, card, _events, _rng);
@@ -341,7 +345,7 @@ namespace Grimhand.Battle
 
             PassiveCardMechanicsRules.ApplyEndlessBladeSacrifice(_state, actor, card, _events, _rng);
 
-            PrepareCardResolution(actor, card);
+            card = PrepareCardResolution(actor, card);
 
             if (SpecialCardRules.IsSpecialCard(card))
                 SpecialCardRules.TryResolve(_state, actor, card, _events, _rng);
@@ -374,6 +378,7 @@ namespace Grimhand.Battle
         bool CommitPlanInternal(string message, BattleEventKind kind)
         {
             var plan = Draft.CommitToPlan();
+            Draft.PayRageReservations();
             _state.PlayerPlan.PlayQueue.Clear();
             _state.PlayerPlan.PlayQueue.AddRange(plan.PlayQueue);
             _state.PlayerPlan.EnergySpent = plan.EnergySpent;
@@ -410,7 +415,7 @@ namespace Grimhand.Battle
                 EnergyRemaining = _state.EnergyCurrent
             });
 
-            Draft.Reset();
+            Draft.Reset(preserveCommittedSpectralCards: true);
             _draft = new PlanningDraft(_state, _events);
 
             ResolveTurn();
@@ -511,7 +516,7 @@ namespace Grimhand.Battle
                 CardType = card.CardType
             });
 
-            PrepareCardResolution(actor, card);
+            card = PrepareCardResolution(actor, card);
 
             // 敌方应对牌：减伤已在攻击前预武装；此处只播应对成功，勿重复武装
             if (actor.Team == TeamSide.Enemy && RespondRules.IsRespondCard(card))
@@ -653,6 +658,18 @@ namespace Grimhand.Battle
             if (actor == null || card == null || !actor.IsAlive)
                 return;
 
+            if (!BerserkerSoulRules.CanResolveRepeat(_state, card))
+            {
+                CardLockRules.SkipLockedPlayerCard(_state, actor, card, _events, "原攻击未能执行，再战取消");
+                return;
+            }
+            if (!BerserkerRules.CanPlay(_state, actor, card))
+            {
+                CardLockRules.SkipLockedPlayerCard(_state, actor, card, _events, "狂怒不足或已改为战旗供能");
+                return;
+            }
+            BerserkerSoulRules.RefreshSpectral(_state, card);
+
             if (CardLockRules.ShouldSkipPlayerCard(actor, card))
             {
                 CardLockRules.SkipLockedPlayerCard(_state, actor, card, _events);
@@ -728,12 +745,13 @@ namespace Grimhand.Battle
 
             PassiveCardMechanicsRules.ApplyEndlessBladeSacrifice(_state, actor, card, _events, _rng);
 
-            PrepareCardResolution(actor, card);
+            card = PrepareCardResolution(actor, card);
 
             if (SpecialCardRules.IsSpecialCard(card))
                 SpecialCardRules.TryResolve(_state, actor, card, _events, _rng);
             else
                 EffectActionExecutor.ExecuteAll(_state, actor, card, _events, _rng);
+            BerserkerSoulRules.RecordResolved(_state, card);
             ConsumableRules.RecordLastPlayerAttackCard(_state, actor, card);
             RelicBattleRules.TryApplyStatusCardTeamBlock(_state, actor, card, _events);
             RelicEffectRules.OnCardResolved(_state, actor, card, _events, _rng);
@@ -790,14 +808,18 @@ namespace Grimhand.Battle
             }
         }
 
-        void PrepareCardResolution(CombatantState actor, CardInstanceState card)
+        CardInstanceState PrepareCardResolution(CombatantState actor, CardInstanceState card)
         {
+            _state.AchievementTelemetry.BeginCard(actor, card);
             RelicBattleRules.BeginCardResolution(_state, actor, card);
             TalentBattleRules.OnCardAboutToResolve(_state, actor, card, _events);
+            return BerserkerRules.Prepare(_state, actor, card, _events);
         }
 
         void TrySelfDestructAfterCard(CombatantState actor, CardInstanceState card)
         {
+            _state.AchievementTelemetry.UsedCard(actor, card);
+            BerserkerRules.After(_state, actor, card, _events, _rng);
             if (actor == null || card == null || !card.Keywords.Contains("self_destruct"))
                 return;
 
@@ -826,6 +848,7 @@ namespace Grimhand.Battle
             }
 
             DeckRules.DiscardHandAtEndOfTurn(_state, TeamSide.Player, _events);
+            BerserkerRules.AfterDiscard(_state);
             DeckRules.DiscardHandAtEndOfTurn(_state, TeamSide.Enemy, _events);
 
             StatusRules.ProcessTurnEndStatuses(_state, _events, _rng);
@@ -848,6 +871,8 @@ namespace Grimhand.Battle
 
         void ProcessDrawPhase()
         {
+            BerserkerSoulRules.ClearTurn(_state);
+            BerserkerRules.TurnStart(_state, _events);
             var energyBeforeRegen = _state.EnergyCurrent;
             var isFirstPlayerTurn = _state.IsFirstPlayerTurn;
             EnergyRules.ApplyTurnStartRegen(_state);
@@ -915,6 +940,7 @@ namespace Grimhand.Battle
                 var idx = _rng.NextIndex(_state.PlayerHand.Count);
                 var discarded = _state.PlayerHand[idx];
                 _state.PlayerHand.RemoveAt(idx);
+                _state.AchievementTelemetry.LeftHand(discarded);
                 DeckRules.RestoreCostAfterLeavingHand(discarded);
                 _state.PlayerDiscardPile.Add(discarded);
                 _events.Add(new BattleEvent(BattleEventKind.CardDiscarded, $"混沌之心弃牌：{discarded.DisplayName}"));
@@ -1292,6 +1318,7 @@ namespace Grimhand.Battle
             if (CardRules.IsCurseCard(card) || CardRules.HasEngravingLock(card))
                 card.IsUsable = false;
             _state.CardsById[id] = card;
+            BerserkerSoulRules.ApplyInherit(_state, card);
             return card;
         }
 

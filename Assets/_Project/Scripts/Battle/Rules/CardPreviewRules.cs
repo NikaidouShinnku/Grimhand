@@ -443,6 +443,10 @@ namespace Grimhand.Battle.Rules
             RelicEffectRules.AdjustRelicOutgoingDamage(state, owner, recipient, card.CardType, ref outgoing, ref ignore);
             var mods = state.Config?.RunModifiers;
             var previewBlock = recipient.Block;
+            // The axe removes armor before this hit. Preview without mutating the
+            // real target, and do not remove armor from a redirected recipient.
+            if(card.DefinitionId=="b_axe_crush" && !redirectedByGuard)
+                previewBlock-=System.Math.Max(0,intendedTarget.Block)/2;
             if (outgoing > 0 && recipient.BossFirstHitBlockPending
                 && BossTraitRules.HasTrait(recipient, CharacterTraitCatalog.BossFirstHitBlock))
                 previewBlock += PassiveCardMechanicsRules.ApplyHeavyArmorBlockBonus(recipient,

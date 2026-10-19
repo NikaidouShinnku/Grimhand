@@ -1,0 +1,157 @@
+{
+    "saveVersion": 8,
+    "lastSavedUtc": "2026-10-19T18:16:12.3464785Z",
+    "integrityHash": "WM6lzCSj9rrJzcC/x/7kRkR80lydARa4V5cDLTf8dwk=",
+    "accountGold": 300,
+    "collectionCapacity": 40,
+    "collectionEntries": [],
+    "collectionEngravedFlags": [],
+    "characters": [
+        {
+            "characterDefinitionId": "char_knight",
+            "outOfRunLevel": 1,
+            "outOfRunXp": 0,
+            "selectedSlot1TalentId": "",
+            "selectedSlot2TalentId": ""
+        },
+        {
+            "characterDefinitionId": "char_mage",
+            "outOfRunLevel": 1,
+            "outOfRunXp": 0,
+            "selectedSlot1TalentId": "",
+            "selectedSlot2TalentId": ""
+        },
+        {
+            "characterDefinitionId": "char_ranger",
+            "outOfRunLevel": 1,
+            "outOfRunXp": 0,
+            "selectedSlot1TalentId": "",
+            "selectedSlot2TalentId": ""
+        },
+        {
+            "characterDefinitionId": "char_snake_queen",
+            "outOfRunLevel": 1,
+            "outOfRunXp": 0,
+            "selectedSlot1TalentId": "",
+            "selectedSlot2TalentId": ""
+        },
+        {
+            "characterDefinitionId": "char_lich_queen",
+            "outOfRunLevel": 1,
+            "outOfRunXp": 0,
+            "selectedSlot1TalentId": "",
+            "selectedSlot2TalentId": ""
+        },
+        {
+            "characterDefinitionId": "char_berserker",
+            "outOfRunLevel": 1,
+            "outOfRunXp": 0,
+            "selectedSlot1TalentId": "",
+            "selectedSlot2TalentId": ""
+        }
+    ],
+    "rosterMembers": [
+        {
+            "characterDefinitionId": "char_knight",
+            "displayName": "战士",
+            "deckCardIds": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+            ],
+            "deckCollectionEntryIndices": [
+                -1,
+                -1,
+                -1,
+                -1,
+                -1,
+                -1,
+                -1,
+                -1,
+                -1,
+                -1
+            ]
+        },
+        {
+            "characterDefinitionId": "char_mage",
+            "displayName": "法老",
+            "deckCardIds": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+            ],
+            "deckCollectionEntryIndices": [
+                -1,
+                -1,
+                -1,
+                -1,
+                -1,
+                -1,
+                -1,
+                -1,
+                -1,
+                -1
+            ]
+        },
+        {
+            "characterDefinitionId": "char_ranger",
+            "displayName": "恶魔",
+            "deckCardIds": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+            ],
+            "deckCollectionEntryIndices": [
+                -1,
+                -1,
+                -1,
+                -1,
+                -1,
+                -1,
+                -1,
+                -1,
+                -1,
+                -1
+            ]
+        }
+    ],
+    "hasActiveRun": false,
+    "activeRunVersion": 0,
+    "activeRunMapStartLayer": 1,
+    "activeRunSeed": 0,
+    "activeRunRngState": "1",
+    "activeRunMetaGoldSynced": 0,
+    "activeRunJson": "",
+    "seenEnemyIds": [],
+    "seenEnemyCardIds": [],
+    "seenRelicIds": [],
+    "hasCompletedTutorial": false,
+    "berserkerUnlocked": false,
+    "lichUnlocked": false,
+    "achievementIds": [
+        "ACH_FINISH_EXPEDITION"
+    ],
+    "completedEngravings": 0,
+    "achievementSteamAccountId": ""
+}

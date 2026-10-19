@@ -83,6 +83,7 @@ namespace Grimhand.Presentation.Battle
         TutorialCoachOverlayView _tutorialCoach;
         FelskullBattleChoiceView _felskullChoice;
         PsionicScryOverlayView _psionicScryOverlay;
+        BerserkerBattlePanel _berserkerPanel;
         Button _inventoryButton;
         Button _turnLogButton;
         Button _mapButton;
@@ -1628,6 +1629,12 @@ namespace Grimhand.Presentation.Battle
             }
 
             RefreshHand(_session.Engine?.State);
+            if (_berserkerPanel == null && HandCardPrefab != null)
+            {
+                _berserkerPanel = gameObject.AddComponent<BerserkerBattlePanel>();
+                _berserkerPanel.Initialize(_session, HandCardPrefab, _catalog, _characterVisuals, _uiIcons, _definitions);
+            }
+            _berserkerPanel?.Refresh();
 
             RefreshExpeditionOverlay();
             RefreshExpeditionPresentation();
@@ -1745,10 +1752,12 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             float? referenceY = null;
+            float? referenceFeetY = null;
             if (playerSlots.Length > 1 && playerSlots[1] != null
                 && !string.IsNullOrEmpty(playerSlots[1].CombatantId))
             {
                 referenceY = playerSlots[1].GetHpBarWorldY();
+                referenceFeetY = playerSlots[1].GetFeetWorldPosition().y;
             }
             else
             {
@@ -1758,6 +1767,7 @@ namespace Grimhand.Presentation.Battle
                         continue;
 
                     referenceY = slot.GetHpBarWorldY();
+                    referenceFeetY = slot.GetFeetWorldPosition().y;
                     break;
                 }
             }
@@ -1766,7 +1776,7 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             foreach (var slot in enemySlots)
-                slot?.EnsureFixedEnemyHpBarLayout(referenceY.Value);
+                slot?.EnsureFixedEnemyHpBarLayout(referenceY.Value,referenceFeetY);
         }
 
         public void SyncCombatantSlotLayout(string combatantId)

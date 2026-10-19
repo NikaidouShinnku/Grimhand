@@ -216,6 +216,7 @@ namespace Grimhand.Battle.Consumables
                 }
             }
 
+            state.AchievementTelemetry.ConsumablesUsed++;
             events.Add(new BattleEvent(BattleEventKind.ConsumableUsed, definition.DisplayName)
             {
                 CombatantId = targetCombatantId ?? ""
@@ -246,6 +247,7 @@ namespace Grimhand.Battle.Consumables
             state.ResolutionTargets[clone.InstanceId] = targetCombatantId;
             EffectActionExecutor.ExecuteAll(state, actor, clone, events, rng);
             state.ResolutionTargets.Remove(clone.InstanceId);
+            state.AchievementTelemetry.ConsumablesUsed++;
             events.Add(new BattleEvent(BattleEventKind.ConsumableUsed, "镜之碎片")
             {
                 CombatantId = actor.Id

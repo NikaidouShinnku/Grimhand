@@ -1,0 +1,140 @@
+[
+  {
+    "number": 2,
+    "api_name": "ACH_DEFEAT_GHOST_QUEEN",
+    "name": "幽魂落幕",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: A pale spectral queen's silver tiara breaking apart above a turquoise ghostly face fading into three large wisps. Purple and cyan, defeated regal spirit, not skeleton."
+  },
+  {
+    "number": 3,
+    "api_name": "ACH_DEFEAT_WARDEN",
+    "name": "越狱时刻",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: A massive dark iron prison padlock split in two with a heavy snapped chain behind it and a warm golden light through the opening. Escape from the Warden."
+  },
+  {
+    "number": 4,
+    "api_name": "ACH_DEFEAT_DARK_KNIGHT",
+    "name": "折断黑刃",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: A black knight's jagged greatsword snapped across its middle, two distinct broken pieces, dark horned steel helmet behind it, crimson gemstone, restrained purple rim light."
+  },
+  {
+    "number": 5,
+    "api_name": "ACH_DEFEAT_OCEAN_GODDESS",
+    "name": "深海弑神",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: A corrupted sea goddess's sea-green jeweled diadem pierced by a broken silver trident, curling dark teal wave underneath, purple corruption cracks extinguishing. Clearly oceanic divine trophy."
+  },
+  {
+    "number": 6,
+    "api_name": "ACH_FINISH_EXPEDITION",
+    "name": "一段旅途",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: A closed worn leather travel journal with a bronze compass on its cover, rolled map beneath and a small bootprint seal. A completed journey, NOT a final boss trophy."
+  },
+  {
+    "number": 7,
+    "api_name": "ACH_FIRST_VICTORY",
+    "name": "初露锋芒",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: One short steel sword raised diagonally above a small defeated dark monster silhouette, bright restrained gold victory glint. A first small battle victory, no crowns."
+  },
+  {
+    "number": 8,
+    "api_name": "ACH_ELITE_VICTORY",
+    "name": "硬骨头",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: A heavy steel spearhead piercing a thick cracked dark monster shield with two horn-like corners. Stubborn elite foe overcome. Steel and muted blood-red."
+  },
+  {
+    "number": 10,
+    "api_name": "ACH_BOSS_ALL_ALIVE",
+    "name": "一个都不能少",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: Exactly THREE intact upright swords side-by-side, middle sword slightly taller, one continuous gold ribbon linking their guards. Three surviving allies, none broken, heroic shared victory."
+  },
+  {
+    "number": 11,
+    "api_name": "ACH_THREE_RESPONSES",
+    "name": "算无遗策",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: A large steel shield deflecting exactly THREE incoming short arrowheads to different directions; tiny bright contact sparks. Tactical defense, clear large shield silhouette."
+  },
+  {
+    "number": 12,
+    "api_name": "ACH_BOSS_NO_CONSUMABLES",
+    "name": "留有余地",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: Exactly THREE sealed corked potion bottles in red, blue and amber safely tucked behind a victorious upright steel sword. All bottles full and untouched. No consumption, no crossed out symbols."
+  },
+  {
+    "number": 13,
+    "api_name": "ACH_THREE_POISON_KILLS",
+    "name": "毒入骨髓",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: A large venomous green drop hovering over a cracked ivory skull with green poison seeping into its bone fissures. Strong readable venom symbol, no gore."
+  },
+  {
+    "number": 14,
+    "api_name": "ACH_POISON_AND_BURN",
+    "name": "内外交困",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: One dark armored enemy shield simultaneously gripped by emerald poisonous tendrils on LEFT and orange flames on RIGHT, center visibly splitting. Two distinct harmful effects together."
+  },
+  {
+    "number": 15,
+    "api_name": "ACH_THREE_KILLS_ONE_CARD",
+    "name": "一击清场",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: One broad bright steel blade slicing diagonally through exactly THREE small cracked dark monster masks in a row. One decisive slash, clean graphic silhouettes, no gore."
+  },
+  {
+    "number": 16,
+    "api_name": "ACH_FRONT_BACK_KILLS",
+    "name": "破阵而入",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: A single bold golden arrow breaking through two separated dark iron defensive barricades, one nearer low-left and one farther upper-right. A shattered formation, strong diagonal composition."
+  },
+  {
+    "number": 17,
+    "api_name": "ACH_ALL_RESPOND",
+    "name": "轮番上阵",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: Exactly THREE small steel shields arranged in a triangular rotation, each shield blocking one arrowhead, with a simple circular bronze directional path connecting them. Shared defense, no text."
+  },
+  {
+    "number": 18,
+    "api_name": "ACH_RETAIN_THREE_TURNS",
+    "name": "好牌不怕晚",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: One treasured violet-edged magical card held safely in a steel gauntlet, small bronze hourglass beside it, three bright sand-grain squares. Patience and keeping a card then using it; no printed text."
+  },
+  {
+    "number": 19,
+    "api_name": "ACH_RELIC_EVOLUTION",
+    "name": "蜕变之物",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: An old rough stone relic splitting its dull outer shell to reveal a brilliant faceted violet crystal core with bronze mount. Clearly transformation of ONE relic, not pile of gems."
+  },
+  {
+    "number": 20,
+    "api_name": "ACH_ORANGE_ENGRAVING",
+    "name": "刻入命运",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: One ornate orange-rarity bronze card with an amber angular rune being carved by a dark steel chisel, few orange sparks. Orange-gold accent, distinguish from cyan five-engraving icon."
+  },
+  {
+    "number": 21,
+    "api_name": "ACH_COLLECTION_30",
+    "name": "收藏家",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: A small open dark wooden card archive box packed with colorful fantasy cards, THREE prominent cards fanned at front with blue, violet and amber borders. Collection variety, no text or digits."
+  },
+  {
+    "number": 22,
+    "api_name": "ACH_COLLECTION_FIVE_ORANGE",
+    "name": "橙光闪耀",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: Exactly FIVE orange-gold bordered fantasy cards elegantly fanned out, each showing a different simple dark rune silhouette, warm amber gem gleam, no numerals or letters."
+  },
+  {
+    "number": 23,
+    "api_name": "ACH_CARD_MAX_UPGRADE",
+    "name": "千锤百炼",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: A strong blacksmith hammer above ONE steel-edged magical card on a dark anvil, three small golden improvement studs along the card top and a bright gold central crystal. Fully upgraded card."
+  },
+  {
+    "number": 25,
+    "api_name": "ACH_ONE_CHARACTER_MAX",
+    "name": "炉火纯青",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: ONE steel hero helmet encircled by a small bronze laurel with a single bright amber star above it. Mastery of one character, distinguished silhouette, no crown."
+  },
+  {
+    "number": 26,
+    "api_name": "ACH_ALL_CHARACTERS_MAX",
+    "name": "群星齐耀",
+    "prompt": "Use case: stylized-concept. ONE square Steam achievement icon for dark gothic pixel-art game Grimhand. Reference image is approved STYLE and FRAME reference ONLY, replace its central subject entirely with requested subject. Match chunky pixel art, logical64x64 to96x96 pixel grid enlarged crisp nearest-neighbor, hard square clusters, limited palette, dark outlines,2-3 flat shades. Square opaque charcoal/navy background, worn dark-iron rim with four tiny bronze corner rivets exactly like reference. Large central thematic emblem clearly legible at64px, restrained color accents. No text, letters, digits, watermarks, UI labels, painterly gradients, smooth blur, photorealism or gore. Full square with complete uncropped frame. Theme: Exactly SIX bright gold stars arranged as a balanced arc above six small dark steel hero-crest silhouettes on a shared bronze base. All six heroes mastered, clear count, no lettering."
+  }
+]

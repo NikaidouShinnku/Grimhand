@@ -33,6 +33,9 @@ namespace Grimhand.Expedition
             if (string.IsNullOrEmpty(definitionId))
                 return false;
 
+            if (Grimhand.Battle.Rules.BerserkerCardCatalog.Get(definitionId) != null)
+                return true;
+
             if (ExcludedTokenIds.Contains(definitionId))
                 return false;
 

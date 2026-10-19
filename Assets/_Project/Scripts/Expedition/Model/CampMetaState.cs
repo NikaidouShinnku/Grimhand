@@ -7,6 +7,8 @@ namespace Grimhand.Expedition.Model
     public sealed class CampMetaState
     {
         public Dictionary<string, CharacterMetaProgress> Characters { get; } = new();
+        public bool BerserkerUnlocked { get; set; }
+        public bool LichUnlocked { get; set; }
 
         public CharacterMetaProgress GetOrCreate(string characterId)
         {

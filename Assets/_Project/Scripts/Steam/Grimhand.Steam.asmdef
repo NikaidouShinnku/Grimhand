@@ -3,6 +3,7 @@
     "rootNamespace": "Grimhand.Steam",
     "references": [
         "Grimhand.Persistence",
+        "Grimhand.Expedition",
         "com.rlabrecque.steamworks.net"
     ],
     "includePlatforms": [

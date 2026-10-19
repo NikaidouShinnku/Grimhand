@@ -11,6 +11,7 @@ namespace Grimhand.Expedition
     {
         static readonly HashSet<string> PlayerCharacterIds = new()
         {
+            "char_berserker",
             "char_knight", "char_warrior",
             "char_mage", "char_pharaoh",
             "char_ranger", "char_demon",

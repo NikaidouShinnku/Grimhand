@@ -14,6 +14,13 @@ namespace Grimhand.Presentation.Battle
 
             switch (statusId)
             {
+                case "berserker_rage": return icons.StatusBerserkerRage;
+                case "berserker_banner": return icons.EnergyIcon;
+                case "berserker_concentrated": return icons.StatusBerserkerRage;
+                case "berserker_tempered": return icons.StatusDefenseUp;
+                case "berserker_retain": return icons.NoteIcon;
+                case "berserker_soul": return icons.StatusDamageUp;
+                case "berserker_duel": return icons.AttackIcon;
                 case StatusCatalog.AttackUpPercent:
                 case StatusCatalog.AttackUp:
                 case StatusCatalog.DamageUp:

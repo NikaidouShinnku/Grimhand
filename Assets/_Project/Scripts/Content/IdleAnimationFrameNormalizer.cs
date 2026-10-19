@@ -18,6 +18,23 @@ namespace Grimhand.Content
         const string KnightCharacterId = "char_knight";
 
         static readonly Dictionary<string, List<Sprite>> SequenceCache = new();
+        static readonly Dictionary<Sprite,Rect> VisibleBoundsCache = new();
+
+        /// <summary>Opaque pixel bounds in sprite-local pixels; independent of transparent padding.</summary>
+        public static Rect GetVisibleBounds(Sprite sprite)
+        {
+            if(sprite==null)return Rect.zero;
+            if(VisibleBoundsCache.TryGetValue(sprite,out var cached))return cached;
+            var rect=sprite.textureRect;
+            var pixels=ReadTextureRegion(sprite.texture,rect);
+            var width=(int)rect.width;var height=(int)rect.height;
+            var left=width;var bottom=height;var right=-1;var top=-1;
+            for(var y=0;y<height;y++)for(var x=0;x<width;x++)
+                if(pixels[y*width+x].a>=AlphaThreshold)
+                {left=Math.Min(left,x);right=Math.Max(right,x);bottom=Math.Min(bottom,y);top=Math.Max(top,y);}
+            var bounds=right<left?new Rect(0,0,width,height):new Rect(left,bottom,right-left+1,top-bottom+1);
+            VisibleBoundsCache[sprite]=bounds;return bounds;
+        }
 
         public static IReadOnlyList<Sprite> GetNormalizedFrames(
             IReadOnlyList<Sprite> sourceFrames,
@@ -313,6 +330,8 @@ namespace Grimhand.Content
 
             var width = (int)rect.width;
             var height = (int)rect.height;
+            if(source is Texture2D texture && texture.isReadable)
+                return texture.GetPixels((int)rect.x,(int)rect.y,width,height);
             var full = RenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.ARGB32);
             Graphics.Blit(source, full);
 
@@ -330,7 +349,8 @@ namespace Grimhand.Content
             RenderTexture.ReleaseTemporary(full);
 
             var pixels = readable.GetPixels();
-            UnityEngine.Object.Destroy(readable);
+            if(Application.isPlaying)UnityEngine.Object.Destroy(readable);
+            else UnityEngine.Object.DestroyImmediate(readable);
             return pixels;
         }
     }

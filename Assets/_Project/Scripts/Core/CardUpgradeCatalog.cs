@@ -59,6 +59,38 @@ namespace Grimhand.Core
 
         static Dictionary<string, UpgradeSpec> Build() => new()
         {
+            ["裂斧斩"] = new() { MaxUpgrades=5, XpCostPerLevel=8, DamagePerLevel=1 },
+            ["铁臂架挡"] = new() { MaxUpgrades=5, XpCostPerLevel=8, BlockPerLevel=1 },
+            ["反击重劈"] = new() { MaxUpgrades=5, XpCostPerLevel=8, DamagePerLevel=1 },
+            ["压住怒火"] = new() { MaxUpgrades=0, XpCostPerLevel=0 },
+            ["斧柄佯攻"] = new() { MaxUpgrades=5, XpCostPerLevel=8, DamagePerLevel=1 },
+            ["立稳脚步"] = new() { MaxUpgrades=5, XpCostPerLevel=8, BlockPerLevel=1 },
+            ["横斧破阵"] = new() { MaxUpgrades=5, XpCostPerLevel=10, DamagePerLevel=1 },
+            ["破甲重劈"] = new() { MaxUpgrades=5, XpCostPerLevel=10, DamagePerLevel=1 },
+            ["忍痛架挡"] = new() { MaxUpgrades=5, XpCostPerLevel=10, BlockPerLevel=1 },
+            ["踏阵"] = new() { MaxUpgrades=5, XpCostPerLevel=10, BlockPerLevel=1 },
+            ["锁定猎物"] = new() { MaxUpgrades=3, XpCostPerLevel=10, VulnerablePerLevel=3 },
+            ["侧斧卸力"] = new() { MaxUpgrades=5, XpCostPerLevel=10, RespondMitigationPerLevel=4 },
+            ["短柄追击"] = new() { MaxUpgrades=5, XpCostPerLevel=10, DamagePerLevel=1 },
+            ["沉怒"] = new() { MaxUpgrades=0, XpCostPerLevel=0 },
+            ["裂盔"] = new() { MaxUpgrades=5, XpCostPerLevel=15, DamagePerLevel=2 },
+            ["回斧连斩"] = new() { MaxUpgrades=5, XpCostPerLevel=15, DamagePerLevel=1 },
+            ["贯阵斧"] = new() { MaxUpgrades=5, XpCostPerLevel=15, DamagePerLevel=2 },
+            ["浴血斧锋"] = new() { MaxUpgrades=5, XpCostPerLevel=15, DamagePerLevel=2 },
+            ["铁肺"] = new() { MaxUpgrades=5, XpCostPerLevel=15, BlockPerLevel=2 },
+            ["迎锋"] = new() { MaxUpgrades=5, XpCostPerLevel=15, DamagePerLevel=1 },
+            ["怒吼驱怯"] = new() { MaxUpgrades=5, XpCostPerLevel=15, BlockPerLevel=1 },
+            ["追猎终结"] = new() { MaxUpgrades=5, XpCostPerLevel=15, DamagePerLevel=2 },
+            ["并肩抵御"] = new() { MaxUpgrades=5, XpCostPerLevel=15, BlockPerLevel=1 },
+            ["专注怒意"] = new() { MaxUpgrades=0, XpCostPerLevel=0 },
+            ["旋斧风暴"] = new() { MaxUpgrades=5, XpCostPerLevel=20, DamagePerLevel=1 },
+            ["撕开战线"] = new() { MaxUpgrades=5, XpCostPerLevel=20, DamagePerLevel=2 },
+            ["留力再战"] = new() { MaxUpgrades=5, XpCostPerLevel=20, BlockPerLevel=2 },
+            ["淬怒"] = new() { MaxUpgrades=0, XpCostPerLevel=0 },
+            ["猎者喘息"] = new() { MaxUpgrades=3, XpCostPerLevel=20, HealPerLevel=1 },
+            ["不死不休"] = new() { MaxUpgrades=0, XpCostPerLevel=0 },
+            ["狂战之魂"] = new() { MaxUpgrades=0, XpCostPerLevel=0 },
+            ["燃尽战旗"] = new() { MaxUpgrades=0, XpCostPerLevel=0 },
             ["基础斩击"] = new() { MaxUpgrades = 5, DamagePerLevel = 1, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, DrawPerLevel = 0, DamageReductionPerLevel = 0, RespondMitigationPerLevel = 0, ReflectPercentPerLevel = 0, AttackUpPercentPerLevel = 0, DefenseUpPercentPerLevel = 0, WeakenPerLevel = 0, VulnerablePerLevel = 0, XpCostPerLevel = 8 }, // +1伤害
             ["举盾格挡"] = new() { MaxUpgrades = 5, DamagePerLevel = 0, BlockPerLevel = 1, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, DrawPerLevel = 0, DamageReductionPerLevel = 0, RespondMitigationPerLevel = 0, ReflectPercentPerLevel = 0, AttackUpPercentPerLevel = 0, DefenseUpPercentPerLevel = 0, WeakenPerLevel = 0, VulnerablePerLevel = 0, XpCostPerLevel = 8 }, // +1护甲
             ["防御架势"] = new() { MaxUpgrades = 5, DamagePerLevel = 0, BlockPerLevel = 0, HealPerLevel = 0, CostReductionPerLevel = 0, PoisonStacksPerLevel = 0, SlowStacksPerLevel = 0, DrawPerLevel = 0, DamageReductionPerLevel = 0, RespondMitigationPerLevel = 5, ReflectPercentPerLevel = 0, AttackUpPercentPerLevel = 0, DefenseUpPercentPerLevel = 0, WeakenPerLevel = 0, VulnerablePerLevel = 0, XpCostPerLevel = 8 }, // +5%减伤

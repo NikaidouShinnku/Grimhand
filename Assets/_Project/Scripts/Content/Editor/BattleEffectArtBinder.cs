@@ -29,6 +29,7 @@ namespace Grimhand.Content.Editor
             }
 
             catalog.WarriorDamage = LoadNamedSprite(EffectRoot + "warrior_damage_effect.png", "warrior_damage_effect_0");
+            catalog.BerserkerDamage = LoadFirstSprite(EffectRoot + "berserker_damage_effect.png");
             catalog.PharaohDamage = LoadFirstSprite(EffectRoot + "pharoah_damage_effect.png");
             catalog.DevilDamage = LoadFirstSprite(EffectRoot + "devil_damage_effect.png");
             catalog.SnakeQueenDamage = LoadNamedSprite(

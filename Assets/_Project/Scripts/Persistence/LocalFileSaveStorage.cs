@@ -55,6 +55,8 @@ namespace Grimhand.Persistence
                 File.WriteAllText(TempPath, json);
                 FlushToDisk(TempPath);
 
+                PreserveBeforeMigration(json);
+
                 if (File.Exists(PrimaryPath))
                 {
                     File.Copy(PrimaryPath, BackupPath, overwrite: true);
@@ -66,10 +68,10 @@ namespace Grimhand.Persistence
                     FlushToDisk(BackupPath);
                 }
 
-                if (File.Exists(PrimaryPath))
-                    File.Delete(PrimaryPath);
-
-                File.Move(TempPath, PrimaryPath);
+                // Replace atomically: a failed move must not leave the primary
+                // deleted. The previous valid file remains the normal backup.
+                if (File.Exists(PrimaryPath))File.Replace(TempPath,PrimaryPath,BackupPath);
+                else File.Move(TempPath, PrimaryPath);
                 FlushToDisk(PrimaryPath);
 
                 // Prefer .sav going forward; remove legacy names after a successful write.
@@ -82,6 +84,27 @@ namespace Grimhand.Persistence
                 error = ex.Message;
                 return false;
             }
+        }
+
+        void PreserveBeforeMigration(string incoming)
+        {
+            PlayerProfileSaveData next;
+            try{next=JsonUtility.FromJson<PlayerProfileSaveData>(incoming);}
+            catch{return;} // Storage remains usable for corrupt-file recovery tests.
+            if(next==null||next.saveVersion<7)return;
+            var source=File.Exists(PrimaryPath)?PrimaryPath:LegacyPrimaryPath;
+            if(!File.Exists(source))return;
+            var previousJson=File.ReadAllText(source);
+            if(!CloudProfileSafety.TryValidate(previousJson,null,out _,out _))return;
+            var previous=JsonUtility.FromJson<PlayerProfileSaveData>(previousJson);
+            var unlockMigration=previous.saveVersion<7 && next.saveVersion>=7;
+            var achievementMigration=previous.saveVersion==7 && next.saveVersion>=8;
+            if(!unlockMigration && !achievementMigration)return;
+            var directory=Path.Combine(_saveDirectory,"migration_backups");
+            Directory.CreateDirectory(directory);
+            var update=achievementMigration?"achievement":"unlock";
+            var destination=Path.Combine(directory,$"profile_v{previous.saveVersion}_before_{update}_update.sav");
+            if(!File.Exists(destination)){File.Copy(source,destination,overwrite:false);FlushToDisk(destination);}
         }
 
         public void ArchiveCorrupt(string json, string reason)

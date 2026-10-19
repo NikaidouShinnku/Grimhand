@@ -33,6 +33,7 @@ namespace Grimhand.Presentation.Battle
         {
             var map = new Dictionary<string, Entry>
             {
+                ["berserker_soul"] = new("狂战之魂", BerserkerSoulRules.Description),
                 [MinionTraitCatalog.SlimeRegen] = new(
                     "黏液再生",
                     "若回合内没受到伤害，在回合开始时回复2HP。"),

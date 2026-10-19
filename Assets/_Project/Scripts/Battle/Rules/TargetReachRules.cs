@@ -23,6 +23,7 @@ namespace Grimhand.Battle.Rules
 
         public static TargetReach GetPickReach(BattleState state, CardInstanceState card, CombatantState owner)
         {
+            if (BerserkerRules.DuelTarget(state, owner, card) != null) return TargetReach.Any;
             if (RelicEffectRules.ShouldExpandBackRowReach(state, owner, card))
                 return TargetReach.Any;
 
@@ -67,6 +68,9 @@ namespace Grimhand.Battle.Rules
 
             if (!target.IsAlive)
                 return false;
+
+            var duel = BerserkerRules.DuelTarget(state, owner, card);
+            if (duel != null) return target.Id == duel.Id;
 
             var expandReach = owner != null && RelicEffectRules.ShouldExpandBackRowReach(state, owner, card);
 

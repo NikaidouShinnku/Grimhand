@@ -56,6 +56,8 @@ namespace Grimhand.Expedition
             // 保留已转移档位，再按当前层数抬升（避免 OnRelicAcquired 用偏低层数覆盖深层成长）。
             SyncFloorGrowth(run.RelicGrowthTiers, run.Relics, ResolveEvolutionFloor(run));
             ExpeditionPartyStatsRules.SyncPartyEffectiveMaxHp(run.Party, run.Relics, run.RelicGrowthTiers);
+            if (fromRelicId != toRelicId)
+                run.AchievementRelicEvolved = true;
             return true;
         }
 

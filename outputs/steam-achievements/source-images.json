@@ -1,0 +1,106 @@
+[
+  {
+    "api_name": "ACH_DEFEAT_SKELETON_KING",
+    "source": "outputs/steam-achievements/samples-v1/01-throne-falls.png"
+  },
+  {
+    "api_name": "ACH_DEFEAT_GHOST_QUEEN",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-528fd71d-9a6b-4026-af60-fd29c57d13ef.png"
+  },
+  {
+    "api_name": "ACH_DEFEAT_WARDEN",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-af63e544-1fd9-404b-8140-83ddf30def5f.png"
+  },
+  {
+    "api_name": "ACH_DEFEAT_DARK_KNIGHT",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-db9581f4-5036-45ec-b8f6-0712db1c1685.png"
+  },
+  {
+    "api_name": "ACH_DEFEAT_OCEAN_GODDESS",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-c9284d75-d698-4580-b507-4935f39de421.png"
+  },
+  {
+    "api_name": "ACH_FINISH_EXPEDITION",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-22b4638a-5584-4990-acd0-bd2edf1b3096.png"
+  },
+  {
+    "api_name": "ACH_FIRST_VICTORY",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-bfee431a-e2a4-4da5-980d-9d96b0aedd39.png"
+  },
+  {
+    "api_name": "ACH_ELITE_VICTORY",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-4cec94c6-938f-4c64-898a-37da45fcd75f.png"
+  },
+  {
+    "api_name": "ACH_LAST_SURVIVOR",
+    "source": "outputs/steam-achievements/samples-v1/09-last-survivor.png"
+  },
+  {
+    "api_name": "ACH_BOSS_ALL_ALIVE",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-74a8b359-bfa5-49d0-8113-4fba2056746d.png"
+  },
+  {
+    "api_name": "ACH_THREE_RESPONSES",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-949a8cd2-8302-48af-9880-66285543fcc7.png"
+  },
+  {
+    "api_name": "ACH_BOSS_NO_CONSUMABLES",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-d6eac14c-0161-48ea-998e-b2d9d5b7b4b5.png"
+  },
+  {
+    "api_name": "ACH_THREE_POISON_KILLS",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-14da155a-1465-49ae-84ce-e2f69883b6f3.png"
+  },
+  {
+    "api_name": "ACH_POISON_AND_BURN",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-69937bcf-0fbd-46ad-a4fe-2710f304050d.png"
+  },
+  {
+    "api_name": "ACH_THREE_KILLS_ONE_CARD",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-a8b0a3d3-b256-4436-9dd3-6688f63ca27e.png"
+  },
+  {
+    "api_name": "ACH_FRONT_BACK_KILLS",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-15c896fb-f219-470c-92fc-9367f2c08469.png"
+  },
+  {
+    "api_name": "ACH_ALL_RESPOND",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-38c3a2eb-556d-4802-a166-bf9c1e9e7581.png"
+  },
+  {
+    "api_name": "ACH_RETAIN_THREE_TURNS",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-0b087070-2cb4-4aef-b7da-b5cd3180705f.png"
+  },
+  {
+    "api_name": "ACH_RELIC_EVOLUTION",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-7e5a737c-b5d7-41bf-ad50-4ad1a030cbb7.png"
+  },
+  {
+    "api_name": "ACH_ORANGE_ENGRAVING",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-454badb5-9b43-4f9e-8864-ba837728d34b.png"
+  },
+  {
+    "api_name": "ACH_COLLECTION_30",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-6bf14045-5b2f-4514-b6ff-8b86ef28d669.png"
+  },
+  {
+    "api_name": "ACH_COLLECTION_FIVE_ORANGE",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-26bcbce5-0325-45d9-b0b7-cf1c9d2391c9.png"
+  },
+  {
+    "api_name": "ACH_CARD_MAX_UPGRADE",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-0309bb78-9b2c-4b27-b26e-373a8e1d853e.png"
+  },
+  {
+    "api_name": "ACH_FIVE_ENGRAVINGS",
+    "source": "outputs/steam-achievements/samples-v1/24-five-engravings.png"
+  },
+  {
+    "api_name": "ACH_ONE_CHARACTER_MAX",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-08ce1580-7d3e-47d3-a0a6-4867dcaab40d.png"
+  },
+  {
+    "api_name": "ACH_ALL_CHARACTERS_MAX",
+    "source": "C:\\Users\\Kelthuzad\\.codex\\generated_images\\01a02f0a-ff52-7273-b893-166c6208381b\\exec-40a83cdb-5b75-48d6-bf2e-ca3e1794414d.png"
+  }
+]

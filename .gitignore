@@ -105,3 +105,6 @@ InitTestScene*.unity*
 
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+
+# Disposable Windows script compilation check (not release content)
+/Tools/UnityValidation20261018/player-script-check/

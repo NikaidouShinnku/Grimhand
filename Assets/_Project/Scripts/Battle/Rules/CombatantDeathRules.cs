@@ -18,6 +18,9 @@ namespace Grimhand.Battle.Rules
             if (combatant == null)
                 return;
 
+            state.AchievementTelemetry.Died(state, combatant);
+            BerserkerRules.Died(state, combatant);
+
             MinionTraitRules.OnCharacterDied(state, combatant, events);
             V09BossMechanicsRules.OnCharacterDied(state, combatant, events, rng);
             TalentBattleRules.OnCharacterDied(state, combatant, events);

@@ -497,6 +497,7 @@ namespace Grimhand.Battle.V091
                     continue;
 
                 state.PlayerHand.RemoveAt(i);
+                state.AchievementTelemetry.LeftHand(handCard);
                 DeckRules.RestoreCostAfterLeavingHand(handCard);
                 state.PlayerDiscardPile.Add(handCard);
                 discarded++;

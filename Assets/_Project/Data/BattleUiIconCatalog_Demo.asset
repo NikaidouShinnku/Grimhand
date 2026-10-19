@@ -130,3 +130,4 @@ MonoBehaviour:
   StatusEvade: {fileID: -8258305677121168927, guid: 1e8889f35babf794cb0b344dbceef54d, type: 3}
   StatusBurningLongsword: {fileID: -1830969459474465023, guid: 7b5034f454ae1614597d5f2cacf133e9, type: 3}
   StatusDelayedDamage: {fileID: -8218841325234319249, guid: ef2e752dc7e601a448c742d1bbb8a277, type: 3}
+  StatusBerserkerRage: {fileID: 21300000, guid: 88b81e7734710014fad5b99d3d5e25d7, type: 3}

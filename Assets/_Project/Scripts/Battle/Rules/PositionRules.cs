@@ -197,12 +197,16 @@ namespace Grimhand.Battle.Rules
         {
             if (state == null || a == null || b == null || events == null)
                 return;
-            if (!a.IsAlive || !b.IsAlive || a.Id == b.Id)
+            if (!a.IsAlive || !b.IsAlive || a.Id == b.Id || a.Slot == b.Slot)
                 return;
 
+            var aWasFront = GetEffectiveSlot(state, a) == FormationSlot.Front;
+            var bWasFront = GetEffectiveSlot(state, b) == FormationSlot.Front;
             var temp = a.Slot;
             a.Slot = b.Slot;
             b.Slot = temp;
+            BerserkerRules.Swapped(state, a, aWasFront, events);
+            BerserkerRules.Swapped(state, b, bWasFront, events);
 
             events.Add(new BattleEvent(BattleEventKind.PositionSwapped, message ?? "站位交换")
             {

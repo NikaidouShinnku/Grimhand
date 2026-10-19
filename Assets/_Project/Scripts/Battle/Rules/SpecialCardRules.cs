@@ -25,6 +25,8 @@ namespace Grimhand.Battle.Rules
         public static bool IsSpecialCard(CardInstanceState card) =>
             card != null && (card.DefinitionId == CardPowerRules.SolarGodWrathCardId
                              || card.DefinitionId == CardPowerRules.SolarBlessingCardId
+                             || card.DefinitionId == BerserkerSoulRules.CardId
+                             || BerserkerRules.IsSpecial(card.DefinitionId)
                              || V091MechanicsRules.IsV091SpecialCard(card));
 
         public static bool TryResolve(
@@ -37,7 +39,15 @@ namespace Grimhand.Battle.Rules
             if (state == null || actor == null || card == null || rng == null)
                 return false;
 
+            if (card.DefinitionId == BerserkerSoulRules.CardId)
+            {
+                BerserkerSoulRules.Activate(state, actor, events);
+                return true;
+            }
+
             if (V091MechanicsRules.TryResolveSpecialCard(state, actor, card, events, rng))
+                return true;
+            if (BerserkerRules.ResolveSpecial(state, actor, card, events, rng))
                 return true;
 
             return card.DefinitionId switch

@@ -80,6 +80,11 @@ namespace Grimhand.Persistence
             dto.seenEnemyCardIds = ToIdArray(profile.Codex?.SeenEnemyCardIds);
             dto.seenRelicIds = ToIdArray(profile.Codex?.SeenRelicIds);
             dto.hasCompletedTutorial = profile.HasCompletedTutorial;
+            dto.berserkerUnlocked = profile.Meta?.BerserkerUnlocked == true;
+            dto.lichUnlocked = profile.Meta?.LichUnlocked == true;
+            dto.achievementIds = ToIdArray(profile.Achievements?.Unlocked);
+            dto.completedEngravings = profile.Achievements?.CompletedEngravings ?? 0;
+            dto.achievementSteamAccountId = profile.Achievements?.SteamAccountId ?? "";
 
             return dto;
         }
@@ -149,6 +154,7 @@ namespace Grimhand.Persistence
                         SelectedSlot2TalentId = characterDto.selectedSlot2TalentId ?? ""
                     };
                     MetaProgressionRules.NormalizeProgress(progress);
+                    if(progress.CharacterDefinitionId==TalentCatalog.BerserkerId)TalentRules.PruneInvalidSelections(progress);
                     profile.Meta.Characters[characterDto.characterDefinitionId] = progress;
                 }
             }
@@ -203,9 +209,35 @@ namespace Grimhand.Persistence
             FillCodexSet(profile.Codex.SeenEnemyIds, dto.seenEnemyIds);
             FillCodexSet(profile.Codex.SeenEnemyCardIds, dto.seenEnemyCardIds);
             FillCodexSet(profile.Codex.SeenRelicIds, dto.seenRelicIds);
+            if (dto.saveVersion >= 8)
+            {
+                FillCodexSet(profile.Achievements.Unlocked, dto.achievementIds);
+                profile.Achievements.CompletedEngravings = dto.completedEngravings;
+                profile.Achievements.SteamAccountId = dto.achievementSteamAccountId ?? "";
+            }
+            else
+            {
+                // V8 extensions are not covered by legacy signatures. Ignore
+                // their IDs, counter and owner even if present in the old wire.
+                // Retained source flags prove a minimum; removed cards leave no
+                // recoverable history. V8's stored counter remains authoritative.
+                profile.Achievements.CompletedEngravings = 0;
+                for (var i = 0; i < profile.Collection.Entries.Count; i++)
+                    if (!string.IsNullOrEmpty(profile.Collection.Entries[i]) && profile.Collection.IsEngravedAt(i))
+                        profile.Achievements.CompletedEngravings++;
+            }
 
             // 旧档（<5）视为已完成教程，避免打断已有进度；新档默认 false。
             profile.HasCompletedTutorial = dto.saveVersion < 5 || dto.hasCompletedTutorial;
+            // Grandfather existing players. Only the new unlock fields change;
+            // collection, currencies, party, progress and active run stay intact.
+            profile.Meta.BerserkerUnlocked = dto.saveVersion < 7 || dto.berserkerUnlocked;
+            profile.Meta.LichUnlocked = dto.saveVersion < 7 || dto.lichUnlocked;
+            if(dto.saveVersion<7)
+            {
+                profile.Meta.GetOrCreate(TalentCatalog.BerserkerId);
+                profile.Meta.GetOrCreate(TalentCatalog.LichQueenId);
+            }
 
             return profile;
         }

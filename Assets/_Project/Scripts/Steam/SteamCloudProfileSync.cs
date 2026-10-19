@@ -20,6 +20,8 @@ namespace Grimhand.Steam
     public static class SteamCloudProfileSync
     {
         public const string CloudFileName = "profile.sav";
+        static bool uploadsBlocked;
+        static SaveValidationContext validationContext;
 
         public static void EnsureInitialized()
         {
@@ -45,9 +47,10 @@ namespace Grimhand.Steam
         }
 
         /// <summary>
-        /// Before LoadOrCreate: if Cloud has a newer profile, write it into local storage.
+        /// Before LoadOrCreate: choose the newest core profile and preserve compatible achievement facts
+        /// from both valid payloads. Startup only; no concurrent midgame cloud conflict merge is performed.
         /// </summary>
-        public static SteamCloudSyncResult PullIfCloudNewer(ISaveStorage storage)
+        public static SteamCloudSyncResult PullIfCloudNewer(ISaveStorage storage,SaveValidationContext context=null)
         {
             if (storage == null)
                 throw new ArgumentNullException(nameof(storage));
@@ -55,28 +58,48 @@ namespace Grimhand.Steam
 #if DISABLESTEAMWORKS || UNITY_EDITOR
             return SteamCloudSyncResult.Skipped("Editor or Steamworks disabled.");
 #else
+            validationContext=context;
+            uploadsBlocked=true; // Fail closed until the initial cloud read is safe.
             if (!IsAvailable)
                 return SteamCloudSyncResult.Skipped("Steam Cloud unavailable.");
 
             if (!SteamRemoteStorage.FileExists(CloudFileName))
+            {
+                uploadsBlocked=false;
                 return SteamCloudSyncResult.Skipped("No cloud profile.");
+            }
 
             if (!TryReadCloudJson(out var cloudJson, out var cloudError))
                 return SteamCloudSyncResult.Failed(cloudError);
 
-            if (!TryGetLastSavedUtc(cloudJson, out var cloudUtc))
-                return SteamCloudSyncResult.Failed("Cloud profile missing lastSavedUtc.");
+            if (!CloudProfileSafety.TryValidate(cloudJson,context,out var cloudUtc,out var cloudValidationError))
+                return SteamCloudSyncResult.Failed(cloudValidationError);
 
             var hasLocal = storage.TryReadPrimary(out var localJson)
-                           || storage.TryReadBackup(out localJson);
-            if (hasLocal && TryGetLastSavedUtc(localJson, out var localUtc) && localUtc >= cloudUtc)
+                           && CloudProfileSafety.TryValidate(localJson,context,out _,out _);
+            if(!hasLocal)hasLocal=storage.TryReadBackup(out localJson)
+                           && CloudProfileSafety.TryValidate(localJson,context,out _,out _);
+            var account = SteamUser.BLoggedOn() && SteamUtils.GetAppID().m_AppId == SteamManager.AppId
+                ? SteamUser.GetSteamID().m_SteamID : 0;
+            if (hasLocal && CloudProfileSafety.TryValidate(localJson,context,out var localUtc,out _) && localUtc >= cloudUtc)
             {
+                if (!CloudAchievementMerge.TryMerge(localJson, cloudJson, account, context,
+                    out var mergedLocal, out var changed, out var mergeError))
+                    return SteamCloudSyncResult.Failed(mergeError);
+                if (changed && !storage.TryWrite(mergedLocal, out var localWriteError))
+                    return SteamCloudSyncResult.Failed(localWriteError);
+                uploadsBlocked=false;
                 return SteamCloudSyncResult.KeptLocal(localUtc, cloudUtc);
             }
 
-            if (!storage.TryWrite(cloudJson, out var writeError))
+            var chosenJson = cloudJson;
+            if (hasLocal && !CloudAchievementMerge.TryMerge(cloudJson, localJson, account, context,
+                out chosenJson, out _, out var remoteMergeError))
+                return SteamCloudSyncResult.Failed(remoteMergeError);
+            if (!storage.TryWrite(chosenJson, out var writeError))
                 return SteamCloudSyncResult.Failed(writeError);
 
+            uploadsBlocked=false;
             Debug.Log($"[SteamCloud] Pulled cloud profile (utc={cloudUtc:o}).");
             return SteamCloudSyncResult.Pulled(cloudUtc);
 #endif
@@ -95,9 +118,16 @@ namespace Grimhand.Steam
 #else
             if (!IsAvailable)
                 return SteamCloudSyncResult.Skipped("Steam Cloud unavailable.");
+            if(uploadsBlocked)return SteamCloudSyncResult.Failed("云存档尚未安全读取，已暂停上传以保留原有数据。本地保存不受影响。");
 
             if (!storage.TryReadPrimary(out var json))
                 return SteamCloudSyncResult.Failed("Local primary missing.");
+
+            string remote=null;
+            if(SteamRemoteStorage.FileExists(CloudFileName)&&!TryReadCloudJson(out remote,out var readError))
+                return SteamCloudSyncResult.Failed(readError);
+            if(!CloudProfileSafety.CanUpload(json,remote,validationContext,out var safetyError))
+                return SteamCloudSyncResult.Failed(safetyError);
 
             var bytes = Encoding.UTF8.GetBytes(json);
             if (bytes.Length == 0)
@@ -129,7 +159,7 @@ namespace Grimhand.Steam
 
             var buffer = new byte[size];
             var read = SteamRemoteStorage.FileRead(CloudFileName, buffer, size);
-            if (read <= 0)
+            if (read != size)
             {
                 error = "Cloud FileRead failed.";
                 return false;

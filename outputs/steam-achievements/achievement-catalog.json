@@ -1,0 +1,210 @@
+[
+  {
+    "number": 1,
+    "api_name": "ACH_DEFEAT_SKELETON_KING",
+    "name": "王座倾覆",
+    "description": "击败第20层的骷髅王。",
+    "english_name": "Throne Toppled",
+    "english_description": "Defeat the Skeleton King on floor 20."
+  },
+  {
+    "number": 2,
+    "api_name": "ACH_DEFEAT_GHOST_QUEEN",
+    "name": "幽魂落幕",
+    "description": "击败第20层的幽灵女王。",
+    "english_name": "Curtain for the Queen",
+    "english_description": "Defeat the Ghost Queen on floor 20."
+  },
+  {
+    "number": 3,
+    "api_name": "ACH_DEFEAT_WARDEN",
+    "name": "越狱时刻",
+    "description": "击败第40层的典狱长。",
+    "english_name": "Jailbreak",
+    "english_description": "Defeat the Warden on floor 40."
+  },
+  {
+    "number": 4,
+    "api_name": "ACH_DEFEAT_DARK_KNIGHT",
+    "name": "折断黑刃",
+    "description": "击败第40层的黑暗骑士。",
+    "english_name": "Black Blade Broken",
+    "english_description": "Defeat the Dark Knight on floor 40."
+  },
+  {
+    "number": 5,
+    "api_name": "ACH_DEFEAT_OCEAN_GODDESS",
+    "name": "深海弑神",
+    "description": "击败第60层的腐化海洋女神。",
+    "english_name": "Godslayer of the Deep",
+    "english_description": "Defeat the Corrupted Ocean Goddess on floor 60."
+  },
+  {
+    "number": 6,
+    "api_name": "ACH_FINISH_EXPEDITION",
+    "name": "一段旅途",
+    "description": "完成一次远征。",
+    "english_name": "A Journey",
+    "english_description": "Finish an expedition."
+  },
+  {
+    "number": 7,
+    "api_name": "ACH_FIRST_VICTORY",
+    "name": "初露锋芒",
+    "description": "首次赢得一场远征战斗。",
+    "english_name": "First Blood",
+    "english_description": "Win your first expedition battle."
+  },
+  {
+    "number": 8,
+    "api_name": "ACH_ELITE_VICTORY",
+    "name": "硬骨头",
+    "description": "赢得一场精英战。",
+    "english_name": "Tough Nut",
+    "english_description": "Win an elite battle."
+  },
+  {
+    "number": 9,
+    "api_name": "ACH_LAST_SURVIVOR",
+    "name": "绝处逢生",
+    "description": "至少两名角色参战，仅剩一名角色存活时赢得Boss战。",
+    "english_name": "Against All Odds",
+    "english_description": "Enter a boss battle with at least two heroes and win with only one surviving."
+  },
+  {
+    "number": 10,
+    "api_name": "ACH_BOSS_ALL_ALIVE",
+    "name": "一个都不能少",
+    "description": "三名角色全部存活，赢得一场Boss战。",
+    "english_name": "Leave No One Behind",
+    "english_description": "Win a boss battle with all three heroes alive."
+  },
+  {
+    "number": 11,
+    "api_name": "ACH_THREE_RESPONSES",
+    "name": "算无遗策",
+    "description": "同一回合成功应对三张不同的敌方攻击牌。",
+    "english_name": "Perfectly Calculated",
+    "english_description": "Successfully respond to three different enemy attack cards in one turn."
+  },
+  {
+    "number": 12,
+    "api_name": "ACH_BOSS_NO_CONSUMABLES",
+    "name": "留有余地",
+    "description": "携带至少三个消耗品，且不使用任何消耗品，赢得一场Boss战。",
+    "english_name": "Reserves Untouched",
+    "english_description": "Enter a boss battle with at least three consumables and win without using any."
+  },
+  {
+    "number": 13,
+    "api_name": "ACH_THREE_POISON_KILLS",
+    "name": "毒入骨髓",
+    "description": "同一场战斗中，让中毒伤害击败至少三名敌人。",
+    "english_name": "Poison to the Bone",
+    "english_description": "Defeat at least three enemies with poison damage in one battle."
+  },
+  {
+    "number": 14,
+    "api_name": "ACH_POISON_AND_BURN",
+    "name": "内外交困",
+    "description": "击败一名同时拥有中毒和灼烧的敌人。",
+    "english_name": "Under Siege",
+    "english_description": "Defeat an enemy while it is both poisoned and burning."
+  },
+  {
+    "number": 15,
+    "api_name": "ACH_THREE_KILLS_ONE_CARD",
+    "name": "一击清场",
+    "description": "使用一张攻击牌击败至少三名敌人。",
+    "english_name": "Clean Sweep",
+    "english_description": "Defeat at least three enemies with a single attack card."
+  },
+  {
+    "number": 16,
+    "api_name": "ACH_FRONT_BACK_KILLS",
+    "name": "破阵而入",
+    "description": "同一回合内，击败至少一名前排敌人和一名后排敌人。",
+    "english_name": "Break the Formation",
+    "english_description": "Defeat at least one front-row enemy and one back-row enemy in the same turn."
+  },
+  {
+    "number": 17,
+    "api_name": "ACH_ALL_RESPOND",
+    "name": "轮番上阵",
+    "description": "三名角色各成功应对至少一次敌方攻击，并赢得该场战斗。",
+    "english_name": "Everyone Takes a Turn",
+    "english_description": "Have all three heroes successfully respond to an enemy attack, then win the battle."
+  },
+  {
+    "number": 18,
+    "api_name": "ACH_RETAIN_THREE_TURNS",
+    "name": "好牌不怕晚",
+    "description": "让同一张继承牌连续跨过三个回合结束仍留在手中，随后使用它。",
+    "english_name": "Worth the Wait",
+    "english_description": "Keep the same Inherit card in hand through three consecutive turn ends, then play it."
+  },
+  {
+    "number": 19,
+    "api_name": "ACH_RELIC_EVOLUTION",
+    "name": "蜕变之物",
+    "description": "首次完成一次遗物进化。",
+    "english_name": "Metamorphosis",
+    "english_description": "Evolve a relic for the first time."
+  },
+  {
+    "number": 20,
+    "api_name": "ACH_ORANGE_ENGRAVING",
+    "name": "刻入命运",
+    "description": "首次成功刻印一张橙色卡牌。",
+    "english_name": "Etched in Fate",
+    "english_description": "Successfully engrave an orange-rarity card."
+  },
+  {
+    "number": 21,
+    "api_name": "ACH_COLLECTION_30",
+    "name": "收藏家",
+    "description": "卡牌收藏中拥有至少30种不同的卡牌。",
+    "english_name": "Collector",
+    "english_description": "Own at least 30 different cards in your collection."
+  },
+  {
+    "number": 22,
+    "api_name": "ACH_COLLECTION_FIVE_ORANGE",
+    "name": "橙光闪耀",
+    "description": "卡牌收藏中拥有至少五种不同的橙色卡牌。",
+    "english_name": "Amber Radiance",
+    "english_description": "Own at least five different orange-rarity cards in your collection."
+  },
+  {
+    "number": 23,
+    "api_name": "ACH_CARD_MAX_UPGRADE",
+    "name": "千锤百炼",
+    "description": "将一张可升级卡牌提升至其最高等级。",
+    "english_name": "Tempered to Perfection",
+    "english_description": "Upgrade an upgradable card to its maximum level."
+  },
+  {
+    "number": 24,
+    "api_name": "ACH_FIVE_ENGRAVINGS",
+    "name": "铭刻之路",
+    "description": "累计成功刻印五张卡牌。",
+    "english_name": "The Engraver's Path",
+    "english_description": "Successfully engrave five cards in total."
+  },
+  {
+    "number": 25,
+    "api_name": "ACH_ONE_CHARACTER_MAX",
+    "name": "炉火纯青",
+    "description": "将任意一名角色的局外等级提升至满级。",
+    "english_name": "Mastery",
+    "english_description": "Raise one hero to the maximum camp level."
+  },
+  {
+    "number": 26,
+    "api_name": "ACH_ALL_CHARACTERS_MAX",
+    "name": "群星齐耀",
+    "description": "将六名角色的局外等级全部提升至满级。",
+    "english_name": "All Stars Aligned",
+    "english_description": "Raise all six heroes to the maximum camp level."
+  }
+]

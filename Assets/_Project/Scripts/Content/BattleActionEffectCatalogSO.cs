@@ -6,6 +6,7 @@ namespace Grimhand.Content
     public sealed class BattleActionEffectCatalogSO : ScriptableObject
     {
         public Sprite WarriorDamage;
+        public Sprite BerserkerDamage;
         public Sprite PharaohDamage;
         public Sprite DevilDamage;
         public Sprite SnakeQueenDamage;

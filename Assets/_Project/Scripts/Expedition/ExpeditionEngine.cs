@@ -27,6 +27,7 @@ namespace Grimhand.Expedition
 
         public ExpeditionRunState Run => _run;
         public ExpeditionConfig Config => _config;
+        public void CheckAchievementProgress() => AchievementRules.CheckRunProgress(_run, MetaProfile, _config);
         /// <summary>局外档案（刻印扣局外金 / 写入收藏）。由 BattleSession 绑定。</summary>
         public IExpeditionMetaProfile MetaProfile { get; set; }
 
@@ -47,6 +48,7 @@ namespace Grimhand.Expedition
                 throw new System.ArgumentNullException(nameof(run));
 
             ExpeditionRunStateCopy.CopyInto(ExpeditionRunStateCopy.Clone(run, _config), _run, _config);
+            _run.AchievementsDisabled |= _config.MapStartLayer > 1 || _run.IsTrainingGround || _run.IsTutorialRun;
             _rng.RestoreState(rngState);
 
             if (_run.Phase == ExpeditionPhase.InBattle)
@@ -304,6 +306,7 @@ namespace Grimhand.Expedition
 
         public void StartRun(CampRosterState campRoster = null, CampMetaState campMeta = null)
         {
+            ResetAchievementProgress();
             _run.Phase = ExpeditionPhase.RouteSelect;
             _run.BattlesWon = 0;
             _run.Gold = 0;
@@ -387,6 +390,7 @@ namespace Grimhand.Expedition
         {
             StartRun(campRoster, campMeta);
             _run.IsTutorialRun = true;
+            _run.AchievementsDisabled = true;
             _run.IsTrainingGround = false;
             _run.TargetBattleCount = 2;
             _run.Gold = Tutorial.ExpeditionTutorialRewards.StartingGold;
@@ -458,6 +462,7 @@ namespace Grimhand.Expedition
         {
             ResetRunState(skipMap: true);
             _run.IsTrainingGround = true;
+            _run.AchievementsDisabled = true;
             _run.Phase = ExpeditionPhase.InBattle;
             _run.CurrentBossDisplayName = TrainingGroundEncounterBuilder.DummyDisplayName;
             _run.TargetBattleCount = 1;
@@ -503,6 +508,7 @@ namespace Grimhand.Expedition
 
         void ResetRunState(bool skipMap)
         {
+            ResetAchievementProgress();
             _run.BattlesWon = 0;
             _run.Gold = 0;
             _run.LastGoldReward = 0;
@@ -560,6 +566,17 @@ namespace Grimhand.Expedition
             _run.IsTrainingGround = false;
             _run.IsTutorialRun = false;
             _run.Map = skipMap ? null : ExpeditionMapGenerator.Generate(_config, _run, _rng);
+        }
+
+        void ResetAchievementProgress()
+        {
+            _run.WasAbandoned = false;
+            _run.AchievementsDisabled = _config.MapStartLayer > 1;
+            _run.AchievementRelicEvolved = false;
+            _run.AchievementBattleStartConsumableCount = 0;
+            _run.EngravedDeckInstanceIds.Clear();
+            _run.AltarExtractedDeckInstanceIds.Clear();
+            _run.PendingCardEngravings.Clear();
         }
 
         void InitPartyAtLevel(int level, CampMetaState campMeta = null)
@@ -701,6 +718,7 @@ namespace Grimhand.Expedition
             if (state == null)
                 return;
 
+            AchievementRules.OnBattleFinished(_run, MetaProfile, state, _config);
             SyncMiracleLeafUsesFromBattle(state);
 
             // CaptureParty 必须在 Clear 之前调用：previousParty 若与 _run.Party 为同一列表，
@@ -731,6 +749,11 @@ namespace Grimhand.Expedition
 
             if (state.Outcome != BattleOutcome.PlayerVictory)
                 return;
+
+            if(_config.MapStartLayer <= 1 && MetaProfile is ICharacterUnlockProfile unlockProfile)
+                foreach(var enemy in state.Combatants)
+                    if(enemy.Team==TeamSide.Enemy)
+                        CharacterUnlockRules.RecordVictory(unlockProfile.Meta,_run.LastBattleFloor,_run.LastBattleWasBoss,_run.IsTrainingGround,_run.IsTutorialRun,enemy.CharacterDefinitionId);
 
             ClearCurrentBattleIdentity();
             _run.Modifiers.EnemyOutgoingDamagePercentBonus = 0;
@@ -807,6 +830,7 @@ namespace Grimhand.Expedition
             if (_run.Phase is ExpeditionPhase.RunComplete or ExpeditionPhase.RunFailed)
                 return;
 
+            _run.WasAbandoned = true;
             _run.Phase = ExpeditionPhase.RunFailed;
             _run.LastEventMessage = message ?? "已放弃远征。";
             _run.PendingRoutes.Clear();
@@ -2799,6 +2823,12 @@ namespace Grimhand.Expedition
 
         BattleConfig BuildBossBattle(bool applyPartyHp, bool resume = false)
         {
+            if (!resume)
+            {
+                _run.AchievementBattleStartConsumableCount = 0;
+                foreach (var id in _run.ConsumableSlots)
+                    if (!string.IsNullOrEmpty(id)) _run.AchievementBattleStartConsumableCount++;
+            }
             BattleConfig template;
             var bossFloor = CurrentBattleNumber;
             var isAbyssBoss = bossFloor >= ExpeditionRegionRules.AbyssBossLayer;

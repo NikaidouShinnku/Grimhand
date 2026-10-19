@@ -36,6 +36,7 @@ namespace Grimhand.Presentation.Camp
         CampCollectionState _collection;
         PlayerProfileState _profile;
         SaveService _saveService;
+        SteamAchievementSync _achievementSync;
         Dictionary<string, CardDefinitionSO> _definitions;
 
         bool _trackingExpedition;
@@ -72,7 +73,7 @@ namespace Grimhand.Presentation.Camp
             SteamCloudProfileSync.EnsureInitialized();
             LocalFileSaveStorage.MigrateFromLegacyPersistentPathIfNeeded(SaveService.DefaultSaveDirectory);
             var localStorage = new LocalFileSaveStorage(SaveService.DefaultSaveDirectory);
-            var pull = SteamCloudProfileSync.PullIfCloudNewer(localStorage);
+            var pull = SteamCloudProfileSync.PullIfCloudNewer(localStorage,validationContext);
             if (pull.Result == SteamCloudSyncResult.Kind.Failed)
                 Debug.LogWarning($"[GameFlow] Steam Cloud pull: {pull.Message}");
             else if (pull.Result != SteamCloudSyncResult.Kind.Skipped)
@@ -86,6 +87,9 @@ namespace Grimhand.Presentation.Camp
             _meta = _profile.Meta;
             _roster = _profile.Roster;
             _collection = _profile.Collection;
+            _achievementSync = GetComponent<SteamAchievementSync>() ?? gameObject.AddComponent<SteamAchievementSync>();
+            ReconcileAchievements();
+            _achievementSync.Bind(_profile);
 
             Debug.Log(
                 $"[GameFlow] 存档目录: {SaveService.DefaultSaveDirectory} | " +
@@ -704,8 +708,24 @@ namespace Grimhand.Presentation.Camp
             portalOverlay?.Show(_roster, _meta);
         }
 
+        bool CheckRosterUnlocks()
+        {
+            if(_roster?.Members == null)return true;
+            foreach(var member in _roster.Members)
+                if(member!=null && !CharacterUnlockRules.IsUnlocked(_meta,member.CharacterDefinitionId))
+                {
+                    // The portal hides itself before invoking BeginExpedition. Restore a
+                    // visible screen before displaying validation failures.
+                    ShowCamp();
+                    campScreen?.ShowToast("队伍中有尚未解锁的角色，请先调整编队。");
+                    return false;
+                }
+            return true;
+        }
+
         void OpenTrainingGround()
         {
+            if (!CheckRosterUnlocks()) return;
             CampRosterLoadoutRules.EnsureRosterStructure(_roster);
             if (_roster == null || !_roster.IsReadyForExpedition)
             {
@@ -781,6 +801,7 @@ namespace Grimhand.Presentation.Camp
 
         void BeginExpedition()
         {
+            if (!CheckRosterUnlocks()) return;
             if (_roster == null || !_roster.IsReadyForExpedition)
             {
                 campScreen?.ShowToast("请先在军营配置 3 名不同角色。");
@@ -807,6 +828,7 @@ namespace Grimhand.Presentation.Camp
             {
                 battleController.Session.BindMetaProfile(_profile);
                 ActiveRunPersistence.BeginNewRun(_profile, engine, _activeMapStartLayer);
+                _trackingTrainingGround = false;
                 _trackingExpedition = true;
                 _runEndHandled = false;
                 _lastCheckpointPhase = engine.Run.Phase;
@@ -840,6 +862,7 @@ namespace Grimhand.Presentation.Camp
             {
                 battleController.Session.BindMetaProfile(_profile);
                 ActiveRunPersistence.BeginNewRun(_profile, engine, mapStartLayer: 1);
+                _trackingTrainingGround = false;
                 _trackingExpedition = true;
                 _runEndHandled = false;
                 _lastCheckpointPhase = engine.Run.Phase;
@@ -854,6 +877,13 @@ namespace Grimhand.Presentation.Camp
 
         void OnSessionChanged()
         {
+            var achievementEngine=battleController?.Session?.Expedition;
+            if(_trackingExpedition && !_trackingTrainingGround && achievementEngine?.Run.Phase==ExpeditionPhase.InBattle)
+            {
+                var before=_profile?.Achievements?.Unlocked.Count??0;
+                AchievementRules.OnBattleProgress(achievementEngine.Run,_profile,battleController.Session.Engine?.State);
+                if((_profile?.Achievements?.Unlocked.Count??0)!=before)SaveProfile();
+            }
             TryRecordCodexProgress(forceSave: true);
 
             if (_trackingTrainingGround)
@@ -895,6 +925,7 @@ namespace Grimhand.Presentation.Camp
 
         void FinalizeExpeditionRun(ExpeditionRunState run)
         {
+            AchievementRules.OnRunEnded(run,_profile);
             MetaEconomySync.SyncMetaGoldFromRun(_profile, run);
             RunSettlementRules.ApplyRunEndMetaRewards(run, _meta);
             if (run?.Relics != null)
@@ -951,6 +982,9 @@ namespace Grimhand.Presentation.Camp
             if (_saveService == null || _profile == null)
                 return;
 
+            ReconcileAchievements();
+            _achievementSync?.Bind(_profile);
+
             if (!_saveService.TrySave(_profile, out var error))
             {
                 Debug.LogWarning($"[GameFlow] 存档失败: {error}");
@@ -960,6 +994,15 @@ namespace Grimhand.Presentation.Camp
             var push = SteamCloudProfileSync.PushFromLocal(_saveService.Storage);
             if (push.Result == SteamCloudSyncResult.Kind.Failed)
                 Debug.LogWarning($"[GameFlow] Steam Cloud push: {push.Message}");
+        }
+
+        void ReconcileAchievements()
+        {
+            if(_profile==null)return;
+            AchievementRules.ReconcilePermanent(_profile.Achievements,_profile.Meta,_profile.Collection);
+            var expedition=battleController?.Session?.Expedition;
+            if(_trackingExpedition && !_trackingTrainingGround && expedition!=null)
+                AchievementRules.CheckRunProgress(expedition.Run,_profile,expedition.Config);
         }
 
         void OnApplicationPause(bool paused)

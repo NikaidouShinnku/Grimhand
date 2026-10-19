@@ -203,6 +203,7 @@ namespace Grimhand.Battle.Rules
             var hand = state.GetHand(team);
             if (hand.Count < state.Config.HandLimit)
             {
+                BerserkerSoulRules.ApplyInherit(state, card);
                 hand.Add(card);
 
                 events.Add(new BattleEvent(BattleEventKind.CardDrawn, card.DisplayName)
@@ -234,6 +235,7 @@ namespace Grimhand.Battle.Rules
                         continue;
 
                     hand.RemoveAt(i);
+                    state.AchievementTelemetry.LeftHand(card);
                     card.IsUsable = false;
                     events.Add(new BattleEvent(BattleEventKind.CardDiscarded, "Bonus hand cleared")
                     {
@@ -243,9 +245,13 @@ namespace Grimhand.Battle.Rules
                 }
 
                 if (team == TeamSide.Player && CardRules.HasInheritKeyword(card))
+                {
+                    state.AchievementTelemetry.Retained(state, card);
                     continue;
+                }
 
                 hand.RemoveAt(i);
+                state.AchievementTelemetry.LeftHand(card);
                 RestoreCostAfterLeavingHand(card);
                 state.GetDiscardPile(team).Add(card);
                 events.Add(new BattleEvent(BattleEventKind.CardDiscarded, "End of turn hand discard")
@@ -264,7 +270,10 @@ namespace Grimhand.Battle.Rules
             // Resolution-only upgrades may use a clone with the same instance ID.
             // Pile ownership always belongs to the registered card, not that clone.
             card = state.GetCard(card.InstanceId) ?? card;
+            if (card.SpectralRepeatSourceId > 0)
+                return; // A second play never creates a second card in discard.
             state.GetHand(team).RemoveAll(c => c.InstanceId == card.InstanceId);
+            state.AchievementTelemetry.LeftHand(card);
             RestoreCostAfterLeavingHand(card);
             if (!state.GetDiscardPile(team).Contains(card))
                 state.GetDiscardPile(team).Add(card);
@@ -284,7 +293,10 @@ namespace Grimhand.Battle.Rules
                 return;
 
             card = state.GetCard(card.InstanceId) ?? card;
+            if (card.SpectralRepeatSourceId > 0)
+                return;
             state.GetHand(team).RemoveAll(c => c.InstanceId == card.InstanceId);
+            state.AchievementTelemetry.LeftHand(card);
             RestoreCostAfterLeavingHand(card);
             state.GetDrawPile(team).RemoveAll(c => c.InstanceId == card.InstanceId);
             state.GetDiscardPile(team).RemoveAll(c => c.InstanceId == card.InstanceId);

@@ -1,0 +1,68 @@
+[
+  {
+    "kind": "攻击蓄力",
+    "file": "art/unity-png/berserker_attack_windup.png",
+    "status": "已统一像素网格和画布；待Unity验收",
+    "review": "同角色头部约32逻辑像素；同一脚底基点；非完整平滑逐帧动画"
+  },
+  {
+    "kind": "下劈命中",
+    "file": "art/unity-png/berserker_attack_contact.png",
+    "status": "已统一像素网格和画布；待Unity验收",
+    "review": "同角色头部约32逻辑像素；同一脚底基点；非完整平滑逐帧动画"
+  },
+  {
+    "kind": "攻击收势",
+    "file": "art/unity-png/berserker_attack_followthrough.png",
+    "status": "已统一像素网格和画布；待Unity验收",
+    "review": "同角色头部约32逻辑像素；同一脚底基点；非完整平滑逐帧动画"
+  },
+  {
+    "kind": "架挡防御",
+    "file": "art/unity-png/berserker_defense.png",
+    "status": "已统一像素网格和画布；待Unity验收",
+    "review": "同角色头部约32逻辑像素；同一脚底基点；非完整平滑逐帧动画"
+  },
+  {
+    "kind": "受击",
+    "file": "art/unity-png/berserker_hit.png",
+    "status": "已统一像素网格和画布；待Unity验收",
+    "review": "同角色头部约32逻辑像素；同一脚底基点；非完整平滑逐帧动画"
+  },
+  {
+    "kind": "战败跪倒",
+    "file": "art/unity-png/berserker_death.png",
+    "status": "已统一像素网格和画布；待Unity验收",
+    "review": "同角色头部约32逻辑像素；同一脚底基点；非完整平滑逐帧动画"
+  },
+  {
+    "kind": "待机",
+    "file": "art/unity-png/berserker_idle.png",
+    "status": "已统一像素网格和画布；待Unity验收",
+    "review": "同角色头部约32逻辑像素；同一脚底基点；非完整平滑逐帧动画"
+  },
+  {
+    "kind": "CardProfile",
+    "file": "art/unity-png/berserker_card_profile.png",
+    "status": "从同一Idle裁出",
+    "review": "无重新生成、无换脸；需核对卡面椭圆裁切"
+  },
+  {
+    "kind": "狂怒图标",
+    "file": "art/unity-png/berserker_rage_icon.png",
+    "status": "128×128候选",
+    "review": "状态0—4数字由UI绘制，不烘焙进图标"
+  },
+  {
+    "kind": "待机双关键帧",
+    "file": "art/preview/berserker_idle.gif",
+    "status": "局部胸廓呼吸原型，非全身微移",
+    "review": "只有2张不同图；GIF仅预览。游戏的0.13秒帧率需配置重复停留"
+  },
+  {
+    "kind": "攻击三关键帧",
+    "file": "art/preview/berserker_attack.gif",
+    "status": "动作节奏预览；未接入运行时",
+    "review": "蓄力、下劈、收势；必须将伤害事件绑定命中帧"
+  }
+]

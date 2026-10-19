@@ -95,6 +95,8 @@ namespace Grimhand.Presentation.Battle
                 var visual = CardVisualResolver.Resolve(card, catalog, characterVisuals, definitions);
                 var stats = BattleUiFormatters.BuildCardStatsLineForHand(
                     state, draft, card, damagePreviewTarget, definitions);
+                var ragePayment = draft.GetRageCost(card);
+                if (ragePayment > 0) stats = $"费用：{playCost}能量＋{ragePayment}狂怒\n" + stats;
                 var badge = isQueued
                     ? BattleUiFormatters.BuildSelectionBadge(state, draft, card, resolveSteps)
                     : null;
@@ -139,7 +141,7 @@ namespace Grimhand.Presentation.Battle
             if (session?.PresentationLocked == true && session.PresentationSnapshot != null)
                 return session.PresentationSnapshot.GetDisplayedPlayerHand(state);
 
-            return state.PlayerHand;
+            return session?.Engine?.Draft.GetDisplayedHand() ?? state.PlayerHand;
         }
 
         void EnsurePool(int count)

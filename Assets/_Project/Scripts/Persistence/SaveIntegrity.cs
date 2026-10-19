@@ -17,6 +17,15 @@ namespace Grimhand.Persistence
             var payload = CloneWithoutHash(dto);
             payload.integrityHash = "";
             var json = JsonUtility.ToJson(payload);
+            // Remove the appended v8 suffix first so historical unlock fields
+            // are again at the end of the canonical v5/v6/v7 payload.
+            if(dto.saveVersion < 8)
+                json = json.Substring(0, json.LastIndexOf(",\"achievementIds\":", StringComparison.Ordinal)) + "}";
+            if(dto.saveVersion < 7)
+                json = System.Text.RegularExpressions.Regex.Replace(json, ",\"lichUnlocked\":(?:true|false)(?=})", "");
+            // Older saves were signed before the unlock field existed.
+            if(dto.saveVersion < 6)
+                json = System.Text.RegularExpressions.Regex.Replace(json, ",\"berserkerUnlocked\":(?:true|false)(?=})", "");
             return ComputeHmac(json);
         }
 

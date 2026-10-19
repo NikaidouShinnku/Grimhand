@@ -168,5 +168,6 @@ namespace Grimhand.Content
         public Sprite StatusBurningLongsword;
         /// <summary>延迟伤害（巫妖女王：Assets/The Grimhands Asset/icon/lichqueen_delayed_damage.png）</summary>
         public Sprite StatusDelayedDamage;
+        public Sprite StatusBerserkerRage;
     }
 }

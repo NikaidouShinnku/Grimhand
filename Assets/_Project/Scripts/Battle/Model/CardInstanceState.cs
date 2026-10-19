@@ -6,6 +6,8 @@ namespace Grimhand.Battle.Model
     public sealed class CardInstanceState
     {
         public int InstanceId { get; set; }
+        /// <summary>Planning-only second play. Zero for real cards; never enters any deck pile.</summary>
+        public int SpectralRepeatSourceId { get; set; }
         public string DefinitionId { get; set; } = "";
         public string OwnerCharacterId { get; set; } = "";
         public int Cost { get; set; }

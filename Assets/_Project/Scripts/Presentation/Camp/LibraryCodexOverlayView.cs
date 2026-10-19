@@ -476,7 +476,7 @@ namespace Grimhand.Presentation.Camp
                     owned ? CharacterLoreCatalog.GetTooltipTitle(characterId, name) : "？？？",
                     owned
                         ? CharacterLoreCatalog.GetTooltipBody(characterId)
-                        : "尚未拥有该角色。");
+                        : characterId is TalentCatalog.BerserkerId or TalentCatalog.LichQueenId ? CharacterUnlockRules.GetLockedDescription(characterId) : "尚未拥有该角色。");
             }
         }
 

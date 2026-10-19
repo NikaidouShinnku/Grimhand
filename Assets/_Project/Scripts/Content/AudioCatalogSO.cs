@@ -63,6 +63,7 @@ namespace Grimhand.Content
             return characterDefinitionId switch
             {
                 "char_knight" or "char_warrior" => BattleAttackWarrior,
+                "char_berserker" => BattleAttackWarrior,
                 "char_mage" or "char_pharaoh" => BattleAttackPharaoh,
                 "char_ranger" or "char_demon" => BattleAttackDevil,
                 "char_snake_queen" => BattleAttackSnakeQueen,

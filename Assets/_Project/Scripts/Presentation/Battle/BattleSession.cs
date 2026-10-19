@@ -1353,9 +1353,24 @@ namespace Grimhand.Presentation.Battle
             Engine != null &&
             !Engine.State.AwaitingFelskullChoice &&
             !Engine.State.AwaitingPsionicScry &&
+            BerserkerRules.PendingRecall(Engine.State) == null &&
             Engine.State.Phase == TurnPhase.Planning &&
             !PresentationLocked &&
             (Expedition == null || Expedition.Run.Phase == ExpeditionPhase.InBattle);
+
+        public void SetBerserkerRagePayment(bool enabled)
+        {
+            if (!CanInteractWithBattle()) return;
+            if (Engine.Draft.TrySetUseRageForCosts(enabled)) NotifyChanged();
+        }
+
+        public void ChooseBerserkerRecall(int instanceId)
+        {
+            if (Engine == null || PresentationLocked || Engine.State.Phase != TurnPhase.Planning) return;
+            var events = new List<BattleEvent>();
+            if (!BerserkerRules.ChooseRecall(Engine.State, instanceId, events)) return;
+            Engine.EmitExternalEvents(events); DrainEvents(); NotifyChanged();
+        }
 
         public void ApplyFelskullChoice(int choiceIndex)
         {

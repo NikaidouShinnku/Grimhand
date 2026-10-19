@@ -12,6 +12,7 @@ namespace Grimhand.Expedition
             [TalentCatalog.RangerId] = "恶魔",
             [TalentCatalog.SnakeQueenId] = "毒蛇女王",
             [TalentCatalog.LichQueenId] = "巫妖女王",
+            [TalentCatalog.BerserkerId] = "裂斧",
         };
 
         public static string Get(string characterDefinitionId)

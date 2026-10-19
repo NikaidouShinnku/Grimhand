@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: BattleActionEffectCatalog_Demo
   m_EditorClassIdentifier: Grimhand.Content::Grimhand.Content.BattleActionEffectCatalogSO
   WarriorDamage: {fileID: -2197445467391291454, guid: 257fa434c23478d499db50b4dc1dbb69, type: 3}
+  BerserkerDamage: {fileID: 21300000, guid: b1c5acb934097ed4b9dd7276ef8bd4c0, type: 3}
   PharaohDamage: {fileID: -3335633833346279624, guid: 767ca96a80bddfb4c924cdec28655cd2, type: 3}
   DevilDamage: {fileID: -4548166007503567599, guid: 816cd91626943be4e8f1921aab602abc, type: 3}
   SnakeQueenDamage: {fileID: -1214862744253689214, guid: f39d160c05d738b4bad7a0e5c386c90f, type: 3}

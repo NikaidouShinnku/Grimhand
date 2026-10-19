@@ -13,14 +13,23 @@ namespace Grimhand.Content
             description = null;
             if (string.IsNullOrEmpty(displayName))
                 return false;
+            foreach (var card in Grimhand.Battle.Rules.BerserkerCardCatalog.All)
+                if (card.Name == displayName) { description = card.Description; return true; }
             return ByDisplayName.TryGetValue(displayName, out description);
         }
 
         public static bool TryGetByCardId(string cardId, out string description)
         {
+            if (cardId == Grimhand.Battle.Rules.BerserkerSoulRules.CardId)
+            {
+                description = Grimhand.Battle.Rules.BerserkerSoulRules.Description;
+                return true;
+            }
             description = null;
             if (string.IsNullOrEmpty(cardId))
                 return false;
+            var berserker = Grimhand.Battle.Rules.BerserkerCardCatalog.Get(cardId);
+            if (berserker != null) { description = berserker.Description; return true; }
             return ByCardId.TryGetValue(cardId, out description);
         }
 

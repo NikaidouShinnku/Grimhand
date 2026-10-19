@@ -24,7 +24,7 @@ namespace Grimhand.Content
                 return Array.Empty<Sprite>();
 
             var cacheKey = $"{relativeToAssetsFolder}:{pixelsPerUnit:F2}";
-            if (Cache.TryGetValue(cacheKey, out var cached))
+            if (Cache.TryGetValue(cacheKey, out var cached) && AreCachedFramesAlive(cached))
                 return cached;
 
             if (!TryReadGifBytes(relativeToAssetsFolder, out var bytes, out var resolvedPath))
@@ -60,7 +60,7 @@ namespace Grimhand.Content
             var key = string.IsNullOrEmpty(cacheKey)
                 ? $"bytes:{bytes.Length}:{pixelsPerUnit:F2}"
                 : $"{cacheKey}:{pixelsPerUnit:F2}";
-            if (Cache.TryGetValue(key, out var cached))
+            if (Cache.TryGetValue(key, out var cached) && AreCachedFramesAlive(cached))
                 return cached;
 
             List<Sprite> sprites;
@@ -76,6 +76,14 @@ namespace Grimhand.Content
 
             Cache[key] = sprites;
             return sprites;
+        }
+
+        static bool AreCachedFramesAlive(List<Sprite> frames)
+        {
+            // With domain reload disabled, static caches survive Play Mode but generated Unity objects do not.
+            if(frames==null)return false;
+            foreach(var frame in frames)if(frame==null||frame.texture==null)return false;
+            return true;
         }
 
         static bool TryReadGifBytes(string relativeToAssetsFolder, out byte[] bytes, out string resolvedPath)

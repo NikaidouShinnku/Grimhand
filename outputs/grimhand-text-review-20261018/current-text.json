@@ -1,0 +1,441 @@
+{
+    "cards": [
+        {
+            "id": "b_axe_cut",
+            "name": "裂斧斩",
+            "type": "Attack",
+            "description": "【前/中】造成8伤害。有狂怒时消耗1点，额外造成4伤害。",
+            "cost": 1,
+            "rarity": 0,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_iron_guard",
+            "name": "铁臂架挡",
+            "type": "Defense",
+            "description": "获得10护甲。",
+            "cost": 1,
+            "rarity": 0,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_counter_cut",
+            "name": "反击重劈",
+            "type": "Attack",
+            "description": "【前/中】造成14伤害。最多消耗2点狂怒，每点使本牌伤害+4。",
+            "cost": 2,
+            "rarity": 0,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_hold_anger",
+            "name": "压住怒火",
+            "type": "Status",
+            "description": "【快速启动】【消耗】获得1点狂怒。",
+            "cost": 1,
+            "rarity": 0,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_axe_feint",
+            "name": "斧柄佯攻",
+            "type": "Attack",
+            "description": "【前/中】造成5伤害，使目标获得10%虚弱（2回合）。",
+            "cost": 1,
+            "rarity": 0,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_stand_firm",
+            "name": "立稳脚步",
+            "type": "Defense",
+            "description": "获得8护甲。若自身处于前排，与中排友方交换位置。",
+            "cost": 1,
+            "rarity": 0,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_sweeping_edge",
+            "name": "横斧破阵",
+            "type": "Attack",
+            "description": "【AOE】造成7伤害。消耗1点狂怒，清除自身的虚弱和易伤；没有狂怒仍可攻击。",
+            "cost": 2,
+            "rarity": 1,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_axe_crush",
+            "name": "破甲重劈",
+            "type": "Attack",
+            "description": "【前/中】造成12伤害。伤害前移除目标一半护甲（向下取整），每移除2护甲，本牌伤害+1。",
+            "cost": 2,
+            "rarity": 1,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_measured_guard",
+            "name": "忍痛架挡",
+            "type": "Defense",
+            "description": "获得9护甲；消耗所有狂怒，若消耗了狂怒，额外获得等同于出牌时自身已有护甲的护甲。",
+            "cost": 1,
+            "rarity": 1,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_advance",
+            "name": "踏阵",
+            "type": "Status",
+            "description": "【快速启动】与前排友方交换位置；已在前排则不换位。获得5护甲。",
+            "cost": 1,
+            "rarity": 1,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_mark_prey",
+            "name": "锁定猎物",
+            "type": "Status",
+            "description": "【前/中/后】使目标获得15%易伤（2回合）。",
+            "cost": 1,
+            "rarity": 1,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_turn_aside",
+            "name": "侧斧卸力",
+            "type": "Defense",
+            "description": "【应对攻击】获得45%减伤。成功应对时获得1点狂怒；本牌每次使用最多获得1点。",
+            "cost": 1,
+            "rarity": 1,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_short_hack",
+            "name": "短柄追击",
+            "type": "Attack",
+            "description": "【前/中】造成7伤害。若目标本回合已被攻击，额外造成4伤害。",
+            "cost": 1,
+            "rarity": 1,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_quiet_anger",
+            "name": "沉怒",
+            "type": "Status",
+            "description": "【消耗】获得2点狂怒。",
+            "cost": 1,
+            "rarity": 1,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_split_helm",
+            "name": "裂盔",
+            "type": "Attack",
+            "description": "【前/中】造成24伤害。最多消耗3点狂怒，每点使伤害+5。",
+            "cost": 3,
+            "rarity": 2,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_two_hacks",
+            "name": "回斧连斩",
+            "type": "Attack",
+            "description": "【前/中】对同一目标造成6伤害两次。最多消耗2点狂怒，每点使每段伤害+2。",
+            "cost": 2,
+            "rarity": 2,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_rear_cleave",
+            "name": "贯阵斧",
+            "type": "Attack",
+            "description": "【前/中】造成13伤害，并对目标身后一格的敌人造成7伤害。最多消耗2点狂怒，每点使两处伤害分别+2。",
+            "cost": 2,
+            "rarity": 2,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_bloodied_edge",
+            "name": "浴血斧锋",
+            "type": "Attack",
+            "description": "【前/中】造成16伤害。自身HP不高于50%时额外造成6伤害。",
+            "cost": 2,
+            "rarity": 2,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_iron_breath",
+            "name": "铁肺",
+            "type": "Defense",
+            "description": "获得17护甲，清除自身的虚弱。",
+            "cost": 2,
+            "rarity": 2,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_brace_assault",
+            "name": "迎锋",
+            "type": "Defense",
+            "description": "【应对攻击】获得60%减伤，反击攻击者8伤害。最多消耗2点狂怒，每点使反击伤害+3。",
+            "cost": 2,
+            "rarity": 2,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_vent_anger",
+            "name": "怒吼驱怯",
+            "type": "Status",
+            "description": "清除自身的易伤。最多消耗2点狂怒，每点获得6护甲。",
+            "cost": 1,
+            "rarity": 2,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_axe_execute",
+            "name": "追猎终结",
+            "type": "Attack",
+            "description": "【前/中】造成20伤害。击败目标后，下回合抽牌后，从自己的弃牌堆选择1张1费或以下的攻击牌加入手牌。",
+            "cost": 3,
+            "rarity": 2,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_guard_partner",
+            "name": "并肩抵御",
+            "type": "Defense",
+            "description": "自身与一名其他友方各获得12护甲。",
+            "cost": 2,
+            "rarity": 2,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_concentrated_fury",
+            "name": "专注怒意",
+            "type": "Status",
+            "description": "【消耗】本场战斗中，自身每回合首次因敌方攻击牌损失HP时，额外获得1点狂怒。",
+            "cost": 2,
+            "rarity": 2,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_whirlwind",
+            "name": "旋斧风暴",
+            "type": "Attack",
+            "description": "【AOE】造成12伤害，敌方存活人数每少于3人一人，额外造成8伤害。消耗所有狂怒；若消耗了狂怒，本牌伤害增加30%。",
+            "cost": 3,
+            "rarity": 3,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_break_line",
+            "name": "撕开战线",
+            "type": "Attack",
+            "description": "【前/中】造成19伤害。目标存活且能被换位时，与其身后一格的敌人交换位置。",
+            "cost": 3,
+            "rarity": 3,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_last_reserve",
+            "name": "留力再战",
+            "type": "Defense",
+            "description": "获得14护甲。本回合结束时，留住手中未打出的裂斧攻击牌。",
+            "cost": 2,
+            "rarity": 3,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_tempered_rage",
+            "name": "淬怒",
+            "type": "Status",
+            "description": "【消耗】本场战斗中，每回合第一次通过卡牌耗尽狂怒后，下回合抽牌后，从自己的弃牌堆选择1张防御牌加入手牌。",
+            "cost": 2,
+            "rarity": 3,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_hunters_breath",
+            "name": "猎者喘息",
+            "type": "Status",
+            "description": "【消耗】消耗最多3点狂怒，每点回复4HP。无狂怒时不能使用。",
+            "cost": 1,
+            "rarity": 3,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_duel_to_end",
+            "name": "不死不休",
+            "type": "Status",
+            "description": "【消耗】与一名敌人【死斗】。它被击败后，若战斗继续，下回合从弃牌堆取回最多3张自己的攻击牌，使其在手中时费用为0。",
+            "cost": 3,
+            "rarity": 4,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_berserker_soul",
+            "name": "狂战之魂",
+            "type": "Status",
+            "description": "【消耗】本场战斗中，攻击牌获得【继承】，自身防御牌禁用。每回合首张非消耗、非快速启动攻击可【再战】一次。",
+            "cost": 5,
+            "rarity": 4,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "b_burning_standard",
+            "name": "燃尽战旗",
+            "type": "Status",
+            "description": "【消耗】从下回合起，本场战斗中狂怒不再流失，改为全队的备用能量：每点抵扣1费，每牌最多2费。狂怒不再强化卡牌效果。",
+            "cost": 4,
+            "rarity": 4,
+            "level": 0,
+            "slot": 0
+        }
+    ],
+    "talents": [
+        {
+            "id": "talent_berserker_s1_lv1",
+            "name": "余烬",
+            "type": "",
+            "description": "越战越勇：受到敌方攻击并实际损失HP后获得1点狂怒，同一张敌牌仅触发一次，此来源每回合最多2点。狂怒上限4，从第2回合起回合开始流失1点；毒、灼烧、反伤、自伤、献祭及友伤不触发。\n额外效果：每场战斗开始时获得1点狂怒。",
+            "cost": 0,
+            "rarity": 0,
+            "level": 1,
+            "slot": 1
+        },
+        {
+            "id": "talent_berserker_s1_lv3",
+            "name": "钢铁怒意",
+            "type": "",
+            "description": "越战越勇：受到敌方攻击并实际损失HP后获得1点狂怒，同一张敌牌仅触发一次，此来源每回合最多2点。狂怒上限4，从第2回合起回合开始流失1点；毒、灼烧、反伤、自伤、献祭及友伤不触发。\n额外效果：成功应对敌方攻击时额外获得1点狂怒，每张应对牌每次使用触发一次，不占受击获取额度。",
+            "cost": 0,
+            "rarity": 0,
+            "level": 3,
+            "slot": 1
+        },
+        {
+            "id": "talent_berserker_s1_lv7",
+            "name": "踏阵",
+            "type": "",
+            "description": "越战越勇：受到敌方攻击并实际损失HP后获得1点狂怒，同一张敌牌仅触发一次，此来源每回合最多2点。狂怒上限4，从第2回合起回合开始流失1点；毒、灼烧、反伤、自伤、献祭及友伤不触发。\n额外效果：每次与其他角色成功交换位置时获得1点狂怒。",
+            "cost": 0,
+            "rarity": 0,
+            "level": 7,
+            "slot": 1
+        },
+        {
+            "id": "talent_berserker_s1_lv9",
+            "name": "压住杀意",
+            "type": "",
+            "description": "越战越勇：受到敌方攻击并实际损失HP后获得1点狂怒，同一张敌牌仅触发一次，此来源每回合最多2点。狂怒上限4，从第2回合起回合开始流失1点；毒、灼烧、反伤、自伤、献祭及友伤不触发。\n额外效果：本回合未使用裂斧的攻击牌时，下回合开始不自然流失狂怒。",
+            "cost": 0,
+            "rarity": 0,
+            "level": 9,
+            "slot": 1
+        },
+        {
+            "id": "talent_berserker_s2_lv4",
+            "name": "乘胜",
+            "type": "",
+            "description": "裂斧用实际消耗过狂怒的攻击牌击败敌人后，返还1点狂怒；每回合最多一次，整张AOE也最多一次。",
+            "cost": 0,
+            "rarity": 0,
+            "level": 4,
+            "slot": 2
+        },
+        {
+            "id": "talent_berserker_s2_lv6",
+            "name": "凿甲",
+            "type": "",
+            "description": "每回合首次通过攻击牌消耗至少2点狂怒时，在伤害前移除该牌所有攻击目标各6护甲；同一目标不因多段攻击重复触发。",
+            "cost": 0,
+            "rarity": 0,
+            "level": 6,
+            "slot": 2
+        },
+        {
+            "id": "talent_berserker_s2_lv8",
+            "name": "并肩",
+            "type": "",
+            "description": "每回合首次被其他友方实际治疗HP时，获得1点狂怒；不计自疗、溢出治疗，不重复计联动回调。",
+            "cost": 0,
+            "rarity": 0,
+            "level": 8,
+            "slot": 2
+        },
+        {
+            "id": "talent_berserker_s2_lv10",
+            "name": "留有后招",
+            "type": "",
+            "description": "每回合首次通过卡牌把狂怒从正数耗至0后，下回合开始额外抽1张牌。费用抵扣也只计一次。",
+            "cost": 0,
+            "rarity": 0,
+            "level": 10,
+            "slot": 2
+        }
+    ],
+    "keywords": [
+        {
+            "id": "berserker_repeat",
+            "name": "再战",
+            "type": "",
+            "description": "狂战之魂每回合首张符合条件的攻击产生一次虚幻的再次使用机会。独立付费和选目标，按行动顺序执行，不复制进牌库。取消原牌会连带取消再次使用。",
+            "cost": 0,
+            "rarity": 0,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "berserker_duel",
+            "name": "死斗",
+            "type": "",
+            "description": "双方存活时，使用者的单体攻击只能选择死斗目标，且可跨排攻击。目标的普通单体攻击在射程允许时优先攻击使用者；AOE和指定目标的技能不受影响。目标死亡后，若使用者仍存活且战斗继续，下回合正常抽牌后，可从自己的弃牌堆选择最多3张攻击牌加入手牌，在手中时费用为0；不能超过手牌上限。",
+            "cost": 0,
+            "rarity": 0,
+            "level": 0,
+            "slot": 0
+        },
+        {
+            "id": "berserker_fuel",
+            "name": "狂怒供能",
+            "type": "",
+            "description": "全队打牌时自动优先消耗现有狂怒抵扣费用，每点抵扣1费，每张牌最多2费。选牌预留，确认计划时支付，取消选牌释放预留。X费牌不参与。狂怒不再流失，也不再强化卡牌效果。",
+            "cost": 0,
+            "rarity": 0,
+            "level": 0,
+            "slot": 0
+        }
+    ],
+    "loreTitle": "裂斧 —— 蕾芙娜，余烬中的破阵者",
+    "loreBody": "大崩落之后，北境的部族把残存的名字刻在战旗上，带着它们迁入地底。蕾芙娜曾替族人守住通往洞窟的最后一道隘口，却没能守住身后的火光。她从灰烬里捡回一柄裂开的战斧，也带回了一面再无人应声的旗。她不肯让学者把那些名字抄进悼亡册：只要旗还没有倒下，这一页就不算写完。如今，她循着《创世叙事》的碎片踏入深处。每当旧伤绽开，她便握紧斧柄，仿佛仍能听见身后有人喊她继续向前。",
+    "unlock": "击败第20层首领后解锁。"
+}

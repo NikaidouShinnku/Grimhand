@@ -40,6 +40,10 @@ namespace Grimhand.Battle.Effects
                     return PickRandomAllyByCharacterId(state, actor.Team, action?.SummonCharacterId, rng);
                 case EffectTarget.DefaultEnemy:
                 case EffectTarget.ManualSelected:
+                    var duel = BerserkerRules.DuelTarget(state, actor, state.GetCard(cardInstanceId));
+                    if (duel != null) return duel;
+                    var challenger = BerserkerRules.EnemyDuelTarget(state, actor, action);
+                    if (challenger != null) return challenger;
                     if (TryGetTauntForcedTarget(state, actor, action, reach, out var tauntTarget))
                         return tauntTarget;
 
@@ -140,6 +144,13 @@ namespace Grimhand.Battle.Effects
         {
             if (target == null || !target.IsAlive)
                 return false;
+
+            if (cardInstanceId > 0 && state != null)
+            {
+                var card = state.GetCard(cardInstanceId);
+                var owner = state.GetCombatant(PositionRules.GetOwnerCombatantId(state, card));
+                if (BerserkerRules.DuelTarget(state, owner, card)?.Id == target.Id) return true;
+            }
 
             if (cardInstanceId > 0
                 && state?.ResolutionTargets != null
@@ -362,6 +373,8 @@ namespace Grimhand.Battle.Effects
                 if (!UsesAutoReachRoll(action))
                     continue;
 
+                var duel = BerserkerRules.EnemyDuelTarget(state, actor, action);
+                if (duel != null) return duel;
                 var target = PickRandomTargetForReach(
                     state, actor.Team, action.Reach, action, rng);
                 if (target != null)
@@ -406,6 +419,9 @@ namespace Grimhand.Battle.Effects
             {
                 return false;
             }
+
+            tauntTarget = BerserkerRules.EnemyDuelTarget(state, actor, action);
+            if (tauntTarget != null) return true;
 
             var taunt = CombatMechanicsRules.FindTauntHolder(state, TeamSide.Player);
             if (taunt == null || !taunt.IsAlive)

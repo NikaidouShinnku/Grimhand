@@ -91,10 +91,9 @@ namespace Grimhand.Presentation.Battle
                 var holder = new GameObject($"Scry_{card.InstanceId}", typeof(RectTransform), typeof(Image));
                 holder.transform.SetParent(_choiceRow, false);
                 var rt = holder.GetComponent<RectTransform>();
-                rt.sizeDelta = new Vector2(260f, 400f);
-                holder.GetComponent<Image>().color = selected
-                    ? new Color(0.35f, 0.28f, 0.12f, 0.95f)
-                    : new Color(0.14f, 0.16f, 0.22f, 0.92f);
+                rt.sizeDelta = new Vector2(248f, 310f);
+                holder.GetComponent<Image>().color = Color.clear;
+                holder.GetComponent<Image>().raycastTarget = false;
 
                 var cardGo = Instantiate(_cardPrefab.gameObject, holder.transform);
                 var cardRt = cardGo.GetComponent<RectTransform>();
@@ -193,7 +192,7 @@ namespace Grimhand.Presentation.Battle
                 return;
 
             _built = true;
-            _root = new GameObject("PsionicScryOverlay", typeof(RectTransform), typeof(Image), typeof(Canvas), typeof(GraphicRaycaster));
+            _root = new GameObject("PsionicScryOverlay", typeof(RectTransform), typeof(Image));
             _root.transform.SetParent(parent, false);
             var rootRt = _root.GetComponent<RectTransform>();
             rootRt.anchorMin = Vector2.zero;
@@ -202,37 +201,36 @@ namespace Grimhand.Presentation.Battle
             rootRt.offsetMax = Vector2.zero;
             _root.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.78f);
             _root.GetComponent<Image>().raycastTarget = true;
-            var canvas = _root.GetComponent<Canvas>();
-            canvas.overrideSorting = true;
-            canvas.sortingOrder = SortOrder;
+            ExpeditionMapOverlayLayer.MountToFront(rootRt,parent);
 
             var panel = new GameObject("Panel", typeof(RectTransform), typeof(Image));
             panel.transform.SetParent(_root.transform, false);
             var panelRt = panel.GetComponent<RectTransform>();
-            panelRt.anchorMin = new Vector2(0.12f, 0.16f);
-            panelRt.anchorMax = new Vector2(0.88f, 0.84f);
+            panelRt.anchorMin = new Vector2(0.10f, 0.10f);
+            panelRt.anchorMax = new Vector2(0.90f, 0.90f);
             panelRt.offsetMin = Vector2.zero;
             panelRt.offsetMax = Vector2.zero;
-            panel.GetComponent<Image>().color = new Color(0.08f, 0.07f, 0.12f, 0.98f);
+            panel.GetComponent<Image>().sprite = _uiIcons?.UiInformationPlate;
+            panel.GetComponent<Image>().color = Color.white;
 
             var title = CreateText(panel.transform, "灵能预知", 30, FontStyle.Bold, TextAnchor.MiddleCenter);
-            AnchorBand(title.rectTransform, 0.88f, 0.97f);
+            AnchorBand(title.rectTransform, 0.78f, 0.85f);
             title.color = new Color(0.85f, 0.78f, 1f, 1f);
 
             _hintText = CreateText(panel.transform, "", 18, FontStyle.Normal, TextAnchor.MiddleCenter);
-            AnchorBand(_hintText.rectTransform, 0.78f, 0.87f);
+            AnchorBand(_hintText.rectTransform, 0.67f, 0.77f);
 
             var rowGo = new GameObject("Choices", typeof(RectTransform), typeof(HorizontalLayoutGroup));
             rowGo.transform.SetParent(panel.transform, false);
             _choiceRow = rowGo.GetComponent<RectTransform>();
-            AnchorBand(_choiceRow, 0.16f, 0.76f);
+            AnchorBand(_choiceRow, 0.23f, 0.65f);
             var layout = rowGo.GetComponent<HorizontalLayoutGroup>();
             layout.spacing = 28f;
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.childControlWidth = false;
             layout.childControlHeight = false;
 
-            _confirmButton = CreateButton(panel.transform, "确认", new Vector2(0.5f, 0.07f), new Vector2(220f, 52f), OnConfirm);
+            _confirmButton = CreateButton(panel.transform, "确认", new Vector2(0.5f, 0.16f), new Vector2(220f, 52f), OnConfirm);
             _root.SetActive(false);
         }
 
@@ -253,7 +251,7 @@ namespace Grimhand.Presentation.Battle
             return text;
         }
 
-        static Button CreateButton(Transform parent, string label, Vector2 anchor, Vector2 size, Action onClick)
+        Button CreateButton(Transform parent, string label, Vector2 anchor, Vector2 size, Action onClick)
         {
             var go = new GameObject(label, typeof(RectTransform), typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
@@ -263,13 +261,14 @@ namespace Grimhand.Presentation.Battle
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.sizeDelta = size;
             rt.anchoredPosition = Vector2.zero;
-            go.GetComponent<Image>().color = new Color(0.28f, 0.22f, 0.4f, 0.98f);
+            go.GetComponent<Image>().sprite = _uiIcons?.UiButton3;
+            go.GetComponent<Image>().color = Color.white;
             var text = CreateText(go.transform, label, 22, FontStyle.Bold, TextAnchor.MiddleCenter);
             var textRt = text.rectTransform;
             textRt.anchorMin = Vector2.zero;
             textRt.anchorMax = Vector2.one;
-            textRt.offsetMin = Vector2.zero;
-            textRt.offsetMax = Vector2.zero;
+            textRt.offsetMin = new Vector2(8f,4f);
+            textRt.offsetMax = new Vector2(-8f,-4f);
             var btn = go.GetComponent<Button>();
             btn.onClick.AddListener(() => onClick?.Invoke());
             return btn;

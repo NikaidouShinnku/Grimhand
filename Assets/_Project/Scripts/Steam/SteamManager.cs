@@ -1,5 +1,5 @@
 // Based on Steamworks.NET SteamManager sample (public domain).
-// Adapted for Grimhand AppID 3111710.
+// Adapted for The Grimhand AppID 5111710 (Depot 5111712 is not the App ID).
 
 #if !(UNITY_STANDALONE_WIN || UNITY_STANDALONE_LINUX || UNITY_STANDALONE_OSX || STEAMWORKS_WIN || STEAMWORKS_LIN_OSX)
 #define DISABLESTEAMWORKS
@@ -15,7 +15,7 @@ namespace Grimhand.Steam
     [DisallowMultipleComponent]
     public class SteamManager : MonoBehaviour
     {
-        public const uint AppId = 3111710;
+        public const uint AppId = 5111710;
 
 #if !DISABLESTEAMWORKS
         protected static bool s_EverInitialized;

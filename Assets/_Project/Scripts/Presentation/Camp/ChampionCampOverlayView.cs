@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Grimhand.Battle.Model;
+using Grimhand.Battle.Rules;
 using Grimhand.Content;
 using Grimhand.Expedition;
 using Grimhand.Expedition.Model;
@@ -250,6 +251,7 @@ namespace Grimhand.Presentation.Camp
         {
             _roster = roster;
             _meta = meta;
+            _playableCharacters = CollectPlayableCharacters();
             _accountGold = accountGold;
             _collection = collection;
             _collectionCapacity = collectionCapacity;
@@ -356,6 +358,7 @@ namespace Grimhand.Presentation.Camp
                     list.Add(fromSetup);
             }
 
+            list.RemoveAll(c => !CharacterUnlockRules.IsUnlocked(_meta, c.CharacterId));
             list.Sort((a, b) => IndexOfPlayable(a.CharacterId).CompareTo(IndexOfPlayable(b.CharacterId)));
             return list;
         }

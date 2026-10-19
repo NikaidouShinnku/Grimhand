@@ -1,0 +1,643 @@
+{
+  "character": {
+    "id": "char_berserker",
+    "name": "裂斧",
+    "title": "荒原狂战士",
+    "baseHp": 76,
+    "baseSpd": 5,
+    "hpPerLevel": 6,
+    "levels": [
+      {
+        "level": 1,
+        "hp": 76,
+        "spd": 5
+      },
+      {
+        "level": 2,
+        "hp": 82,
+        "spd": 5
+      },
+      {
+        "level": 3,
+        "hp": 88,
+        "spd": 5
+      },
+      {
+        "level": 4,
+        "hp": 94,
+        "spd": 5
+      },
+      {
+        "level": 5,
+        "hp": 100,
+        "spd": 5
+      },
+      {
+        "level": 6,
+        "hp": 106,
+        "spd": 5
+      },
+      {
+        "level": 7,
+        "hp": 112,
+        "spd": 5
+      },
+      {
+        "level": 8,
+        "hp": 118,
+        "spd": 5
+      },
+      {
+        "level": 9,
+        "hp": 124,
+        "spd": 5
+      },
+      {
+        "level": 10,
+        "hp": 130,
+        "spd": 5
+      },
+      {
+        "level": 11,
+        "hp": 136,
+        "spd": 5
+      },
+      {
+        "level": 12,
+        "hp": 142,
+        "spd": 5
+      },
+      {
+        "level": 13,
+        "hp": 148,
+        "spd": 5
+      },
+      {
+        "level": 14,
+        "hp": 154,
+        "spd": 5
+      },
+      {
+        "level": 15,
+        "hp": 160,
+        "spd": 5
+      },
+      {
+        "level": 16,
+        "hp": 166,
+        "spd": 5
+      },
+      {
+        "level": 17,
+        "hp": 172,
+        "spd": 5
+      },
+      {
+        "level": 18,
+        "hp": 178,
+        "spd": 5
+      },
+      {
+        "level": 19,
+        "hp": 184,
+        "spd": 5
+      },
+      {
+        "level": 20,
+        "hp": 190,
+        "spd": 5
+      }
+    ],
+    "startingDeck": [
+      {
+        "id": "b_axe_cut",
+        "count": 3
+      },
+      {
+        "id": "b_iron_guard",
+        "count": 2
+      },
+      {
+        "id": "b_counter_cut",
+        "count": 1
+      },
+      {
+        "id": "b_hold_anger",
+        "count": 1
+      }
+    ],
+    "innate": {
+      "id": "pressure_to_rage",
+      "name": "承压生怒",
+      "usesTalentSlot": true,
+      "status": "不再是固有能力；仅由装备的栏位一天赋提供基础受击积怒。此字段名仅兼容旧评审脚本。每个栏位一节点均包含此规则和各自的额外效果。",
+      "description": "受到敌方攻击并损失HP后获得1点狂怒；同牌一次，每回合由此最多2点。上限4；第2回合起，每回合开始流失1点。",
+      "excluded": [
+        "完全护甲吸收",
+        "中毒",
+        "灼烧",
+        "反伤",
+        "献祭",
+        "自伤",
+        "友伤"
+      ],
+      "death": "清零",
+      "resolution": "强化消费在卡牌执行时发生一次，覆盖整牌所有段/目标；不能提前消费预期受击所得。"
+    },
+    "playerFacingUI": {
+      "camp": "没有角色固有能力；狂怒基础规则并入每个栏位一天赋。底部五框固定位置、箭头分页，原五人在第一页，裂斧在第二页。",
+      "selection": "与原角色相同的角色名、等级和立绘，不添加裂斧专属属性悬浮框或额外标签。",
+      "battle": "独立狂怒图标、4格计量槽、0/4数字；获取/消耗/流失有不同提示",
+      "cards": "基础伤害与当前怒强化分开预览，不保证未来受击所得",
+      "legendaryPayment": "燃尽战旗下回合生效，草稿中显式开启狂怒抵扣，确认时预留；X费不参加",
+      "spectralRepeat": "选牌阶段首张合格攻击产生半透明再次使用机会。独立支付、选目标，按正常行动顺序执行；不复制进牌库。取消原牌连带取消虚幻牌并分别退款。"
+    },
+    "status": "已接入Unity角色、卡池与界面。数值平衡仍需完整远征实战检验。"
+  },
+  "cards": [
+    {
+      "id": "b_axe_cut",
+      "name": "裂斧斩",
+      "cost": 1,
+      "type": "攻击",
+      "rarity": "白",
+      "description": "【前/中】造成8伤害。有狂怒时消耗1点，额外造成4伤害。",
+      "maxUpgrades": 5,
+      "upgrade": "基础伤害+1",
+      "xp": 8,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_iron_guard",
+      "name": "铁臂架挡",
+      "cost": 1,
+      "type": "防御",
+      "rarity": "白",
+      "description": "获得10护甲。",
+      "maxUpgrades": 5,
+      "upgrade": "护甲+1",
+      "xp": 8,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_counter_cut",
+      "name": "反击重劈",
+      "cost": 2,
+      "type": "攻击",
+      "rarity": "白",
+      "description": "【前/中】造成14伤害。最多消耗2点狂怒，每点使本牌伤害+4。",
+      "maxUpgrades": 5,
+      "upgrade": "基础伤害+1",
+      "xp": 8,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_hold_anger",
+      "name": "压住怒火",
+      "cost": 1,
+      "type": "状态",
+      "rarity": "白",
+      "description": "【快速启动】【消耗】获得1点狂怒。",
+      "maxUpgrades": 0,
+      "upgrade": "不可升级",
+      "xp": 0,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_axe_feint",
+      "name": "斧柄佯攻",
+      "cost": 1,
+      "type": "攻击",
+      "rarity": "白",
+      "description": "【前/中】造成5伤害，使目标获得10%虚弱（2回合）。",
+      "maxUpgrades": 5,
+      "upgrade": "伤害+1",
+      "xp": 8,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_stand_firm",
+      "name": "立稳脚步",
+      "cost": 1,
+      "type": "防御",
+      "rarity": "白",
+      "description": "获得8护甲；若自身处于前排，额外获得3护甲。",
+      "maxUpgrades": 5,
+      "upgrade": "基础护甲+1",
+      "xp": 8,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_sweeping_edge",
+      "name": "横斧破阵",
+      "cost": 2,
+      "type": "攻击",
+      "rarity": "绿",
+      "description": "【AOE】造成7伤害。最多消耗2点狂怒，每点使本牌对所有目标的伤害+2。",
+      "maxUpgrades": 5,
+      "upgrade": "基础伤害+1",
+      "xp": 10,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_axe_crush",
+      "name": "破甲重劈",
+      "cost": 2,
+      "type": "攻击",
+      "rarity": "绿",
+      "description": "【前/中】造成12伤害，使目标获得20%破损（2回合）。",
+      "maxUpgrades": 5,
+      "upgrade": "伤害+1",
+      "xp": 10,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_measured_guard",
+      "name": "忍痛架挡",
+      "cost": 1,
+      "type": "防御",
+      "rarity": "绿",
+      "description": "获得9护甲；有狂怒时消耗1点，额外获得6护甲。",
+      "maxUpgrades": 5,
+      "upgrade": "基础护甲+1",
+      "xp": 10,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_advance",
+      "name": "踏阵",
+      "cost": 1,
+      "type": "状态",
+      "rarity": "绿",
+      "description": "【快速启动】与前排友方交换位置；已在前排则不换位。获得5护甲。",
+      "maxUpgrades": 5,
+      "upgrade": "护甲+1",
+      "xp": 10,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_mark_prey",
+      "name": "锁定猎物",
+      "cost": 1,
+      "type": "状态",
+      "rarity": "绿",
+      "description": "【前/中/后】使目标获得15%易伤（2回合）。",
+      "maxUpgrades": 3,
+      "upgrade": "易伤+3个百分点",
+      "xp": 10,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_turn_aside",
+      "name": "侧斧卸力",
+      "cost": 1,
+      "type": "防御",
+      "rarity": "绿",
+      "description": "【应对攻击】获得45%减伤。成功应对时获得1点狂怒；本牌每次使用最多获得1点。",
+      "maxUpgrades": 5,
+      "upgrade": "减伤+4个百分点",
+      "xp": 10,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_short_hack",
+      "name": "短柄追击",
+      "cost": 1,
+      "type": "攻击",
+      "rarity": "绿",
+      "description": "【前/中】造成7伤害。若目标本回合已被攻击，额外造成4伤害。",
+      "maxUpgrades": 5,
+      "upgrade": "基础伤害+1",
+      "xp": 10,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_quiet_anger",
+      "name": "沉怒",
+      "cost": 1,
+      "type": "状态",
+      "rarity": "绿",
+      "description": "【消耗】获得2点狂怒。",
+      "maxUpgrades": 0,
+      "upgrade": "不可升级",
+      "xp": 0,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_split_helm",
+      "name": "裂盔",
+      "cost": 3,
+      "type": "攻击",
+      "rarity": "蓝",
+      "description": "【前/中】造成24伤害。最多消耗3点狂怒，每点使伤害+5。",
+      "maxUpgrades": 5,
+      "upgrade": "基础伤害+2",
+      "xp": 15,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_two_hacks",
+      "name": "回斧连斩",
+      "cost": 2,
+      "type": "攻击",
+      "rarity": "蓝",
+      "description": "【前/中】对同一目标造成6伤害两次。最多消耗2点狂怒，每点使每段伤害+2。",
+      "maxUpgrades": 5,
+      "upgrade": "每段基础伤害+1",
+      "xp": 15,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_rear_cleave",
+      "name": "贯阵斧",
+      "cost": 2,
+      "type": "攻击",
+      "rarity": "蓝",
+      "description": "【前/中】造成13伤害，并对目标身后一格的敌人造成7伤害。最多消耗2点狂怒，每点使两处伤害分别+2。",
+      "maxUpgrades": 5,
+      "upgrade": "主目标伤害+2",
+      "xp": 15,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_bloodied_edge",
+      "name": "浴血斧锋",
+      "cost": 2,
+      "type": "攻击",
+      "rarity": "蓝",
+      "description": "【前/中】造成16伤害。自身HP不高于50%时额外造成6伤害。",
+      "maxUpgrades": 5,
+      "upgrade": "基础伤害+2",
+      "xp": 15,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_iron_breath",
+      "name": "铁肺",
+      "cost": 2,
+      "type": "防御",
+      "rarity": "蓝",
+      "description": "获得17护甲，清除自身的虚弱。",
+      "maxUpgrades": 5,
+      "upgrade": "护甲+2",
+      "xp": 15,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_brace_assault",
+      "name": "迎锋",
+      "cost": 2,
+      "type": "防御",
+      "rarity": "蓝",
+      "description": "【应对攻击】获得60%减伤，反击攻击者8伤害。最多消耗2点狂怒，每点使反击伤害+3。",
+      "maxUpgrades": 5,
+      "upgrade": "反击伤害+1",
+      "xp": 15,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_vent_anger",
+      "name": "怒吼驱怯",
+      "cost": 1,
+      "type": "状态",
+      "rarity": "蓝",
+      "description": "清除自身的易伤。最多消耗2点狂怒，每点获得6护甲。",
+      "maxUpgrades": 5,
+      "upgrade": "每点狂怒护甲+1",
+      "xp": 15,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_axe_execute",
+      "name": "追猎终结",
+      "cost": 3,
+      "type": "攻击",
+      "rarity": "蓝",
+      "description": "【前/中】造成20伤害。击败目标后，下回合抽牌后，从自己的弃牌堆选择1张1费或以下的攻击牌加入手牌。",
+      "maxUpgrades": 5,
+      "upgrade": "伤害+2",
+      "xp": 15,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_guard_partner",
+      "name": "并肩抵御",
+      "cost": 2,
+      "type": "防御",
+      "rarity": "蓝",
+      "description": "自身与一名其他友方各获得12护甲。不转移伤害。",
+      "maxUpgrades": 5,
+      "upgrade": "两者护甲各+1",
+      "xp": 15,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_concentrated_fury",
+      "name": "专注怒意",
+      "cost": 2,
+      "type": "状态",
+      "rarity": "蓝",
+      "description": "【消耗】本场战斗中，自身每回合首次因敌方攻击牌损失HP时，额外获得1点狂怒。",
+      "maxUpgrades": 0,
+      "upgrade": "不可升级",
+      "xp": 0,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_whirlwind",
+      "name": "旋斧风暴",
+      "cost": 3,
+      "type": "攻击",
+      "rarity": "紫",
+      "description": "【AOE】造成12伤害。消耗所有狂怒，每点使本牌对所有目标的伤害+3。",
+      "maxUpgrades": 5,
+      "upgrade": "基础伤害+1",
+      "xp": 20,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_break_line",
+      "name": "撕开战线",
+      "cost": 3,
+      "type": "攻击",
+      "rarity": "紫",
+      "description": "【前/中】造成19伤害。目标存活且能被换位时，与其身后一格的敌人交换位置。",
+      "maxUpgrades": 5,
+      "upgrade": "伤害+2",
+      "xp": 20,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_last_reserve",
+      "name": "留力再战",
+      "cost": 2,
+      "type": "防御",
+      "rarity": "紫",
+      "description": "获得14护甲。本回合结束时，留住手中未打出的裂斧攻击牌。",
+      "maxUpgrades": 5,
+      "upgrade": "护甲+2",
+      "xp": 20,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_tempered_rage",
+      "name": "淬怒",
+      "cost": 2,
+      "type": "状态",
+      "rarity": "紫",
+      "description": "【消耗】本场战斗中，每回合第一次通过卡牌耗尽狂怒后，下回合抽牌后，从自己的弃牌堆选择1张防御牌加入手牌。",
+      "maxUpgrades": 0,
+      "upgrade": "不可升级",
+      "xp": 0,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_hunters_breath",
+      "name": "猎者喘息",
+      "cost": 1,
+      "type": "状态",
+      "rarity": "紫",
+      "description": "【消耗】消耗最多3点狂怒，每点回复4HP。无狂怒时不能使用。",
+      "maxUpgrades": 3,
+      "upgrade": "每点治疗+1",
+      "xp": 20,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_duel_to_end",
+      "name": "不死不休",
+      "cost": 3,
+      "type": "状态",
+      "rarity": "橙",
+      "description": "【消耗】与一名敌人【死斗】。它被击败后，若战斗继续，下回合从弃牌堆取回最多3张自己的攻击牌，使其在手中时费用为0。",
+      "maxUpgrades": 0,
+      "upgrade": "不可升级",
+      "xp": 0,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_berserker_soul",
+      "name": "狂战之魂",
+      "cost": 5,
+      "type": "状态",
+      "rarity": "橙",
+      "description": "【消耗】本场战斗中，攻击牌获得【继承】，自身防御牌禁用。每回合首张非消耗、非快速启动攻击可【再战】一次。",
+      "maxUpgrades": 0,
+      "upgrade": "不可升级",
+      "xp": 0,
+      "status": "已接入游戏；平衡待多局实战检验"
+    },
+    {
+      "id": "b_burning_standard",
+      "name": "燃尽战旗",
+      "cost": 4,
+      "type": "状态",
+      "rarity": "橙",
+      "description": "【消耗】从下回合起，本场战斗中狂怒不再流失，改为全队的备用能量：每点抵扣1费，每牌最多2费。狂怒不再强化卡牌效果。",
+      "maxUpgrades": 0,
+      "upgrade": "不可升级",
+      "xp": 0,
+      "status": "已接入游戏；平衡待多局实战检验"
+    }
+  ],
+  "talents": [
+    {
+      "level": 1,
+      "slot": 1,
+      "name": "余烬",
+      "description": "每场战斗开始时获得1点狂怒。"
+    },
+    {
+      "level": 3,
+      "slot": 1,
+      "name": "钢铁怒意",
+      "description": "成功应对敌方攻击且未损失HP，也能触发承压生怒；仍同牌一次、每回合由此最多2点，不重复获取受击奖励。"
+    },
+    {
+      "level": 5,
+      "slot": 1,
+      "name": "血性",
+      "description": "自身HP不高于50%时，承压生怒每次改为获得2点；每回合由此获得总量仍最多2点。"
+    },
+    {
+      "level": 7,
+      "slot": 1,
+      "name": "踏阵",
+      "description": "每回合首次从中/后排换到前排时获得1点狂怒。"
+    },
+    {
+      "level": 9,
+      "slot": 1,
+      "name": "压住杀意",
+      "description": "本回合未使用裂斧的攻击牌时，下回合开始不自然流失狂怒。"
+    },
+    {
+      "level": 10,
+      "slot": 1,
+      "name": "怒而不竭",
+      "description": "狂怒仅在偶数回合开始自然流失1点。"
+    },
+    {
+      "level": 2,
+      "slot": 2,
+      "name": "收势护身",
+      "description": "每回合首次通过非攻击牌消耗至少1点狂怒后，获得4护甲。"
+    },
+    {
+      "level": 4,
+      "slot": 2,
+      "name": "乘胜",
+      "description": "裂斧用实际消耗过狂怒的攻击牌击败敌人后，返还1点狂怒；每回合最多一次，整张AOE也最多一次。"
+    },
+    {
+      "level": 6,
+      "slot": 2,
+      "name": "凿甲",
+      "description": "每回合首次通过攻击牌消耗至少2点狂怒时，在该牌首次伤害前移除主目标6护甲；不按每段/每目标重复。"
+    },
+    {
+      "level": 8,
+      "slot": 2,
+      "name": "并肩",
+      "description": "每回合首次被其他友方实际治疗HP时，获得1点狂怒；不计自疗、溢出治疗，不重复计联动回调。"
+    },
+    {
+      "level": 10,
+      "slot": 2,
+      "name": "留有后招",
+      "description": "每回合首次通过卡牌把狂怒从正数耗至0后，下回合开始额外抽1张牌。费用抵扣也只计一次。"
+    }
+  ],
+  "icons": [
+    {
+      "id": "rage",
+      "name": "狂怒",
+      "visual": "铁护手握拳＋两道红刻痕；有限资源，不能画成剑与增伤箭头",
+      "display": "角色下方0/4和四格槽",
+      "fileStatus": "已提供32/128像素候选及16/24/32尺寸对照；待Unity验收",
+      "file": "icons/rage.png"
+    },
+    {
+      "id": "duel",
+      "name": "死斗",
+      "visual": "两把对向斧或交叉锁环",
+      "display": "双方同标记；悬停写明合法目标限制和结束条件",
+      "fileStatus": "语义与规格方案，尚未制作"
+    },
+    {
+      "id": "berserker_soul",
+      "name": "狂战之魂",
+      "visual": "保留的攻击牌＋划掉的盾",
+      "display": "继承与自身防御禁用同时说明",
+      "fileStatus": "语义与规格方案，尚未制作"
+    },
+    {
+      "id": "burning_standard",
+      "name": "燃尽战旗",
+      "visual": "短红旗＋能量符号",
+      "display": "共享能量区显示狂怒抵扣模式、金额与预留量",
+      "fileStatus": "语义与规格方案，尚未制作"
+    }
+  ],
+  "verification": "2026-10-18：819项Unity EditMode测试通过。隔离Play Mode训练验证狂战之魂启动、虚幻再战、39+29伤害、燃尽战旗抵扣后24+24伤害、真实弃牌选择回收与零费恢复。未完成完整远征平衡校准。"
+}

@@ -25,6 +25,11 @@ namespace Grimhand.Persistence
         public string[] seenEnemyCardIds = Array.Empty<string>();
         public string[] seenRelicIds = Array.Empty<string>();
         public bool hasCompletedTutorial;
+        public bool berserkerUnlocked;
+        public bool lichUnlocked;
+        public string[] achievementIds = Array.Empty<string>();
+        public int completedEngravings;
+        public string achievementSteamAccountId = "";
     }
 
     [Serializable]

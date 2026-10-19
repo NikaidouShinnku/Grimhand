@@ -122,6 +122,19 @@ namespace Grimhand.Editor
             AddCharacterVisuals(catalog, "char_ranger", "characters/devil", "devil", hitPortraitFacesRight: false);
             AddCharacterVisuals(catalog, "char_snake_queen", "characters/snake queen", "snakequeen", hitPortraitFacesRight: false);
             AddCharacterVisuals(catalog, "char_lich_queen", "characters/lich queen", "lichqueen", hitPortraitFacesRight: false);
+            var berserker = new CharacterVisualEntry
+            {
+                CharacterId = "char_berserker",
+                IdlePortrait = LoadPortraitSprite("characters/berserker/idle.png"),
+                AttackPortrait = LoadPortraitSprite("characters/berserker/attack.png"),
+                DefensePortrait = LoadPortraitSprite("characters/berserker/defend.png"),
+                HitPortrait = LoadPortraitSprite("characters/berserker/hit.png"),
+                DeathPortrait = LoadPortraitSprite("characters/berserker/defeat.png"),
+                CardProfilePortrait = LoadPortraitSprite("characters/berserker/card_profile.png"),
+                IdleAnimationGifPath = "The Grimhands Asset/characters/berserker/berserker_anim.gif",
+                PreserveOriginalFacing = true, HitPortraitFacesRight = true
+            };
+            if (berserker.IdlePortrait != null) catalog.Entries.Add(berserker);
             FixLichQueenDeathPortrait(catalog);
             FixLichQueenPosePortraits(catalog);
             AddIdleOnlyVisual(catalog, "char_goblin", "monsters/goblin_idle_1024.png");

@@ -1,0 +1,38 @@
+{
+  "CharacterId": "char_berserker",
+  "PixelsPerUnit": 100,
+  "MipMap": false,
+  "Filter": "Point候选，实际需和旧角色并排核对",
+  "CanvasLogical": [
+    224,
+    192
+  ],
+  "FrameScale": 8,
+  "FootBaselineLogicalY": 168,
+  "IdlePortrait": "berserker_idle.png",
+  "AttackPortrait": "berserker_attack_contact.png",
+  "DefensePortrait": "berserker_defense.png",
+  "HitPortrait": "berserker_hit.png",
+  "DeathPortrait": "berserker_death.png",
+  "CardProfilePortrait": "berserker_card_profile.png",
+  "IdleAnimationFrames": [
+    "berserker_idle_00.png",
+    "berserker_idle_00.png",
+    "berserker_idle_00.png",
+    "berserker_idle_00.png",
+    "berserker_idle_00.png",
+    "berserker_idle_00.png",
+    "berserker_idle_00.png",
+    "berserker_idle_01.png",
+    "berserker_idle_01.png",
+    "berserker_idle_01.png",
+    "berserker_idle_01.png",
+    "berserker_idle_01.png",
+    "berserker_idle_01.png",
+    "berserker_idle_01.png",
+    "berserker_idle_00.png",
+    "berserker_idle_00.png"
+  ],
+  "PreserveOriginalFacing": true,
+  "RuntimeIntegration": "未实施；不得直接假设多关键帧已自动接入。宽画布需要核对显示大小与缩放。"
+}

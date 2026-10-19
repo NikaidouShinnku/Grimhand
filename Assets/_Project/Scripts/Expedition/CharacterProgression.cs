@@ -97,6 +97,7 @@ namespace Grimhand.Expedition
             var index = level - 1;
             return characterDefinitionId switch
             {
+                "char_berserker" => new CharacterStats(76 + index * 6, 5),
                 "char_knight" or "char_warrior" => new CharacterStats(WarriorHp[index], WarriorSpeed),
                 "char_mage" or "char_pharaoh" => new CharacterStats(PharaohHp[index], PharaohSpeed),
                 "char_ranger" or "char_demon" => new CharacterStats(DemonHp[index], DemonSpeed),

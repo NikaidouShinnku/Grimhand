@@ -65,6 +65,11 @@ namespace Grimhand.Persistence
         public ExpeditionPendingCardPackOfferSaveData pendingCardPackOffer;
         public StringStringListPair[] runStartCampDecks = Array.Empty<StringStringListPair>();
         public StringIntListPair[] extractedCampCollectionIndices = Array.Empty<StringIntListPair>();
+        public bool wasAbandoned;
+        public bool achievementsDisabled;
+        public bool achievementRelicEvolved;
+        public bool isTrainingGround;
+        public int achievementBattleStartConsumableCount;
     }
 
     [Serializable]

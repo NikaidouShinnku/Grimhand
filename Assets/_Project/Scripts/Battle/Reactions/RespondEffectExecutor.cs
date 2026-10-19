@@ -84,6 +84,8 @@ namespace Grimhand.Battle.Reactions
 
             if (triggered)
             {
+                state.AchievementTelemetry.Responded(state, actor, enemyCard);
+                BerserkerRules.Responded(state, actor, card, context.EnemyCardInstanceId, events);
                 events.Add(new BattleEvent(BattleEventKind.ReactionTriggered, card.DisplayName)
                 {
                     CombatantId = actor.Id,

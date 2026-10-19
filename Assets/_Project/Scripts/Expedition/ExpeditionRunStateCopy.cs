@@ -52,6 +52,10 @@ namespace Grimhand.Expedition
             target.ChestRewardRevealed = source.ChestRewardRevealed;
             target.IsTrainingGround = source.IsTrainingGround;
             target.IsTutorialRun = source.IsTutorialRun;
+            target.WasAbandoned = source.WasAbandoned;
+            target.AchievementsDisabled = source.AchievementsDisabled;
+            target.AchievementRelicEvolved = source.AchievementRelicEvolved;
+            target.AchievementBattleStartConsumableCount = source.AchievementBattleStartConsumableCount;
             target.CurrentBattleConfig = null;
 
             CopyParty(source.Party, target.Party, config, hydrate);

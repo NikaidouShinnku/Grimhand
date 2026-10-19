@@ -12,6 +12,13 @@ namespace Grimhand.Battle.Model
 
     public sealed class BattleState
     {
+        AchievementBattleTelemetry achievementTelemetry = new();
+        // Snapshot/object-initializer copies must never share mutable achievement progress.
+        public AchievementBattleTelemetry AchievementTelemetry
+        {
+            get => achievementTelemetry;
+            set => achievementTelemetry = value?.Copy() ?? new AchievementBattleTelemetry();
+        }
         public BattleConfig Config { get; set; } = new();
         public int TurnNumber { get; set; } = 1;
         public TurnPhase Phase { get; set; } = TurnPhase.Draw;
@@ -76,6 +83,11 @@ namespace Grimhand.Battle.Model
         public Dictionary<int, string> ResolutionTargets { get; } = new();
 
         public int NextCardInstanceId { get; set; } = 1;
+        public HashSet<string> BerserkerSoulOwners { get; } = new();
+        public Dictionary<string, BerserkerBattleContext> Berserkers { get; } = new();
+        public List<BerserkerRecall> BerserkerRecalls { get; } = new();
+        public Dictionary<int, BerserkerRagePayment> BerserkerRagePayments { get; } = new();
+        public HashSet<int> BerserkerResolvedAttackIdsThisTurn { get; } = new();
         public int NextSummonInstanceId { get; set; } = 1;
 
         /// <summary>本场战斗中已死亡的鼠人数量（含召唤鼠）；用于鼠群狂怒全局叠层。</summary>

@@ -100,6 +100,9 @@ namespace Grimhand.Battle.Rules
             if (actor == null || card == null || actor.Team != TeamSide.Player)
                 return false;
 
+            if (BerserkerSoulRules.BlocksDefense(actor, card))
+                return true;
+
             // 祈求等硬锁：任何牌都不能用（不受缠绕白名单影响）。
             if (actor.IsHardCardsLocked)
                 return true;
@@ -120,14 +123,18 @@ namespace Grimhand.Battle.Rules
             BattleState state,
             CombatantState actor,
             CardInstanceState card,
-            List<BattleEvent> events)
+            List<BattleEvent> events,
+            string reasonOverride = null)
         {
             RefundEnergy(state, card, events);
-            var reason = actor.IsHardCardsLocked
+            BerserkerRules.RefundRagePayment(state, card, events);
+            var reason = reasonOverride ?? (actor.IsHardCardsLocked
                 ? "出牌被锁定"
+                : BerserkerSoulRules.BlocksDefense(actor,card)
+                    ? "狂战之魂期间无法使用自身防御牌"
                 : actor.IsConstrictCardsLocked
                     ? "缠绕期间无法出牌"
-                    : "攻击牌被锁定";
+                    : "攻击牌被锁定");
             events.Add(new BattleEvent(
                 BattleEventKind.ReactionTriggered,
                 $"{actor.DisplayName} {reason}，{card.DisplayName} 未生效")
@@ -196,6 +203,9 @@ namespace Grimhand.Battle.Rules
                 var queuedOwnerId = PositionRules.GetOwnerCombatantId(state, queued);
                 if (queuedOwnerId != owner.Id)
                     continue;
+
+                if (queued.DefinitionId == BerserkerSoulRules.CardId && candidate.CardType == CardType.Defense)
+                    return true;
 
                 if (AppliesHardSelfLock(queued))
                     queueHasHardLock = true;

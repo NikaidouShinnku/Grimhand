@@ -39,6 +39,14 @@ namespace Grimhand.Presentation.Battle
                 return "";
 
             var lines = new List<string>(4);
+            var berserker = BerserkerRules.Get(state, combatant);
+            if (berserker != null)
+            {
+                if (BerserkerRules.ShowRage(state, combatant))
+                    lines.Add($"狂怒 {berserker.Rage}/4 " + new string('■', berserker.Rage) + new string('□', 4-berserker.Rage));
+                if (BerserkerRules.BannerActive(state, berserker)) lines.Add("燃尽战旗：供能模式");
+                if (!string.IsNullOrEmpty(berserker.DuelTargetId)) lines.Add("死斗：" + (state.GetCombatant(berserker.DuelTargetId)?.DisplayName ?? ""));
+            }
 
             var bloodRage = BattleUiFormatters.FormatBloodRageDisplay(combatant.BloodRageStacks);
             if (!string.IsNullOrEmpty(bloodRage))

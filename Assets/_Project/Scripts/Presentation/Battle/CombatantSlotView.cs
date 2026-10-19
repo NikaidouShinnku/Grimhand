@@ -42,6 +42,7 @@ namespace Grimhand.Presentation.Battle
         const float BossEnemyPortraitExtraDownPx = PlayerPortraitExtraDownPx;
         const float PortraitTop = 0.88f;
         const float FootStatusDropPx = 2f;
+        const float PlayerFootHudDropPx = 54f;
         const float HoverScaleMul = 1.07f;
         const float TargetScaleMul = 1.05f;
         const float HitboxPadding = 2f;
@@ -95,6 +96,7 @@ namespace Grimhand.Presentation.Battle
         bool _enemyLayoutLocked;
         string _displayedCharacterDefinitionId;
         float _unifiedHpBarWorldY;
+        float _unifiedFeetWorldY;
         Vector3 _footWorldOffsetFromPortraitFoot;
 
         public float GetHpBarWorldY()
@@ -112,10 +114,11 @@ namespace Grimhand.Presentation.Battle
             _hpBarLayoutCombatantId = null;
             // 不要清 _displayedCharacterDefinitionId：召唤刷新时否则会误判角色更换并 ApplyStatusAnchorLayout 把中央立绘瞬移回槽
             _unifiedHpBarWorldY = 0f;
+            _unifiedFeetWorldY = 0f;
             _footWorldOffsetFromPortraitFoot = Vector3.zero;
         }
 
-        public void EnsureFixedEnemyHpBarLayout(float playerHpBarWorldY)
+        public void EnsureFixedEnemyHpBarLayout(float playerHpBarWorldY,float? playerFeetWorldY=null)
         {
             if (team != TeamSide.Enemy || string.IsNullOrEmpty(_combatantId))
                 return;
@@ -142,11 +145,14 @@ namespace Grimhand.Presentation.Battle
             if (footRoot == null)
                 return;
 
-            var deltaWorld = playerHpBarWorldY - footRoot.position.y;
+            // A judgment box ends around the shins, not at the visible feet.
+            // Ground the sprite first; position the independent HUD afterwards.
+            var deltaWorld = (playerFeetWorldY??playerHpBarWorldY) - GetPortraitFootWorldPosition().y;
             if (Mathf.Abs(deltaWorld) > 0.01f && portraitRoot != null)
                 portraitRoot.position += new Vector3(0f, deltaWorld, 0f);
 
             _unifiedHpBarWorldY = playerHpBarWorldY;
+            _unifiedFeetWorldY = playerFeetWorldY??playerHpBarWorldY;
             _hpBarLayoutCombatantId = _combatantId;
             _enemyLayoutLocked = true;
 
@@ -223,6 +229,8 @@ namespace Grimhand.Presentation.Battle
                      && _enemyLayoutLocked
                      && (_portraitView.IsAnimating || _portraitView.IsAwayFromHome))
                 ApplyEnemyFootDuringAnimation();
+            else if(team==TeamSide.Enemy&&_enemyLayoutLocked)
+                ApplyIdleEnemyFootLayout();
         }
 
         void TryInferSlotFromName()
@@ -450,6 +458,14 @@ namespace Grimhand.Presentation.Battle
             if (_portraitView != null && !_portraitView.IsAwayFromHome && !_portraitView.IsAnimating)
                 _portraitView.RestoreHomePosition();
 
+            if(portraitRoot!=null)
+            {
+                // Keep pose/hover/target scaling on the captured ground line.
+                var dy=_unifiedFeetWorldY-GetPortraitFootWorldPosition().y;
+                if(Mathf.Abs(dy)>.01f)portraitRoot.position+=new Vector3(0,dy,0);
+                _portraitView?.RecaptureHomePosition();
+            }
+
             ApplyFootFollowPortrait();
         }
 
@@ -503,6 +519,10 @@ namespace Grimhand.Presentation.Battle
 
         Vector3 GetPortraitFootWorldPosition()
         {
+            if(team==TeamSide.Player&&portraitRoot!=null)
+                return PlayerPortraitLayout.GroundWorldPosition(portraitRoot,_currentVisuals);
+            if(portraitImage?.sprite!=null)
+                return PlayerPortraitLayout.VisibleSpriteFootWorldPosition(portraitImage);
             var hitRect = _portraitHit != null ? _portraitHit : portraitRoot;
             if (hitRect == null)
                 return Vector3.zero;
@@ -740,6 +760,10 @@ namespace Grimhand.Presentation.Battle
 
         public Vector3 GetFeetWorldPosition()
         {
+            if(team==TeamSide.Player&&portraitRoot!=null)
+                return PlayerPortraitLayout.GroundWorldPosition(portraitRoot,_currentVisuals);
+            if(portraitImage?.sprite!=null)
+                return PlayerPortraitLayout.VisibleSpriteFootWorldPosition(portraitImage);
             if (_portraitHit != null)
             {
                 var corners = new Vector3[4];
@@ -1090,6 +1114,8 @@ namespace Grimhand.Presentation.Battle
                 (corners[0].x + corners[2].x) * 0.5f,
                 corners[0].y,
                 corners[0].z);
+            if(team==TeamSide.Player&&portraitRoot!=null)
+                footWorld=PlayerPortraitLayout.GroundWorldPosition(portraitRoot,_currentVisuals);
 
             var slotRt = transform as RectTransform;
             if (slotRt == null)
@@ -1104,9 +1130,7 @@ namespace Grimhand.Presentation.Battle
                     slotRt, footWorld, cam, out var localFoot))
                 return;
 
-            localFoot.y -= FootStatusDropPx;
-            if (team == TeamSide.Player)
-                localFoot.y += _presentationYOffsetLocal;
+            localFoot.y -= team==TeamSide.Player?PlayerFootHudDropPx:FootStatusDropPx;
 
             footRoot.anchorMin = new Vector2(0.5f, 0.5f);
             footRoot.anchorMax = new Vector2(0.5f, 0.5f);
@@ -1129,11 +1153,18 @@ namespace Grimhand.Presentation.Battle
                 JudgmentMaxWidthRatio,
                 HitboxPadding);
 
+            if(team==TeamSide.Player&&PlayerPortraitLayout.TryGetGeometry(portraitRoot,_currentVisuals,out var ground,out var bodyHeight))
+            {
+                PlayerPortraitLayout.Apply(portraitRoot,portraitImage,_currentVisuals,_currentUnit?.CharacterDefinitionId,portraitImage?.sprite);
+                _portraitHit.sizeDelta=new Vector2(_portraitHit.sizeDelta.x,bodyHeight);
+                _portraitHit.anchoredPosition=new Vector2(0,ground+bodyHeight*.5f-portraitRoot.rect.height*.5f);
+            }
+
             var offsetX = 0f;
             var characterId = _currentUnit?.CharacterDefinitionId;
             if (characterId is "char_knight" or "char_warrior")
                 offsetX = WarriorJudgmentOffsetX;
-            _portraitHit.anchoredPosition = new Vector2(offsetX, 0f);
+            _portraitHit.anchoredPosition = new Vector2(offsetX, team==TeamSide.Player?_portraitHit.anchoredPosition.y:0f);
 
             RefreshJudgmentGhostVisuals(_currentUnit);
         }
@@ -1202,19 +1233,18 @@ namespace Grimhand.Presentation.Battle
 
             var rt = _targetOutlineImage.rectTransform;
             var src = portraitImage.rectTransform;
-            // 与立绘同一套 stretch 布局，只等比放大 localScale（不改长宽比）
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
-            rt.anchoredPosition = Vector2.zero;
+            // Copy actual image geometry, including player foot-aligned layout.
+            rt.anchorMin = src.anchorMin;
+            rt.anchorMax = src.anchorMax;
+            rt.pivot = src.pivot;
+            rt.sizeDelta = src.sizeDelta;
+            rt.anchoredPosition = src.anchoredPosition;
             rt.localRotation = Quaternion.identity;
             var flipX = src.localScale.x < 0f ? -1f : 1f;
             rt.localScale = new Vector3(flipX * TargetOutlineScaleMul, TargetOutlineScaleMul, 1f);
 
             _targetOutlineImage.sprite = portraitImage.sprite;
-            _targetOutlineImage.preserveAspect = true;
+            _targetOutlineImage.preserveAspect = portraitImage.preserveAspect;
             _targetOutlineImage.type = Image.Type.Simple;
             var mat = GetWhiteSilhouetteMaterial();
             if (mat != null)

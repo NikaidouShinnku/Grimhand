@@ -29,6 +29,22 @@ namespace Grimhand.Presentation.Battle
                 return list;
 
             var byId = new Dictionary<string, int>();
+            var berserker = BerserkerRules.Get(state, combatant);
+            if (berserker != null && combatant.IsAlive && BerserkerRules.ShowRage(state, combatant))
+                byId["berserker_rage"] = berserker.Rage;
+            if(combatant.IsAlive)
+            {
+                if(berserker?.BannerStartTurn>0)byId["berserker_banner"]=1;
+                if(berserker?.Concentrated==true)byId["berserker_concentrated"]=1;
+                if(berserker?.Tempered==true)byId["berserker_tempered"]=1;
+                if(berserker?.TemporaryRetains.Count>0)byId["berserker_retain"]=1;
+                if(BerserkerSoulRules.IsActive(state,combatant))byId["berserker_soul"]=1;
+                if(state!=null)foreach(var pair in state.Berserkers)
+                    if(pair.Value.DuelTargetId!=null && state.GetCombatant(pair.Key)?.IsAlive==true
+                        && state.GetCombatant(pair.Value.DuelTargetId)?.IsAlive==true
+                        && (pair.Key==combatant.Id||pair.Value.DuelTargetId==combatant.Id))
+                        byId["berserker_duel"]=1;
+            }
             foreach (var status in combatant.Statuses)
             {
                 if (status == null || status.Stacks <= 0 || string.IsNullOrEmpty(status.StatusId))
@@ -87,7 +103,7 @@ namespace Grimhand.Presentation.Battle
 
             foreach (var pair in byId)
             {
-                if (pair.Value <= 0)
+                if (pair.Value <= 0 && pair.Key != "berserker_rage")
                     continue;
                 list.Add(new FootStatusEntry { StatusId = pair.Key, Stacks = pair.Value });
             }

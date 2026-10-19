@@ -268,6 +268,9 @@ namespace Grimhand.Presentation.Battle
             if (card == null)
                 return "";
 
+            var berserkerText = BerserkerCardCatalog.Describe(card);
+            if (berserkerText != null) return FormatBerserkerNumbers(state,draft,card,berserkerText,damagePreviewTarget);
+
             card = HolysunSpellbookRules.ApplyForDisplay(state, card);
 
             var ownerId = state != null ? PositionRules.GetOwnerCombatantId(state, card) : null;
@@ -403,10 +406,12 @@ namespace Grimhand.Presentation.Battle
             IReadOnlyDictionary<string, CardDefinitionSO> definitions = null)
         {
             var line = BuildCardStatsLine(state, draft, card, preferFormulas: false, damagePreviewTarget, definitions);
+            if (card != null && BerserkerCardCatalog.Get(card.DefinitionId) != null) return line;
             if (state == null || card == null || SpecialCardRules.IsSpecialCard(card)) return line;
             var displayCard = HolysunSpellbookRules.ApplyForDisplay(state, card);
             var owner = state.GetCombatant(PositionRules.GetOwnerCombatantId(state, displayCard));
             if (owner == null) return line;
+            displayCard = BerserkerRules.PreviewForPlanning(state, draft, displayCard);
             var target = ResolveDamagePreviewTarget(state, draft, displayCard, owner, damagePreviewTarget);
             var previews = new List<string>();
             foreach (var action in displayCard.Actions)
@@ -466,7 +471,44 @@ namespace Grimhand.Presentation.Battle
             card = CardVisualResolver.ResolveForDescription(card, definitions);
             var ownerId = state != null ? PositionRules.GetOwnerCombatantId(state, card) : null;
             var owner = ownerId != null && state != null ? state.GetCombatant(ownerId) : null;
-            return CardKeywordTooltipBuilder.BuildRichTooltip(card, owner);
+            var tooltip = CardKeywordTooltipBuilder.BuildRichTooltip(card, owner);
+            return tooltip;
+        }
+
+        static string FormatBerserkerNumbers(BattleState state,PlanningDraft draft,CardInstanceState card,string text,CombatantState selectedTarget)
+        {
+            if(state==null)return text;
+            var owner=state.GetCombatant(PositionRules.GetOwnerCombatantId(state,card));if(owner==null)return text;
+            var target=ResolveDamagePreviewTarget(state,draft,card,owner,selectedTarget);
+            var prepared=BerserkerRules.PreviewForPlanning(state,draft,HolysunSpellbookRules.ApplyForDisplay(state,card),target);
+            var damageDone=false;var blockDone=false;
+            foreach(var action in prepared.Actions)
+            {
+                string pattern=null;int amount=0;
+                if(action.Type==EffectActionType.DealDamage&&!damageDone)
+                {
+                    amount=target!=null&&action.Target!=EffectTarget.AllEnemies
+                        ?CardPreviewRules.PreviewHpDamageAgainstTarget(state,owner,prepared,action,target)
+                        :CardPreviewRules.ComputeExpectedDamage(state,owner,prepared,action);
+                    pattern="(造成|反击攻击者)([0-9]+)(伤害)";damageDone=true;
+                }
+                else if(action.Type==EffectActionType.GainBlock&&!blockDone)
+                {amount=CardPreviewRules.ComputeExpectedBlock(state,owner,action);pattern="(获得|各获得)([0-9]+)(护甲)";blockDone=true;}
+                if(pattern!=null)text=new System.Text.RegularExpressions.Regex(pattern).Replace(text,m=>m.Groups[1].Value+CardFaceNumberFormatter.Format(amount,int.Parse(m.Groups[2].Value))+m.Groups[3].Value,1);
+            }
+            if(card.DefinitionId=="b_rear_cleave")
+            {
+                var original=card.Actions.Find(a=>a.Type==EffectActionType.DealDamage);
+                var primary=prepared.Actions.Find(a=>a.Type==EffectActionType.DealDamage);
+                if(original!=null&&primary!=null)
+                {
+                    var splash=EffectActionSpec.Clone(primary);splash.Value=7+primary.Value-original.Value;
+                    var behind=target!=null?PositionRules.GetCombatantBehind(state,target):null;
+                    var amount=behind!=null?CardPreviewRules.PreviewHpDamageAgainstTarget(state,owner,prepared,splash,behind):CardPreviewRules.ComputeExpectedDamage(state,owner,prepared,splash);
+                    text=new System.Text.RegularExpressions.Regex("(敌人造成)([0-9]+)(伤害)").Replace(text,m=>m.Groups[1].Value+CardFaceNumberFormatter.Format(amount,int.Parse(m.Groups[2].Value))+m.Groups[3].Value,1);
+                }
+            }
+            return text;
         }
 
         static bool UsesManualPick(EffectActionSpec action, TargetPickSide pickSide)
@@ -1611,6 +1653,26 @@ namespace Grimhand.Presentation.Battle
                 return "";
 
             var sb = new StringBuilder();
+            var rage = BerserkerRules.Get(state, unit);
+            if(unit.IsAlive && rage!=null)
+            {
+                AppendStatusTooltipEntry(sb,rage.BannerStartTurn>0,"燃尽战旗",
+                    BerserkerRules.BannerActive(state,rage)?"本场战斗狂怒不再流失，全队出牌自动优先用狂怒抵扣费用：每点抵扣1费，每牌最多2费，X费牌除外。狂怒不再强化卡牌效果。":"下回合起生效：狂怒不再流失，并自动为全队抵扣出牌费用，不再强化卡牌效果。");
+                AppendStatusTooltipEntry(sb,rage.Concentrated,"专注怒意","本场战斗每回合首次因敌方攻击牌损失HP时，额外获得1点狂怒。");
+                AppendStatusTooltipEntry(sb,rage.Tempered,"淬怒","本场战斗每回合第一次通过卡牌耗尽狂怒后，下回合抽牌后，从自己的弃牌堆选择1张防御牌加入手牌。");
+                AppendStatusTooltipEntry(sb,rage.TemporaryRetains.Count>0,"留力再战","本回合结束时，保留受此效果影响且仍在手中的攻击牌；打出后照常离开手牌。");
+            }
+            AppendStatusTooltipEntry(sb,BerserkerSoulRules.IsActive(state,unit),"狂战之魂",BerserkerSoulRules.Description);
+            if(state!=null && unit.IsAlive)foreach(var pair in state.Berserkers)
+                if(pair.Value.DuelTargetId!=null && state.GetCombatant(pair.Key)?.IsAlive==true
+                    && state.GetCombatant(pair.Value.DuelTargetId)?.IsAlive==true
+                    && (pair.Key==unit.Id||pair.Value.DuelTargetId==unit.Id))
+                    if(KeywordCatalog.TryGet("berserker_duel",out var duelKeyword))
+                        AppendStatusTooltipEntry(sb,true,"死斗",duelKeyword.Description);
+            if (rage != null && BerserkerRules.ShowRage(state, unit))
+                AppendStatusTooltipEntry(sb, true, $"狂怒 {rage.Rage}/4", (BerserkerRules.HasRageTalent(state) ? "栏位一天赋：" + BerserkerRules.InnateDescription : "由卡牌或天赋效果获得的狂怒；上限4，从第2回合起回合开始流失1点。")
+                    + $" 本回合基础获取已用{rage.BaseGainThisTurn}/2。"
+                    + (BerserkerRules.BannerActive(state, rage) ? "燃尽战旗已生效：狂怒仅用于抵扣费用，不再强化卡牌效果。" : ""));
             AppendStatusTooltipEntry(sb, unit.CardsLockedTurnsRemaining > 0,
                 "禁出牌", $"剩余 {unit.CardsLockedTurnsRemaining} 回合无法出牌");
             AppendStatusTooltipEntry(sb, unit.ConstrictLockTurnsRemaining > 0,

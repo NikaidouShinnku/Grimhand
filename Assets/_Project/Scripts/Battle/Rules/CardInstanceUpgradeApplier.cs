@@ -214,6 +214,7 @@ namespace Grimhand.Battle.Rules
             var clone = new CardInstanceState
             {
                 InstanceId = source.InstanceId,
+                SpectralRepeatSourceId = source.SpectralRepeatSourceId,
                 DefinitionId = source.DefinitionId,
                 OwnerCharacterId = source.OwnerCharacterId,
                 OwnerCombatantId = source.OwnerCombatantId,

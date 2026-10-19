@@ -48,9 +48,7 @@ namespace Grimhand.Presentation.Battle
             _root = new GameObject(
                 "FelskullChoiceOverlay",
                 typeof(RectTransform),
-                typeof(Image),
-                typeof(Canvas),
-                typeof(GraphicRaycaster));
+                typeof(Image));
             _root.transform.SetParent(parent, false);
             var rt = _root.GetComponent<RectTransform>();
             rt.anchorMin = Vector2.zero;
@@ -61,9 +59,7 @@ namespace Grimhand.Presentation.Battle
             dim.color = new Color(0f, 0f, 0f, 0.5f);
             dim.raycastTarget = true;
 
-            var canvas = _root.GetComponent<Canvas>();
-            canvas.overrideSorting = true;
-            canvas.sortingOrder = SortOrder;
+            ExpeditionMapOverlayLayer.MountToFront(rt,parent);
 
             var panelGo = new GameObject("Panel", typeof(RectTransform), typeof(Image));
             panelGo.transform.SetParent(_root.transform, false);

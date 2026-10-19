@@ -161,9 +161,15 @@ namespace Grimhand.Expedition
             out string message)
         {
             message = "";
-            if (run == null || profile?.Collection == null || string.IsNullOrEmpty(definitionId))
+            if (run == null || profile?.Collection == null || string.IsNullOrEmpty(definitionId) || string.IsNullOrEmpty(deckInstanceId))
             {
                 message = "无法刻印：数据无效。";
+                return false;
+            }
+
+            if (IsDeckInstanceEngraved(run, deckInstanceId))
+            {
+                message = "该卡牌已刻印。";
                 return false;
             }
 
@@ -173,6 +179,7 @@ namespace Grimhand.Expedition
 
             ClearPending(run, deckInstanceId);
             RemoveLockKeywordFromParty(run, deckInstanceId);
+            AchievementRules.OnEngraved(run, profile, definitionId);
             message = "刻印成功：卡牌已写入军营收藏。";
             return true;
         }
